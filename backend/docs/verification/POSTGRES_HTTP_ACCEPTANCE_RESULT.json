@@ -138,5 +138,12 @@
     "trackedUsers": 3,
     "trackedOrganizations": 2,
     "syntheticThrottleKeysHandled": 3
+  },
+  "currentHeadAcceptance": "NOT_VERIFIED",
+  "evidenceClass": "HISTORICAL_ACCEPTANCE_SNAPSHOT",
+  "evidenceBinding": {
+    "commit": "c4e01908607004bbc913ebe29992813cfaed3f38",
+    "pipelineId": null,
+    "note": "Disposable-engine acceptance PASS recorded outside a CI pipeline. Public release proof treats this as historical until commit+pipelineId match the release candidate exactly."
   }
 }
