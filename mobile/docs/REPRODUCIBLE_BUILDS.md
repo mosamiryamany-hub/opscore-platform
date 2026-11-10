@@ -2,17 +2,19 @@
 
 The mobile package includes `eas.json` with development, preview/internal, and production build profiles.
 
-## Current evidence
+## Current source evidence
 
-- Mobile source contract: PASS.
+- Mobile source contract: checked by `mobile/scripts/verify-mobile.js`; this is a static source-contract check, not device certification.
 - EAS build configuration: PRESENT.
-- Signed Android artifact: UNVERIFIED.
-- Signed iOS artifact: UNVERIFIED.
+- `mobile/package-lock.json`: PRESENT in the current source tree and used by `npm ci` in the release workflow.
+- Clean extracted-archive install: must be evidenced by the exact archive-producing workflow; a lockfile's presence alone is not proof of reproducibility.
+- Signed Android APK/AAB: UNVERIFIED.
+- Signed iOS IPA: UNVERIFIED.
 - Physical-device certification: UNVERIFIED.
-- `mobile/package-lock.json`: NOT INCLUDED because lockfile generation could not be completed in the isolated/offline execution environment. This is intentionally not represented as reproducible-install certification.
+- Store submission/approval: UNVERIFIED.
 
-## Release procedure
+## Release verification
 
-In a networked release environment, generate and commit `mobile/package-lock.json`, then use `npm ci`, run `npm run verify`, build Android/iOS through the chosen EAS profiles, record build identifiers, and perform physical-device acceptance tests.
+The exact-head secure-release workflow runs the mobile dependency installation, `release-preflight.js`, and `npm run verify`. The package builder then extracts the completed archive into a clean temporary directory and repeats `npm ci`, release preflight, and mobile verification. The workflow artifact and its attestation are the evidence for that specific run; prior run results must not be reused.
 
-No signed artifact or store certification is claimed by the presence of `eas.json` alone.
+Buyer-specific EAS project linkage, signing credentials, native Android/iOS builds, physical-device testing, store submission, and store approval remain separate gates. No signed artifact or store certification is claimed by the presence of `eas.json` or the source lockfile alone.
