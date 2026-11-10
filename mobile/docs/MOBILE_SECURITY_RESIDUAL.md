@@ -18,7 +18,7 @@ The CI gate blocks any High or Critical finding. Moderate and Low findings remai
 
 ## Current audit evidence
 
-The authoritative locked-tree audit is the full `mobile/mobile-dependency-audit.json` artifact attached to the same exact-head pipeline that produces OPSCORE.zip. The previous-candidate table below is historical only. CI blocks High/Critical findings; Moderate/Low findings must be disclosed. Do not claim the mobile dependency tree is vulnerability-free.
+The authoritative locked-tree audit is regenerated from the current lockfile during the exact-head secure-release workflow and is attached to the same run that produces OPSCORE.zip. The previous-candidate table below is historical only and must not be presented as current counts. The workflow blocks High/Critical findings; Moderate/Low findings must be disclosed. Do not claim the mobile dependency tree is vulnerability-free.
 
 ## Findings
 
