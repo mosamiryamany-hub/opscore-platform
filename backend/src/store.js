@@ -843,7 +843,7 @@ class Store {
     const passwordHash = user && user.status === 'active' ? user.password_hash : DUMMY_PASSWORD_HASH;
     const passwordValid = await verifyPasswordAsync(String(password ?? ''), passwordHash);
     if (!user || user.status !== 'active' || !passwordValid) {
-      this._recordLoginFailure(throttleKey);
+      try { this._recordLoginFailure(throttleKey); } catch (_) { /* throttle accounting must never mask credential denial */ }
       throw new Error('INVALID_CREDENTIALS');
     }
     this._clearLoginThrottle(throttleKey);
@@ -904,7 +904,7 @@ class Store {
     const passwordHash = user && user.status === 'active' ? user.password_hash : DUMMY_PASSWORD_HASH;
     const passwordValid = verifyPassword(String(password ?? ''), passwordHash);
     if (!user || user.status !== 'active' || !passwordValid) {
-      this._recordLoginFailure(throttleKey);
+      try { this._recordLoginFailure(throttleKey); } catch (_) { /* throttle accounting must never mask credential denial */ }
       throw new Error('INVALID_CREDENTIALS');
     }
     this._clearLoginThrottle(throttleKey);
