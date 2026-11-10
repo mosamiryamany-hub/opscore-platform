@@ -97,7 +97,9 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
     OPSC_RELEASE_CI_COMMIT: identity.commitSha,
     OPSC_RELEASE_CI_PIPELINE_ID: identity.pipelineId,
     OPSC_RELEASE_CI_REF: identity.ref,
-    OPSC_SOURCE_COMMIT_SHA: identity.commitSha
+    OPSC_SOURCE_COMMIT_SHA: identity.commitSha,
+    OPSC_RELEASE_PACKAGE_SHA256: identity.packageSha256 || env.OPSC_RELEASE_PACKAGE_SHA256,
+    OPSC_RELEASE_PACKAGE_COMMIT: identity.packageCommit || identity.commitSha || env.OPSC_RELEASE_PACKAGE_COMMIT
   } : env;
   const deployment = createDeploymentProof(proofEnv, now);
   const releaseTag = normalizedReleaseTag(proofEnv.OPSC_RELEASE_TAG || proofEnv.CI_COMMIT_TAG);

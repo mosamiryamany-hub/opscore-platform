@@ -67,8 +67,6 @@ jobs:
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-      - name: Embed current GitHub Actions release identity
-        run: node scripts/write-vercel-release-identity.js
       - name: Compute package fingerprint for this commit
         id: package_fp
         run: |
@@ -79,6 +77,11 @@ jobs:
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
           echo "PACKAGE_SHA256=$sha"
           echo "PACKAGE_COMMIT=$GITHUB_SHA"
+      - name: Embed current GitHub Actions release identity
+        run: node scripts/write-vercel-release-identity.js
+        env:
+          OPSC_RELEASE_PACKAGE_SHA256: ${{ steps.package_fp.outputs.sha }}
+          OPSC_RELEASE_PACKAGE_COMMIT: ${{ github.sha }}
       - name: Build project artifacts
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:

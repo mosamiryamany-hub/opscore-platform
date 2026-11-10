@@ -23,6 +23,12 @@ function createIdentity(env = process.env) {
   const runUrl = serverUrl && /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository)
     ? `${serverUrl}/${repository}/actions/runs/${pipelineId}`
     : null;
+  const packageSha = String(env.OPSC_RELEASE_PACKAGE_SHA256 || '').trim().toLowerCase();
+  const packageCommit = String(env.OPSC_RELEASE_PACKAGE_COMMIT || commitSha).trim().toLowerCase();
+  const HASH_RE = /^(?:[a-f0-9]{64})$/;
+  if (packageSha && !HASH_RE.test(packageSha)) throw new Error('PACKAGE_SHA256_INVALID');
+  if (packageSha && packageCommit !== commitSha) throw new Error('PACKAGE_COMMIT_MISMATCH');
+
   return {
     schemaVersion: 'opscore.vercel-release-identity.v1',
     deploymentSource: 'github-actions-cli',
@@ -31,7 +37,9 @@ function createIdentity(env = process.env) {
     runAttempt: Number(runAttempt),
     ref: refName,
     repository: /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository) ? repository : null,
-    runUrl
+    runUrl,
+    packageSha256: packageSha || null,
+    packageCommit: packageSha ? packageCommit : null
   };
 }
 
@@ -47,7 +55,7 @@ function writeIdentity(outputPath = OUTPUT_PATH, env = process.env) {
 
 if (require.main === module) {
   const result = writeIdentity();
-  console.log(`VERCEL_RELEASE_IDENTITY=PASS ref=${result.identity.ref} run=${result.identity.pipelineId} commit=${result.identity.commitSha}`);
+  console.log(`VERCEL_RELEASE_IDENTITY=PASS ref=${result.identity.ref} run=${result.identity.pipelineId} commit=${result.identity.commitSha} package=${result.identity.packageSha256 || 'none'}`);
 }
 
 module.exports = { OUTPUT_PATH, createIdentity, writeIdentity };
