@@ -1,7 +1,7 @@
 {
   "schemaVersion": "opscore.postgres-http-acceptance.v1",
-  "generatedAt": "2026-11-10T15:58:23.818Z",
-  "completedAt": "2026-11-10T15:58:27.695Z",
+  "generatedAt": "2026-11-10T21:21:13.496Z",
+  "completedAt": "2026-11-10T21:21:16.531Z",
   "status": "PASS",
   "scope": "application HTTP surface over an isolated PostgreSQL database",
   "productionCertification": false,
@@ -14,8 +14,8 @@
     "roleBypassesRls": false,
     "target": "postgresql://opscore_accept_runtime:***@ep-mute-sun-bcahhoei.c-16.us-east-1.aws.neon.tech/opscore_http_acceptance"
   },
-  "commit": "bd50782ad39504a2bf1030e946d8a72c4e26d13d",
-  "pipelineId": 42849906319,
+  "commit": "d784afe2babb14f8f4d573938d922d6002dd7fae",
+  "pipelineId": 42904142878,
   "checks": [
     {
       "id": "isolated-database-verified",
@@ -50,12 +50,12 @@
     {
       "id": "identity-membership-resolved",
       "status": "PASS",
-      "detail": "/api/v1/me returned user usr_a6b18a2f-039f-4b7a-a43a-9b4c0b62a868 in organization org_59cdbfd7-02ad-4446-b491-cf55b32749b5 over PostgreSQL"
+      "detail": "/api/v1/me returned user usr_e6ea4a35-2bdf-4a5f-bf27-21733aa749d4 in organization org_5584446f-5a72-4119-a0f3-500ebe88e50c over PostgreSQL"
     },
     {
       "id": "tenant-a-resources-created",
       "status": "PASS",
-      "detail": "customer and work order created through HTTP API inside tenant org_59cdbfd7-02ad-4446-b491-cf55b32749b5"
+      "detail": "customer and work order created through HTTP API inside tenant org_5584446f-5a72-4119-a0f3-500ebe88e50c"
     },
     {
       "id": "synthetic-fixtures-created-under-rls",
@@ -65,7 +65,7 @@
     {
       "id": "session-tenant-binding-across-two-tenants",
       "status": "PASS",
-      "detail": "tenant B session resolved to org_9be45262b12045bd8b28374b, distinct from tenant A org_59cdbfd7-02ad-4446-b491-cf55b32749b5"
+      "detail": "tenant B session resolved to org_625b6fb1cda74e3d8ea4f0e6, distinct from tenant A org_5584446f-5a72-4119-a0f3-500ebe88e50c"
     },
     {
       "id": "cross-tenant-read-denied",
@@ -142,10 +142,10 @@
   "currentHeadAcceptance": "NOT_VERIFIED",
   "evidenceClass": "HISTORICAL_ACCEPTANCE_SNAPSHOT",
   "evidenceBinding": {
-    "commit": "bd50782ad39504a2bf1030e946d8a72c4e26d13d",
-    "pipelineId": 42849906319,
+    "commit": "d784afe2babb14f8f4d573938d922d6002dd7fae",
+    "pipelineId": 42904142878,
     "workflow": "PostgreSQL HTTP Acceptance",
-    "runUrl": "https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/42849906319",
-    "note": "Disposable-engine CI acceptance. productionCertification false. Public isolation remains NOT_CERTIFIED."
+    "runUrl": "https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/42904142878",
+    "note": "CI disposable acceptance PASS. productionCertification false. Isolation NOT_CERTIFIED."
   }
 }
