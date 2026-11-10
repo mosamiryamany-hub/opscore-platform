@@ -1,0 +1,80 @@
+name: PostgreSQL HTTP Acceptance
+
+on:
+  workflow_dispatch:
+  # Not on every push: requires disposable Neon acceptance URL secret and
+  # must not couple to the production runtime role password.
+  # Operators run this deliberately, then bind release proof env vars.
+
+permissions:
+  contents: read
+
+jobs:
+  http-acceptance:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Require disposable acceptance URL
+        env:
+          OPSC_PG_ACCEPTANCE_URL: ${{ secrets.OPSC_PG_ACCEPTANCE_URL }}
+        run: |
+          if [ -z "${OPSC_PG_ACCEPTANCE_URL}" ]; then
+            echo "OPSC_PG_ACCEPTANCE_URL secret is not configured."
+            exit 1
+          fi
+          # Refuse production host markers and non-acceptance database names.
+          case "${OPSC_PG_ACCEPTANCE_URL}" in
+            *ep-winter-leaf*) echo "Refusing production host marker"; exit 1 ;;
+          esac
+          echo "Acceptance URL secret is present (value not printed)."
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.4'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci --omit=dev --ignore-scripts
+
+      - name: Run PostgreSQL HTTP commercial acceptance
+        working-directory: backend
+        env:
+          OPSC_PG_ACCEPTANCE_URL: ${{ secrets.OPSC_PG_ACCEPTANCE_URL }}
+          OPSC_PG_ACCEPTANCE_RESULT_FILE: ${{ github.workspace }}/POSTGRES_HTTP_ACCEPTANCE_RESULT.json
+          CI_COMMIT_SHA: ${{ github.sha }}
+          CI_PIPELINE_ID: ${{ github.run_id }}
+        run: node --test --test-force-exit test/postgres-commercial-acceptance-http.test.js
+
+      - name: Summarize result
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json, pathlib
+          p = pathlib.Path('POSTGRES_HTTP_ACCEPTANCE_RESULT.json')
+          if not p.exists():
+            print('result_missing')
+            raise SystemExit(0)
+          d = json.loads(p.read_text())
+          print('status', d.get('status'))
+          print('checks', len(d.get('checks') or []))
+          print('commit', d.get('commit'))
+          print('pipelineId', d.get('pipelineId'))
+          print('role', (d.get('environment') or {}).get('connectedRole'))
+          print('productionCertification', d.get('productionCertification'))
+          PY
+
+      - name: Upload acceptance evidence artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: postgres-http-acceptance-${{ github.run_id }}
+          path: POSTGRES_HTTP_ACCEPTANCE_RESULT.json
+          if-no-files-found: warn
