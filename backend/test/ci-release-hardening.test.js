@@ -96,15 +96,26 @@ test('PostgreSQL acceptance workflow requires a separate host allowlist secret',
   assert.equal((workflow.match(/OPSC_PG_ACCEPTANCE_HOST:\s*\$\{\{ secrets\.OPSC_PG_ACCEPTANCE_HOST \}\}/g) || []).length, 2);
 });
 
-test('secure release workflow is tag-only, version-bound and supplies complete GitHub run identity', () => {
+test('secure release workflow supports version-bound tags and guarded exact-main dispatch', () => {
   const workflow = read('.github/workflows/opscore-secure-release.yml');
-  assert.match(workflow, /if: github\.ref_type == 'tag' && startsWith\(github\.ref_name, 'v'\)/);
+  assert.match(workflow, /github\.ref_type == 'tag' && startsWith\(github\.ref_name, 'v'\)/);
+  assert.match(workflow, /github\.event_name == 'workflow_dispatch' && github\.ref == 'refs\/heads\/main'/);
   assert.match(workflow, /Verify release tag matches package version/);
+  assert.match(workflow, /Verify manually dispatched source is main/);
   assert.match(workflow, /git merge-base --is-ancestor/);
-  assert.match(workflow, /CI_COMMIT_TAG:\s*\$\{\{ github\.ref_name \}\}/);
+  assert.match(workflow, /CI_COMMIT_TAG:\s*\$\{\{ github\.ref_type == 'tag' && github\.ref_name \|\| '' \}\}/);
   assert.match(workflow, /CI_COMMIT_SHA:\s*\$\{\{ github\.sha \}\}/);
   assert.match(workflow, /CI_PIPELINE_ID:\s*\$\{\{ github\.run_id \}\}/);
   assert.match(workflow, /CI_JOB_NAME:\s*commercial-closure/);
+  assert.match(workflow, /Regenerate current-head forensic language evidence/);
+  assert.match(workflow, /npm run contact-center:i18n:forensic/);
+  assert.match(workflow, /Generate current mobile dependency audit/);
+  assert.match(workflow, /Generate current root dependency audit/);
+  assert.match(workflow, /MOBILE_AUDIT_REPORT_INCOMPLETE/);
+  assert.match(workflow, /ROOT_AUDIT_REPORT_INCOMPLETE/);
+  assert.match(workflow, /node scripts\/write-release-attestation\.js/);
+  assert.match(workflow, /actions\/attest@/);
+  assert.match(workflow, /Upload release and exact-run evidence/);
   assert.match(workflow, /OPSC_RELEASE_TEST_CONCURRENCY=4/);
   assert.match(read('.github/workflows/opscore-ci.yml'), /OPSC_RELEASE_TEST_CONCURRENCY=4/);
   assert.match(read('.github/workflows/vercel-deploy.yml'), /OPSC_RELEASE_TEST_CONCURRENCY=4/);

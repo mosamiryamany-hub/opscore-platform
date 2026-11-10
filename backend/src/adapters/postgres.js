@@ -28,10 +28,15 @@ function createPostgresPool({
   } catch {
     throw new Error('POSTGRES_DRIVER_MISSING: install pg before using the PostgreSQL adapter');
   }
-  const sslMode = String(process.env.OPSC_PG_SSL_MODE || 'require').trim().toLowerCase();
+  const isProduction = String(process.env.NODE_ENV || 'development').trim().toLowerCase() === 'production';
+  // Production must verify both the certificate chain and the database hostname.
+  // Keep the less strict "require" mode available only for non-production development
+  // and isolated test environments.
+  const sslMode = String(process.env.OPSC_PG_SSL_MODE || (isProduction ? 'verify-full' : 'require')).trim().toLowerCase();
   if (!['disable', 'require', 'verify-full'].includes(sslMode)) throw new Error('POSTGRES_SSL_MODE_INVALID');
-  if (sslMode === 'disable' && String(process.env.NODE_ENV || 'development').toLowerCase() === 'production') throw new Error('POSTGRES_TLS_REQUIRED');
-  if (sslMode !== 'disable' && String(process.env.NODE_ENV || 'development').toLowerCase() === 'production' && String(process.env.OPSC_PG_SSL_REJECT_UNAUTHORIZED || 'true').toLowerCase() !== 'true') throw new Error('POSTGRES_TLS_VERIFICATION_REQUIRED');
+  if (isProduction && sslMode === 'disable') throw new Error('POSTGRES_TLS_REQUIRED');
+  if (isProduction && sslMode !== 'verify-full') throw new Error('POSTGRES_TLS_VERIFICATION_REQUIRED');
+  if (isProduction && String(process.env.OPSC_PG_SSL_REJECT_UNAUTHORIZED || 'true').toLowerCase() !== 'true') throw new Error('POSTGRES_TLS_VERIFICATION_REQUIRED');
   const ssl = sslMode === 'disable' ? false : sslMode === 'verify-full' ? { rejectUnauthorized: true, ca: process.env.OPSC_PG_CA_CERT || undefined } : { rejectUnauthorized: true };
   return new Pool({
     connectionString,
