@@ -18,7 +18,9 @@ test('runtime policy helper grant is narrow and role-specific', () => {
 test('migration runner verifies runtime role RLS helper privileges without granting RLS bypass', () => {
   const runner = read('scripts/apply-postgres-migrations.js');
   assert.match(runner, /runtime_role_exists/);
+  assert.match(runner, /runtime_login/);
   assert.match(runner, /runtime_bypassrls/);
+  assert.match(runner, /runtime_privileged_membership_count/);
   assert.match(runner, /runtime_privileged_execute/);
   assert.match(runner, /runtime_policy_function_gap_count/);
   assert.match(runner, /runtime_control_plane_privilege_gap_count/);
