@@ -491,6 +491,13 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
         assert.equal(x.response.status, 200, JSON.stringify(x.data));
         assert.equal(x.data.valid, true);
         assert.equal(x.data.importMode, 'dry_run_only');
+        // Re-bind tenant GUCs before the post-verify count. Neon transaction poolers
+        // and concurrent session noise must not make RLS hide live tenant rows and
+        // produce a false "verify mutated data" failure.
+        await countClient.query(
+          "SELECT set_config('app.tenant_id',$1,false), set_config('app.current_tenant_id',$1,false), set_config('app.access_mode','field',false)",
+          [orgAId]
+        );
         const afterRows = await countClient.query(
           'SELECT count(*)::int AS n FROM customers WHERE organization_id = $1',
           [orgAId]

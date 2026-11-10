@@ -1,31 +1,31 @@
 {
   "schemaVersion": "opscore.postgres-http-acceptance.v1",
-  "generatedAt": "2026-11-02T10:43:05.775Z",
-  "completedAt": "2026-11-02T10:43:20.691Z",
+  "generatedAt": "2026-11-10T15:36:12.333Z",
+  "completedAt": "2026-11-10T15:36:17.184Z",
   "status": "PASS",
   "scope": "application HTTP surface over an isolated PostgreSQL database",
   "productionCertification": false,
   "environment": {
     "engine": "postgres",
     "serverVersion": "18.6",
-    "database": "buyer_acceptance_clean_20261101",
-    "connectedRole": "opscore_app",
+    "database": "opscore_http_acceptance",
+    "connectedRole": "opscore_runtime",
     "roleIsSuperuser": false,
     "roleBypassesRls": false,
-    "target": "postgresql://[REDACTED_ROLE]:***@[REDACTED_HOST]/[REDACTED_DB]"
+    "target": "postgresql://opscore_runtime:***@ep-mute-sun-bcahhoei.c-16.us-east-1.aws.neon.tech/opscore_http_acceptance"
   },
-  "commit": "5c60420f42330d7bd79623547b07eee96ef0ebd77214e9996cf53dd2d997a7e7",
-  "pipelineId": 3017246123,
+  "commit": "c4e01908607004bbc913ebe29992813cfaed3f38",
+  "pipelineId": null,
   "checks": [
     {
       "id": "isolated-database-verified",
       "status": "PASS",
-      "detail": "buyer_acceptance_clean_20261101 on PostgreSQL 18.6 is empty and disposable"
+      "detail": "opscore_http_acceptance on PostgreSQL 18.6 is empty and disposable"
     },
     {
       "id": "application-role-is-least-privilege",
       "status": "PASS",
-      "detail": "role=opscore_app; superuser=false; bypassrls=false"
+      "detail": "role=opscore_runtime; superuser=false; bypassrls=false"
     },
     {
       "id": "http-health-postgres",
@@ -50,22 +50,22 @@
     {
       "id": "identity-membership-resolved",
       "status": "PASS",
-      "detail": "/api/v1/me returned user usr_74b1b134-fe20-4e33-bb8f-27f88063d525 in organization org_f83cce37-2150-4447-ac6a-253d14404636 over PostgreSQL"
+      "detail": "/api/v1/me returned user usr_960df0e5-cd3a-4577-85ca-3a3959cfcdc5 in organization org_4f8b47e9-da5b-4581-99b4-13ede62c2ccf over PostgreSQL"
     },
     {
       "id": "tenant-a-resources-created",
       "status": "PASS",
-      "detail": "customer and work order created through HTTP API inside tenant org_f83cce37-2150-4447-ac6a-253d14404636"
+      "detail": "customer and work order created through HTTP API inside tenant org_4f8b47e9-da5b-4581-99b4-13ede62c2ccf"
     },
     {
       "id": "synthetic-fixtures-created-under-rls",
       "status": "PASS",
-      "detail": "second tenant and member inserted as role opscore_app with tenant GUCs (no BYPASSRLS)"
+      "detail": "second tenant and member inserted as role opscore_runtime with tenant GUCs (no BYPASSRLS)"
     },
     {
       "id": "session-tenant-binding-across-two-tenants",
       "status": "PASS",
-      "detail": "tenant B session resolved to org_aaedadbee49c4e5aab769919, distinct from tenant A org_f83cce37-2150-4447-ac6a-253d14404636"
+      "detail": "tenant B session resolved to org_4bd888e539d74be195868efb, distinct from tenant A org_4f8b47e9-da5b-4581-99b4-13ede62c2ccf"
     },
     {
       "id": "cross-tenant-read-denied",
@@ -138,13 +138,5 @@
     "trackedUsers": 3,
     "trackedOrganizations": 2,
     "syntheticThrottleKeysHandled": 3
-  },
-  "evidenceRedaction": {
-    "applied": true,
-    "at": "2026-11-02T10:44:36.384Z",
-    "note": "Neon hosts, connection URLs, and disposable acceptance role names redacted at package time."
-  },
-  "currentHeadAcceptance": "NOT_VERIFIED",
-  "evidenceClass": "HISTORICAL_ACCEPTANCE_SNAPSHOT",
-  "platformBaselineNote": "Historical acceptance snapshot retained from prior CI lineage. New GitHub/Neon/Vercel stack does not inherit production certification."
+  }
 }
