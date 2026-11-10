@@ -1,7 +1,9 @@
 'use strict';
 
-const ACCEPTANCE_DATABASE = 'opscore_acceptance';
-const PRODUCTION_HOST_MARKERS = ['ep-mute-sun-bcahhoei', 'ep-winter-leaf-b4d0bwgk'];
+const ACCEPTANCE_DATABASES = new Set(['opscore_http_acceptance']);
+// Host markers reserved for known production endpoints only. Disposable DBs on a
+// shared Neon project are authorized by exact database-name allowlist + host secret.
+const PRODUCTION_HOST_MARKERS = ['ep-winter-leaf-b4d0bwgk'];
 const HOST_RE = /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))*$/i;
 
 function targetError(code) {
@@ -36,7 +38,7 @@ function validatePostgresAcceptanceTarget({
   let database;
   try { database = decodeURIComponent(parsed.pathname.replace(/^\/+/, '')); }
   catch { throw targetError('OPSC_PG_ACCEPTANCE_DATABASE_INVALID'); }
-  if (database !== ACCEPTANCE_DATABASE) {
+  if (!ACCEPTANCE_DATABASES.has(database)) {
     throw targetError('OPSC_PG_ACCEPTANCE_DATABASE_NOT_ALLOWLISTED');
   }
 
@@ -53,4 +55,4 @@ if (require.main === module) {
   }
 }
 
-module.exports = { ACCEPTANCE_DATABASE, PRODUCTION_HOST_MARKERS, validatePostgresAcceptanceTarget };
+module.exports = { ACCEPTANCE_DATABASES, PRODUCTION_HOST_MARKERS, validatePostgresAcceptanceTarget };

@@ -54,13 +54,13 @@ test('Vercel release identity writer emits only a validated, atomically written 
 });
 
 test('acceptance database validation requires one exact allowlisted host and database', () => {
-  const urlText = `postgresql://user:password@${ACCEPTANCE_HOST}/opscore_acceptance?sslmode=require`;
+  const urlText = `postgresql://user:password@${ACCEPTANCE_HOST}/opscore_http_acceptance?sslmode=require`;
   const target = validatePostgresAcceptanceTarget({ urlText, expectedHost: ACCEPTANCE_HOST });
-  assert.equal(target.database, 'opscore_acceptance');
+  assert.equal(target.database, 'opscore_http_acceptance');
   assert.equal(target.hostname, ACCEPTANCE_HOST);
   assert.throws(() => validatePostgresAcceptanceTarget({ urlText, expectedHost: 'ep-other-host.neon.tech' }), /OPSC_PG_ACCEPTANCE_HOST_MISMATCH/);
-  assert.throws(() => validatePostgresAcceptanceTarget({ urlText: urlText.replace('/opscore_acceptance?', '/opscore_acceptance_old?'), expectedHost: ACCEPTANCE_HOST }), /OPSC_PG_ACCEPTANCE_DATABASE_NOT_ALLOWLISTED/);
-  assert.throws(() => validatePostgresAcceptanceTarget({ urlText: `postgresql://user:password@ep-mute-sun-bcahhoei.pooler.neon.tech/opscore_acceptance`, expectedHost: 'ep-mute-sun-bcahhoei.pooler.neon.tech' }), /OPSC_PG_ACCEPTANCE_PRODUCTION_HOST_FORBIDDEN/);
+  assert.throws(() => validatePostgresAcceptanceTarget({ urlText: urlText.replace('/opscore_http_acceptance?', '/opscore_http_acceptance_old?'), expectedHost: ACCEPTANCE_HOST }), /OPSC_PG_ACCEPTANCE_DATABASE_NOT_ALLOWLISTED/);
+  assert.throws(() => validatePostgresAcceptanceTarget({ urlText: `postgresql://user:password@ep-winter-leaf-b4d0bwgk.pooler.neon.tech/opscore_http_acceptance`, expectedHost: 'ep-winter-leaf-b4d0bwgk.pooler.neon.tech' }), /OPSC_PG_ACCEPTANCE_PRODUCTION_HOST_FORBIDDEN/);
   assert.throws(() => validatePostgresAcceptanceTarget({ urlText, expectedHost: '' }), /OPSC_PG_ACCEPTANCE_HOST_REQUIRED/);
 });
 
