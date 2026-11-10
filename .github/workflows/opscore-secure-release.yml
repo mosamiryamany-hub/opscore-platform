@@ -177,7 +177,7 @@ jobs:
         run: node scripts/write-release-attestation.js "$RUNNER_TEMP/OpsCore-release.zip" "$RUNNER_TEMP/COMMERCIAL_RELEASE_STATEMENT.json"
 
       - name: Generate release provenance attestation
-        uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: "$RUNNER_TEMP/OpsCore-release.zip"
           sbom-path: docs/sbom/opscore-v0.11.62.cyclonedx.json
