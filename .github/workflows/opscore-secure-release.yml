@@ -17,7 +17,9 @@ concurrency:
 
 jobs:
   verify-and-release:
-    if: github.ref_type == 'tag' && startsWith(github.ref_name, 'v')
+    if: >-
+      (github.ref_type == 'tag' && startsWith(github.ref_name, 'v')) ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -36,12 +38,20 @@ jobs:
             backend/package-lock.json
             mobile/package-lock.json
 
-      - name: Verify release tag matches package version and main
+      - name: Verify release tag matches package version
+        if: github.ref_type == 'tag'
         run: |
+          set -euo pipefail
           test "$GITHUB_REF_TYPE" = "tag"
           expected_tag="v$(node -p "require('./backend/package.json').version")"
           test "$GITHUB_REF_NAME" = "$expected_tag"
-          git merge-base --is-ancestor "$(git rev-parse HEAD)" origin/main
+
+      - name: Verify manually dispatched source is main
+        if: github.event_name == 'workflow_dispatch'
+        run: test "$GITHUB_REF" = "refs/heads/main"
+
+      - name: Verify source commit is contained in main
+        run: git merge-base --is-ancestor "$(git rev-parse HEAD)" origin/main
 
       - name: Install backend dependencies from lockfile
         working-directory: backend
@@ -54,6 +64,10 @@ jobs:
       - name: Run backend regression suite
         working-directory: backend
         run: OPSC_RELEASE_TEST_CONCURRENCY=4 node scripts/release-test-runner.js
+
+      - name: Regenerate current-head forensic language evidence
+        working-directory: backend
+        run: npm run contact-center:i18n:forensic
 
       - name: PostgreSQL schema parity gate
         working-directory: backend
@@ -83,9 +97,52 @@ jobs:
         working-directory: backend
         run: npm run buyer:self-validation
 
+      - name: Mobile release preflight
+        working-directory: mobile
+        run: node scripts/release-preflight.js
+
       - name: Run mobile verification
         working-directory: mobile
         run: npm run verify
+
+      - name: Generate current mobile dependency audit
+        working-directory: mobile
+        run: |
+          set +e
+          npm audit --json > mobile-dependency-audit.json
+          audit_status=$?
+          set -e
+          if [ "$audit_status" -gt 1 ]; then
+            echo "MOBILE_NPM_AUDIT_EXECUTION_FAILED status=$audit_status"
+            exit "$audit_status"
+          fi
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const report = JSON.parse(fs.readFileSync('mobile-dependency-audit.json', 'utf8'));
+          const v = report.metadata && report.metadata.vulnerabilities;
+          if (!v || typeof v.total !== 'number') throw new Error('MOBILE_AUDIT_REPORT_INCOMPLETE');
+          console.log('MOBILE_AUDIT_SUMMARY', JSON.stringify(v));
+          if ((v.high || 0) > 0 || (v.critical || 0) > 0) process.exit(1);
+          NODE
+
+      - name: Generate current root dependency audit
+        run: |
+          set +e
+          npm audit --json > root-dependency-audit.json
+          audit_status=$?
+          set -e
+          if [ "$audit_status" -gt 1 ]; then
+            echo "ROOT_NPM_AUDIT_EXECUTION_FAILED status=$audit_status"
+            exit "$audit_status"
+          fi
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const report = JSON.parse(fs.readFileSync('root-dependency-audit.json', 'utf8'));
+          const v = report.metadata && report.metadata.vulnerabilities;
+          if (!v || typeof v.total !== 'number') throw new Error('ROOT_AUDIT_REPORT_INCOMPLETE');
+          console.log('ROOT_AUDIT_SUMMARY', JSON.stringify(v));
+          if ((v.high || 0) > 0 || (v.critical || 0) > 0) process.exit(1);
+          NODE
 
       - name: Generate deterministic SBOM
         run: node scripts/generate-sbom.js
@@ -97,13 +154,9 @@ jobs:
         working-directory: backend
         run: npm audit --audit-level=high
 
-      - name: Audit mobile dependencies
-        working-directory: mobile
-        run: npm audit --audit-level=high
-
       - name: Build buyer release archive
         env:
-          CI_COMMIT_TAG: ${{ github.ref_name }}
+          CI_COMMIT_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
           CI_COMMIT_SHA: ${{ github.sha }}
           CI_PIPELINE_ID: ${{ github.run_id }}
           CI_PIPELINE_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -112,16 +165,33 @@ jobs:
           CI_JOB_NAME: commercial-closure
         run: node scripts/package-release.js "$RUNNER_TEMP/OpsCore-release.zip"
 
+      - name: Write external commercial archive statement
+        env:
+          CI_COMMIT_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+          CI_COMMIT_SHA: ${{ github.sha }}
+          CI_PIPELINE_ID: ${{ github.run_id }}
+          CI_PIPELINE_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          CI_PROJECT_URL: ${{ github.server_url }}/${{ github.repository }}
+          CI_PROJECT_PATH: ${{ github.repository }}
+          CI_JOB_NAME: commercial-closure
+        run: node scripts/write-release-attestation.js "$RUNNER_TEMP/OpsCore-release.zip" "$RUNNER_TEMP/COMMERCIAL_RELEASE_STATEMENT.json"
+
       - name: Generate release provenance attestation
         uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
         with:
           subject-path: "$RUNNER_TEMP/OpsCore-release.zip"
           sbom-path: docs/sbom/opscore-v0.11.62.cyclonedx.json
 
-      - name: Upload release artifact
+      - name: Upload release and exact-run evidence
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: opscore-release
-          path: "$RUNNER_TEMP/OpsCore-release.zip"
+          name: opscore-release-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/OpsCore-release.zip
+            ${{ runner.temp }}/COMMERCIAL_RELEASE_STATEMENT.json
+            mobile/mobile-dependency-audit.json
+            root-dependency-audit.json
+            backend/docs/verification/I18N_FORENSIC_AUDIT_RESULT.json
+            backend/docs/verification/I18N_FORENSIC_AUDIT_RESULT.sha256
           if-no-files-found: error
           retention-days: 14
