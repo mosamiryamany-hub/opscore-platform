@@ -22,21 +22,8 @@ jobs:
       - name: Require disposable acceptance URL
         env:
           OPSC_PG_ACCEPTANCE_URL: ${{ secrets.OPSC_PG_ACCEPTANCE_URL }}
-        run: |
-          if [ -z "${OPSC_PG_ACCEPTANCE_URL}" ]; then
-            echo "OPSC_PG_ACCEPTANCE_URL secret is not configured."
-            exit 1
-          fi
-          # Refuse production host markers and non-acceptance database names.
-          # Blocklist the real production endpoint id (project summer-leaf-18448271).
-          case "${OPSC_PG_ACCEPTANCE_URL}" in
-            *ep-mute-sun-bcahhoei*) echo "Refusing production endpoint (ep-mute-sun-bcahhoei) in acceptance path"; exit 1 ;;
-          esac
-          case "${OPSC_PG_ACCEPTANCE_URL}" in
-            */opscore_acceptance*) : ;;
-            *) echo "Acceptance URL must target a database whose name ends with _acceptance"; exit 1 ;;
-          esac
-          echo "Acceptance URL secret is present (value not printed)."
+          OPSC_PG_ACCEPTANCE_HOST: ${{ secrets.OPSC_PG_ACCEPTANCE_HOST }}
+        run: node backend/scripts/validate-postgres-acceptance-target.js
 
       - name: Set up Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -53,6 +40,7 @@ jobs:
         working-directory: backend
         env:
           OPSC_PG_ACCEPTANCE_URL: ${{ secrets.OPSC_PG_ACCEPTANCE_URL }}
+          OPSC_PG_ACCEPTANCE_HOST: ${{ secrets.OPSC_PG_ACCEPTANCE_HOST }}
           OPSC_PG_ACCEPTANCE_RESULT_FILE: ${{ github.workspace }}/POSTGRES_HTTP_ACCEPTANCE_RESULT.json
           CI_COMMIT_SHA: ${{ github.sha }}
           CI_PIPELINE_ID: ${{ github.run_id }}

@@ -4,13 +4,15 @@ const http = require('node:http');
 process.env.HOST = process.env.HOST || '0.0.0.0';
 process.env.PORT = process.env.PORT || '3000';
 // Fail-closed release identity (B1): never self-assert verification. Only an
-// explicit operator-provided 'true' (via Vercel env bound to a verified build)
-// may set this; anything else resolves to 'false'.
-const opscReleaseVerified = String(process.env.OPSC_RELEASE_VERIFIED || '').toLowerCase();
-process.env.OPSC_RELEASE_VERIFIED = ['true', 'false'].includes(opscReleaseVerified) ? opscReleaseVerified : 'false';
+// explicit operator-provided 'true' may open service, and only when the immutable
+// identity file embedded by the main-branch CI build matches this Vercel deployment.
+const { hasVerifiedProductionRelease } = require(path.join(__dirname, '..', 'backend', 'src', 'release-proof'));
+const requestedReleaseVerified = String(process.env.OPSC_RELEASE_VERIFIED || '').toLowerCase();
+const opscReleaseVerified = requestedReleaseVerified === 'true' && hasVerifiedProductionRelease(process.env);
+process.env.OPSC_RELEASE_VERIFIED = opscReleaseVerified ? 'true' : 'false';
 // Fail-closed hold (B2): production stays on hold unless the release identity is
 // explicitly verified. Missing proof => 503 PRODUCTION_HOLD_ACTIVE, never open service.
-process.env.OPSC_PRODUCTION_HOLD = opscReleaseVerified === 'true'
+process.env.OPSC_PRODUCTION_HOLD = opscReleaseVerified
   ? (process.env.OPSC_PRODUCTION_HOLD || 'false')
   : 'true';
 process.env.OPSC_EXPECTED_INSTANCES = process.env.OPSC_EXPECTED_INSTANCES || '1';

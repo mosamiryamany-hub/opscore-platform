@@ -69,6 +69,7 @@ function collect(dir, rel = '') {
   const out = [];
   for (const e of fs.readdirSync(path.join(dir, rel), { withFileTypes: true })) {
     const r = rel ? path.join(rel, e.name) : e.name;
+    if (r === 'backend/src/opscore-vercel-release-identity.json') continue;
     if (e.isDirectory()) {
       if (r.split(path.sep).some(part => part === 'node_modules' || part === '.git') || ['backend/data/files', 'data/files', 'backend/data'].includes(r))
         continue;

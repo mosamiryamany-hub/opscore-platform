@@ -3,8 +3,9 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
-const { createPublicReleaseProof } = require('../src/release-proof');
+const { createPublicReleaseProof, hasVerifiedProductionRelease } = require('../src/release-proof');
 
 const SHA = 'bbbee88e34a9b7e1847571367904fa96a3166bcc';
 const SHA256_COMMIT = '59bd4c8bd4ab8227bd6dce02cb6c9b67d77dd8feafa77658e4ed849df2cce8e1';
@@ -175,5 +176,42 @@ test('public release proof does not reuse a historical PostgreSQL HTTP PASS for 
     } else {
       fs.writeFileSync(evidencePath, originalEvidence);
     }
+  }
+});
+
+test('embedded GitHub Actions build identity overrides stale CLI variables and gates production release', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-vercel-identity-'));
+  const identityPath = path.join(dir, 'identity.json');
+  const identity = {
+    schemaVersion: 'opscore.vercel-release-identity.v1',
+    deploymentSource: 'github-actions-cli',
+    commitSha: SHA,
+    pipelineId: '3014583826',
+    runAttempt: 1,
+    ref: 'main',
+    repository: 'mosamiryamany-hub/opscore-platform',
+    runUrl: 'https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/3014583826'
+  };
+  const staleEnv = deploymentEnv({
+    OPSC_RELEASE_DEPLOYMENT_SOURCE: 'cli',
+    OPSC_RELEASE_CI_COMMIT: '0'.repeat(40),
+    OPSC_RELEASE_CI_PIPELINE_ID: '1',
+    OPSC_RELEASE_CI_REF: 'old-branch'
+  });
+  try {
+    fs.writeFileSync(identityPath, JSON.stringify(identity));
+    const proof = createPublicReleaseProof(staleEnv, fixedNow, identityPath);
+    assert.equal(proof.sourceCommit, SHA);
+    assert.equal(proof.sourceCommitIdentitySource, 'github-actions-cli-assertion');
+    assert.equal(proof.deployment.ref, 'main');
+    assert.equal(proof.ci.status, 'PASS');
+    assert.equal(proof.ci.pipelineUrl, identity.runUrl);
+    assert.equal(proof.ci.runAttempt, 1);
+    assert.equal(hasVerifiedProductionRelease(staleEnv, identityPath), true);
+
+    fs.writeFileSync(identityPath, JSON.stringify({ ...identity, commitSha: 'invalid' }));
+    assert.equal(hasVerifiedProductionRelease(staleEnv, identityPath), false);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
   }
 });
