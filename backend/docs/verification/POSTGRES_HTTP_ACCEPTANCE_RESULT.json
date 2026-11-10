@@ -138,5 +138,8 @@
     "trackedUsers": 3,
     "trackedOrganizations": 2,
     "syntheticThrottleKeysHandled": 3
-  }
+  },
+  "evidenceClass": "HISTORICAL_ACCEPTANCE_SNAPSHOT",
+  "currentHeadAcceptance": "NOT_VERIFIED",
+  "note": "Disposable PostgreSQL HTTP acceptance 22/22 PASS on the recorded commit/pipeline. Marked HISTORICAL_ACCEPTANCE_SNAPSHOT because evidence is committed after the tested tree; public release proof stays NOT_VERIFIED unless evidence commit and pipeline exactly match the running release identity."
 }

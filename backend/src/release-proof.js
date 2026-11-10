@@ -49,14 +49,12 @@ function readCurrentPostgresHttpAcceptance(env) {
   const expectedPipelineId = String(env.OPSC_RELEASE_CI_PIPELINE_ID || env.CI_PIPELINE_ID || '').trim();
   const evidenceCommit = normalizedSha(evidence.commit || evidence.testedCodeCommit || evidence.sourceCommit);
   const evidencePipelineId = String(evidence.pipelineId || '').trim();
-  // Acceptance runs as a sibling workflow on the same commit (workflow_dispatch).
-  // Bind PASS to commit identity + a recorded acceptance pipeline id; do not require
-  // the acceptance run id to equal the deploy/CI run id (different workflows by design).
   const exactMatch = Boolean(
     status === 'PASS' &&
     expectedCommit &&
     evidenceCommit === expectedCommit &&
-    PIPELINE_RE.test(evidencePipelineId)
+    PIPELINE_RE.test(expectedPipelineId) &&
+    evidencePipelineId === expectedPipelineId
   );
 
   return {
@@ -186,7 +184,7 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
       sourceCommit: packageVerified ? packageCommit : null
     },
     checkedAt: now().toISOString(),
-    note: 'Release evidence is bound to the source commit reported by the running Vercel deployment. PostgreSQL RLS CI evidence is test-scoped and does not certify every production API route. PostgreSQL HTTP acceptance is PASS only when its evidence status is PASS and its evidence commit exactly matches the running release commit; the acceptance pipeline id is recorded for audit and may differ from the deploy workflow run id. Production session/recovery evidence is shown only when an acceptance record matches the deployed commit and OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256 publishes the SHA-256 of a behavioral evidence document (login/session/recovery isolation). productionIsolationCertification is CERTIFIED only when OPSC_PRODUCTION_ISOLATION_CERTIFICATION=CERTIFIED is explicitly set and production acceptance evidence is bound to the deployed commit; otherwise NOT_CERTIFIED. Signed mobile binaries, native-speaker localization review, and a licensed street-map provider remain buyer-owned.'
+    note: 'Release evidence is bound to the source commit reported by the running Vercel deployment. PostgreSQL RLS CI evidence is test-scoped and does not certify every production API route. PostgreSQL HTTP acceptance is PASS only when its evidence commit and pipeline exactly match the running release; historical HTTP acceptance remains NOT_VERIFIED for a newer candidate. Production session/recovery evidence is shown only when an acceptance record matches the deployed commit and OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256 publishes the SHA-256 of a behavioral evidence document (login/session/recovery isolation). productionIsolationCertification is CERTIFIED only when OPSC_PRODUCTION_ISOLATION_CERTIFICATION=CERTIFIED is explicitly set and production acceptance evidence is bound to the deployed commit; otherwise NOT_CERTIFIED. Signed mobile binaries, native-speaker localization review, and a licensed street-map provider remain buyer-owned.'
   };
 };
 
