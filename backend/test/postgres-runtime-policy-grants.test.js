@@ -12,7 +12,7 @@ test('runtime policy helper grant is narrow and role-specific', () => {
   assert.match(migration, /to_regprocedure\('public\.opscore_is_privileged\(\)'\)/);
   assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.opscore_is_privileged\(\) TO opscore_runtime/);
   assert.doesNotMatch(migration, /TO PUBLIC/i);
-  assert.doesNotMatch(migration, /ALTER\\s+ROLE|CREATE\\s+ROLE|GRANT[^;]*TO\\s+PUBLIC/i);
+  assert.doesNotMatch(migration, /ALTER\s+ROLE|CREATE\s+ROLE|GRANT[^;]*TO\s+PUBLIC/i);
 });
 
 test('migration runner verifies runtime role RLS helper privileges without granting RLS bypass', () => {
