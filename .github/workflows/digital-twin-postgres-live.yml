@@ -38,8 +38,12 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 12
+          --health-start-period 10s
     env:
-      OPSC_PG_TEST_URL: postgresql://postgres:postgres@127.0.0.1:5432/opscore_test
+      # Admin/migration connection (service superuser) — DDL only
+      OPSC_MIGRATION_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/opscore_test
+      # Runtime test connection must NOT bypass RLS
+      OPSC_PG_TEST_URL: postgresql://opscore_runtime:runtime_test_pw@127.0.0.1:5432/opscore_test
     steps:
       - name: Checkout source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -53,6 +57,32 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             backend/package-lock.json
+      - name: Create least-privilege runtime role (no BYPASSRLS)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+          # Wait until ready
+          for i in 1 2 3 4 5 6 7 8 9 10; do
+            pg_isready -h 127.0.0.1 -p 5432 -U postgres -d opscore_test && break
+            sleep 2
+          done
+          PGPASSWORD=postgres psql -h 127.0.0.1 -p 5432 -U postgres -d opscore_test -v ON_ERROR_STOP=1 <<'SQL'
+          DO $$ BEGIN
+            IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'opscore_runtime') THEN
+              DROP ROLE opscore_runtime;
+            END IF;
+          END $$;
+          CREATE ROLE opscore_runtime LOGIN PASSWORD 'runtime_test_pw'
+            NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
+          GRANT CONNECT ON DATABASE opscore_test TO opscore_runtime;
+          GRANT USAGE ON SCHEMA public TO opscore_runtime;
+          ALTER DEFAULT PRIVILEGES IN SCHEMA public
+            GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO opscore_runtime;
+          ALTER DEFAULT PRIVILEGES IN SCHEMA public
+            GRANT USAGE, SELECT ON SEQUENCES TO opscore_runtime;
+          SQL
+          PGPASSWORD=postgres psql -h 127.0.0.1 -p 5432 -U postgres -d opscore_test -Atc \
+            "SELECT rolname||' super='||rolsuper||' bypass='||rolbypassrls FROM pg_roles WHERE rolname='opscore_runtime'"
       - name: Install root-pinned PostgreSQL runtime dependency
         run: npm ci --ignore-scripts
       - name: Install backend package
