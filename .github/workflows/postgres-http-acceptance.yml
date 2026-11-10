@@ -15,7 +15,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -28,13 +28,18 @@ jobs:
             exit 1
           fi
           # Refuse production host markers and non-acceptance database names.
+          # Blocklist the real production endpoint id (project summer-leaf-18448271).
           case "${OPSC_PG_ACCEPTANCE_URL}" in
-            *ep-winter-leaf*) echo "Refusing production host marker"; exit 1 ;;
+            *ep-mute-sun-bcahhoei*) echo "Refusing production endpoint (ep-mute-sun-bcahhoei) in acceptance path"; exit 1 ;;
+          esac
+          case "${OPSC_PG_ACCEPTANCE_URL}" in
+            */opscore_acceptance*) : ;;
+            *) echo "Acceptance URL must target a database whose name ends with _acceptance"; exit 1 ;;
           esac
           echo "Acceptance URL secret is present (value not printed)."
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22.23.4'
           cache: npm
@@ -73,7 +78,7 @@ jobs:
 
       - name: Upload acceptance evidence artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: postgres-http-acceptance-${{ github.run_id }}
           path: POSTGRES_HTTP_ACCEPTANCE_RESULT.json

@@ -15,7 +15,7 @@
     const sha = proof.source && proof.source.commitSha;
     if (/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/i.test(String(sha || ''))) {
       const link = byId('commit-link');
-      link.href = 'https://gitlab.com/mosamiryamany-hub1/opscore-commercial-final/-/commit/' + encodeURIComponent(sha);
+      link.href = 'https://github.com/mosamiryamany-hub/opscore-platform/commit/' + encodeURIComponent(sha);
       link.hidden = false;
     }
     byId('status').textContent = 'IDENTIFIED';

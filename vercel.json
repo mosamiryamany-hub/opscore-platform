@@ -13,7 +13,7 @@
     "api/index.js": {
       "memory": 1024,
       "maxDuration": 60,
-      "includeFiles": "backend/**"
+      "includeFiles": "backend/src/**,backend/node_modules/**,backend/package.json,backend/docs/verification/**,backend/sql/postgres/**"
     }
   },
   "headers": [

@@ -102,7 +102,7 @@ function createPublicReleaseProof(env = process.env, now = () => new Date()) {
       status: ciVerified ? 'PASS' : 'UNVERIFIED',
       pipelineId: ciVerified ? Number(pipelineId) : null,
       commitSha: ciVerified ? ciCommit : null,
-      evidenceScope: 'GitLab CI commit-match asserted by the release operator; inspect the linked pipeline for the full gate report.'
+      evidenceScope: 'GitHub Actions CI commit-match asserted by the release operator; inspect the linked pipeline for the full gate report.'
     },
     gates: {
       commercialClosure: ciVerified ? 'PASS_WITH_BUYER_RESIDUALS' : 'UNVERIFIED',
@@ -121,7 +121,7 @@ function createPublicReleaseProof(env = process.env, now = () => new Date()) {
       checkedAt: acceptanceVerified ? acceptanceDate.toISOString() : null,
       evidenceSha256: acceptanceVerified ? acceptanceEvidenceSha : null,
       evidenceNote: acceptanceVerified
-        ? 'SHA-256 of production-acceptance evidence document bound by operator; inspect GitLab verification path for the JSON body.'
+        ? 'SHA-256 of production-acceptance evidence document bound by operator; inspect the GitHub Actions verification path for the JSON body.'
         : null
     },
     postgresHttpAcceptance,

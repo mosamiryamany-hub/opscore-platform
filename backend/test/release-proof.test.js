@@ -16,7 +16,7 @@ function deploymentEnv(extra = {}) {
   return {
     VERCEL_GIT_COMMIT_SHA: SHA,
     VERCEL_GIT_COMMIT_REF: 'main',
-    VERCEL_GIT_PROVIDER: 'gitlab',
+    VERCEL_GIT_PROVIDER: 'github',
     VERCEL_DEPLOYMENT_ID: 'dpl_123456',
     VERCEL_ENV: 'production',
     ...extra
@@ -76,7 +76,7 @@ test('release proof accepts and binds a SHA-256 GitLab object ID', () => {
 
 test('release proof labels CLI provenance honestly when stale Vercel Git metadata is present', () => {
   const proof = createPublicReleaseProof(deploymentEnv({
-    OPSC_RELEASE_DEPLOYMENT_SOURCE: 'gitlab-ci-cli',
+    OPSC_RELEASE_DEPLOYMENT_SOURCE: 'github-actions-cli',
     OPSC_RELEASE_CI_REF: 'main',
     VERCEL_GIT_COMMIT_SHA: SHA,
     OPSC_RELEASE_CI_COMMIT: SHA256_COMMIT,
@@ -86,7 +86,7 @@ test('release proof labels CLI provenance honestly when stale Vercel Git metadat
   }), fixedNow);
   assert.equal(proof.sourceCommit, SHA256_COMMIT);
   assert.equal(proof.status, 'PASS_WITH_BUYER_RESIDUALS');
-  assert.equal(proof.sourceCommitIdentitySource, 'gitlab-ci-cli-assertion');
+  assert.equal(proof.sourceCommitIdentitySource, 'github-actions-cli-assertion');
   assert.equal(proof.deployment.ref, 'main');
 });
 

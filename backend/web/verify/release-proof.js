@@ -23,7 +23,7 @@
     const pipeline = $('pipeline');
     if (pipeline) {
       if (proof.ci && proof.ci.status === 'PASS' && proof.ci.pipelineId) {
-        pipeline.href = 'https://gitlab.com/mosamiryamany-hub1/opscore-commercial-final/-/pipelines/' + encodeURIComponent(proof.ci.pipelineId);
+        pipeline.href = 'https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/' + encodeURIComponent(proof.ci.pipelineId);
         pipeline.textContent = String(proof.ci.pipelineId);
       } else {
         pipeline.removeAttribute('href');

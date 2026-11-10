@@ -18,16 +18,16 @@ function createDeploymentProof(env = process.env, now = () => new Date()) {
   // deploy pipeline explicitly identifies its transport, bind identity only to
   // that pipeline's commit assertion rather than claiming native Vercel Git provenance.
   const deploymentSource = String(env.OPSC_RELEASE_DEPLOYMENT_SOURCE || '').trim().toLowerCase();
-  const cliDeployment = deploymentSource === 'gitlab-ci-cli' || deploymentSource === 'cli';
+  const cliDeployment = deploymentSource === 'github-actions-cli' || deploymentSource === 'gitlab-ci-cli' || deploymentSource === 'cli';
   const commitSha = cliDeployment ? ciCommit : (vercelCommit || opscSource || ciCommit);
   const commitIdentitySource = cliDeployment
-    ? (ciCommit ? 'gitlab-ci-cli-assertion' : 'unavailable')
+    ? (ciCommit ? 'github-actions-cli-assertion' : 'unavailable')
     : vercelCommit
       ? 'vercel-git-metadata'
       : opscSource
         ? 'operator-source-commit'
         : ciCommit
-          ? 'gitlab-ci-runtime-assertion'
+          ? 'github-actions-runtime-assertion'
           : 'unavailable';
   const rawRef = String((cliDeployment ? env.OPSC_RELEASE_CI_REF : env.VERCEL_GIT_COMMIT_REF) || env.OPSC_RELEASE_CI_REF || '').trim();
   const ref = REF_RE.test(rawRef) ? rawRef : null;
@@ -37,11 +37,11 @@ function createDeploymentProof(env = process.env, now = () => new Date()) {
   const environment = ENVIRONMENTS.has(rawEnvironment) ? rawEnvironment : 'unknown';
   const rawProvider = String(env.VERCEL_GIT_PROVIDER || '').trim().toLowerCase();
   const provider = cliDeployment
-    ? (ciCommit ? 'gitlab' : 'unknown')
+    ? (ciCommit ? 'github' : 'unknown')
     : ['gitlab', 'github', 'bitbucket'].includes(rawProvider)
       ? rawProvider
       : (ciCommit || opscSource)
-        ? 'gitlab'
+        ? 'github'
         : 'unknown';
   const identified = Boolean(commitSha && deploymentId && environment !== 'unknown');
   return {
@@ -51,7 +51,7 @@ function createDeploymentProof(env = process.env, now = () => new Date()) {
     source: { provider, ref, commitSha, commitIdentitySource },
     deployment: { environment, id: deploymentId, method: cliDeployment ? 'cli' : (vercelCommit ? 'git' : 'unknown') },
     checkedAt: now().toISOString(),
-    note: 'Identifies the running Vercel deployment. commitIdentitySource distinguishes native Vercel Git metadata, operator-supplied source commit, and GitLab CI assertion. Package fingerprint, production behavior, and database isolation are verified separately.'
+    note: 'Identifies the running Vercel deployment. commitIdentitySource distinguishes native Vercel Git metadata, operator-supplied source commit, and GitHub Actions CI assertion. Package fingerprint, production behavior, and database isolation are verified separately.'
   };
 }
 

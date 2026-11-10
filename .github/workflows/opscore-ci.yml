@@ -42,3 +42,6 @@ jobs:
       - name: Security dependency audit
         working-directory: backend
         run: npm audit --omit=dev --audit-level=high
+      - name: Mobile dependency audit
+        working-directory: mobile
+        run: npm audit --omit=dev --audit-level=moderate
