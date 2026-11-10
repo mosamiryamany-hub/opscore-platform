@@ -140,11 +140,11 @@ async function main() {
     if (!runtimeRole || runtimeRole.rolsuper || runtimeRole.rolbypassrls) throw new Error('RUNTIME_ROLE_MISSING_OR_CAN_BYPASS_RLS');
     await client.query(`CREATE OR REPLACE FUNCTION public.opscore_current_user()
       RETURNS text LANGUAGE sql STABLE
-      AS $ SELECT NULLIF(current_setting('app.user_id', true), '') $`);
+      AS $fn$ SELECT NULLIF(current_setting('app.user_id', true), '') $fn$`);
     await client.query(`CREATE OR REPLACE FUNCTION public.opscore_is_privileged()
       RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER
       SET search_path TO pg_catalog, public, pg_temp
-      AS $ SELECT false $`);
+      AS $fn$ SELECT false $fn$`);
     await client.query('REVOKE ALL ON FUNCTION public.opscore_current_user() FROM PUBLIC');
     await client.query('REVOKE ALL ON FUNCTION public.opscore_is_privileged() FROM PUBLIC');
     await client.query('GRANT EXECUTE ON FUNCTION public.opscore_current_user() TO opscore_runtime');
