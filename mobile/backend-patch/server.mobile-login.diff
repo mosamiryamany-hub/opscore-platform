@@ -1,0 +1,5 @@
+--- a/src/server.js
++++ b/src/server.js
+@@
+  if(req.method==='POST'&&url.pathname==='/api/v1/auth/login')return body(req).then(b=>{const out=store.login(b.email,b.password,b.organizationId);return json(res,200,{...out,token:undefined},{'set-cookie':`__opscore_session=${encodeURIComponent(out.token)}; HttpOnly; Path=/; SameSite=Lax${process.env.NODE_ENV==='production'?'; Secure':''}`});}).catch(e=>fail(res,e));
++ if(req.method==='POST'&&url.pathname==='/api/v1/auth/mobile-login')return body(req).then(b=>{const out=store.login(b.email,b.password,b.organizationId);return json(res,200,{user:out.user,userId:out.userId||out.user?.id,organization:out.organization,organizationId:out.organizationId||out.organization?.id,role:out.role,expiresAt:out.expiresAt,token:out.token},{'cache-control':'no-store','pragma':'no-cache'});}).catch(e=>fail(res,e));

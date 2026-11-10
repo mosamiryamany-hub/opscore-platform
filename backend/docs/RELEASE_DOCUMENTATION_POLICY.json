@@ -1,0 +1,38 @@
+{
+  "policyVersion": "1",
+  "currentRelease": "0.11.62",
+  "currentFacingDocuments": [
+    {
+      "path": "README.md",
+      "requiredHeading": "# OpsCore \u2014 Operational SaaS Starter Kit v0.11.62"
+    },
+    {
+      "path": "SALES_README.md",
+      "requiredHeading": "# OpsCore v0.11.62 \u2014 Sales Package"
+    },
+    {
+      "path": "SALES_KIT.md",
+      "requiredHeading": "# OpsCore v0.11.62 \u2014 Commercial Sales Kit"
+    },
+    {
+      "path": "docs/COMMERCIAL_HANDOFF.md",
+      "requiredHeading": "# OpsCore v0.11.62 \u2014 Commercial Handoff"
+    }
+  ],
+  "historicalOrPinnedDocuments": [
+    "DEMO_GUIDE.md",
+    "OpsCore-v0.10.0-LATEST-HTML-SNAPSHOT.html",
+    "RELEASE_NOTES_*.md",
+    "docs/FINAL_*_0.11.10.md",
+    "docs/FINAL_INTEGRATION_AUDIT_0.11.11.md",
+    "docs/FINAL_INTEGRATION_AUDIT_0.11.12.md",
+    "docs/RELEASE_VERIFICATION_*.json",
+    "docs/SECURITY_HARDENING_0.11.6.md",
+    "docs/SECURITY_DEEP_PASS_0.11.8.md",
+    "docs/PRODUCTION_HANDOFF.md",
+    "PRODUCT_SCOPE.md",
+    "docs/PRODUCT_SCOPE.md",
+    "docs/FINAL_INTEGRATION_AUDIT_0.11.13.md"
+  ],
+  "rule": "Only allowlisted current-facing documents are required to carry the current release marker. Historical/pinned documents are not rewritten merely because they contain an older version."
+}

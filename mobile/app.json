@@ -1,0 +1,55 @@
+{
+  "expo": {
+    "name": "OpsCore Mobile",
+    "slug": "opscore-mobile",
+    "version": "0.1.16",
+    "orientation": "portrait",
+    "scheme": "opscore",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.opscore.mobile",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "OpsCore uses your location to support technician check-in and field operations.",
+        "NSCameraUsageDescription": "OpsCore uses the camera to capture work-order evidence.",
+        "NSPhotoLibraryUsageDescription": "OpsCore uses photo access to attach field evidence to work orders."
+      }
+    },
+    "android": {
+      "package": "com.opscore.mobile",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION",
+        "CAMERA",
+        "READ_MEDIA_IMAGES"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": true
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow OpsCore to attach field evidence."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow OpsCore to use your location for technician check-in."
+        }
+      ],
+      [
+        "expo-sqlite",
+        {
+          "useSQLCipher": true
+        }
+      ]
+    ]
+  }
+}

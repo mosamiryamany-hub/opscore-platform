@@ -1,0 +1,111 @@
+{
+  "nativeName": "Română",
+  "nav": {
+    "title": "Centru de contact cu IA",
+    "subtitle": "Autoservire multilingvă cu predare supervizată către un agent uman.",
+    "operationsConsole": "Consolă de operațiuni",
+    "interfaceLanguage": "Limba interfeței"
+  },
+  "status": {
+    "configured": "Mod protejat configurat",
+    "setupIncomplete": "Configurare incompletă",
+    "apiUnavailable": "Autentificare / API indisponibil"
+  },
+  "stats": {
+    "catalogueRows": "Rânduri de catalog",
+    "catalogueRowsNote": "Lista de intrare păstrată",
+    "uniqueCodes": "Coduri de limbă unice",
+    "uniqueCodesNote": "Duplicatele sunt marcate",
+    "providerQualification": "Calificare furnizor",
+    "providerQualificationNote": "Doar limbile testate independent contează",
+    "liveQueue": "Coadă umană live",
+    "liveQueueNote": "Predări pe entitate (tenant)"
+  },
+  "customer": {
+    "eyebrow": "EXPERIENȚA CLIENTULUI",
+    "title": "Inițiază o conversație",
+    "consentPill": "Este necesar consimțământul",
+    "preferredLanguage": "Limba preferată",
+    "consentText": "Accept ca această conversație să fie procesată de furnizorul de IA configurat. Transcrierile sunt criptate înainte de stocare.",
+    "startChat": "Inițiază chat text securizat",
+    "startVoice": "Inițiază vocea din browser",
+    "setupHint": "Indisponibil până când un administrator configurează cheia de criptare și furnizorul de IA.",
+    "noConversation": "Nicio conversație activă",
+    "startHint": "Creează o sesiune cu consimțământ pentru a începe.",
+    "requestHuman": "Cere agent uman",
+    "chatEmpty": "Mesajele tale vor apărea aici. Acțiunile IA sunt doar sugestii; nu se efectuează plăți, modificări de cont, rambursări sau dispecerizări.",
+    "messagePlaceholder": "Scrie un mesaj…",
+    "send": "Trimite",
+    "stopVoice": "Oprește sesiunea vocală",
+    "voiceOff": "Vocea este oprită.",
+    "voiceStreamNote": "Vocea din browser este transmisă în flux către furnizorul configurat; OpsCore nu pretinde că stochează audio brut.",
+    "voiceRequirement": "Vocea din browser necesită HTTPS (sau localhost), microfon, consimțământ, un model Realtime configurat și cheia furnizorului. Nu este o punte telefonică PSTN/SIP."
+  },
+  "queue": {
+    "eyebrow": "INTERVENȚIE UMANĂ",
+    "title": "Coadă de escaladare",
+    "refresh": "Reîmprospătează",
+    "description": "Aici apar conversațiile cu risc ridicat, nerezolvate sau cu cerere de agent uman. Un element din coadă înseamnă solicitat, nu conectat.",
+    "loading": "Se încarcă coada…",
+    "empty": "Nicio predare umană activă pentru această organizație.",
+    "openAssignment": "Deschide atribuirea",
+    "claimAndReview": "Preluare și verificare",
+    "resolve": "Rezolvă",
+    "reply": "Răspunde",
+    "agentAssignedTitle": "Conversație alocată",
+    "replyStorageNote": "Răspunsurile umane sunt criptate la stocare și sunt vizibile în transcrierea conversației.",
+    "resolveNote": "Rezolvat de operatorul uman alocat."
+  },
+  "boundaries": {
+    "title": "Limite operaționale",
+    "automateTitle": "Proiectat pentru automatizare",
+    "automateBody": "Primul răspuns multilingv, clarificare, triaj de intenție și risc, stocare securizată a transcrierilor, creare de cozi și atribuire de agenți.",
+    "humanTitle": "Este necesară preluarea umană",
+    "humanBody": "Cerere umană explicită, încredere scăzută, risc ridicat sau critic, politică lipsă, caz nerezolvat, plângere de confidențialitate/securitate sau acțiune incertă.",
+    "notEnabledTitle": "Nu este activat doar prin acest pachet",
+    "notEnabledBody": "Dirijarea PSTN/SIP/WhatsApp/e-mail, puntea telefonică live, verificarea identității CRM și afirmațiile privind calitatea limbii necesită un adaptor real de furnizor, acreditări și teste de acceptare."
+  },
+  "roles": {
+    "customer": "Client",
+    "human": "Agent uman",
+    "ai": "Asistent IA"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Clientul a cerut un agent uman",
+    "low_confidence": "Încredere scăzută",
+    "high_risk": "Risc ridicat",
+    "policy_refusal": "Refuz / restricție de politică",
+    "unresolved": "Problemă nerezolvată",
+    "repeated_failure": "Eșec repetat",
+    "model_requested": "IA a cerut o revizuire",
+    "voice_review_required": "Este necesară verificarea vocii",
+    "other": "Altele"
+  },
+  "messages": {
+    "qualificationNotice": "Nicio limbă nu este calificată pentru producție până nu se trec testele de text, recunoaștere vorbire, sinteză vorbire, accent și escaladare.",
+    "configNeeded": "Încă este necesară configurarea: {missing}.",
+    "configOk": "Configurația există. Conectivitatea furnizorului și calitatea limbii necesită încă teste reale de acceptare.",
+    "conversationCreated": "Conversație securizată creată. Calitatea limbii nu este încă calificată pentru producție.",
+    "handoffQueued": "Predare umană pusă în coadă ({reason}). Aceasta este o solicitare în coadă, nu o conexiune live.",
+    "aiResponseFailed": "Răspunsul IA nu s-a finalizat. Nu s-a efectuat nicio acțiune. Poți cere un agent uman.",
+    "actionNotCompleted": "Acțiune neterminată: {reason}.",
+    "apiUnavailable": "API-ul Contact Center nu a putut fi încărcat. Conectați-vă la consola OpsCore, apoi reîncărcați această pagină.",
+    "suggestedNextStep": "Doar pasul următor sugerat (neexecutat): {step}.",
+    "handoffQueuedQueueOnly": "Predarea către un om a fost pusă în coadă ({reason}). Coada nu dovedește că un agent este conectat.",
+    "voiceHandoffStopped": "Predarea către un om a fost pusă în coadă. Sesiunea AI din browser se oprește; transferul telefonic live nu este configurat.",
+    "voiceCredentialRequest": "Se solicită o acreditare vocală de scurtă durată…",
+    "voiceRealtimeError": "Furnizorul în timp real a raportat o eroare. Opriți sesiunea vocală și reîncercați după verificarea configurației furnizorului.",
+    "voiceActive": "Sesiunea vocală este activă. Apăsați oricând „Cere agent uman”; aceasta creează un element în coadă, nu un transfer PSTN.",
+    "voiceCredentialActive": "{languageCode} · acreditare temporară a furnizorului",
+    "queueUnavailable": "Coada nu este disponibilă: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Este necesar consimțământul înainte de a începe o conversație.",
+    "SERVER_RESPONSE_INVALID": "Răspunsul serverului nu a putut fi citit.",
+    "REQUEST_FAILED": "Solicitarea a eșuat.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Furnizorul de voce în timp real nu a putut fi contactat.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Acest browser nu acceptă voce în timp real.",
+    "HANDOFF_NOT_CLAIMED": "Predarea nu a putut fi preluată.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Mesajul duplicat a fost ignorat."
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "nativeName": "Suomi",
+  "nav": {
+    "title": "AI-kontaktikeskus",
+    "subtitle": "Monikielinen itsepalvelu hallitulla siirrolla ihmispalvelijaan.",
+    "operationsConsole": "Operaatiokonsoli",
+    "interfaceLanguage": "Käyttöliittymän kieli"
+  },
+  "status": {
+    "configured": "Suojattu tila määritetty",
+    "setupIncomplete": "Asennus keskeneräinen",
+    "apiUnavailable": "Kirjautuminen / API ei käytettävissä"
+  },
+  "stats": {
+    "catalogueRows": "Luettelorivit",
+    "catalogueRowsNote": "Syötelista säilytetty",
+    "uniqueCodes": "Yksilölliset kielikoodit",
+    "uniqueCodesNote": "Kaksoiskappaleet merkitään",
+    "providerQualification": "Palveluntarjoajan hyväksyntä",
+    "providerQualificationNote": "Vain itsenäisesti testatut kielet lasketaan",
+    "liveQueue": "Ihmisten jonossa",
+    "liveQueueNote": "Vuokraajakohtaiset siirrot"
+  },
+  "customer": {
+    "eyebrow": "ASIAKASKOKEMUS",
+    "title": "Aloita keskustelu",
+    "consentPill": "Suostumus vaaditaan",
+    "preferredLanguage": "Ensisijainen kieli",
+    "consentText": "Hyväksyn, että tämä keskustelu käsitellään määritetyllä tekoäly-palveluntarjoajalla. Tusnitekstit salataan ennen tallennusta.",
+    "startChat": "Aloita suojattu tekstikeskustelu",
+    "startVoice": "Aloita selainääni",
+    "setupHint": "Ei käytettävissä, ennen kuin ylläpitäjä määrittää salausavaimen ja tekoäly-palveluntarjoajan.",
+    "noConversation": "Ei aktiivista keskustelua",
+    "startHint": "Luo suostumuksellinen istunto aloittaaksesi.",
+    "requestHuman": "Pyydä ihmispalvelijaa",
+    "chatEmpty": "Viestisi näkyvät tässä. Tekoälyn toiminpat ovat vain ehdotuksia; maksuja, tilimuutoksia, hyvityksiä tai lähetyksiä ei suoriteta.",
+    "messagePlaceholder": "Kirjoita viesti…",
+    "send": "Lähetä",
+    "stopVoice": "Lopeta äänistunto",
+    "voiceOff": "Ääni on pois päältä.",
+    "voiceStreamNote": "Selaimen ääni suoratoistetaan määritetylle palveluntarjoajalle; OpsCore ei väitä tallentavansa raakaääntä.",
+    "voiceRequirement": "Selaimen ääni vaatii HTTPS:n (tai localhostin), mikrofonin, suostumuksen, määritetyn Realtime-mallin ja palveluntarjoajan avaimen. Se ei ole PSTN/SIP-puhelinsilta."
+  },
+  "queue": {
+    "eyebrow": "INIMILLINEN TOIMINTA",
+    "title": "Escalation-jono",
+    "refresh": "Päivitä",
+    "description": "Korkean riskin, ratkaisemattomat tai ihmistä pyytävät keskustelut näkyvät tässä. Jonon kohde tarkoittaa pyyntöä, ei yhteyttä.",
+    "loading": "Ladataan jonoa…",
+    "empty": "Ei aktiivisia ihmisiin siirtoja tälle organisaatiolle.",
+    "openAssignment": "Avaa tehtävänanto",
+    "claimAndReview": "Ota ja tarkista",
+    "resolve": "Ratkaise",
+    "reply": "Vastaa",
+    "agentAssignedTitle": "Määritetty keskustelu",
+    "replyStorageNote": "Ihmisten vastaukset salataan tallennettaessa ja ne näkyvät keskustelun litteraatissa.",
+    "resolveNote": "Ratkaisi määritetty ihmisoperaattori."
+  },
+  "boundaries": {
+    "title": "Toiminnalliset rajat",
+    "automateTitle": "Suunniteltu automatisointiin",
+    "automateBody": "Monikielinen ensivastaus, täsmennys, tarkoitus- ja riskiluokittelu, turvallinen transkriptien tallennus, jonojen luonti ja palvelijoiden kohdennus.",
+    "humanTitle": "Ihmisen otto vaaditaan",
+    "humanBody": "Selkeä pyyntö ihmisestä, matala luottamus, korkea tai kriittinen riski, puuttuva käytäntö, ratkaisematon asia, yksityisyyttä/turvallisuutta koskeva valitus tai epävarma toimi.",
+    "notEnabledTitle": "Ei käytössä pelkällä paketilla",
+    "notEnabledBody": "PSTN/SIP/WhatsApp/sähköpostireititys, Live-puhelusilta, CRM-tunnistautuminen ja kielilaatuvaatimukset vaativat oikean palveluntarjoajaliittymän, tunnistetiedot ja hyväksymistestit."
+  },
+  "roles": {
+    "customer": "Asiakas",
+    "human": "Ihmispalvelija",
+    "ai": "Tekoälyavustaja"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Asiakas pyysi ihmistä",
+    "low_confidence": "Matala luottamus",
+    "high_risk": "Korkea riski",
+    "policy_refusal": "Käytännön kieltäytyminen / rajoitus",
+    "unresolved": "Ratkaisematon asia",
+    "repeated_failure": "Toistuva epäonnistuminen",
+    "model_requested": "Tekoäly pyysi tarkistusta",
+    "voice_review_required": "Äänitarkistus vaaditaan",
+    "other": "Muu"
+  },
+  "messages": {
+    "qualificationNotice": "Mikään kieli ei ole tuotantokelpoinen, ennen kuin teksti-, puheentunnistus-, puheen synthetic-, aksentti- ja eskalointitestit on läpäisty.",
+    "configNeeded": "Määritys vielä tarvitaan: {missing}.",
+    "configOk": "Määritys on olemassa. Palveluntarjoajan yhteys ja kielten laatu vaativat vielä oikeat hyväksymistestit.",
+    "conversationCreated": "Suojattu keskustelu luotu. Kielten laatu ei ole vielä tuotantokelpoinen.",
+    "handoffQueued": "Ihmiseen siirto jonotettu ({reason}). Tämä on jonopyyntö, ei suora yhteys.",
+    "aiResponseFailed": "Tekoälyn vastaus ei valmistunut. Mitään ei suoritettu. Voit pyytää ihmispalvelijaa.",
+    "actionNotCompleted": "Toimea ei suoritettu loppuun: {reason}.",
+    "apiUnavailable": "Contact Center -rajapintaa ei voitu ladata. Kirjaudu OpsCore-konsoliin ja lataa sivu uudelleen.",
+    "suggestedNextStep": "Vain ehdotettu seuraava vaihe (ei suoritettu): {step}.",
+    "handoffQueuedQueueOnly": "Luovutus ihmiselle asetettiin jonoon ({reason}). Jono ei todista, että edustaja on yhdistetty.",
+    "voiceHandoffStopped": "Luovutus ihmiselle asetettiin jonoon. Selaimen tekoälyistunto pysäytetään; live-puhelinsiirtoa ei ole määritetty.",
+    "voiceCredentialRequest": "Pyydetään lyhytikäistä äänitunnistetta…",
+    "voiceRealtimeError": "Reaaliaikainen palveluntarjoaja ilmoitti virheestä. Pysäytä ääni-istunto ja yritä uudelleen tarkistettuasi palveluntarjoajan määritykset.",
+    "voiceActive": "Ääni-istunto on aktiivinen. Paina milloin tahansa ”Pyydä ihmispalvelijaa”; tämä luo jonokohteen, ei PSTN-siirtoa.",
+    "voiceCredentialActive": "{languageCode} · palveluntarjoajan väliaikainen tunniste",
+    "queueUnavailable": "Jono ei ole käytettävissä: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Suostumus vaaditaan ennen keskustelun aloittamista.",
+    "SERVER_RESPONSE_INVALID": "Palvelimen vastausta ei voitu lukea.",
+    "REQUEST_FAILED": "Pyyntö epäonnistui.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Reaaliaikaisen äänipalvelun tarjoajaan ei saatu yhteyttä.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Tämä selain ei tue reaaliaikaista ääntä.",
+    "HANDOFF_NOT_CLAIMED": "Luovutusta ei voitu ottaa hoitoon.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Kaksoisviesti ohitettiin."
+  }
+}

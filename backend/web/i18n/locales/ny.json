@@ -1,0 +1,111 @@
+{
+  "nativeName": "Chichewa",
+  "nav": {
+    "title": "Malo Ogwiritsira Ntchito AI",
+    "subtitle": "Utumiki wokha wamiyalunda yambiri ndi kusintha koyendetsedwa kwa anthu.",
+    "operationsConsole": "Konsole ya ntchito",
+    "interfaceLanguage": "Chilankhulo cha mawonekedwe"
+  },
+  "status": {
+    "configured": "Njira yotetezedwa yayandikidwa",
+    "setupIncomplete": "Kukhazikitsa sikunathe",
+    "apiUnavailable": "Kulowa / API siyipezeka"
+  },
+  "stats": {
+    "catalogueRows": "Mizati ya katalogo",
+    "catalogueRowsNote": "Kalasi yofikira yasungidwa",
+    "uniqueCodes": "Makodi amiyalunda osiyanasiyana",
+    "uniqueCodesNote": "Zabodza zimadziwika",
+    "providerQualification": "Khalidwe la wopereka",
+    "providerQualificationNote": "Miyalunda yoyesedwa yekha imawerengedwa",
+    "liveQueue": "Mkhalapakati wa anthu wamoyo",
+    "liveQueueNote": "Kusintha kwa alendo"
+  },
+  "customer": {
+    "eyebrow": "CHIYAMBO CHA WOGULA",
+    "title": "Yamba kuganizirana",
+    "consentPill": "Chilolezo chikufunika",
+    "preferredLanguage": "Chiyankhulo chomwe mukufuna",
+    "consentText": "Ndiloleranji kuti kuganizirana kumeneku kufufuzidwe ndi wopereka wa AI woyandikidwa. Mankhwala azimitse usanayike.",
+    "startChat": "Yamba kusekondwa ndi malemba otetezedwa",
+    "startVoice": "Yamba mawu a msakambidzi",
+    "setupHint": "Simupeza mpaka woyang'anira akhazikitse kiyi yosindikiza ndi wopereka wa AI.",
+    "noConversation": "Palibe kuganizirana koyenda",
+    "startHint": "Kuyambira, pangani gawo losavomerezedwa.",
+    "requestHuman": "Pemphani wothandizira wamunthu",
+    "chatEmpty": "Mauthenga anu adzaoneka pano. Zochita za AI ndi zilangizo zokha; palibe malipiro, kusintha kwa akaunti, kubweza kapena kutumira kumachitika.",
+    "messagePlaceholder": "Lembani uthenga…",
+    "send": "Tumiza",
+    "stopVoice": "Istani gawo la mawu",
+    "voiceOff": "Mawu avala.",
+    "voiceStreamNote": "Mawu a msakatuli amatumizidwa mwa kuyenda kwa wopereka wokonzedwa; OpsCore sinena kuti imasunga mawu osakonzedwa.",
+    "voiceRequirement": "Mawu a msakatuli amafuna HTTPS (kapena localhost), maikolofoni, chilolezo, chitsanzo cha Realtime chokonzedwa ndi kiyi ya wopereka. Si mlatho wa foni wa PSTN/SIP."
+  },
+  "queue": {
+    "eyebrow": "KUVOMEREZA KWA MUNTHU",
+    "title": "Mkhalapakati woyanditsa",
+    "refresh": "Dziwani",
+    "description": "Kuganizirana koopsa, kosatha kapena kofuna munthu kumaoneka pano. Chinachake mkhalapakati kutanthauza kopempha, osakhala kogwiritsidwa.",
+    "loading": "Kutsata mkhalapakati…",
+    "empty": "Palibe kusintha kwa anthu kwa bungwe ili.",
+    "openAssignment": "Tsegulani kupatsidwa",
+    "claimAndReview": "Landirani ndi kuwunika",
+    "resolve": "Thetsani",
+    "reply": "Yankhani",
+    "agentAssignedTitle": "Kukambirana komwe kwaperekedwa",
+    "replyStorageNote": "Mayankho a anthu amasungidwa obisika ndipo amawoneka mu zolemba za kukambirana.",
+    "resolveNote": "Kwathetsedwa ndi wogwiritsa ntchito wamunthu wosankhidwa."
+  },
+  "boundaries": {
+    "title": "Malelekedwe a ntchito",
+    "automateTitle": "Anapangidwa kuzizwitsa",
+    "automateBody": "Yankho loyamba lamiyalunda yambiri, kufotokoza, kusindikiza chidule ndi chiopsezo, kusunga mankhwala motetezeka, kupanga makhalapakati ndi kupatsa anthu ntchito.",
+    "humanTitle": "Kulandira kwa munthu kufunika",
+    "humanBody": "Pempho la munthu lolemetsa, chikhulupiriro chochepa, chiopsezo chaukali, malamulo osowa, nkhani yosathetsedwa, kulira za chinsinsi/chitetezo kapena zochita zosadziwika.",
+    "notEnabledTitle": "Sichiyambitsidwa ndi phukusi ili lokha",
+    "notEnabledBody": "Kutsata PSTN/SIP/WhatsApp/imeyilo, bridge ya foni yamoyo, kutsimikizira kwa anthu CRM ndi zolengedwa za ubwino wa miyalunda zimasowa adapta wa wopereka, zizindikiritso ndi mayeso ovomereza."
+  },
+  "roles": {
+    "customer": "Wogula",
+    "human": "Wothandizira wamunthu",
+    "ai": "Wothandiza AI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Wogula anapempha munthu",
+    "low_confidence": "Chikhulupiriro chochepa",
+    "high_risk": "Chiopsezo chaukali",
+    "policy_refusal": "Kukana / kuletsa lamulo",
+    "unresolved": "Vuto losathetsedwa",
+    "repeated_failure": "Kulephera mobwerezabwereza",
+    "model_requested": "AI inapempha kuyesa",
+    "voice_review_required": "Kuwunika mawu kufunika",
+    "other": "Zina"
+  },
+  "messages": {
+    "qualificationNotice": "Palibe chiyankhulo chovomerezeka pamene mayeso a malemba, ASR, TTS, mawu ache ndi kukweza sanathe.",
+    "configNeeded": "Kukonza kufunika: {missing}.",
+    "configOk": "Kukonza kuli. Kulondola kwa wopereka ndi ubwino wa miyalunda kufunika mayeso ovomereza owona.",
+    "conversationCreated": "Kuganizirana kotetezedwa kunapangidwa. Ubwino wa miyalunda sunavomerezedwe.",
+    "handoffQueued": "Kusintha kwa munthu kwatchidwa mkhalapakati ({reason}). Iyi ndi pempho la mkhalapakati, osati kugwirizana koyenda.",
+    "aiResponseFailed": "Yankho la AI linatha. Palibe chinachake chidachitika. Mutha kupempha wothandizira wamunthu.",
+    "actionNotCompleted": "Chochitika sichinathe: {reason}.",
+    "apiUnavailable": "API ya Contact Center sinathe kutsegulidwa. Lowani mu kontholo ya OpsCore, kenako tsegulaninso tsambali.",
+    "suggestedNextStep": "Sitepe yotsatira yoperekedwa yokha (sinachitidwe): {step}.",
+    "handoffQueuedQueueOnly": "Kusamutsira kwa munthu kwayikidwa pamzere ({reason}). Mzere sutsimikizira kuti wothandizira walumikizidwa.",
+    "voiceHandoffStopped": "Kusamutsira kwa munthu kwayikidwa pamzere. Gawo la AI la msakatuli likuyima; kusamutsa foni mwachindunji sikunakonzedwe.",
+    "voiceCredentialRequest": "Akupempha satifiketi ya mawu ya nthawi yochepa…",
+    "voiceRealtimeError": "Wopereka wa nthawi yeniyeni wanena cholakwika. Imitsani gawo la mawu ndipo yeserani kachiwiri mutayang'ana kasinthidwe ka wopereka.",
+    "voiceActive": "Gawo la mawu likugwira ntchito. Dinani “Pemphani wothandizira wamunthu” nthawi iliyonse; izi zimapanga chinthu pamzere, osati kusamutsa kwa PSTN.",
+    "voiceCredentialActive": "{languageCode} · satifiketi yanthawi yochepa ya wopereka",
+    "queueUnavailable": "Mzere palibe: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Chilolezo chikufunika kukambirana kusanayambe.",
+    "SERVER_RESPONSE_INVALID": "Yankho la seva silinawerengedwe.",
+    "REQUEST_FAILED": "Pempho lalephera.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Wopereka mawu a nthawi yeniyeni sanapezeke.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Msakatuli uyu sagwirizira mawu a nthawi yeniyeni.",
+    "HANDOFF_NOT_CLAIMED": "Kusamutsa sikunalandiridwe.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Uthenga wobwerezedwa wanyalanyazidwa."
+  }
+}

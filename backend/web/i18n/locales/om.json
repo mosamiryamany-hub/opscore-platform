@@ -1,0 +1,111 @@
+{
+  "nativeName": "Afaan Oromoo",
+  "nav": {
+    "title": "Waamichaa Wiitiroo AI",
+    "subtitle": "Tajaajila ofiin eegumsa afaan hedduu qabu, nuussuma nama to'atame waliin.",
+    "operationsConsole": "Konsoola sochii",
+    "interfaceLanguage": "Afaan interfeesii"
+  },
+  "status": {
+    "configured": "Haala eegama qopheessameera",
+    "setupIncomplete": "Meeshee xumuruu dadhabe",
+    "apiUnavailable": "Seensiin / API hin argamu"
+  },
+  "stats": {
+    "catalogueRows": "Tarreewwan kaataloogui",
+    "catalogueRowsNote": "Tartin gargaarsaa eegame",
+    "uniqueCodes": "Koodota afaan adda addaa",
+    "uniqueCodesNote": "Wal fakkaatu mallattooleffame",
+    "providerQualification": "Haala dhaabbata kennaa",
+    "providerQualificationNote": "Afaan qormaata hundeerrame qofaatu herrega keessa galu",
+    "liveQueue": "Hangii nama kallattiin",
+    "liveQueueNote": "Nuussuma qabee adda baafame"
+  },
+  "customer": {
+    "eyebrow": "MUUMAA HUNDAATTII",
+    "title": "Marii jalqabi",
+    "consentPill": "Hayyama barbaachisa",
+    "preferredLanguage": "Afaan filatame",
+    "consentText": "Mariin kun dhaabbata AI qopheessameen hojjechuu isaatti nan simadha. Gabatee barreeffamoo kuusaa dura kan cufameeti.",
+    "startChat": "Marii barreeffama eegama jalqabi",
+    "startVoice": "Sagalee brawuzarii jalqabi",
+    "setupHint": "Bulchaa furmaata cufuufi dhaabbata AI qopheessaanitti hin hojjetu.",
+    "noConversation": "Marii sochii hin qabu",
+    "startHint": "Yeroo jalqabuuf, hayyama qabu taateen uumi.",
+    "requestHuman": "Nama gargaaraa siqisi",
+    "chatEmpty": "Ergaatoonni keetyan asitti mul'atu. Gochaa AI yaadannoo qofaati; kaffaltii, fooyya'iinsa herrega, deebii ykn erguu hin hojjetamu.",
+    "messagePlaceholder": "Ergaa barreessi…",
+    "send": "Ergi",
+    "stopVoice": "Taateen sagalee dhaabi",
+    "voiceOff": "Sagaleen duubatti.",
+    "voiceStreamNote": "Sagaleen biraawzaraa dhiyeessaa qindaa'eetti sarara kallattiin ergama; OpsCore sagalee ofii kuusa jedhee hin labsu.",
+    "voiceRequirement": "Sagaleen biraawzaraa HTTPS (yookaan localhost), maayikiroofoonii, hayyama, moodela Realtime qindaa'e fi furtuu dhiyeessaa ni barbaachisa. Kun riqicha bilbilaa PSTN/SIP miti."
+  },
+  "queue": {
+    "eyebrow": "GARGAARSA NAMA",
+    "title": "Hangii ol-ka'uu",
+    "refresh": "Haaromsi",
+    "description": "Asitti marrii rukkutoo guddaa, kan xumura hin qabne ykn nama siqisu mul'atu. Wantoonni hangii keessaa gaafannoo, hidhamuu miti.",
+    "loading": "Hangii fe'aa jira…",
+    "empty": "Hawiichee kanaaf nuussuma nama sochii hin jiru.",
+    "openAssignment": "Ramadichii banaa",
+    "claimAndReview": "Fudhaadi fi ilaali",
+    "resolve": "Fur",
+    "reply": "Deebii",
+    "agentAssignedTitle": "Haasaa ramadame",
+    "replyStorageNote": "Deebiin namaa yeroo kuufamu iccitiin ni kuufama; galmee haasaa keessatti ni mul'ata.",
+    "resolveNote": "Opireetara namaa ramadeen furameera."
+  },
+  "boundaries": {
+    "title": "Daandii hojii",
+    "automateTitle": "Otomatiksuuf dizaayine",
+    "automateBody": "Deebii jalqabaa afaan hedduu, ifa baasuu, ramadii kaayyoo fi rukkutasummaa, kuusaa gabatee barreeffama nagaanaa, hangii uumuu fi ramaduu gargaaraa.",
+    "humanTitle": "Fudhatama nama barbaachisa",
+    "humanBody": "Gaaffii ifa namaa, amantii gadii, rukkutasummaa ol'aanaa ykn murteessaa, seera dhabuu, dhimmii hin furamne, shira eegumsaa/nagaanaa ykn gochaa hin hubatamne.",
+    "notEnabledTitle": "Harmeen kana qofaan hin bane",
+    "notEnabledBody": "Qindeessa PSTN/SIP/WhatsApp/iimeelii, riqaa bilisaa kallattiin, mirkanneessaa adda baasaa CRM fi waadaa qulqullina afaanuu kanneen dhaabbata adarii dhugaa, ragaa fi qormaata fudhachuu barbaadu."
+  },
+  "roles": {
+    "customer": "Hundaattii",
+    "human": "Gargaaraa nama",
+    "ai": "Gargaaraa AI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Hundaattiin nama siqise",
+    "low_confidence": "Amantii gadii",
+    "high_risk": "Rukkutasummaa ol'aanaa",
+    "policy_refusal": "Didduu / daangeessaa seeraa",
+    "unresolved": "Rakkoo hin furamne",
+    "repeated_failure": "Boodaasii irra deddibiinsaa",
+    "model_requested": "AI ilaalcha siqise",
+    "voice_review_required": "Ilaalcha sagalee barbaachisa",
+    "other": "Kan biraa"
+  },
+  "messages": {
+    "qualificationNotice": "Afaan kam iyyuu qopheessuu hin danda'u yemmuu qormaata barreeffamaa, ASR, TTS, afaan dubbachiisaa fi ol-ka'uu caalaan.",
+    "configNeeded": "Qopheessuun barbaachisa: {missing}.",
+    "configOk": "Qopheessuun jira. Walitti dhufeenya dhaabbataa fi qulqullina afaanuu qormaata fudhachuu dhugaa barbaada.",
+    "conversationCreated": "Marii nagaanaa uumameera. Qulqullina afaanuu ammasi qopheessuu hin danda'u.",
+    "handoffQueued": "Nuussumaan nama hangii keessa galuu ({reason}). Kuniin gaaffii hangii ti, hidhamtu kallattiin miti.",
+    "aiResponseFailed": "Deebiin AI xumuruu hin dandeenye. Gochi tokko hin raawwatamine. Nama gargaaraa siqisuu dandeessu.",
+    "actionNotCompleted": "Gochi hin xumuramne: {reason}.",
+    "apiUnavailable": "API Wiirtuu Qunnamtii fe'uun hin danda'amne. Konsoolii OpsCore seenaatii, fuula kana deebi'ii fe'ii.",
+    "suggestedNextStep": "Tarkaanfii itti aanu yaadame qofa (hin raawwatamne): {step}.",
+    "handoffQueuedQueueOnly": "Dabarsuun gara namaatti tartiiba keessa galfameera ({reason}). Tartiibni bakka bu'aan walqabate hin mirkaneessu.",
+    "voiceHandoffStopped": "Dabarsuun gara namaatti tartiiba keessa galfameera. Marsaan AI biraawzaraa dhaabbachaa jira; dabarsa bilbilaa kallattii hin qindoofne.",
+    "voiceCredentialRequest": "Ragaa sagalee yeroo gabaabaa gaafachaa jira…",
+    "voiceRealtimeError": "Dhiyeessaan yeroo dhugaa dogoggora gabaabse. Marsaa sagalee dhaabii qindaa'ina dhiyeessaa erga ilaaltee booda irra deebi'ii yaali.",
+    "voiceActive": "Marsaan sagalee hojiirra jira. Yeroo kamiyyuu “Nama gargaaraa siqisi” tuqi; kun tartiiba keessatti wanta tokko uuma, dabarsa PSTN miti.",
+    "voiceCredentialActive": "{languageCode} · ragaa yeroo dhiyeessaa",
+    "queueUnavailable": "Tartiibni hin argamu: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Haasaa jalqabuu dura hayyamni ni barbaachisa.",
+    "SERVER_RESPONSE_INVALID": "Deebiin sarvarii dubbifamuu hin dandeenye.",
+    "REQUEST_FAILED": "Gaaffiin hin milkoofne.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Dhiyeessaan sagalee yeroo dhugaa argachuun hin danda'amne.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Biraawzariin kun sagalee yeroo dhugaa hin deeggaru.",
+    "HANDOFF_NOT_CLAIMED": "Dabarsuun kun fudhatamuu hin dandeenye.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Ergaan irra deebi'e dhiisameera."
+  }
+}

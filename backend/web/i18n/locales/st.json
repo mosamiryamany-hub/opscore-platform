@@ -1,0 +1,111 @@
+{
+  "nativeName": "Sesotho",
+  "nav": {
+    "title": "Sentseng ea Sehokelo sa AI",
+    "subtitle": "Tirelo ea boithaopi ea lipuo tse ngata le phetiso e laoloang ho motho.",
+    "operationsConsole": "Konsole ea mesebetsi",
+    "interfaceLanguage": "Puo ea sehokelo"
+  },
+  "status": {
+    "configured": "Mokhoa o sireletsehileng o lokiselitsoe",
+    "setupIncomplete": "Ho seta ha e fela",
+    "apiUnavailable": "Kena / API ha e fumanehe"
+  },
+  "stats": {
+    "catalogueRows": "Mela ea lenaneo",
+    "catalogueRowsNote": "Lethathamo la keno le bolokiloe",
+    "uniqueCodes": "Mekhakha e ikhethileng ea lipuo",
+    "uniqueCodesNote": "Li-duplicate li tšoaroa",
+    "providerQualification": "Tsa mofani",
+    "providerQualificationNote": "Feela lipuo tse lekiloeng ka boikemelo li bala",
+    "liveQueue": "Motho oa motho ea phelang",
+    "liveQueueNote": "Phetiso ea moahi"
+  },
+  "customer": {
+    "eyebrow": "LEBOGO LEKGOA",
+    "title": "Qala puisano",
+    "consentPill": "Ho dumela ho hlokahala",
+    "preferredLanguage": "Puo o ikgethelang",
+    "consentText": "Ke dumetse hore puisano ena e entsoe ke mofani oa AI ea lokiselitsoeng. Lintlha li kenngoa pele ga ho bolokoa.",
+    "startChat": "Qala moqoqo oa mongolo o sireletsehileng",
+    "startVoice": "Qala lentsoe la sebatli",
+    "setupHint": "E se ho sa sebelisetsoa ho fihlela molaoli a lokisetsa senotlolo sa encryption le mofani oa AI.",
+    "noConversation": "Ha ho puisano e sebetsang",
+    "startHint": "Ho qala, etsa setshuetsi e amohetsoeng.",
+    "requestHuman": "Kopa moemeli oa motho",
+    "chatEmpty": "Molaetsa oa hau o tla hlahela mona. Lipapatsa tsa AI ke litsebiso feela; ha ho lenaneo, liphetoho tsa ak'haonte, tefello ea boleng kapa tsa ho romella e entseng.",
+    "messagePlaceholder": "Ngola molaetsa…",
+    "send": "Romela",
+    "stopVoice": "Emisa nako ea lentsoe",
+    "voiceOff": "Lentsoe tlohetse.",
+    "voiceStreamNote": "Lentsoe la sebatli le phallela ho mofani ea hlophisitsoeng; OpsCore ha e bolele hore e boloka modumo o sa sebetsoang.",
+    "voiceRequirement": "Lentsoe la sebatli le hloka HTTPS (kapa localhost), maekrofouno, tumello, mohlala oa Realtime o hlophisitsoeng le senotlolo sa mofani. Hase borokho ba mohala oa PSTN/SIP."
+  },
+  "queue": {
+    "eyebrow": "MOAHOA MOTHONG",
+    "title": "Khoele ea ho nyolosoa",
+    "refresh": "Hlakola",
+    "description": "Puisano tsa kotsi e phahameng, tse sa rarolloang kapa tse batlang motho li hlaha mona. Sellotho khoele e bolela hore e kopotsoe, e sa hokahanoe.",
+    "loading": "E jarolla khoele…",
+    "empty": "Ha ho phetiso ea motho e sebetsang bakeng sa mokhatlo ona.",
+    "openAssignment": "Bula phano",
+    "claimAndReview": "Fumana 'me u hlahlobe",
+    "resolve": "Fumana tharollo",
+    "reply": "Araba",
+    "agentAssignedTitle": "Moqoqo o abetsoeng",
+    "replyStorageNote": "Likarabo tsa batho li ts'ireletsoa ha li bolokoa ebile li bonahala mongolong oa moqoqo.",
+    "resolveNote": "E rarollotsoe ke ts'ebeletsi ea motho ea abetsoeng."
+  },
+  "boundaries": {
+    "title": "Meli ya ts'ebetso",
+    "automateTitle": "E entsoe bakeng sa ho itlula",
+    "automateBody": "Leihlo la pele la lipuo tse ngata, ho totobatsa, ho arola boikitlaetso le kotsi, polokelo e sireletsehileng ea lingoliloeng, ho bopa makhoele le ho abela basebetsi.",
+    "humanTitle": "Ho hlokahala ho tsoa ho motho",
+    "humanBody": "Kopo ea motho e hlakileng, tšepo e tlase, kotsi e phahameng kapa ea bohlokoa, melao e sieo, nyoebo e sa rarolloang, hore e tšoaea boinotši/tsireletso kapa ketso e sa tiisang.",
+    "notEnabledTitle": "Ha e khothalletsoa ke sephuthela sena feela",
+    "notEnabledBody": "Tsela ea PSTN/SIP/WhatsApp/imeile, mokhethe oa mohala o phelang, netefatso ea boikakhetlo ea CRM le boipolelo ba boleng ba puo li hloka sepeketšwa sa mofani ea teng, litlaleho le liteko tsa amoheleho."
+  },
+  "roles": {
+    "customer": "Moreki",
+    "human": "Moemeli oa motho",
+    "ai": "Mothusi oa AI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Moreki o kopa motho",
+    "low_confidence": "Tšepo e tlase",
+    "high_risk": "Kotsi e phahameng",
+    "policy_refusal": "Ho hana / ho lekanya melao",
+    "unresolved": "Bothata bo sa rarolloa",
+    "repeated_failure": "Ho hlolela bohlano",
+    "model_requested": "AI e kopa litlhahlobo",
+    "voice_review_required": "Litlhahlobo tsa lentsoe li hlokoehoa",
+    "other": "E ngoe"
+  },
+  "messages": {
+    "qualificationNotice": "Ha ho puo e hlalosoa e fihletse tumellano ho fihlela liteko tsa mongolo, ASR, TTS, boleki le ho nyolosoa li atleha.",
+    "configNeeded": "Ho lokisa ho ntse ho hlokoa: {missing}.",
+    "configOk": "Ho lokisa ho teng. Ho hokahana ha mofani le boleng ba puo ho ntse ho hloka liteko tsa amoheleho ea 'nete.",
+    "conversationCreated": "Puisano e sireletsehileng ea etsoa. Boleng ba puo ha bo fihletse tumellano bakeng sa ts'ebetso.",
+    "handoffQueued": "Phetiso ea motho khoele ({reason}). Sena ke kopo ea khoele, hore ha se tšebelano e phelang.",
+    "aiResponseFailed": "Leqhubu la AI ha la phetheloa. Ha ho ketso e entsoe. U ka kopa moemeli oa motho.",
+    "actionNotCompleted": "Ketso e sa phethoa: {reason}.",
+    "apiUnavailable": "API ea Setsi sa Puisano e ke ke ea laeloa. Kena khonsoleng ea OpsCore, ebe u laela leqephe lena hape.",
+    "suggestedNextStep": "Mohato o latelang o hlahisitsoeng feela (ha o a etsoa): {step}.",
+    "handoffQueuedQueueOnly": "Phetiso ho motho e kentsoe moleng ({reason}). Mola ha o paka hore moemeli o hokahane.",
+    "voiceHandoffStopped": "Phetiso ho motho e kentsoe moleng. Seshene sa AI sa sebatli se emisoa; phetiso ea mohala ka kotloloho ha e a hlophisoa.",
+    "voiceCredentialRequest": "Ho kopuoa bopaki ba lentsoe ba nako e khutšoanyane…",
+    "voiceRealtimeError": "Mofani oa nako ea sebele o tlalehile phoso. Emisa seshene sa lentsoe ebe u leka hape ka mor'a ho hlahloba tlhophiso ea mofani.",
+    "voiceActive": "Seshene sa lentsoe se sebetsa. Tobetsa “Kopa moemeli oa motho” neng kapa neng; sena se theha ntho moleng, eseng phetiso ea PSTN.",
+    "voiceCredentialActive": "{languageCode} · bopaki ba nakoana ba mofani",
+    "queueUnavailable": "Mola ha o fumanehe: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Tumello e hlokahala pele moqoqo o qala.",
+    "SERVER_RESPONSE_INVALID": "Karabo ea seva e ke ke ea balloa.",
+    "REQUEST_FAILED": "Kopo e hlolehile.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Mofani oa lentsoe la nako ea sebele ha a ka a fihlelleha.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Sebatli sena ha se tšehetse lentsoe la nako ea sebele.",
+    "HANDOFF_NOT_CLAIMED": "Phetiso e ke ke ea amoheloa.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Molaetsa o phetoang o hlokometsoe."
+  }
+}

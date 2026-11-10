@@ -1,0 +1,111 @@
+{
+  "nativeName": "Italiano",
+  "nav": {
+    "title": "Contact Center IA",
+    "subtitle": "Self-service multilingue con passaggio supervisionato agli operatori umani.",
+    "operationsConsole": "Console operazioni",
+    "interfaceLanguage": "Lingua dell'interfaccia"
+  },
+  "status": {
+    "configured": "Modalità protetta configurata",
+    "setupIncomplete": "Configurazione incompleta",
+    "apiUnavailable": "Accesso / API non disponibile"
+  },
+  "stats": {
+    "catalogueRows": "Righe del catalogo",
+    "catalogueRowsNote": "Elenco di input preservato",
+    "uniqueCodes": "Codici lingua unici",
+    "uniqueCodesNote": "I duplicati sono contrassegnati",
+    "providerQualification": "Qualifica del fornitore",
+    "providerQualificationNote": "Contano solo le lingue testate indipendentemente",
+    "liveQueue": "Coda umana dal vivo",
+    "liveQueueNote": "Passaggi per tenant"
+  },
+  "customer": {
+    "eyebrow": "ESPERIENZA CLIENTE",
+    "title": "Avvia una conversazione",
+    "consentPill": "Consenso richiesto",
+    "preferredLanguage": "Lingua preferita",
+    "consentText": "Acconsento a che questa conversazione sia elaborata dal fornitore IA configurato. Le trascrizioni sono crittografate prima dell'archiviazione.",
+    "startChat": "Avvia chat testuale sicura",
+    "startVoice": "Avvia voce del browser",
+    "setupHint": "Non disponibile finché un amministratore non configura la chiave di crittografia e il fornitore IA.",
+    "noConversation": "Nessuna conversazione attiva",
+    "startHint": "Crea una sessione con consenso per iniziare.",
+    "requestHuman": "Richiedi operatore umano",
+    "chatEmpty": "I tuoi messaggi compariranno qui. Le azioni dell'IA sono solo suggerimenti; nessun pagamento, modifica account, rimborso o invio viene eseguito.",
+    "messagePlaceholder": "Scrivi un messaggio…",
+    "send": "Invia",
+    "stopVoice": "Termina sessione vocale",
+    "voiceOff": "Voce disattivata.",
+    "voiceStreamNote": "La voce del browser viene trasmessa al provider configurato; OpsCore non dichiara di conservare l'audio grezzo.",
+    "voiceRequirement": "La voce del browser richiede HTTPS (o localhost), un microfono, il consenso, un modello Realtime configurato e una chiave del provider. Non è un ponte telefonico PSTN/SIP."
+  },
+  "queue": {
+    "eyebrow": "INTERVENTO UMANO",
+    "title": "Coda di escalation",
+    "refresh": "Aggiorna",
+    "description": "Qui compaiono le conversazioni ad alto rischio, irrisolte o con richiesta di operatore umano. Un elemento in coda significa richiesto, non connesso.",
+    "loading": "Caricamento della coda…",
+    "empty": "Nessun passaggio umano attivo per questa organizzazione.",
+    "openAssignment": "Apri assegnazione",
+    "claimAndReview": "Prendi in carico e verifica",
+    "resolve": "Risolvi",
+    "reply": "Rispondi",
+    "agentAssignedTitle": "Conversazione assegnata",
+    "replyStorageNote": "Le risposte degli operatori sono cifrate a riposo e visibili nella trascrizione della conversazione.",
+    "resolveNote": "Risolto dall'operatore umano assegnato."
+  },
+  "boundaries": {
+    "title": "Limiti operativi",
+    "automateTitle": "Progettato per automatizzare",
+    "automateBody": "Prima risposta multilingue, chiarimenti, triage di intento e rischio, archiviazione sicura delle trascrizioni, creazione di code e assegnazione degli operatori.",
+    "humanTitle": "Necessario intervento umano",
+    "humanBody": "Richiesta umana esplicita, bassa confidenza, rischio alto o critico, politica mancante, caso irrisolto, reclamo di privacy o sicurezza, o azione incerta.",
+    "notEnabledTitle": "Non abilitato dal solo pacchetto",
+    "notEnabledBody": "Instradamento PSTN/SIP/WhatsApp/e-mail, ponte telefonico in tempo reale, verifica identità CRM e rivendicazioni di qualità linguistica richiedono un adattatore reale, credenziali e test di accettazione."
+  },
+  "roles": {
+    "customer": "Cliente",
+    "human": "Operatore umano",
+    "ai": "Assistente IA"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Il cliente ha richiesto un operatore umano",
+    "low_confidence": "Bassa confidenza",
+    "high_risk": "Rischio alto",
+    "policy_refusal": "Rifiuto / restrizione di politica",
+    "unresolved": "Problema irrisolto",
+    "repeated_failure": "Fallimento ripetuto",
+    "model_requested": "L'IA ha richiesto una revisione",
+    "voice_review_required": "Richiesta revisione vocale",
+    "other": "Altro"
+  },
+  "messages": {
+    "qualificationNotice": "Nessuna lingua è qualificata per la produzione finché i test di testo, ASR, TTS, accento ed escalation non risultano superati.",
+    "configNeeded": "Configurazione ancora necessaria: {missing}.",
+    "configOk": "La configurazione esiste. Connettività del fornitore e qualità linguistica richiedono ancora test di accettazione reali.",
+    "conversationCreated": "Conversazione sicura creata. La qualità linguistica non è ancora qualificata per la produzione.",
+    "handoffQueued": "Passaggio umano in coda ({reason}). È una richiesta in coda, non una connessione dal vivo.",
+    "aiResponseFailed": "La risposta dell'IA non è stata completata. Nessuna azione è stata eseguita. Puoi richiedere un operatore umano.",
+    "actionNotCompleted": "Azione non completata: {reason}.",
+    "apiUnavailable": "Impossibile caricare l'API del contact center. Accedi alla console OpsCore e ricarica questa pagina.",
+    "suggestedNextStep": "Solo passaggio successivo suggerito (non eseguito): {step}.",
+    "handoffQueuedQueueOnly": "Passaggio a operatore in coda ({reason}). La coda non prova che un operatore sia connesso.",
+    "voiceHandoffStopped": "Passaggio a operatore in coda. La sessione IA del browser si sta interrompendo; il trasferimento telefonico in tempo reale non è configurato.",
+    "voiceCredentialRequest": "Richiesta di una credenziale vocale a breve scadenza…",
+    "voiceRealtimeError": "Il provider in tempo reale ha segnalato un errore. Interrompi la sessione vocale e riprova dopo aver verificato la configurazione del provider.",
+    "voiceActive": "La sessione vocale è attiva. Premi «Richiedi operatore umano» in qualsiasi momento; questo crea un elemento in coda, non un trasferimento PSTN.",
+    "voiceCredentialActive": "{languageCode} · credenziale provider temporanea",
+    "queueUnavailable": "Coda non disponibile: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Il consenso è necessario prima di avviare una conversazione.",
+    "SERVER_RESPONSE_INVALID": "Impossibile leggere la risposta del server.",
+    "REQUEST_FAILED": "Richiesta non riuscita.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Impossibile raggiungere il provider vocale in tempo reale.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Questo browser non supporta la voce in tempo reale.",
+    "HANDOFF_NOT_CLAIMED": "Impossibile prendere in carico il passaggio.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Messaggio duplicato ignorato."
+  }
+}

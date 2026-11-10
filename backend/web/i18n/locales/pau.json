@@ -1,0 +1,111 @@
+{
+  "nativeName": "Tekoi er a Belau",
+  "nav": {
+    "title": "AI Contact Center",
+    "subtitle": "Multilingual self-service with governed human handoff.",
+    "operationsConsole": "Operations console",
+    "interfaceLanguage": "Interface language"
+  },
+  "status": {
+    "configured": "Guarded mode configured",
+    "setupIncomplete": "Setup incomplete",
+    "apiUnavailable": "Sign-in / API unavailable"
+  },
+  "stats": {
+    "catalogueRows": "Catalogue rows",
+    "catalogueRowsNote": "Input list preserved",
+    "uniqueCodes": "Unique language codes",
+    "uniqueCodesNote": "Duplicates are flagged",
+    "providerQualification": "Provider qualification",
+    "providerQualificationNote": "Only independently tested languages count",
+    "liveQueue": "Live human queue",
+    "liveQueueNote": "Tenant-scoped handoffs"
+  },
+  "customer": {
+    "eyebrow": "CUSTOMER EXPERIENCE",
+    "title": "Start a conversation",
+    "consentPill": "Consent required",
+    "preferredLanguage": "Preferred language",
+    "consentText": "I agree this conversation may be processed by the configured AI provider. Transcripts are encrypted before storage.",
+    "startChat": "Start secure text chat",
+    "startVoice": "Start browser voice",
+    "setupHint": "Unavailable until an administrator configures the encryption key and AI provider.",
+    "noConversation": "No active conversation",
+    "startHint": "Create a consented session to begin.",
+    "requestHuman": "Request human",
+    "chatEmpty": "Messages appear here. AI actions are suggestions only; no payments, account changes, refunds, or dispatches are executed.",
+    "messagePlaceholder": "Write a message…",
+    "send": "Send",
+    "stopVoice": "Stop voice session",
+    "voiceOff": "Voice is off.",
+    "voiceStreamNote": "Browser voice is streamed to the configured provider; OpsCore does not claim to store raw audio.",
+    "voiceRequirement": "Browser voice requires HTTPS (or localhost), a microphone, consent, a configured Realtime model and provider key. It is not a PSTN/SIP phone bridge."
+  },
+  "queue": {
+    "eyebrow": "HUMAN INTERVENTION",
+    "title": "Escalation queue",
+    "refresh": "Refresh",
+    "description": "High-risk, unresolved, or human-requested conversations appear here. A queue item means requested, not connected.",
+    "loading": "Loading queue…",
+    "empty": "No active human handoffs for this organization.",
+    "openAssignment": "Open assignment",
+    "claimAndReview": "Claim and review",
+    "resolve": "Resolve",
+    "reply": "Reply",
+    "agentAssignedTitle": "Assigned conversation",
+    "replyStorageNote": "Human replies are encrypted at rest and are visible in the conversation transcript.",
+    "resolveNote": "Resolved by assigned human operator."
+  },
+  "boundaries": {
+    "title": "Operational boundaries",
+    "automateTitle": "Designed to automate",
+    "automateBody": "Multilingual first response, clarification, intent and risk triage, secure transcript storage, queue creation and agent assignment.",
+    "humanTitle": "Human takeover required",
+    "humanBody": "Explicit human request, low confidence, high or critical risk, missing policy, unresolved case, privacy or security complaint, or uncertain action.",
+    "notEnabledTitle": "Not enabled by this package alone",
+    "notEnabledBody": "PSTN/SIP/WhatsApp/email routing, live telephony bridge, CRM identity verification and language-quality claims need a real provider adapter, credentials and acceptance tests."
+  },
+  "roles": {
+    "customer": "Customer",
+    "human": "Human agent",
+    "ai": "AI assistant"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Customer requested a human",
+    "low_confidence": "Low confidence",
+    "high_risk": "High risk",
+    "policy_refusal": "Policy refusal / restriction",
+    "unresolved": "Unresolved issue",
+    "repeated_failure": "Repeated failure",
+    "model_requested": "AI requested review",
+    "voice_review_required": "Voice review required",
+    "other": "Other"
+  },
+  "messages": {
+    "qualificationNotice": "No language is production-qualified until text, ASR, TTS, accent and escalation tests pass.",
+    "configNeeded": "Configuration still needed: {missing}.",
+    "configOk": "Configuration exists. Provider connectivity and language quality still need live acceptance tests.",
+    "conversationCreated": "Secure conversation created. Language quality is not yet production-qualified.",
+    "handoffQueued": "Human handoff queued ({reason}). This is a queue request, not a live connection.",
+    "aiResponseFailed": "The AI response was not completed. No action was executed. You can request a human representative.",
+    "actionNotCompleted": "Action not completed: {reason}.",
+    "apiUnavailable": "The Contact Center API could not be loaded. Sign in to the OpsCore console, then reload this page.",
+    "suggestedNextStep": "Suggested next step only (not executed): {step}.",
+    "handoffQueuedQueueOnly": "Human handoff queued ({reason}). The queue does not prove an agent is connected.",
+    "voiceHandoffStopped": "Human handoff queued. The browser AI session is stopping; live telephony transfer is not configured.",
+    "voiceCredentialRequest": "Requesting a short-lived voice credential…",
+    "voiceRealtimeError": "Realtime provider reported an error. Stop the voice session and retry after checking provider configuration.",
+    "voiceActive": "Voice session is active. Press “Request human” at any time; this creates a queue item, not a PSTN transfer.",
+    "voiceCredentialActive": "{languageCode} · temporary provider credential",
+    "queueUnavailable": "Queue unavailable: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Consent is required before a conversation can start.",
+    "SERVER_RESPONSE_INVALID": "The server response could not be read.",
+    "REQUEST_FAILED": "The request failed.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "The realtime voice provider could not be reached.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "This browser does not support realtime voice.",
+    "HANDOFF_NOT_CLAIMED": "The handoff could not be claimed.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Duplicate message ignored."
+  }
+}

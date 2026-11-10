@@ -1,0 +1,111 @@
+{
+  "nativeName": "Kiswahili",
+  "nav": {
+    "title": "Kituo cha Mawasiliano cha AI",
+    "subtitle": "Huduma ya kujitegemea ya lugha nyingi na uhamishaji wenye usimamizi kwa mwanadamu.",
+    "operationsConsole": "Konsoli ya uendeshaji",
+    "interfaceLanguage": "Lugha ya kiolesura"
+  },
+  "status": {
+    "configured": "Hali iliyolindwa imewekwa mipangilio",
+    "setupIncomplete": "Usanidi haujakamilika",
+    "apiUnavailable": "Kuingia / API haipatikani"
+  },
+  "stats": {
+    "catalogueRows": "Safu za katalogi",
+    "catalogueRowsNote": "Orodha ya pembejeo imehifadhiwa",
+    "uniqueCodes": "Misimbo ya kipekee ya lugha",
+    "uniqueCodesNote": "Zinazorudiwa huwekwa alama",
+    "providerQualification": "Sifa za mtoa huduma",
+    "providerQualificationNote": "Lugha zilizopimwa kwa kujitegemea pekee ndizo zinazohesabiwa",
+    "liveQueue": "Foleni ya moja kwa moja ya watu",
+    "liveQueueNote": "Uhamishaji kwa kila mpangaji"
+  },
+  "customer": {
+    "eyebrow": "MATOKEO YA MHASISITI",
+    "title": "Anzisha mazungumzo",
+    "consentPill": "Idhini inahitajika",
+    "preferredLanguage": "Lugha unayopendelea",
+    "consentText": "Ninakubali mazungumzo haya yachakatwe na mtoa huduma wa AI aliyezumishwa. Marekodi husimbwa kabla ya kuhifadhiwa.",
+    "startChat": "Anzisha mazungumzo salama ya maandishi",
+    "startVoice": "Anzisha sauti ya kivinjari",
+    "setupHint": "Haipatikani hadi msimamizi awakisimamie ufunguo wa usimbaji na mtoa huduma wa AI.",
+    "noConversation": "Hakuna mazungumzo yanayoendelea",
+    "startHint": "Unda kipindi kilicho na idhini ili kuanza.",
+    "requestHuman": "Omba wakala wa binadamu",
+    "chatEmpty": "Ujumbe wako utaonekana hapa. Vitendo vya AI ni mapendekezo tu; hakuna malipo, mabadiliko ya akaunti, marejesho au utumaji yanayotekelezwa.",
+    "messagePlaceholder": "Andika ujumbe…",
+    "send": "Tuma",
+    "stopVoice": "Simamisha kipindi cha sauti",
+    "voiceOff": "Sauti imezimwa.",
+    "voiceStreamNote": "Sauti ya kivinjari hutiririshwa kwa mtoa huduma aliyesanidiwa; OpsCore haidai kuhifadhi sauti ghafi.",
+    "voiceRequirement": "Sauti ya kivinjari inahitaji HTTPS (au localhost), maikrofoni, idhini, modeli ya Realtime iliyosanidiwa na ufunguo wa mtoa huduma. Si daraja la simu la PSTN/SIP."
+  },
+  "queue": {
+    "eyebrow": "MINGAMO YA BINADAMU",
+    "title": "Foleni ya kupandisha",
+    "refresh": "Onyesha upya",
+    "description": "Mazungumzo ya hatari kubwa, hayajatatuliwa au yaliyoomba binadamu huonekana hapa. Kipengele cha foleni kinamaanisha kitelelezwa, si kumeunganishwa.",
+    "loading": "Inapakia foleni…",
+    "empty": "Hakuna uhamishaji wa binadamu unaoendelea kwa shirika hili.",
+    "openAssignment": "Fungua uteuzi",
+    "claimAndReview": "Dai na ukague",
+    "resolve": "Suluhisha",
+    "reply": "Jibu",
+    "agentAssignedTitle": "Mazungumzo yaliyokabidhiwa",
+    "replyStorageNote": "Majibu ya binadamu husimbwa yakiwa yamehifadhiwa na yanaonekana kwenye nakala ya mazungumzo.",
+    "resolveNote": "Imetatuliwa na opereta binadamu aliyekabidhiwa."
+  },
+  "boundaries": {
+    "title": "Mipaka ya uendeshaji",
+    "automateTitle": "Imeundwa kwa ujenzi wa kiotomatiki",
+    "automateBody": "Jibu la kwanza la lugha nyingi, ufafanuzi, uainishaji wa nia na hatari, hifadhi salama ya marekodi, utengenezaji wa foleni na uteuzi wa wakala.",
+    "humanTitle": "Kuchukuliwa na binadamu kunahitajika",
+    "humanBody": "Ombi la wazi la binadamu, ujasiri mdogo, hatari kubwa au ya mhimili, sera isiyopo, kesi isiyotatuliwa, malalamiko ya faragha/usalama au kitendo kisichoeleweka.",
+    "notEnabledTitle": "Haijawashwa na kifurushi hiki pekee",
+    "notEnabledBody": "Uelekezaji wa PSTN/SIP/WhatsApp/barua pepe, daraja la simu la moja kwa moja, uthibitisho wa utambulisho wa CRM na madai ya ubora wa lugha yanahitaji adapta halisi ya mtoa huduma, vitambulisho na vipimo vya kukubaliwa."
+  },
+  "roles": {
+    "customer": "Mhasisiti",
+    "human": "Wakala wa binadamu",
+    "ai": "Msaidizi wa AI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Mhasisiti aliomba binadamu",
+    "low_confidence": "Ujasiri mdogo",
+    "high_risk": "Hatari kubwa",
+    "policy_refusal": "Kukataa / kikwazo cha sera",
+    "unresolved": "Tatili lisilotatuliwa",
+    "repeated_failure": "Kushindwa kurudiwa",
+    "model_requested": "AI iliomba ukaguzi",
+    "voice_review_required": "Ukaguzi wa sauti unahitajika",
+    "other": "Nyingine"
+  },
+  "messages": {
+    "qualificationNotice": "Hakuna lugha iliyohitimu kwa uzalishaji hadi vipimo vya maandishi, ASR, TTS, lafudhi na kupandisha vifaulu.",
+    "configNeeded": "Usanidi bado unahitajika: {missing}.",
+    "configOk": "Usanidi upo. Uunganishaji wa mtoa huduma na ubora wa lugha bado unahitaji vipimo halisi vya kukubaliwa.",
+    "conversationCreated": "Mazungumzo salama yameundwa. Ubora wa lugha bado haujahitimu kwa uzalishaji.",
+    "handoffQueued": "Uhamishaji wa binadamu umewekwa kwenye foleni ({reason}). Hii ni ombi la foleni, si muunganisho wa moja kwa moja.",
+    "aiResponseFailed": "Jibu la AI halikukamilika. Hakuna kitendo kilichotekelezwa. Unaweza kuomba wakala wa binadamu.",
+    "actionNotCompleted": "Kitendo hakikukamilika: {reason}.",
+    "apiUnavailable": "API ya Kituo cha Mawasiliano haikuweza kupakiwa. Ingia kwenye kiweko cha OpsCore, kisha pakia upya ukurasa huu.",
+    "suggestedNextStep": "Hatua inayopendekezwa tu (haijatekelezwa): {step}.",
+    "handoffQueuedQueueOnly": "Makabidhiano kwa binadamu yamewekwa kwenye foleni ({reason}). Foleni haithibitishi kuwa wakala ameunganishwa.",
+    "voiceHandoffStopped": "Makabidhiano kwa binadamu yamewekwa kwenye foleni. Kipindi cha AI cha kivinjari kinasimamishwa; uhamisho wa simu wa moja kwa moja haujasanidiwa.",
+    "voiceCredentialRequest": "Inaomba kitambulisho cha sauti cha muda mfupi…",
+    "voiceRealtimeError": "Mtoa huduma wa wakati halisi ameripoti hitilafu. Simamisha kipindi cha sauti na ujaribu tena baada ya kukagua usanidi wa mtoa huduma.",
+    "voiceActive": "Kipindi cha sauti kinaendelea. Bonyeza “Omba wakala wa binadamu” wakati wowote; hii huunda kipengee cha foleni, si uhamisho wa PSTN.",
+    "voiceCredentialActive": "{languageCode} · kitambulisho cha muda cha mtoa huduma",
+    "queueUnavailable": "Foleni haipatikani: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Idhini inahitajika kabla mazungumzo hayajaanza.",
+    "SERVER_RESPONSE_INVALID": "Jibu la seva halikuweza kusomwa.",
+    "REQUEST_FAILED": "Ombi limeshindwa.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Mtoa huduma wa sauti ya wakati halisi hakuweza kufikiwa.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Kivinjari hiki hakitumii sauti ya wakati halisi.",
+    "HANDOFF_NOT_CLAIMED": "Makabidhiano hayakuweza kuchukuliwa.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Ujumbe unaorudiwa umepuuzwa."
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "nativeName": "Norsk",
+  "nav": {
+    "title": "AI-kontaktsenter",
+    "subtitle": "Flerspråklig selvhjelp med styrt overlevering til menneske.",
+    "operationsConsole": "Driftskonsoll",
+    "interfaceLanguage": "Grensesnittspråk"
+  },
+  "status": {
+    "configured": "Vernet modus konfigurert",
+    "setupIncomplete": "Oppsettet er ufullstendig",
+    "apiUnavailable": "Pålogging / API utilgjengelig"
+  },
+  "stats": {
+    "catalogueRows": "Katalograder",
+    "catalogueRowsNote": "Inngangslisten bevart",
+    "uniqueCodes": "Unike språkkoder",
+    "uniqueCodesNote": "Duplikater flagges",
+    "providerQualification": "Leverandørkvalifisering",
+    "providerQualificationNote": "Bare uavhengig testede språk teller",
+    "liveQueue": "Live menneskekø",
+    "liveQueueNote": "Overleveringer per leietaker"
+  },
+  "customer": {
+    "eyebrow": "KUNDEOPPLEVELSE",
+    "title": "Start en samtale",
+    "consentPill": "Samtykke kreves",
+    "preferredLanguage": "Foretrukket språk",
+    "consentText": "Jeg samtykker til at denne samtalen behandles av den konfigurerte AI-leverandøren. Transkripter krypteres før lagring.",
+    "startChat": "Start sikker tekstprat",
+    "startVoice": "Start nettleserstemme",
+    "setupHint": "Utilgjengelig til en administrator konfigurerer krypteringsnøkkelen og AI-leverandøren.",
+    "noConversation": "Ingen aktiv samtale",
+    "startHint": "Opprett en samtykket økt for å begynne.",
+    "requestHuman": "Be om menneskelig agent",
+    "chatEmpty": "Meldingene dine vises her. KI-handlinger er kun forslag; ingen betalinger, kontiendringer, refusjoner eller utsendelser utføres.",
+    "messagePlaceholder": "Skriv en melding…",
+    "send": "Send melding",
+    "stopVoice": "Stopp taleøkt",
+    "voiceOff": "Stemmen er av.",
+    "voiceStreamNote": "Nettleserstemme strømmes til den konfigurerte leverandøren; OpsCore hevder ikke å lagre rålyd.",
+    "voiceRequirement": "Nettlesertale krever HTTPS (eller localhost), mikrofon, samtykke, en konfigurert Realtime-modell og leverandørnøkkel. Det er ikke en PSTN/SIP-telefonbro."
+  },
+  "queue": {
+    "eyebrow": "MENNESKLIG INTERVENSJON",
+    "title": "Eskaleringskø",
+    "refresh": "Oppdater",
+    "description": "Samtaler med høy risiko, uoppnådde løsninger eller ønske om menneske vises her. Et køelement betyr forespurt, ikke tilkoblet.",
+    "loading": "Laster kø…",
+    "empty": "Ingen aktive menneskelige overleveringer for denne organisasjonen.",
+    "openAssignment": "Åpne tildeling",
+    "claimAndReview": "Krev og gjennomgå",
+    "resolve": "Løs",
+    "reply": "Svar",
+    "agentAssignedTitle": "Tildelt samtale",
+    "replyStorageNote": "Menneskelige svar krypteres i hvile og er synlige i samtaletranskripsjonen.",
+    "resolveNote": "Løst av tildelt menneskelig operatør."
+  },
+  "boundaries": {
+    "title": "Operasjonelle grenser",
+    "automateTitle": "Designet for å automatisere",
+    "automateBody": "Flerspråklig førstesvar, avklaring, hensikts- og risikosortering, sikker lagring av transkripter, køoppretting og agenttildeling.",
+    "humanTitle": "Menneskelig overtakelse kreves",
+    "humanBody": "Eksplisitt ønske om menneske, lav tillit, høy eller kritisk risiko, manglende policy, uoppnådd sak, personvern-/sikkerhetsklage eller usikker handling.",
+    "notEnabledTitle": "Ikke aktivert av denne pakken alene",
+    "notEnabledBody": "PSTN/SIP/WhatsApp/e-postruting, live-telefonibro, CRM-identitetsverifisering og språkkvalitetspåstander krever en ekte leverandøradapter, legitimasjon og akseptansetester."
+  },
+  "roles": {
+    "customer": "Kunde",
+    "human": "Menneskelig agent",
+    "ai": "KI-assistent"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Kunden ba om et menneske",
+    "low_confidence": "Lav tillit",
+    "high_risk": "Høy risiko",
+    "policy_refusal": "Policyavvisning / -begrensning",
+    "unresolved": "Uløst problem",
+    "repeated_failure": "Gjentatte feil",
+    "model_requested": "KI ba om gjennomgang",
+    "voice_review_required": "Stemmegjennomgang kreves",
+    "other": "Annet"
+  },
+  "messages": {
+    "qualificationNotice": "Ingen språk er produksjonskvalifisert før testene for tekst, ASR, TTS, aksent og eskalering er bestått.",
+    "configNeeded": "Konfigurasjon kreves fortsatt: {missing}.",
+    "configOk": "Konfigurasjonen finnes. Leverandørtilkobling og språkkvalitet krever fortsatt ekte akseptansetester.",
+    "conversationCreated": "Sikker samtale opprettet. Språkkvaliteten er ennå ikke produksjonskvalifisert.",
+    "handoffQueued": "Menneskelig overlevering i kø ({reason}). Dette er en køforespørsel, ikke en live-tilkobling.",
+    "aiResponseFailed": "KI-svaret ble ikke fullført. Ingen handling ble utført. Du kan be om en menneskelig agent.",
+    "actionNotCompleted": "Handlingen ble ikke fullført: {reason}.",
+    "apiUnavailable": "Kontaktsenter-API-et kunne ikke lastes. Logg inn på OpsCore-konsollen og last siden på nytt.",
+    "suggestedNextStep": "Kun foreslått neste steg (ikke utført): {step}.",
+    "handoffQueuedQueueOnly": "Menneskelig overlevering i kø ({reason}). Køen beviser ikke at en agent er tilkoblet.",
+    "voiceHandoffStopped": "Menneskelig overlevering i kø. AI-økten i nettleseren avsluttes; live telefonioverføring er ikke konfigurert.",
+    "voiceCredentialRequest": "Ber om en kortvarig stemmelegitimasjon…",
+    "voiceRealtimeError": "Realtime-leverandøren rapporterte en feil. Stopp stemmeøkten og prøv igjen etter å ha sjekket leverandørkonfigurasjonen.",
+    "voiceActive": "Stemmeøkten er aktiv. Trykk «Be om menneskelig agent» når som helst; dette oppretter et køelement, ikke en PSTN-overføring.",
+    "voiceCredentialActive": "{languageCode} · midlertidig leverandørlegitimasjon",
+    "queueUnavailable": "Køen er utilgjengelig: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Samtykke kreves før en samtale kan starte.",
+    "SERVER_RESPONSE_INVALID": "Serversvaret kunne ikke leses.",
+    "REQUEST_FAILED": "Forespørselen mislyktes.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Sanntidsstemmeleverandøren kunne ikke nås.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Denne nettleseren støtter ikke sanntidsstemme.",
+    "HANDOFF_NOT_CLAIMED": "Overleveringen kunne ikke overtas.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Duplikatmelding ignorert."
+  }
+}

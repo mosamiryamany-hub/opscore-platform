@@ -1,0 +1,111 @@
+{
+  "nativeName": "Fulfulde",
+  "nav": {
+    "title": "Sental jokkondiral AI",
+    "subtitle": "Ballal ɗemɗe keewɗe e waylugol e juuɗe neɗɗo.",
+    "operationsConsole": "Konsol golle",
+    "interfaceLanguage": "Ɗemngal interfees"
+  },
+  "status": {
+    "configured": "Mbaydi reenaandi teeŋtinii",
+    "setupIncomplete": "Teeltagol timmaani",
+    "apiUnavailable": "Naatu / API alaa"
+  },
+  "stats": {
+    "catalogueRows": "Rewooji doggol",
+    "catalogueRowsNote": "Doggol naatniingol reenaama",
+    "uniqueCodes": "Kodji ɗemngal ceertuɗi",
+    "uniqueCodesNote": "Jokkondire ɗee ina cosondiree",
+    "providerQualification": "Jaɓgol dokkoowo",
+    "providerQualificationNote": "Ɗemɗe ɗe ndaarndaa seeɗa tan limtee",
+    "liveQueue": "Rewoowo yimɓe jooni",
+    "liveQueueNote": "Waylugol e nder fedde"
+  },
+  "customer": {
+    "eyebrow": "GOLLAL KLIYAN",
+    "title": "Fuɗɗu yeewtere",
+    "consentPill": "Ko yardaade ina wasa",
+    "preferredLanguage": "Ɗemngal ɓurungal",
+    "consentText": "Mi jaɓii wonde yeewtere ndee ina waawi wonde dokkoowo AI. Winndannde ɗee ina suuɗee ado reenaade.",
+    "startChat": "Fuɗɗu yeewtere binndol kisɗo",
+    "startVoice": "Fuɗɗu daande wanngorde",
+    "setupHint": "Alaa haa gardiiɗo teelti fenaande suuɗgol e dokkoowo AI.",
+    "noConversation": "Yeewtere gollaandi alaa",
+    "startHint": "Sos yeewtere e yardaade ngam fuɗɗaade.",
+    "requestHuman": "Ñaŋnu neɗɗo",
+    "chatEmpty": "Ɓeele ina mbaɗi ɗoo. Gollal AI ko wasiya tan; njoɓdi, waylugol konte walla neldugol huunde novii.",
+    "messagePlaceholder": "Winndu ɓataake…",
+    "send": "Neldu",
+    "stopVoice": "Dartin yeewtere daande",
+    "voiceOff": "Daande ina off.",
+    "voiceStreamNote": "Daande wanngorde ina neldee to dokkoowo oo; OpsCore wi'ataa wonde ina reena daande aduna.",
+    "voiceRequirement": "Daande wanngorde ina wasa HTTPS, maaykiro, yardaade, model Realtime e fenaande dokkoowo. Wonaa jokkondiral telefoŋ."
+  },
+  "queue": {
+    "eyebrow": "NAFTOORA YIMƁE",
+    "title": "Rewoowo waylugol",
+    "refresh": "Kesɓit",
+    "description": "Yeewtere ɗe caɗeele, ɗe ndokkaani jaabawol walla ɗe ñaŋnii neɗɗo ina mbaɗi ɗoo. Rewoowo firti ko ñaŋnaama, wonaa jokkondiral.",
+    "loading": "Ina loowa rewoowo…",
+    "empty": "Waylugol yimɓe alaa e nder fedde ndee.",
+    "openAssignment": "Uddit gollal",
+    "claimAndReview": "Jaɓ e ƴeew",
+    "resolve": "Gas",
+    "reply": "Njaab",
+    "agentAssignedTitle": "Yeewtere jaɓnde",
+    "replyStorageNote": "Jaabawol yimɓe ina suuɗee, ina feeñi e winndannde yeewtere ndee.",
+    "resolveNote": "Gasnde e juuɗe gollotooɗo jaɓɗo."
+  },
+  "boundaries": {
+    "title": "Keeri golle",
+    "automateTitle": "Wonande gollal",
+    "automateBody": "Jaabawol aranol e ɗemɗe keewɗe, ɓeydude laaɓal, ƴeewndo baɗal, reenaade winndannde kisɗunde e newaade gollotooɓe.",
+    "humanTitle": "Waylugol e juuɗe neɗɗo ina wasa",
+    "humanBody": "Ñaŋgol neɗɗo, hoolaare famɗunde, baɗal mawngal, laawol alaa, fiyaaku mo jaabaani, wiyoowo e suturo walla baɗal anndaaka.",
+    "notEnabledTitle": "Alaa e nder ndee package tan",
+    "notEnabledBody": "Telefoŋ/PSTN, WhatsApp, email, jokkondiral daande, woodgol e CRM e hoolaare ko ɗemɗe ina wasa dokkoowo goonga, fenaande e jarribooji jaɓgol."
+  },
+  "roles": {
+    "customer": "Kliyan",
+    "human": "Gollotooɗo neɗɗo",
+    "ai": "Ballitooɗo AI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Kliyan ñaŋnii neɗɗo",
+    "low_confidence": "Hoolaare famɗunde",
+    "high_risk": "Baɗal mawngal",
+    "policy_refusal": "Haɗgol laawol",
+    "unresolved": "Fiyaaku jaabaani",
+    "repeated_failure": "Fiyaku ɓeydii",
+    "model_requested": "AI ñaŋnii ƴeewndo",
+    "voice_review_required": "ƴeewndo daande ina wasa",
+    "other": "Goɗɗum"
+  },
+  "messages": {
+    "qualificationNotice": "Ɗemngal alaa jaɓgol haa jarribooji binndol, ASR, TTS e waylugol ndokka.",
+    "configNeeded": "Sifaa ina wasa: {missing}.",
+    "configOk": "Sifaa ina woodi. Jokkondiral dokkoowo e hoolaare ɗemngal ina wasa jarribooji goonga.",
+    "conversationCreated": "Yeewtere kisɗunde sosaa. Hoolaare ɗemngal jaɓaani.",
+    "handoffQueued": "Waylugol e neɗɗo ina e rewoowo ({reason}). Ko ñaŋgol rewoowo, wonaa jokkondiral jooni.",
+    "aiResponseFailed": "Jaabawol AI timmaani. Gollal alaa. A waawi ñaŋnude neɗɗo.",
+    "actionNotCompleted": "Gollal timmaani: {reason}.",
+    "apiUnavailable": "API sental jokkondiral loowaani. Naatu e konsol OpsCore, ndeen loowto ngoo hello.",
+    "suggestedNextStep": "Wasiya tan (walla gollaande): {step}.",
+    "handoffQueuedQueueOnly": "Waylugol e neɗɗo ina e rewoowo ({reason}). Rewoowo hollataa wonde gollotooɗo ina jokkondiri.",
+    "voiceHandoffStopped": "Waylugol e neɗɗo ina e rewoowo. Yeewtere AI ina darii; waylugol telefoŋ teeltinaani.",
+    "voiceCredentialRequest": "Ñaŋgol seedannde daande seeɗa…",
+    "voiceRealtimeError": "Dokkoowo Realtime holliima goɗɗum. Dartin yeewtere daande, ƴeew sifaa, ndeen eto kadi.",
+    "voiceActive": "Yeewtere daande ina golla. Ñaŋnu neɗɗo saanga kala; ɗum sosata ko rewoowo, wonaa waylugol telefoŋ.",
+    "voiceCredentialActive": "{languageCode} · seedannde dokkoowo seeɗa",
+    "queueUnavailable": "Rewoowo alaa: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Yardaade ina wasa ado yeewtere fuɗɗaade.",
+    "SERVER_RESPONSE_INVALID": "Jaabawol sarwiis ndaaraaka.",
+    "REQUEST_FAILED": "Ñaŋgol ndokkaani.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Dokkoowo daande Realtime jokkondiraaka.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Ndee wanngorde wallataa daande Realtime.",
+    "HANDOFF_NOT_CLAIMED": "Waylugol jaɓaaka.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Ɓataake ɓeydii yiyeede."
+  }
+}

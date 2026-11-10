@@ -1,0 +1,124 @@
+{
+  "schemaVersion": "opscore.production-readiness.v1",
+  "generatedAt": "2026-11-02T10:44:03.812Z",
+  "release": "0.11.62",
+  "mobileVersion": "0.1.16",
+  "status": "CONDITIONAL",
+  "checks": [
+    {
+      "id": "node-engine",
+      "status": "PASS",
+      "detail": "required=>=22.23.4; actual=22.23.4",
+      "next": "Run under Node >=22.23.4+ for release certification."
+    },
+    {
+      "id": "backend-lockfile",
+      "status": "PASS",
+      "detail": "Committed backend package-lock.json required for deterministic install.",
+      "next": null
+    },
+    {
+      "id": "mobile-lockfile",
+      "status": "PASS",
+      "detail": "Committed mobile package-lock.json required for deterministic install.",
+      "next": null
+    },
+    {
+      "id": "docker-node-pin",
+      "status": "PASS",
+      "detail": "Docker image pins the declared Node release.",
+      "next": null
+    },
+    {
+      "id": "docker-non-root",
+      "status": "PASS",
+      "detail": "Container switches to a non-root runtime user.",
+      "next": null
+    },
+    {
+      "id": "docker-healthcheck",
+      "status": "PASS",
+      "detail": "Container exposes a healthcheck against /api/health.",
+      "next": null
+    },
+    {
+      "id": "ci-node-pin",
+      "status": "PASS",
+      "detail": "CI pins Node 22.23.4.",
+      "next": null
+    },
+    {
+      "id": "ci-lockfile-install",
+      "status": "PASS",
+      "detail": "CI installs from lockfiles.",
+      "next": null
+    },
+    {
+      "id": "ci-audit",
+      "status": "PASS",
+      "detail": "CI performs high-severity dependency audits.",
+      "next": null
+    },
+    {
+      "id": "ci-attestation",
+      "status": "PASS",
+      "detail": "CI prepares cryptographic release attestation.",
+      "next": null
+    },
+    {
+      "id": "docker-runtime",
+      "status": "UNVERIFIED",
+      "detail": "Docker CLI unavailable in this execution environment.",
+      "next": "Run docker build and container smoke test in the release runner."
+    },
+    {
+      "id": "postgres-live",
+      "status": "UNVERIFIED",
+      "detail": "DATABASE_URL not provided in this environment.",
+      "next": "Provide DATABASE_URL in a controlled validation environment."
+    },
+    {
+      "id": "oidc-live",
+      "status": "UNVERIFIED",
+      "detail": "Real OIDC inputs not provided in this environment.",
+      "next": "Provide real IdP issuer/audience/token in a controlled validation environment."
+    },
+    {
+      "id": "shared-rate-state",
+      "status": "UNVERIFIED",
+      "detail": "OPSC_EXPECTED_INSTANCES is not declared, so rate-limit deployment shape is unverified.",
+      "next": "Set OPSC_EXPECTED_INSTANCES explicitly; for more than one instance also use FIREWALL_RATE_STATE=database and OPSC_SHARED_STATE_CONFIRMED=true."
+    },
+    {
+      "id": "network-edge",
+      "status": "UNVERIFIED",
+      "detail": "TLS termination, WAF/reverse proxy, segmentation and DNS controls are deployment-bound.",
+      "next": "Validate at the buyer edge."
+    },
+    {
+      "id": "external-observability",
+      "status": "UNVERIFIED",
+      "detail": "Central logs/metrics/traces and alert routing are deployment-bound.",
+      "next": "Connect the buyer observability stack."
+    },
+    {
+      "id": "mobile-signing",
+      "status": "UNVERIFIED",
+      "detail": "Signed Android/iOS artifacts require real signing credentials and build services.",
+      "next": "Run signed builds on the buyer/build environment."
+    },
+    {
+      "id": "physical-mobile",
+      "status": "UNVERIFIED",
+      "detail": "Physical-device behavior requires device validation.",
+      "next": "Run field-device acceptance on representative devices."
+    },
+    {
+      "id": "mock-hardcode-purge",
+      "status": "PASS",
+      "detail": "No mock/hardcoded cosmetic markers detected in runtime src/web/scripts.",
+      "next": null
+    }
+  ],
+  "truthBoundary": "Static gates and locally available runtime checks only. Infrastructure-bound items remain explicitly unverified until exercised in the target environment."
+}

@@ -1,0 +1,111 @@
+{
+  "nativeName": "Nederlands",
+  "nav": {
+    "title": "AI-contactcenter",
+    "subtitle": "Meertalige zelfservice met begeleide overdracht aan mensen.",
+    "operationsConsole": "Operationele console",
+    "interfaceLanguage": "Interfacetaal"
+  },
+  "status": {
+    "configured": "Beveiligde modus geconfigureerd",
+    "setupIncomplete": "Installatie onvolledig",
+    "apiUnavailable": "Aanmelding / API niet beschikbaar"
+  },
+  "stats": {
+    "catalogueRows": "Catalogusrijen",
+    "catalogueRowsNote": "Invoerlijst behouden",
+    "uniqueCodes": "Unieke taalcodes",
+    "uniqueCodesNote": "Duplicaten worden gemarkeerd",
+    "providerQualification": "Providerkwalificatie",
+    "providerQualificationNote": "Alleen onafhankelijk geteste talen tellen",
+    "liveQueue": "Live menselijke wachtrij",
+    "liveQueueNote": "Overdrachten per tenant"
+  },
+  "customer": {
+    "eyebrow": "KLANTERVARING",
+    "title": "Start een gesprek",
+    "consentPill": "Toestemming vereist",
+    "preferredLanguage": "Voorkeurstaal",
+    "consentText": "Ik ga ermee akkoord dat dit gesprek wordt verwerkt door de geconfigureerde AI-provider. Transcripten worden versleuteld vóór opslag.",
+    "startChat": "Beveiligde tekstchat starten",
+    "startVoice": "Browserspraak starten",
+    "setupHint": "Niet beschikbaar totdat een beheerder de versleutelingssleutel en de AI-provider configureert.",
+    "noConversation": "Geen actief gesprek",
+    "startHint": "Maak een sessie met toestemming om te beginnen.",
+    "requestHuman": "Menselijke agent aanvragen",
+    "chatEmpty": "Uw berichten verschijnen hier. AI-acties zijn alleen suggesties; betalingen, accountwijzigingen, terugbetalingen of verzendingen worden niet uitgevoerd.",
+    "messagePlaceholder": "Schrijf een bericht…",
+    "send": "Versturen",
+    "stopVoice": "Spraaksessie stoppen",
+    "voiceOff": "Spraak staat uit.",
+    "voiceStreamNote": "Browserspraak wordt gestreamd naar de geconfigureerde provider; OpsCore beweert niet ruwe audio op te slaan.",
+    "voiceRequirement": "Browserspraak vereist HTTPS (of localhost), een microfoon, toestemming, een geconfigureerd Realtime-model en een providersleutel. Het is geen PSTN/SIP-telefoonbrug."
+  },
+  "queue": {
+    "eyebrow": "MENSELIJKE INTERVENTIE",
+    "title": "Escalatiewachtrij",
+    "refresh": "Vernieuwen",
+    "description": "Gesprekken met hoog risico, onopgeloste zaken of verzoek om een mens verschijnen hier. Een wachtrijitem betekent aangevraagd, niet verbonden.",
+    "loading": "Wachtrij laden…",
+    "empty": "Geen actieve menselijke overdrachten voor deze organisatie.",
+    "openAssignment": "Toewijzing openen",
+    "claimAndReview": "Opeisen en beoordelen",
+    "resolve": "Oplossen",
+    "reply": "Antwoorden",
+    "agentAssignedTitle": "Toegewezen gesprek",
+    "replyStorageNote": "Menselijke antwoorden worden versleuteld opgeslagen en zijn zichtbaar in het gesprekstranscript.",
+    "resolveNote": "Opgelost door de toegewezen menselijke medewerker."
+  },
+  "boundaries": {
+    "title": "Operationele grenzen",
+    "automateTitle": "Ontworpen om te automatiseren",
+    "automateBody": "Meertalige eerste reactie, verduidelijking, intentie- en risicotriage, veilige transcriptopslag, wachtrijcreatie en agentstoewijzing.",
+    "humanTitle": "Menselijke overname vereist",
+    "humanBody": "Expliciet menselijk verzoek, lage betrouwbaarheid, hoog of kritiek risico, ontbrekend beleid, onopgeloste zaak, privacy-/beveiligingsklacht of onzekere actie.",
+    "notEnabledTitle": "Niet ingeschakeld door dit pakket alleen",
+    "notEnabledBody": "PSTN/SIP/WhatsApp/e-mailroutering, live telefoniebrug, CRM-identiteitsverificatie en taalkwaliteitsclaims vereisen een echte provideradapter, inloggegevens en acceptatietests."
+  },
+  "roles": {
+    "customer": "Klant",
+    "human": "Menselijke agent",
+    "ai": "AI-assistent"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Klant vroeg een menselijke agent",
+    "low_confidence": "Lage betrouwbaarheid",
+    "high_risk": "Hoog risico",
+    "policy_refusal": "Beleidsweigering / -beperking",
+    "unresolved": "Onopgelost probleem",
+    "repeated_failure": "Herhaald falen",
+    "model_requested": "AI vroeg beoordeling aan",
+    "voice_review_required": "Spraakbeoordeling vereist",
+    "other": "Overig"
+  },
+  "messages": {
+    "qualificationNotice": "Geen enkele taal is productiekwalificatietotdat de tests voor tekst, ASR, TTS, accent en escalatie zijn geslaagd.",
+    "configNeeded": "Configuratie nog vereist: {missing}.",
+    "configOk": "Configuratie bestaat. Providerconnectiviteit en taalkwaliteit vereisen nog echte acceptatietests.",
+    "conversationCreated": "Beveiligd gesprek aangemaakt. Taalkwaliteit is nog niet productiekwalificatie.",
+    "handoffQueued": "Menselijke overdracht in wachtrij ({reason}). Dit is een wachtrijverzoek, geen live verbinding.",
+    "aiResponseFailed": "Het AI-antwoord werd niet voltooid. Er is geen actie uitgevoerd. U kunt een menselijke agent aanvragen.",
+    "actionNotCompleted": "Actie niet voltooid: {reason}.",
+    "apiUnavailable": "De Contact Center-API kon niet worden geladen. Meld u aan bij de OpsCore-console en laad deze pagina opnieuw.",
+    "suggestedNextStep": "Alleen voorgestelde volgende stap (niet uitgevoerd): {step}.",
+    "handoffQueuedQueueOnly": "Menselijke overdracht in de wachtrij geplaatst ({reason}). De wachtrij bewijst niet dat een medewerker verbonden is.",
+    "voiceHandoffStopped": "Menselijke overdracht in de wachtrij geplaatst. De AI-sessie in de browser wordt gestopt; live telefonie-overdracht is niet geconfigureerd.",
+    "voiceCredentialRequest": "Kortdurende spraakgegevens worden aangevraagd…",
+    "voiceRealtimeError": "Realtime provider meldde een fout. Stop de spraaksessie en probeer opnieuw na controle van de providerconfiguratie.",
+    "voiceActive": "Spraaksessie is actief. Druk op elk moment op “Menselijke agent aanvragen”; dit maakt een wachtrij-item aan, geen PSTN-overdracht.",
+    "voiceCredentialActive": "{languageCode} · tijdelijke providergegevens",
+    "queueUnavailable": "Wachtrij niet beschikbaar: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Toestemming is vereist voordat een gesprek kan beginnen.",
+    "SERVER_RESPONSE_INVALID": "Het serverantwoord kon niet worden gelezen.",
+    "REQUEST_FAILED": "Het verzoek is mislukt.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "De realtime spraakprovider kon niet worden bereikt.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Deze browser ondersteunt geen realtime spraak.",
+    "HANDOFF_NOT_CLAIMED": "De overdracht kon niet worden overgenomen.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Dubbel bericht genegeerd."
+  }
+}

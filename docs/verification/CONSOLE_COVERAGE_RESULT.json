@@ -1,0 +1,123 @@
+{
+  "schemaVersion": "opscore.console-coverage.v1",
+  "release": "0.11.62",
+  "backendApiInventory": {
+    "operations": 389,
+    "documentedPaths": 298
+  },
+  "webConsole": {
+    "files": [
+      "backend/web/app.js",
+      "backend/web/portal.js"
+    ],
+    "uniqueApiPaths": [
+      "/api/v1/activity",
+      "/api/v1/appointments",
+      "/api/v1/assets",
+      "/api/v1/attachments/{param}",
+      "/api/v1/audit",
+      "/api/v1/auth/bootstrap",
+      "/api/v1/auth/login",
+      "/api/v1/auth/logout",
+      "/api/v1/client-contract",
+      "/api/v1/commands/execute",
+      "/api/v1/control-plane",
+      "/api/v1/control-plane/recovery-bundle",
+      "/api/v1/control-plane/safe-mode",
+      "/api/v1/control-tower",
+      "/api/v1/customers",
+      "/api/v1/daily-planning-board",
+      "/api/v1/demo/closeout-path",
+      "/api/v1/dispatch-board",
+      "/api/v1/dispatcher-map/v2",
+      "/api/v1/export/work-orders.csv",
+      "/api/v1/field/live-snapshot",
+      "/api/v1/geofences",
+      "/api/v1/inventory",
+      "/api/v1/invoices/{param}/pdf",
+      "/api/v1/me",
+      "/api/v1/members",
+      "/api/v1/metrics",
+      "/api/v1/notification-providers",
+      "/api/v1/notifications",
+      "/api/v1/operational-intelligence",
+      "/api/v1/operations-health",
+      "/api/v1/operations/cockpit",
+      "/api/v1/operations/daily-brief",
+      "/api/v1/portal/appointments",
+      "/api/v1/portal/exchange",
+      "/api/v1/portal/overview",
+      "/api/v1/portal/work-orders",
+      "/api/v1/search",
+      "/api/v1/security-center",
+      "/api/v1/sessions",
+      "/api/v1/sessions/{param}",
+      "/api/v1/sites",
+      "/api/v1/sla-risks",
+      "/api/v1/technicians",
+      "/api/v1/technicians/trail.geojson",
+      "/api/v1/value-intelligence",
+      "/api/v1/work-orders",
+      "/api/v1/work-orders/{param}",
+      "/api/v1/work-orders/{param}/comments",
+      "/api/v1/work-orders/{param}/completion-assurance",
+      "/api/v1/work-orders/{param}/completion-package",
+      "/api/v1/work-orders/{param}/completion.pdf",
+      "/api/v1/work-orders/{param}/dispatch-candidates",
+      "/api/v1/work-orders/{param}/handoff",
+      "/api/v1/work-orders/{param}/operational-risk",
+      "/api/v1/work-orders/{param}/timeline",
+      "/api/v1/work-orders/{param}/verified-job-record",
+      "/api/v1/work-orders/{param}/why-blocked",
+      "/api/v1/work-orders/{param}/work-pack"
+    ],
+    "uniqueApiPathsCount": 59,
+    "documentedMatchCount": 59,
+    "unmappedPaths": []
+  },
+  "coreOperationalSurface": [
+    {
+      "path": "/api/v1/customers",
+      "used": true
+    },
+    {
+      "path": "/api/v1/sites",
+      "used": true
+    },
+    {
+      "path": "/api/v1/assets",
+      "used": true
+    },
+    {
+      "path": "/api/v1/inventory",
+      "used": true
+    },
+    {
+      "path": "/api/v1/members",
+      "used": true
+    },
+    {
+      "path": "/api/v1/work-orders",
+      "used": true
+    },
+    {
+      "path": "/api/v1/appointments",
+      "used": true
+    },
+    {
+      "path": "/api/v1/dispatch-board",
+      "used": true
+    },
+    {
+      "path": "/api/v1/security-center",
+      "used": true
+    },
+    {
+      "path": "/api/v1/operations/cockpit",
+      "used": true
+    }
+  ],
+  "interpretation": "The browser console is a focused operational surface, not a claim that every backend API operation has a dedicated screen. Advanced governance, billing, provider integration, automation, and infrastructure controls remain API-first where a UI would add little buyer value before infrastructure verification.",
+  "generatedAt": "2026-10-21T00:57:21.074Z",
+  "status": "PASS"
+}

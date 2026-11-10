@@ -1,0 +1,111 @@
+{
+  "nativeName": "Wolof",
+  "nav": {
+    "title": "Kër Jokkoo AI",
+    "subtitle": "Sarwiis bopp ci lu bari mën na daje ak nuuyu ñeneen.",
+    "operationsConsole": "Konsólu liggéey yi",
+    "interfaceLanguage": "Làkk bu interface bi"
+  },
+  "status": {
+    "configured": "Mode bu wóor teg na",
+    "setupIncomplete": "Barab bi nósuul na",
+    "apiUnavailable": "Dugg / API amul"
+  },
+  "stats": {
+    "catalogueRows": "Rëy yi ci kataalag bu njëkk",
+    "catalogueRowsNote": "Limu bi dafa des",
+    "uniqueCodes": "Kod yu wóor yu làkk",
+    "uniqueCodesNote": "Ñu yéegaate ñu wóor",
+    "providerQualification": "Dooley jaamu jumtukaay",
+    "providerQualificationNote": "Làkk yu fekk jëfandikoo rekk lañu xeyy",
+    "liveQueue": "Lu yàgg la ñu nelaw",
+    "liveQueueNote": "Nuuyu ci kaw bureau bi"
+  },
+  "customer": {
+    "eyebrow": "XIIRAMU JUMTUKAAY BI",
+    "title": "Tambali waxtaan",
+    "consentPill": "Sàmm yépp dafa soxla",
+    "preferredLanguage": "Làkk bi nga bëgg",
+    "consentText": "Damaa naan waxtaan bii mën na dox ci jaamu jumtukaay AI bi ñu teg. Baatu yi mën na ay gis ci bëy bi ñu denc.",
+    "startChat": "Tambali waxtaan ci araf bu wóor",
+    "startVoice": "Tambali waatu bu navigateur",
+    "setupHint": "Du am fi ak dooley jaamu jumtukaay AI ñu tegul fi.",
+    "noConversation": "Amul waxtaan bu ñëw",
+    "startHint": "Ngir tambali, sàmm benn màndargaay.",
+    "requestHuman": "Sàmm jëfandikoo bu ñu jëfandikoo",
+    "chatEmpty": "Sa barab dafay fi. Jumtukaay AI rekk lañu wax; amul xaar, amul yeesal bu bokk.",
+    "messagePlaceholder": "Bindal baatu…",
+    "send": "Yebbu",
+    "stopVoice": "Tàbbali waatu bu wóor",
+    "voiceOff": "Waatu bu neen.",
+    "voiceStreamNote": "Baatu browser mi dañu koy yëgle ci xarañ bi ñu defar; OpsCore du wax ne mu denc ay baat yu amul tëraalu.",
+    "voiceRequirement": "Baatu browser mi laaj na HTTPS (walla localhost), mikrofoon, ñaanal, modèl Realtime bu ñu defar ak caabi ki koy joxe. Du pont bu telefon PSTN/SIP."
+  },
+  "queue": {
+    "eyebrow": "JAAMU ÑENEEN",
+    "title": "Lu yàgg la ñu nelaw",
+    "refresh": "Wóorlu",
+    "description": "Fi ñu mën na gis waxtaan yu jafe, yu noppi wula wóor, walla ñu soxla nuuyu ñeneen. Biir lu nelaw amul dëkk, amul dëkk.",
+    "loading": "Mu nelaw wi…",
+    "empty": "Amul nuuyu ñeneen bu ñu jëfandikoo ci bureau bi.",
+    "openAssignment": "Ubbi barab bi",
+    "claimAndReview": "Jël wi wi gis",
+    "resolve": "Dugal",
+    "reply": "Tontu",
+    "agentAssignedTitle": "Waxtaan wi ñu jox",
+    "replyStorageNote": "Tontu yu nit ñi dañu leen di tàqale su ñu leen denc te ñu gis leen ci bind bi waxtaan wi.",
+    "resolveNote": "Operatër bu nit bi ñu jox moo ko saafara."
+  },
+  "boundaries": {
+    "title": "Sàññ yu jëm",
+    "automateTitle": "Nopp na ngir dokk",
+    "automateBody": "Tontu njëkk ci lu bari mën na daje ak nuuyu ñeneen, gën a jafe, xel ak sàmm, walla nuuyu nuuyu.",
+    "humanTitle": "Soxla nuuyu ñeneen",
+    "humanBody": "Sàmm jëfandikoo bu wóor, gëj gën a tuuti, jafe-jafe bu yoru walla bu yaa, xam-xam amul, saay saay amul, gërëm bu ñu soxla, walla jëf bu wóor.",
+    "notEnabledTitle": "Duñu koj am ak paket bi rekk",
+    "notEnabledBody": "PSTN/SIP/WhatsApp/email jokkoo, pont telefòn bu yëg, CRM liggéey wi fi, mën na am tànn walla lu yàgg la ñu soxla mën na am jumtukaay, gërëm ak jëfandikoo bu yàgg."
+  },
+  "roles": {
+    "customer": "Jumtukaay",
+    "human": "Jëfandikoo bu ñu jëfandikoo",
+    "ai": "Njàngale AI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Jumtukaay bi sàmm ñeneen",
+    "low_confidence": "Gëj gën a tuuti",
+    "high_risk": "Jafe-jafe bu yoru",
+    "policy_refusal": "Tànn / gërëm bu ñu soxla",
+    "unresolved": "Lu yàgg la ñu noppi",
+    "repeated_failure": "Gën a jafe walla lu yàgg",
+    "model_requested": "AI sàmm gis",
+    "voice_review_required": "Soxla gis waatu",
+    "other": "Yeneen"
+  },
+  "messages": {
+    "qualificationNotice": "Amul làkk bu mën na am sàmm walla bu yaa, te xam-xam yu yëg amul fi.",
+    "configNeeded": "Dafa soxla fi: {missing}.",
+    "configOk": "Am na fi. Jumtukaay bu yaa amul jëfandikoo bu yaa.",
+    "conversationCreated": "Tambali nañu waxtaan bu wóor. Làkk bi amul jëfandikoo bu yaa.",
+    "handoffQueued": "Nuuyu ñeneen ci lu nelaw ({reason}). Loolu mën na fi, amul jokkoo.",
+    "aiResponseFailed": "Tontu AI amul walla. Amul jëf bu ñu soxla. Mën na saam jëfandikoo bu ñu jëfandikoo.",
+    "actionNotCompleted": "Jëf bu wóor: {reason}.",
+    "apiUnavailable": "Mënuñu yeb API bu Centre de Contact bi. Dugal ci console OpsCore, gannaaw loolu yeb xët wii ci kanam.",
+    "suggestedNextStep": "Ñaar-ñaar bi ñuy soxla rekk (defuñu ko): {step}.",
+    "handoffQueuedQueueOnly": "Jaarale ci nit ñi dugal nañu ko ci ndaw ({reason}). Ndaw li du firndeel ne ab agent a ngi jokkoo.",
+    "voiceHandoffStopped": "Jaarale ci nit ñi dugal nañu ko ci ndaw. Seesoŋ AI bu browser bi mi ngi taxaw; jaarale telefon bu dëkk defaruñu ko.",
+    "voiceCredentialRequest": "Dañuy ñaan caabi baat bu gàtt…",
+    "voiceRealtimeError": "Ki joxe ci jamono gi yëgle na njuumte. Taxawal seesoŋ baat bi te jéemaat bu fekkee nga seetlu defar bu ki joxe.",
+    "voiceActive": "Seesoŋ baat bi mooy dem. Teg ci “Sàmm jëfandikoo bu ñu jëfandikoo” saa su ne; loolu dafay sos ab yëfi ndaw, du jaarale PSTN.",
+    "voiceCredentialActive": "{languageCode} · caabi ci kaw ju ki joxe ci jamono",
+    "queueUnavailable": "Ndaw li amul: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Ñaanal a ngi laaj balaa waxtaan wi door.",
+    "SERVER_RESPONSE_INVALID": "Mënuñu jàng tontu serveur bi.",
+    "REQUEST_FAILED": "Laaj bi amul ndam.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Mënuñu jot ci ki joxe baat ci jamono gi.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Browser bii du dimbali baat ci jamono gi.",
+    "HANDOFF_NOT_CLAIMED": "Mënuñu nangu jaarale bi.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Bind bi ñu dellu def, fecc nañu ko."
+  }
+}

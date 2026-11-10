@@ -1,0 +1,111 @@
+{
+  "nativeName": "Soomaali",
+  "nav": {
+    "title": "Xarunta Xiriirka AI",
+    "subtitle": "Adeeg iskaa wax u qabso luqadada kala duwan oo leh gudbin la maamulo.",
+    "operationsConsole": "Balkhaqa hawlgalka",
+    "interfaceLanguage": "Luqadda interface-ka"
+  },
+  "status": {
+    "configured": "Xaaladda ammaanka waa la habay",
+    "setupIncomplete": "Dhismaha aan buuxin",
+    "apiUnavailable": "Gelitaan / API aan la heli karin"
+  },
+  "stats": {
+    "catalogueRows": "Sadarrada liiska",
+    "catalogueRowsNote": "Liiska gelitaanka la kaydiyay",
+    "uniqueCodes": "Koodhada luqadda gaarka ah",
+    "uniqueCodesNote": "Kuwa soo noqda waxaa lagu calaamadeeyaa",
+    "providerQualification": "Xaq u jooga bixiyaha",
+    "providerQualificationNote": "Luqadaha tijaabiyay madaxbannaan kaliya ayaa la tiriyaa",
+    "liveQueue": "Safka dadka tooska ah",
+    "liveQueueNote": "Gudbinaha ku kala duwan kiraystaha"
+  },
+  "customer": {
+    "eyebrow": "WAAYOYADA MACMIILKA",
+    "title": "Bilow wadahadal",
+    "consentPill": "Ogolaansho loo baahan yahay",
+    "preferredLanguage": "Luqadda aad doorbido",
+    "consentText": "Waxaan ogolaanayaa in wadahadlankan laga shaqeeyo bixiyaha AI la habay. Dhammaan qoraallada waa la sirceed iyo kaynta ka hor.",
+    "startChat": "Bilow wada sheekaysig qoraal ah oo ammaan ah",
+    "startVoice": "Bilow codka browserka",
+    "setupHint": "Lama heli karo ilaa maamuluhu uu dulsaaro furaha sirreeynta iyo bixiyaha AI.",
+    "noConversation": "Wadahadal firfircoon ma jiro",
+    "startHint": "Si aad u bilowdo, samee kalfadhi aqbal.",
+    "requestHuman": "Codso wakiil ka mid ah bini'aadamka",
+    "chatEmpty": "Fariimaheenna waxay halkan ka muuqan doonaan. Falalka AI waa kaliya talooyin; lacag bixin, bedelka akoonaha, jiritaanka ama diritaan ma dhaqaajisaan.",
+    "messagePlaceholder": "Fariin qor…",
+    "send": "Dir",
+    "stopVoice": "Jooji kalfadhiga codka",
+    "voiceOff": "Codka waa dami.",
+    "voiceStreamNote": "Codka biraawsarka waxaa loo gudbiyaa si joogto ah bixiyaha la habeeyay; OpsCore ma sheegto inuu kaydiyo codka ceyriinka ah.",
+    "voiceRequirement": "Codka biraawsarku wuxuu u baahan yahay HTTPS (ama localhost), makarafoon, oggolaansho, moodel Realtime la habeeyay iyo furaha bixiyaha. Ma aha buundo telefoon oo PSTN/SIP ah."
+  },
+  "queue": {
+    "eyebrow": "DHAWEYNTA BINI'ADAMKA",
+    "title": "Safka korriyada",
+    "refresh": "Cusboonaysii",
+    "description": "Wadahadallada khatarta weyn, aan la xallin ama la codsaday bini'aadam ayaa halkan ka muuqda. Shayga safku waa codsaday, aan la xiriirin.",
+    "loading": "Safka waa la shubinayaa…",
+    "empty": "Ma jiro gudbin bini'aadam oo firfircoon ururkaan.",
+    "openAssignment": "Fur dhisidii",
+    "claimAndReview": "Codsasho iyo dib eegis",
+    "resolve": "Xalli",
+    "reply": "Jawaab",
+    "agentAssignedTitle": "Wada hadal loo igmaday",
+    "replyStorageNote": "Jawaabaha bini'aadamka waa la sirayaa marka la kaydinayo oo waxay ka muuqdaan qoraalka wada hadalka.",
+    "resolveNote": "Waxaa xaliyay hawlwade bini'aadam ah oo loo igmaday."
+  },
+  "boundaries": {
+    "title": "Xuduudka hawlgallada",
+    "automateTitle": "Nashaadisay in la firfircooto",
+    "automateBody": "Jawaabta ugu horreysa oo luqadada kala duwan, cadeyn, kala soocida ujeeddada iyo khatarta, kaydinta ammaan ah ee qoraallada, samaynta safaf iyo dhisidda wakiillada.",
+    "humanTitle": "Waxaa loo baahan yahay in qof bini'aadam wareego",
+    "humanBody": "Codsasho bini'aadam oo caddaan, kalsooni hooseeya, khatarta weyn ama xasaasiya, siyaasad la'aan, xaalad aan la xallin, cabasho gaar/amaantiin ama ficil aan hubayn.",
+    "notEnabledTitle": "Lama awoodin keliya oo xirmooyinkan",
+    "notEnabledBody": "Hagida PSTN/SIP/WhatsApp/email, taageerada taleefanka tooska ah, xaqiijinta aqoonsiga CRM iyo sheegashada tayada luqadda waxay u baahan yihiin tuugga xiriirka bixiyaha, xogta gelitaanka iyo tijaabooyin aqbal."
+  },
+  "roles": {
+    "customer": "Macmiil",
+    "human": "Wakiil bini'aadam",
+    "ai": "Kaalmaha AI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Macmiilku wuu codsaday bini'aadam",
+    "low_confidence": "Kalsooni hooseeya",
+    "high_risk": "Khatarta weyn",
+    "policy_refusal": "Diidmo / xaddidaad siyaasadeed",
+    "unresolved": "Dhibaato aan la xallin",
+    "repeated_failure": "Guuldaro la soo noqday",
+    "model_requested": "AI wuu codsaday dib u eegis",
+    "voice_review_required": "Dib u eegis cod loo baahan yahay",
+    "other": "Kale"
+  },
+  "messages": {
+    "qualificationNotice": "Luqadna ma kuwa soo dhisay tan iyo ay ka gudbaan tijaabooyin qoraalka, ASR, TTS, naxweynta iyo korriyada.",
+    "configNeeded": "Wali habaynta la baahan yahay: {missing}.",
+    "configOk": "Habaynta jirta. Xiriirka bixiyaha iyo tayada luqadda wali waxay u baahan yihiin tijaabooyin dhab ahaan.",
+    "conversationCreated": "Wadahadal ammaan ah la sameeyay. Tayada luqadda weli ma kuwa soo dhisay.",
+    "handoffQueued": "Gudbinta bini'aadamka waxaa lagu daray safka ({reason}). Kani waa codsi safka, aan xiriir toos ah ahayn.",
+    "aiResponseFailed": "Jawaabta AI ma dhammaystirin. Ficil lama fulin. Waad codsan kartaa wakiil bini'aadam.",
+    "actionNotCompleted": "Ficil dhamaystiray: {reason}.",
+    "apiUnavailable": "API-ga Xarunta Xiriirka lama soo rari karin. Gal console-ka OpsCore, kadibna dib u soo rar bogga.",
+    "suggestedNextStep": "Tallaabada xigta ee la soo jeediyay kaliya (lama fulin): {step}.",
+    "handoffQueuedQueueOnly": "Wareejinta qof bini'aadam ah waxaa lagu daray safka ({reason}). Safku ma caddeeyo in wakiil xiran yahay.",
+    "voiceHandoffStopped": "Wareejinta qof bini'aadam ah waxaa lagu daray safka. Fadhiga AI ee biraawsarka waa istaagayaa; wareejinta telefoonka tooska ah lama habayn.",
+    "voiceCredentialRequest": "Waxaa la codsanayaa aqoonsi codeed muddo gaaban ah…",
+    "voiceRealtimeError": "Bixiyaha waqtiga dhabta ah ayaa soo sheegay khalad. Jooji fadhiga codka oo isku day mar kale kadib marka aad hubiso habaynta bixiyaha.",
+    "voiceActive": "Fadhiga codka waa shaqaynayaa. Wakhti kasta taabo “Codso wakiil ka mid ah bini'aadamka”; tani waxay abuurtaa shay safka ku jira, ma aha wareejin PSTN ah.",
+    "voiceCredentialActive": "{languageCode} · aqoonsi ku meel gaar ah oo bixiyaha",
+    "queueUnavailable": "Safku ma diyaar aha: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Oggolaansho ayaa loo baahan yahay ka hor intaan wada hadalku bilaaban.",
+    "SERVER_RESPONSE_INVALID": "Jawaabta server-ka lama akhrin karin.",
+    "REQUEST_FAILED": "Codsigu wuu fashilmay.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Bixiyaha codka waqtiga dhabta ah lama gaari karin.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Biraawsarkani ma taageero codka waqtiga dhabta ah.",
+    "HANDOFF_NOT_CLAIMED": "Wareejinta lama qaadan karin.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Fariinta nuqul-ka-dhigan waa la iska indho tiray."
+  }
+}

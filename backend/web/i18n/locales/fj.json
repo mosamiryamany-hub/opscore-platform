@@ -1,0 +1,111 @@
+{
+  "nativeName": "Na Vosa Vakaviti",
+  "nav": {
+    "title": "Valenivolavola ni Veivosaki AI",
+    "subtitle": "Veivuke ena vosa levu ka vaka kina na kauta yani vei tamata.",
+    "operationsConsole": "Konsolo ni cakacaka",
+    "interfaceLanguage": "Vosa ni matamata"
+  },
+  "status": {
+    "configured": "iVakarau ni taqomaki sa vakarau",
+    "setupIncomplete": "Vakarau se bera ni oti",
+    "apiUnavailable": "Curu / API sega ni kunea"
+  },
+  "stats": {
+    "catalogueRows": "Laina ni volai",
+    "catalogueRowsNote": "Volai ni curu sa maroroi",
+    "uniqueCodes": "Kode ni vosa duidui",
+    "uniqueCodesNote": "Na veicokoti era vakatakilakilataki",
+    "providerQualification": "Vakadeitaki ni dauveiqaravi",
+    "providerQualificationNote": "Na vosa sa dikevi rawarawa ga era wiliki",
+    "liveQueue": "Laina ni tamata bula",
+    "liveQueueNote": "Kauta yani vei isoqosoqo"
+  },
+  "customer": {
+    "eyebrow": "VEIQARAVI NI KAIVOLI",
+    "title": "Tekivu dua na veivosaki",
+    "consentPill": "Me dua na veiokati",
+    "preferredLanguage": "Vosa e vinakati",
+    "consentText": "Au vakadonuya ni rawa ni vakayacori na veivosaki oqo e dua na dauveiqaravi AI. Na volavola e vakasigalevu ni bera ni maroroi.",
+    "startChat": "Tekivu na veivosaki ni volavola taqomaki",
+    "startVoice": "Tekivu na domo ena barausa",
+    "setupHint": "E sega ni kunea me yacova ni sa vakarautaka na daunivakavakadina na kena idro ni vakasigalevu kei na dauveiqaravi AI.",
+    "noConversation": "Sega ni veivosaki bula",
+    "startHint": "Buli ira na veiwekani ni veiokati me tekivu kina.",
+    "requestHuman": "Kerekere vua na tamata",
+    "chatEmpty": "Na itukutuku e basika eke. Na cakacaka AI e vakaraitaki ga; e sega ni sauma se veisautaka na akawunti.",
+    "messagePlaceholder": "Volai na itukutuku…",
+    "send": "Tala",
+    "stopVoice": "Vakamuduka na domo",
+    "voiceOff": "Sa bokoi na domo.",
+    "voiceStreamNote": "Na domo ni barausa e talai vei dauveiqaravi; e sega ni kaya o OpsCore ni maroroya na domo dina.",
+    "voiceRequirement": "Na domo ni barausa e gadreva na HTTPS, mikaforoni, veiokati, iVakarau Realtime kei na idro. E sega ni teleponi PSTN/SIP."
+  },
+  "queue": {
+    "eyebrow": "VEIVUKE VEI TAMATA",
+    "title": "Laina ni kauta yani",
+    "refresh": "Vakavouya",
+    "description": "Na veivosaki rerevaki se kerekere vua na tamata era basika eke. Na laina e kerekere, e sega ni veisemati.",
+    "loading": "Vakavodoki tiko…",
+    "empty": "Sega ni kauta yani vei tamata ena isoqosoqo oqo.",
+    "openAssignment": "Dolava na cakacaka",
+    "claimAndReview": "Ciqoma ka raica",
+    "resolve": "Vakamata",
+    "reply": "Sauma",
+    "agentAssignedTitle": "Veivosaki sa soli",
+    "replyStorageNote": "Na isauma ni tamata sa vakasigalevu ka rawa ni raici ena volavola.",
+    "resolveNote": "Sa vakamata na dauveiqaravi sa soli."
+  },
+  "boundaries": {
+    "title": "Iyalayala ni cakacaka",
+    "automateTitle": "Sa vakarau me cakava rawarawa",
+    "automateBody": "Isauma taumada ena vosa levu, vakamatata, dikeva na rerevaki, maroroi na volavola kei na buli ni laina.",
+    "humanTitle": "Me taura na tamata",
+    "humanBody": "Kerekere vua na tamata, vakabauta lailai, rerevaki levu, sega ni lawa, veileti se bera ni wali, vakaqase ni vuni.",
+    "notEnabledTitle": "Sega ni rawa ena iyaya oqo duadua ga",
+    "notEnabledBody": "PSTN/SIP, WhatsApp, imeli, teleponi, CRM kei na vakadeitaki ni vosa era gadreva na dauveiqaravi dina kei na veidikevi."
+  },
+  "roles": {
+    "customer": "Kai voli",
+    "human": "Dauveiqaravi tamata",
+    "ai": "Dauveivuke AI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Na kai voli e kerekere vua na tamata",
+    "low_confidence": "Vakabauta lailai",
+    "high_risk": "Rerevaki levu",
+    "policy_refusal": "Sega ni muria na lawa",
+    "unresolved": "Veileti se bera ni wali",
+    "repeated_failure": "Cakacaka tokaruataki",
+    "model_requested": "Na AI e kerekera na veidikevi",
+    "voice_review_required": "Me dikevi na domo",
+    "other": "Duidui"
+  },
+  "messages": {
+    "qualificationNotice": "Sega ni vosa sa vakadeitaki me yacova ni oti na veidikevi ni volavola, ASR, TTS kei na domo.",
+    "configNeeded": "E gadrevi na ivakarau: {missing}.",
+    "configOk": "Sa dua na ivakarau. Na veisemati kei na kena vinaka ni vosa e gadreva na veidikevi dina.",
+    "conversationCreated": "Sa buli na veivosaki taqomaki. E sega ni vakadeitaki na kena vinaka ni vosa.",
+    "handoffQueued": "Sa kau yani na veivosaki vua na tamata ena laina ({reason}). E kerekere, e sega ni veisemati.",
+    "aiResponseFailed": "E sega ni oti na isauma AI. Sega ni cakacaka. Rawa ni kerekera vua na tamata.",
+    "actionNotCompleted": "Sega ni oti na cakacaka: {reason}.",
+    "apiUnavailable": "Sega ni kunea na API ni Valenivolavola. Curu i OpsCore, qai vakavouya na tabana oqo.",
+    "suggestedNextStep": "Vakaraitaki ga (sega ni cakacaka): {step}.",
+    "handoffQueuedQueueOnly": "Sa kau yani ena laina ({reason}). E sega ni vakaraitaka na laina ni dua na dauveiqaravi sa semati.",
+    "voiceHandoffStopped": "Sa kau yani ena laina. Sa muduka na veivosaki AI; e sega ni vakarau na teleponi dina.",
+    "voiceCredentialRequest": "Kerekere na idro ni domo vakalekaleka…",
+    "voiceRealtimeError": "Na dauveiqaravi Realtime e vakaraitaka e dua na cala. Vakamuduka na domo, raica na ivakarau, qai tovolea tale.",
+    "voiceActive": "Sa cakacaka na domo. Kerekera vua na tamata ena gauna cava ga; oqo e buli laina, e sega ni teleponi.",
+    "voiceCredentialActive": "{languageCode} · idro vakalekaleka",
+    "queueUnavailable": "Sega ni kunea na laina: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "E gadrevi na veiokati ni bera ni tekivu na veivosaki.",
+    "SERVER_RESPONSE_INVALID": "Sega ni rawa ni wilika na isauma ni sevatia.",
+    "REQUEST_FAILED": "Sega ni yacova na kerekere.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Sega ni kunea na dauveiqaravi ni domo Realtime.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "E sega ni tokona na barausa oqo na domo Realtime.",
+    "HANDOFF_NOT_CLAIMED": "Sega ni ciqomi na kauta yani.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Sa beci na itukutuku tokaruataki."
+  }
+}

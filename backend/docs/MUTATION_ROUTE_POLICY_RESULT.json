@@ -1,0 +1,345 @@
+{
+  "schemaVersion": "opscore.mutation-route-policy.v2",
+  "generatedAt": "2026-10-21T01:31:42.506Z",
+  "scope": "complete-current-write-method-boundary-inventory",
+  "entries": [
+    {
+      "index": 1,
+      "name": "custom-domain-verify",
+      "method": "POST",
+      "route": "/api/v1/custom-domains/:id/verify",
+      "classification": "MUTATING",
+      "policy": "idempotentWrite",
+      "contractPresent": true
+    },
+    {
+      "index": 2,
+      "name": "custom-domain-activate",
+      "method": "POST",
+      "route": "/api/v1/custom-domains/:id/activate",
+      "classification": "MUTATING",
+      "policy": "idempotentWrite",
+      "contractPresent": true
+    },
+    {
+      "index": 3,
+      "name": "platform-decision-replay",
+      "method": "POST",
+      "route": "/api/v1/platform/decisions/:id/replay",
+      "classification": "MUTATING",
+      "policy": "idempotentWrite",
+      "contractPresent": true
+    },
+    {
+      "index": 4,
+      "name": "platform-twin-snapshot-capture",
+      "method": "POST",
+      "route": "/api/v1/platform/twin/snapshots",
+      "classification": "MUTATING",
+      "policy": "idempotentWrite",
+      "contractPresent": true
+    },
+    {
+      "index": 5,
+      "name": "autopilot-proposal-approve-reject-execute",
+      "method": "POST",
+      "route": "/api/v1/autopilot/proposals/:id/(approve|reject|execute)",
+      "classification": "MUTATING",
+      "policy": "idempotentWrite",
+      "contractPresent": true
+    },
+    {
+      "index": 6,
+      "name": "service-line-create",
+      "method": "POST",
+      "route": "/api/v1/service-lines",
+      "classification": "MUTATING",
+      "policy": "idempotentWrite",
+      "contractPresent": true
+    },
+    {
+      "index": 7,
+      "name": "customer-service-line-assign",
+      "method": "POST",
+      "route": "/api/v1/customers/:id/service-line",
+      "classification": "MUTATING",
+      "policy": "idempotentWrite",
+      "contractPresent": true
+    },
+    {
+      "index": 8,
+      "name": "service-line-migration-preflight",
+      "method": "POST",
+      "route": "/api/v1/service-line-migrations/preflight",
+      "classification": "MUTATING",
+      "policy": "idempotentWrite",
+      "contractPresent": true
+    },
+    {
+      "index": 9,
+      "name": "service-line-migration-execute",
+      "method": "POST",
+      "route": "/api/v1/service-line-migrations/:id",
+      "classification": "MUTATING",
+      "policy": "idempotentWrite",
+      "contractPresent": true
+    },
+    {
+      "index": 10,
+      "name": "service-line-migration-rollback",
+      "method": "POST",
+      "route": "/api/v1/service-line-migrations/:id/rollback",
+      "classification": "MUTATING",
+      "policy": "idempotentWrite",
+      "contractPresent": true
+    },
+    {
+      "index": 11,
+      "name": "closure-sheet-compile",
+      "method": "POST",
+      "route": "/api/v1/operations/closure-sheets/compile",
+      "classification": "MUTATING",
+      "policy": "idempotentWrite",
+      "contractPresent": true
+    },
+    {
+      "index": 12,
+      "name": "operational-dependency-add",
+      "method": "POST",
+      "route": "/api/v1/operations/dependencies",
+      "classification": "MUTATING",
+      "policy": "idempotentWrite",
+      "contractPresent": true
+    },
+    {
+      "index": 13,
+      "name": "operational-deadlock-resolve",
+      "method": "POST",
+      "route": "/api/v1/operations/deadlocks/resolve",
+      "classification": "MUTATING",
+      "policy": "idempotentWrite",
+      "contractPresent": true
+    },
+    {
+      "index": 14,
+      "name": "tenant-field-protect",
+      "method": "POST",
+      "route": "/api/v1/security/tenant-field/protect",
+      "classification": "MUTATING",
+      "policy": "idempotentWrite",
+      "contractPresent": true
+    },
+    {
+      "index": 15,
+      "name": "tenant-field-reveal",
+      "method": "POST",
+      "route": "/api/v1/security/tenant-field/reveal",
+      "classification": "NON_MUTATING_SENSITIVE_READ",
+      "policy": "explicit-read-policy",
+      "contractPresent": true
+    },
+    {
+      "index": 16,
+      "name": "geofence-create",
+      "method": "POST",
+      "route": "/api/v1/geofences",
+      "classification": "MUTATING",
+      "policy": "idempotentWrite",
+      "contractPresent": true
+    },
+    {
+      "index": 17,
+      "name": "geofence-technician-assign",
+      "method": "POST",
+      "route": "/api/v1/geofences/:id/technicians",
+      "classification": "MUTATING",
+      "policy": "idempotentWrite",
+      "contractPresent": true
+    },
+    {
+      "index": 18,
+      "name": "signature-chain-seal",
+      "method": "POST",
+      "route": "/api/v1/security/signature-chain/seal",
+      "classification": "MUTATING",
+      "policy": "idempotentWrite",
+      "contractPresent": true
+    },
+    {
+      "index": 19,
+      "name": "dynamic-geofence-event",
+      "method": "POST",
+      "route": "/api/v1/geofences/dynamic-events",
+      "classification": "MUTATING",
+      "policy": "idempotentWrite",
+      "contractPresent": true
+    },
+    {
+      "index": 20,
+      "name": "dynamic-geofence-evaluate",
+      "method": "POST",
+      "route": "/api/v1/geofences/dynamic-evaluate",
+      "classification": "NON_MUTATING_EVALUATION",
+      "policy": "explicit-read-policy",
+      "contractPresent": true
+    },
+    {
+      "index": 21,
+      "name": "field-signoff-assurance",
+      "method": "POST",
+      "route": "/api/v1/work-orders/:id/signoff-assurance",
+      "classification": "MUTATING",
+      "policy": "idempotentWrite",
+      "contractPresent": true
+    },
+    {
+      "index": 22,
+      "name": "field-invoice",
+      "method": "POST",
+      "route": "/api/v1/work-orders/:id/field-invoice",
+      "classification": "MUTATING",
+      "policy": "idempotentWrite",
+      "contractPresent": true
+    },
+    {
+      "index": 23,
+      "name": "geofence-evaluate",
+      "method": "POST",
+      "route": "/api/v1/geofences/evaluate",
+      "classification": "NON_MUTATING_EVALUATION",
+      "policy": "explicit-read-policy",
+      "contractPresent": true
+    },
+    {
+      "index": 24,
+      "name": "privacy-purge",
+      "method": "POST",
+      "route": "/api/v1/security/privacy-purge",
+      "classification": "MUTATING",
+      "policy": "idempotentWrite",
+      "contractPresent": true
+    },
+    {
+      "index": 25,
+      "name": "signature-chain-append",
+      "method": "POST",
+      "route": "/api/v1/security/signature-chain",
+      "classification": "MUTATING",
+      "policy": "idempotentWrite",
+      "contractPresent": true
+    },
+    {
+      "index": 26,
+      "name": "signature-chain-verify",
+      "method": "POST",
+      "route": "/api/v1/security/signature-chain/verify",
+      "classification": "NON_MUTATING_EVALUATION",
+      "policy": "explicit-read-policy",
+      "contractPresent": true
+    },
+    {
+      "index": 27,
+      "name": "billing-provider-register",
+      "method": "POST",
+      "route": "/api/v1/billing/providers",
+      "classification": "MUTATING",
+      "policy": "idempotentWrite",
+      "contractPresent": true
+    },
+    {
+      "index": 28,
+      "name": "billing-reconcile-provider",
+      "method": "POST",
+      "route": "/api/v1/billing/reconcile-provider",
+      "classification": "EXTERNAL_READ_PLUS_PERSISTED_REPORT",
+      "policy": "requires-async-idempotency",
+      "contractPresent": true
+    },
+    {
+      "index": 29,
+      "name": "service-line-migration-unreachable",
+      "method": "POST",
+      "route": "/api/v1/service-line-migrations/:id/unreachable",
+      "classification": "MUTATING",
+      "policy": "idempotentWrite",
+      "contractPresent": true
+    },
+    {
+      "index": 30,
+      "name": "appointment-unreachable",
+      "method": "POST",
+      "route": "/api/v1/appointments/:id/unreachable",
+      "classification": "MUTATING",
+      "policy": "idempotentWrite",
+      "contractPresent": true
+    },
+    {
+      "index": 31,
+      "name": "fault-classify",
+      "method": "POST",
+      "route": "/api/v1/faults/classify",
+      "classification": "NON_MUTATING_EVALUATION",
+      "policy": "explicit-read-policy",
+      "contractPresent": true
+    },
+    {
+      "index": 32,
+      "name": "fault-ticket-create",
+      "method": "POST",
+      "route": "/api/v1/faults",
+      "classification": "MUTATING",
+      "policy": "idempotentWrite",
+      "contractPresent": true
+    },
+    {
+      "index": 33,
+      "name": "fault-status-transition",
+      "method": "POST",
+      "route": "/api/v1/faults/:id/transition",
+      "classification": "MUTATING",
+      "policy": "idempotentWrite",
+      "contractPresent": true
+    },
+    {
+      "index": 34,
+      "name": "fault-unreachable",
+      "method": "POST",
+      "route": "/api/v1/faults/:id/unreachable",
+      "classification": "MUTATING",
+      "policy": "idempotentWrite",
+      "contractPresent": true
+    },
+    {
+      "index": 35,
+      "name": "fault-offline-sync",
+      "method": "POST",
+      "route": "/api/v1/faults/offline-sync",
+      "classification": "MUTATING",
+      "policy": "idempotentWrite",
+      "contractPresent": true
+    },
+    {
+      "index": 36,
+      "name": "commercial-reconciliation-run",
+      "method": "POST",
+      "route": "/api/v1/reconciliation/run",
+      "classification": "MUTATING_LOCAL_OR_EXTERNAL_READ",
+      "policy": "local-idempotent;stripe-async-idempotency-required",
+      "contractPresent": true
+    }
+  ],
+  "summary": {
+    "total": 36,
+    "mutating": 31,
+    "idempotentWrite": 29,
+    "asyncIdempotencyRequired": 2,
+    "explicitNonMutating": 5,
+    "contractPresent": 36
+  },
+  "decision": "PASS",
+  "notes": [
+    "Every POST/PUT/PATCH/DELETE handler is explicitly classified; non-mutating POSTs are not forced through idempotency merely because of HTTP verb.",
+    "Persisted mutations have an explicit replay/atomicity policy; remote reconciliation uses async reservation before the external call.",
+    "Static boundary inventory is not live concurrency certification."
+  ]
+}

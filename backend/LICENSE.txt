@@ -1,0 +1,22 @@
+OpsCore — Use-Only Source License
+
+Copyright © 2026 OpsCore rights holder. All rights reserved.
+
+Upon full payment and subject to the applicable purchase record, the purchaser receives
+one non-exclusive, non-transferable, non-sublicensable license to install, run, inspect,
+and modify one purchased copy of the OpsCore source package for the purchaser's own
+internal use.
+
+No intellectual-property ownership or copyright is transferred. The purchaser may not
+resell, redistribute, publish, sublicense, rent, share, or commercially redistribute
+the source package or any substantial part of it, whether modified or unmodified.
+The purchaser may not offer the source package as a competing template, starter kit,
+download, hosted source-code product, or resale product.
+
+Third-party components remain governed by their respective upstream licenses.
+External provider accounts, API credentials, maps/data licenses, carrier/call-center
+services, cloud accounts, and Android/iOS developer accounts are not transferred by
+this license.
+
+Any broader rights, including multi-copy, client-delivery, redistribution, resale,
+or sublicensing rights, require a separate written agreement signed by the rights holder.

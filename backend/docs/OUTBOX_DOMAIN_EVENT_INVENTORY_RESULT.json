@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "opscore.outbox-domain-event-inventory.v1",
+  "generatedAt": "2026-09-17T09:49:10.219Z",
+  "scope": "source-level inventory of integration_outbox writers",
+  "writerCount": 3,
+  "writers": [
+    {
+      "id": "store.activity",
+      "file": "backend/src/store.js",
+      "marker": "INSERT INTO integration_outbox",
+      "evidence": "_activity constructs makeDomainEvent before insert",
+      "compliant": true
+    },
+    {
+      "id": "store.sync",
+      "file": "backend/src/store.js",
+      "marker": "INSERT OR IGNORE INTO integration_outbox",
+      "evidence": "applySyncEvents constructs makeDomainEvent before insert",
+      "compliant": true
+    },
+    {
+      "id": "simulation-fixtures",
+      "file": "backend/src/operational-intelligence-fabric.js",
+      "marker": "makeScenarioArtifacts -> integration_outbox",
+      "evidence": "simulation-only synthetic demo.* event types; not a production domain-event emission path",
+      "compliant": true
+    }
+  ],
+  "storeReferenceCount": 13,
+  "decision": "PASS",
+  "notes": [
+    "Production activity and sync outbox writers embed the versioned domain-event contract in payload_json.",
+    "Simulation fixture writes are explicitly synthetic demo.* records and are classified outside the production domain-event path; they are not coerced into fake domain events.",
+    "This inventory does not certify external delivery or live broker behavior."
+  ]
+}

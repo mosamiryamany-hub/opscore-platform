@@ -1,0 +1,111 @@
+{
+  "nativeName": "chiShona",
+  "nav": {
+    "title": "Povho yeKufambiswa neAI",
+    "subtitle": "Ibhazi remitauro miviri inotungamirwa kune vanhu.",
+    "operationsConsole": "Konhi yemabasa",
+    "interfaceLanguage": "Mutauro weinterface"
+  },
+  "status": {
+    "configured": "Mode yakachengetedzwa yagadzirwa",
+    "setupIncomplete": "Kumisidza kwaita usingaperi",
+    "apiUnavailable": "Kupinda / API haina kuwanikwa"
+  },
+  "stats": {
+    "catalogueRows": "Mitsara yekatarogi",
+    "catalogueRowsNote": "Runyorwa rwepinhu rwasara",
+    "uniqueCodes": "Makodhi emitauro akasiyana",
+    "uniqueCodesNote": "Zvinodzokorora zvinoratidzwa",
+    "providerQualification": "Kugona kweanopa",
+    "providerQualificationNote": "Mitauro yedzvinyirirwa chete inoverengerwa",
+    "liveQueue": "Mhera yevanhu iri kurara",
+    "liveQueueNote": "Kuendesa kwekutarisiro"
+  },
+  "customer": {
+    "eyebrow": "CHIPO CHEMUTENGESI",
+    "title": "Tanga hurukuro",
+    "consentPill": "Kubvumidza kunodiwa",
+    "preferredLanguage": "Mutauro waunoda",
+    "consentText": "Ndinobvuma kuti hurukuro iyi inogona kugadzirwa nemupi weAI akaiswa. Zvinyorwa zvinovharirwa usati wachengetedzwa.",
+    "startChat": "Tanga hukama hwezvinyorwa hwakachengetedzwa",
+    "startVoice": "Tanga izwi rebhurauza",
+    "setupHint": "Haipo kusvika muenzi ane kiyi yekuvhara nemupi weAI aisa.",
+    "noConversation": "Hapana hurukuro iri kufamba",
+    "startHint": "Kuti utange, gadzira chikamu chakabvumidzwa.",
+    "requestHuman": "Kumbira mumwe munhu",
+    "chatEmpty": "Matauriro ako acharatidzwa pano. Zviito zveAI zvicha shanduka chete; hakuna kubhadhara, kuchinja account, kudzosera kana kutumira kunoitwa.",
+    "messagePlaceholder": "Nyora meseji…",
+    "send": "Tumira",
+    "stopVoice": "Misa chikamu chezwi",
+    "voiceOff": "Izwi ravharwa.",
+    "voiceStreamNote": "Izwi rebrowza rinotumirwa nenzira yekuyerera kumupi akagadziriswa; OpsCore haitaure kuti inochengetedza ruzha rusina kugadziriswa.",
+    "voiceRequirement": "Izwi rebrowza rinoda HTTPS (kana localhost), maikorofoni, mvumo, modhi yeRealtime yakagadziriswa nekiyi yemupi. Haisi bhiriji yefoni yePSTN/SIP."
+  },
+  "queue": {
+    "eyebrow": "KUPINZA KWEMUNHU",
+    "title": "Mhera yekusimudza",
+    "refresh": "Dzorodza",
+    "description": "Hurukuro dzengozi yakakura, dzisina kugadziriswa kana dzichida munhu dzinoonekwa pano. Chinhu mumhera zvinoreva kuvhunzwa, hauna kubatana.",
+    "loading": "Kurodha mhera…",
+    "empty": "Hapana kuendesa kune vanhu kwiri kufamba kune iyi sangano.",
+    "openAssignment": "Vhura basa",
+    "claimAndReview": "Tora wo tarisa",
+    "resolve": "Gadzurisa",
+    "reply": "Pindura",
+    "agentAssignedTitle": "Nhaurirano yakapiwa",
+    "replyStorageNote": "Mhinduro dzevanhu dzinoiswa mukodhi pakuchengetwa uye dzinoonekwa mukunyorwa kwenhaurirano.",
+    "resolveNote": "Yagadziriswa nemushandi munhu akapiwa."
+  },
+  "boundaries": {
+    "title": "Miganhu yebasa",
+    "automateTitle": "Yagadzirirwa kuzvishandisa",
+    "automateBody": "Mhindu dzekutanga dzemitauro miviri, kujekesa, kugovanisa zvinangwa nengozi, kuchengetedza zvinyorwa zvakanaka, kugadzira mhera nekupa vashandi.",
+    "humanTitle": "Kudiwa kunobatwa nomunhu",
+    "humanBody": "Kumbiro kwechokwadi kwemunhu, kuvimba shoma, ngozi hombe yakanangana, mutemo usipo, nyaya isina kugadzirwa, kuchema kwemvura yepachena/kudzivirira kana chiito chisingazivikanwe.",
+    "notEnabledTitle": "Haigone kubatidzwa nechipàkàti ichi choga",
+    "notEnabledBody": "Kufambisa PSTN/SIP/WhatsApp/imeeri, bridhi yefoni inofamba, kuona kwezvinhu zveCRM nezvokuti mitauro yakanaka zvinoda adapter yemupi wechokwadi, zvinodiwa uye bvunzo dzekugamuchirwa."
+  },
+  "roles": {
+    "customer": "Mutengesi",
+    "human": "Mumwe munhu anoshanda",
+    "ai": "Mubatsiri weAI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Mutengesi akumbira munhu",
+    "low_confidence": "Kuvimba shoma",
+    "high_risk": "Ngozi huru",
+    "policy_refusal": "Kuramba / kudzikisa mutemo",
+    "unresolved": "Dambudziko risingagadzirwi",
+    "repeated_failure": "Kundikana kakawanda",
+    "model_requested": "AI yakumbira kutariswa",
+    "voice_review_required": "Kutarisa izwi kunodiwa",
+    "other": "Imwe"
+  },
+  "messages": {
+    "qualificationNotice": "Hapana mutauro unogona kushandiswa pakuambirana kusvika mabvunzo ezvinyorwa, ASR, TTS, matauriro nekudzokorora apfuraidza.",
+    "configNeeded": "Kugadzirisa kunodiwa: {missing}.",
+    "configOk": "Kugadzirisa kwapo. Kuisirwa kwemupi uye hunyanzvi hwemitauro hunoda zvokwadi mabvunzo ekugamuchirwa.",
+    "conversationCreated": "Hurukuro yakachengetedzwa yakasikwa. Hunyanzvi hwemitauro hauna kuwana kugona kweboka.",
+    "handoffQueued": "Kuendesa kumunhu kwaiswa mumhera ({reason}). Iyi ndiro yekumbira mhera, hauna kubatana kwechokwadi.",
+    "aiResponseFailed": "Mhindu yeAI haina kupedza. Hakuna chiito chaitwa. Unogona kumbira mumwe munhu anoshanda.",
+    "actionNotCompleted": "Chiito hachina kupera: {reason}.",
+    "apiUnavailable": "API yeContact Center haina kutakurwa. Pinda mukonzoro yeOpsCore, zvino tora peji iri zvakare.",
+    "suggestedNextStep": "Danho rinotevera rakakurudzirwa chete (harina kuitwa): {step}.",
+    "handoffQueuedQueueOnly": "Kuendeswa kumunhu kwaiswa mumutsetse ({reason}). Mutsetse hauratidzi kuti mumiriri akabatana.",
+    "voiceHandoffStopped": "Kuendeswa kumunhu kwaiswa mumutsetse. Chikamu cheAI chebrowza chiri kumira; kutamisa runhare rwakananga hakuna kugadziriswa.",
+    "voiceCredentialRequest": "Kukumbira mvumo yezwi yenguva pfupi…",
+    "voiceRealtimeError": "Mupi wenguva chaiyo akashumira kukanganisa. Mira chikamu chezwi woedza zvakare mushure mekuongorora kugadzirisa kwemupi.",
+    "voiceActive": "Chikamu chezwi chiri kushanda. Dzvanya “Kumbira mumwe munhu” chero nguva; izvi zvinogadzira chinhu mumutsetse, kwete kutamisa kwePSTN.",
+    "voiceCredentialActive": "{languageCode} · mvumo yenguva pfupi yemupi",
+    "queueUnavailable": "Mutsetse hauwanikwi: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Mvumo inodiwa nhaurirano isati yatanga.",
+    "SERVER_RESPONSE_INVALID": "Mhinduro yeseva haina kuverengwa.",
+    "REQUEST_FAILED": "Chikumbiro chakundikana.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Mupi wezwi renguva chaiyo haana kuwanikwa.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Brauzi iyi haitsigire izwi renguva chaiyo.",
+    "HANDOFF_NOT_CLAIMED": "Kuendeswa hakuna kugamuchirwa.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Meseji yakadzokororwa yarasikirwa."
+  }
+}

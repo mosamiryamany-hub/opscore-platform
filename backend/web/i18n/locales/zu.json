@@ -1,0 +1,111 @@
+{
+  "nativeName": "isiZulu",
+  "nav": {
+    "title": "Indawo yokuxhumana ye-AI",
+    "subtitle": "Insizakalonke yezilimi eziningi ngokudluliselwa okulawulekile komuntu.",
+    "operationsConsole": "Ikhonsoli yokuqopha",
+    "interfaceLanguage": "Ulimi lwesikhombimsebenzisi"
+  },
+  "status": {
+    "configured": "Imodi evikelwe ilungiselelwe",
+    "setupIncomplete": "Ukulungiselela akuphelile",
+    "apiUnavailable": "Ukungena / API ayitholakali"
+  },
+  "stats": {
+    "catalogueRows": "Imigqa yohlelo",
+    "catalogueRowsNote": "Uhla lwemikhokhele luyagcinwe",
+    "uniqueCodes": "Amakhodi ezilimi ahlukeneyo",
+    "uniqueCodesNote": "Okuphindaphindiwe kumakiwe",
+    "providerQualification": "Isigaba somhlinzeki",
+    "providerQualificationNote": "Izilimi ezzamele ngokuzimele kuphela ezibalwa",
+    "liveQueue": "Ugqozho oluphilayo lomuntu",
+    "liveQueueNote": "Okudluliselwa ngeqophelo"
+  },
+  "customer": {
+    "eyebrow": "ULWAZI LOMTHENGISI",
+    "title": "Qala ingxoxo",
+    "consentPill": "Imvume edingekayo",
+    "preferredLanguage": "Ulimi oluthandayo",
+    "consentText": "Ngiyavuma ukuthi lo mxoxo uqhatyuswe umhlinzeki we-AI ohleliwe. Imibhalo ibethwa ngaphambi kokugcinwa.",
+    "startChat": "Qala ingxoxo yombhalo ephephile",
+    "startVoice": "Qala izwi sebulawuzi",
+    "setupHint": "Ayitholakali kuze umqhamuki alungiselele ukhiye wokubethela nomhlinzeki we-AI.",
+    "noConversation": "Ayikho ingxoxo esebenzayo",
+    "startHint": "Ukuze uqale, yakha iseshini enemvume.",
+    "requestHuman": "Cela umqaphi womuntu",
+    "chatEmpty": "Imilayezo yakho izophela lapha. Izinzameko ze-AI yiziphakamiso kuphela; akukho kokukhokha, ukushintshwa kwama-akhawunti, ukubuyiselwa noma ukuthumela okwenziwayo.",
+    "messagePlaceholder": "Bhala umyalezo…",
+    "send": "Thumela",
+    "stopVoice": "Misa iseshini yezwi",
+    "voiceOff": "Izwi sevaliwe.",
+    "voiceStreamNote": "Izwi lesiphequluli lihanjiswa ngokusakaza kumhlinzeki olungiselelwe; i-OpsCore ayitsheli ukuthi igcina umsindo ongaphelele.",
+    "voiceRequirement": "Izwi lesiphequluli idinga i-HTTPS (noma i-localhost), imakrofoni, imvume, imodeli ye-Realtime elungiselelwe nokhiye womhlinzeki. Akuyona ibhuloho locingo le-PSTN/SIP."
+  },
+  "queue": {
+    "eyebrow": "UKUNGENA KWOMUNTU",
+    "title": "Umqhamo wokuphakama",
+    "refresh": "Vuselela",
+    "description": "Lapha kuyavela izingxoxo zengozi ephezulu, ezingaxazululwa noma ezicela umuntu. Into kuq kusho ukucelwe, hhayi ukuxhumanisa.",
+    "loading": "Kuyalayisha isiq…",
+    "empty": "Akukho ukudluliselwa komuntu okusebenzayo kule nhlangano.",
+    "openAssignment": "Vula ukuqokwa",
+    "claimAndReview": "Thatha ubuhlobo no uhlole",
+    "resolve": "Yixazulule",
+    "reply": "Phendula",
+    "agentAssignedTitle": "Ingxoxo enikeziwe",
+    "replyStorageNote": "Izimpendulo zabantu ziyabethelwa uma zigcinwa futhi ziyabonakala kumbhalo wengxoxo.",
+    "resolveNote": "Kuxazululwe ngumsebenzisi womuntu onikeziwe."
+  },
+  "boundaries": {
+    "title": "Imingcele yokusebenza",
+    "automateTitle": "Klanyelwe ukuzenzekela",
+    "automateBody": "Impendulo yokuqala yezilimi eziningi, ukuqonda, ukuhlukanisa inhloso kanye nengozi, ukugcina okubhalwe ngendlela ephephile, ukwakha amaqoqo nokunikeza abaqaphi.",
+    "humanTitle": "Kudingeka ukuthathwa yimuntu",
+    "humanBody": "Isicelo somuntu esicacile, ukuthembeka okuphansi, ingozi ephezulu noma eyisibusiso, umthetho ongatholakali, icala elingaxazululwanga, ikhalo le-evisi/ukuphepha noma isenzo esingaqinile.",
+    "notEnabledTitle": "Ayikho inikwa ngalo phakheji lodwa",
+    "notEnabledBody": "Ukugqamisa PSTN/SIP/WhatsApp/imeyili, ibhulohwe lefoni elebhu, ukuqinisekiswa kwesithombe CRM kanye nangokwethembwa kwendlela yokuthetha kudinga isixhumanisi somhlinzeki sangempela, izimfanelo kanye no ukuhlolwa kwamukelwa."
+  },
+  "roles": {
+    "customer": "Ithenga",
+    "human": "Umqaphi womuntu",
+    "ai": "Umsizi we-AI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Ithenga licela umuntu",
+    "low_confidence": "Ukuthembeka okuphansi",
+    "high_risk": "Ingozi ephezulu",
+    "policy_refusal": "Ukungayemukela / ukuvimbela umthetho",
+    "unresolved": "Inkinga engaxazululwanga",
+    "repeated_failure": "Ukwehlulela okuphindaphindiwe",
+    "model_requested": "I-AI icele ubuhlobo",
+    "voice_review_required": "Uhlolelo lwezwi luyadingeka",
+    "other": "Okunye"
+  },
+  "messages": {
+    "qualificationNotice": "Ayikho ilimi elihlelelwe ukukhiqiza kuze kudlulela ukuhlolwa kombhalo, ukuzwa ngesizwi, ukwakheka kwezwi, ukunethezeka kanye nokuphakama.",
+    "configNeeded": "Ukulungiselela kusadingeka: {missing}.",
+    "configOk": "Ukulungiselela kukhona. Ukuxhumaniswa nomhlinzeki kanye nangokuthuthukiswa kolimi kusadinga ukuhlolwa kwamukelwa okwenziwayo.",
+    "conversationCreated": "Ingxoxo ephephile yakhinyaniswa. Ukuthuthukiswa kolimi kungekakho kuqinga kokukhiqiza.",
+    "handoffQueued": "Ukudluliselwa komuntu kuq kugciniwe ({reason}). Lokhu kuyisicelo esiq, hhayi uxhumaniso lwelele.",
+    "aiResponseFailed": "Impendulo ye-AI ayiqedekile. Akukho senzo esenziwe. Ungacela umqaphi womuntu.",
+    "actionNotCompleted": "Isenzo asiphelile: {reason}.",
+    "apiUnavailable": "I-API ye-Contact Center ayikwazanga ukulayishwa. Ngena kukhonsoli ye-OpsCore, bese uyilayisha kabusha leli khasi.",
+    "suggestedNextStep": "Isinyathelo esilandelayo esiphakanyisiwe kuphela (asenziwanga): {step}.",
+    "handoffQueuedQueueOnly": "Ukudlulisela kumuntu kufakwe emgqeni ({reason}). Umugqa awubonisi ukuthi ummeli uxhumekile.",
+    "voiceHandoffStopped": "Ukudlulisela kumuntu kufakwe emgqeni. Iseshini ye-AI yesiphequluli iyama; ukudlulisela ucingo bukhoma akulungiselelwe.",
+    "voiceCredentialRequest": "Iceba imininingwane yokufakazela yezwi yesikhashana…",
+    "voiceRealtimeError": "Umhlinzeki wesikhathi sangempela unikeze umbiko wephutha. Misa iseshini yezwi bese uyazama futhi ngemva kokuhlola ukulungiselelwa komhlinzeki.",
+    "voiceActive": "Iseshini yezwi iyasebenza. Cindezela “Cela umqaphi womuntu” noma nini; lokhu kudala into emgqeni, hhayi ukudlulisela kwe-PSTN.",
+    "voiceCredentialActive": "{languageCode} · imininingwane yokufakazela yesikhashana yomhlinzeki",
+    "queueUnavailable": "Umugqa awutholakali: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Imvume iyadingeka ngaphambi kokuthi ingxoxo iqale.",
+    "SERVER_RESPONSE_INVALID": "Impendulo yeseva ayikwazanga ukufundwa.",
+    "REQUEST_FAILED": "Isicelo siyehlulekile.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Umhlinzeki wezwi lesikhathi sangempela akafinyelelekanga.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Lesi siphequluli asisekeli izwi lesikhathi sangempela.",
+    "HANDOFF_NOT_CLAIMED": "Ukudlulisela akukwazanga ukwamukelwa.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Umlayezo odlulisiwe ungahloniphiwe."
+  }
+}

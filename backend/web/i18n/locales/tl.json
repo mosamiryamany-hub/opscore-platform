@@ -1,0 +1,111 @@
+{
+  "nativeName": "Filipino",
+  "nav": {
+    "title": "Sentro ng Pakikipag-ugnayan na AI",
+    "subtitle": "Maramihang wika ng self-service na may kontroladong paglilipat sa tao.",
+    "operationsConsole": "Konsola ng mga operasyon",
+    "interfaceLanguage": "Wika ng interface"
+  },
+  "status": {
+    "configured": "Naka-configure ang guarded mode",
+    "setupIncomplete": "Hindi kumpleto ang setup",
+    "apiUnavailable": "Sign-in / API ay hindi available"
+  },
+  "stats": {
+    "catalogueRows": "Mga row ng catalogue",
+    "catalogueRowsNote": "Napanatili ang input list",
+    "uniqueCodes": "Natatanging language codes",
+    "uniqueCodesNote": "Mina-markahan ang mga duplicate",
+    "providerQualification": "Kwalipikasyon mula sa provider",
+    "providerQualificationNote": "Tanging mga wika lamang na independiyenting na-test ang bibilangin",
+    "liveQueue": "Live na human queue",
+    "liveQueueNote": "Tenant-scoped na handoff"
+  },
+  "customer": {
+    "eyebrow": "KARANASAN NG CUSTOMER",
+    "title": "Simulan ang pag-uusap",
+    "consentPill": "Kailangan ng consent",
+    "preferredLanguage": "Napiling wika",
+    "consentText": "Sumasang-ayon ako na ang usapang ito ay ipaproseso ng naka-configure na AI provider. Naka-encrypt ang mga transcript bago i-store.",
+    "startChat": "Simulan ang secure na text chat",
+    "startVoice": "Simulan ang browser voice",
+    "setupHint": "Hindi available hanggang i-configure ng administrator ang encryption key at AI provider.",
+    "noConversation": "Walang aktibong pag-uusap",
+    "startHint": "Gumawa ng consented session para magsimula.",
+    "requestHuman": "Humiling ng human agent",
+    "chatEmpty": "Dito lilitaw ang iyong mga mensahe. Mga suhestiyon lamang ang AI actions; walang payments, account changes, refunds, o dispatches na isasagawa.",
+    "messagePlaceholder": "Sumulat ng mensahe…",
+    "send": "Ipadala",
+    "stopVoice": "Ihinto ang voice session",
+    "voiceOff": "Naka-off ang boses.",
+    "voiceStreamNote": "Ang boses sa browser ay ini-stream sa naka-configure na provider; hindi inaangkin ng OpsCore na iniimbak nito ang raw audio.",
+    "voiceRequirement": "Kailangan ng boses sa browser ang HTTPS (o localhost), mikropono, pahintulot, naka-configure na Realtime model at provider key. Hindi ito PSTN/SIP phone bridge."
+  },
+  "queue": {
+    "eyebrow": "PAKIKIALAM NG TAO",
+    "title": "Pila ng pagtaas ng antas",
+    "refresh": "I-refresh",
+    "description": "Dito lumilitaw ang mga usapan na mataas ang panganib, hindi naresolba, o humihingi ng tao. Ang queue item ay nangangahulugang hiniling, hindi nakakonekta.",
+    "loading": "Nilo-load ang queue…",
+    "empty": "Walang aktibong human handoff para sa organisasyong ito.",
+    "openAssignment": "Buksan ang assignment",
+    "claimAndReview": "Kunin at suriin",
+    "resolve": "Lutasin",
+    "reply": "Sumagot",
+    "agentAssignedTitle": "Nakatalagang usapan",
+    "replyStorageNote": "Naka-encrypt sa storage ang mga sagot ng tao at makikita sa transcript ng usapan.",
+    "resolveNote": "Nalutas ng nakatalagang human operator."
+  },
+  "boundaries": {
+    "title": "Mga hangganan ng operasyon",
+    "automateTitle": "Dinisenyo para sa automation",
+    "automateBody": "Multilingual na unang tugon, paglilinaw, intent/risk triage, secure na transcript storage, paggawa ng queue, at pagtatalaga ng agent.",
+    "humanTitle": "Kailangan ng human takeover",
+    "humanBody": "Malinaw na kahilingan ng tao, mababang kumpiyansa, mataas o kritikal na panganib, kulang na patakaran, hindi naresolvang kaso, privacy/security na reklamo, o hindi tiyak na aksyon.",
+    "notEnabledTitle": "Hindi pinapagana ng package na ito lamang",
+    "notEnabledBody": "PSTN/SIP/WhatsApp/email routing, live telephony bridge, CRM identity verification, at mga claim sa kalidad ng wika ay nangangailangan ng tunay na provider adapter, credentials, at acceptance tests."
+  },
+  "roles": {
+    "customer": "Kustomer",
+    "human": "Ahenteng tao",
+    "ai": "Katuwang na AI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Humingi ng tao ang customer",
+    "low_confidence": "Mababang kumpiyansa",
+    "high_risk": "Mataas na panganib",
+    "policy_refusal": "Policy na pagtanggi / paghihigpit",
+    "unresolved": "Hindi naresolvang isyu",
+    "repeated_failure": "Paulit-ulit na kabiguan",
+    "model_requested": "Humiling ng review ang AI",
+    "voice_review_required": "Kailangan ng voice review",
+    "other": "Iba pa"
+  },
+  "messages": {
+    "qualificationNotice": "Walang wikang production-qualified hanggang makapasa ang mga text, ASR, TTS, accent, at escalation test.",
+    "configNeeded": "Kailangan pa rin ng configuration: {missing}.",
+    "configOk": "May configuration na. Ang provider connectivity at kalidad ng wika ay nangangailangan pa rin ng tunay na acceptance tests.",
+    "conversationCreated": "Nagawa ang secure na usapan. Ang kalidad ng wika ay hindi pa production-qualified.",
+    "handoffQueued": "Nakapila ang human handoff ({reason}). Queue request ito, hindi live connection.",
+    "aiResponseFailed": "Hindi natapos ang tugon ng AI. Walang aksyon na isinagawa. Maaari kang humiling ng human agent.",
+    "actionNotCompleted": "Hindi natapos ang aksyon: {reason}.",
+    "apiUnavailable": "Hindi ma-load ang Contact Center API. Mag-sign in sa OpsCore console, pagkatapos ay i-reload ang pahinang ito.",
+    "suggestedNextStep": "Mungkahing susunod na hakbang lamang (hindi isinagawa): {step}.",
+    "handoffQueuedQueueOnly": "Nakapila ang human handoff ({reason}). Hindi nito pinatutunayan na may konektadong agent.",
+    "voiceHandoffStopped": "Nakapila ang human handoff. Humihinto ang AI session sa browser; hindi naka-configure ang live telephony transfer.",
+    "voiceCredentialRequest": "Humihiling ng panandaliang voice credential…",
+    "voiceRealtimeError": "Nag-ulat ng error ang Realtime provider. Itigil ang voice session at subukan ulit matapos suriin ang provider configuration.",
+    "voiceActive": "Aktibo ang voice session. Pindutin ang “Humiling ng human agent” anumang oras; lilikha ito ng queue item, hindi PSTN transfer.",
+    "voiceCredentialActive": "{languageCode} · pansamantalang provider credential",
+    "queueUnavailable": "Hindi available ang queue: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Kailangan ang pahintulot bago makapagsimula ang usapan.",
+    "SERVER_RESPONSE_INVALID": "Hindi mabasa ang tugon ng server.",
+    "REQUEST_FAILED": "Nabigo ang kahilingan.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Hindi maabot ang realtime voice provider.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Hindi sinusuportahan ng browser na ito ang realtime voice.",
+    "HANDOFF_NOT_CLAIMED": "Hindi ma-claim ang handoff.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Binalewala ang duplicate na mensahe."
+  }
+}

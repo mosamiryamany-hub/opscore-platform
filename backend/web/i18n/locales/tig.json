@@ -1,0 +1,111 @@
+{
+  "nativeName": "ትግረ",
+  "nav": {
+    "title": "መካኸኒ ምዝራብ AI",
+    "subtitle": "ደገፍ ንብዙሕ ቋንቋታትን ናብ ሰብ ዝግበር ምርኮስን።",
+    "operationsConsole": "ኮንሶል ስራሕ",
+    "interfaceLanguage": "ቋንቋ መርኣዪ"
+  },
+  "status": {
+    "configured": "ዝሕረ ኣገባብ ተሰሪዑ",
+    "setupIncomplete": "ምድላው ኣይተወድአን",
+    "apiUnavailable": "መእተዊ / API የለን"
+  },
+  "stats": {
+    "catalogueRows": "መስመራት ዝርዝር",
+    "catalogueRowsNote": "ዝርዝር ተቐቢሉ",
+    "uniqueCodes": "ቁልፍታት ፍልልይ ቋንቋታት",
+    "uniqueCodesNote": "ምስራቕ ይርአ",
+    "providerQualification": "ብቕዓት ኣቕራቢ",
+    "providerQualificationNote": "ዝተፈተኑ ቋንቋታት ጥራይ ይቑጸሩ",
+    "liveQueue": "ህጻን ሰብ ሕጂ",
+    "liveQueueNote": "ምርኮስ ናብ ጉጅለ"
+  },
+  "customer": {
+    "eyebrow": "ተመኩሮ ዓሚል",
+    "title": "ጀምር ዘተ",
+    "consentPill": "ፍቓድ የድሊ",
+    "preferredLanguage": "ዝተመርጸ ቋንቋ",
+    "consentText": "እስማማኹ እዚ ዘተ ብኣቕራቢ AI ክስራሕ ይኽእል። ጽሑፋት ቅድሚ ምቕመጥ ይሕበኡ።",
+    "startChat": "ጀምር ውሑስ ጽሑፍ ዘተ",
+    "startVoice": "ጀምር ድምጺ ኣብ መርበብ",
+    "setupHint": "ክሳብ ኣማሓዳሪ ቁልፍን ኣቕራቢን ዘዳልወ ኣይከኣልን።",
+    "noConversation": "ዝሰርሕ ዘተ የለን",
+    "startHint": "ስርሓት ዘተ ብፍቓድ ጀምር።",
+    "requestHuman": "ሕተት ሰብ",
+    "chatEmpty": "መልእኽትታት ኣብዚ ይርአዩ። ስራሓት AI ምኽሪ ጥራይ እዩ፤ ክፍሊት ወይ ምልዋጥ ሒሳብ የለን።",
+    "messagePlaceholder": "ጽሓፍ መልእኽቲ…",
+    "send": "ስደድ",
+    "stopVoice": "ኣቋርጽ ድምጺ",
+    "voiceOff": "ድምጺ ጠፊኡ።",
+    "voiceStreamNote": "ድምጺ መርበብ ናብ ኣቕራቢ ይለኣኽ፤ OpsCore ጽዑቕ ድምጺ ይቕምጥ ኣይብልን።",
+    "voiceRequirement": "ድምጺ መርበብ HTTPS፣ ማይክሮፎን፣ ፍቓድ፣ ሞዴል Realtimeን ቁልፍን የድሊ። ስልኪ ኣይኮነን።"
+  },
+  "queue": {
+    "eyebrow": "ደገፍ ሰብ",
+    "title": "መስርዕ ምርኮስ",
+    "refresh": "ኣሓድስ",
+    "description": "ዘተ ሓደገኛ ወይ ሰብ ዝሓተተ ኣብዚ ይርአ። መስርዕ ሕቶ እዩ፣ ርክብ ኣይኮነን።",
+    "loading": "ይጽዕን…",
+    "empty": "ኣብዚ ጉጅለ ምርኮስ የለን።",
+    "openAssignment": "ክፈት ስራሕ",
+    "claimAndReview": "ተቐበል እሞ ተመልከት",
+    "resolve": "ውድእ",
+    "reply": "መልስ",
+    "agentAssignedTitle": "ዘተ ዝተዋህበ",
+    "replyStorageNote": "መልስታት ሰብ ተሓቢኡ ኣብ ጽሑፍ ዘተ ይርአ።",
+    "resolveNote": "ብዝተዋህበ ሰራሕተኛ ተወዲኡ።"
+  },
+  "boundaries": {
+    "title": "ወሰን ስራሕ",
+    "automateTitle": "ንምስራሕ ዝተዳለወ",
+    "automateBody": "ቀዳማይ መልሲ ብብዙሕ ቋንቋ፣ ምብራህ፣ ምግማት ሓደጋን ምቕማጥ ጽሑፋትን።",
+    "humanTitle": "ምርኮስ ናብ ሰብ የድሊ",
+    "humanBody": "ሕቶ ሰብ፣ ትሑት እምነት፣ ዓቢ ሓደጋ፣ ዘይተረኽበ ሕጊ፣ ዘይተፈትሐ ጉዳይ፣ ሕቶ ምስጢር።",
+    "notEnabledTitle": "ብዚ ፓኬጅ ጥራይ ኣይከኣልን",
+    "notEnabledBody": "PSTN/SIP፣ WhatsApp፣ ኢመይል፣ ስልኪ፣ CRMን ምርግጋጽ ቋንቋን ናይ ሓቂ ኣቕራቢን ፈተናን የድልዩ።"
+  },
+  "roles": {
+    "customer": "ዓሚል",
+    "human": "ሰራሕተኛ ሰብ",
+    "ai": "ሓጋዚ AI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "ዓሚል ሰብ ሓተተ",
+    "low_confidence": "ትሑት እምነት",
+    "high_risk": "ዓቢ ሓደጋ",
+    "policy_refusal": "ምንፋግ ሕጊ",
+    "unresolved": "ዘይተፈትሐ ጉዳይ",
+    "repeated_failure": "ተደጋጋሚ ውድቀት",
+    "model_requested": "AI ምርመራ ሓተተ",
+    "voice_review_required": "ምርመራ ድምጺ የድሊ",
+    "other": "ካልእ"
+  },
+  "messages": {
+    "qualificationNotice": "ክሳብ ፈተና ጽሑፍ፣ ASR፣ TTSን ድምጺን ዝሓለፈ ቋንቋ የለን።",
+    "configNeeded": "ምድላው የድሊ: {missing}።",
+    "configOk": "ምድላው ኣሎ። ርክብን ዓቐን ቋንቋን ፈተና ሓቂ የድልዩ።",
+    "conversationCreated": "ውሑስ ዘተ ተፈጢሩ። ዓቐን ቋንቋ ኣይተረጋገጸን።",
+    "handoffQueued": "ምርኮስ ናብ ሰብ ኣብ መስርዕ ተቐሚጡ ({reason})። ሕቶ እዩ፣ ርክብ ኣይኮነን።",
+    "aiResponseFailed": "መልሲ AI ኣይተወድአን። ስራሕ ኣይተፈጸመን። ሰብ ክትሓትት ትኽእል።",
+    "actionNotCompleted": "ስራሕ ኣይተወድአን: {reason}።",
+    "apiUnavailable": "API ምዝራብ ኣይተረኽበን። ናብ OpsCore ተእቱ፣ ደሓር ገጽ ኣሓድስ።",
+    "suggestedNextStep": "ምኽሪ ጥራይ (ኣይተፈጸመን): {step}።",
+    "handoffQueuedQueueOnly": "ምርኮስ ኣብ መስርዕ ተቐሚጡ ({reason})። መስርዕ ሰራሕተኛ ከም ዘሎ ኣይሕብርን።",
+    "voiceHandoffStopped": "ምርኮስ ኣብ መስርዕ ተቐሚጡ። ዘተ AI ይዓጽው፤ ስልኪ ኣይተዳለወን።",
+    "voiceCredentialRequest": "ሓጺር ቁልፍ ድምጺ ይሕተት…",
+    "voiceRealtimeError": "ኣቕራቢ Realtime ጌጋ ሓቢሩ። ድምጺ ኣቋርጽ፣ ምድላው ተመልከት፣ ደሓር ፈትን።",
+    "voiceActive": "ዘተ ድምጺ ይሰርሕ። ብዝኾነ ግዜ ሰብ ሕተት፤ እዚ መስርዕ ይፈጥር፣ ስልኪ ኣይኮነን።",
+    "voiceCredentialActive": "{languageCode} · ሓጺር ቁልፍ",
+    "queueUnavailable": "መስርዕ የለን: {reason}።"
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "ቅድሚ ዘተ ፍቓድ የድሊ።",
+    "SERVER_RESPONSE_INVALID": "መልሲ ሰርቨር ኣይተነበበን።",
+    "REQUEST_FAILED": "ሕቶ ኣይተዓወተን።",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "ኣቕራቢ ድምጺ Realtime ኣይተረኽበን።",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "እዚ መርበብ ድምጺ Realtime ኣይድግፍን።",
+    "HANDOFF_NOT_CLAIMED": "ምርኮስ ኣይተቐበለን።",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "ተደጋጋሚ መልእኽቲ ተዘንጊዑ።"
+  }
+}

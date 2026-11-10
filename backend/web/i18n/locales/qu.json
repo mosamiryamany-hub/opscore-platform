@@ -1,0 +1,111 @@
+{
+  "nativeName": "Runasimi",
+  "nav": {
+    "title": "AI Rimana Wasi",
+    "subtitle": "Achka simiyuq kikinpa llamk'achinan, runaman kamachasqa t'ipiy wanuywan.",
+    "operationsConsole": "Ruray p'ata (konsola)",
+    "interfaceLanguage": "Interface simi"
+  },
+  "status": {
+    "configured": "Amachasqa modo (wakichisqa)",
+    "setupIncomplete": "Wakichiy manaraq tukusqa",
+    "apiUnavailable": "Yaykuy / API mana tarikunchu"
+  },
+  "stats": {
+    "catalogueRows": "Katallu siq'ikuna",
+    "catalogueRowsNote": "Qillqasqa rimaqkuna waqaychasqa",
+    "uniqueCodes": "Huklla simi kodikuna",
+    "uniqueCodesNote": "Waqaychakusqakuna ch'ullanachasqa",
+    "providerQualification": "Quqpa suma kaynin",
+    "providerQualificationNote": "Yaqha llama grisqa simikunalla yupasqa",
+    "liveQueue": "Kawsaq runa tudura",
+    "liveQueueNote": "Wasipiq (tenant) t'ipiy"
+  },
+  "customer": {
+    "eyebrow": "QHATIQ WIÑAY",
+    "title": "Rimay qallariy",
+    "consentPill": "Rimanakuy chaskikunmi",
+    "preferredLanguage": "Munakusqa simi",
+    "consentText": "Kay rimay wakichasqa AI quqwan llamk'achikunatañan chaskini. Qillqakuna waqaychayman ñawpaqta p'istayusqa.",
+    "startChat": "Chasqa qillqa rimayta qallariy",
+    "startVoice": "Wamp'una (browser) kunka qallariy",
+    "setupHint": "Kamachiy manaraq p'istay chungo (key) chanta AI quqta wakichuntsu, manam atikunchu.",
+    "noConversation": "Mana kawsaq rimay",
+    "startHint": "Qallariypaq ñanakasqa tuquna (sesión) ruway.",
+    "requestHuman": "Runa yanapakuyta mañakuy",
+    "chatEmpty": "Qillqasqayki kaypi rikurimunqa. AI ruwaykuna ñawpaq willaspaña; manam qullqi, yupana tikray, kutichiy mana apachiy ruwanchu.",
+    "messagePlaceholder": "Willayta qillqay…",
+    "send": "Apachiy",
+    "stopVoice": "Kunka tuquna tukuy",
+    "voiceOff": "Kunka chinkasqaña.",
+    "voiceStreamNote": "Browser kunkaqa churasqa qpaqman wiqiq hina apachisqa; OpsCore manam nin mana llamkasqa audiota waqaychasqanta.",
+    "voiceRequirement": "Browser kunkaqa HTTPS (utaq localhost), micrófono, riqsichiy, churasqa Realtime modelo, qpaq churaqpa llavenpas munan. Manam PSTN/SIP telefono chakachu."
+  },
+  "queue": {
+    "eyebrow": "RUNAP CHURAYNIN",
+    "title": "Wiñachiy tudura",
+    "refresh": "Musyaychiy",
+    "description": "Kaypi rikurimun hatun mikhuna, manaña tukusqata o runa mañakusqa rimaykuna. Tudura yupi nisqa mañakusqalla, manaña huñusqa.",
+    "loading": "Tudura churaykan…",
+    "empty": "Kay ayllupaqqa manam kawsaq runa t'ipiykunachu.",
+    "openAssignment": "Taripunata kichay",
+    "claimAndReview": "Chaskiy chanta qaway",
+    "resolve": "Allinchay",
+    "reply": "Kutichiy",
+    "agentAssignedTitle": "Churasqa rimanakuy",
+    "replyStorageNote": "Runakunaq kutichiyninkuna waqaychakuypi pakasqa kanku, rimanakuy qillqasqapi rikukunku.",
+    "resolveNote": "Churasqa runa operadorqa allichasqa."
+  },
+  "boundaries": {
+    "title": "Ruray saywachakuna",
+    "automateTitle": "Kikinpa rurinapaq ruwasqa",
+    "automateBody": "Achka simiyuq ñawpaq kutichiy, ch'uya willay, sunqu chanta mikhuna ch'ulla, chasqa qillqa waqaychay, tudura ruray chanta yanapaq qun.",
+    "humanTitle": "Runap chaskinanchá tiyan",
+    "humanBody": "Chiqan runa mañakuy, pisi ñawpaq willay, hatun mikhuna, chusaq kamachiyna, manaña tukusqa kasu, ñawpaq mayninta ima sunqu apología mana ch'uya ruway.",
+    "notEnabledTitle": "Kay watachikunalla kikin yalli mana atikunchu",
+    "notEnabledBody": "PSTN/SIP/WhatsApp/willakuy puriy, kawsaq karu rimana chaka, CRM runa ñawpaqta qhawachiy chanta simi suma kayniy nisqakuna chiqan quq t'inkinakuy, chanin qillqa chanta chaskinakuy phawayta munan."
+  },
+  "roles": {
+    "customer": "Qhatiq",
+    "human": "Runa yanapakuy",
+    "ai": "AI yanapakuy"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Qhatiq runa mañarqan",
+    "low_confidence": "Pisi ñawpaq willay",
+    "high_risk": "Hatun mikhuna",
+    "policy_refusal": "Kamachiyna nisqa mana chaskiy / sayachiy",
+    "unresolved": "Manaña tukusqa sasa",
+    "repeated_failure": "Achka kuti yarqay",
+    "model_requested": "AI qhawachiy mañarqan",
+    "voice_review_required": "Kunka qhawachiy tiyan",
+    "other": "Huk"
+  },
+  "messages": {
+    "qualificationNotice": "Qillqa, kunka chaskiy, kunka ruray, rimay sumaq kay chanta t'ipiy phawaymanaña, manam ima simipas llamk'anapaq chaskikunchu.",
+    "configNeeded": "Wakichiyachaw kashian: {missing}.",
+    "configOk": "Wakichiy kashian. Quq t'inkiy chanta simi suma kayniyqa chiqan chaskinakuy phawayta munan.",
+    "conversationCreated": "Chasqa rimay ruraysqa. Simi suma kay manaraq llamk'anapaq chaskikunchu.",
+    "handoffQueued": "Runa t'ipiy tudurachasqa ({reason}). Kayqa tudura mañakuy, kawsaq t'inkichu.",
+    "aiResponseFailed": "AI kutichiy manam tukurqunchu. Manam ima ruwasqapas. Runa yanapakuyta mañakuyta atinkimi.",
+    "actionNotCompleted": "Ruway manam tukurqunchu: {reason}.",
+    "apiUnavailable": "Contact Center API manam cargayta atirqanchu. OpsCore consolaman yaykuy, chaymanta kay p'anqata musuqmanta cargay.",
+    "suggestedNextStep": "Qatiq ruray yachachisqalla (mana rurasqa): {step}.",
+    "handoffQueuedQueueOnly": "Runaman chayachiy colaman churasqa karqan ({reason}). Colaqa manam rikuchinchu agente tinkisqa kasqanta.",
+    "voiceHandoffStopped": "Runaman chayachiy colaman churasqa karqan. Browser AI sesionqa sayachkan; kausaq telefono apachiy manam churasqachu.",
+    "voiceCredentialRequest": "Pisi pacha kunka credencialta mañakuchkan…",
+    "voiceRealtimeError": "Chiqaq pacha qpaq pantasqata willarqan. Kunka sesionta sayachiy, qpaq churayninta qhawariruspa musuqmanta ruway.",
+    "voiceActive": "Kunka sesionqa kamachkan. Maypachapas “Runa yanapakuyta mañakuy” ñit'iy; kayqa colapi huk imata ruwan, manam PSTN apachiyta.",
+    "voiceCredentialActive": "{languageCode} · qpaq pachalla credencial",
+    "queueUnavailable": "Colaqa manam kanchu: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Rimanakuy qallarinapaq ñawpaqta riqsichiy necesitasqa.",
+    "SERVER_RESPONSE_INVALID": "Servidor kutichiyta manam liyiyta atirqanchu.",
+    "REQUEST_FAILED": "Mañakuyqa manam atipasqachu.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Chiqaq pachapi kunka qpaqman chayayta manam atirqanchu.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Kay browserqa manam chiqaq pachapi kunkata yanapanchu.",
+    "HANDOFF_NOT_CLAIMED": "Chaskiy chaskiyta manam atirqanchu.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Kutichisqa willakuyqa mana qhawarisqa karqan."
+  }
+}

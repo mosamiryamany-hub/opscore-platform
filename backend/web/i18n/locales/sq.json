@@ -1,0 +1,111 @@
+{
+  "nativeName": "Shqip",
+  "nav": {
+    "title": "Qendër Kontakti me IA",
+    "subtitle": "Shërbim vetëak multigjuhësh me dorëzim të mbikëqyrur te njeriu.",
+    "operationsConsole": "Konsola e operacioneve",
+    "interfaceLanguage": "Gjuha e ndërfaqes"
+  },
+  "status": {
+    "configured": "Modaliteti i mbrojtur është konfiguruar",
+    "setupIncomplete": "Konfigurimi jo i plotë",
+    "apiUnavailable": "Hyrja / API jo e disponueshme"
+  },
+  "stats": {
+    "catalogueRows": "Rreshtat e katalogut",
+    "catalogueRowsNote": "Lista e hyrjes e ruajtur",
+    "uniqueCodes": "Kodet unike të gjuhëve",
+    "uniqueCodesNote": "Dublimet shënohen",
+    "providerQualification": "Kualifikimi i ofruesit",
+    "providerQualificationNote": "Numërohen vetëm gjuhët e testuara në mënyrë të pavarur",
+    "liveQueue": "Radhë e njerëzve drejtpërdrejt",
+    "liveQueueNote": "Dorëzime për secilin klient (tenant)"
+  },
+  "customer": {
+    "eyebrow": "PËRSHPJETJA E KLIENTIT",
+    "title": "Fillo një bisedë",
+    "consentPill": "Kërkohet miratimi",
+    "preferredLanguage": "Gjuha e preferuar",
+    "consentText": "Pranoj që kjo bisedë të përpunohet nga ofruesi i AI i konfiguruar. Transkriptet enkriptohen para ruajtjes.",
+    "startChat": "Fillo bisedë të sigurt me tekst",
+    "startVoice": "Fillo zë të shfletuesit",
+    "setupHint": "Jo e disponueshme derisa një administrator të konfigurojë çelësin e enkriptimit dhe ofruesin e AI.",
+    "noConversation": "Nuk ka bisedë aktive",
+    "startHint": "Krijo një sesion me miratim për të filluar.",
+    "requestHuman": "Kërko agjent njerëzor",
+    "chatEmpty": "Mesazhet tuaja do të shfaqen këtu. Veprimet e AI janë vetëm sugjerime; nuk kryhen pagesa, ndryshime llogarie, kthime parash apo dërgesa.",
+    "messagePlaceholder": "Shkruaj një mesazh…",
+    "send": "Dërgo",
+    "stopVoice": "Ndalo sesionin e zërit",
+    "voiceOff": "Zëri është fikur.",
+    "voiceStreamNote": "Zëri i shfletuesit transmetohet te ofruesi i konfiguruar; OpsCore nuk pretendon se ruan audio të papërpunuar.",
+    "voiceRequirement": "Zëri i shfletuesit kërkon HTTPS (ose localhost), mikrofon, pëlqim, model Realtime të konfiguruar dhe çelës ofruesi. Nuk është urë telefonike PSTN/SIP."
+  },
+  "queue": {
+    "eyebrow": "NDËRHYRJE NJERËZORE",
+    "title": "Radha e përshpejtimit",
+    "refresh": "Rifresko",
+    "description": "Këtu shfaqen bisedat me rrezik të lartë, të pazgjidhura ose me kërkesë për njeri. Një element radhe do të thotë e kërkuar, jo e lidhur.",
+    "loading": "Duke ngarkuar radhën…",
+    "empty": "Nuk ka dorëzime njerëzore aktive për këtë organizatë.",
+    "openAssignment": "Hap caktimin",
+    "claimAndReview": "Merr dhe shqyrto",
+    "resolve": "Zgjidh",
+    "reply": "Përgjigju",
+    "agentAssignedTitle": "Bisedë e caktuar",
+    "replyStorageNote": "Përgjigjet njerëzore enkriptohen në ruajtje dhe janë të dukshme në transkriptin e bisedës.",
+    "resolveNote": "U zgjidh nga operatori njerëzor i caktuar."
+  },
+  "boundaries": {
+    "title": "Kufij operacionalë",
+    "automateTitle": "Dizajnuar për automatizim",
+    "automateBody": "Përgjigje e parë multigjuhëshe, sqarim, triazim i qëllimit dhe rrezikut, ruajtje e sigurt e transkripteve, krijim radhash dhe caktim agjentësh.",
+    "humanTitle": "Kërkohet ndërim njerëzor",
+    "humanBody": "Kërkesë e qartë për njeri, besim i ulët, rrezik i lartë ose kritik, politikë që mungon, rast i pazgjidhur, ankesë privatësie/sigurie ose veprim i pasigurt.",
+    "notEnabledTitle": "Nuk aktivizohet vetëm me këtë paketë",
+    "notEnabledBody": "Rrugëzimi PSTN/SIP/WhatsApp/email, ura telefonike e drejtpërdrejtë, verifikimi i identitetit në CRM dhe pretendimet për cilësinë e gjuhës kërkojnë një adaptues të vërtetë të ofruesit, kredenciale dhe teste pranimi."
+  },
+  "roles": {
+    "customer": "Klient",
+    "human": "Agjent njerëzor",
+    "ai": "Ndihmës AI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Klienti kërkoi njeri",
+    "low_confidence": "Besim i ulët",
+    "high_risk": "Rrezik i lartë",
+    "policy_refusal": "Refuzim / kufizim politikash",
+    "unresolved": "Problem i pazgjidhur",
+    "repeated_failure": "Dështim i përsëritur",
+    "model_requested": "AI kërkoi rishikim",
+    "voice_review_required": "Kërkohet rishikim zëri",
+    "other": "Tjetër"
+  },
+  "messages": {
+    "qualificationNotice": "Asnjë gjuhë nuk është e kualifikuar për prodhim derisa të kalojnë testet e tekstit, ASR, TTS, theksit dhe përshpejtimit.",
+    "configNeeded": "Ende kërkohet konfigurim: {missing}.",
+    "configOk": "Konfigurimi ekziston. Lidhja me ofruesin dhe cilësia e gjuhës ende kërkojnë teste pranimi reale.",
+    "conversationCreated": "U krijua bisedë e sigurt. Cilësia e gjuhës ende nuk është e kualifikuar për prodhim.",
+    "handoffQueued": "Dorëzimi te njeriu u vendos në radhë ({reason}). Kjo është kërkesë radhe, jo lidhje e drejtpërdrejtë.",
+    "aiResponseFailed": "Përgjigja e AI nuk u krye plotësisht. Nuk u krye asnjë veprim. Mund të kërkoni agjent njerëzor.",
+    "actionNotCompleted": "Veprimi nuk u krye: {reason}.",
+    "apiUnavailable": "API-ja e Qendrës së Kontaktit nuk u ngarkua dot. Hyni në konsolën OpsCore, pastaj rifreskoni këtë faqe.",
+    "suggestedNextStep": "Vetëm hapi i sugjeruar i radhës (nuk u ekzekutua): {step}.",
+    "handoffQueuedQueueOnly": "Dorëzimi te njeriu u vendos në radhë ({reason}). Radha nuk dëshmon se një agjent është lidhur.",
+    "voiceHandoffStopped": "Dorëzimi te njeriu u vendos në radhë. Sesioni AI i shfletuesit po ndalet; transferimi i drejtpërdrejtë telefonik nuk është konfiguruar.",
+    "voiceCredentialRequest": "Po kërkohet një kredencial zëri jetëshkurtër…",
+    "voiceRealtimeError": "Ofruesi në kohë reale raportoi një gabim. Ndalni sesionin e zërit dhe provoni përsëri pasi të kontrolloni konfigurimin e ofruesit.",
+    "voiceActive": "Sesioni i zërit është aktiv. Shtypni “Kërko agjent njerëzor” në çdo kohë; kjo krijon një element radhe, jo transferim PSTN.",
+    "voiceCredentialActive": "{languageCode} · kredencial i përkohshëm i ofruesit",
+    "queueUnavailable": "Radha nuk është e disponueshme: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Pëlqimi kërkohet para se të nisë një bisedë.",
+    "SERVER_RESPONSE_INVALID": "Përgjigjja e serverit nuk u lexua dot.",
+    "REQUEST_FAILED": "Kërkesa dështoi.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Ofruesi i zërit në kohë reale nuk u arrit dot.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Ky shfletues nuk e mbështet zërin në kohë reale.",
+    "HANDOFF_NOT_CLAIMED": "Dorëzimi nuk mund të merrej përsipër.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Mesazhi i dyfishtë u shpërfill."
+  }
+}

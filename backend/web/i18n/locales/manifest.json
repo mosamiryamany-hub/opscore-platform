@@ -1,0 +1,810 @@
+{
+  "schemaVersion": "opscore.contact-center-i18n-manifest.v1",
+  "localeCount": 114,
+  "baseLocale": "en",
+  "keyCount": 89,
+  "translationProvenance": "machine_assisted_draft",
+  "nativeReviewStatus": "not_native_reviewed",
+  "note": "114 selectable Contact Center locales: 1 English source locale, 109 machine-assisted draft translations, and 4 explicit English-fallback locales (din, nus, pau, ch). All display a machine-translation notice. Four structural/integrity audit rounds are enforced in release CI; this is not native-speaker review. 0/114 locales are production-qualified.",
+  "locales": [
+    {
+      "code": "af",
+      "englishName": "Afrikaans",
+      "nativeName": "Afrikaans",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "am",
+      "englishName": "Amharic",
+      "nativeName": "አማርኛ",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "ar",
+      "englishName": "Arabic",
+      "nativeName": "العربية",
+      "dir": "rtl",
+      "status": "machine_draft"
+    },
+    {
+      "code": "as",
+      "englishName": "Assamese",
+      "nativeName": "অসমীয়া",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "ay",
+      "englishName": "Aymara",
+      "nativeName": "Aymar aru",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "az",
+      "englishName": "Azerbaijani",
+      "nativeName": "Azərbaycan dili",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "be",
+      "englishName": "Belarusian",
+      "nativeName": "Беларуская",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "ber",
+      "englishName": "Tamazight",
+      "nativeName": "ⵜⴰⵎⴰⵣⵉⵖⵜ",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "bg",
+      "englishName": "Bulgarian",
+      "nativeName": "Български",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "bi",
+      "englishName": "Bislama",
+      "nativeName": "Bislama",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "bm",
+      "englishName": "Bambara",
+      "nativeName": "Bamanankan",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "bn",
+      "englishName": "Bengali",
+      "nativeName": "বাংলা",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "bs",
+      "englishName": "Bosnian",
+      "nativeName": "Bosanski",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "ch",
+      "englishName": "Chamorro",
+      "nativeName": "Chamoru",
+      "dir": "ltr",
+      "status": "english_fallback"
+    },
+    {
+      "code": "cs",
+      "englishName": "Czech",
+      "nativeName": "Čeština",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "da",
+      "englishName": "Danish",
+      "nativeName": "Dansk",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "de",
+      "englishName": "German",
+      "nativeName": "Deutsch",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "din",
+      "englishName": "Dinka",
+      "nativeName": "Thuɔŋjäŋ",
+      "dir": "ltr",
+      "status": "english_fallback"
+    },
+    {
+      "code": "dv",
+      "englishName": "Dhivehi",
+      "nativeName": "ދިވެހި",
+      "dir": "rtl",
+      "status": "machine_draft"
+    },
+    {
+      "code": "el",
+      "englishName": "Greek",
+      "nativeName": "Ελληνικά",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "en",
+      "englishName": "English",
+      "nativeName": "English",
+      "dir": "ltr",
+      "status": "source"
+    },
+    {
+      "code": "es",
+      "englishName": "Spanish",
+      "nativeName": "Español",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "et",
+      "englishName": "Estonian",
+      "nativeName": "Eesti",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "fa",
+      "englishName": "Persian",
+      "nativeName": "فارسی",
+      "dir": "rtl",
+      "status": "machine_draft"
+    },
+    {
+      "code": "ff",
+      "englishName": "Fula",
+      "nativeName": "Fulfulde",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "fi",
+      "englishName": "Finnish",
+      "nativeName": "Suomi",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "fj",
+      "englishName": "Fijian",
+      "nativeName": "Na Vosa Vakaviti",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "fr",
+      "englishName": "French",
+      "nativeName": "Français",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "gn",
+      "englishName": "Guarani",
+      "nativeName": "Avañeʼẽ",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "gu",
+      "englishName": "Gujarati",
+      "nativeName": "ગુજરાતી",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "ha",
+      "englishName": "Hausa",
+      "nativeName": "Hausa",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "hi",
+      "englishName": "Hindi",
+      "nativeName": "हिन्दी",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "hr",
+      "englishName": "Croatian",
+      "nativeName": "Hrvatski",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "hu",
+      "englishName": "Hungarian",
+      "nativeName": "Magyar",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "hy",
+      "englishName": "Armenian",
+      "nativeName": "Հայերեն",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "id",
+      "englishName": "Indonesian",
+      "nativeName": "Bahasa Indonesia",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "ig",
+      "englishName": "Igbo",
+      "nativeName": "Igbo",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "is",
+      "englishName": "Icelandic",
+      "nativeName": "Íslenska",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "it",
+      "englishName": "Italian",
+      "nativeName": "Italiano",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "ja",
+      "englishName": "Japanese",
+      "nativeName": "日本語",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "ka",
+      "englishName": "Georgian",
+      "nativeName": "ქართული",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "kk",
+      "englishName": "Kazakh",
+      "nativeName": "Қазақ тілі",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "km",
+      "englishName": "Khmer",
+      "nativeName": "ខ្មែរ",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "kn",
+      "englishName": "Kannada",
+      "nativeName": "ಕನ್ನಡ",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "ko",
+      "englishName": "Korean",
+      "nativeName": "한국어",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "ks",
+      "englishName": "Kashmiri",
+      "nativeName": "کٲشُر",
+      "dir": "rtl",
+      "status": "machine_draft"
+    },
+    {
+      "code": "ktu",
+      "englishName": "Kituba",
+      "nativeName": "Kituba",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "ku",
+      "englishName": "Kurdish (Kurmanji)",
+      "nativeName": "Kurdî (Kurmancî)",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "ln",
+      "englishName": "Lingala",
+      "nativeName": "Lingála",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "lo",
+      "englishName": "Lao",
+      "nativeName": "ລາວ",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "lt",
+      "englishName": "Lithuanian",
+      "nativeName": "Lietuvių",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "lv",
+      "englishName": "Latvian",
+      "nativeName": "Latviešu",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "mg",
+      "englishName": "Malagasy",
+      "nativeName": "Malagasy",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "mi",
+      "englishName": "Maori",
+      "nativeName": "Te Reo Māori",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "mk",
+      "englishName": "Macedonian",
+      "nativeName": "Македонски",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "ml",
+      "englishName": "Malayalam",
+      "nativeName": "മലയാളം",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "mn",
+      "englishName": "Mongolian",
+      "nativeName": "Монгол",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "mr",
+      "englishName": "Marathi",
+      "nativeName": "मराठी",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "ms",
+      "englishName": "Malay",
+      "nativeName": "Bahasa Melayu",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "my",
+      "englishName": "Burmese",
+      "nativeName": "မြန်မာ",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "ne",
+      "englishName": "Nepali",
+      "nativeName": "नेपाली",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "nl",
+      "englishName": "Dutch",
+      "nativeName": "Nederlands",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "no",
+      "englishName": "Norwegian",
+      "nativeName": "Norsk",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "nr",
+      "englishName": "Ndebele",
+      "nativeName": "isiNdebele",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "nus",
+      "englishName": "Nuer",
+      "nativeName": "Thok Naath",
+      "dir": "ltr",
+      "status": "english_fallback"
+    },
+    {
+      "code": "ny",
+      "englishName": "Chichewa",
+      "nativeName": "Chichewa",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "om",
+      "englishName": "Oromo",
+      "nativeName": "Afaan Oromoo",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "or",
+      "englishName": "Odia",
+      "nativeName": "ଓଡ଼ିଆ",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "pa",
+      "englishName": "Punjabi",
+      "nativeName": "ਪੰਜਾਬੀ",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "pau",
+      "englishName": "Palauan",
+      "nativeName": "Tekoi er a Belau",
+      "dir": "ltr",
+      "status": "english_fallback"
+    },
+    {
+      "code": "pl",
+      "englishName": "Polish",
+      "nativeName": "Polski",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "ps",
+      "englishName": "Pashto",
+      "nativeName": "پښتو",
+      "dir": "rtl",
+      "status": "machine_draft"
+    },
+    {
+      "code": "pt",
+      "englishName": "Portuguese",
+      "nativeName": "Português",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "qu",
+      "englishName": "Quechua",
+      "nativeName": "Runasimi",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "rn",
+      "englishName": "Kirundi",
+      "nativeName": "Ikirundi",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "ro",
+      "englishName": "Romanian",
+      "nativeName": "Română",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "ru",
+      "englishName": "Russian",
+      "nativeName": "Русский",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "rw",
+      "englishName": "Kinyarwanda",
+      "nativeName": "Ikinyarwanda",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "sat",
+      "englishName": "Santali",
+      "nativeName": "ᱥᱟᱱᱛᱟᱲᱤ",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "sg",
+      "englishName": "Sango",
+      "nativeName": "Sängö",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "si",
+      "englishName": "Sinhala",
+      "nativeName": "සිංහල",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "sk",
+      "englishName": "Slovak",
+      "nativeName": "Slovenčina",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "sm",
+      "englishName": "Samoan",
+      "nativeName": "Gagana Sāmoa",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "sn",
+      "englishName": "Shona",
+      "nativeName": "chiShona",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "so",
+      "englishName": "Somali",
+      "nativeName": "Soomaali",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "sq",
+      "englishName": "Albanian",
+      "nativeName": "Shqip",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "sr",
+      "englishName": "Serbian",
+      "nativeName": "Српски",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "ss",
+      "englishName": "Swazi",
+      "nativeName": "siSwati",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "st",
+      "englishName": "Sesotho",
+      "nativeName": "Sesotho",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "sv",
+      "englishName": "Swedish",
+      "nativeName": "Svenska",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "sw",
+      "englishName": "Swahili",
+      "nativeName": "Kiswahili",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "ta",
+      "englishName": "Tamil",
+      "nativeName": "தமிழ்",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "te",
+      "englishName": "Telugu",
+      "nativeName": "తెలుగు",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "tg",
+      "englishName": "Tajik",
+      "nativeName": "Тоҷикӣ",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "th",
+      "englishName": "Thai",
+      "nativeName": "ไทย",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "ti",
+      "englishName": "Tigrinya",
+      "nativeName": "ትግርኛ",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "tig",
+      "englishName": "Tigre",
+      "nativeName": "ትግረ",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "tk",
+      "englishName": "Turkmen",
+      "nativeName": "Türkmençe",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "tl",
+      "englishName": "Tagalog",
+      "nativeName": "Filipino",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "tn",
+      "englishName": "Tswana",
+      "nativeName": "Setswana",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "to",
+      "englishName": "Tongan",
+      "nativeName": "Lea Faka-Tonga",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "tr",
+      "englishName": "Turkish",
+      "nativeName": "Türkçe",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "ts",
+      "englishName": "Tsonga",
+      "nativeName": "Xitsonga",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "uk",
+      "englishName": "Ukrainian",
+      "nativeName": "Українська",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "ur",
+      "englishName": "Urdu",
+      "nativeName": "اردو",
+      "dir": "rtl",
+      "status": "machine_draft"
+    },
+    {
+      "code": "uz",
+      "englishName": "Uzbek",
+      "nativeName": "Oʻzbekcha",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "ve",
+      "englishName": "Venda",
+      "nativeName": "Tshivenda",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "vi",
+      "englishName": "Vietnamese",
+      "nativeName": "Tiếng Việt",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "wo",
+      "englishName": "Wolof",
+      "nativeName": "Wolof",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "xh",
+      "englishName": "Xhosa",
+      "nativeName": "isiXhosa",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "yo",
+      "englishName": "Yoruba",
+      "nativeName": "Yorùbá",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "yue",
+      "englishName": "Cantonese",
+      "nativeName": "粵語",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "zh",
+      "englishName": "Mandarin Chinese",
+      "nativeName": "简体中文",
+      "dir": "ltr",
+      "status": "machine_draft"
+    },
+    {
+      "code": "zu",
+      "englishName": "Zulu",
+      "nativeName": "isiZulu",
+      "dir": "ltr",
+      "status": "machine_draft"
+    }
+  ],
+  "approvalRequired": true
+}

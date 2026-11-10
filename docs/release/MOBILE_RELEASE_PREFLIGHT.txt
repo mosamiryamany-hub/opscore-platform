@@ -1,0 +1,17 @@
+PASS package version matches app.json
+PASS Android package configured
+PASS iOS bundle identifier configured
+PASS development EAS profile
+PASS preview EAS profile
+PASS production EAS profile
+PASS submit production profile
+PASS source entry exists
+{
+  "version": "0.1.16",
+  "androidPackage": "com.opscore.mobile",
+  "iosBundleIdentifier": "com.opscore.mobile",
+  "lockfile": "PRESENT",
+  "signedAndroid": "UNVERIFIED",
+  "signedIOS": "UNVERIFIED",
+  "physicalDevice": "UNVERIFIED"
+}

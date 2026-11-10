@@ -1,0 +1,111 @@
+{
+  "nativeName": "Türkçe",
+  "nav": {
+    "title": "Yapay Zekâ Çağrı Merkezi",
+    "subtitle": "Denetimli insana devir ile çok dilli öz hizmet.",
+    "operationsConsole": "Operasyon konsolu",
+    "interfaceLanguage": "Arayüz dili"
+  },
+  "status": {
+    "configured": "Korumalı mod yapılandırıldı",
+    "setupIncomplete": "Kurulum eksik",
+    "apiUnavailable": "Oturum açma / API kullanılamıyor"
+  },
+  "stats": {
+    "catalogueRows": "Katalog satırları",
+    "catalogueRowsNote": "Girdi listesi korundu",
+    "uniqueCodes": "Benzersiz dil kodları",
+    "uniqueCodesNote": "Yinelemeler işaretlenir",
+    "providerQualification": "Sağlayıcı yeterliliği",
+    "providerQualificationNote": "Yalnızca bağımsız olarak test edilmiş diller sayılır",
+    "liveQueue": "Canlı insan kuyruğu",
+    "liveQueueNote": "Kiracı kapsamlı devirler"
+  },
+  "customer": {
+    "eyebrow": "MÜŞTERİ DENEYİMİ",
+    "title": "Sohbet başlat",
+    "consentPill": "Onay gerekli",
+    "preferredLanguage": "Tercih edilen dil",
+    "consentText": "Bu konuşmanın yapılandırılmış yapay zekâ sağlayıcısı tarafından işlenmesine onay veriyorum. Dökümler saklanmadan önce şifrelenir.",
+    "startChat": "Güvenli metin sohbetini başlat",
+    "startVoice": "Tarayıcı sesini başlat",
+    "setupHint": "Bir yönetici şifreleme anahtarını ve yapay zekâ sağlayıcısını yapılandırana kadar bu özellik kullanılamaz.",
+    "noConversation": "Etkin konuşma yok",
+    "startHint": "Başlamak için onaylı bir oturum oluşturun.",
+    "requestHuman": "İnsan temsilci iste",
+    "chatEmpty": "Mesajlarınız burada görünecek. Yapay zekâ eylemleri yalnızca öneridir; ödeme, hesap değişikliği, iade veya sevkiyat gerçekleştirilmez.",
+    "messagePlaceholder": "Bir mesaj yazın…",
+    "send": "Gönder",
+    "stopVoice": "Ses oturumunu durdur",
+    "voiceOff": "Ses kapalı.",
+    "voiceStreamNote": "Tarayıcı sesi yapılandırılmış sağlayıcıya aktarılır; OpsCore ham sesi sakladığını iddia etmez.",
+    "voiceRequirement": "Tarayıcı sesi HTTPS (veya localhost), mikrofon, onay, yapılandırılmış bir Realtime modeli ve sağlayıcı anahtarı gerektirir. PSTN/SIP telefon köprüsü değildir."
+  },
+  "queue": {
+    "eyebrow": "İNSAN MÜDAHALESİ",
+    "title": "Yükseltme kuyruğu",
+    "refresh": "Yenile",
+    "description": "Yüksek riskli, çözülmemiş veya insan temsilci talep edilen konuşmalar burada görünür. Kuyruk öğesi talep edildiği anlamına gelir, bağlanıldığı anlamına gelmez.",
+    "loading": "Kuyruk yükleniyor…",
+    "empty": "Bu kuruluş için etkin insana devir yok.",
+    "openAssignment": "Atamayı aç",
+    "claimAndReview": "Üstlen ve incele",
+    "resolve": "Çöz",
+    "reply": "Yanıtla",
+    "agentAssignedTitle": "Atanmış görüşme",
+    "replyStorageNote": "Temsilci yanıtları beklemede şifrelenir ve görüşme dökümünde görünür.",
+    "resolveNote": "Atanmış insan operatör tarafından çözüldü."
+  },
+  "boundaries": {
+    "title": "Operasyonel sınırlar",
+    "automateTitle": "Otomasyon için tasarlandı",
+    "automateBody": "Çok dilli ilk yanıt, açıklama, niyet ve risk ayrımı, güvenli döküm saklama, kuyruk oluşturma ve temsilci ataması.",
+    "humanTitle": "İnsan devri gerekli",
+    "humanBody": "Açık insan talebi, düşük güven, yüksek veya kritik risk, eksik politika, çözülmemiş vaka, gizlilik/güvenlik şikâyeti veya belirsiz eylem.",
+    "notEnabledTitle": "Yalnızca bu paketle etkin değil",
+    "notEnabledBody": "PSTN/SIP/WhatsApp/e-posta yönlendirme, canlı telefon köprüsü, CRM kimlik doğrulaması ve dil kalitesi iddiaları gerçek bir sağlayıcı adaptörü, kimlik bilgileri ve kabul testleri gerektirir."
+  },
+  "roles": {
+    "customer": "Müşteri",
+    "human": "İnsan temsilci",
+    "ai": "Yapay zekâ asistanı"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Müşteri insan temsilci istedi",
+    "low_confidence": "Düşük güven",
+    "high_risk": "Yüksek risk",
+    "policy_refusal": "Politika reddi / kısıtlaması",
+    "unresolved": "Çözülmemiş sorun",
+    "repeated_failure": "Tekrarlanan başarısızlık",
+    "model_requested": "Yapay zekâ inceleme istedi",
+    "voice_review_required": "Ses incelemesi gerekli",
+    "other": "Diğer"
+  },
+  "messages": {
+    "qualificationNotice": "Metin, ASR, TTS, aksan ve yükseltme testleri geçilmeden hiçbir dil üretim için nitelikli sayılmaz.",
+    "configNeeded": "Yapılandırma hâlâ gerekli: {missing}.",
+    "configOk": "Yapılandırma mevcut. Sağlayıcı bağlantısı ve dil kalitesi için hâlâ gerçek kabul testleri gerekiyor.",
+    "conversationCreated": "Güvenli konuşma oluşturuldu. Dil kalitesi henüz üretim için nitelikli değil.",
+    "handoffQueued": "İnsana devir kuyruğa alındı ({reason}). Bu bir kuyruk talebidir, canlı bağlantı değildir.",
+    "aiResponseFailed": "Yapay zekâ yanıtı tamamlanmadı. Hiçbir eylem gerçekleştirilmedi. İnsan temsilci isteyebilirsiniz.",
+    "actionNotCompleted": "Eylem tamamlanmadı: {reason}.",
+    "apiUnavailable": "Çağrı merkezi API'si yüklenemedi. OpsCore konsolunda oturum açın ve bu sayfayı yenileyin.",
+    "suggestedNextStep": "Yalnızca önerilen sonraki adım (yürütülmedi): {step}.",
+    "handoffQueuedQueueOnly": "İnsana devir kuyruğa alındı ({reason}). Kuyruk, bir temsilcinin bağlı olduğunu kanıtlamaz.",
+    "voiceHandoffStopped": "İnsana devir kuyruğa alındı. Tarayıcı yapay zekâ oturumu durduruluyor; canlı telefon aktarımı yapılandırılmadı.",
+    "voiceCredentialRequest": "Kısa ömürlü ses kimlik bilgisi isteniyor…",
+    "voiceRealtimeError": "Gerçek zamanlı sağlayıcı bir hata bildirdi. Ses oturumunu durdurun ve sağlayıcı yapılandırmasını kontrol ettikten sonra yeniden deneyin.",
+    "voiceActive": "Ses oturumu etkin. Dilediğiniz zaman «İnsan temsilci iste» düğmesine basın; bu bir kuyruk öğesi oluşturur, PSTN aktarımı değildir.",
+    "voiceCredentialActive": "{languageCode} · geçici sağlayıcı kimlik bilgisi",
+    "queueUnavailable": "Kuyruk kullanılamıyor: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Görüşme başlamadan önce onay gerekir.",
+    "SERVER_RESPONSE_INVALID": "Sunucu yanıtı okunamadı.",
+    "REQUEST_FAILED": "İstek başarısız oldu.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Gerçek zamanlı ses sağlayıcısına ulaşılamadı.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Bu tarayıcı gerçek zamanlı sesi desteklemiyor.",
+    "HANDOFF_NOT_CLAIMED": "Devir alınamadı.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Yinelenen ileti yok sayıldı."
+  }
+}

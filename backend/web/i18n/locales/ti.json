@@ -1,0 +1,111 @@
+{
+  "nativeName": "ትግርኛ",
+  "nav": {
+    "title": "ማዕከል ርኽበት AI",
+    "subtitle": "ብዙ ቋንቋ ባዕላዊ ኣገልግሎት ምስ ቁጽጽራዊ ምውሃብ ናብ ሰብኣይ።",
+    "operationsConsole": "ኮንሶል ስርዓት",
+    "interfaceLanguage": "ቋንቋ ኢንተርፌስ"
+  },
+  "status": {
+    "configured": "ዝተሓለወ ሁኔታ ተዳሪሱ",
+    "setupIncomplete": "ምድላው ኣይተዛዘቦን",
+    "apiUnavailable": "መእተዊ / API ኣይርከብን"
+  },
+  "stats": {
+    "catalogueRows": "መስመራት መዝገበ ቃላት",
+    "catalogueRowsNote": "ዝርዝር ኣተሓሓዚ ተሓሓዝ",
+    "uniqueCodes": "ውልቃዊ ኮድ ቋንቋታት",
+    "uniqueCodesNote": "ድግግማም ይሰማራ",
+    "providerQualification": "ምሉእነት ኣቅራቢ",
+    "providerQualificationNote": "ጥራይ ብዘይ ጥገኛ ዝተፈተሹ ቋንቋታት ኣብ ውሽጢ ይገልባጡ",
+    "liveQueue": "ህያው ወረፋ ሰባት",
+    "liveQueueNote": "ምውሃብ ብሃንቀታዊ"
+  },
+  "customer": {
+    "eyebrow": "ተሞክሮ ዓማዊል",
+    "title": "ዛረባ ጀምር",
+    "consentPill": "ፈቓዕ ይደለ",
+    "preferredLanguage": "ዝምርጾት ቋንቋ",
+    "consentText": "እዚ ዛረባ ብተዳሪስ ኣቅራቢ AI ክሰርሕ እየ ወሲዴ። ጽሑፍ ቅድሚ ምውዓባት ይተሓቕም።",
+    "startChat": "ውሑድ ጽሑፍ ዛረባ ጀምር",
+    "startVoice": "ድምጺ ብራውዘር ጀምር",
+    "setupHint": "ስድራቤት ቁልፊ ምሕባእን ኣቅራቢ AIን ሳይዳል ኣይሰርሕን።",
+    "noConversation": "ንቁ ዛረባ የለን",
+    "startHint": "ንምጅማር ፈቓዕ ዘለዎ ክፍለ-ግዜ ፍጠር።",
+    "requestHuman": "ሰብኣዊ ወኪል ጠልብ",
+    "chatEmpty": "ሓበሬታትኩም ኣብዚ ክርአይ እዩ። ተግባራት AI ምክር ጥራይ እዮም፤ ክፍሊት፣ ለውጢ ሂሳብ፣ ምንቀጥ ወይ ምልኣኽ ኣይከኣልን።",
+    "messagePlaceholder": "ሓበሬታ ጽሓፉ…",
+    "send": "ልኣኽ",
+    "stopVoice": "ክፍለ-ግዜ ድምጺ ኣቑጻዕ",
+    "voiceOff": "ድምጺ ዝዓጽዎ እዩ።",
+    "voiceStreamNote": "ድምጺ ብራውዘር ናብ ዝተዋቀረ ኣቕራቢ ብዥረት ይለኣኽ፤ OpsCore ጥሬ ኦዲዮ ከም ዘጠቓልል ኣይገልጽን።",
+    "voiceRequirement": "ድምጺ ብራውዘር HTTPS (ወይ localhost)፣ ማይክሮፎን፣ ፍቓድ፣ ዝተዋቀረ Realtime ሞዴልን ቁልፊ ኣቕራቢን የድሊ። እዚ PSTN/SIP ድልድል ተለፎን ኣይኮነን።"
+  },
+  "queue": {
+    "eyebrow": "ሰብኣዊ ምትእትታው",
+    "title": "ወረፋ ምሉእ",
+    "refresh": "ተኣዲ",
+    "description": "ኣብዚ ዛረባታት ዝለዓለ ሓደጋ፣ ዘይተፈትሑ ወይ ሰብኣዊ ዝጠልቡ ይርኣዩ። ዕጥቕ ወረፋ ተጠቢቡ ማለት እዩ፣ ዝተጻብአ ኣይኮነን።",
+    "loading": "ወረፋ ይጽዓን ኣሎ…",
+    "empty": "ንዚ ስድራቤት ንቁ ሰብኣዊ ምውሃብ የለን።",
+    "openAssignment": "ምድላው ክፈት",
+    "claimAndReview": "ውሰድ ወ መርምር",
+    "resolve": "ኣርሕ",
+    "reply": "ምላሽ",
+    "agentAssignedTitle": "ዝተመደበ ዝርርብ",
+    "replyStorageNote": "መልስታት ሰብ ኣብ ግዜ ምዕቃብ ይሕጸሩ፤ ኣብ ቅዳሕ ዝርርብ ይርአዩ።",
+    "resolveNote": "ብዝተመደበ ሰብ ኦፕሬተር ተፈቲሑ።"
+  },
+  "boundaries": {
+    "title": "ደመራ ስርዓት",
+    "automateTitle": "ንምርጻእ ተንደፈ",
+    "automateBody": "ብዙ ቋንቋ ቀዳም መልሲ፣ ምግላጽ፣ ምውዳእ ዕላማን ሓደጋን፣ ውሑድ ምውዓባት ጽሑፍ፣ ምፍጣር ወረፋን ምምዳብ ወኪላትን።",
+    "humanTitle": "ሰብኣዊ ምውሳእ ይደለ",
+    "humanBody": "ግሉጽ ጠለባ ሰብ፣ ትሑት ምእማን፣ ዝለዓለ ወይ ወሳኒ ሓደጋ፣ ጾር ዘይተረኽበ፣ ዘይተፈቲሑ ጉዳይ፣ ቅሬታ ምስቲራ/ጸንቢባ ወይ ዘይተረድአ ተግባር።",
+    "notEnabledTitle": "ብዚ ጥቅሊ ጥራይ ኣይከፍትን",
+    "notEnabledBody": "መምርሒ PSTN/SIP/WhatsApp/ኢመይል፣ ህያው ወሳጅ ተሌፎን፣ ማረጋገጫ ማእከል CRMን ሃብታም ቋንቋን ይደለ እውነታዊ መለወጫ ኣቅራቢ፣ ማእረግን ፍትሕ ፍተሻን።"
+  },
+  "roles": {
+    "customer": "ዓማዊል",
+    "human": "ሰብኣዊ ወኪል",
+    "ai": "ረዳት AI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "ዓማዊል ሰብ ጠለበ",
+    "low_confidence": "ትሑት ምእማን",
+    "high_risk": "ዝለዓለ ሓደጋ",
+    "policy_refusal": "ምክሓድ / ገደብ ቓንታ",
+    "unresolved": "ዘይተፈቲሑ ብዝሒ",
+    "repeated_failure": "ድጋሚ ውድቀት",
+    "model_requested": "AI ምርምር ጠለበ",
+    "voice_review_required": "ምርምር ድምጺ ይደለ",
+    "other": "ካልእ"
+  },
+  "messages": {
+    "qualificationNotice": "ሓንሳብ ቋንቋ ኣይብቃን ንውፅኢት ስዒቡ ፍትሕ ጽሑፍ፣ ምምልካት ድምጺ፣ ምፍጣር ድምጺ፣ ኣነጻጸርን ምሉእን ክሳብ።",
+    "configNeeded": "ውልቃ ዳሪስ ኣሎ፦ {missing}።",
+    "configOk": "ዳሪስ ኣሎ። ተባባሪ ኣቅራቢን ጥራት ቋንቋን እውነታዊ ፍትሕ ፍተሻታት ይደልዩ።",
+    "conversationCreated": "ውሑድ ዛረባ ተረኪቡ። ጥራት ቋንቋ ንውፅኢት ኣይብቃን።",
+    "handoffQueued": "ሰብኣዊ ምውሃብ ኣብ ወረፋ ({reason})። ዚ ጠለባ ወረፋ እዩ፣ ህያው ትስስር ኣይኮነን።",
+    "aiResponseFailed": "መልሲ AI ኣይተዛዘቦን። ምንም ተግባር ኣይተከኣለን። ሰብኣዊ ወኪል ትኽእሉ እዩ።",
+    "actionNotCompleted": "ተግባር ኣይተዛዘቦን፦ {reason}።",
+    "apiUnavailable": "API ማእከል ርክብ ምጽዓን ኣይተኻኣለን። ናብ ኮንሶል OpsCore ኣታዉ፣ ድሕሪኡ እዚ ገጽ ከም ሓድሽ ጽዓን።",
+    "suggestedNextStep": "ዝተሓበረ ዝቕጽል ስጉምቲ ጥራይ (ኣይተፈጸመን)፦ {step}።",
+    "handoffQueuedQueueOnly": "ናብ ሰብ ዝግበር ርክክብ ኣብ ሕዳር ኣተዎ ({reason})። ሕዳር ወኪል ከም ዝተኣሳሰረ ኣየረጋግጽን።",
+    "voiceHandoffStopped": "ናብ ሰብ ዝግበር ርክክብ ኣብ ሕዳር ኣተዎ። ናይ ብራውዘር AI ወቕቲ ይቋረጽ ኣሎ፤ ቀጥታ ናይ ተለፎን ምስግጋር ኣይተዋቐረን።",
+    "voiceCredentialRequest": "ኣዋሩ ዝሓጽር መረጋገጺ ድምጺ ይሕተት ኣሎ…",
+    "voiceRealtimeError": "ኣቕራቢ ቅጽበታዊ ጌጋ ኣፍሊጡ። ናይ ድምጺ ወቕቲ ኣቋርጽ፣ ድሕሪ ምርግጋጽ ውቅር ኣቕራቢ ከም ሓድሽ ፈትን።",
+    "voiceActive": "ናይ ድምጺ ወቕቲ ንጡፍ እዩ። ኣብ ዝኾነ ግዜ “ሰብኣዊ ወኪል ጠልብ” ጠውቕ፤ እዚ ኣብ ሕዳር ሓደ ኣሃዱ ይፈጥር እምበር PSTN ምስግጋር ኣይኮነን።",
+    "voiceCredentialActive": "{languageCode} · ግዜያዊ መረጋገጺ ኣቕራቢ",
+    "queueUnavailable": "ሕዳር ኣይርከብን፦ {reason}።"
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "ዝርርብ ቅድሚ ምጅማሩ ፍቓድ የድሊ።",
+    "SERVER_RESPONSE_INVALID": "መልሲ ሰርቨር ምንባብ ኣይተኻኣለን።",
+    "REQUEST_FAILED": "ሕቶ ኣይተዓወተን።",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "ናብ ኣቕራቢ ቅጽበታዊ ድምጺ ምብጻሕ ኣይተኻኣለን።",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "እዚ ብራውዘር ናይ ቅጽበታዊ ድምጺ ኣይድግፍን።",
+    "HANDOFF_NOT_CLAIMED": "ርክክብ ምቕባል ኣይተኻኣለን።",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "ዝተደገመ መልእኽቲ ተሓሊፉ።"
+  }
+}

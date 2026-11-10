@@ -1,0 +1,201 @@
+{
+  "schemaVersion": "opscore.digital-twin-system-map.v2",
+  "reviewDate": "2026-10-21",
+  "domainNeutral": true,
+  "releaseStatus": "CANDIDATE_NOT_PRODUCTION_CERTIFIED",
+  "capabilities": [
+    {
+      "id": "deterministic-core",
+      "status": "IMPLEMENTED_LOCAL",
+      "evidence": [
+        "backend/src/digital-twin-core.js",
+        "backend/test/digital-twin-core.test.js"
+      ]
+    },
+    {
+      "id": "operational-snapshot",
+      "status": "IMPLEMENTED_LOCAL",
+      "evidence": [
+        "backend/src/platform-intelligence-layer.js",
+        "backend/test/platform_intelligence_layer.test.js"
+      ]
+    },
+    {
+      "id": "persistent-hash-chain-sqlite",
+      "status": "IMPLEMENTED_LOCAL",
+      "evidence": [
+        "backend/src/db.js",
+        "backend/src/platform-intelligence-layer.js"
+      ]
+    },
+    {
+      "id": "postgres-chain-schema-and-migration",
+      "status": "STATIC_CONTRACT",
+      "evidence": [
+        "backend/db/postgresql_schema.sql",
+        "backend/sql/postgres/000_canonical_schema.sql",
+        "backend/sql/postgres/031_digital_twin_chain_hardening.sql"
+      ]
+    },
+    {
+      "id": "postgres-tenant-rls-chain",
+      "status": "STATIC_CONTRACT_LIVE_PROOF_REQUIRED",
+      "evidence": [
+        "backend/db/postgresql_hierarchy_rls.sql",
+        "backend/sql/postgres/031_digital_twin_chain_hardening.sql"
+      ]
+    },
+    {
+      "id": "real-iot-scada-wot-adapters",
+      "status": "PLANNED_NOT_CONNECTED",
+      "evidence": []
+    },
+    {
+      "id": "physics-simulation-calibrated-prediction",
+      "status": "PLANNED_NOT_QUALIFIED",
+      "evidence": []
+    },
+    {
+      "id": "postgres-tenant-context-contract",
+      "status": "IMPLEMENTED_LOCAL_LIVE_PROOF_REQUIRED",
+      "evidence": [
+        "backend/src/adapters/postgres.js",
+        "backend/test/postgres_rls_context_contract.test.js"
+      ],
+      "note": "Application adapter sets app.tenant_id consumed by RLS and clears tenant aliases before pooling."
+    },
+    {
+      "id": "postgres-live-rls-gate",
+      "status": "IMPLEMENTED_LOCAL_NOT_RUN",
+      "evidence": [
+        "backend/scripts/postgres-live-rls-gate.js",
+        "backend/docs/verification/POSTGRES_LIVE_RLS_RESULT.json"
+      ],
+      "note": "A real-server gate exists, but it was invoked in this environment without OPSC_PG_TEST_URL and wrote UNVERIFIED; no live DB request occurred."
+    },
+    {
+      "id": "dsse-ed25519-chain-seal",
+      "status": "IMPLEMENTED_LOCAL_UNIT_TESTED_STRICT_PROFILE",
+      "evidence": [
+        "backend/src/digital-twin-seal.js",
+        "backend/test/digital_twin_seal.test.js",
+        "backend/scripts/verify-digital-twin-seal.js"
+      ],
+      "note": "Strict canonical JSON rejects lossy constructs/accessors/sparse arrays and enforces size limits; verifier rejects security claims beyond profile. Local signing and remote signer boundary tested; no KMS/HSM provider connected."
+    },
+    {
+      "id": "external-immutable-anchor",
+      "status": "CONTRACT_ONLY_NOT_CONNECTED",
+      "evidence": [
+        "backend/src/digital-twin-seal.js"
+      ],
+      "note": "Publisher boundary validates HTTPS receipt and immutable-retention fields but does not prove provider claims or connect a provider."
+    },
+    {
+      "id": "postgres-live-rls-ci-workflow",
+      "status": "WORKFLOW_IMPLEMENTED_NOT_EXECUTED",
+      "evidence": [
+        ".github/workflows/digital-twin-postgres-live.yml",
+        "backend/test/postgres_rls_static_hardening.test.js"
+      ],
+      "note": "Uses a PostgreSQL 18 service and the live gate, but GitHub Actions has not been run from this standalone ZIP."
+    }
+  ],
+  "acceptanceGates": [
+    {
+      "id": "sqlite-postgres-table-parity",
+      "status": "PASS_STATIC",
+      "command": "node backend/scripts/postgres-parity-check.js",
+      "result": "127 SQLite tables, 127 canonical PostgreSQL table names, 127 migration table names; no missing table or twin-chain RLS coverage."
+    },
+    {
+      "id": "postgres-tenant-context-contract",
+      "status": "PASS_LOCAL",
+      "command": "node --test backend/test/postgres_rls_context_contract.test.js"
+    },
+    {
+      "id": "postgres-live-rls",
+      "status": "UNVERIFIED",
+      "command": "OPSC_PG_TEST_URL=... npm run db:postgres-live-rls",
+      "reason": "No OPSC_PG_TEST_URL/live server/pg driver in local environment; a PostgreSQL 18 GitHub Actions workflow is included but has not executed."
+    },
+    {
+      "id": "dsse-ed25519-seal-unit-tests",
+      "status": "PASS_LOCAL",
+      "command": "node --test backend/test/digital_twin_seal.test.js"
+    },
+    {
+      "id": "external-anchor-publication",
+      "status": "CONTRACT_ONLY_NOT_CONNECTED",
+      "reason": "No actual KMS/HSM, timestamping service, transparency log, or immutable object store is configured."
+    },
+    {
+      "id": "full-release-test-suite",
+      "status": "PASS",
+      "command": "OPSC_RELEASE_TEST_CONCURRENCY=4 OPSC_RELEASE_TEST_TIMEOUT_MS=60000 node backend/scripts/release-test-runner.js",
+      "result": "392/392 tests across 96 files, no failed/cancelled tests on Node 22.16.0."
+    },
+    {
+      "id": "production-certification",
+      "status": "NOT_ESTABLISHED"
+    },
+    {
+      "id": "postgres-live-rls-ci-workflow",
+      "status": "READY_NOT_RUN",
+      "command": "Run .github/workflows/digital-twin-postgres-live.yml on push/pull_request or workflow_dispatch",
+      "reason": "No GitHub repository/CI run exists for this standalone package yet."
+    }
+  ],
+  "notes": {
+    "postgresLiveRls": "UNVERIFIED: no test URL, live PostgreSQL server, or pg driver in this environment; local/static tests are not a substitute.",
+    "externalAnchor": "CONTRACT_ONLY_NOT_CONNECTED: DSSE/Ed25519 generation and verification exist; no KMS/HSM, object-lock retention or transparency service is connected.",
+    "productionCertification": "NOT_ESTABLISHED"
+  },
+  "finalVerification": {
+    "releaseTestSuite": {
+      "status": "PASS",
+      "tests": 392,
+      "testFiles": 96,
+      "failed": 0,
+      "cancelled": 0,
+      "nodeVersion": "22.16.0",
+      "concurrency": 4,
+      "perFileTimeoutMs": 60000
+    },
+    "postgresSchemaParity": {
+      "status": "PASS_STATIC",
+      "sqliteTables": 127,
+      "canonicalPostgresTables": 127,
+      "migrationTableNames": 127
+    },
+    "migrationPreflight": {
+      "status": "PASS",
+      "migrationFiles": 29,
+      "unexpectedGaps": 0,
+      "reservedHistoricalGaps": [
+        6,
+        7,
+        8
+      ]
+    },
+    "sbom": {
+      "status": "PASS",
+      "format": "CycloneDX 1.6",
+      "components": 476,
+      "meaning": "inventory consistency only; not vulnerability clearance"
+    },
+    "postgresLiveRls": {
+      "status": "UNVERIFIED",
+      "reason": "No test URL/driver/live server; no live request was attempted"
+    },
+    "externalSeal": {
+      "status": "CONTRACT_ONLY_NOT_CONNECTED",
+      "reason": "No KMS/HSM or immutable external retention/transparency provider is connected"
+    },
+    "postgresLiveRlsWorkflow": {
+      "status": "READY_NOT_RUN",
+      "workflow": ".github/workflows/digital-twin-postgres-live.yml",
+      "reason": "Package is not connected to a GitHub repository in this task."
+    }
+  }
+}

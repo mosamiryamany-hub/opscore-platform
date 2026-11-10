@@ -1,0 +1,21 @@
+#!/usr/bin/env node
+'use strict';
+const fs=require('node:fs'),path=require('node:path');
+const root=path.resolve(__dirname,'..');
+const pg=fs.readFileSync(path.join(root,'db/postgresql_schema.sql'),'utf8');
+const migrations=fs.readdirSync(path.join(root,'sql/postgres')).filter(x=>x.endsWith('.sql')).sort().map(x=>fs.readFileSync(path.join(root,'sql/postgres',x),'utf8')).join('\n');
+const sqlite=fs.readFileSync(path.join(root,'src/db.js'),'utf8');
+const tables=x=>[...x.matchAll(/CREATE TABLE IF NOT EXISTS\s+(\w+)/gi)].map(m=>m[1]);
+const sqliteTables=new Set(tables(sqlite)), canonicalTables=new Set(tables(pg)), migrationTables=new Set(tables(migrations));
+const missingCanonical=[...sqliteTables].filter(x=>!canonicalTables.has(x));
+const missingMigration=[...sqliteTables].filter(x=>!migrationTables.has(x));
+const missingCanonicalMigrations=[...canonicalTables].filter(x=>!migrationTables.has(x));
+const rls=fs.readFileSync(path.join(root,'db/postgresql_hierarchy_rls.sql'),'utf8');
+const missingRls=[...sqliteTables].filter(x=>x.startsWith('operational_twin_') && !rls.includes(`'${x}'`));
+const uuidColumns=[];
+for(const m of pg.matchAll(/\b(\w+)\s+UUID\b/gi)) uuidColumns.push(m[1]);
+const malformed=/;\s*version\s+INTEGER\s+NOT\s+NULL\s+DEFAULT\s+1\s*\);/i.test(pg);
+const packageVersion=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8')).version;
+const result={release:packageVersion,status:!missingCanonical.length&&!missingMigration.length&&!missingCanonicalMigrations.length&&!missingRls.length&&!malformed?'PASS':'FAIL',sqliteTableCount:sqliteTables.size,postgresCanonicalTableCount:canonicalTables.size,postgresMigrationTableCount:migrationTables.size,missingInPostgresCanonical:missingCanonical,missingInPostgresMigrations:missingMigration,missingCanonicalTablesInMigrations:missingCanonicalMigrations,missingRlsCoverage:missingRls,malformedCompletionPolicyStatement:malformed,uuidTypedColumns:uuidColumns,note:'Table parity is necessary but not sufficient for live PostgreSQL verification; runtime RLS, extensions, policies, privileges and concurrent behavior still require a real PostgreSQL environment.' ,generatedAt:new Date().toISOString()};
+fs.writeFileSync(path.resolve(root,'..','POSTGRES_PARITY_RESULT.json'),JSON.stringify(result,null,2)+'\n');
+console.log(JSON.stringify(result,null,2));process.exitCode=result.status==='PASS'?0:1;

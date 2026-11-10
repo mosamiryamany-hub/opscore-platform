@@ -1,0 +1,201 @@
+{
+  "schema": "opscore.buyer-preflight.v1",
+  "version": "0.11.62",
+  "generatedAt": "2026-11-02T10:44:35.729Z",
+  "status": "PASS",
+  "checks": [
+    {
+      "name": "required artifact: package.json",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "required artifact: package-lock.json",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "required artifact: README.md",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "required artifact: SALES_README.md",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "required artifact: BUYER_QUICKSTART.md",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "required artifact: src/server.js",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "required artifact: src/store.js",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "required artifact: src/security.js",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "required artifact: web/index.html",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "required artifact: web/portal.html",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "required artifact: scripts/seed-demo.js",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "required artifact: scripts/clean-demo-data.js",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "required artifact: scripts/buyer-acceptance.js",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "required artifact: scripts/verify-backup.js",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "required artifact: scripts/verify-export.js",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "required artifact: scripts/recovery-drill.js",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Node satisfies declared engine >=22.23.4 <23",
+      "pass": true,
+      "detail": "runtime=22.23.4; required range is >=22.23.4 <23"
+    },
+    {
+      "name": "PostgreSQL driver pg@8.23.1 is a pinned runtime dependency",
+      "pass": true,
+      "detail": "dependencies.pg=8.23.1"
+    },
+    {
+      "name": "PostgreSQL driver is loadable from the installed package",
+      "pass": true,
+      "detail": "pg.Pool is available"
+    },
+    {
+      "name": "demo runtime cleanup before evaluation",
+      "pass": true,
+      "detail": "PASS"
+    },
+    {
+      "name": "no bundled runtime attachment artifacts",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "demo seed is explicitly non-production",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "production blocks demo seed",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "syntax: src/server.js",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "syntax: src/store.js",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "syntax: src/security.js",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "syntax: scripts/seed-demo.js",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "syntax: scripts/clean-demo-data.js",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "syntax: scripts/buyer-acceptance.js",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "syntax: scripts/verify-backup.js",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "syntax: scripts/verify-export.js",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "syntax: scripts/recovery-drill.js",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "buyer acceptance harness",
+      "pass": true,
+      "detail": "PASS"
+    },
+    {
+      "name": "demo runtime cleanup after evaluation",
+      "pass": true,
+      "detail": "PASS"
+    },
+    {
+      "name": "no runtime attachments after evaluation",
+      "pass": true,
+      "detail": ""
+    }
+  ],
+  "hashedArtifacts": {
+    "package.json": "aea8f31cc3ab6744ea6c33b645a733eabe59565ccd1faf397bebe42946960ece",
+    "package-lock.json": "7607fc03c5c0aa81062fcb7c39cdfac72ee19d1fd2f865e1fcf2cc3eddadae5d",
+    "src/server.js": "bdfbcdeafc25b59f3057f14eb572f91b3811defc4d4b0e7d93ec0305439b2e5c",
+    "src/store.js": "1e63a76a214082950e29825ca191fcb66928cc72e60c5d026d1afe62f11f9799",
+    "src/security.js": "fadc980c6b4a85d78adb8a40543f1a1e623fe18d40d9804d42b97874ba6d3a4e",
+    "web/index.html": "8c33bbd6302ede3e57ff05e1eab9b790f51585d5ef16b420bde18f4d46e52a5b",
+    "web/portal.html": "59f0b10e2fe3a0da88ab3b16b99c73ed6f593a4afba7cf25b4d7bd51fab9b82d",
+    "scripts/buyer-preflight.js": "a4614dbde585c47224759f68af044e599137688713617ada34c19e725a6016ea"
+  },
+  "environmentWarnings": [],
+  "truthBoundary": {
+    "localDemo": "VERIFIABLE",
+    "productionInfrastructure": "ENVIRONMENT_DEPENDENT",
+    "signedMobileArtifacts": "UNVERIFIED",
+    "appStoreApproval": "UNVERIFIED",
+    "externalProviderDelivery": "ENVIRONMENT_DEPENDENT"
+  }
+}

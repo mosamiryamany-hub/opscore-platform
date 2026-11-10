@@ -1,0 +1,111 @@
+{
+  "nativeName": "Lingála",
+  "nav": {
+    "title": "Lémbo ya Bobotali na IA",
+    "subtitle": "Mosálá na nkómbó ya solo ezali na básalaka mokolo elengi, epesa na bato.",
+    "operationsConsole": "Konsóli ya misala",
+    "interfaceLanguage": "Monɔkɔ ya interface"
+  },
+  "status": {
+    "configured": "Mokẹngi ya kobatama etiami",
+    "setupIncomplete": "Bokeli ekosi te",
+    "apiUnavailable": "Kokota / API ezali te"
+  },
+  "stats": {
+    "catalogueRows": "Milai ya katalugu",
+    "catalogueRowsNote": "Lolenge ya kokota ekangi",
+    "uniqueCodes": "Mikanda ya lokóta ya malamu",
+    "uniqueCodesNote": "Milai ya moke elakisami",
+    "providerQualification": "Bondeli ya mobokoli",
+    "providerQualificationNote": "Nkómbó ya boyekoli na bómoko nde bakotaka",
+    "liveQueue": "Libateli ya bato",
+    "liveQueueNote": "Bomemi ya moliká"
+  },
+  "customer": {
+    "eyebrow": "MOKILI YA MOBOKOLI",
+    "title": "Bandá kosolola",
+    "consentPill": "Esengeli ndingisa",
+    "preferredLanguage": "Lokóta olingi",
+    "consentText": "Nalingi ete bosolola oyo esalama na mobokoli ya IA etiami. Bomióko bakesaka liboso ya kobomba.",
+    "startChat": "Bandá bosolola malamu na nkómbó",
+    "startVoice": "Bandá likoló ya navigateur",
+    "setupHint": "Ezalaka te kino mobateli atiami lokitó ya bokeseni mpe mobokoli ya IA.",
+    "noConversation": "Bosolola ezali te",
+    "startHint": "Mpo na kobanda, sala mokano na ndingisa.",
+    "requestHuman": "Senga mosali ya bato",
+    "chatEmpty": "Basango na yo ekotala awa. Misala ya IA ezali seulement malinga; bánzeli, mbongo te, mbongwana ya kompte te.",
+    "messagePlaceholder": "Koma sango…",
+    "send": "Tinda",
+    "stopVoice": "Kanga séanso ya likoló",
+    "voiceOff": "Likoló ekangama.",
+    "voiceStreamNote": "Mongongo ya navigateur ezali kotindama na lolenge ya mayi epai ya mopesi ebongisami; OpsCore elobi te ete ebombi mongongo ya mbuma.",
+    "voiceRequirement": "Mongongo ya navigateur esengeli na HTTPS (to localhost), mikrofɔ, ndimbola, modɛle ya Realtime ebongisami mpe kɛlɛ ya mopesi. Ezali ndambo ya telefɔni PSTN/SIP te."
+  },
+  "queue": {
+    "eyebrow": "MAKAMU YA BATO",
+    "title": "Libateli ya kobongisama",
+    "refresh": "Salisa lisusu",
+    "description": "Awá ekotalaka bosolola ya likama monene, esili te, to oyo esengi bato. Elóko ya libateli elobaka esengi, ekangama te.",
+    "loading": "Kozwa libateli…",
+    "empty": "Ezali te bomemi ya bato oyo ezali na liikolo mpo na lisolo oyo.",
+    "openAssignment": "Fungola esika",
+    "claimAndReview": "Zwa mpe talá",
+    "resolve": "Sala lisano",
+    "reply": "Lobela",
+    "agentAssignedTitle": "Lisolo epesami",
+    "replyStorageNote": "Biyano ya bato ebombami na sekele ntango ebombami mpe emonani na lisolo ekomami.",
+    "resolveNote": "Esilisami na operatɛr ya moto apesami."
+  },
+  "boundaries": {
+    "title": "Mikili ya misala",
+    "automateTitle": "Esalemi mpo na kosala na ndenge moko",
+    "automateBody": "Eyano ya liboso na nkómbó ekesene, kolimbisa, kokata mai na ntina mpe likama, kobomba bomióko malamu, kosala libateli mpe kopesa mosali esika.",
+    "humanTitle": "Esengeli moto-ataki",
+    "humanBody": "Sengelo ya moto ezali pɔsɔ, bondeli moke, likama monene to ya mokɛsɛ, bondeli ya liyangwa te, likita ekosila te, milulu ya bomɔi/bokengi to eloko ya kosɛnga te.",
+    "notEnabledTitle": "Ezali te na bokeli ya paketi oyo moko",
+    "notEnabledBody": "Kokɔtisa PSTN/SIP/WhatsApp/imeyili, tbɔlɔ ya sipɔ, kokanisa bomoi na CRM mpe maloba ya lolemɔ esainga mobokoli-adapteri, makombololo mpe mayeksi ya kokunda."
+  },
+  "roles": {
+    "customer": "Mobókolisi",
+    "human": "Mosali ya bato",
+    "ai": "Molisinsi ya IA"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Mobókolisi asengi moto",
+    "low_confidence": "Bondeli moke",
+    "high_risk": "Likama monene",
+    "policy_refusal": "Koboya / kokɛngɛla mibeko",
+    "unresolved": "Makambo ekosila te",
+    "repeated_failure": "Kokufa mbala mingi",
+    "model_requested": "IA asengi kotala lisusu",
+    "voice_review_required": "Esengeli kotala likoló",
+    "other": "Mosusu"
+  },
+  "messages": {
+    "qualificationNotice": "Lokóta moko te ezali na bondeli ya misala kino bakɛngɛla mayemi ya mokanda, ASR, TTS, mileko mpe bobongisi.",
+    "configNeeded": "Etiami mpe ntango mosusu: {missing}.",
+    "configOk": "Etiami ezali. Bobɔngisi ya mobokoli mpe bonene ya lokóta esainga nde bakɛngɛla ya sɔlɔ́.",
+    "conversationCreated": "Bosolola malamu esalemi. Bonene ya lokóta ezali na bondeli ya misala te.",
+    "handoffQueued": "Bomemi ya bato ezali na libateli ({reason}). Oyo ezali sengelo ya libateli, ezali likanisi te.",
+    "aiResponseFailed": "Eyano ya IA ekosila te. Misala moko esalama te. Okoki kosengela mosali ya bato.",
+    "actionNotCompleted": "Mosala ekosila te: {reason}.",
+    "apiUnavailable": "API ya Centre de Contact ekokaki kobongwana te. Kota na konsole ya OpsCore, sima zongisa lokasa oyo.",
+    "suggestedNextStep": "Etape elandi oyo epesami kaka (esalemi te): {step}.",
+    "handoffQueuedQueueOnly": "Kolekisa epai ya moto etye na molɔngɔ ({reason}). Molɔngɔ emonisi te ete agent ayokani.",
+    "voiceHandoffStopped": "Kolekisa epai ya moto etye na molɔngɔ. Seshon ya AI ya navigateur ezali kotelema; kolekisa telefɔni ya mbala moko ebongisami te.",
+    "voiceCredentialRequest": "Kosɛnga satifiki ya mongongo ya ntango mokuse…",
+    "voiceRealtimeError": "Mopesi ya ntango ya solo ayebisi libunga. Telemisa seshon ya mongongo mpe meka lisusu sima ya kotala bobongisi ya mopesi.",
+    "voiceActive": "Seshon ya mongongo ezali kosala. Fina “Senga mosali ya bato” ntango nyonso; likambo oyo esali eloko na molɔngɔ, kolekisa PSTN te.",
+    "voiceCredentialActive": "{languageCode} · satifiki ya ntango moke ya mopesi",
+    "queueUnavailable": "Molɔngɔ ezali te: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Ndimbola esengeli liboso ete lisolo ebanda.",
+    "SERVER_RESPONSE_INVALID": "Eyano ya serveur ekokaki kolobama te.",
+    "REQUEST_FAILED": "Kosɛnga esalemi malamu te.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Mopesi ya mongongo ya ntango ya solo azwami te.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Navigateur oyo ezali kosunga mongongo ya ntango ya solo te.",
+    "HANDOFF_NOT_CLAIMED": "Kolekisa ekokaki kondimama te.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Mokanda ya mbala mibale ebwakisami."
+  }
+}

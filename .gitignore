@@ -1,0 +1,32 @@
+# Runtime data / local state
+backend/data/
+backend/runtime/
+backend/tmp/
+backend/logs/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# Secrets / local environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+
+# Dependencies / builds
+node_modules/
+dist/
+build/
+.expo/
+.expo-shared/
+coverage/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+backend/junit.xml

@@ -1,0 +1,111 @@
+{
+  "nativeName": "Bahasa Melayu",
+  "nav": {
+    "title": "Pusat Hubungan AI",
+    "subtitle": "Perkhidmatan kendiri berbilang bahasa dengan penyerahan terkawal kepada manusia.",
+    "operationsConsole": "Konsol operasi",
+    "interfaceLanguage": "Bahasa antara muka"
+  },
+  "status": {
+    "configured": "Mod terlindung dikonfigurasi",
+    "setupIncomplete": "Persediaan tidak lengkap",
+    "apiUnavailable": "Log masuk / API tidak tersedia"
+  },
+  "stats": {
+    "catalogueRows": "Baris katalog",
+    "catalogueRowsNote": "Senarai input dikekalkan",
+    "uniqueCodes": "Kod bahasa unik",
+    "uniqueCodesNote": "Pendua ditandakan",
+    "providerQualification": "Kelayakan pembekal",
+    "providerQualificationNote": "Hanya bahasa yang diuji secara bebas dikira",
+    "liveQueue": "Baris gilir manusia langsung",
+    "liveQueueNote": "Penyerahan skop penyewa"
+  },
+  "customer": {
+    "eyebrow": "PENGALAMAN PELANGGAN",
+    "title": "Mula perbualan",
+    "consentPill": "Persetujuan diperlukan",
+    "preferredLanguage": "Bahasa pilihan",
+    "consentText": "Saya bersetuju perbualan ini diproses oleh pembekal AI yang dikonfigurasi. Transkrip disulitkan sebelum disimpan.",
+    "startChat": "Mula sembang teks selamat",
+    "startVoice": "Mula suara pelayar",
+    "setupHint": "Tidak tersedia sehingga pentadbir mengkonfigurasi kunci penyulitan dan pembekal AI.",
+    "noConversation": "Tiada perbualan aktif",
+    "startHint": "Cipta sesi bersetuju untuk bermula.",
+    "requestHuman": "Minta ejen manusia",
+    "chatEmpty": "Mesej anda akan muncul di sini. Tindakan AI hanya cadangan; tiada pembayaran, perubahan akaun, bayaran balik atau penghantaran dilaksanakan.",
+    "messagePlaceholder": "Tulis mesej…",
+    "send": "Hantar",
+    "stopVoice": "Hentikan sesi suara",
+    "voiceOff": "Suara dimatikan.",
+    "voiceStreamNote": "Suara pelayar disiarkan secara strim kepada pembekal yang dikonfigurasi; OpsCore tidak mendakwa menyimpan audio mentah.",
+    "voiceRequirement": "Suara pelayar memerlukan HTTPS (atau localhost), mikrofon, persetujuan, model Realtime yang dikonfigurasi dan kunci pembekal. Ia bukan jambatan telefon PSTN/SIP."
+  },
+  "queue": {
+    "eyebrow": "CAMPUR TANGAN MANUSIA",
+    "title": "Baris gilir eskalasi",
+    "refresh": "Muat semula",
+    "description": "Perbualan berisiko tinggi, belum selesai atau meminta manusia muncul di sini. Item baris gilir bermaksud diminta, bukan disambung.",
+    "loading": "Memuatkan baris gilir…",
+    "empty": "Tiada penyerahan manusia aktif untuk organisasi ini.",
+    "openAssignment": "Buka tugasan",
+    "claimAndReview": "Tuntut dan semak",
+    "resolve": "Selesaikan",
+    "reply": "Balas",
+    "agentAssignedTitle": "Perbualan yang ditugaskan",
+    "replyStorageNote": "Balasan manusia disulitkan semasa disimpan dan boleh dilihat dalam transkrip perbualan.",
+    "resolveNote": "Diselesaikan oleh operator manusia yang ditugaskan."
+  },
+  "boundaries": {
+    "title": "Sempadan operasi",
+    "automateTitle": "Direka untuk mengautomasikan",
+    "automateBody": "Tindak balas pertama berbilang bahasa, penjelasan, triaj niat dan risiko, penyimpanan transkrip selamat, penciptaan baris gilir dan penugasan ejen.",
+    "humanTitle": "Pengambilalihan manusia diperlukan",
+    "humanBody": "Permintaan manusia jelas, keyakinan rendah, risiko tinggi atau kritikal, dasar tiada, kes belum selesai, aduan privasi/keselamatan atau tindakan tidak pasti.",
+    "notEnabledTitle": "Tidak diaktifkan dengan pakej ini sahaja",
+    "notEnabledBody": "Penghalaan PSTN/SIP/WhatsApp/e-mel, jambatan telefon langsung, pengesahan identiti CRM dan tuntutan kualiti bahasa memerlukan penyesuai pembekal sebenar, kelayakan dan ujian penerimaan."
+  },
+  "roles": {
+    "customer": "Pelanggan",
+    "human": "Ejen manusia",
+    "ai": "Pembantu AI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Pelanggan meminta manusia",
+    "low_confidence": "Keyakinan rendah",
+    "high_risk": "Risiko tinggi",
+    "policy_refusal": "Penolakan / sekatan dasar",
+    "unresolved": "Masalah belum selesai",
+    "repeated_failure": "Kegagalan berulang",
+    "model_requested": "AI meminta semakan",
+    "voice_review_required": "Semakan suara diperlukan",
+    "other": "Lain-lain"
+  },
+  "messages": {
+    "qualificationNotice": "Tiada bahasa layak untuk pengeluaran sehingga ujian teks, ASR, TTS, loghat dan eskalasi lulus.",
+    "configNeeded": "Konfigurasi masih diperlukan: {missing}.",
+    "configOk": "Konfigurasi wujud. Sambungan pembekal dan kualiti bahasa masih memerlukan ujian penerimaan sebenar.",
+    "conversationCreated": "Perbualan selamat dicipta. Kualiti bahasa belum layak untuk pengeluaran.",
+    "handoffQueued": "Penyerahan manusia dalam baris gilir ({reason}). Ini permintaan baris gilir, bukan sambungan langsung.",
+    "aiResponseFailed": "Respons AI tidak selesai. Tiada tindakan dilaksanakan. Anda boleh minta ejen manusia.",
+    "actionNotCompleted": "Tindakan tidak selesai: {reason}.",
+    "apiUnavailable": "API Pusat Hubungan tidak dapat dimuatkan. Log masuk ke konsol OpsCore, kemudian muat semula halaman ini.",
+    "suggestedNextStep": "Langkah seterusnya yang dicadangkan sahaja (tidak dilaksanakan): {step}.",
+    "handoffQueuedQueueOnly": "Serah tugas kepada manusia telah dimasukkan ke dalam giliran ({reason}). Giliran tidak membuktikan bahawa ejen telah bersambung.",
+    "voiceHandoffStopped": "Serah tugas kepada manusia telah dimasukkan ke dalam giliran. Sesi AI pelayar sedang dihentikan; pemindahan telefoni langsung tidak dikonfigurasi.",
+    "voiceCredentialRequest": "Meminta bukti kelayakan suara jangka pendek…",
+    "voiceRealtimeError": "Pembekal masa nyata melaporkan ralat. Hentikan sesi suara dan cuba semula selepas menyemak konfigurasi pembekal.",
+    "voiceActive": "Sesi suara aktif. Tekan “Minta ejen manusia” pada bila-bila masa; ini mencipta item giliran, bukan pemindahan PSTN.",
+    "voiceCredentialActive": "{languageCode} · bukti kelayakan sementara pembekal",
+    "queueUnavailable": "Giliran tidak tersedia: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Persetujuan diperlukan sebelum perbualan boleh bermula.",
+    "SERVER_RESPONSE_INVALID": "Respons pelayan tidak dapat dibaca.",
+    "REQUEST_FAILED": "Permintaan gagal.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Pembekal suara masa nyata tidak dapat dihubungi.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Pelayar ini tidak menyokong suara masa nyata.",
+    "HANDOFF_NOT_CLAIMED": "Serah tugas tidak dapat dituntut.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Mesej pendua diabaikan."
+  }
+}

@@ -1,0 +1,111 @@
+{
+  "nativeName": "Ikirundi",
+  "nav": {
+    "title": "Ikigo c'ubutabazi AI",
+    "subtitle": "Ubufasha mu ndimi nyinshi hamwe no guhindukira ku muntu.",
+    "operationsConsole": "Konsoli y'ibikorwa",
+    "interfaceLanguage": "Ururimi rw'urubuga"
+  },
+  "status": {
+    "configured": "Uburyo burinzwe bwatunganyijwe",
+    "setupIncomplete": "Gutunganya ntibyarangiye",
+    "apiUnavailable": "Injira / API ntiboneka"
+  },
+  "stats": {
+    "catalogueRows": "Imirongo y'urutonde",
+    "catalogueRowsNote": "Urutonde rwakiriwe",
+    "uniqueCodes": "Kode z'indimi zitandukanye",
+    "uniqueCodesNote": "Gusubiramo biratwgwa",
+    "providerQualification": "Uruhushya rw'utanga serivisi",
+    "providerQualificationNote": "Indimi zapimwe zonyine zibarwa",
+    "liveQueue": "Umurongo w'abantu ubu",
+    "liveQueueNote": "Guhindukira mu kigo"
+  },
+  "customer": {
+    "eyebrow": "UBUNYAMURONGO",
+    "title": "Tangira ikiganiro",
+    "consentPill": "Kwemera birasabwa",
+    "preferredLanguage": "Ururimi wakunze",
+    "consentText": "Ndemeje ko iki kiganiro gishobora gutunganywa n'utanga AI. Inyandiko zirabikwa zifunze.",
+    "startChat": "Tangira ikiganiro c'inyandiko",
+    "startVoice": "Tangira ijwi mu mucukumbuzi",
+    "setupHint": "Ntibishoboka kugeza umuyobozi atunganye urufunguzo n'utanga AI.",
+    "noConversation": "Nta kiganiro gikora",
+    "startHint": "Kora ikiganiro wemeye gutangira.",
+    "requestHuman": "Saba umuntu",
+    "chatEmpty": "Ubutumwa buraboneka aha. Ibikorwa bya AI ni inama gusa; nta kwishyura cyangwa guhindura konti bikorwa.",
+    "messagePlaceholder": "Andika ubutumwa…",
+    "send": "Ohereza",
+    "stopVoice": "Hagarika ijwi",
+    "voiceOff": "Ijwi ryazimijwe.",
+    "voiceStreamNote": "Ijwi ryo mu mucukumbuzi ryoherezwa ku utanga serivisi; OpsCore ntivuga ko ibika amajwi.",
+    "voiceRequirement": "Ijwi risaba HTTPS, mikoro, kwemera, moderi Realtime n'urufunguzo. Ntabwo ari telefoni."
+  },
+  "queue": {
+    "eyebrow": "GUFASHA ABANTU",
+    "title": "Umurongo wo guhindukira",
+    "refresh": "Vugurura",
+    "description": "Ibiganiro bishobora guteza akaga cyangwa bisabye umuntu biboneka aha. Umurongo ntabwo ari ihuriro ry'abantu.",
+    "loading": "Turashakisha…",
+    "empty": "Nta guhindukira kuri iyi kigo.",
+    "openAssignment": "Fungura akazi",
+    "claimAndReview": "Emera kandi usuzume",
+    "resolve": "Rangiza",
+    "reply": "Subiza",
+    "agentAssignedTitle": "Ikiganiro cyahawe",
+    "replyStorageNote": "Ibisubizo by'abantu bibikwa bifunze kandi bigaragara mu nyandiko.",
+    "resolveNote": "Byarangijwe n'umukozi wahawe."
+  },
+  "boundaries": {
+    "title": "Imipaka y'ibikorwa",
+    "automateTitle": "Byagenewe gukorwa",
+    "automateBody": "Kubanza mu ndimi nyinshi, gusobanura, gupima ingorane, kubika inyandiko, gukora umurongo.",
+    "humanTitle": "Guhindukira ku muntu birasabwa",
+    "humanBody": "Gusaba umuntu, kwizera guke, ingorane ikomeye, amabwiriza adahari, ikibazo kitemewe, ikirego cy'ibanga.",
+    "notEnabledTitle": "Ntabwo bishoboka n'iyi paki yonyine",
+    "notEnabledBody": "PSTN/SIP, WhatsApp, imeyili, telefoni, CRM no kwemeza indimi bisaba utanga serivisi nyakuri n'ibizamini."
+  },
+  "roles": {
+    "customer": "Umukiriya",
+    "human": "Umukozi w'umuntu",
+    "ai": "Umufasha AI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Umukiriya yasabye umuntu",
+    "low_confidence": "Kwizera guke",
+    "high_risk": "Ingorane ikomeye",
+    "policy_refusal": "Kutemera amabwiriza",
+    "unresolved": "Ikibazo kitemewe",
+    "repeated_failure": "Gusubiramo kunze",
+    "model_requested": "AI yasabye isuzuma",
+    "voice_review_required": "Isuzuma ry'ijwi risabwa",
+    "other": "Ibindi"
+  },
+  "messages": {
+    "qualificationNotice": "Nta rurimi rwemejwe kugeza ibizamini by'inyandiko, ASR, TTS n'ijwi byarangiye.",
+    "configNeeded": "Igenamiterere rikenewe: {missing}.",
+    "configOk": "Igenamiterere rihari. Ihuriro n'ubuziranenge bw'ururimi bisaba ibizamini.",
+    "conversationCreated": "Ikiganiro gifunze cyakozwe. Ubuziranenge bw'ururimi ntibwemejwe.",
+    "handoffQueued": "Guhindukira ku muntu byashyizwe mu murongo ({reason}). Ni ubusabe, ntabwo ari ihuriro.",
+    "aiResponseFailed": "Igisubizo cya AI nticyarangiye. Nta gikorwa cyakozwe. Ushobora gusaba umuntu.",
+    "actionNotCompleted": "Igikorwa nticyarangiye: {reason}.",
+    "apiUnavailable": "API y'ikigo ntiyabonetse. Injira muri OpsCore, hanyuma uvugurure iyi paji.",
+    "suggestedNextStep": "Inama gusa (ntiyakozwe): {step}.",
+    "handoffQueuedQueueOnly": "Guhindukira ku muntu byashyizwe mu murongo ({reason}). Umurongo ntugaragaza ko umukozi ahari.",
+    "voiceHandoffStopped": "Guhindukira ku muntu byashyizwe mu murongo. Ikiganiro cya AI kirahagarara; telefoni ntiyatunganyijwe.",
+    "voiceCredentialRequest": "Turasaba urufunguzo rw'ijwi rw'agateganyo…",
+    "voiceRealtimeError": "Utanga Realtime yatanze ikosa. Hagarika ijwi, usuzume igenamiterere, hanyuma ugerageze.",
+    "voiceActive": "Ijwi rirakora. Saba umuntu igihe icyo ari cyo; bituma umurongo, ntabwo telefoni.",
+    "voiceCredentialActive": "{languageCode} · urufunguzo rw'agateganyo",
+    "queueUnavailable": "Umurongo ntiboneka: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Kwemera birasabwa mbere y'ikiganiro.",
+    "SERVER_RESPONSE_INVALID": "Igisubizo cya seriveri ntikirasomwa.",
+    "REQUEST_FAILED": "Ubusabe ntibwakunze.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Utanga ijwi Realtime ntiyabonetse.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Uyu mucukumbuzi ntashyigikira ijwi Realtime.",
+    "HANDOFF_NOT_CLAIMED": "Guhindukira ntibyemejwe.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Ubutumwa bwasubiyemo."
+  }
+}

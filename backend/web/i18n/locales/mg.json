@@ -1,0 +1,111 @@
+{
+  "nativeName": "Malagasy",
+  "nav": {
+    "title": "Ivon-toeram-pifandraisana AI",
+    "subtitle": "Fanampian-tena amin'ny fiteny maro miaraka amin'ny fanampiana natao ho an'olona.",
+    "operationsConsole": "Konsole ataovy",
+    "interfaceLanguage": "Fiteny misy"
+  },
+  "status": {
+    "configured": "Ny fomba fiarovan-dalàna nofa",
+    "setupIncomplete": "Ny fanamboarana tsy vita",
+    "apiUnavailable": "Fidirana / API tsy azo"
+  },
+  "stats": {
+    "catalogueRows": "Lalàna ny lahatahiry",
+    "catalogueRowsNote": "Lisitra fampidirana voataonana",
+    "uniqueCodes": "Kody fiteny tokana",
+    "uniqueCodesNote": "Ny isa mitovitovy voamarika",
+    "providerQualification": "Fanamarin'ny mpamatsy",
+    "providerQualificationNote": "Fiteny nofitsiriana mahaleo tena ihany no isaina",
+    "liveQueue": "Andiniam-bika mivantana",
+    "liveQueueNote": "Fanampiana isan'ny mpiara-monina"
+  },
+  "customer": {
+    "eyebrow": "FAHAM-PIADIDIANA MPIJANONA",
+    "title": "Atombohy fifampiresaka",
+    "consentPill": "Fanamarin-tena ilaina",
+    "preferredLanguage": "Fiteny tianao",
+    "consentText": "Manaiky aho fa atao eo ambany fampandrenesana AI namboarina ny fifampiresaka. Ny rakitra voataonana natao marina alohan'ny fitehirizana.",
+    "startChat": "Atombohy fifanakalozana lahatsoratra azo antoka",
+    "startVoice": "Atombohy feon'ny mpitety",
+    "setupHint": "Tsy azo ampiasaina raha tsy nanamboatra ny fanalahidin'ny fanafenana sy ny mpamatsy AI ny mpitantana.",
+    "noConversation": "Tsy misy resaka mavitrika",
+    "startHint": "Mba hanomboka, dia manao fivoriana manaiky.",
+    "requestHuman": "Mangataka mpiasan'olona",
+    "chatEmpty": "Hiseho eto ny hafatrao. Ny asan'ny AI dia soso-kevitra fotsiny; tsy misy fandoavana, fanovana kaonty, famerenam-bola na fanatanterahana entana.",
+    "messagePlaceholder": "Soraty ny hafatra…",
+    "send": "Alefa",
+    "stopVoice": "Atsaharo ny fotoana feo",
+    "voiceOff": "Ny feo tapaka.",
+    "voiceStreamNote": "Ny feon'ny mpitsidika dia alefa amin'ny alalan'ny onja mankany amin'ny mpamatsy voasetra; tsy milaza ny OpsCore fa mitahiry feo manta.",
+    "voiceRequirement": "Ny feon'ny mpitsidika dia mitaky HTTPS (na localhost), mikrôfôna, fanekena, môdely Realtime voasetra ary kojakoja mpamatsy. Tsy tetezana an-telefaona PSTN/SIP izy io."
+  },
+  "queue": {
+    "eyebrow": "FILANA OLOMPAMONJY",
+    "title": "Andiniam-bika fiakarana",
+    "refresh": "Averina",
+    "description": "Ny fifampiresaka mampidi-doza, tsy azo vahana na mangataka olona no miseho eto. Entina any am-pisian'ny andiniana midika nofidina, tsy miseho.",
+    "loading": "Ampidiro ny andiniana…",
+    "empty": "Tsy misy fanampiana olona mavitrika ho an'ity fikambanana ity.",
+    "openAssignment": "Sokafy ny fanendrena",
+    "claimAndReview": "Maka sy mandinika",
+    "resolve": "Vaha",
+    "reply": "Valio",
+    "agentAssignedTitle": "Resaka nanendrena",
+    "replyStorageNote": "Ny valin'ny olombelona dia voafafa tsiambaratelo rehefa tahiry ary hita ao amin'ny rakitsoratry ny resaka.",
+    "resolveNote": "Voavaha tamin'ny mpiasa olombelona voatendry."
+  },
+  "boundaries": {
+    "title": "Fetra amin'ny asa",
+    "automateTitle": "Namboarina ho an'ny fampandehanana mandeha ho azy",
+    "automateBody": "Valiny voalohany amin'ny fiteny maro, fanazavana, fanasokajiana ny fanafody sy risika, fitehirizana azo antoka ny rakitra, famoronana andinin'ny tany sy fanendrena mpiasa.",
+    "humanTitle": "Mila fanontaniana avy amin'olona",
+    "humanBody": "Fangatahana mivaona mazava, finoana kely, risika ambony na mahery vaika, tsy fahampian'ny fitsipi-draharaha, raharaha tsy voavaha, fitarainana momba ny tsiambaratelo/fiarovana na hetsika tsy azo antoka.",
+    "notEnabledTitle": "Tsy azon'ity fonosana ity irery",
+    "notEnabledBody": "Ny fandefasana PSTN/SIP/WhatsApp/mailaka, tetezana antonontonona mivantana, fanamarinana mombamomba ny CRM sy ny fomba fiteny mila mpamatsy tena, maha-poana sy fitsapana fanamarinana."
+  },
+  "roles": {
+    "customer": "Mpampiasa",
+    "human": "Mpiasan'olona",
+    "ai": "Mpanampy AI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Nangataka olona ny mpampiasa",
+    "low_confidence": "Finoana kely",
+    "high_risk": "Risika ambony",
+    "policy_refusal": "Fanitso-dalàna / famerana",
+    "unresolved": "Olahana tsy voavaha",
+    "repeated_failure": "Tsy nahomby imy imy",
+    "model_requested": "Nangataka fanamarinana ny AI",
+    "voice_review_required": "Ilaina ny fanamarinana ny feo",
+    "other": "Hafa"
+  },
+  "messages": {
+    "qualificationNotice": "Tsy misy fiteny mahay misy hamaritana amin'ny fanamboarana raha tsy mahomby ny fanamarinana lahatsoratra, ASR, TTS, lenta sy fiakarana.",
+    "configNeeded": "Milana fanamboarana mbola: {missing}.",
+    "configOk": "Eo ny fanamboarana. Ny fampitohizana amin'ny mpamatsy sy ny kalitaon'ny fiteny mila fitsapana fanamarinana tena.",
+    "conversationCreated": "Voamarina ny fifampiresaka azo antoka. Ny kalitaon'ny fiteny tsy manana fahaizana amin'ny famokarana.",
+    "handoffQueued": "Ny fanampiana olona tafiditra amin'ny andiniana ({reason}). Ity dia fangatahana andiniana, tsy fifandraisana mivantana.",
+    "aiResponseFailed": "Ny valiny AI tsy naha. Tsy nisy hetsika natao. Afaka mangataka mpiasan'olona ianao.",
+    "actionNotCompleted": "Tsy tanteraka ny asa: {reason}.",
+    "apiUnavailable": "Tsy azo nalaina ny API an'ny Foibe Fifandraisana. Midira amin'ny console OpsCore, avy eo avereno ampidirina ity pejy ity.",
+    "suggestedNextStep": "Dingana manaraka naroso ihany (tsy natao): {step}.",
+    "handoffQueuedQueueOnly": "Napetraka ao amin'ny filaharana ny famindrana any amin'ny olona ({reason}). Tsy manaporofo ny filaharana fa mifandray ny mpiasa.",
+    "voiceHandoffStopped": "Napetraka ao amin'ny filaharana ny famindrana any amin'ny olona. Mijanona ny fotoam-pandrefesana AI an'ny mpitsidika; tsy voasetra ny famindrana telefaona mivantana.",
+    "voiceCredentialRequest": "Mangataka mari-pahaizana feo fohy fotoana…",
+    "voiceRealtimeError": "Nitatitra hadisoana ny mpamatsy amin'ny fotoana tena izy. Atsaharo ny fotoam-pihainoana feo ary andramo indray aorian'ny fanamarinana ny fanamboarana ny mpamatsy.",
+    "voiceActive": "Mavitrika ny fotoam-pihainoana feo. Tsindrio “Mangataka mpiasan'olona” amin'ny fotoana rehetra; mamorona zavatra ao amin'ny filaharana izany, fa tsy famindrana PSTN.",
+    "voiceCredentialActive": "{languageCode} · mari-pahaizana vonjimaika an'ny mpamatsy",
+    "queueUnavailable": "Tsy misy ny filaharana: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Ilaina ny fanekena alohan'ny hanombohan'ny resaka.",
+    "SERVER_RESPONSE_INVALID": "Tsy azo novakiana ny valin'ny mpizara.",
+    "REQUEST_FAILED": "Tsy nahomby ny fangatahana.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Tsy nahatratra ny mpamatsy feo amin'ny fotoana tena izy.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Tsy manohana feo amin'ny fotoana tena izy ity mpitsidika ity.",
+    "HANDOFF_NOT_CLAIMED": "Tsy azo noraisina ny famindrana.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Nolavina ny hafatra averina."
+  }
+}

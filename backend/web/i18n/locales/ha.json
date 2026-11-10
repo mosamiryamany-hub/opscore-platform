@@ -1,0 +1,111 @@
+{
+  "nativeName": "Hausa",
+  "nav": {
+    "title": "Cibiyar Tuntuɓar AI",
+    "subtitle": "Sabis na kai-kai da harsuna daban-daban tare da miƙa wa mutum cikin kulawa.",
+    "operationsConsole": "Konsolin ayyuka",
+    "interfaceLanguage": "Harshen mahaɗa"
+  },
+  "status": {
+    "configured": "An saita yanayin tsaro",
+    "setupIncomplete": "Saitawa ba cikakke ba",
+    "apiUnavailable": "Shiga / API ba a samu ba"
+  },
+  "stats": {
+    "catalogueRows": "Layukan katalogi",
+    "catalogueRowsNote": "Jerin shigarwa aniyace",
+    "uniqueCodes": "Musamman lambobin harshe",
+    "uniqueCodesNote": "Akwai kwafi ana alama",
+    "providerQualification": "Kimar mai bayarwa",
+    "providerQualificationNote": "Kawai harsuna da aka gwada da kansu suka ƙidaya",
+    "liveQueue": "Sake jiran mutane ta kan layi",
+    "liveQueueNote": "Miƙawa bisa ga mai haya"
+  },
+  "customer": {
+    "eyebrow": "GWAJIN ABOKI",
+    "title": "Fara tattaunawa",
+    "consentPill": "Aminci yana buƙata",
+    "preferredLanguage": "Harshe da kake so",
+    "consentText": "Na yarda a cewar wannan tattaunawar za a bi ta ta hanyar mai bayarwa na AI. Rubutun za a ɓoye kafin ajiyewa.",
+    "startChat": "Fara tattaunawa da rubutu mai tsaro",
+    "startVoice": "Fara muryar mai bincike",
+    "setupHint": "Ba za a samu ba har sai mai gudanarwa ya saita maɓallin ɓoyewa da mai bayarwa na AI.",
+    "noConversation": "Babu tattaunawa mai aiki",
+    "startHint": "Don farawa, ƙirƙiri zamanin da ka yarda.",
+    "requestHuman": "Nemi mai ba da taimako na mutum",
+    "chatEmpty": "Saƙonka za su bayyana nan. Ayyukan AI su ne shawarwari kawai; ba a yi biyan kuɗi, canjin asusun, mayar da kuɗi ko aika ba.",
+    "messagePlaceholder": "Rubuta saƙo…",
+    "send": "Aika",
+    "stopVoice": "Tsaya zamanin murya",
+    "voiceOff": "Murya ta kashe.",
+    "voiceStreamNote": "Ana watsa muryar burauza zuwa ga mai bayarwa da aka saita; OpsCore ba ya iƙirarin adana sautin da ba a sarrafa ba.",
+    "voiceRequirement": "Muryar burauza tana buƙatar HTTPS (ko localhost), makirufo, izini, tsarin Realtime da aka saita da mabuɗin mai bayarwa. Ba gadar wayar PSTN/SIP ba ce."
+  },
+  "queue": {
+    "eyebrow": "SAKANNI NA MUTUM",
+    "title": "Sake jiran ɗagawa",
+    "refresh": "Sake sabunta",
+    "description": "Nan za ka ga tattaunawa da ke da haɗari, ba a warware su ko neman mutum. Abu a sake jira yana neman a nemi, ba a haɗa ba.",
+    "loading": "Ana sauke sake…",
+    "empty": "Babu miƙa wa mutum mai aiki ga wannan ƙungiya.",
+    "openAssignment": "Buɗe nadi",
+    "claimAndReview": "Nemi da dubawa",
+    "resolve": "Magance",
+    "reply": "Amsa",
+    "agentAssignedTitle": "Tattaunawar da aka ba da",
+    "replyStorageNote": "Ana ɓoye amsoshin mutane lokacin adanawa kuma suna bayyana a rubutun tattaunawa.",
+    "resolveNote": "Ma'aikacin ɗan adam da aka ba wa aiki ya warware shi."
+  },
+  "boundaries": {
+    "title": "Iyakokin aiki",
+    "automateTitle": "An tsara don sarrafa kai",
+    "automateBody": "Martani na farko da harsuna da yawa, bayyani, rarraba niyya da haɗari, adana rubutu mai tsaro, yin jerin da nadi na manyan mutane.",
+    "humanTitle": "Ana buƙatar mutum ya dauki alhaki",
+    "humanBody": "Buƙata ta bayyana ga mutum, ƙarancin gaskatawa, haɗari mai yawa ko mahimmanci, rashin manufofi, lamari da ba a warware ba, koka ta sirri/tsaro ko aiki mara tabbas.",
+    "notEnabledTitle": "Ba zai iya faruwa da wannan kunshin kadai ba",
+    "notEnabledBody": "Hanya ta PSTN/SIP/WhatsApp/imeel, gada ta waya ta kan layi, tabbatar da sanya hannu ta CRM da ikirarin ingancin harshe suna buƙatar daidaitaccen mahaɗan mai bayarwa, takaddun shaida da gwajin karɓa."
+  },
+  "roles": {
+    "customer": "Mai saye",
+    "human": "Mai bayarwa na mutum",
+    "ai": "Mai taimakon AI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Mai saye ya nemi mutum",
+    "low_confidence": "Ƙarancin gaskatawa",
+    "high_risk": "Haɗari mai yawa",
+    "policy_refusal": "Ƙin yarda / takura dokoki",
+    "unresolved": "Matsala da ba a warware ba",
+    "repeated_failure": "Gazawa akai-akai",
+    "model_requested": "AI ta nemi nazarin",
+    "voice_review_required": "Akwai buƙatar bitar murya",
+    "other": "Wani"
+  },
+  "messages": {
+    "qualificationNotice": "Babu harshe mai cancantar samarwa sai an tabbatar da gwajin rubutu, ASR, TTS, ladabi da ɗagawa.",
+    "configNeeded": "Har yanzu ana buƙatar saito: {missing}.",
+    "configOk": "Saito yana. Haɗin mai bayarwa da ingancin harshe har yanzu suna buƙatar gwajin karɓa na gaskiya.",
+    "conversationCreated": "An ƙirƙiri tattaunawa mai tsaro. Ingancin harshe har yanzu ba a cancanta don samarwa.",
+    "handoffQueued": "Miƙa wa mutum an cika shi jerin ({reason}). Wannan buƙatar jerin ce, ba haɗin gaskiya ba.",
+    "aiResponseFailed": "Amsar AI ta kasa cika. Ba a aiwatar da wani aiki ba. Za ka iya neman mai bayarwa na mutum.",
+    "actionNotCompleted": "Aiki bai cika ba: {reason}.",
+    "apiUnavailable": "Ba a iya loda API ɗin Cibiyar Tuntuɓa ba. Shiga cikin na'urar kula ta OpsCore, sannan sake loda wannan shafin.",
+    "suggestedNextStep": "Mataki na gaba da aka ba da shawara kawai (ba a aiwatar ba): {step}.",
+    "handoffQueuedQueueOnly": "An saka miƙa wa mutum a jerin gwano ({reason}). Jerin gwano ba ya tabbatar da cewa wakili ya haɗu.",
+    "voiceHandoffStopped": "An saka miƙa wa mutum a jerin gwano. Ana dakatar da zaman AI na burauza; ba a saita canja wurin waya kai tsaye ba.",
+    "voiceCredentialRequest": "Ana neman takardar shaidar murya ta ɗan gajeren lokaci…",
+    "voiceRealtimeError": "Mai bayarwa na lokaci-na-gaske ya ba da rahoton kuskure. Dakatar da zaman murya kuma a sake gwadawa bayan duba saitin mai bayarwa.",
+    "voiceActive": "Zaman murya yana aiki. Danna “Nemi mai ba da taimako na mutum” a kowane lokaci; wannan yana ƙirƙirar abu a jerin gwano, ba canja wurin PSTN ba.",
+    "voiceCredentialActive": "{languageCode} · takardar shaida ta ɗan lokaci ta mai bayarwa",
+    "queueUnavailable": "Jerin gwano ba ya samuwa: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Ana buƙatar izini kafin tattaunawa ta fara.",
+    "SERVER_RESPONSE_INVALID": "Ba a iya karanta amsar sabar ba.",
+    "REQUEST_FAILED": "Buƙatar ta gaza.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Ba a iya isa ga mai bayar da muryar lokaci-na-gaske ba.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Wannan burauzar ba ta goyi bayan muryar lokaci-na-gaske.",
+    "HANDOFF_NOT_CLAIMED": "Ba a iya karɓar miƙawar ba.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "An yi watsi da saƙon da aka maimaita."
+  }
+}

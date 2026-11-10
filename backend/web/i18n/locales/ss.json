@@ -1,0 +1,111 @@
+{
+  "nativeName": "siSwati",
+  "nav": {
+    "title": "Sikhungo Sekhulumisana se-AI",
+    "subtitle": "Lusito lwe tilwimi letinyenti kanye nekudluliselwa lokulawulwa kumuntfu.",
+    "operationsConsole": "Ikhonsoli yemisebenti",
+    "interfaceLanguage": "Lulwimi lwe-sikrini"
+  },
+  "status": {
+    "configured": "Indlela levikelwe ihleliwe",
+    "setupIncomplete": "Kuhlela akukapheleli",
+    "apiUnavailable": "Kungena / API akukho"
+  },
+  "stats": {
+    "catalogueRows": "Imigca yeluhlu",
+    "catalogueRowsNote": "Luhlu lwemukelekile",
+    "uniqueCodes": "Tikhodi letihlukene temilwimi",
+    "uniqueCodesNote": "Kuphindza kuyabonakala",
+    "providerQualification": "Kufaneleka kwemhlinzeki",
+    "providerQualificationNote": "Tilwimi letihloliwe kuphela tibalwa",
+    "liveQueue": "Umugca webantfu nyalo",
+    "liveQueueNote": "Kudlulisela esigabeni"
+  },
+  "customer": {
+    "eyebrow": "LOLWATI LWEMKHIYENTI",
+    "title": "Cala inkhulumo",
+    "consentPill": "Imvume iyadingeka",
+    "preferredLanguage": "Lulwimi lolukhetseka",
+    "consentText": "Ngiyavuma kutsi le nkhulumo ingacutjungulwa ngemhlinzeki we-AI. Imibhalo icindzetelwa ngaphambi kwekugcinwa.",
+    "startChat": "Cala inkhulumo yekubhala levikekile",
+    "startVoice": "Cala livezi kusiphequluli",
+    "setupHint": "Akukhonakali kuze umphatsi ahlele sikhihi nemhlinzeki we-AI.",
+    "noConversation": "Akukho inkhulumo lesebentako",
+    "startHint": "Yakha inkhulumo ngemvume kucala.",
+    "requestHuman": "Cela umuntfu",
+    "chatEmpty": "Imilayeto ibonakala lapha. Tento te-AI ticucesha kuphela; akukho kukhokha noma kushintja kwe-akhawunti.",
+    "messagePlaceholder": "Bhala umlayeto…",
+    "send": "Thumela",
+    "stopVoice": "Misa livezi",
+    "voiceOff": "Livezi licimile.",
+    "voiceStreamNote": "Livezi lesiphequluli lithunyelwa kumhlinzeki; i-OpsCore ayitsi igcina livezi lomphendvulo.",
+    "voiceRequirement": "Livezi lesiphequluli lidzinga i-HTTPS, imakrofoni, imvume, imodeli ye-Realtime nesikhihi. Akusilo lucingo."
+  },
+  "queue": {
+    "eyebrow": "LUSITO LWEMUNTFU",
+    "title": "Umugca wekudlulisela",
+    "refresh": "Vuselela",
+    "description": "Inkhulumo leyingoti noma lecelile umuntfu ibonakala lapha. Umugca wukucela, akusiko kuxhumana.",
+    "loading": "Kulayisha…",
+    "empty": "Akukho kudlulisela kule nhlangano.",
+    "openAssignment": "Vula umsebenti",
+    "claimAndReview": "Yemukela bese uhlola",
+    "resolve": "Cedza",
+    "reply": "Phendvula",
+    "agentAssignedTitle": "Inkhulumo leniketwe",
+    "replyStorageNote": "Tiphendvulo temuntfu ticindzetelwe tese tibonakala emibhalweni.",
+    "resolveNote": "Kucedzwa ngumsebenti loniketwe."
+  },
+  "boundaries": {
+    "title": "Imikhawulo yemisebenti",
+    "automateTitle": "Kwakhelwe kutomatsa",
+    "automateBody": "Kuphendvula kucala ngetilwimi letinyenti, kucacisa, kuhlola ingoti, kugcina imibhalo nekuhlela umugca.",
+    "humanTitle": "Kudlulisela kumuntfu kuyadingeka",
+    "humanBody": "Kucela umuntfu, kungatsembeki, ingoti lekhulu, imitsetfo lengakho, incingo lengakalungiswa, sikhala semfihlo.",
+    "notEnabledTitle": "Akukhonakali ngaleli phakethe kuphela",
+    "notEnabledBody": "PSTN/SIP, WhatsApp, imeyili, lucingo, CRM nekucinisekisa tilwimi kudzinga umhlinzeki wangempela netivivinyo."
+  },
+  "roles": {
+    "customer": "Umkhiyenti",
+    "human": "Umsebenti wemuntfu",
+    "ai": "Umsiti we-AI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Umkhiyenti ucele umuntfu",
+    "low_confidence": "Kungatsembeki",
+    "high_risk": "Ingoti lekhulu",
+    "policy_refusal": "Kwenaba imitsetfo",
+    "unresolved": "Incingo lengakalungiswa",
+    "repeated_failure": "Kuphindzaphindza kwedlule",
+    "model_requested": "I-AI icele kuhlolwa",
+    "voice_review_required": "Kuhlolwa kwelivezi kuyadingeka",
+    "other": "Lokunye"
+  },
+  "messages": {
+    "qualificationNotice": "Alikho lulwimi lolugunyatiwe kuze tivivinyo temibhalo, i-ASR, i-TTS nelivezi tiphele.",
+    "configNeeded": "Kuhlela kusadingeka: {missing}.",
+    "configOk": "Kuhlela kukhona. Kuxhumana nekhwalithi yelulwimi kudzinga tivivinyo tangempela.",
+    "conversationCreated": "Inkhulumo levikekile yakhiwe. Ikhwalithi yelulwimi ayikagunyatwa.",
+    "handoffQueued": "Kudlulisela kumuntfu kufakiwe emgceni ({reason}). Kukucela, akusiko kuxhumana.",
+    "aiResponseFailed": "Kuphendvula kwe-AI akukapheleli. Akukho tento lentekile. Ungacela umuntfu.",
+    "actionNotCompleted": "Tento akukapheleli: {reason}.",
+    "apiUnavailable": "I-API yekhulumisano ayitholakalanga. Ngena ku-OpsCore bese uvuselela lelikhasi.",
+    "suggestedNextStep": "Sicucesho kuphela (asikentiwa): {step}.",
+    "handoffQueuedQueueOnly": "Kudlulisela kufakiwe emgceni ({reason}). Umugca awubonisi kutsi umsebenti ukhona.",
+    "voiceHandoffStopped": "Kudlulisela kufakiwe emgceni. Inkhulumo ye-AI iyema; lucingo aluhleliwe.",
+    "voiceCredentialRequest": "Kucela sikhihi selivezi sesikhashana…",
+    "voiceRealtimeError": "Umhlinzeki we-Realtime ubonise liphutsa. Misa livezi, uhlole kuhlela, bese uphinda.",
+    "voiceActive": "Inkhulumo yelivezi iyasebenta. Cela umuntfu nganoma nini; lokhu kwakha umugca, akusilo lucingo.",
+    "voiceCredentialActive": "{languageCode} · sikhihi sesikhashana",
+    "queueUnavailable": "Umugca awutholakali: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Imvume iyadingeka ngaphambi kwekwicala inkhulumo.",
+    "SERVER_RESPONSE_INVALID": "Tiphendvulo teseva atingakabaleki.",
+    "REQUEST_FAILED": "Sicelo sehlulekile.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Umhlinzeki welivezi we-Realtime akatholakalanga.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Lesiphequluli asisekeli livezi le-Realtime.",
+    "HANDOFF_NOT_CLAIMED": "Kudlulisela akukamukelwa.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Umlayeto lobekukhona awunakwa."
+  }
+}

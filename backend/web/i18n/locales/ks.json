@@ -1,0 +1,111 @@
+{
+  "nativeName": "کٲشُر",
+  "nav": {
+    "title": "AI گفتھ باتھ مرکز",
+    "subtitle": "کئی زبانان ہنٛز مدد تہٕ انسانس منتقلی۔",
+    "operationsConsole": "آپریشن کنسول",
+    "interfaceLanguage": "انٹرفیس زبان"
+  },
+  "status": {
+    "configured": "محفوظ حالت ترتیب دیومت",
+    "setupIncomplete": "ترتیب نامکمل",
+    "apiUnavailable": "داخل / API دستیاب نہ"
+  },
+  "stats": {
+    "catalogueRows": "کیٹلاگ قطار",
+    "catalogueRowsNote": "ان پٹ فہرست محفوظ",
+    "uniqueCodes": "منفرد زبان کوڈ",
+    "uniqueCodesNote": "تکرار نشان زد",
+    "providerQualification": "فراہم کرن وال صالحیت",
+    "providerQualificationNote": "صرف آزادانہ جانچن وال زبانان شمار",
+    "liveQueue": "زندٕ انسانی قطار",
+    "liveQueueNote": "ٹیننٹ مطابق منتقلی"
+  },
+  "customer": {
+    "eyebrow": "گاہکن ہنز تجربہ",
+    "title": "باتھ شروع کریو",
+    "consentPill": "رضامندی ضروری",
+    "preferredLanguage": "پسندیدہ زبان",
+    "consentText": "بہ چھُس راضی زِ یہ باتھ AI فراہم کرن والس ذریعہ پروسیس کرنہٕ ییہِ۔ تحریر ذخیرہ کرنس برونٛٹھ اینکرپٹ چھِ گژھان۔",
+    "startChat": "محفوظ متن باتھ شروع کریو",
+    "startVoice": "براؤزر آواز شروع کریو",
+    "setupHint": "اڈمن انکرپشن کِی تہٕ AI فراہم کرن وال ترتیب دیس تام دستیاب نہ۔",
+    "noConversation": "کانہہ فعال باتھ نہ",
+    "startHint": "رضامندی سٟتؠ سیشن بنیو تہٕ شروع کریو۔",
+    "requestHuman": "انسانس درخواست کریو",
+    "chatEmpty": "پیغام یتہ ظاہر گژھن۔ AI کٲم صرف تجویز چھِ؛ ادائیگی، اکاؤنٹ تبدیلی، رقم واپسی نہ گژھہٕ۔",
+    "messagePlaceholder": "پیغام لیکھیو…",
+    "send": "بھیجیو",
+    "stopVoice": "آواز بند کریو",
+    "voiceOff": "آواز بند چھُ۔",
+    "voiceStreamNote": "براؤزر آواز فراہم کرن والس پاسہٕ چھِ گژھان؛ OpsCore نہ چھُ وانن زِ اصلی آواز ذخیرہ کران۔",
+    "voiceRequirement": "براؤزر آوازس HTTPS، مائیکروفون، رضامندی، Realtime ماڈل تہٕ کِی ضرورت چھُ۔ یہِ فون نہ چھُ۔"
+  },
+  "queue": {
+    "eyebrow": "انسانن ہنٛز مدد",
+    "title": "منتقلی قطار",
+    "refresh": "تازہ کریو",
+    "description": "خطرناک یا انسانس درخواست کرن وال باتھ یتہ ظاہر گژھن۔ قطار چھُ درخواست، رابطہ نہ۔",
+    "loading": "لوڈ گژھان…",
+    "empty": "یہ تنظیمس خٲطرٕ کانہہ انسانی منتقلی نہ۔",
+    "openAssignment": "کٲم کھولیو",
+    "claimAndReview": "قبول کریو تہٕ وُچھیو",
+    "resolve": "مکمل کریو",
+    "reply": "جواب دیو",
+    "agentAssignedTitle": "منسوب باتھ",
+    "replyStorageNote": "انسانی جواب اینکرپٹ چھِ تہٕ باتھس منز ظاہر گژھن۔",
+    "resolveNote": "منسوب کارکنن مکمل کوٚر۔"
+  },
+  "boundaries": {
+    "title": "کٲم ہنٛد حد",
+    "automateTitle": "خودکار کرنس خٲطرٕ بنوومت",
+    "automateBody": "کئی زبانن منز گۄڈنیُک جواب، وضاحت، خطرہٕ جانچ، محفوظ تحریر تہٕ قطار بنانا۔",
+    "humanTitle": "انسانس منتقلی ضروری",
+    "humanBody": "انسانس درخواست، کم اعتماد، بڑ خطرہ، غٲیب قاعدہ، نامکمل معاملہ، رازداری ہنٛز شکایت۔",
+    "notEnabledTitle": "صرف یہ پیکج کٲنہہ نہ کران",
+    "notEnabledBody": "PSTN/SIP، WhatsApp، ای میل، فون، CRM تہٕ زبانن ہنٛز تصدیق خٲطرٕ اصلی فراہم کرن وال تہٕ جانچ ضروری۔"
+  },
+  "roles": {
+    "customer": "گاہک",
+    "human": "انسانی کارکن",
+    "ai": "AI مددگار"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "گاہکن انسانس درخواست کوٚر",
+    "low_confidence": "کم اعتماد",
+    "high_risk": "بڑ خطرہ",
+    "policy_refusal": "قاعدس انکار",
+    "unresolved": "نامکمل معاملہ",
+    "repeated_failure": "تکرار ناکامی",
+    "model_requested": "AI جانچ ہنٛز درخواست کوٚر",
+    "voice_review_required": "آواز جانچ ضروری",
+    "other": "بیاہ"
+  },
+  "messages": {
+    "qualificationNotice": "کانہہ زبان چھِ نہ تصدیق شدہ جب تام متن، ASR، TTS تہٕ آواز جانچ مکمل نہ گژھہٕ۔",
+    "configNeeded": "ترتیب ضروری: {missing}۔",
+    "configOk": "ترتیب چھُ موجود۔ رابطہ تہٕ زبان ہنٛد معیار خٲطرٕ اصلی جانچ ضروری۔",
+    "conversationCreated": "محفوظ باتھ بنی۔ زبان ہنٛد معیار چھُ نہ تصدیق شدہ۔",
+    "handoffQueued": "انسانس منتقلی قطارس منز ({reason})۔ یہِ درخواست چھِ، رابطہ نہ۔",
+    "aiResponseFailed": "AI جواب مکمل نہ گو۔ کانہہ کٲم نہ گٔی۔ توہیہِ انسانس درخواست کٔرِتھ۔",
+    "actionNotCompleted": "کٲم مکمل نہ گٔی: {reason}۔",
+    "apiUnavailable": "رابطہ API لوڈ نہ گو۔ OpsCore کنسولس منز داخل گژھیو، بیٚیہِ صفحہ تازہ کریو۔",
+    "suggestedNextStep": "صرف تجویز (نہ گٔی): {step}۔",
+    "handoffQueuedQueueOnly": "منتقلی قطارس منز ({reason})۔ قطار چھُ نہ ظاہر کران زِ کارکن منسلک چھُ۔",
+    "voiceHandoffStopped": "منتقلی قطارس منز۔ AI باتھ بند گژھان چھِ؛ اصلی فون ترتیب نہ چھُ۔",
+    "voiceCredentialRequest": "آواز کِی ہنٛز درخواست…",
+    "voiceRealtimeError": "Realtime فراہم کرن وال غلطی ہنٛز اطلاع دِژ۔ آواز بند کریو، ترتیب وُچھیو، بیٚیہِ کوشش کریو۔",
+    "voiceActive": "آواز باتھ فعال چھِ۔ واریہِ کہِ انسانس درخواست کریو؛ یہِ قطار بنان چھُ، فون نہ۔",
+    "voiceCredentialActive": "{languageCode} · عارضی کِی",
+    "queueUnavailable": "قطار دستیاب نہ: {reason}۔"
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "باتھ شروع کرنس برونٛٹھ رضامندی ضروری چھِ۔",
+    "SERVER_RESPONSE_INVALID": "سرور جواب پڑنہٕ نہ آو۔",
+    "REQUEST_FAILED": "درخواست ناکام گٔی۔",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Realtime آواز فراہم کرن وال دستیاب نہ آو۔",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "یہ براؤزر Realtime آواز نہ چھُ سپورٹ کران۔",
+    "HANDOFF_NOT_CLAIMED": "منتقلی قبول نہ گٔی۔",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "تکرار پیغام نظر انداز۔"
+  }
+}

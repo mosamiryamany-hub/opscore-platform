@@ -1,0 +1,3 @@
+name,email,phone,external_ref
+Valid Customer,valid@example.invalid,+1-555-0103,DEMO-CUST-003
+,not-an-email,+1-555-0104,DEMO-CUST-004

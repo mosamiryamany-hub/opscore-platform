@@ -1,0 +1,111 @@
+{
+  "nativeName": "Magyar",
+  "nav": {
+    "title": "AI ügyfélkapcsolati központ",
+    "subtitle": "Többnyelvű önkiszolgálás szabályozott emberi átadással.",
+    "operationsConsole": "Üzemeltetési konzol",
+    "interfaceLanguage": "Felület nyelve"
+  },
+  "status": {
+    "configured": "Védett mód beállítva",
+    "setupIncomplete": "A beállítás nem teljes",
+    "apiUnavailable": "Bejelentkezés / API nem elérhető"
+  },
+  "stats": {
+    "catalogueRows": "Katalógus sorok",
+    "catalogueRowsNote": "A bemeneti lista megőrizve",
+    "uniqueCodes": "Egyedi nyelvkódok",
+    "uniqueCodesNote": "Az ismétlődők megjelölődnek",
+    "providerQualification": "Szolgáltatói minősítés",
+    "providerQualificationNote": "Csak a függetlenül tesztelt nyelvek számítanak",
+    "liveQueue": "Élő emberi sor",
+    "liveQueueNote": "Bérlőnkénti átadások"
+  },
+  "customer": {
+    "eyebrow": "ÜGYFÉLÉLMÉNY",
+    "title": "Beszélgetés indítása",
+    "consentPill": "Hozzájárulás szükséges",
+    "preferredLanguage": "Preferált nyelv",
+    "consentText": "Hozzájárulok, hogy ezt a beszélgetést a beállított AI-szolgáltató dolgozza fel. Az átiratok tárolás előtt titkosításra kerülnek.",
+    "startChat": "Biztonságos szöveges csevegés indítása",
+    "startVoice": "Böngészőhang indítása",
+    "setupHint": "Nem érhető el, amíg egy rendszergazda be nem állítja a titkosítási kulcsot és az AI-szolgáltatót.",
+    "noConversation": "Nincs aktív beszélgetés",
+    "startHint": "Kezdéshez hozzon létre hozzájárulással rendelkező munkamenetet.",
+    "requestHuman": "Emberi ügyintéző kérése",
+    "chatEmpty": "Az üzenetei itt jelennek meg. Az AI-műveletek csak javaslatok; nem történik fizetés, fiókmódosítás, visszatérítés vagy kiküldés.",
+    "messagePlaceholder": "Írjon üzenetet…",
+    "send": "Küldés",
+    "stopVoice": "Hangmunkamenet leállítása",
+    "voiceOff": "A hang ki van kapcsolva.",
+    "voiceStreamNote": "A böngészős hang a beállított szolgáltatóhoz streamelődik; az OpsCore nem állítja, hogy nyers hangot tárol.",
+    "voiceRequirement": "A böngészős hanghoz HTTPS (vagy localhost), mikrofon, hozzájárulás, beállított Realtime modell és szolgáltatói kulcs szükséges. Ez nem PSTN/SIP telefonhíd."
+  },
+  "queue": {
+    "eyebrow": "EMBERI BEAVATKOZÁS",
+    "title": "Eszkalációs sor",
+    "refresh": "Frissítés",
+    "description": "Itt jelennek meg a magas kockázatú, megoldatlan vagy emberi ügyintézőt kérő beszélgetések. A sor eleme kérést jelent, nem csatlakozást.",
+    "loading": "Sor betöltése…",
+    "empty": "Nincs aktív emberi átadás ehhez a szervezethez.",
+    "openAssignment": "Hozzárendelés megnyitása",
+    "claimAndReview": "Átvétel és ellenőrzés",
+    "resolve": "Megoldás",
+    "reply": "Válasz",
+    "agentAssignedTitle": "Hozzárendelt beszélgetés",
+    "replyStorageNote": "Az emberi válaszok tárolás közben titkosítottak, és láthatók a beszélgetés átiratában.",
+    "resolveNote": "A hozzárendelt emberi operátor megoldotta."
+  },
+  "boundaries": {
+    "title": "Működési határok",
+    "automateTitle": "Automatizálásra tervezve",
+    "automateBody": "Többnyelvű első válasz, tisztázás, szándék- és kockázatbesorolás, biztonságos átirattárolás, sorképzés és ügyintéző-hozzárendelés.",
+    "humanTitle": "Emberi átvétel szükséges",
+    "humanBody": "Kifejezett emberi kérés, alacsony megbízhatóság, magas vagy kritikus kockázat, hiányzó szabályzat, megoldatlan ügy, adatvédelmi/biztonsági panasz vagy bizonytalan tevékenység.",
+    "notEnabledTitle": "Csak ezzel a csomaggal nem engedélyezett",
+    "notEnabledBody": "PSTN/SIP/WhatsApp/e-mail útválasztás, élő telefonhíd, CRM-azonosság-ellenőrzés és nyelvi minőségi állítások valódi szolgáltatói adaptert, hitelesítő adatokat és elfogadási teszteket igényelnek."
+  },
+  "roles": {
+    "customer": "Ügyfél",
+    "human": "Emberi ügyintéző",
+    "ai": "AI-asszisztens"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Az ügyfél emberi ügyintézőt kért",
+    "low_confidence": "Alacsony megbízhatóság",
+    "high_risk": "Magas kockázat",
+    "policy_refusal": "Szabályzati elutasítás / korlátozás",
+    "unresolved": "Megoldatlan probléma",
+    "repeated_failure": "Ismétlődő hiba",
+    "model_requested": "Az AI felülvizsgálatot kért",
+    "voice_review_required": "Hangellenőrzés szükséges",
+    "other": "Egyéb"
+  },
+  "messages": {
+    "qualificationNotice": "Egy nyelv sem minősített éles használatra, amíg a szöveg-, beszédfelismerési, beszédszintetizálási, akcentus- és eszkalációs tesztek nem sikerülnek.",
+    "configNeeded": "Még mindig szükséges beállítás: {missing}.",
+    "configOk": "A beállítás létezik. A szolgáltatói kapcsolat és a nyelvi minőség továbbra is valódi elfogadási teszteket igényel.",
+    "conversationCreated": "Biztonságos beszélgetés létrehozva. A nyelvi minőség még nem minősített éles használatra.",
+    "handoffQueued": "Emberi átadás sorba állítva ({reason}). Ez sorkérés, nem élő kapcsolat.",
+    "aiResponseFailed": "Az AI-válasz nem fejeződött be. Nem történt művelet. Kérhet emberi ügyintézőt.",
+    "actionNotCompleted": "A művelet nem fejeződött be: {reason}.",
+    "apiUnavailable": "A Contact Center API nem tölthető be. Jelentkezzen be az OpsCore konzolba, majd töltse újra az oldalt.",
+    "suggestedNextStep": "Csak javasolt következő lépés (nem lett végrehajtva): {step}.",
+    "handoffQueuedQueueOnly": "Az emberi átadás sorba került ({reason}). A sor nem bizonyítja, hogy ügyintéző csatlakozott.",
+    "voiceHandoffStopped": "Az emberi átadás sorba került. A böngészős AI-munkamenet leáll; az élő telefonos átirányítás nincs beállítva.",
+    "voiceCredentialRequest": "Rövid élettartamú hang-hitelesítő adat kérése…",
+    "voiceRealtimeError": "A valós idejű szolgáltató hibát jelzett. Állítsa le a hangmunkamenetet, és a szolgáltatói beállítások ellenőrzése után próbálja újra.",
+    "voiceActive": "A hangmunkamenet aktív. Bármikor megnyomhatja a(z) „Emberi ügyintéző kérése” gombot; ez sorelemet hoz létre, nem PSTN-átirányítást.",
+    "voiceCredentialActive": "{languageCode} · ideiglenes szolgáltatói hitelesítő adat",
+    "queueUnavailable": "A sor nem érhető el: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "A beszélgetés megkezdése előtt hozzájárulás szükséges.",
+    "SERVER_RESPONSE_INVALID": "A szerver válaszát nem sikerült beolvasni.",
+    "REQUEST_FAILED": "A kérés sikertelen volt.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "A valós idejű hangszolgáltató nem érhető el.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Ez a böngésző nem támogatja a valós idejű hangot.",
+    "HANDOFF_NOT_CLAIMED": "Az átadást nem sikerült átvenni.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Az ismétlődő üzenet figyelmen kívül maradt."
+  }
+}

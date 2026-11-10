@@ -1,0 +1,111 @@
+{
+  "nativeName": "Türkmençe",
+  "nav": {
+    "title": "HY habarlaşma merkezi",
+    "subtitle": "Adamdan gözegçilik bilen kontrol edilen geçiriş bilen köpdilli özüna özi hyzmat.",
+    "operationsConsole": "Amallar konsoly",
+    "interfaceLanguage": "Interfeýs dili"
+  },
+  "status": {
+    "configured": "Goralan ugruk sazlandy",
+    "setupIncomplete": "Gurnama doly däl",
+    "apiUnavailable": "Giriş / API elýeterli däl"
+  },
+  "stats": {
+    "catalogueRows": "Katalog setirleri",
+    "catalogueRowsNote": "Giriş sanawy goralan",
+    "uniqueCodes": "Özboluşly dil kodlary",
+    "uniqueCodesNote": "Gaýta duş gelýänler bellik edilýär",
+    "providerQualification": "Üpjünçiniň hünäri",
+    "providerQualificationNote": "Diňe garaşsyz barlanan-diller hasaplanýar",
+    "liveQueue": "Göreli adam hatary",
+    "liveQueueNote": "Iýarlanýanyň çäkli geçirişleri"
+  },
+  "customer": {
+    "eyebrow": "MUŞDERINIŇ TEJRIÝASI",
+    "title": "Söhbetdeşligi başla",
+    "consentPill": "Ygytlylyk zerur",
+    "preferredLanguage": "Söýlen dil",
+    "consentText": "Şu söhbetdeşligi sazlanan HY üpjünçisi tarapyndan gaýta işlemegine razy. Tekstleri saklamazdan öň şifrlendirilýär.",
+    "startChat": "Goralan tekst söhbetdeşligi başla",
+    "startVoice": "Brauzer sesini başla",
+    "setupHint": "Administratory şifrlamak açaryny we HY üpjünçisini sazlamadyk elýeterli däl.",
+    "noConversation": "Işjeň söhbetdeşlik ýok",
+    "startHint": "Başlamak üçin razylkaly sedi dörediň.",
+    "requestHuman": "Adam wekili soraň",
+    "chatEmpty": "Ugratlýanlaryňyz şu ýerde görinär. HY hereketleri diňe teklipler; tölegler, hasap üýtgeşmeleri, gaýtarýyşlar ýa-da ugratmalar geçirilmeýär.",
+    "messagePlaceholder": "Ugratýan ýaz…",
+    "send": "Ugrat",
+    "stopVoice": "Ses sedini bes et",
+    "voiceOff": "Ses öçük.",
+    "voiceStreamNote": "Brauzer sesi sazlanan üpjün edijä akym görnüşinde iberilýär; OpsCore çig audio saklaýandygyny öňe sürmeýär.",
+    "voiceRequirement": "Brauzer sesi HTTPS (ýa-da localhost), mikrofon, razylyk, sazlanan Realtime modeli we üpjün edijiniň açaryny talap edýär. Bu PSTN/SIP telefon köprüsi däl."
+  },
+  "queue": {
+    "eyebrow": "ADAM GARIŞYGY",
+    "title": "Ýokarlandyryş hatary",
+    "refresh": "Täzele",
+    "description": "Bu ýerde ýokary howply, çözülmedik ýa-da adam isleýän söhbetdeşlikler görinýär. Hatardaky bir zat soraşdy, baglanyşyk däl.",
+    "loading": "Hatara ýüklenýär…",
+    "empty": "Bu gurama üçin işjeň adama geçiriş ýok.",
+    "openAssignment": "Bellikleri açyň",
+    "claimAndReview": "Alaň we barlaň",
+    "resolve": "Çözüň",
+    "reply": "Jogap",
+    "agentAssignedTitle": "Bellenen gürrüň",
+    "replyStorageNote": "Adam jogaplary saklanyşda şifrlenýär we gürrüňiň transkriptinde görünýär.",
+    "resolveNote": "Bellenen adam operatory çözdi."
+  },
+  "boundaries": {
+    "title": "Amaly çäkleri",
+    "automateTitle": "Awtomatlandyrmak üçin dizaýn",
+    "automateBody": "Köpdilli birinji jogap, anyklandyrma, maksat we howp tasnagy, howpsuz tekst ýazgysy saklagyç, hatara döretmek we wekili belläp bermek.",
+    "humanTitle": "Adamyň kabul etmek zerur",
+    "humanBody": "Adama açyk soraşyk, pes ynam, ýokary ýa-da kritik howp, ýok syýasat, çözülmedik iş, göni adynyň howpsuzlygy şikaýaty ýa-da anyk däl hereket.",
+    "notEnabledTitle": "Diňe şu paket bilen açylmady",
+    "notEnabledBody": "PSTN/SIP/WhatsApp/e-poçta routing, göreli telefon köprüsi, CRM şahsyýet tassyklamasy we dil hili yglanlary hakyky üpjünçi adapterini, ynamnamalaryny we kabul barlaglaryny talap edýär."
+  },
+  "roles": {
+    "customer": "Musderi",
+    "human": "Adam wekili",
+    "ai": "HY kömekçisi"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Musderi adam soraýar",
+    "low_confidence": "Pes ynam",
+    "high_risk": "Ýokary howp",
+    "policy_refusal": "Sýýasat retlemek / çäklemek",
+    "unresolved": "Çözülmedik mesele",
+    "repeated_failure": "Gaýta gaýdan şowsuzlyk",
+    "model_requested": "HY barlag soraýar",
+    "voice_review_required": "Ses barlag zerur",
+    "other": "Beýleki"
+  },
+  "messages": {
+    "qualificationNotice": "Tekst, ASR, TTS, ton we ýokarlandyryş barlaglar gecmänkä hiç bir dil önümçilik üçin ygtyýarly däl.",
+    "configNeeded": "Entek sazlama zerur: {missing}.",
+    "configOk": "Sazlama bar. Üpjünçi baglanyşygy we dil hili entek hakyky kabul barlaglaryny talap edýär.",
+    "conversationCreated": "Goralan söhbetdeşlik döredildi. Dil hili entek önümçilik üçin ygtyýarly däl.",
+    "handoffQueued": "Adama geçiriş hatara goşuldy ({reason}). Bu hatara soraşyk, göreli baglanyşyk däl.",
+    "aiResponseFailed": "HY jogaby tamamlamady. Hiç bir hereket geçirilmedi. Adam wekilini soraý bilersiňiz.",
+    "actionNotCompleted": "Hereket tamamlanmady: {reason}.",
+    "apiUnavailable": "Aragatnaşyk merkeziniň API-sini ýükläp bolmady. OpsCore konsoluna giriň we bu sahypany gaýtadan ýükläň.",
+    "suggestedNextStep": "Diňe teklip edilýän indiki ädim (ýerine ýetirilmedi): {step}.",
+    "handoffQueuedQueueOnly": "Adama tabşyryk nobata goýuldy ({reason}). Nobat agentiň birikendigini subut etmeýär.",
+    "voiceHandoffStopped": "Adama tabşyryk nobata goýuldy. Brauzerdäki AI sessiýasy duruzylýar; göni telefon geçirimi sazlanmady.",
+    "voiceCredentialRequest": "Gysga möhletli ses şahadatnamasy soralýar…",
+    "voiceRealtimeError": "Hakyky wagtly üpjün ediji ýalňyşlyk habar berdi. Ses sessiýasyny duruzyň we üpjün edijiniň sazlamalaryny barlandan soň gaýtadan synanyşyň.",
+    "voiceActive": "Ses sessiýasy işjeň. Islendik wagtda “Adam wekili soraň” düwmesine basyň; bu nobat elementini döredýär, PSTN geçirimini däl.",
+    "voiceCredentialActive": "{languageCode} · üpjün edijiniň wagtlaýyn şahadatnamasy",
+    "queueUnavailable": "Nobat elýeterli däl: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Gürrüň başlamazdan öň razylyk talap edilýär.",
+    "SERVER_RESPONSE_INVALID": "Serweriň jogabyny okap bolmady.",
+    "REQUEST_FAILED": "Haýyş şowsuz boldy.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Hakyky wagtly ses üpjün edijisine ýetip bolmady.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Bu brauzer hakyky wagtly sesi goldamaýar.",
+    "HANDOFF_NOT_CLAIMED": "Tabşyrygy kabul edip bolmady.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Gaýtalanan habar äsgerilmedi."
+  }
+}

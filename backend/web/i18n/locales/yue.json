@@ -1,0 +1,111 @@
+{
+  "nativeName": "粵語",
+  "nav": {
+    "title": "AI 聯絡中心",
+    "subtitle": "多語言自助服務，搭配受控的人工轉接。",
+    "operationsConsole": "營運主控台",
+    "interfaceLanguage": "介面語言"
+  },
+  "status": {
+    "configured": "守護模式已設定",
+    "setupIncomplete": "設定未完成",
+    "apiUnavailable": "登入 / API 無法使用"
+  },
+  "stats": {
+    "catalogueRows": "目錄列數",
+    "catalogueRowsNote": "輸入清單保持原樣",
+    "uniqueCodes": "唯一語言代碼",
+    "uniqueCodesNote": "重複項目會被標記",
+    "providerQualification": "供應商資格認定",
+    "providerQualificationNote": "僅計入經獨立測試的語言",
+    "liveQueue": "人工即時佇列",
+    "liveQueueNote": "依租戶隔離的轉接"
+  },
+  "customer": {
+    "eyebrow": "客戶體驗",
+    "title": "開始對話",
+    "consentPill": "須經同意",
+    "preferredLanguage": "偏好語言",
+    "consentText": "我同意由所設定的 AI 供應商處理本次對話。逐字稿於儲存前會加密。",
+    "startChat": "開始安全文字交談",
+    "startVoice": "開始瀏覽器語音",
+    "setupHint": "在管理員設定加密金鑰與 AI 供應商之前，此功能無法使用。",
+    "noConversation": "沒有進行中的對話",
+    "startHint": "建立一個已同意的工作階段即可開始。",
+    "requestHuman": "請求人工客服",
+    "chatEmpty": "您的訊息將顯示於此。AI 操作僅為建議；不會執行付款、帳戶變更、退款或派工。",
+    "messagePlaceholder": "輸入訊息…",
+    "send": "傳送",
+    "stopVoice": "結束語音工作階段",
+    "voiceOff": "語音已關閉。",
+    "voiceStreamNote": "瀏覽器語音會傳送到已設定的供應商；OpsCore 不聲稱儲存原始音訊。",
+    "voiceRequirement": "瀏覽器語音需要 HTTPS（或 localhost）、麥克風、同意、已設定的 Realtime 模型和供應商金鑰。它不是 PSTN/SIP 電話橋接。"
+  },
+  "queue": {
+    "eyebrow": "人工介入",
+    "title": "升級佇列",
+    "refresh": "重新整理",
+    "description": "高風險、未解決或請求人工的對話會顯示於此。佇列項目代表「已請求」，而非「已接通」。",
+    "loading": "正在載入佇列…",
+    "empty": "此組織目前沒有作用中的人工轉接。",
+    "openAssignment": "開啟指派",
+    "claimAndReview": "認領並檢視",
+    "resolve": "解決",
+    "reply": "回覆",
+    "agentAssignedTitle": "已指派的對話",
+    "replyStorageNote": "人工回覆在靜態儲存時加密，並顯示在對話紀錄中。",
+    "resolveNote": "已由指派的人工客服解決。"
+  },
+  "boundaries": {
+    "title": "營運邊界",
+    "automateTitle": "設計用於自動化",
+    "automateBody": "多語言首次回應、釐清、意圖與風險分流、安全的逐字稿儲存、佇列建立與客服指派。",
+    "humanTitle": "需要人工接手",
+    "humanBody": "明確的人工請求、低信賴度、高或嚴重風險、缺少政策、未解決案件、隱私或安全投訴，或不確定的操作。",
+    "notEnabledTitle": "僅憑本套件無法啟用",
+    "notEnabledBody": "PSTN/SIP/WhatsApp/電子郵件路由、即時電話橋接、CRM 身分驗證與語言品質聲明，需要真實的供應商轉接器、憑證與驗收測試。"
+  },
+  "roles": {
+    "customer": "客戶",
+    "human": "人工客服",
+    "ai": "AI 助理"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "客戶請求人工客服",
+    "low_confidence": "信賴度低",
+    "high_risk": "高風險",
+    "policy_refusal": "政策拒絕 / 限制",
+    "unresolved": "未解決的問題",
+    "repeated_failure": "反覆失敗",
+    "model_requested": "AI 請求人工審核",
+    "voice_review_required": "需要語音審核",
+    "other": "其他"
+  },
+  "messages": {
+    "qualificationNotice": "在文字、語音辨識、語音合成、口音與升級測試通過之前，沒有任何語言具備正式上線資格。",
+    "configNeeded": "仍需設定：{missing}。",
+    "configOk": "設定已存在。供應商連線與語言品質仍需實際驗收測試。",
+    "conversationCreated": "已建立安全對話。語言品質尚未達到正式上線資格。",
+    "handoffQueued": "人工轉接已加入佇列（{reason}）。這是佇列請求，而非即時連線。",
+    "aiResponseFailed": "AI 回覆未完成。未執行任何操作。您可以請求人工客服。",
+    "actionNotCompleted": "操作未完成：{reason}。",
+    "apiUnavailable": "無法載入聯絡中心 API。請登入 OpsCore 控制台，然後重新載入此頁面。",
+    "suggestedNextStep": "僅為建議的下一步（未執行）：{step}。",
+    "handoffQueuedQueueOnly": "人工轉接已排入佇列（{reason}）。佇列並不證明客服已連線。",
+    "voiceHandoffStopped": "人工轉接已排入佇列。瀏覽器 AI 工作階段正在停止；未設定即時電話轉接。",
+    "voiceCredentialRequest": "正在要求短期語音憑證…",
+    "voiceRealtimeError": "即時供應商回報錯誤。請停止語音工作階段，檢查供應商設定後再試。",
+    "voiceActive": "語音工作階段已啟用。可隨時按下「請求人工」；這只會建立佇列項目，而不是 PSTN 轉接。",
+    "voiceCredentialActive": "{languageCode} · 臨時供應商憑證",
+    "queueUnavailable": "佇列無法使用：{reason}。"
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "開始對話前必須同意。",
+    "SERVER_RESPONSE_INVALID": "無法讀取伺服器回應。",
+    "REQUEST_FAILED": "請求失敗。",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "無法連線即時語音供應商。",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "此瀏覽器不支援即時語音。",
+    "HANDOFF_NOT_CLAIMED": "無法領取該轉接。",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "已忽略重複訊息。"
+  }
+}

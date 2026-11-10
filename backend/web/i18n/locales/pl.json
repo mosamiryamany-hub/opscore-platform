@@ -1,0 +1,111 @@
+{
+  "nativeName": "Polski",
+  "nav": {
+    "title": "Contact center AI",
+    "subtitle": "Self-service wielojęzyczny z nadzorowanym przekazaniem człowiekowi.",
+    "operationsConsole": "Konsola operacyjna",
+    "interfaceLanguage": "Język interfejsu"
+  },
+  "status": {
+    "configured": "Tryb chroniony skonfigurowany",
+    "setupIncomplete": "Konfiguracja niekompletna",
+    "apiUnavailable": "Logowanie / API niedostępne"
+  },
+  "stats": {
+    "catalogueRows": "Wiersze katalogu",
+    "catalogueRowsNote": "Lista wejściowa zachowana",
+    "uniqueCodes": "Unikalne kody języków",
+    "uniqueCodesNote": "Duplikaty są oznaczane",
+    "providerQualification": "Kwalifikacja dostawcy",
+    "providerQualificationNote": "Liczą się tylko niezależnie przetestowane języki",
+    "liveQueue": "Kolejka ludzka na żywo",
+    "liveQueueNote": "Przekazania w ramach dzierżawy"
+  },
+  "customer": {
+    "eyebrow": "OBSŁUGA KLIENTA",
+    "title": "Rozpocznij rozmowę",
+    "consentPill": "Wymagana zgoda",
+    "preferredLanguage": "Preferowany język",
+    "consentText": "Zgadzam się, że ta rozmowa będzie przetwarzana przez skonfigurowanego dostawcę AI. Transkrypcje są szyfrowane przed zapisem.",
+    "startChat": "Rozpocznij bezpieczny czat tekstowy",
+    "startVoice": "Rozpocznij głos w przeglądarce",
+    "setupHint": "Niedostępne, dopóki administrator nie skonfiguruje klucza szyfrowania i dostawcy AI.",
+    "noConversation": "Brak aktywnej rozmowy",
+    "startHint": "Utwórz sesję z zgodą, aby rozpocząć.",
+    "requestHuman": "Poproś o konsultanta",
+    "chatEmpty": "Twoje wiadomości pojawią się tutaj. Działania AI to tylko sugestie; nie są wykonywane płatności, zmiany kont, zwroty ani wysyłki.",
+    "messagePlaceholder": "Napisz wiadomość…",
+    "send": "Wyślij",
+    "stopVoice": "Zatrzymaj sesję głosową",
+    "voiceOff": "Głos wyłączony.",
+    "voiceStreamNote": "Głos z przeglądarki jest przesyłany strumieniowo do skonfigurowanego dostawcy; OpsCore nie twierdzi, że przechowuje surowy dźwięk.",
+    "voiceRequirement": "Głos w przeglądarce wymaga HTTPS (lub localhost), mikrofonu, zgody, skonfigurowanego modelu Realtime i klucza dostawcy. To nie jest most telefoniczny PSTN/SIP."
+  },
+  "queue": {
+    "eyebrow": "INTERWENCJA CZŁOWIEKA",
+    "title": "Kolejka eskalacji",
+    "refresh": "Odśwież",
+    "description": "Tu pojawiają się rozmowy wysokiego ryzyka, nierozwiązane lub z prośbą o konsultanta. Element kolejki oznacza prośbę, nie połączenie.",
+    "loading": "Ładowanie kolejki…",
+    "empty": "Brak aktywnych przekazań ludzkich dla tej organizacji.",
+    "openAssignment": "Otwórz przypisanie",
+    "claimAndReview": "Przejmij i przejrzyj",
+    "resolve": "Rozwiąż",
+    "reply": "Odpowiedz",
+    "agentAssignedTitle": "Przypisana rozmowa",
+    "replyStorageNote": "Odpowiedzi ludzi są szyfrowane w spoczynku i widoczne w transkrypcji rozmowy.",
+    "resolveNote": "Rozwiązane przez przypisanego operatora."
+  },
+  "boundaries": {
+    "title": "Granice operacyjne",
+    "automateTitle": "Zaprojektowane do automatyzacji",
+    "automateBody": "Wielojęzyczna pierwsza odpowiedź, wyjaśnianie, klasyfikacja intencji i ryzyka, bezpieczne przechowywanie transkrypcji, tworzenie kolejek i przydzielanie konsultantów.",
+    "humanTitle": "Wymagane przejęcie przez człowieka",
+    "humanBody": "Wyraźna prośba o człowieka, niska pewność, wysokie lub krytyczne ryzyko, brakująca polityka, nierozwiązana sprawa, skarga na prywatność/bezpieczeństwo lub niepewna czynność.",
+    "notEnabledTitle": "Nieaktywne samym pakietem",
+    "notEnabledBody": "Routing PSTN/SIP/WhatsApp/e-mail, żywy most telefoniczny, weryfikacja tożsamości CRM i deklaracje jakości językowej wymagają prawdziwego adaptera dostawcy, poświadczeń i testów odbiorczych."
+  },
+  "roles": {
+    "customer": "Klient",
+    "human": "Konsultant",
+    "ai": "Asystent AI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Klient poprosił o konsultanta",
+    "low_confidence": "Niska pewność",
+    "high_risk": "Wysokie ryzyko",
+    "policy_refusal": "Odmowa / ograniczenie polityki",
+    "unresolved": "Nierozwiązany problem",
+    "repeated_failure": "Powtarzająca się awaria",
+    "model_requested": "AI poprosiło o weryfikację",
+    "voice_review_required": "Wymagana weryfikacja głosu",
+    "other": "Inne"
+  },
+  "messages": {
+    "qualificationNotice": "Żaden język nie jest kwalifikowany do użytku produkcyjnego, dopóki testy tekstu, ASR, TTS, akcentu i eskalacji nie zostaną zaliczone.",
+    "configNeeded": "Nadal wymagana konfiguracja: {missing}.",
+    "configOk": "Konfiguracja istnieje. Łączność z dostawcą i jakość języka nadal wymagają prawdziwych testów odbiorczych.",
+    "conversationCreated": "Utworzono bezpieczną rozmowę. Jakość języka nie jest jeszcze kwalifikowana do produkcji.",
+    "handoffQueued": "Przekazanie człowiekowi w kolejce ({reason}). To prośba do kolejki, nie połączenie na żywo.",
+    "aiResponseFailed": "Odpowiedź AI nie została ukończona. Nie wykonano żadnej czynności. Możesz poprosić o konsultanta.",
+    "actionNotCompleted": "Czynność niedokończona: {reason}.",
+    "apiUnavailable": "Nie udało się załadować API Contact Center. Zaloguj się do konsoli OpsCore, a następnie odśwież stronę.",
+    "suggestedNextStep": "Tylko sugerowany następny krok (niewykonany): {step}.",
+    "handoffQueuedQueueOnly": "Przekazanie człowiekowi trafiło do kolejki ({reason}). Kolejka nie dowodzi, że konsultant jest połączony.",
+    "voiceHandoffStopped": "Przekazanie człowiekowi trafiło do kolejki. Sesja AI w przeglądarce jest zatrzymywana; przekierowanie rozmowy na żywo nie jest skonfigurowane.",
+    "voiceCredentialRequest": "Żądanie krótkotrwałego poświadczenia głosowego…",
+    "voiceRealtimeError": "Dostawca czasu rzeczywistego zgłosił błąd. Zatrzymaj sesję głosową i spróbuj ponownie po sprawdzeniu konfiguracji dostawcy.",
+    "voiceActive": "Sesja głosowa jest aktywna. W dowolnej chwili naciśnij „Poproś o konsultanta”; tworzy to element kolejki, a nie przekierowanie PSTN.",
+    "voiceCredentialActive": "{languageCode} · tymczasowe poświadczenie dostawcy",
+    "queueUnavailable": "Kolejka niedostępna: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Przed rozpoczęciem rozmowy wymagana jest zgoda.",
+    "SERVER_RESPONSE_INVALID": "Nie udało się odczytać odpowiedzi serwera.",
+    "REQUEST_FAILED": "Żądanie nie powiodło się.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Nie udało się połączyć z dostawcą głosu w czasie rzeczywistym.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Ta przeglądarka nie obsługuje głosu w czasie rzeczywistym.",
+    "HANDOFF_NOT_CLAIMED": "Nie udało się przejąć przekazania.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Zduplikowana wiadomość została zignorowana."
+  }
+}

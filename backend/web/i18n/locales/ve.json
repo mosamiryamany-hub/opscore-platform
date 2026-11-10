@@ -1,0 +1,111 @@
+{
+  "nativeName": "Tshivenda",
+  "nav": {
+    "title": "Senthara ya vhukwamani ya AI",
+    "subtitle": "Thusedzo ya nyambo nnzhi na u tsireledza u fhandekanywa na muthu.",
+    "operationsConsole": "Khonsole ya mishumo",
+    "interfaceLanguage": "Luambo lwa tshikirini"
+  },
+  "status": {
+    "configured": "Ndila yo tsireledzwaho yo lugisedzwa",
+    "setupIncomplete": "Nyolohelo a yo fheli",
+    "apiUnavailable": "U dzhia / API a i vhonali"
+  },
+  "stats": {
+    "catalogueRows": "Mitsetse ya mutevhe",
+    "catalogueRowsNote": "Mutevhe wo tanganedzwa",
+    "uniqueCodes": "Khoutu dzo fhambanaho dza nyambo",
+    "uniqueCodesNote": "U dovholola hu vhonala",
+    "providerQualification": "U tea u tea ha mupedzi",
+    "providerQualificationNote": "Nyambo dzo lingiwa fhedzi dzo vhalwa",
+    "liveQueue": "Muthethe wa vhathu zwino",
+    "liveQueueNote": "U fhandekanywa kha tshigwada"
+  },
+  "customer": {
+    "eyebrow": "TSHIKHOU TSA MUTENGISI",
+    "title": "Thoma muvhulafhungo",
+    "consentPill": "Thendelo i a toda",
+    "preferredLanguage": "Luambo lune wa lu takalela",
+    "consentText": "Ndi tenda uri muvhulafhungo uyu u nga shumiswa nga mupedzi wa AI. Mibhalo i tsireledzwa phanda ha u vhulungwa.",
+    "startChat": "Thoma muvhulafhungo wo tsireledzwaho",
+    "startVoice": "Thoma ipfi kha browser",
+    "setupHint": "A zwi konadzei u swika mulanguli a lugisa khii na mupedzi wa AI.",
+    "noConversation": "A hu na muvhulafhungo u shumaho",
+    "startHint": "Ita muvhulafhungo nga thendelo u thoma.",
+    "requestHuman": "Humbelela muthu",
+    "chatEmpty": "Mulaedza u a vhonala afha. Mishumo ya AI ndi nyeletshedzo fhedzi; a hu na u badela kana u shandukisa akhaunthe.",
+    "messagePlaceholder": "Ngwala mulaedza…",
+    "send": "Rumela",
+    "stopVoice": "Fhelisa ipfi",
+    "voiceOff": "Ipfi lo dzimiwa.",
+    "voiceStreamNote": "Ipfi la browser li rumelwa kha mupedzi; OpsCore a i ambei uri i vhulunga ipfi.",
+    "voiceRequirement": "Ipfi la browser li toda HTTPS, maikrofono, thendelo, mufuda wa Realtime na khii. A si luvingo."
+  },
+  "queue": {
+    "eyebrow": "THUSEDZO YA VHATHU",
+    "title": "Muthethe wa u fhandekanya",
+    "refresh": "Khwinifhadza",
+    "description": "Muvhulafhungo u re na khombo kana wo humbela muthu u a vhonala afha. Muthethe ndi khumbelo, a si vhukwamani.",
+    "loading": "U a longa…",
+    "empty": "A hu na u fhandekanya kha tshigwada itshi.",
+    "openAssignment": "Vula mushumo",
+    "claimAndReview": "Tanganedza na u sengulusa",
+    "resolve": "Fhelisa",
+    "reply": "Fhindula",
+    "agentAssignedTitle": "Muvhulafhungo wo newedzwaho",
+    "replyStorageNote": "Mafhindulo a vhathu o tsireledzwa nga uri a vhonala kha muvhulafhungo.",
+    "resolveNote": "Yo fheliswa nga mushumi o newedzwaho."
+  },
+  "boundaries": {
+    "title": "Mikhano ya mishumo",
+    "automateTitle": "Yo itelwa u shuma",
+    "automateBody": "U fhindula u thoma nga nyambo nnzhi, u talutshedza, u sengulusa khombo na u vhulunga mibhalo.",
+    "humanTitle": "U fhandekanywa kha muthu zwi a toda",
+    "humanBody": "U humbela muthu, u sa tendi, khombo khulwane, milayo i siyo, muvhulafhungo wo sa fheli, nyambo ya tshidzumbe.",
+    "notEnabledTitle": "A zwi konadzei nga phakehe iyi fhedzi",
+    "notEnabledBody": "PSTN/SIP, WhatsApp, imeili, luvingo, CRM na u khwathisedza nyambo zwi toda mupedzi wa ngoho na milingo."
+  },
+  "roles": {
+    "customer": "Mutengisi",
+    "human": "Mushumi wa muthu",
+    "ai": "Muthusi wa AI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Mutengisi o humbela muthu",
+    "low_confidence": "U sa tendi",
+    "high_risk": "Khombo khulwane",
+    "policy_refusal": "U landula milayo",
+    "unresolved": "Muvhulafhungo wo sa fheli",
+    "repeated_failure": "U dovholola hu fhiraho",
+    "model_requested": "AI yo humbela u senguluswa",
+    "voice_review_required": "U sengulusa ipfi zwi a toda",
+    "other": "Zwinwe"
+  },
+  "messages": {
+    "qualificationNotice": "A hu na luambo lo tendelwaho u swika milingo ya mibhalo, ASR, TTS na ipfi yo fhela.",
+    "configNeeded": "Nyolohelo i a toda: {missing}.",
+    "configOk": "Nyolohelo i hone. Vhukwamani na khwalithi ya luambo zwi toda milingo ya ngoho.",
+    "conversationCreated": "Muvhulafhungo wo tsireledzwaho wo itwa. Khwalithi ya luambo a yo tendelwaho.",
+    "handoffQueued": "U fhandekanywa kha muthu ho vhewa kha muthethe ({reason}). Ndi khumbelo, a si vhukwamani.",
+    "aiResponseFailed": "Phindulo ya AI a yo fheli. A hu na mushumo wo itwaho. U nga humbela muthu.",
+    "actionNotCompleted": "Mushumo a wo fheli: {reason}.",
+    "apiUnavailable": "API ya vhukwamani a yo wanali. Dzhia kha OpsCore, nga murahu u khwinifhadza tsiaṱari iyi.",
+    "suggestedNextStep": "Nyeletshedzo fhedzi (a yo itwaho): {step}.",
+    "handoffQueuedQueueOnly": "U fhandekanywa ho vhewa kha muthethe ({reason}). Muthethe a u sumbedzi uri mushumi u hone.",
+    "voiceHandoffStopped": "U fhandekanywa ho vhewa kha muthethe. Muvhulafhungo wa AI u a fhela; luvingo a lo lugisedzwaho.",
+    "voiceCredentialRequest": "U humbela khii ya ipfi ya tshifhinganyana…",
+    "voiceRealtimeError": "Mupedzi wa Realtime o sumbedza vhukhakhi. Fhelisa ipfi, sengulusa nyolohelo, nga murahu u linge.",
+    "voiceActive": "Muvhulafhungo wa ipfi u a shuma. Humbela muthu tshifhinga tshothe; hezwi zwi ita muthethe, a si luvingo.",
+    "voiceCredentialActive": "{languageCode} · khii ya tshifhinganyana",
+    "queueUnavailable": "Muthethe a u vhonali: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Thendelo i a toda phanda ha u thoma muvhulafhungo.",
+    "SERVER_RESPONSE_INVALID": "Phindulo ya sevha a yo vhalei.",
+    "REQUEST_FAILED": "Khumbelo yo kundelwa.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Mupedzi wa ipfi wa Realtime a o wanali.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Browser iyi a i tikedzi ipfi la Realtime.",
+    "HANDOFF_NOT_CLAIMED": "U fhandekanywa a ho tanganedzwaho.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Mulaedza wo dovhololwaho wo litshiwa."
+  }
+}

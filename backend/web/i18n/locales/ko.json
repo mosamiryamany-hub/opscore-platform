@@ -1,0 +1,111 @@
+{
+  "nativeName": "한국어",
+  "nav": {
+    "title": "AI 콘택트 센터",
+    "subtitle": "관리되는 상담원 인계 기능을 갖춘 다국어 셀프서비스.",
+    "operationsConsole": "운영 콘솔",
+    "interfaceLanguage": "인터페이스 언어"
+  },
+  "status": {
+    "configured": "보호 모드 구성됨",
+    "setupIncomplete": "설정 미완료",
+    "apiUnavailable": "로그인 / API 사용 불가"
+  },
+  "stats": {
+    "catalogueRows": "카탈로그 행",
+    "catalogueRowsNote": "입력 목록 보존됨",
+    "uniqueCodes": "고유 언어 코드",
+    "uniqueCodesNote": "중복 항목은 표시됩니다",
+    "providerQualification": "공급자 자격",
+    "providerQualificationNote": "독립적으로 테스트된 언어만 집계됩니다",
+    "liveQueue": "실시간 상담 대기열",
+    "liveQueueNote": "테넌트별 인계"
+  },
+  "customer": {
+    "eyebrow": "고객 경험",
+    "title": "대화 시작",
+    "consentPill": "동의 필요",
+    "preferredLanguage": "선호 언어",
+    "consentText": "이 대화가 구성된 AI 공급자에 의해 처리되는 데 동의합니다. 대화 기록은 저장 전에 암호화됩니다.",
+    "startChat": "보안 텍스트 채팅 시작",
+    "startVoice": "브라우저 음성 시작",
+    "setupHint": "관리자가 암호화 키와 AI 공급자를 구성할 때까지 사용할 수 없습니다.",
+    "noConversation": "활성 대화 없음",
+    "startHint": "동의된 세션을 만들어 시작하세요.",
+    "requestHuman": "상담원 요청",
+    "chatEmpty": "메시지가 여기에 표시됩니다. AI 작업은 제안일 뿐이며 결제, 계정 변경, 환불 또는 배차를 실행하지 않습니다.",
+    "messagePlaceholder": "메시지를 입력하세요…",
+    "send": "보내기",
+    "stopVoice": "음성 세션 중지",
+    "voiceOff": "음성이 꺼져 있습니다.",
+    "voiceStreamNote": "브라우저 음성은 구성된 공급자에게 스트리밍됩니다. OpsCore는 원본 오디오를 저장한다고 주장하지 않습니다.",
+    "voiceRequirement": "브라우저 음성은 HTTPS(또는 localhost), 마이크, 동의, 구성된 Realtime 모델과 공급자 키가 필요합니다. PSTN/SIP 전화 브리지가 아닙니다."
+  },
+  "queue": {
+    "eyebrow": "사람의 개입",
+    "title": "에스컬레이션 대기열",
+    "refresh": "새로 고침",
+    "description": "고위험, 미해결 또는 상담원 요청 대화가 여기에 표시됩니다. 대기열 항목은 요청됨을 의미하며 연결됨을 의미하지 않습니다.",
+    "loading": "대기열 불러오는 중…",
+    "empty": "이 조직에는 활성 상담원 인계가 없습니다.",
+    "openAssignment": "배정 열기",
+    "claimAndReview": "할당및 확인",
+    "resolve": "해결",
+    "reply": "답장",
+    "agentAssignedTitle": "배정된 대화",
+    "replyStorageNote": "상담원 답변은 저장 시 암호화되며 대화 기록에 표시됩니다.",
+    "resolveNote": "배정된 상담원이 해결했습니다."
+  },
+  "boundaries": {
+    "title": "운영 경계",
+    "automateTitle": "자동화를 위해 설계됨",
+    "automateBody": "다국어 최초 응답, 명확화, 의도 및 위험 분류, 대화 기록의 안전한 저장, 대기열 생성 및 상담원 배정.",
+    "humanTitle": "사람의 인계 필요",
+    "humanBody": "명시적인 사람 요청, 낮은 신뢰도, 높거나 치명적인 위험, 정책 부재, 미해결 사례, 개인정보·보안 불만, 불확실한 작업.",
+    "notEnabledTitle": "이 패키지만으로는 활성화되지 않음",
+    "notEnabledBody": "PSTN/SIP/WhatsApp/이메일 라우팅, 실시간 전화 브리지, CRM 신원 확인, 언어 품질 주장에는 실제 공급자 어댑터, 자격 증명, 인수 테스트가 필요합니다."
+  },
+  "roles": {
+    "customer": "고객",
+    "human": "상담원",
+    "ai": "AI 어시스턴트"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "고객이 상담원을 요청",
+    "low_confidence": "낮은 신뢰도",
+    "high_risk": "높은 위험",
+    "policy_refusal": "정책 거부 / 제한",
+    "unresolved": "미해결 문제",
+    "repeated_failure": "반복된 실패",
+    "model_requested": "AI가 검토 요청",
+    "voice_review_required": "음성 검토 필요",
+    "other": "기타"
+  },
+  "messages": {
+    "qualificationNotice": "텍스트, ASR, TTS, 악센트, 에스컬레이션 테스트를 통과할 때까지 어떤 언어도 프로덕션 자격을 갖지 않습니다.",
+    "configNeeded": "추가 구성 필요: {missing}.",
+    "configOk": "구성이 존재합니다. 공급자 연결과 언어 품질에는 여전히 실제 인수 테스트가 필요합니다.",
+    "conversationCreated": "보안 대화가 생성되었습니다. 언어 품질은 아직 프로덕션 자격이 아닙니다.",
+    "handoffQueued": "상담원 인계가 대기열에 추가되었습니다({reason}). 대기열 요청일 뿐 실시간 연결이 아닙니다.",
+    "aiResponseFailed": "AI 응답이 완료되지 않았습니다. 아무 작업도 실행되지 않았습니다. 상담원을 요청할 수 있습니다.",
+    "actionNotCompleted": "작업이 완료되지 않았습니다: {reason}.",
+    "apiUnavailable": "컨택 센터 API를 불러오지 못했습니다. OpsCore 콘솔에 로그인한 뒤 이 페이지를 새로 고치세요.",
+    "suggestedNextStep": "제안된 다음 단계일 뿐입니다(실행되지 않음): {step}.",
+    "handoffQueuedQueueOnly": "상담원 연결이 대기열에 등록되었습니다({reason}). 대기열은 상담원 연결을 증명하지 않습니다.",
+    "voiceHandoffStopped": "상담원 연결이 대기열에 등록되었습니다. 브라우저 AI 세션을 종료합니다. 실시간 전화 전환은 구성되지 않았습니다.",
+    "voiceCredentialRequest": "단기 음성 자격 증명을 요청하는 중…",
+    "voiceRealtimeError": "실시간 공급자가 오류를 보고했습니다. 음성 세션을 중지하고 공급자 구성을 확인한 뒤 다시 시도하세요.",
+    "voiceActive": "음성 세션이 활성화되었습니다. 언제든지 '상담원 요청'을 누르세요. 이는 대기열 항목을 만들 뿐 PSTN 전환이 아닙니다.",
+    "voiceCredentialActive": "{languageCode} · 임시 공급자 자격 증명",
+    "queueUnavailable": "대기열을 사용할 수 없습니다: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "대화를 시작하려면 동의가 필요합니다.",
+    "SERVER_RESPONSE_INVALID": "서버 응답을 읽을 수 없습니다.",
+    "REQUEST_FAILED": "요청이 실패했습니다.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "실시간 음성 공급자에 연결할 수 없습니다.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "이 브라우저는 실시간 음성을 지원하지 않습니다.",
+    "HANDOFF_NOT_CLAIMED": "해당 연결을 가져올 수 없습니다.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "중복 메시지를 무시했습니다."
+  }
+}

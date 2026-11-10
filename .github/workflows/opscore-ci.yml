@@ -1,0 +1,44 @@
+name: OpsCore CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22.23.4'
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            mobile/package-lock.json
+      - name: Install backend
+        working-directory: backend
+        run: npm ci --ignore-scripts
+      - name: Syntax check
+        run: |
+          node --check backend/src/config.js
+          node --check backend/src/security.js
+          node --check backend/src/store.js
+          node --check backend/src/server.js
+      - name: Hardened metadata gate
+        working-directory: backend
+        run: npm run verify:hardened
+      - name: Backend release regression suite
+        working-directory: backend
+        run: OPSC_RELEASE_TEST_CONCURRENCY=12 node scripts/release-test-runner.js
+      - name: Security dependency audit
+        working-directory: backend
+        run: npm audit --omit=dev --audit-level=high

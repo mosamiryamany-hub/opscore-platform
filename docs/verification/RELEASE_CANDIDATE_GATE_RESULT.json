@@ -1,0 +1,148 @@
+{
+  "schemaVersion": "opscore.release-candidate-gate.v2",
+  "generatedAt": "2026-10-21T00:57:48.841Z",
+  "release": "0.11.62",
+  "status": "PASS_WITH_CONDITIONALS",
+  "results": [
+    {
+      "id": "backend-regression",
+      "status": "PASS",
+      "evidence": "361 tests / 0 failures"
+    },
+    {
+      "id": "api-inventory",
+      "status": "PASS"
+    },
+    {
+      "id": "openapi-sync",
+      "status": "PASS"
+    },
+    {
+      "id": "sector-neutrality",
+      "status": "PASS"
+    },
+    {
+      "id": "console-coverage",
+      "status": "PASS"
+    },
+    {
+      "id": "postgres-parity",
+      "status": "PASS"
+    },
+    {
+      "id": "migration-preflight",
+      "status": "PASS"
+    },
+    {
+      "id": "security-red-team",
+      "status": "PASS"
+    },
+    {
+      "id": "mutation-boundary",
+      "status": "PASS"
+    },
+    {
+      "id": "backup-verification",
+      "status": "PASS"
+    },
+    {
+      "id": "recovery-gate",
+      "status": "PASS"
+    },
+    {
+      "id": "export-verification",
+      "status": "PASS"
+    },
+    {
+      "id": "production-readiness",
+      "status": "PASS"
+    },
+    {
+      "id": "resilience",
+      "status": "PASS"
+    },
+    {
+      "id": "buyer-self-validation",
+      "status": "PASS"
+    },
+    {
+      "id": "buyer-preflight",
+      "status": "PASS"
+    },
+    {
+      "id": "mobile-verification",
+      "status": "PASS"
+    },
+    {
+      "id": "pre-infrastructure-final-evidence",
+      "status": "PASS"
+    },
+    {
+      "id": "release-documentation",
+      "status": "PASS"
+    },
+    {
+      "id": "sbom-generation",
+      "status": "PASS"
+    },
+    {
+      "id": "sbom-verification",
+      "status": "PASS"
+    },
+    {
+      "id": "release-artifact-gate",
+      "status": "PASS"
+    }
+  ],
+  "conditions": [
+    {
+      "id": "docker-runtime",
+      "status": "UNVERIFIED",
+      "detail": "Docker CLI unavailable in this execution environment.",
+      "next": "Run docker build and container smoke test in the release runner."
+    },
+    {
+      "id": "postgres-live",
+      "status": "UNVERIFIED",
+      "detail": "DATABASE_URL not provided in this environment.",
+      "next": "Provide DATABASE_URL in a controlled validation environment."
+    },
+    {
+      "id": "oidc-live",
+      "status": "UNVERIFIED",
+      "detail": "Real OIDC inputs not provided in this environment.",
+      "next": "Provide real IdP issuer/audience/token in a controlled validation environment."
+    },
+    {
+      "id": "shared-rate-state",
+      "status": "UNVERIFIED",
+      "detail": "OPSC_EXPECTED_INSTANCES is not declared, so rate-limit deployment shape is unverified.",
+      "next": "Set OPSC_EXPECTED_INSTANCES explicitly; for more than one instance also use FIREWALL_RATE_STATE=database and OPSC_SHARED_STATE_CONFIRMED=true."
+    },
+    {
+      "id": "network-edge",
+      "status": "UNVERIFIED",
+      "detail": "TLS termination, WAF/reverse proxy, segmentation and DNS controls are deployment-bound.",
+      "next": "Validate at the buyer edge."
+    },
+    {
+      "id": "external-observability",
+      "status": "UNVERIFIED",
+      "detail": "Central logs/metrics/traces and alert routing are deployment-bound.",
+      "next": "Connect the buyer observability stack."
+    },
+    {
+      "id": "mobile-signing",
+      "status": "UNVERIFIED",
+      "detail": "Signed Android/iOS artifacts require real signing credentials and build services.",
+      "next": "Run signed builds on the buyer/build environment."
+    },
+    {
+      "id": "physical-mobile",
+      "status": "UNVERIFIED",
+      "detail": "Physical-device behavior requires device validation.",
+      "next": "Run field-device acceptance on representative devices."
+    }
+  ],
+  "note": "PASS_WITH_CONDITIONALS is not production certification; infrastructure-bound checks remain explicitly unverified until exercised in the target environment."
+}

@@ -1,0 +1,3 @@
+-- OpsCore v0.11.45: cryptographic PDF sign-off records bound to exact document bytes.
+CREATE TABLE IF NOT EXISTS pdf_signatures (id TEXT PRIMARY KEY, organization_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE, document_type TEXT NOT NULL, document_id TEXT NOT NULL, document_sha256 TEXT NOT NULL, algorithm TEXT NOT NULL, signer_id TEXT NOT NULL, signature_base64url TEXT NOT NULL, created_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT, created_at TEXT NOT NULL, UNIQUE(organization_id,document_type,document_id,document_sha256));
+CREATE INDEX IF NOT EXISTS idx_pdf_signatures_doc ON pdf_signatures(organization_id,document_type,document_id,created_at);

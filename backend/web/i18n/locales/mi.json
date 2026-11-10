@@ -1,0 +1,111 @@
+{
+  "nativeName": "Te Reo Māori",
+  "nav": {
+    "title": "Pokapū Kōrero AI",
+    "subtitle": "Āwhina reo maha me te whakawhiti ki te tangata.",
+    "operationsConsole": "Paewhiri whakahaere",
+    "interfaceLanguage": "Reo atanga"
+  },
+  "status": {
+    "configured": "Aratau tiaki kua whiria",
+    "setupIncomplete": "Whiria kāore anō kia oti",
+    "apiUnavailable": "Takiuru / API kāore i te wātea"
+  },
+  "stats": {
+    "catalogueRows": "Ngā rārangi rārangi",
+    "catalogueRowsNote": "Rārangi tāuru kua tiakina",
+    "uniqueCodes": "Ngā waehere reo motuhake",
+    "uniqueCodesNote": "Ka tohua ngā tāruarua",
+    "providerQualification": "Tohu mātauranga kaiwhakarato",
+    "providerQualificationNote": "Ko ngā reo i whakamātauria motuhaketia ka tatauhia",
+    "liveQueue": "Rārangi tāngata ora",
+    "liveQueueNote": "Whakawhiti ā-kamupene"
+  },
+  "customer": {
+    "eyebrow": "WHEAKO KI TE KAIHOKO",
+    "title": "Tīmata he kōrero",
+    "consentPill": "Me whakaae",
+    "preferredLanguage": "Reo e hiahiatia ana",
+    "consentText": "E whakaae ana ahau ka taea tēnei kōrero te tukatuka e te kaiwhakarato AI. Ka whakamunatia ngā tuhinga i mua i te rongoā.",
+    "startChat": "Tīmata kōrero ā-tuhi haumaru",
+    "startVoice": "Tīmata reo pūtiro",
+    "setupHint": "Kāore e wātea kia whiria e te kaiwhakahaere te kī whakamuna me te kaiwhakarato AI.",
+    "noConversation": "Kāore he kōrero hohe",
+    "startHint": "Hanga he wātū whakaae kia tīmata ai.",
+    "requestHuman": "Tono tangata",
+    "chatEmpty": "Ka puta ngā karere ki konei. Ko ngā mahi AI he whakaaro noa; kāore he utu, he huringa pūkete, he whakahoki moni rānei e mahia.",
+    "messagePlaceholder": "Tuhia he karere…",
+    "send": "Tukua",
+    "stopVoice": "Whakamutua te reo",
+    "voiceOff": "Kua mate te reo.",
+    "voiceStreamNote": "Ka tukuna te reo pūtiro ki te kaiwhakarato; kāore a OpsCore e kī ana ka rongoātia te reo taketake.",
+    "voiceRequirement": "Me HTTPS (rānei localhost), hopuoro, whakaaetanga, tauira Realtime me te kī kaiwhakarato mō te reo pūtiro. Ehara i te piriti waea PSTN/SIP."
+  },
+  "queue": {
+    "eyebrow": "ĀWHINA TĀNGATA",
+    "title": "Rārangi whakawhiti",
+    "refresh": "Tāruaruatia",
+    "description": "Ka puta ngā kōrero mōrearea, kāore anō kia oti, kua tonoa rānei e te tangata ki konei. He tono te rārangi, ehara i te hononga.",
+    "loading": "E uta ana…",
+    "empty": "Kāore he whakawhiti tāngata mō tēnei whakahaere.",
+    "openAssignment": "Whakatuwheratia te mahi",
+    "claimAndReview": "Manākitia, arotakea",
+    "resolve": "Whakatau",
+    "reply": "Whakautu",
+    "agentAssignedTitle": "Kōrero kua tohua",
+    "replyStorageNote": "Ka whakamunatia ngā whakautu tāngata, ka kitea i te tuhinga kōrero.",
+    "resolveNote": "Kua whakatauria e te kaimahi kua tohua."
+  },
+  "boundaries": {
+    "title": "Ngā rohe mahi",
+    "automateTitle": "I hangaia hei whakaaunoa",
+    "automateBody": "He whakautu tuatahi reo maha, he whakamārama, he arotake mōrearea, he rongoā tuhinga haumaru, he hanga rārangi me te tohu kaimahi.",
+    "humanTitle": "Me riro mā te tangata",
+    "humanBody": "He tono tangata, he iti te whakapono, he mōrearea nui, kāore he kaupapa here, he take kāore anō kia whakatau, he amuamu tūmataiti, he mahi kāore i te mōhiotia.",
+    "notEnabledTitle": "Kāore e taea e tēnei pōkai anake",
+    "notEnabledBody": "PSTN/SIP, WhatsApp, īmēra, piriti waea, CRM me te whakapūmau reo me whai kaiwhakarato tūturu, taipitopito me ngā whakamātautau."
+  },
+  "roles": {
+    "customer": "Kaihoko",
+    "human": "Kaimahi tangata",
+    "ai": "Kaiāwhina AI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "I tono te kaihoko i tētahi tangata",
+    "low_confidence": "Iti te whakapono",
+    "high_risk": "Mōrearea nui",
+    "policy_refusal": "Whakakore kaupapa here",
+    "unresolved": "Take kāore anō kia whakatau",
+    "repeated_failure": "Mahi tukurua",
+    "model_requested": "I tono AI kia arotakea",
+    "voice_review_required": "Me arotake te reo",
+    "other": "Ētahi atu"
+  },
+  "messages": {
+    "qualificationNotice": "Kāore he reo kua whakamanahia kia oti ngā whakamātautau tuhinga, ASR, TTS me te reo.",
+    "configNeeded": "Me whiri tonu: {missing}.",
+    "configOk": "Kua whiria. Me whakamātautau tonu te hononga kaiwhakarato me te kounga reo.",
+    "conversationCreated": "Kua hanga he kōrero haumaru. Kāore anō te kounga reo kia whakamanahia.",
+    "handoffQueued": "Kua tuu te whakawhiti tāngata ki te rārangi ({reason}). He tono tēnei, ehara i te hononga ora.",
+    "aiResponseFailed": "Kāore te whakautu AI i oti. Kāore he mahi i mahia. Ka taea e koe te tono tangata.",
+    "actionNotCompleted": "Kāore te mahi i oti: {reason}.",
+    "apiUnavailable": "Kāore i taea te API o te Pokapū Kōrero te uta. Takiuru ki te paewhiri OpsCore, kātahi whakahoutia tēnei whārangi.",
+    "suggestedNextStep": "He whakaaro noa mō te mahi e whai ake (kāore i mahia): {step}.",
+    "handoffQueuedQueueOnly": "Kua tuu te whakawhiti tāngata ki te rārangi ({reason}). Kāore te rārangi e whakaatu he kaimahi e hono ana.",
+    "voiceHandoffStopped": "Kua tuu te whakawhiti tāngata ki te rārangi. E mutu ana te wātū AI; kāore te whakawhiti waea ora i te whiria.",
+    "voiceCredentialRequest": "E tono ana i tētahi kī reo poto…",
+    "voiceRealtimeError": "I pūrongo te kaiwhakarato Realtime i tētahi hapa. Whakamutua te wātū reo, arotakea te whiria, kātahi whakamātauria anō.",
+    "voiceActive": "Kei te mahi te wātū reo. Pēhia “Request human” i ngā wā katoa; ka hanga he rārangi, ehara i te whakawhiti PSTN.",
+    "voiceCredentialActive": "{languageCode} · kī kaiwhakarato rangitahi",
+    "queueUnavailable": "Kāore te rārangi i te wātea: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Me whakaae i mua i te tīmatanga o te kōrero.",
+    "SERVER_RESPONSE_INVALID": "Kāore i taea te whakautu a te tūmau te pānui.",
+    "REQUEST_FAILED": "I rahua te tono.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Kāore i taea te toro atu ki te kaiwhakarato reo Realtime.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Kāore tēnei pūtiro e tautoko ana i te reo Realtime.",
+    "HANDOFF_NOT_CLAIMED": "Kāore i taea te whakawhiti te manāki.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "I waihotia te karere tāruarua."
+  }
+}

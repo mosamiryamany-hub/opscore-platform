@@ -1,0 +1,110 @@
+name: OpsCore secure release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+
+concurrency:
+  group: opscore-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify-and-release:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22.23.4'
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            mobile/package-lock.json
+
+      - name: Install backend dependencies from lockfile
+        working-directory: backend
+        run: npm ci --ignore-scripts
+
+      - name: Install mobile dependencies from lockfile
+        working-directory: mobile
+        run: npm ci --ignore-scripts
+
+      - name: Run backend regression suite
+        working-directory: backend
+        run: OPSC_RELEASE_TEST_CONCURRENCY=12 node scripts/release-test-runner.js
+
+      - name: PostgreSQL schema parity gate
+        working-directory: backend
+        run: npm run db:postgres-parity
+
+      - name: Migration preflight
+        working-directory: backend
+        run: node scripts/migration-preflight.js
+
+      - name: Security transaction audit
+        working-directory: backend
+        run: npm run security:red-team
+
+      - name: Production readiness gate
+        working-directory: backend
+        run: npm run production:readiness
+
+      - name: Resilience and load gate
+        working-directory: backend
+        run: npm run resilience:gate
+
+      - name: Recovery gate
+        working-directory: backend
+        run: npm run recovery:gate
+
+      - name: Buyer self-validation
+        working-directory: backend
+        run: npm run buyer:self-validation
+
+      - name: Run mobile verification
+        working-directory: mobile
+        run: npm run verify
+
+      - name: Generate deterministic SBOM
+        run: node scripts/generate-sbom.js
+
+      - name: Verify SBOM against manifests and lockfiles
+        run: node scripts/verify-sbom.js
+
+      - name: Audit backend dependencies
+        working-directory: backend
+        run: npm audit --audit-level=high
+
+      - name: Audit mobile dependencies
+        working-directory: mobile
+        run: npm audit --audit-level=high
+
+      - name: Build buyer release archive
+        run: node scripts/package-release.js "$RUNNER_TEMP/OpsCore-release.zip"
+
+      - name: Generate release provenance attestation
+        uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
+        with:
+          subject-path: "$RUNNER_TEMP/OpsCore-release.zip"
+          sbom-path: docs/sbom/opscore-v0.11.62.cyclonedx.json
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: opscore-release
+          path: "$RUNNER_TEMP/OpsCore-release.zip"
+          if-no-files-found: error
+          retention-days: 14

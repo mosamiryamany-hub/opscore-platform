@@ -1,0 +1,85 @@
+{
+  "schemaVersion": "opscore.deployment-qualification.v1",
+  "generatedAt": "2026-11-02T10:44:03.655Z",
+  "release": "0.11.62",
+  "status": "PASS_WITH_CONDITIONALS",
+  "checks": [
+    {
+      "id": "node-engine",
+      "status": "PASS",
+      "detail": "required=>=22.23.4 <23; actual=22.23.4",
+      "evidence": null
+    },
+    {
+      "id": "npm-ci",
+      "status": "PASS",
+      "detail": "backend lockfile present; deterministic install verified separately",
+      "evidence": null
+    },
+    {
+      "id": "runtime-config-fail-closed",
+      "status": "PASS",
+      "detail": "Core server defaults to SQLite and rejects explicit PostgreSQL selection until full Store/runtime wiring is certified.",
+      "evidence": null
+    },
+    {
+      "id": "oidc-fail-closed",
+      "status": "PASS",
+      "detail": "OIDC verifier is implemented; missing issuer/audience fails closed and live IdP validation remains deployment-bound",
+      "evidence": null
+    },
+    {
+      "id": "docker-cli",
+      "status": "UNVERIFIED",
+      "detail": "Docker CLI unavailable in current execution environment",
+      "evidence": null
+    },
+    {
+      "id": "docker-node-pin",
+      "status": "PASS",
+      "detail": "Docker image pins Node 22.23.4",
+      "evidence": null
+    },
+    {
+      "id": "docker-non-root",
+      "status": "PASS",
+      "detail": "Docker runtime uses non-root user",
+      "evidence": null
+    },
+    {
+      "id": "docker-healthcheck",
+      "status": "PASS",
+      "detail": "Docker image has application healthcheck",
+      "evidence": null
+    },
+    {
+      "id": "postgres-client",
+      "status": "UNVERIFIED",
+      "detail": "Live psql tooling required for target-environment PostgreSQL qualification",
+      "evidence": null
+    },
+    {
+      "id": "postgres-live",
+      "status": "UNVERIFIED",
+      "detail": "No live PostgreSQL target was supplied to this execution",
+      "evidence": null
+    },
+    {
+      "id": "oidc-live",
+      "status": "UNVERIFIED",
+      "detail": "No buyer IdP credentials/token were supplied to this execution",
+      "evidence": null
+    }
+  ],
+  "truthBoundary": "Local qualification proves source/package/runtime guards only. PostgreSQL/RLS, OIDC/JWKS, TLS/WAF, distributed rate limiting, external providers, central observability, signed mobile artifacts, physical devices and buyer backup/restore require target-environment evidence.",
+  "nextRequiredEvidence": [
+    "Node 22.23.4+ within the declared <23 range",
+    "real PostgreSQL/PostGIS + RLS transaction tests",
+    "real OIDC/JWKS verification",
+    "TLS/reverse-proxy/WAF validation",
+    "distributed rate-limit behavior",
+    "central observability",
+    "signed physical-device mobile tests",
+    "buyer-environment backup/restore drill"
+  ]
+}

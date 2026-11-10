@@ -1,0 +1,111 @@
+{
+  "nativeName": "Svenska",
+  "nav": {
+    "title": "AI-kundtjänstcenter",
+    "subtitle": "Flerspråkig självbetjäning med styrd överlämning till människa.",
+    "operationsConsole": "Driftkonsol",
+    "interfaceLanguage": "Gränssnittsspråk"
+  },
+  "status": {
+    "configured": "Skyddat läge konfigurerat",
+    "setupIncomplete": "Installationen ofullständig",
+    "apiUnavailable": "Inloggning / API otillgängligt"
+  },
+  "stats": {
+    "catalogueRows": "Katalograder",
+    "catalogueRowsNote": "Indatalistan bevarad",
+    "uniqueCodes": "Unika språkkoder",
+    "uniqueCodesNote": "Dubbletter markeras",
+    "providerQualification": "Leverantörskvalificering",
+    "providerQualificationNote": "Endast oberoende testade språk räknas",
+    "liveQueue": "LIVE-kö för människor",
+    "liveQueueNote": "Överlämningar per hyresgäst"
+  },
+  "customer": {
+    "eyebrow": "KUNDUPPLEVELSE",
+    "title": "Starta ett samtal",
+    "consentPill": "Samtycke krävs",
+    "preferredLanguage": "Önskat språk",
+    "consentText": "Jag samtycker till att den här konversationen bearbetas av den konfigurerade AI-leverantören. Transkript krypteras före lagring.",
+    "startChat": "Starta säker textchatt",
+    "startVoice": "Starta webbläsarröst",
+    "setupHint": "Otillgänglig tills en administratör konfigurerar krypteringsnyckeln och AI-leverantören.",
+    "noConversation": "Ingen aktiv konversation",
+    "startHint": "Skapa en samtyckt session för att börja.",
+    "requestHuman": "Begär mänsklig agent",
+    "chatEmpty": "Dina meddelanden visas här. AI-åtgärder är bara förslag; inga betalningar, kontoändringar, återbetalningar eller utskick utförs.",
+    "messagePlaceholder": "Skriv ett meddelande…",
+    "send": "Skicka",
+    "stopVoice": "Avsluta röstsession",
+    "voiceOff": "Rösten är av.",
+    "voiceStreamNote": "Webbläsarrösten strömmas till den konfigurerade leverantören; OpsCore påstår inte att råljud lagras.",
+    "voiceRequirement": "Webbläsarröst kräver HTTPS (eller localhost), mikrofon, samtycke, en konfigurerad Realtime-modell och leverantörsnyckel. Det är ingen PSTN/SIP-telefonbrygga."
+  },
+  "queue": {
+    "eyebrow": "MÄNSKLIG INGRIPANDE",
+    "title": "Eskaleringskö",
+    "refresh": "Uppdatera",
+    "description": "Samtal med hög risk, olösta eller med begäran om människa visas här. Ett köobjekt betyder begärd, inte ansluten.",
+    "loading": "Läser in kö…",
+    "empty": "Inga aktiva mänskliga överlämningar för denna organisation.",
+    "openAssignment": "Öppna tilldelning",
+    "claimAndReview": "Kräv och granska",
+    "resolve": "Lös",
+    "reply": "Svara",
+    "agentAssignedTitle": "Tilldelad konversation",
+    "replyStorageNote": "Mänskliga svar krypteras vid lagring och syns i konversationens transkript.",
+    "resolveNote": "Löst av tilldelad mänsklig operatör."
+  },
+  "boundaries": {
+    "title": "Driftgränser",
+    "automateTitle": "Utformad för att automatisera",
+    "automateBody": "Flerspråkigt första svar, förtydligande, avsikts- och risktriage, säker transkriptlagring, skapande av köer och agenttilldelning.",
+    "humanTitle": "Mänskligt övertagande krävs",
+    "humanBody": "Uttrycklig begäran om människa, lågt förtroende, hög eller kritisk risk, saknad policy, olöst ärende, integritets-/säkerhetsklagomål eller osäker åtgärd.",
+    "notEnabledTitle": "Inte aktiverat av detta paket ensam",
+    "notEnabledBody": "PSTN/SIP/WhatsApp/e-postdirigering, live-telefonibrygga, CRM-identitetsverifiering och språkkvalitetsanspråk kräver en riktig leverantörsadapter, autentiseringsuppgifter och acceptanstester."
+  },
+  "roles": {
+    "customer": "Kund",
+    "human": "Mänsklig agent",
+    "ai": "AI-assistent"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Kunden begärde en människa",
+    "low_confidence": "Lågt förtroende",
+    "high_risk": "Hög risk",
+    "policy_refusal": "Policyvägran / -begränsning",
+    "unresolved": "Olöst problem",
+    "repeated_failure": "Upprepade misslyckanden",
+    "model_requested": "AI begärde granskning",
+    "voice_review_required": "Röstgranskning krävs",
+    "other": "Annat"
+  },
+  "messages": {
+    "qualificationNotice": "Inget språk är produktionskvalificerat förrän testerna för text, ASR, TTS, accent och eskalering är godkända.",
+    "configNeeded": "Konfiguration krävs fortfarande: {missing}.",
+    "configOk": "Konfigurationen finns. Leverantörskonnektivitet och språkkvalitet kräver fortfarande verkliga acceptanstester.",
+    "conversationCreated": "Säker konversation skapad. Språkkvaliteten är ännu inte produktionskvalificerad.",
+    "handoffQueued": "Mänsklig överlämning köad ({reason}). Detta är en köförfrågan, inte en live-anslutning.",
+    "aiResponseFailed": "AI-svaret slutfördes inte. Ingen åtgärd utfördes. Du kan begära en mänsklig agent.",
+    "actionNotCompleted": "Åtgärden slutfördes inte: {reason}.",
+    "apiUnavailable": "Contact Center-API:et kunde inte laddas. Logga in på OpsCore-konsolen och ladda sedan om sidan.",
+    "suggestedNextStep": "Endast föreslaget nästa steg (inte utfört): {step}.",
+    "handoffQueuedQueueOnly": "Mänsklig överlämning har lagts i kö ({reason}). Kön bevisar inte att en agent är ansluten.",
+    "voiceHandoffStopped": "Mänsklig överlämning har lagts i kö. AI-sessionen i webbläsaren stoppas; direkt telefoniöverföring är inte konfigurerad.",
+    "voiceCredentialRequest": "Begär kortlivad röstbehörighet…",
+    "voiceRealtimeError": "Realtidsleverantören rapporterade ett fel. Stoppa röstsessionen och försök igen efter att ha kontrollerat leverantörens konfiguration.",
+    "voiceActive": "Röstsessionen är aktiv. Tryck på ”Begär mänsklig agent” när som helst; det skapar ett köobjekt, inte en PSTN-överföring.",
+    "voiceCredentialActive": "{languageCode} · tillfällig leverantörsbehörighet",
+    "queueUnavailable": "Kön är inte tillgänglig: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Samtycke krävs innan en konversation kan starta.",
+    "SERVER_RESPONSE_INVALID": "Serversvaret kunde inte läsas.",
+    "REQUEST_FAILED": "Begäran misslyckades.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Leverantören av realtidsröst kunde inte nås.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Den här webbläsaren stöder inte realtidsröst.",
+    "HANDOFF_NOT_CLAIMED": "Överlämningen kunde inte tas över.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Dubblett av meddelande ignorerades."
+  }
+}

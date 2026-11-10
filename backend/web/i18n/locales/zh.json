@@ -1,0 +1,111 @@
+{
+  "nativeName": "简体中文",
+  "nav": {
+    "title": "AI 联络中心",
+    "subtitle": "多语言自助服务，配备受控的人工转接。",
+    "operationsConsole": "运营控制台",
+    "interfaceLanguage": "界面语言"
+  },
+  "status": {
+    "configured": "守护模式已配置",
+    "setupIncomplete": "设置未完成",
+    "apiUnavailable": "登录 / API 不可用"
+  },
+  "stats": {
+    "catalogueRows": "目录行数",
+    "catalogueRowsNote": "输入列表保持原样",
+    "uniqueCodes": "唯一语言代码",
+    "uniqueCodesNote": "重复项会被标记",
+    "providerQualification": "供应商资质认定",
+    "providerQualificationNote": "仅计入经过独立测试的语言",
+    "liveQueue": "人工实时队列",
+    "liveQueueNote": "按租户隔离的转接"
+  },
+  "customer": {
+    "eyebrow": "客户体验",
+    "title": "开始对话",
+    "consentPill": "需要同意",
+    "preferredLanguage": "首选语言",
+    "consentText": "我同意由所配置的 AI 供应商处理本次对话。文字记录在存储前会加密。",
+    "startChat": "开始安全文字聊天",
+    "startVoice": "开始浏览器语音",
+    "setupHint": "在管理员配置加密密钥和 AI 供应商之前，此功能不可用。",
+    "noConversation": "没有进行中的对话",
+    "startHint": "创建一个已同意的会话即可开始。",
+    "requestHuman": "请求人工客服",
+    "chatEmpty": "您的消息将显示在这里。AI 操作仅为建议；不会执行付款、账户变更、退款或派工。",
+    "messagePlaceholder": "输入消息…",
+    "send": "发送",
+    "stopVoice": "结束语音会话",
+    "voiceOff": "语音已关闭。",
+    "voiceStreamNote": "浏览器语音会传输到已配置的提供商；OpsCore 不声称存储原始音频。",
+    "voiceRequirement": "浏览器语音需要 HTTPS（或 localhost）、麦克风、同意、已配置的 Realtime 模型和提供商密钥。它不是 PSTN/SIP 电话桥接。"
+  },
+  "queue": {
+    "eyebrow": "人工介入",
+    "title": "升级队列",
+    "refresh": "刷新",
+    "description": "高风险、未解决或请求人工的对话显示在此处。队列条目表示已请求，而非已接通。",
+    "loading": "正在加载队列…",
+    "empty": "该组织当前没有活跃的人工转接。",
+    "openAssignment": "打开分配",
+    "claimAndReview": "认领并查看",
+    "resolve": "解决",
+    "reply": "回复",
+    "agentAssignedTitle": "已分配的对话",
+    "replyStorageNote": "人工回复在静态存储时加密，并显示在对话记录中。",
+    "resolveNote": "已由指派的人工坐席解决。"
+  },
+  "boundaries": {
+    "title": "运营边界",
+    "automateTitle": "设计用于自动化",
+    "automateBody": "多语言首次响应、澄清、意图与风险分诊、安全的文字记录存储、队列创建和客服分配。",
+    "humanTitle": "需要人工接管",
+    "humanBody": "明确的人工请求、低置信度、高风险或严重风险、缺少政策、未解决案件、隐私或安全投诉，或不确定的操作。",
+    "notEnabledTitle": "仅凭本套件无法启用",
+    "notEnabledBody": "PSTN/SIP/WhatsApp/电子邮件路由、实时电话桥接、CRM 身份验证和语言质量声明需要真实的供应商适配器、凭据和验收测试。"
+  },
+  "roles": {
+    "customer": "客户",
+    "human": "人工客服",
+    "ai": "AI 助手"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "客户请求人工客服",
+    "low_confidence": "置信度低",
+    "high_risk": "高风险",
+    "policy_refusal": "政策拒绝 / 限制",
+    "unresolved": "未解决的问题",
+    "repeated_failure": "反复失败",
+    "model_requested": "AI 请求人工复核",
+    "voice_review_required": "需要语音复核",
+    "other": "其他"
+  },
+  "messages": {
+    "qualificationNotice": "在文本、语音识别、语音合成、口音和升级测试通过之前，没有任何语言达到生产资格。",
+    "configNeeded": "仍需配置：{missing}。",
+    "configOk": "配置已存在。供应商连通性和语言质量仍需实际验收测试。",
+    "conversationCreated": "已创建安全对话。语言质量尚未达到生产资格。",
+    "handoffQueued": "人工转接已加入队列（{reason}）。这是队列请求，不是实时连接。",
+    "aiResponseFailed": "AI 回复未完成。未执行任何操作。您可以请求人工客服。",
+    "actionNotCompleted": "操作未完成：{reason}。",
+    "apiUnavailable": "无法加载联络中心 API。请登录 OpsCore 控制台，然后重新加载此页面。",
+    "suggestedNextStep": "仅为建议的下一步（未执行）：{step}。",
+    "handoffQueuedQueueOnly": "人工转接已排队（{reason}）。排队并不证明坐席已连接。",
+    "voiceHandoffStopped": "人工转接已排队。浏览器 AI 会话正在停止；未配置实时电话转接。",
+    "voiceCredentialRequest": "正在请求短期语音凭据…",
+    "voiceRealtimeError": "实时提供商报告了错误。请停止语音会话，检查提供商配置后重试。",
+    "voiceActive": "语音会话已激活。可随时点击“请求人工”，这只会创建队列项，而不是 PSTN 转接。",
+    "voiceCredentialActive": "{languageCode} · 临时提供商凭据",
+    "queueUnavailable": "队列不可用：{reason}。"
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "开始对话前必须同意。",
+    "SERVER_RESPONSE_INVALID": "无法读取服务器响应。",
+    "REQUEST_FAILED": "请求失败。",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "无法连接实时语音提供商。",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "此浏览器不支持实时语音。",
+    "HANDOFF_NOT_CLAIMED": "无法领取该转接。",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "已忽略重复消息。"
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "opscore.recovery-gate.v1",
+  "generatedAt": "2026-11-02T10:44:03.155Z",
+  "status": "PASS",
+  "source": "ephemeral non-production demo database",
+  "detail": {
+    "status": "PASS",
+    "source": "/tmp/opscore-recovery-gate-ISfzN8/opscore.sqlite",
+    "backupSizeBytes": 1859584,
+    "applicationTables": 127,
+    "sameTables": true,
+    "sameCounts": true,
+    "sourceIntegrity": "PASS",
+    "backupIntegrity": "PASS",
+    "restoredIntegrity": "PASS",
+    "foreignKeys": "PASS"
+  }
+}

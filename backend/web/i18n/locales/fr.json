@@ -1,0 +1,111 @@
+{
+  "nativeName": "Français",
+  "nav": {
+    "title": "Centre de contact IA",
+    "subtitle": "Libre-service multilingue avec transfert supervisé vers un agent humain.",
+    "operationsConsole": "Console des opérations",
+    "interfaceLanguage": "Langue de l'interface"
+  },
+  "status": {
+    "configured": "Mode protégé configuré",
+    "setupIncomplete": "Configuration incomplète",
+    "apiUnavailable": "Connexion / API indisponible"
+  },
+  "stats": {
+    "catalogueRows": "Lignes du catalogue",
+    "catalogueRowsNote": "Liste d'entrée préservée",
+    "uniqueCodes": "Codes de langue uniques",
+    "uniqueCodesNote": "Les doublons sont signalés",
+    "providerQualification": "Qualification fournisseur",
+    "providerQualificationNote": "Seules les langues testées indépendamment comptent",
+    "liveQueue": "File humaine en direct",
+    "liveQueueNote": "Transferts par locataire"
+  },
+  "customer": {
+    "eyebrow": "EXPÉRIENCE CLIENT",
+    "title": "Démarrer une conversation",
+    "consentPill": "Consentement requis",
+    "preferredLanguage": "Langue préférée",
+    "consentText": "J'accepte que cette conversation soit traitée par le fournisseur IA configuré. Les transcriptions sont chiffrées avant stockage.",
+    "startChat": "Démarrer le chat texte sécurisé",
+    "startVoice": "Démarrer la voix navigateur",
+    "setupHint": "Indisponible tant qu'un administrateur n'a pas configuré la clé de chiffrement et le fournisseur IA.",
+    "noConversation": "Aucune conversation active",
+    "startHint": "Créez une session avec consentement pour commencer.",
+    "requestHuman": "Demander un agent",
+    "chatEmpty": "Vos messages apparaîtront ici. Les actions de l'IA ne sont que des suggestions ; aucun paiement, modification de compte, remboursement ou envoi n'est exécuté.",
+    "messagePlaceholder": "Écrire un message…",
+    "send": "Envoyer",
+    "stopVoice": "Arrêter la session vocale",
+    "voiceOff": "Voix désactivée.",
+    "voiceStreamNote": "La voix du navigateur est transmise au fournisseur configuré ; OpsCore ne prétend pas stocker l'audio brut.",
+    "voiceRequirement": "La voix du navigateur nécessite HTTPS (ou localhost), un microphone, un consentement, un modèle Realtime configuré et une clé de fournisseur. Ce n'est pas une passerelle téléphonique PSTN/SIP."
+  },
+  "queue": {
+    "eyebrow": "INTERVENTION HUMAINE",
+    "title": "File d'escalade",
+    "refresh": "Actualiser",
+    "description": "Les conversations à risque élevé, non résolues ou demandant un agent apparaissent ici. Un élément en file signifie « demandé », pas « connecté ».",
+    "loading": "Chargement de la file…",
+    "empty": "Aucun transfert humain actif pour cette organisation.",
+    "openAssignment": "Ouvrir l'affectation",
+    "claimAndReview": "Revendiquer et examiner",
+    "resolve": "Résoudre",
+    "reply": "Répondre",
+    "agentAssignedTitle": "Conversation attribuée",
+    "replyStorageNote": "Les réponses des agents sont chiffrées au repos et visibles dans la transcription de la conversation.",
+    "resolveNote": "Résolu par l'opérateur humain attribué."
+  },
+  "boundaries": {
+    "title": "Limites opérationnelles",
+    "automateTitle": "Conçu pour automatiser",
+    "automateBody": "Première réponse multilingue, clarification, triage de l'intention et du risque, stockage sécurisé des transcriptions, création de files et affectation des agents.",
+    "humanTitle": "Reprise humaine requise",
+    "humanBody": "Demande humaine explicite, confiance faible, risque élevé ou critique, politique manquante, cas non résolu, plainte de confidentialité ou de sécurité, ou action incertaine.",
+    "notEnabledTitle": "Non activé par ce seul paquet",
+    "notEnabledBody": "Le routage PSTN/SIP/WhatsApp/e-mail, le pont téléphonique en direct, la vérification d'identité CRM et les claims de qualité linguistique exigent un adaptateur fournisseur réel, des identifiants et des tests d'acceptation."
+  },
+  "roles": {
+    "customer": "Client",
+    "human": "Agent humain",
+    "ai": "Assistant IA"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Le client a demandé un agent",
+    "low_confidence": "Confiance faible",
+    "high_risk": "Risque élevé",
+    "policy_refusal": "Refus / restriction de politique",
+    "unresolved": "Problème non résolu",
+    "repeated_failure": "Échecs répétés",
+    "model_requested": "L'IA a demandé une révision",
+    "voice_review_required": "Révision vocale requise",
+    "other": "Autre"
+  },
+  "messages": {
+    "qualificationNotice": "Aucune langue n'est qualifiée pour la production tant que les tests de texte, ASR, TTS, accent et escalade ne sont pas réussis.",
+    "configNeeded": "Configuration encore requise : {missing}.",
+    "configOk": "La configuration existe. La connectivité fournisseur et la qualité linguistique exigent encore des tests d'acceptation réels.",
+    "conversationCreated": "Conversation sécurisée créée. La qualité linguistique n'est pas encore qualifiée pour la production.",
+    "handoffQueued": "Transfert humain mis en file ({reason}). C'est une demande en file, pas une connexion en direct.",
+    "aiResponseFailed": "La réponse de l'IA n'a pas abouti. Aucune action n'a été exécutée. Vous pouvez demander un agent humain.",
+    "actionNotCompleted": "Action non terminée : {reason}.",
+    "apiUnavailable": "L'API du centre de contact n'a pas pu être chargée. Connectez-vous à la console OpsCore, puis rechargez cette page.",
+    "suggestedNextStep": "Prochaine étape suggérée uniquement (non exécutée) : {step}.",
+    "handoffQueuedQueueOnly": "Transfert humain mis en file ({reason}). La file ne prouve pas qu'un agent est connecté.",
+    "voiceHandoffStopped": "Transfert humain mis en file. La session d'IA du navigateur s'arrête ; aucun transfert téléphonique en direct n'est configuré.",
+    "voiceCredentialRequest": "Demande d'un justificatif vocal à courte durée de vie…",
+    "voiceRealtimeError": "Le fournisseur temps réel a signalé une erreur. Arrêtez la session vocale et réessayez après avoir vérifié la configuration du fournisseur.",
+    "voiceActive": "La session vocale est active. Appuyez sur « Demander un agent humain » à tout moment ; cela crée un élément de file, pas un transfert PSTN.",
+    "voiceCredentialActive": "{languageCode} · justificatif de fournisseur temporaire",
+    "queueUnavailable": "File indisponible : {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Le consentement est requis avant de démarrer une conversation.",
+    "SERVER_RESPONSE_INVALID": "La réponse du serveur n'a pas pu être lue.",
+    "REQUEST_FAILED": "La requête a échoué.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Le fournisseur vocal temps réel est injoignable.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Ce navigateur ne prend pas en charge la voix en temps réel.",
+    "HANDOFF_NOT_CLAIMED": "Le transfert n'a pas pu être pris en charge.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Message en double ignoré."
+  }
+}

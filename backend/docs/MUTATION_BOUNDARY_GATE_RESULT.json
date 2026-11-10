@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "opscore.mutation-boundary.v2",
+  "generatedAt": "2026-10-21T02:10:15.587Z",
+  "sourcePolicy": "MUTATION_ROUTE_POLICY_RESULT.json",
+  "mutationRoutes": 31,
+  "idempotentWriteBoundaries": 29,
+  "asyncIdempotencyBoundaries": 2,
+  "explicitReplayAtomicityPolicy": 31,
+  "notCovered": [],
+  "status": "PASS",
+  "reason": "All current mutation boundaries have an explicit, source-backed replay/atomicity policy; this does not certify runtime concurrency."
+}

@@ -1,0 +1,111 @@
+{
+  "nativeName": "Yorùbá",
+  "nav": {
+    "title": "Àárà Ojúewé Ìbánisọ̀rọ̀ AI",
+    "subtitle": "Àmúnisọrọ orisirisi èdè pẹ̀lú ìgbàníyàntí ènìyàn tí a ṣàkóso.",
+    "operationsConsole": "Ibojú iṣẹ́ ìṣàkóso",
+    "interfaceLanguage": "Èdè ojú-ìbáṣepọ̀"
+  },
+  "status": {
+    "configured": "Ọ̀nà ààbò ti ṣetán",
+    "setupIncomplete": "Ìpìlẹ̀ kò pé",
+    "apiUnavailable": "Ìwọlé / API kò sí"
+  },
+  "stats": {
+    "catalogueRows": "Àwọn ilà àkójọ",
+    "catalogueRowsNote": "Àkójọ ìwọ̀n tí a fi pamọ́",
+    "uniqueCodes": "Àwọn kódì èdè tó pẹ̀lú",
+    "uniqueCodesNote": "Àwọn tí a ṣe ẹ̀dá ń jẹ́ mọ́",
+    "providerQualification": "Ìdánimọ olùpàbó",
+    "providerQualificationNote": "Nìkan èdè tí a ti dánwò ní ọ̀nà ìmọ̀sọ́rán ni yóò kà",
+    "liveQueue": "Ìgbediro ènìyàn eléyìí",
+    "liveQueueNote": "Ìgbàmú fún olùgbé"
+  },
+  "customer": {
+    "eyebrow": "ÌRIRI ONÍBÀÁ",
+    "title": "Bẹ̀rẹ̀ ìjíròrò",
+    "consentPill": "Ìfẹ́ tó nilo",
+    "preferredLanguage": "Èdè tí ó wù Ọ",
+    "consentText": "Mo gbà kí ìjíròrò yìí jẹ́ fún olùpàbó AI tí a ṣètò. Àwọn ìtumọ̀ ń dídí kí o ṣàpamọ́.",
+    "startChat": "Bẹ̀rẹ̀ ìbánisọ̀rọ̀ ọ̀rọ̀ àbò",
+    "startVoice": "Bẹ̀rẹ̀ ohùn aṣàwákírí",
+    "setupHint": "Kì í ṣiṣẹ́ títí dípadí àgbà ṣètò bọtìnnì ààbò àti olùpàbó AI.",
+    "noConversation": "Kò sí ìjíròrò tó ń lọ",
+    "startHint": "Láti bẹ̀rẹ̀, dá àpàṣẹ èyí tó ní ìfẹ́.",
+    "requestHuman": "Bẹ̀wò ní olùrànlọ́wọ́ ènìyàn",
+    "chatEmpty": "Àwọn ìfiránṣẹ́ rẹ yóò hàn níbí. Àwọn ìṣe AI jẹ́ àbá níkan; kì í ṣe owó, àyípadà àkántí, ìpadà owó tàbí ìfiránṣẹ́.",
+    "messagePlaceholder": "Kọ ìfiránṣẹ́…",
+    "send": "Fìránṣẹ́",
+    "stopVoice": "Dúró ìpàdé ohùn",
+    "voiceOff": "Ohùn ti pa.",
+    "voiceStreamNote": "A ń fi ohùn aṣàwákiri ránṣẹ́ lọ́nà ìṣàn sí olùpèsè tí a ṣètò; OpsCore kò sọ pé òun ń tọ́jú ohùn àìsàtúnṣe pamọ́.",
+    "voiceRequirement": "Ohùn aṣàwákiri nílò HTTPS (tàbí localhost), gbohùngbohùn, ìyọ̀ǹda, àwòṣe Realtime tí a ṣètò àti kọ́kọ́rọ́ olùpèsè. Kì í ṣe afárá fóònù PSTN/SIP."
+  },
+  "queue": {
+    "eyebrow": "ÌGBÀNÍYÀNTÍ ÈNÌYÀN",
+    "title": "Ìgbediro dídìde",
+    "refresh": "Tun ṣe",
+    "description": "Ìjíròrò ewu ga, tí kò tí í padà tàbí tó bẹ̀ ènìyàn yóò hàn níbí. Ohun ìgbediro túmọ̀ sí wí pé àbéèpè, kì í ṣe asọpọ̀.",
+    "loading": "Ó ń gbé ìgbediro…",
+    "empty": "Kò sí ìgbàmú ènìyàn fún àjọ yìí.",
+    "openAssignment": "Ṣí ìfìnyànwò",
+    "claimAndReview": "Gbà kí o sì ṣàyẹ̀wò",
+    "resolve": "Padà ní ọ̀nà",
+    "reply": "Fèsì",
+    "agentAssignedTitle": "Ìjíròrò tí a yàn",
+    "replyStorageNote": "A ń fi àṣírí pa ìdáhùn ènìyàn mọ́ nígbà ìfipamọ́, wọ́n sì hàn nínú àkọsílẹ̀ ìjíròrò.",
+    "resolveNote": "Olùṣiṣẹ́ ènìyàn tí a yàn ló yanjú rẹ̀."
+  },
+  "boundaries": {
+    "title": "Àlà iṣẹ́",
+    "automateTitle": "Ṣètò fún ìfaraṣẹ́",
+    "automateBody": "Ìdáhùn àkọ́kọ́ orisirisi èdè, ìmúrāsílẹ̀, àyípadà àmì àti ewu, ìfipamọ́ àbójúde àbò, dídá ìgbediro àti dídì àwọn olùrànlọ́wọ́.",
+    "humanTitle": "Gbọ́n ẹni tó ń bọ́ fún ènìyàn",
+    "humanBody": "Àbéèpè ènìyàn tó ṣé owó, gbìíyànjú tó dínkù, ewu ga tàbí pàtàkì, òfin tó sílẹ̀, ọ̀rọ̀ tó kò tí í padà, àyànmọ́ ìkọ̀kọ̀/àbò tàbí ìṣe tó ṣòro lágbẹ́yàwó.",
+    "notEnabledTitle": "Kì í ṣiṣẹ́ pẹ̀lú ẹ̀rò yìí ṣoṣo",
+    "notEnabledBody": "Ọ̀nà PSTN/SIP/WhatsApp/imeel, ọ̀nà fọ́n eléyìí, ìmúlù àwọn CRM àti ìkànnì nípa didara èdè nílò olùpàbó mímọ́, ìwàádò àti ìdánwò gbígbà."
+  },
+  "roles": {
+    "customer": "Oníbàá",
+    "human": "Olùrànlọ́wọ́ ènìyàn",
+    "ai": "Aìránṣẹ́ AI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Oníbàá bẹ̀ ènìyàn",
+    "low_confidence": "Gbìíyànjú tí kò pé",
+    "high_risk": "Ewu ga",
+    "policy_refusal": "Ìkọ̀ / àgbékalẹ̀ òfin",
+    "unresolved": "Ìṣòro tí kò tí í padà",
+    "repeated_failure": "Ìṣẹ̀lẹ̀ tó ṣe ẹ̀dá",
+    "model_requested": "AI bẹ̀ àgbéyẹ̀wò",
+    "voice_review_required": "Àyẹ̀wò ohùn nilo",
+    "other": "Mìíràn"
+  },
+  "messages": {
+    "qualificationNotice": "Kò sí èdè tí ó pàbó fún iṣẹ́ àgbáyé títí dí é àdánwò ọ̀rọ̀, ASR, TTS, ohùn àti dídìdé bá ti wọ́n.",
+    "configNeeded": "Ṣíṣètò sì ń nílò: {missing}.",
+    "configOk": "Ṣíṣètò wà. Ìbáṣepọ̀ olùpàbó àti dídara èdè ń nílò àdánwò gbígbà nípa ẹni.",
+    "conversationCreated": "Ìjíròrò àbò dá. Dídara èdè kì í pàbó fún iṣẹ́ àgbáyé sibẹ̀sibẹ̀.",
+    "handoffQueued": "Ìgbàmú ènìyàn dé ìgbediro ({reason}). Èyí jẹ́ àbéèpè ìgbediro, kì í ṣe asọpọ̀ eléyìí.",
+    "aiResponseFailed": "Ìdáhùn AI kò parí. Kò sí ìṣe tó dán. O lè bẹ̀ olùrànlọ́wọ́ ènìyàn.",
+    "actionNotCompleted": "Ìṣe kò parí: {reason}.",
+    "apiUnavailable": "A kò lè gbé API Ibùdó Ìbáraẹnisọ̀rọ̀ wọlé. Wọlé sí console OpsCore, lẹ́yìn náà tún ojú-ìwé yìí gbé wọlé.",
+    "suggestedNextStep": "Ìgbésẹ̀ tó kàn tí a dábàá nìkan (a kò ṣe é): {step}.",
+    "handoffQueuedQueueOnly": "A ti fi ìfàlékún sí ènìyàn sínú ìlà ({reason}). Ìlà kò fi hàn pé aṣojú kan ti sopọ̀.",
+    "voiceHandoffStopped": "A ti fi ìfàlékún sí ènìyàn sínú ìlà. Ìpàdé AI aṣàwákiri ń dúró; a kò ṣètò ìgbékalẹ̀ fóònù lààyè.",
+    "voiceCredentialRequest": "Ń béèrè fún ìwé ẹ̀rí ohùn ìgbà kúkúrú…",
+    "voiceRealtimeError": "Olùpèsè àkókò gidi ròyìn àṣìṣe kan. Dá ìpàdé ohùn dúró kí o tún gbìyànjú lẹ́yìn tí o bá yẹ ìṣètò olùpèsè wò.",
+    "voiceActive": "Ìpàdé ohùn ń ṣiṣẹ́. Tẹ “Bẹ̀wò ní olùrànlọ́wọ́ ènìyàn” nígbàkúùgbà; èyí ń ṣẹ̀dá ohun kan nínú ìlà, kì í ṣe ìgbékalẹ̀ PSTN.",
+    "voiceCredentialActive": "{languageCode} · ìwé ẹ̀rí ìgbà díẹ̀ ti olùpèsè",
+    "queueUnavailable": "Ìlà kò sí: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "A nílò ìyọ̀ǹda kí ìjíròrò tó bẹ̀rẹ̀.",
+    "SERVER_RESPONSE_INVALID": "A kò lè kà ìdáhùn olupin náà.",
+    "REQUEST_FAILED": "Ìbéèrè náà kùnà.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "A kò lè dé ọ̀dọ̀ olùpèsè ohùn àkókò gidi.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Aṣàwákiri yìí kò ṣe àtìlẹ́yìn fún ohùn àkókò gidi.",
+    "HANDOFF_NOT_CLAIMED": "A kò lè gba ìfàlékún náà.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "A kọ ifiranṣẹ àtúnṣe sílẹ̀."
+  }
+}

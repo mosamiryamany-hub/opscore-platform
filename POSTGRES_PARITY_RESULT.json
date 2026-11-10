@@ -1,0 +1,17 @@
+{
+  "release": "0.11.62",
+  "status": "PASS",
+  "sqliteTableCount": 127,
+  "postgresCanonicalTableCount": 127,
+  "postgresMigrationTableCount": 128,
+  "missingInPostgresCanonical": [],
+  "missingInPostgresMigrations": [],
+  "missingCanonicalTablesInMigrations": [],
+  "missingRlsCoverage": [],
+  "malformedCompletionPolicyStatement": false,
+  "uuidTypedColumns": [
+    "id"
+  ],
+  "note": "Table parity is necessary but not sufficient for live PostgreSQL verification; runtime RLS, extensions, policies, privileges and concurrent behavior still require a real PostgreSQL environment.",
+  "generatedAt": "2026-11-02T10:43:05.023Z"
+}

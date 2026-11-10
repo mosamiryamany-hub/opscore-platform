@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>OpsCore — Database Proof</title>
+  <style>
+    body{font-family:system-ui,sans-serif;background:#0b1020;color:#e8eefc;margin:0;padding:32px}
+    .card{max-width:720px;margin:0 auto;border:1px solid rgba(0,229,255,.25);border-radius:16px;padding:24px;background:rgba(12,18,32,.9)}
+    h1{font-size:1.35rem;margin:0 0 8px}
+    .muted{color:#93a0b8}
+    .ok{color:#3dff9a;font-weight:700}.bad{color:#ff9fba;font-weight:700}
+    .row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Database connectivity proof</h1>
+    <p class="muted">Limited public status from the running application. Host, role, and credentials are never shown.</p>
+    <div class="row"><span>Probe</span><strong id="st">Checking…</strong></div>
+    <div class="row"><span>Engine</span><strong id="eng">—</strong></div>
+    <div class="row"><span>Checked at</span><strong id="ts">—</strong></div>
+    <p class="muted">This is an application-managed check, not a Neon Console link.</p>
+  <hr style="border:0;border-top:1px solid rgba(255,255,255,.12);margin:24px 0">
+  <h2>Production isolation review</h2>
+  <p class="muted">This check reads live PostgreSQL catalog metadata using the running application's database role. It does not replace a cross-tenant behavioral test.</p>
+  <div class="row"><span>Production isolation</span><strong id="sec-status">Checking…</strong></div>
+  <div class="row"><span>Public ordinary tables</span><strong id="sec-total">—</strong></div>
+  <div class="row"><span>RLS enabled / forced</span><strong id="sec-rls">—</strong></div>
+  <div class="row"><span>Tables without RLS</span><strong id="sec-no-rls">—</strong></div>
+  <div class="row"><span>Identity tables accessible without RLS</span><strong id="sec-identity">—</strong></div>
+  <p class="muted" id="sec-note">Waiting for the live catalog proof…</p>
+  <p><a href="/api/verify/database-security">View machine-readable security proof (JSON)</a></p>
+  </div>
+  <script src="/verify/database-proof.js" defer></script>
+</body>
+</html>

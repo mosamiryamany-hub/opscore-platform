@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "opscore.sbom.gate.v1",
+  "status": "PASS",
+  "format": "CycloneDX 1.6",
+  "components": 491,
+  "dependenciesWithEdges": 252,
+  "sourceLockfiles": [
+    "backend/package-lock.json",
+    "mobile/package-lock.json"
+  ],
+  "output": "docs/sbom/opscore-v0.11.62.cyclonedx.json",
+  "note": "Generated from committed npm package-lock.json files. This is an inventory/provenance input, not a vulnerability verdict."
+}

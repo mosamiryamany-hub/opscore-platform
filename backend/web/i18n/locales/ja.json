@@ -1,0 +1,111 @@
+{
+  "nativeName": "日本語",
+  "nav": {
+    "title": "AIコンタクトセンター",
+    "subtitle": "管理されたオペレーターへの引き継ぎ付き、多言語セルフサービス。",
+    "operationsConsole": "運用コンソール",
+    "interfaceLanguage": "インターフェース言語"
+  },
+  "status": {
+    "configured": "ガードモード設定済み",
+    "setupIncomplete": "セットアップ未完了",
+    "apiUnavailable": "サインイン / API 利用不可"
+  },
+  "stats": {
+    "catalogueRows": "カタログ行数",
+    "catalogueRowsNote": "入力リストは変更なし",
+    "uniqueCodes": "一意の言語コード",
+    "uniqueCodesNote": "重複にはフラグが付きます",
+    "providerQualification": "プロバイダー認定",
+    "providerQualificationNote": "独立してテストされた言語のみカウント",
+    "liveQueue": "オペレーター待ち行列",
+    "liveQueueNote": "テナント単位の引き継ぎ"
+  },
+  "customer": {
+    "eyebrow": "カスタマー体験",
+    "title": "会話を開始",
+    "consentPill": "同意が必要",
+    "preferredLanguage": "希望言語",
+    "consentText": "この会話が設定済みの AI プロバイダーによって処理されることに同意します。文字起こしは保存前に暗号化されます。",
+    "startChat": "安全なテキストチャットを開始",
+    "startVoice": "ブラウザ音声を開始",
+    "setupHint": "管理者が暗号化キーと AI プロバイダーを設定するまで利用できません。",
+    "noConversation": "アクティブな会話はありません",
+    "startHint": "同意済みセッションを作成して開始します。",
+    "requestHuman": "オペレーターを依頼",
+    "chatEmpty": "メッセージはここに表示されます。AI の操作は提案にすぎません。支払い、アカウント変更、返金、手配は実行されません。",
+    "messagePlaceholder": "メッセージを入力…",
+    "send": "送信",
+    "stopVoice": "音声セッションを停止",
+    "voiceOff": "音声はオフです。",
+    "voiceStreamNote": "ブラウザ音声は設定済みプロバイダーに送信されます。OpsCore は生の音声を保存するとは主張していません。",
+    "voiceRequirement": "ブラウザ音声には HTTPS（または localhost）、マイク、同意、設定済みの Realtime モデルとプロバイダーキーが必要です。PSTN/SIP の電話ブリッジではありません。"
+  },
+  "queue": {
+    "eyebrow": "人的対応",
+    "title": "エスカレーション待ち行列",
+    "refresh": "更新",
+    "description": "高リスク、未解決、またはオペレーター希望の会話がここに表示されます。行列の項目は「依頼済み」を意味し、「接続済み」ではありません。",
+    "loading": "待ち行列を読み込み中…",
+    "empty": "この組織には有効なオペレーター引き継ぎはありません。",
+    "openAssignment": "割り当てを開く",
+    "claimAndReview": "引き取って確認",
+    "resolve": "解決",
+    "reply": "返信",
+    "agentAssignedTitle": "割り当て済みの会話",
+    "replyStorageNote": "有人応答は保存時に暗号化され、会話の文字起こしに表示されます。",
+    "resolveNote": "担当の有人オペレーターが解決しました。"
+  },
+  "boundaries": {
+    "title": "運用上の境界",
+    "automateTitle": "自動化を目的として設計",
+    "automateBody": "多言語の第一次応答、明確化、意図とリスクのトリアージ、文字起こしの安全な保存、待ち行列の作成とオペレーター割り当て。",
+    "humanTitle": "オペレーター対応が必要",
+    "humanBody": "明示的な人間の要請、低信頼度、高または重大なリスク、ポリシー不足、未解決案件、プライバシー・セキュリティーの苦情、不確実な操作。",
+    "notEnabledTitle": "このパッケージ単独では無効",
+    "notEnabledBody": "PSTN/SIP/WhatsApp/メール ルーティング、リアルタイム電話ブリッジ、CRM 本人確認、言語品質の主張には、実際のプロバイダーアダプター、資格情報、受け入れテストが必要です。"
+  },
+  "roles": {
+    "customer": "お客様",
+    "human": "オペレーター",
+    "ai": "AI アシスタント"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "お客様がオペレーターを依頼",
+    "low_confidence": "信頼度が低い",
+    "high_risk": "高リスク",
+    "policy_refusal": "ポリシーによる拒否 / 制限",
+    "unresolved": "未解決の問題",
+    "repeated_failure": "繰り返される失敗",
+    "model_requested": "AI が確認を要請",
+    "voice_review_required": "音声確認が必要",
+    "other": "その他"
+  },
+  "messages": {
+    "qualificationNotice": "テキスト、ASR、TTS、アクセント、エスカレーションの各テストに合格するまで、本番対応の言語はありません。",
+    "configNeeded": "追加設定が必要です: {missing}。",
+    "configOk": "設定は存在します。プロバイダー接続と言語品質には、引き続き実際の受け入れテストが必要です。",
+    "conversationCreated": "安全な会話を作成しました。言語品質はまだ本番レベルではありません。",
+    "handoffQueued": "オペレーターへの引き継ぎを行列に追加しました（{reason}）。これは行列への依頼であり、ライブ接続ではありません。",
+    "aiResponseFailed": "AI の応答が完了しませんでした。操作は実行されていません。オペレーターを依頼できます。",
+    "actionNotCompleted": "操作が完了していません: {reason}。",
+    "apiUnavailable": "コンタクトセンター API を読み込めませんでした。OpsCore コンソールにサインインしてからこのページを再読み込みしてください。",
+    "suggestedNextStep": "提案された次のステップのみ（未実行）：{step}。",
+    "handoffQueuedQueueOnly": "有人引き継ぎをキューに登録しました（{reason}）。キューはオペレーターの接続を証明するものではありません。",
+    "voiceHandoffStopped": "有人引き継ぎをキューに登録しました。ブラウザ AI セッションを終了します。ライブ電話転送は設定されていません。",
+    "voiceCredentialRequest": "短期有効な音声クレデンシャルを要求しています…",
+    "voiceRealtimeError": "リアルタイムプロバイダーがエラーを報告しました。音声セッションを停止し、プロバイダー設定を確認して再試行してください。",
+    "voiceActive": "音声セッションが有効です。「有人対応を依頼」はいつでも押せます。これはキュー項目を作るだけで、PSTN 転送ではありません。",
+    "voiceCredentialActive": "{languageCode} · 一時的なプロバイダークレデンシャル",
+    "queueUnavailable": "キューを利用できません：{reason}。"
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "会話を開始する前に同意が必要です。",
+    "SERVER_RESPONSE_INVALID": "サーバー応答を読み取れませんでした。",
+    "REQUEST_FAILED": "リクエストに失敗しました。",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "リアルタイム音声プロバイダーに接続できませんでした。",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "このブラウザーはリアルタイム音声に対応していません。",
+    "HANDOFF_NOT_CLAIMED": "引き継ぎを取得できませんでした。",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "重複メッセージを無視しました。"
+  }
+}

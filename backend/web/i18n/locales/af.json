@@ -1,0 +1,111 @@
+{
+  "nativeName": "Afrikaans",
+  "nav": {
+    "title": "KI-kontaksentrum",
+    "subtitle": "Meertalige selfdiens met beheerde oorhandiging aan 'n mens.",
+    "operationsConsole": "Operasiekonsoles",
+    "interfaceLanguage": "Koppelvlaktaal"
+  },
+  "status": {
+    "configured": "Beskermde modus gekonfigureer",
+    "setupIncomplete": "Opstelling onvolledig",
+    "apiUnavailable": "Aanteken / API nie beskikbaar nie"
+  },
+  "stats": {
+    "catalogueRows": "Katalogusrye",
+    "catalogueRowsNote": "Invoerlys bewaar",
+    "uniqueCodes": "Unieke taalkodes",
+    "uniqueCodesNote": "Duplikate word gemerk",
+    "providerQualification": "Verskafferkwalifikasie",
+    "providerQualificationNote": "Slegs onafhanklik geteste tale tel",
+    "liveQueue": "Lewende mensery",
+    "liveQueueNote": "Oorhandigings per huurder"
+  },
+  "customer": {
+    "eyebrow": "KLANTE-ERVARING",
+    "title": "Begin 'n gesprek",
+    "consentPill": "Toestemming vereis",
+    "preferredLanguage": "Voorkeurtaal",
+    "consentText": "Ek stem in dat hierdie gesprek deur die gekonfigureerde KI-verskaffer verwerk word. Transkripsies word voor berging geënkripteer.",
+    "startChat": "Begin veilige teksklets",
+    "startVoice": "Begin blaaierstem",
+    "setupHint": "Nie beskikbaar nie totdat 'n administrateur die enkripsiesleutel en KI-verskaffer konfigureer.",
+    "noConversation": "Geen aktiewe gesprek nie",
+    "startHint": "Skep 'n toestemmingssessie om te begin.",
+    "requestHuman": "Versoek 'n menslike agent",
+    "chatEmpty": "U boodskappe verskyn hier. KI-aksies is slegs voorstelle; geen betalings, rekeningveranderings, terugbetalings of versendings word uitgevoer nie.",
+    "messagePlaceholder": "Skryf 'n boodskap…",
+    "send": "Stuur",
+    "stopVoice": "Stop stemsessie",
+    "voiceOff": "Stem is af.",
+    "voiceStreamNote": "Blaaierstem word na die opgestelde verskaffer gestroom; OpsCore beweer nie dat dit rou klank stoor nie.",
+    "voiceRequirement": "Blaaierstem vereis HTTPS (of localhost), 'n mikrofoon, toestemming, 'n opgestelde Realtime-model en verskaffersleutel. Dit is nie 'n PSTN/SIP-foonbrug nie."
+  },
+  "queue": {
+    "eyebrow": "MENSLIKE INGRYPING",
+    "title": "Eskalasie-ry",
+    "refresh": "Verfris",
+    "description": "Hoërisiko-, onopgeloste of mens-aangevrae gesprekke verskyn hier. 'n Ry-item beteken aangevra, nie verbind nie.",
+    "loading": "Laai ry…",
+    "empty": "Geen aktiewe menslike oorhandigings vir hierdie organisasie nie.",
+    "openAssignment": "Oop toewysing",
+    "claimAndReview": "Eis en hersien",
+    "resolve": "Los op",
+    "reply": "Antwoord",
+    "agentAssignedTitle": "Toegewysde gesprek",
+    "replyStorageNote": "Menslike antwoorde word in rus geënkripteer en is sigbaar in die gesprekstranskripsie.",
+    "resolveNote": "Opgelos deur toegewysde menslike operateur."
+  },
+  "boundaries": {
+    "title": "Operasionele grense",
+    "automateTitle": "Ontwerp vir outomatisering",
+    "automateBody": "Meertalige eerste antwoord, verduidelikking, bedoeling- en risikosortering, veilige transkripsieberging, ry-skepping en agentetoewysing.",
+    "humanTitle": "Menslike oorneemening vereis",
+    "humanBody": "Uitdruklike mensversoek, lae vertroue, hoë of kritieke risiko, ontbrekende beleid, onopgeloste saak, privaatheid/sekuriteitsklagte of onseker aksie.",
+    "notEnabledTitle": "Nie geaktiveer deur hierdie pakket alleen nie",
+    "notEnabledBody": "PSTN/SIP/WhatsApp/e-pos roetering, lewende telefoniebrug, CRM-identiteitsverifikasie en taalkwaliteitsbeweringe benodig 'n regte verskafferadapter, geloofsbriewe en aanvaardingstoetse."
+  },
+  "roles": {
+    "customer": "Kliënt",
+    "human": "Menslike agent",
+    "ai": "KI-assistent"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Kliënt het 'n mens versoek",
+    "low_confidence": "Lae vertroue",
+    "high_risk": "Hoë risiko",
+    "policy_refusal": "Beleidsweiering / -beperking",
+    "unresolved": "Onopgeloste probleem",
+    "repeated_failure": "Herhaalde mislukking",
+    "model_requested": "KI het hersiening versoek",
+    "voice_review_required": "Stemhersiening vereis",
+    "other": "Ander"
+  },
+  "messages": {
+    "qualificationNotice": "Geen taal is produksiekwalifiseer totdat teks-, ASR-, TTS-, aksent- en eskalasietoetse geslaag word nie.",
+    "configNeeded": "Konfigurasie nog vereis: {missing}.",
+    "configOk": "Konfigurasie bestaan. Verskafferkonnektiwiteit en taalkwaliteit benodig steeds regte aanvaardingstoetse.",
+    "conversationCreated": "Veilige gesprek geskep. Taalkwaliteit is nog nie produksiekwalifiseer nie.",
+    "handoffQueued": "Menslike oorhandiging in ry geplaas ({reason}). Dit is 'n ryversoek, nie 'n lewendige verbinding.",
+    "aiResponseFailed": "KI-antwoord nie voltooi nie. Geen aksie uitgevoer nie. U kan 'n menslike agent versoek.",
+    "actionNotCompleted": "Aksie nie voltooi nie: {reason}.",
+    "apiUnavailable": "Die Kontaksentrum-API kon nie gelaai word nie. Meld by die OpsCore-konsole aan en laai dan hierdie bladsy weer.",
+    "suggestedNextStep": "Slegs voorgestelde volgende stap (nie uitgevoer nie): {step}.",
+    "handoffQueuedQueueOnly": "Menslike oordrag in die tou geplaas ({reason}). Die tou bewys nie dat 'n agent gekoppel is nie.",
+    "voiceHandoffStopped": "Menslike oordrag in die tou geplaas. Die blaaier-KI-sessie word gestop; lewendige telefonie-oordrag is nie opgestel nie.",
+    "voiceCredentialRequest": "Versoek tans 'n kortstondige stemverwysing…",
+    "voiceRealtimeError": "Intydse verskaffer het 'n fout gerapporteer. Stop die stemsessie en probeer weer nadat die verskafferopstelling nagegaan is.",
+    "voiceActive": "Stemsessie is aktief. Druk enige tyd op “Versoek 'n menslike agent”; dit skep 'n touitem, nie 'n PSTN-oordrag nie.",
+    "voiceCredentialActive": "{languageCode} · tydelike verskafferverwysing",
+    "queueUnavailable": "Tou nie beskikbaar nie: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Toestemming is nodig voordat 'n gesprek kan begin.",
+    "SERVER_RESPONSE_INVALID": "Die bedienerreaksie kon nie gelees word nie.",
+    "REQUEST_FAILED": "Die versoek het misluk.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Die intydse stemverskaffer kon nie bereik word nie.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Hierdie blaaier ondersteun nie intydse stem nie.",
+    "HANDOFF_NOT_CLAIMED": "Die oordrag kon nie opgeëis word nie.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Dubbele boodskap geïgnoreer."
+  }
+}

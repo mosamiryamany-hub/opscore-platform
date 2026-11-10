@@ -1,0 +1,111 @@
+{
+  "nativeName": "Avañeʼẽ",
+  "nav": {
+    "title": "IA Marandu'isia Róga",
+    "subtitle": "Eñe'ẽ joaju opaichagua ñe'ẽme, tekove yenóryre ndive oñangarekóva.",
+    "operationsConsole": "Mboyve jejoko róga",
+    "interfaceLanguage": "Interface ñe'ẽ"
+  },
+  "status": {
+    "configured": "Monguatia teko py'aguapy ojapo'ỹva",
+    "setupIncomplete": "Ñembojoapy'ỹva",
+    "apiUnavailable": "Eike / API ndaikatúi ojeipuru"
+  },
+  "stats": {
+    "catalogueRows": "Aranduka rekóre rehegua",
+    "catalogueRowsNote": "Oñemohesa'ỹijóva",
+    "uniqueCodes": "Ñe'ẽ tai oikóva",
+    "uniqueCodesNote": "Ojehupyty'ỹva ojehecha",
+    "providerQualification": "Me'ẽhára tekoporã",
+    "providerQualificationNote": "Oñemboaje'ỹva oñeñe'ẽva'ekue",
+    "liveQueue": "Oikóva tapichakuéra rysýipe",
+    "liveQueueNote": "Oñemohenda tapichakuéra"
+  },
+  "customer": {
+    "eyebrow": "POHÃNOVÁRA ANGVÉ",
+    "title": "Eñepyrû ñe'ẽjoaju",
+    "consentPill": "Tekotee ñemoneĩ",
+    "preferredLanguage": "Ñe'ẽ erokuáse",
+    "consentText": "Che aikuaaséva ko ñe'ẽjoaju oñemohendakuaáva IA me'ẽhárape. Kuatiañe'ẽ oñemonguatia'ỹre oñeñongatusu.",
+    "startChat": "Eñepyrû ñe'ẽrenda hekorã",
+    "startVoice": "Eñepyrû ñe'ẽpora (navegador)",
+    "setupHint": "Ndaha'éi katupyrýpe ojehecha mboyve ojapóva ñemohendá'yvó pe ñe'ẽmongeta ha IA me'ẽhára.",
+    "noConversation": "Ndaipóri ñe'ẽjoaju",
+    "startHint": "Eñepyrû hagué ojapo tembiapo ñemoneĩva.",
+    "requestHuman": "Ekerovia tapichápe",
+    "chatEmpty": "Nde ñe'ẽngue ikatu ojehecha ko'ápe. IA rembiapoukapy ojerure'ỹva; ndaikatúi pagapýpe, cuenta iñambuéva, jopói jey térã emomandu'a.",
+    "messagePlaceholder": "Ehai ñe'ẽ…",
+    "send": "Emondo",
+    "stopVoice": "Emboyke ñe'ẽpora",
+    "voiceOff": "Ñe'ẽ ndaha'éi.",
+    "voiceStreamNote": "Pe ñe'ẽ ñanduti rehegua oñemondo mba'e'apohára ñemboheko gotyo; OpsCore ndohaikuaái oñongatuha audio ijapu'ỹva.",
+    "voiceRequirement": "Pe ñe'ẽ ñanduti rehegua oikotevẽ HTTPS (térã localhost), mikrofóno, ñe'ẽme'ẽ, Realtime modelo ñemboheko ha provehedor kyha. Ndaha'ei PSTN/SIP aranduka'i."
+  },
+  "queue": {
+    "eyebrow": "TEKOVÉ E'Õ",
+    "title": "Emohu'ã rysýi",
+    "refresh": "Emyahyreike",
+    "description": "Ko'ápe ojehecha ñe'ẽjoaju itujárguive, ñanembyaíva térã ojerure tapichápe. Mba'e rysýipe he'ise ojerure, ndaha'éi oñembojoaju.",
+    "loading": "Oñemyanyehẽ rysýi…",
+    "empty": "Ndaipóri tapichakuéra emohendakuaáva ko atýpe.",
+    "openAssignment": "Eipe'a mbohoroku",
+    "claimAndReview": "Ejuhu ha ehecha",
+    "resolve": "Emyhensa",
+    "reply": "Eme'ẽ",
+    "agentAssignedTitle": "Ñemongeta oñemoĩva",
+    "replyStorageNote": "Tapicha mbohovái oñeñongatu jave oñeñomi ha ojehecha ñemongeta kuatiañe'ẽme.",
+    "resolveNote": "Ojapo operador tapicha oñemoĩva."
+  },
+  "boundaries": {
+    "title": "Tembiapo jerovyvýpe",
+    "automateTitle": "Ojapóva ijehegui",
+    "automateBody": "Ñe'ẽ joaju opaichagua ñe'ẽme, ñe'ẽporãbo, ñe'ẽkuaa ha vaípe, hekorã kuatiañe'ẽ roryrenda, rysýi japo ha atyguára emohenda.",
+    "humanTitle": "Tekotee tapichápe ojapo",
+    "humanBody": "Tapichakuéra jerure py'aguapy, kuaapy'ỹ, itujáva térã vai vaíva, tendota rembipota'ỹ, tembiapo ñanembyaíva, ñemohendá'ỹ / tekopy vaíva térã mba'e ndaikuaaiva'ekue.",
+    "notEnabledTitle": "Ndaha'éi ojepurukuaávo ko mba'ere'ãnte",
+    "notEnabledBody": "PSTN/SIP/WhatsApp/correo ohóvo, ñe'ẽpora ipyahúva, CRM tekotee jajuhukuaa ha ñe'ẽporã jekoasa'ỹ oikotevẽ me'ẽhára rape, ñemonguatia ha ñepytyvõ."
+  },
+  "roles": {
+    "customer": "Pohãnohára",
+    "human": "Tapicha",
+    "ai": "IA pytyvõhára"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Pohãnohára ojerure tapichápe",
+    "low_confidence": "Kuaapy'ỹ",
+    "high_risk": "Itujáva",
+    "policy_refusal": "Oñemboyke / oñemonguatia",
+    "unresolved": "Mba'e ndaikatúi ojesareko",
+    "repeated_failure": "Oiko jey ndaipóri",
+    "model_requested": "IA ojerure jey",
+    "voice_review_required": "Tekotee ñe'ẽpora jey",
+    "other": "Ambue"
+  },
+  "messages": {
+    "qualificationNotice": "Ndaipóri ñe'ẽ ojepurukuaáva ojejapo'ỹre tembiapo kuatia, aru ñe'ẽrenda, ñe'ẽpora, ñe'ẽpora py'aguapy ha emohu'ã japo.",
+    "configNeeded": "Oikotevẽ gueteri ñemohenda: {missing}.",
+    "configOk": "Oĩ ñemohenda. Me'ẽhára rapykue ha ñe'ẽ porã tekotee gueteri jajuhukuaa va'erã.",
+    "conversationCreated": "Ojapo'ypy ñe'ẽjoaju hekorã. Ñe'ẽ porã ndaha'éi katupyrýpe ojepurukuaáva.",
+    "handoffQueued": "Tapichápe emohenda rysýipe ({reason}). Kóva rysýi jerure, ndaha'éi ojuehe joapy.",
+    "aiResponseFailed": "IA ñe'ẽ ndaikatúi ojapo. Ndaipóri mba'e ojejapóva. Ikatu rekerovia tapichápe.",
+    "actionNotCompleted": "Mba'e ndaikatúi ojapo: {reason}.",
+    "apiUnavailable": "Ndaikatúi ojegueru Contact Center API. Eike OpsCore consolape ha emoĩ jey ko kuatiarogue.",
+    "suggestedNextStep": "Pe moñepyrũha oñemoĩva añoite (ojejapoʼỹ): {step}.",
+    "handoffQueuedQueueOnly": "Ñemoĩ tapicha gotyo oñemoĩ fila-pe ({reason}). Fila ndohechauka agente ojuajúvo.",
+    "voiceHandoffStopped": "Ñemoĩ tapicha gotyo oñemoĩ fila-pe. Ñanduti AI sesión oñembyai; telefono mbohasa katu ndojeheko.",
+    "voiceCredentialRequest": "Oñemoñe'ẽ ñe'ẽ credencial sapy'a mbyky…",
+    "voiceRealtimeError": "Provehedor ko'ágaguápe omombe'u jejavy. Emboguejy ñe'ẽ sesión ha eha'ã jey ehechajoapy rire provehedor ñemboheko.",
+    "voiceActive": "Ñe'ẽ sesión omba'apo. Eñemboja “Ekerovia tapichápe” araka'e; kóva ojapo mba'e fila-pe, ndaha'ei PSTN mbohasa.",
+    "voiceCredentialActive": "{languageCode} · provehedor credencial sapy'a",
+    "queueUnavailable": "Fila ndaipóri: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Oñeikotevẽ ñe'ẽme'ẽ ñepyrũ mboyve ñemongeta.",
+    "SERVER_RESPONSE_INVALID": "Ndaikatúi ojelee servidor mbohovái.",
+    "REQUEST_FAILED": "Pe mba'ejerure ndoikói.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Ndaikatúi ojehupyty ñe'ẽ ko'ágaguápe provehedor.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Ko ñanduti rehegua ndohecháiri ñe'ẽ ko'ágaguápe.",
+    "HANDOFF_NOT_CLAIMED": "Ndaikatúi ojeguerohory pe ñemoĩ.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Marandu ojejapo jey oñemboyke."
+  }
+}

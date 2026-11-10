@@ -1,0 +1,23 @@
+services:
+  db:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: opscore
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?set POSTGRES_SUPERUSER_PASSWORD in the environment}
+      OPSCORE_RUNTIME_PASSWORD: ${OPSCORE_RUNTIME_PASSWORD:?set OPSCORE_RUNTIME_PASSWORD in the environment}
+      OPSCORE_MIGRATOR_PASSWORD: ${OPSCORE_MIGRATOR_PASSWORD:?set OPSCORE_MIGRATOR_PASSWORD in the environment}
+      OPSCORE_WORKER_PASSWORD: ${OPSCORE_WORKER_PASSWORD:?set OPSCORE_WORKER_PASSWORD in the environment}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - opscore-postgres:/var/lib/postgresql/data
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d opscore"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+volumes:
+  opscore-postgres:

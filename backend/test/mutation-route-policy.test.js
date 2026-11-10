@@ -1,0 +1,2 @@
+const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const path=require('node:path');
+test('targeted mutation route policy has explicit treatment for every reviewed route',()=>{const p=path.join(__dirname,'..','docs','MUTATION_ROUTE_POLICY_RESULT.json');const r=JSON.parse(fs.readFileSync(p,'utf8'));assert.equal(r.summary.total,36);assert.equal(r.summary.contractPresent,36);assert.equal(r.summary.explicitNonMutating,5);assert.equal(r.summary.asyncIdempotencyRequired,2);assert.equal(r.decision,'PASS');});

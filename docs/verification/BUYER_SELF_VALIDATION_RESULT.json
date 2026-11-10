@@ -1,0 +1,464 @@
+{
+  "schemaVersion": "opscore.buyer-self-validation.v1",
+  "generatedAt": "2026-10-21T00:57:40.436Z",
+  "release": "0.11.62",
+  "status": "PASS",
+  "results": [
+    {
+      "id": "buyer-acceptance-harness",
+      "status": "PASS",
+      "detail": "Existing buyer acceptance harness completed.",
+      "evidence": "ored data with integrity hash\\nok 2 - REQ-02: estimate and invoice PDF generated from stored data with integrity hash\\n  ---\\n  duration_ms: 301.792783\\n  type: 'test'\\n  ...\\n1..2\\n# tests 2\\n# suites 0\\n# pass 2\\n# fail 0\\n# cancelled 0\\n# skipped 0\\n# todo 0\\n# duration_ms 768.022811\\n\"\n    },\n    {\n      \"name\": \"buyer acceptance: test/req_notify_dispatch_map.test.js\",\n      \"pass\": true,\n      \"detail\": \"TAP version 13\\n# (node:25966) ExperimentalWarning: SQLite is an experimental feature and might change at any time\\n# (Use `node --trace-warnings ...` to show where the warning was created)\\n# Subtest: REQ-01: notification adapters report not configured by default (fail-closed)\\nok 1 - REQ-01: notification adapters report not configured by default (fail-closed)\\n  ---\\n  duration_ms: 0.790963\\n  type: 'test'\\n  ...\\n# Subtest: REQ-01: deliverNotificationExternal fails closed without credentials\\nok 2 - REQ-01: deliverNotificationExternal fails closed without credentials\\n  ---\\n  duration_ms: 285.28074\\n  type: 'test'\\n  ...\\n# Subtest: REQ-04: dispatcherMap returns only technicians with stored check-in coordinates\\nok 3 - REQ-04: dispatcherMap returns only technicians with stored check-in coordinates\\n  -\"\n    },\n    {\n      \"name\": \"buyer acceptance: test/demo_closeout_path.test.js\",\n      \"pass\": true,\n      \"detail\": \"TAP version 13\\n# (node:25979) ExperimentalWarning: SQLite is an experimental feature and might change at any time\\n# (Use `node --trace-warnings ...` to show where the warning was created)\\n# Subtest: A1 demo closeout path produces WO, evidence, signoff, invoice and PDFs\\nok 1 - A1 demo closeout path produces WO, evidence, signoff, invoice and PDFs\\n  ---\\n  duration_ms: 326.513834\\n  type: 'test'\\n  ...\\n1..1\\n# tests 1\\n# suites 0\\n# pass 1\\n# fail 0\\n# cancelled 0\\n# skipped 0\\n# todo 0\\n# duration_ms 507.240802\\n\"\n    },\n    {\n      \"name\": \"syntax: src/store.js\",\n      \"pass\": true,\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"syntax: src/server.js\",\n      \"pass\": true,\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"syntax: src/pdf.js\",\n      \"pass\": true,\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"syntax: src/adapters/notifications.js\",\n      \"pass\": true,\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"syntax: scripts/backup.js\",\n      \"pass\": true,\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"syntax: scripts/restore.js\",\n      \"pass\": true,\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"dispatcherMap present\",\n      \"pass\": true,\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"runDemoCloseoutPath present\",\n      \"pass\": true,\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"outboxEventCatalog present\",\n      \"pass\": true,\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"notification fail-closed codes\",\n      \"pass\": true,\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"pdf content sha footer\",\n      \"pass\": true,\n      \"detail\": \"\"\n    }\n  ],\n  \"summary\": {\n    \"total\": 23,\n    \"passed\": 23,\n    \"failed\": 0\n  }\n}\n"
+    },
+    {
+      "id": "demo-scenario:cascading-worker-failure",
+      "status": "PASS",
+      "detail": "End-to-end evidence-governed demo completed.",
+      "evidence": {
+        "schemaVersion": "opscore.demo.v1",
+        "scenario": "cascading-worker-failure",
+        "temporaryDatabase": "/tmp/opscore-demo-I51tif/demo.sqlite",
+        "approvalSimulated": true,
+        "stages": {
+          "observe": {
+            "schemaVersion": "opscore.operational-fabric-signals.v1",
+            "generatedAt": "2026-10-21T00:57:38.504Z",
+            "twin": {
+              "snapshotId": "twin_0c5a794c-51ff-4916-8986-abd98b9d15b9",
+              "stateSha256": "a78eada12df113813a785829a302959825e5a12724aa91ef0b03a22f35fcc550",
+              "openWorkOrders": 0,
+              "overdueWorkOrders": 0,
+              "unassignedActiveWorkOrders": 0,
+              "activeTechnicians": 0
+            },
+            "outboxQueued": 0,
+            "failedDependencies": 0,
+            "staleProcessingJobs": 0,
+            "geofenceAnomalies": [],
+            "runtime": {
+              "requests": 0,
+              "errors": 0,
+              "errorRate": 0,
+              "avgLatencyMs": 0
+            },
+            "capacityPressure": false,
+            "detected": {
+              "outboxBacklog": false,
+              "dependencyOutage": false,
+              "workerDegradation": false,
+              "geofenceAnomaly": false,
+              "runtimeFailure": false,
+              "capacityPressure": false
+            }
+          },
+          "simulate": {
+            "schemaVersion": "opscore.operational-fabric-signals.v1",
+            "generatedAt": "2026-10-21T00:57:38.505Z",
+            "twin": {
+              "snapshotId": "twin_e2e85ea4-2fc8-455d-bc0e-cb5ff41bd1a7",
+              "stateSha256": "d50fc95b5f198ef75e06b80c2b32570b91e6b43eae198aecfd33fdf9b1f0c794",
+              "openWorkOrders": 0,
+              "overdueWorkOrders": 0,
+              "unassignedActiveWorkOrders": 0,
+              "activeTechnicians": 0
+            },
+            "outboxQueued": 8,
+            "failedDependencies": 4,
+            "staleProcessingJobs": 6,
+            "geofenceAnomalies": [],
+            "runtime": {
+              "requests": 20,
+              "errors": 4,
+              "errorRate": 0.2,
+              "avgLatencyMs": 0
+            },
+            "capacityPressure": false,
+            "detected": {
+              "outboxBacklog": true,
+              "dependencyOutage": true,
+              "workerDegradation": true,
+              "geofenceAnomaly": false,
+              "runtimeFailure": true,
+              "capacityPressure": false
+            }
+          },
+          "decide": {
+            "proposalCount": 3,
+            "blocked": []
+          },
+          "approveAndAct": [
+            {
+              "actionType": "contain_integration_delivery",
+              "proposalId": "proposal_e947604c-242d-4f43-a68d-935c4fe31237",
+              "outcomeStatus": "unverified"
+            },
+            {
+              "actionType": "inspect_runtime_errors",
+              "proposalId": "proposal_e2c42616-df31-4947-bd39-b93d1cd67ebf",
+              "outcomeStatus": "unverified"
+            },
+            {
+              "actionType": "requeue_stale_worker_jobs",
+              "proposalId": "proposal_4d4fe756-cb32-4ca5-989d-fc5a384302d8",
+              "outcomeStatus": "resolved"
+            }
+          ],
+          "learn": {
+            "schemaVersion": "opscore.autopilot-learning.v1",
+            "samples": 3,
+            "insights": [
+              {
+                "actionType": "requeue_stale_worker_jobs",
+                "samples": 1,
+                "verifiedSamples": 1,
+                "resolved": 1,
+                "partial": 0,
+                "unresolved": 0,
+                "unverified": 0,
+                "successRate": 1,
+                "avgRecoveryTimeMs": 25
+              },
+              {
+                "actionType": "inspect_runtime_errors",
+                "samples": 1,
+                "verifiedSamples": 0,
+                "resolved": 0,
+                "partial": 0,
+                "unresolved": 0,
+                "unverified": 1,
+                "successRate": null,
+                "avgRecoveryTimeMs": 16
+              },
+              {
+                "actionType": "contain_integration_delivery",
+                "samples": 1,
+                "verifiedSamples": 0,
+                "resolved": 0,
+                "partial": 0,
+                "unresolved": 0,
+                "unverified": 1,
+                "successRate": null,
+                "avgRecoveryTimeMs": 13
+              }
+            ]
+          },
+          "causalEvidenceGraph": {
+            "id": "cgraph_436989d5-a31d-4feb-b1b0-8ffc540d7113",
+            "graphSha256": "568f5bbc57fbb70215f618fdaaeb12a0990f0cff6f936cf1b44bc4f37eccbfa7",
+            "summary": {
+              "signals": 3,
+              "events": 17,
+              "resources": 11,
+              "dependencies": 2,
+              "impacts": 1,
+              "decisions": 3,
+              "outcomes": 3
+            }
+          },
+          "finalSignals": {
+            "outboxBacklog": true,
+            "dependencyOutage": true,
+            "workerDegradation": false,
+            "geofenceAnomaly": false,
+            "runtimeFailure": true,
+            "capacityPressure": false
+          }
+        },
+        "truthBoundary": "Local deterministic demonstration only. It does not certify production infrastructure or external dependencies."
+      }
+    },
+    {
+      "id": "demo-scenario:dependency-outage",
+      "status": "PASS",
+      "detail": "End-to-end evidence-governed demo completed.",
+      "evidence": {
+        "schemaVersion": "opscore.demo.v1",
+        "scenario": "dependency-outage",
+        "temporaryDatabase": "/tmp/opscore-demo-QMD3dx/demo.sqlite",
+        "approvalSimulated": true,
+        "stages": {
+          "observe": {
+            "schemaVersion": "opscore.operational-fabric-signals.v1",
+            "generatedAt": "2026-10-21T00:57:39.472Z",
+            "twin": {
+              "snapshotId": "twin_0b93b885-0448-4ff5-963b-157019495c9a",
+              "stateSha256": "10b0ce4be95b9670e43c15c7317abe5b5d0755ecb29c7bf466cd8bdd4a9ebb3e",
+              "openWorkOrders": 0,
+              "overdueWorkOrders": 0,
+              "unassignedActiveWorkOrders": 0,
+              "activeTechnicians": 0
+            },
+            "outboxQueued": 0,
+            "failedDependencies": 0,
+            "staleProcessingJobs": 0,
+            "geofenceAnomalies": [],
+            "runtime": {
+              "requests": 0,
+              "errors": 0,
+              "errorRate": 0,
+              "avgLatencyMs": 0
+            },
+            "capacityPressure": false,
+            "detected": {
+              "outboxBacklog": false,
+              "dependencyOutage": false,
+              "workerDegradation": false,
+              "geofenceAnomaly": false,
+              "runtimeFailure": false,
+              "capacityPressure": false
+            }
+          },
+          "simulate": {
+            "schemaVersion": "opscore.operational-fabric-signals.v1",
+            "generatedAt": "2026-10-21T00:57:39.474Z",
+            "twin": {
+              "snapshotId": "twin_c77a0d17-23f0-4830-83ec-a7610500026c",
+              "stateSha256": "68fd33fb8f265f9e3b9c996dc76064cf5aad406d9b1e5ef82809c031227fc0f0",
+              "openWorkOrders": 0,
+              "overdueWorkOrders": 0,
+              "unassignedActiveWorkOrders": 0,
+              "activeTechnicians": 0
+            },
+            "outboxQueued": 0,
+            "failedDependencies": 4,
+            "staleProcessingJobs": 0,
+            "geofenceAnomalies": [],
+            "runtime": {
+              "requests": 0,
+              "errors": 0,
+              "errorRate": 0,
+              "avgLatencyMs": 0
+            },
+            "capacityPressure": false,
+            "detected": {
+              "outboxBacklog": false,
+              "dependencyOutage": true,
+              "workerDegradation": false,
+              "geofenceAnomaly": false,
+              "runtimeFailure": false,
+              "capacityPressure": false
+            }
+          },
+          "decide": {
+            "proposalCount": 1,
+            "blocked": []
+          },
+          "approveAndAct": [
+            {
+              "actionType": "contain_integration_delivery",
+              "proposalId": "proposal_01f6fe94-ae16-4a1e-937b-71b84c9154f5",
+              "outcomeStatus": "unverified"
+            }
+          ],
+          "learn": {
+            "schemaVersion": "opscore.autopilot-learning.v1",
+            "samples": 1,
+            "insights": [
+              {
+                "actionType": "contain_integration_delivery",
+                "samples": 1,
+                "verifiedSamples": 0,
+                "resolved": 0,
+                "partial": 0,
+                "unresolved": 0,
+                "unverified": 1,
+                "successRate": null,
+                "avgRecoveryTimeMs": 11
+              }
+            ]
+          },
+          "causalEvidenceGraph": {
+            "id": "cgraph_102b54c9-7b2b-4a5a-894b-3c53be4a2704",
+            "graphSha256": "855c1906f655166a151f8e78eebe1ed0c3adf450a250a46641f6870a47036d9c",
+            "summary": {
+              "signals": 1,
+              "events": 5,
+              "resources": 3,
+              "dependencies": 1,
+              "impacts": 1,
+              "decisions": 1,
+              "outcomes": 1
+            }
+          },
+          "finalSignals": {
+            "outboxBacklog": false,
+            "dependencyOutage": true,
+            "workerDegradation": false,
+            "geofenceAnomaly": false,
+            "runtimeFailure": false,
+            "capacityPressure": false
+          }
+        },
+        "truthBoundary": "Local deterministic demonstration only. It does not certify production infrastructure or external dependencies."
+      }
+    },
+    {
+      "id": "demo-scenario:worker-degradation",
+      "status": "PASS",
+      "detail": "End-to-end evidence-governed demo completed.",
+      "evidence": {
+        "schemaVersion": "opscore.demo.v1",
+        "scenario": "worker-degradation",
+        "temporaryDatabase": "/tmp/opscore-demo-YmygiE/demo.sqlite",
+        "approvalSimulated": true,
+        "stages": {
+          "observe": {
+            "schemaVersion": "opscore.operational-fabric-signals.v1",
+            "generatedAt": "2026-10-21T00:57:40.404Z",
+            "twin": {
+              "snapshotId": "twin_a9719ef8-bc3f-472f-994b-44e727eee941",
+              "stateSha256": "978f5345161e20f7da26abee5bae5b59c7a628fda2c0554baf8593dcd1a3529e",
+              "openWorkOrders": 0,
+              "overdueWorkOrders": 0,
+              "unassignedActiveWorkOrders": 0,
+              "activeTechnicians": 0
+            },
+            "outboxQueued": 0,
+            "failedDependencies": 0,
+            "staleProcessingJobs": 0,
+            "geofenceAnomalies": [],
+            "runtime": {
+              "requests": 0,
+              "errors": 0,
+              "errorRate": 0,
+              "avgLatencyMs": 0
+            },
+            "capacityPressure": false,
+            "detected": {
+              "outboxBacklog": false,
+              "dependencyOutage": false,
+              "workerDegradation": false,
+              "geofenceAnomaly": false,
+              "runtimeFailure": false,
+              "capacityPressure": false
+            }
+          },
+          "simulate": {
+            "schemaVersion": "opscore.operational-fabric-signals.v1",
+            "generatedAt": "2026-10-21T00:57:40.405Z",
+            "twin": {
+              "snapshotId": "twin_0872349c-af1b-446a-a882-af2e8d6042db",
+              "stateSha256": "d2dd79b8a2827a56bb13c1297531607185d96320e3943fdd80a56a2985ad5bc9",
+              "openWorkOrders": 0,
+              "overdueWorkOrders": 0,
+              "unassignedActiveWorkOrders": 0,
+              "activeTechnicians": 0
+            },
+            "outboxQueued": 0,
+            "failedDependencies": 0,
+            "staleProcessingJobs": 6,
+            "geofenceAnomalies": [],
+            "runtime": {
+              "requests": 0,
+              "errors": 0,
+              "errorRate": 0,
+              "avgLatencyMs": 0
+            },
+            "capacityPressure": false,
+            "detected": {
+              "outboxBacklog": false,
+              "dependencyOutage": false,
+              "workerDegradation": true,
+              "geofenceAnomaly": false,
+              "runtimeFailure": false,
+              "capacityPressure": false
+            }
+          },
+          "decide": {
+            "proposalCount": 1,
+            "blocked": []
+          },
+          "approveAndAct": [
+            {
+              "actionType": "requeue_stale_worker_jobs",
+              "proposalId": "proposal_1e1220d1-3d37-459e-9ee0-86bed3c14f9d",
+              "outcomeStatus": "resolved"
+            }
+          ],
+          "learn": {
+            "schemaVersion": "opscore.autopilot-learning.v1",
+            "samples": 1,
+            "insights": [
+              {
+                "actionType": "requeue_stale_worker_jobs",
+                "samples": 1,
+                "verifiedSamples": 1,
+                "resolved": 1,
+                "partial": 0,
+                "unresolved": 0,
+                "unverified": 0,
+                "successRate": 1,
+                "avgRecoveryTimeMs": 18
+              }
+            ]
+          },
+          "causalEvidenceGraph": {
+            "id": "cgraph_49b43039-4d74-4486-b3ef-17370859bdb6",
+            "graphSha256": "6123c53d066d421775c6eb4fffaf2cde42137c72b933ca63248c1b989837c02b",
+            "summary": {
+              "signals": 0,
+              "events": 11,
+              "resources": 9,
+              "dependencies": 0,
+              "impacts": 1,
+              "decisions": 1,
+              "outcomes": 1
+            }
+          },
+          "finalSignals": {
+            "outboxBacklog": false,
+            "dependencyOutage": false,
+            "workerDegradation": false,
+            "geofenceAnomaly": false,
+            "runtimeFailure": false,
+            "capacityPressure": false
+          }
+        },
+        "truthBoundary": "Local deterministic demonstration only. It does not certify production infrastructure or external dependencies."
+      }
+    },
+    {
+      "id": "buyer-artifact:docs/commercial/BUYER_EVALUATION.md",
+      "status": "PASS",
+      "detail": "Buyer-facing evidence artifact presence.",
+      "evidence": null
+    },
+    {
+      "id": "buyer-artifact:docs/00-START-HERE/DEMO_SCRIPT.md",
+      "status": "PASS",
+      "detail": "Buyer-facing evidence artifact presence.",
+      "evidence": null
+    },
+    {
+      "id": "buyer-artifact:docs/commercial/BUYER_INSTALLATION_GUIDE.md",
+      "status": "PASS",
+      "detail": "Buyer-facing evidence artifact presence.",
+      "evidence": null
+    },
+    {
+      "id": "buyer-artifact:docs/00-START-HERE/VALUE_PROOF.md",
+      "status": "PASS",
+      "detail": "Buyer-facing evidence artifact presence.",
+      "evidence": null
+    },
+    {
+      "id": "buyer-artifact:docs/archive/BUYER_INSTALLATION_VERIFICATION.json",
+      "status": "PASS",
+      "detail": "Buyer-facing evidence artifact presence.",
+      "evidence": null
+    },
+    {
+      "id": "buyer-artifact:docs/security/SECURITY.md",
+      "status": "PASS",
+      "detail": "Buyer-facing evidence artifact presence.",
+      "evidence": null
+    },
+    {
+      "id": "buyer-artifact:docs/security/SECURITY_THREAT_MODEL.md",
+      "status": "PASS",
+      "detail": "Buyer-facing evidence artifact presence.",
+      "evidence": null
+    }
+  ],
+  "truthBoundary": "This is an internal, reproducible buyer-style validation. It is not evidence from an independent customer or proof of production deployment acceptance."
+}

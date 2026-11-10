@@ -1,0 +1,111 @@
+{
+  "nativeName": "ⵜⴰⵎⴰⵣⵉⵖⵜ",
+  "nav": {
+    "title": "Asnulfu n umyawas AI",
+    "subtitle": "Tallalt s waṭas n tutlayin d ubrid n ufesri s ufus n ufgan.",
+    "operationsConsole": "Kunsul n twuriwin",
+    "interfaceLanguage": "Tutlayt n ugrudem"
+  },
+  "status": {
+    "configured": "Askar yettwaḥerzen yettwawḍen",
+    "setupIncomplete": "Awḍan ur yufi ara",
+    "apiUnavailable": "Adfer / API ulac-it"
+  },
+  "stats": {
+    "catalogueRows": "Izirig n tebdart",
+    "catalogueRowsNote": "Tebdart tettwaḥerz",
+    "uniqueCodes": "Tingalin n tutlayin yemgaraden",
+    "uniqueCodesNote": "Umuɣ dduṛ d yettwabdar",
+    "providerQualification": "Tasiḍent n umessuf",
+    "providerQualificationNote": "Tutlayin yettwaseknen s wudem asuf ḥasab",
+    "liveQueue": "Tizgi n imdanen tura",
+    "liveQueueNote": "Ufesri ɣer teɣlamt"
+  },
+  "customer": {
+    "eyebrow": "TIRMIST N UMSAƔ",
+    "title": "Bdu adiwenni",
+    "consentPill": "Tasiḍent tettwasra",
+    "preferredLanguage": "Tutlayt ttubḥa",
+    "consentText": "Qebleɣ ad yettwaxdem wadiwenni s umessuf AI. Iḍrisen ttwawḍen send uḥraz.",
+    "startChat": "Bdu adiwenni n uḍris s tɣellist",
+    "startVoice": "Bdu taɣect deg iminig",
+    "setupHint": "Ur yezmir ara alamma amseḍfir yewwi tigejdit n uɛqed d umessuf AI.",
+    "noConversation": "Ulac adiwenni yetteddun",
+    "startHint": "Eg adiwenni s tsiregt i tazwara.",
+    "requestHuman": "Suter amdan",
+    "chatEmpty": "Iznan ttbanen dagi. Imeḍya n AI d asumer kan; ulac sellek neɣ asnifel n umiḍan.",
+    "messagePlaceholder": "Ari inzan…",
+    "send": "Azen",
+    "stopVoice": "Seṛṛeḥ taɣect",
+    "voiceOff": "Taɣect tettwasfa.",
+    "voiceStreamNote": "Taɣect n iminig tettwazen ɣer umessuf; OpsCore ur yini ara tḥerrez taɣect taẓeṭṭaṭ.",
+    "voiceRequirement": "Taɣect n iminig tessra HTTPS, amaṣwaṛ, tasiregt, tamuddemt Realtime d tigejdit. Mači tilifun."
+  },
+  "queue": {
+    "eyebrow": "ALLUƔ S UMDAN",
+    "title": "Izirig n ufesri",
+    "refresh": "Smiren",
+    "description": "Idiwenniyen n tazɣelt neɣ win yeṭṭfen amdan ttbanen dagi. Izirig d asuter, mači tuqqna.",
+    "loading": "Yessali…",
+    "empty": "Ulac ufesri deg teɣlamt-a.",
+    "openAssignment": "Ldi tawuri",
+    "claimAndReview": "Qbel syin ɛayen",
+    "resolve": "Fakk",
+    "reply": "Err",
+    "agentAssignedTitle": "Adewenni yettwafk",
+    "replyStorageNote": "Tiririyin n umdan ttwawḍent, ttbanent deg uḍris n udiwenni.",
+    "resolveNote": "Yettwafakk s ufus n umxeddim yettwafken."
+  },
+  "boundaries": {
+    "title": "Tilisa n twuriwin",
+    "automateTitle": "Yettwaxdem i uselkim",
+    "automateBody": "Tiririt tazwara s waṭas n tutlayin, ussugen, asḥiggel n tazɣelt, aḥraz n iḍrisen d usnulfu n izirig.",
+    "humanTitle": "Alluɣ s ufgan yettwasra",
+    "humanBody": "Asuter n umdan, laman d ameẓẓyan, tazɣelt tameqqrant, asaḍ n ulac, anamek ur yefri, ckeyyel n waddud.",
+    "notEnabledTitle": "Ur yezmir ara s uferdis-a kan",
+    "notEnabledBody": "PSTN/SIP, WhatsApp, imayl, tilifun, CRM d usenqed n tutlayin ssrin amessuf n tidet d iseɣtiyen."
+  },
+  "roles": {
+    "customer": "Amsaɣ",
+    "human": "Amxeddim n umdan",
+    "ai": "Amawas AI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Amsaɣ yessuter amdan",
+    "low_confidence": "Laman d ameẓẓyan",
+    "high_risk": "Tazɣelt tameqqrant",
+    "policy_refusal": "Agwi n usaduf",
+    "unresolved": "Anamek ur yefri",
+    "repeated_failure": "Umuɣ n tuccḍa",
+    "model_requested": "AI yessuter asenqed",
+    "voice_review_required": "Asenqed n taɣect yettwasra",
+    "other": "Wayeḍ"
+  },
+  "messages": {
+    "qualificationNotice": "Ulac tutlayt yettwaqbalen alamma iseɣtiyen n uḍris, ASR, TTS d taɣect ffen.",
+    "configNeeded": "Awḍan yettwasra: {missing}.",
+    "configOk": "Awḍan llant. Tuqqna d taɣara n tutlayt ssrint iseɣtiyen n tidet.",
+    "conversationCreated": "Adewenni s tɣellist yettwaxdem. Taɣara n tutlayt ur tettwaqbal ara.",
+    "handoffQueued": "Ufesri ɣer umdan yettwafk deg uzirig ({reason}). D asuter, mači tuqqna.",
+    "aiResponseFailed": "Tiririt n AI ur tefrik ara. Ulac tawuri yettwaxdem. Tzemreḍ ad tsutreḍ amdan.",
+    "actionNotCompleted": "Tawuri ur tefrik ara: {reason}.",
+    "apiUnavailable": "API n udiwenni ur yettwafin ara. Kcem ɣer OpsCore, syin ales asebter-a.",
+    "suggestedNextStep": "Asumer kan (ur yettwaxdem ara): {step}.",
+    "handoffQueuedQueueOnly": "Ufesri yettwafk deg uzirig ({reason}). Izirig ur yebin ara amxeddim yella.",
+    "voiceHandoffStopped": "Ufesri yettwafk deg uzirig. Adiwenni AI yeṛṛeḥ; tilifun ur yettwawḍen ara.",
+    "voiceCredentialRequest": "Yessuter tigejdit n taɣect n umenzu…",
+    "voiceRealtimeError": "Amessuf Realtime yebder tuccḍa. Seṛṛeḥ taɣect, ɛayen awḍan, syin ales.",
+    "voiceActive": "Adewenni n taɣect yetteddu. Suter amdan melmi, wadi d izirig, mači tilifun.",
+    "voiceCredentialActive": "{languageCode} · tigejdit n umenzu",
+    "queueUnavailable": "Izirig ulac-it: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Tasiregt tettwasra send adiwenni.",
+    "SERVER_RESPONSE_INVALID": "Tiririt n uqeddac ur tettwaqra ara.",
+    "REQUEST_FAILED": "Asuter yecceḍ.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Amessuf n taɣect Realtime ur yettwafin ara.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Aminig-a ur yessefrak ara taɣect Realtime.",
+    "HANDOFF_NOT_CLAIMED": "Ufesri ur yettwaqbel ara.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Izen yettwaberru yettwaḍfer."
+  }
+}

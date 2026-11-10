@@ -1,0 +1,111 @@
+{
+  "nativeName": "Latviešu",
+  "nav": {
+    "title": "MI kontaktpunkts",
+    "subtitle": "Daudzvalodu pašapkalpošanās ar kontrolētu nodrošināšanu cilvēkam.",
+    "operationsConsole": "Darbību konsole",
+    "interfaceLanguage": "Saskarnes valoda"
+  },
+  "status": {
+    "configured": "Aizsargātais režīms konfigurēts",
+    "setupIncomplete": "Iestatīšana nepilnīga",
+    "apiUnavailable": "Pieteikšanās / API nav pieejams"
+  },
+  "stats": {
+    "catalogueRows": "Kataloga rindas",
+    "catalogueRowsNote": "Ievades sarakts saglabāts",
+    "uniqueCodes": "Unikālas valodu kodus",
+    "uniqueCodesNote": "Dublikātus atzīmē",
+    "providerQualification": "Pakalpojumu sniedzēja kvalifikācija",
+    "providerQualificationNote": "Skaita tikai neatkarīgi testētas valodas",
+    "liveQueue": "Tiešraides cilvēku rinda",
+    "liveQueueNote": "Nodrošināšanas vienā nomniekā"
+  },
+  "customer": {
+    "eyebrow": "KLIENTA PIEREDZE",
+    "title": "Sākt sarunu",
+    "consentPill": "Nepieciešama piekrišana",
+    "preferredLanguage": "Vēlamā valoda",
+    "consentText": "Piekrītu, ka šo sarunu apstrādās konfigurētais MI pakalpojumu sniedzējs. Transkripcijas pirms saglabāšanas tiek šifrētas.",
+    "startChat": "Sākt drošu teksta tērzēšanu",
+    "startVoice": "Sākt pārlūka balsi",
+    "setupHint": "Nav pieejams, kamēr administrators nav iestatījis šifrēšanas atslēgu un MI pakalpojumu sniedzēju.",
+    "noConversation": "Nav aktīvas sarunas",
+    "startHint": "Lai sāktu, izveidojiet sesiju ar piekrišanu.",
+    "requestHuman": "Pieprasīt cilvēku aģentu",
+    "chatEmpty": "Jūsu ziņojums šeit parādīsies. MI darbības ir tikai ieteikumi; maksājumi, kontu izmaiņas, atmaksas vai piegādes netiek veiktas.",
+    "messagePlaceholder": "Uzrakstiet ziņu…",
+    "send": "Sūtīt",
+    "stopVoice": "Apturēt balss sesiju",
+    "voiceOff": "Balss ir izslēgta.",
+    "voiceStreamNote": "Pārlūka balss tiek straumēta konfigurētajam pakalpojumu sniedzējam; OpsCore neapgalvo, ka glabā neapstrādātu audio.",
+    "voiceRequirement": "Pārlūka balsij nepieciešams HTTPS (vai localhost), mikrofons, piekrišana, konfigurēts Realtime modelis un pakalpojumu sniedzēja atslēga. Tas nav PSTN/SIP tālruņa tilts."
+  },
+  "queue": {
+    "eyebrow": "CILVĒKA INTERVENCIJA",
+    "title": "Eskalācijas rinda",
+    "refresh": "Atjaunināt",
+    "description": "Šeit parādās sarunas ar augstu risku, neatrisinātas vai ar pieprasījumu pēc cilvēka. Rindas vienuma nozīmē pieprasīts, ne savienots.",
+    "loading": "Notiek rindas ielāde…",
+    "empty": "Šai organizācijai nav aktīvu cilvēku nodrošinājumu.",
+    "openAssignment": "Atvērt piešķirumu",
+    "claimAndReview": "Pieprasīt un pārskatīt",
+    "resolve": "Atrisināt",
+    "reply": "Atbildēt",
+    "agentAssignedTitle": "Piešķirtā saruna",
+    "replyStorageNote": "Cilvēku atbildes tiek šifrētas glabāšanas laikā un ir redzamas sarunas atšifrējumā.",
+    "resolveNote": "Atrisināja piešķirtais cilvēks operators."
+  },
+  "boundaries": {
+    "title": "Darbības robežas",
+    "automateTitle": "Izstrādāts automatizēšanai",
+    "automateBody": "Daudzvalodu pirmā atbilde, precizēšana, nodomu un riska klasifikācija, droša transkriptu glabāšana, rindu izveide un aģentu piešķiršana.",
+    "humanTitle": "Nepieciešama cilvēka pārņemšana",
+    "humanBody": "Skaidrs pieprasījums pēc cilvēka, zems pašpaļaušanās līmenis, augsts vai kritisk risks, trūkstoša politika, neatrisināts gadījums, privātuma/drošības sūdzība vai neskaidra darbība.",
+    "notEnabledTitle": "Nav aktivizēts tikai ar šo pakotni",
+    "notEnabledBody": "PSTN/SIP/WhatsApp/e-pasta maršrutēšana, tiešsaistes telefona tilts, CRM identitātes pārbaude un valodas kvalitātes apgalvojumi pieprasa īstu pakalpojumu sniedzēja adapteri, akreditācijas datus un pieņemšanas testus."
+  },
+  "roles": {
+    "customer": "Klients",
+    "human": "Cilvēka aģents",
+    "ai": "MI asistents"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Klients pieprasīja cilvēku",
+    "low_confidence": "Zems paļaušanās līmenis",
+    "high_risk": "Augsts risks",
+    "policy_refusal": "Polistikas atteikums / ierobežojums",
+    "unresolved": "Neatrisināta problēma",
+    "repeated_failure": "Atkārtota neveiksme",
+    "model_requested": "MI pieprasīja pārskatīšanu",
+    "voice_review_required": "Nepieciešama balss pārskatīšana",
+    "other": "Cits"
+  },
+  "messages": {
+    "qualificationNotice": "Nevienu valodu nevar uzskatīt par ražošanai atbilstošu, kamēr nav izturēti teksta, runas atpazīšanas, runas sintēzes, izrunas un eskalācijas testi.",
+    "configNeeded": "Vēl nepieciešama konfigurācija: {missing}.",
+    "configOk": "Konfigurācija pastāv. Savienojamība ar sniedzēju un valodu kvalitāte vēl prasa īstas pieņemšanas pārbaudes.",
+    "conversationCreated": "Izveidota droša saruna. Valodu kvalitāte vēl nav atbilstoša ražošanai.",
+    "handoffQueued": "Cilvēka nodrošinājums ievietots rindā ({reason}). Tā ir rindas pieprasījums, ne tiešs savienojums.",
+    "aiResponseFailed": "MI atbilde netika pabeigta. Netika veikta neviena darbība. Varat pieprasīt cilvēka aģentu.",
+    "actionNotCompleted": "Darbība netika pabeigta: {reason}.",
+    "apiUnavailable": "Kontaktu centra API nevarēja ielādēt. Pierakstieties OpsCore konsolē un pārlādējiet šo lapu.",
+    "suggestedNextStep": "Tikai ieteiktais nākamais solis (nav izpildīts): {step}.",
+    "handoffQueuedQueueOnly": "Nodošana cilvēkam ievietota rindā ({reason}). Rinda neapliecina, ka aģents ir pieslēdzies.",
+    "voiceHandoffStopped": "Nodošana cilvēkam ievietota rindā. Pārlūka AI sesija tiek apturēta; tiešā tālruņa pāradresācija nav konfigurēta.",
+    "voiceCredentialRequest": "Tiek pieprasīti īslaicīgi balss akreditācijas dati…",
+    "voiceRealtimeError": "Reāllaika pakalpojumu sniedzējs ziņoja par kļūdu. Apturiet balss sesiju un mēģiniet vēlreiz pēc pakalpojumu sniedzēja konfigurācijas pārbaudes.",
+    "voiceActive": "Balss sesija ir aktīva. Jebkurā brīdī nospiediet “Pieprasīt cilvēku aģentu”; tas izveido rindas vienumu, nevis PSTN pāradresāciju.",
+    "voiceCredentialActive": "{languageCode} · pagaidu pakalpojumu sniedzēja akreditācijas dati",
+    "queueUnavailable": "Rinda nav pieejama: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Pirms sarunas sākšanas nepieciešama piekrišana.",
+    "SERVER_RESPONSE_INVALID": "Servera atbildi nevarēja nolasīt.",
+    "REQUEST_FAILED": "Pieprasījums neizdevās.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Reāllaika balss pakalpojumu sniedzēju nevarēja sasniegt.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Šis pārlūks neatbalsta reāllaika balsi.",
+    "HANDOFF_NOT_CLAIMED": "Nodošanu nevarēja pārņemt.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Dublētais ziņojums ignorēts."
+  }
+}

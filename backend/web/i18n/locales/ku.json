@@ -1,0 +1,111 @@
+{
+  "nativeName": "Kurdî (Kurmancî)",
+  "nav": {
+    "title": "Navenda Têkilhî ya AI",
+    "subtitle": "Xizmeta xwe ya pirzimanî bi veguhastina bi rêvebirî bo mirov.",
+    "operationsConsole": "Konsola karanînan",
+    "interfaceLanguage": "Zimanê navrûyê"
+  },
+  "status": {
+    "configured": "Moda parastî saz kirî",
+    "setupIncomplete": "Sazkirin naqedî ye",
+    "apiUnavailable": "Têketin / API tune ye"
+  },
+  "stats": {
+    "catalogueRows": "Rêzên katalogê",
+    "catalogueRowsNote": "Lîstoka têketinê parastî",
+    "uniqueCodes": "Kodên zimanê yekta",
+    "uniqueCodesNote": "Dubare tên nîşankirin",
+    "providerQualification": "Kalîteya peydaker",
+    "providerQualificationNote": "Tenê zimannên ceribandî yekane dijimartin",
+    "liveQueue": "Rêz a mirov a zindî",
+    "liveQueueNote": "Veguhastina bi rêzê"
+  },
+  "customer": {
+    "eyebrow": "TECRÛBEYA MIYETPARÊZ",
+    "title": "Axaftinê dest pê bike",
+    "consentPill": "Razîbûn pêwîst e",
+    "preferredLanguage": "Zimanê bijare",
+    "consentText": "Ez razi im ku ev axaftin ji aliyê peydakerê AI yê sazkirî were pêkanîn. Nivîsar beriya hilanînê şifre dibin.",
+    "startChat": "Axaftina nivîsê ya ewle dest pê bike",
+    "startVoice": "Dengê gerokê dest pê bike",
+    "setupHint": "Heta ku rêveber mifteya şîfrekirinê û peydakerê AI saz bike tune ye.",
+    "noConversation": "Axaftina çalak tune",
+    "startHint": "Ji bo destpêkê, çêkirina seyalek razîbûyî.",
+    "requestHuman": "Karbidarekî mirov bixwaze",
+    "chatEmpty": "Peyamên te li vir xuya dibin. Çalakiyên AI tenê pêşniyar in; dravdanin, guhertina hesab, vegerandina drav an şandin çê nabin.",
+    "messagePlaceholder": "Peyamek binivîse…",
+    "send": "Bişîne",
+    "stopVoice": "Çala dengê rawestîne",
+    "voiceOff": "Deng girtî ye.",
+    "voiceStreamNote": "Dengê gerokê ji pêşkêşkara mîhengkirî re wekî herikîn tê şandin; OpsCore îdîa nake ku dengê xav hilîne.",
+    "voiceRequirement": "Dengê gerokê HTTPS (an localhost), mîkrofonek, razîbûn, modela Realtime ya mîhengkirî û kilîta pêşkêşkar hewce dike. Ev pira têlefonê ya PSTN/SIP nîne."
+  },
+  "queue": {
+    "eyebrow": "DESTEVEKIRINA MIROV",
+    "title": "Rêza bilindkirinê",
+    "refresh": "Nû bike",
+    "description": "Axaftinên bi xetera bilind, bê çare an xwestina mirov li vir xuya dibin. Tiştê rêzê daxwaz e, ne girêdan.",
+    "loading": "Rêz bar dike…",
+    "empty": "Veguhastina mirov a çalak ji bo vê saziyê tune.",
+    "openAssignment": "Vekirina tayînkirinê",
+    "claimAndReview": "Bigire û kontrol bike",
+    "resolve": "Çareser bike",
+    "reply": "Bersiv bide",
+    "agentAssignedTitle": "Axaftina hatî veqetandin",
+    "replyStorageNote": "Bersivên mirovî di dema hilanînê de têne şîfrekirin û di transkrîptê axaftinê de tên dîtin.",
+    "resolveNote": "Ji aliyê operatorê mirovî yê hatî veqetandin ve hate çareserkirin."
+  },
+  "boundaries": {
+    "title": "Sînorên xebatê",
+    "automateTitle": "Ji bo otomatîkkirinê hatiye sazkirin",
+    "automateBody": "Bersiva yekem a pirzimanî, ronîkirin, rêzbendîna armanc û xeterê, hilanîna ewle a nivîsaran, afirandina rêzan û tayînkirina karbidaran.",
+    "humanTitle": "Girtina mirov pêwîst e",
+    "humanBody": "Daxwaza mirov a eşkere, bawerî kêm, xetera bilind an krîtîk, nehebiya polîtîkayê, doza bê çare, gilî nepenî/sûdur an çalakiya nediyar.",
+    "notEnabledTitle": "Bi vê pakêtê tenê çalak nîne",
+    "notEnabledBody": "Rêçkirina PSTN/SIP/WhatsApp/e-nameyê, pira têlefona zindî, rastbûna nasname ya CRM û îdyalên kalîteya zimanê adaptorek rast a peydaker, navnîşan û ceribandina qebûlkirinê hewce dike."
+  },
+  "roles": {
+    "customer": "Miyetpar",
+    "human": "Karbidarê mirov",
+    "ai": "Alîkarê AI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Miyetpar mirovek xwest",
+    "low_confidence": "Bawerî kêm",
+    "high_risk": "Xetera bilind",
+    "policy_refusal": "Redkirin / sînorkirina polîtîkayê",
+    "unresolved": "Pirsgirêka bê çare",
+    "repeated_failure": "Têkçûna dubare",
+    "model_requested": "AI çavdêriyê xwest",
+    "voice_review_required": "Kontrola dengê pêwîst e",
+    "other": "Yên din"
+  },
+  "messages": {
+    "qualificationNotice": "Heta ku ceribandina nivîsê, ASR, TTS, devok û bilindkirinê netempin, tu ziman ji bo hilberînê nayê pejirandin.",
+    "configNeeded": "Sazkirîn hîn pêwîst e: {missing}.",
+    "configOk": "Sazkirin heye. Girêdana peydaker û kalîteya zimanê hîn ceribandina rast a qebûlkirinê hewce dikin.",
+    "conversationCreated": "Axaftina ewle hate afirandin. Kalîteya zimanê hîn ji bo hilberînê nayê pejirandin.",
+    "handoffQueued": "Veguhastina mirov di rêzê de ye ({reason}). Ev daxwaza rêzê ye, ne girêdana zindî.",
+    "aiResponseFailed": "Bersiva AI neqediyaye. Tu çalakî nehatiye kirin. Dikarî karbidarekî mirov bixwazî.",
+    "actionNotCompleted": "Çalakî neqediyaye: {reason}.",
+    "apiUnavailable": "API-ya Navenda Têkiliyê nehat barkirin. Têkevin konsola OpsCore, paşê vê rûpelê dîsa bar bikin.",
+    "suggestedNextStep": "Tenê gava pêşniyarkirî ya piştî vê (nehatiye cîbicîkirin): {step}.",
+    "handoffQueuedQueueOnly": "Radestkirina ji mirovekî re ketiye rêzê ({reason}). Rêz nîşan nade ku nûnerek girêdayî ye.",
+    "voiceHandoffStopped": "Radestkirina ji mirovekî re ketiye rêzê. Danişîna AI ya gerokê radiweste; veguhastina têlefonê ya zindî nehatiye mîhengkirin.",
+    "voiceCredentialRequest": "Pêbaweriya dengî ya kurtmedet tê xwestin…",
+    "voiceRealtimeError": "Pêşkêşkara dema rastîn çewtiyek ragihand. Danişîna dengî rawestînin û piştî kontrolkirina mîhengên pêşkêşkar dîsa biceribînin.",
+    "voiceActive": "Danişîna dengî çalak e. Her dem bişkoka “Karbidarekî mirov bixwaze” bikirtînin; ev hêmanek di rêzê de çêdike, ne veguhastina PSTN.",
+    "voiceCredentialActive": "{languageCode} · pêbaweriya demkî ya pêşkêşkar",
+    "queueUnavailable": "Rêz ne berdest e: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Beriya destpêkirina axaftinê razîbûn pêwîst e.",
+    "SERVER_RESPONSE_INVALID": "Bersiva serverê nehat xwendin.",
+    "REQUEST_FAILED": "Daxwaz têk çû.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Gihîştina pêşkêşkara dengê di dema rastîn de ne pêkan bû.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Ev gerok dengê di dema rastîn de piştgirî nake.",
+    "HANDOFF_NOT_CLAIMED": "Radestkirin nehat girtin ser xwe.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Peyama dubare hate paşguhkirin."
+  }
+}

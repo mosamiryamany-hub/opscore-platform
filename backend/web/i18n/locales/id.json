@@ -1,0 +1,111 @@
+{
+  "nativeName": "Bahasa Indonesia",
+  "nav": {
+    "title": "Pusat Kontak AI",
+    "subtitle": "Layanan mandiri multibahasa dengan penyerahan terkendali kepada manusia.",
+    "operationsConsole": "Konsol operasi",
+    "interfaceLanguage": "Bahasa antarmuka"
+  },
+  "status": {
+    "configured": "Mode terlindungi dikonfigurasi",
+    "setupIncomplete": "Penyiapan belum selesai",
+    "apiUnavailable": "Masuk / API tidak tersedia"
+  },
+  "stats": {
+    "catalogueRows": "Baris katalog",
+    "catalogueRowsNote": "Daftar masukan dipertahankan",
+    "uniqueCodes": "Kode bahasa unik",
+    "uniqueCodesNote": "Duplikat ditandai",
+    "providerQualification": "Kualifikasi penyedia",
+    "providerQualificationNote": "Hanya bahasa yang diuji secara independen yang dihitung",
+    "liveQueue": "Antrean manusia langsung",
+    "liveQueueNote": "Penyerahan terbatas per penyewa"
+  },
+  "customer": {
+    "eyebrow": "PENGALAMAN PELANGGAN",
+    "title": "Mulai percakapan",
+    "consentPill": "Diperlukan persetujuan",
+    "preferredLanguage": "Bahasa pilihan",
+    "consentText": "Saya setuju percakapan ini diproses oleh penyedia AI yang dikonfigurasi. Transkrip dienkripsi sebelum disimpan.",
+    "startChat": "Mulai obrolan teks aman",
+    "startVoice": "Mulai suara peramban",
+    "setupHint": "Tidak tersedia sampai administrator mengonfigurasi kunci enkripsi dan penyedia AI.",
+    "noConversation": "Tidak ada percakapan aktif",
+    "startHint": "Buat sesi dengan persetujuan untuk memulai.",
+    "requestHuman": "Minta agen manusia",
+    "chatEmpty": "Pesan Anda akan muncul di sini. Tindakan AI hanya saran; tidak ada pembayaran, perubahan akun, pengembalian dana, atau pengiriman yang dilakukan.",
+    "messagePlaceholder": "Tulis pesan…",
+    "send": "Kirim",
+    "stopVoice": "Hentikan sesi suara",
+    "voiceOff": "Suara dimatikan.",
+    "voiceStreamNote": "Suara browser dialirkan ke penyedia yang dikonfigurasi; OpsCore tidak mengklaim menyimpan audio mentah.",
+    "voiceRequirement": "Suara browser memerlukan HTTPS (atau localhost), mikrofon, persetujuan, model Realtime yang dikonfigurasi, dan kunci penyedia. Ini bukan jembatan telepon PSTN/SIP."
+  },
+  "queue": {
+    "eyebrow": "INTERVENSI MANUSIA",
+    "title": "Antrean eskalasi",
+    "refresh": "Segarkan",
+    "description": "Percakapan berisiko tinggi, belum selesai, atau yang meminta manusia muncul di sini. Item antrean berarti diminta, bukan tersambung.",
+    "loading": "Memuat antrean…",
+    "empty": "Tidak ada penyerahan manusia aktif untuk organisasi ini.",
+    "openAssignment": "Buka penugasan",
+    "claimAndReview": "Klaim dan tinjau",
+    "resolve": "Selesaikan",
+    "reply": "Balas",
+    "agentAssignedTitle": "Percakapan yang ditugaskan",
+    "replyStorageNote": "Balasan manusia dienkripsi saat disimpan dan terlihat di transkrip percakapan.",
+    "resolveNote": "Diselesaikan oleh operator manusia yang ditugaskan."
+  },
+  "boundaries": {
+    "title": "Batas operasional",
+    "automateTitle": "Dirancang untuk mengotomatiskan",
+    "automateBody": "Respons pertama multibahasa, klarifikasi, triase maksud dan risiko, penyimpanan transkrip aman, pembuatan antrean, dan penugasan agen.",
+    "humanTitle": "Diperlukan pengambilalihan manusia",
+    "humanBody": "Permintaan manusia eksplisit, keyakinan rendah, risiko tinggi atau kritis, kebijakan hilang, kasus belum selesai, keluhan privasi/keamanan, atau tindakan tidak pasti.",
+    "notEnabledTitle": "Tidak diaktifkan hanya dengan paket ini",
+    "notEnabledBody": "Perutean PSTN/SIP/WhatsApp/Email, jembatan telepon langsung, verifikasi identitas CRM, dan klaim kualitas bahasa memerlukan adaptor penyedia nyata, kredensial, dan uji penerimaan."
+  },
+  "roles": {
+    "customer": "Pelanggan",
+    "human": "Agen manusia",
+    "ai": "Asisten AI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Pelanggan meminta agen manusia",
+    "low_confidence": "Keyakinan rendah",
+    "high_risk": "Risiko tinggi",
+    "policy_refusal": "Penolakan / pembatasan kebijakan",
+    "unresolved": "Masalah belum selesai",
+    "repeated_failure": "Kegagalan berulang",
+    "model_requested": "AI meminta tinjauan",
+    "voice_review_required": "Diperlukan tinjauan suara",
+    "other": "Lainnya"
+  },
+  "messages": {
+    "qualificationNotice": "Tidak ada bahasa yang memenuhi syarat produksi sampai uji teks, ASR, TTS, aksen, dan eskalasi lulus.",
+    "configNeeded": "Masih perlu konfigurasi: {missing}.",
+    "configOk": "Konfigurasi ada. Konektivitas penyedia dan kualitas bahasa masih memerlukan uji penerimaan nyata.",
+    "conversationCreated": "Percakapan aman dibuat. Kualitas bahasa belum memenuhi syarat produksi.",
+    "handoffQueued": "Penyerahan manusia dimasukkan ke antrean ({reason}). Ini permintaan antrean, bukan koneksi langsung.",
+    "aiResponseFailed": "Respons AI tidak selesai. Tidak ada tindakan yang dilakukan. Anda dapat meminta agen manusia.",
+    "actionNotCompleted": "Tindakan tidak selesai: {reason}.",
+    "apiUnavailable": "API Contact Center tidak dapat dimuat. Masuk ke konsol OpsCore, lalu muat ulang halaman ini.",
+    "suggestedNextStep": "Hanya langkah berikutnya yang disarankan (tidak dijalankan): {step}.",
+    "handoffQueuedQueueOnly": "Serah terima ke manusia telah dimasukkan ke antrean ({reason}). Antrean tidak membuktikan bahwa agen terhubung.",
+    "voiceHandoffStopped": "Serah terima ke manusia telah dimasukkan ke antrean. Sesi AI browser sedang dihentikan; transfer telepon langsung tidak dikonfigurasi.",
+    "voiceCredentialRequest": "Meminta kredensial suara berumur pendek…",
+    "voiceRealtimeError": "Penyedia waktu nyata melaporkan kesalahan. Hentikan sesi suara dan coba lagi setelah memeriksa konfigurasi penyedia.",
+    "voiceActive": "Sesi suara aktif. Tekan “Minta agen manusia” kapan saja; ini membuat item antrean, bukan transfer PSTN.",
+    "voiceCredentialActive": "{languageCode} · kredensial sementara penyedia",
+    "queueUnavailable": "Antrean tidak tersedia: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Persetujuan diperlukan sebelum percakapan dapat dimulai.",
+    "SERVER_RESPONSE_INVALID": "Respons server tidak dapat dibaca.",
+    "REQUEST_FAILED": "Permintaan gagal.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Penyedia suara waktu nyata tidak dapat dijangkau.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Browser ini tidak mendukung suara waktu nyata.",
+    "HANDOFF_NOT_CLAIMED": "Serah terima tidak dapat diambil alih.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Pesan duplikat diabaikan."
+  }
+}

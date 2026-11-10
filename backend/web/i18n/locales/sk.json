@@ -1,0 +1,111 @@
+{
+  "nativeName": "Slovenčina",
+  "nav": {
+    "title": "Kontaktné centrum s AI",
+    "subtitle": "Viacjazyčná samoobsluha s riadeným odovzdaním človeku.",
+    "operationsConsole": "Prevádzková konzola",
+    "interfaceLanguage": "Jazyk rozhrania"
+  },
+  "status": {
+    "configured": "Chránený režim nastavený",
+    "setupIncomplete": "Nastavenie neúplné",
+    "apiUnavailable": "Prihlásenie / API nedostupné"
+  },
+  "stats": {
+    "catalogueRows": "Riadky katalógu",
+    "catalogueRowsNote": "Vstupný zoznam zachovaný",
+    "uniqueCodes": "Jedinečné jazykové kódy",
+    "uniqueCodesNote": "Duplikáty sa označujú",
+    "providerQualification": "Kvalifikácia poskytovateľa",
+    "providerQualificationNote": "Počítajú sa len nezávisle testované jazyky",
+    "liveQueue": "Živá ľudská fronta",
+    "liveQueueNote": "Odovzdania v rámci tenanta"
+  },
+  "customer": {
+    "eyebrow": "SKÚSENOSŤ ZÁKAZNÍKA",
+    "title": "Začať konverzáciu",
+    "consentPill": "Vyžaduje sa súhlas",
+    "preferredLanguage": "Preferovaný jazyk",
+    "consentText": "Súhlasím, že táto konverzácia bude spracovaná nakonfigurovaným poskytovateľom AI. Prepisy sa pred uložením šifrujú.",
+    "startChat": "Začať zabezpečený textový chat",
+    "startVoice": "Začať hlas v prehliadači",
+    "setupHint": "Nedostupné, kým správce nenastaví šifrovací kľúč a poskytovateľa AI.",
+    "noConversation": "Žiadna aktívna konverzácia",
+    "startHint": "Na začiatok vytvorte reláciu so súhlasom.",
+    "requestHuman": "Požiadať o ľudského agenta",
+    "chatEmpty": "Vaše správy sa zobrazia tu. Akcie AI sú len návrhy; nevykonávajú sa platby, zmeny účtov, refundácie ani odosielania.",
+    "messagePlaceholder": "Napíšte správu…",
+    "send": "Odoslať",
+    "stopVoice": "Zastaviť hlasovú reláciu",
+    "voiceOff": "Hlas je vypnutý.",
+    "voiceStreamNote": "Hlas v prehliadači sa streamuje nakonfigurovanému poskytovateľovi; OpsCore netvrdí, že ukladá surový zvuk.",
+    "voiceRequirement": "Hlas v prehliadači vyžaduje HTTPS (alebo localhost), mikrofón, súhlas, nakonfigurovaný model Realtime a kľúč poskytovateľa. Nejde o telefónny most PSTN/SIP."
+  },
+  "queue": {
+    "eyebrow": "ĽUDSKÝ ZÁSAH",
+    "title": "Fronta eskalácie",
+    "refresh": "Obnoviť",
+    "description": "Tu sa zobrazujú konverzácie s vysokým rizikom, nevyriešené alebo s žiadosťou o človeka. Položka fronty znamená žiadosť, nie pripojenie.",
+    "loading": "Načítava sa fronta…",
+    "empty": "Žiadne aktívne ľudské odovzdania pre túto organizáciu.",
+    "openAssignment": "Otvoriť priradenie",
+    "claimAndReview": "Prevziať a skontrolovať",
+    "resolve": "Vyriešiť",
+    "reply": "Odpovedať",
+    "agentAssignedTitle": "Pridelená konverzácia",
+    "replyStorageNote": "Odpovede ľudí sú pri uložení šifrované a viditeľné v prepise konverzácie.",
+    "resolveNote": "Vyriešil pridelený ľudský operátor."
+  },
+  "boundaries": {
+    "title": "Prevádzkové hranice",
+    "automateTitle": "Navrhnuté na automatizáciu",
+    "automateBody": "Viacjazyčná prvá odpoveď, spresnenie, triedenie zámeru a rizika, bezpečné ukladanie prepisov, vytváranie front a priraďovanie agentov.",
+    "humanTitle": "Vyžaduje sa prevzatie človekom",
+    "humanBody": "Výslovná žiadosť o človeka, nízka istota, vysoké alebo kritické riziko, chýbajúca politika, nevyriešený prípad, sťažnosť na súkromie/bezpečnosť alebo neistá akcia.",
+    "notEnabledTitle": "Nie je aktivované týmto balíkom",
+    "notEnabledBody": "Smerovanie PSTN/SIP/WhatsApp/e-mail, živý telefónny most, overenie identity CRM a tvrdenia o kvalite jazyka vyžadujú skutočný adaptér poskytovateľa, poverenia a akceptačné testy."
+  },
+  "roles": {
+    "customer": "Zákazník",
+    "human": "Ľudský agent",
+    "ai": "Asistent AI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Zákazník požiadal o človeka",
+    "low_confidence": "Nízka istota",
+    "high_risk": "Vysoké riziko",
+    "policy_refusal": "Odmietnutie / obmedzenie politiky",
+    "unresolved": "Nevyriešený problém",
+    "repeated_failure": "Opakované zlyhanie",
+    "model_requested": "AI požiadalo o kontrolu",
+    "voice_review_required": "Vyžaduje sa kontrola hlasu",
+    "other": "Iné"
+  },
+  "messages": {
+    "qualificationNotice": "Žiadny jazyk nie je kvalifikovaný pre produkciu, kým neprejdú testy textu, ASR, TTS, prízvuku a eskalácie.",
+    "configNeeded": "Stále potrebné nastavenie: {missing}.",
+    "configOk": "Nastavenie existuje. Pripojenie poskytovateľa a kvalita jazyka stále vyžadujú skutočné akceptačné testy.",
+    "conversationCreated": "Zabezpečená konverzácia vytvorená. Kvalita jazyka ešte nie je kvalifikovaná pre produkciu.",
+    "handoffQueued": "Ľudské odovzdanie zaradené do fronty ({reason}). Ide o žiadosť vo fronte, nie živé spojenie.",
+    "aiResponseFailed": "Odpoveď AI nebola dokončená. Nebola vykonaná žiadna akcia. Môžete požiadať o ľudského agenta.",
+    "actionNotCompleted": "Akcia nebola dokončená: {reason}.",
+    "apiUnavailable": "API kontaktného centra sa nepodarilo načítať. Prihláste sa do konzoly OpsCore a stránku znova načítajte.",
+    "suggestedNextStep": "Iba navrhovaný ďalší krok (nevykonané): {step}.",
+    "handoffQueuedQueueOnly": "Odovzdanie človeku bolo zaradené do frontu ({reason}). Front nedokazuje, že je agent pripojený.",
+    "voiceHandoffStopped": "Odovzdanie človeku bolo zaradené do frontu. Relácia AI v prehliadači sa zastavuje; živé telefónne presmerovanie nie je nakonfigurované.",
+    "voiceCredentialRequest": "Žiada sa krátkodobé hlasové poverenie…",
+    "voiceRealtimeError": "Poskytovateľ v reálnom čase nahlásil chybu. Zastavte hlasovú reláciu a po kontrole konfigurácie poskytovateľa to skúste znova.",
+    "voiceActive": "Hlasová relácia je aktívna. Kedykoľvek stlačte „Požiadať o ľudského agenta“; tým vznikne položka vo fronte, nie presmerovanie PSTN.",
+    "voiceCredentialActive": "{languageCode} · dočasné poverenie poskytovateľa",
+    "queueUnavailable": "Front nie je dostupný: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Pred začatím konverzácie je potrebný súhlas.",
+    "SERVER_RESPONSE_INVALID": "Odpoveď servera sa nepodarilo prečítať.",
+    "REQUEST_FAILED": "Požiadavka zlyhala.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Poskytovateľa hlasu v reálnom čase sa nepodarilo kontaktovať.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Tento prehliadač nepodporuje hlas v reálnom čase.",
+    "HANDOFF_NOT_CLAIMED": "Odovzdanie sa nepodarilo prevziať.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Duplicitná správa bola ignorovaná."
+  }
+}

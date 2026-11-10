@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "opscore.public-release-proof-pointer.v1",
+  "authoritativeEndpoint": "/api/verify/release",
+  "fieldsResolvedAtRuntime": [
+    "sourceCommit",
+    "deployment",
+    "ci",
+    "packageFingerprint",
+    "gates"
+  ],
+  "note": "This descriptor intentionally carries no stale source commit or package digest. Use the authoritative runtime endpoint for current release evidence."
+}

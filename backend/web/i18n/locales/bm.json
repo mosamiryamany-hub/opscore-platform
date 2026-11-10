@@ -1,0 +1,111 @@
+{
+  "nativeName": "Bamanankan",
+  "nav": {
+    "title": "AI Kɔnɛktisɔn Sɛntɛr",
+    "subtitle": "Ka bɔ ɔ laadalabaga kɛ kanw kunnafoniw la.",
+    "operationsConsole": "Kɔnsɔl baara",
+    "interfaceLanguage": "Kanw jɔyɔrɔ"
+  },
+  "status": {
+    "configured": "Kɔrɔw sirilen labɛnna",
+    "setupIncomplete": "Labɛn ma dafa",
+    "apiUnavailable": "Dɔnbali / API tɛ yen"
+  },
+  "stats": {
+    "catalogueRows": "Jɔyɔrɔw lisɛ",
+    "catalogueRowsNote": "Donkow lisɛw mara",
+    "uniqueCodes": "Kanw kɔdiw danma",
+    "uniqueCodesNote": "Danmafɔliw bɛ jirali",
+    "providerQualification": "Baarakɛla jɔyɔrɔ",
+    "providerQualificationNote": "Kanw dɔrɔn dɔgɔkun baaralenw bɛ jirali",
+    "liveQueue": "Hadamw jɔyɔrɔ",
+    "liveQueueNote": "Woloma-bɔ kanw jɔyɔrɔ"
+  },
+  "customer": {
+    "eyebrow": "Jɔnw ka baara",
+    "title": "Baro daminɛ",
+    "consentPill": "Laadalabaga wajib",
+    "preferredLanguage": "Kan ɔ ka fisa",
+    "consentText": "N bɛ sɔn ko nin baro bɛ se ka baara ni AI sɔnnen. Kunnafoniw bɛ dogo sani u mara.",
+    "startChat": "Baro daminɛ bolokilen",
+    "startVoice": "Kanw baro daminɛ browser kɔnɔ",
+    "setupHint": "Filɛ dɔnkili ja bilemɔ ani AI baarakɛla ma.",
+    "noConversation": "Baro tɛ yen",
+    "startHint": "Baro dɔ bɔ ka daminɛ.",
+    "requestHuman": "Hadam bila",
+    "chatEmpty": "Kunnafoniw bɛ jigin yan. AI baarakɛliw ye ladilikan dɔrɔn; warima, jɔyɔrɔ cɛ, saralali, ɔn",
+    "messagePlaceholder": "Nɔgɔndɛ sɛbɛn…",
+    "send": "Ci",
+    "stopVoice": "Kanw baro jɔ",
+    "voiceOff": "Kanw tɛ.",
+    "voiceStreamNote": "Kanw bɛ ci baarakɛla fɛ; OpsCore tɛ a ɲɔgɔn bayɛ k'a kanw mara.",
+    "voiceRequirement": "Kanw baro b'a fɛ HTTPS, mikiro, yidɛli, Realtime ani baarakɛla kɔdi. A tɛ tɛliyɔn jɔyɔrɔ ye."
+  },
+  "queue": {
+    "eyebrow": "HADAMW BAARA",
+    "title": "Danmafɔli jɔyɔrɔ",
+    "refresh": "Kununabɔ",
+    "description": "Barow naga baalia, ma baro, walima hadam bila; o bɛ jigin yan. Jɔyɔrɔ kɔni bila la, tɛ kɔnɛktisɔn ye.",
+    "loading": "Jɔyɔrɔ bɛ jigin…",
+    "empty": "Hadam bila tɛ nin jɛkulu kɔnɔ.",
+    "openAssignment": "Baara da",
+    "claimAndReview": "Minɛ ani lajɛ",
+    "resolve": "Dabila",
+    "reply": "Jaabi",
+    "agentAssignedTitle": "Baro minɛlen",
+    "replyStorageNote": "Hadamw ka jaabaw tɛ mara sani u ye baro kɔnɔ fili.",
+    "resolveNote": "Hadamw ka baarakɛla ye a dabila."
+  },
+  "boundaries": {
+    "title": "Baara danw",
+    "automateTitle": "Ka baara waley",
+    "automateBody": "Kɔnɔmabaga jiɲɛ, ɲɔgɔn kunnafoni, farati jɛ, kunnafoni mara, kamalen woloma.",
+    "humanTitle": "Hadam wajib",
+    "humanBody": "Hadam bila, dan ko, farati belebele, sariya tɛ, kunnafoni tɛ, kunnafoni dogolen.",
+    "notEnabledTitle": "Nin kanw dɔrɔn tɛ se k'a baara",
+    "notEnabledBody": "PSTN/SIP, WhatsApp, imel, tɛliyɔn jɔyɔrɔ, CRM ani kanw jo ka ɲɛw baarakɛla kɔdiw ani sɛgɛsɛgɛli la."
+  },
+  "roles": {
+    "customer": "Jɔn",
+    "human": "Hadam baarakɛla",
+    "ai": "AI dɛmɛbaga"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Jɔn ye hadam bila",
+    "low_confidence": "Dan ko",
+    "high_risk": "Farati belebele",
+    "policy_refusal": "Sariya bali",
+    "unresolved": "Kunnafoni tɛ",
+    "repeated_failure": "A tilennen fɔli",
+    "model_requested": "AI ye lajɛ bila",
+    "voice_review_required": "Kanw lajɛ wajib",
+    "other": "Fɛn wɛrɛ"
+  },
+  "messages": {
+    "qualificationNotice": "Kan si tɛ dɔnbali ma fɔ sani kan, ASR, TTS ani baro sɛgɛsɛgɛli ma kɛ.",
+    "configNeeded": "Labɛn wajib: {missing}.",
+    "configOk": "Labɛn bɛ yen. Baarakɛla jɔyɔrɔ ani kan ɲɛman bɛ sɛgɛsɛgɛli la.",
+    "conversationCreated": "Baro bolokilen dilanna. Kan ɲɛman ma dɔn.",
+    "handoffQueued": "Hadam bila jɔyɔrɔ ({reason}). Nin ye jɔyɔrɔ bila ye, tɛ kɔnɛktisɔn ye.",
+    "aiResponseFailed": "AI jaabi ma dafa. Baara si ma kɛ. I bɛ se ka hadam bila.",
+    "actionNotCompleted": "Baara ma dafa: {reason}.",
+    "apiUnavailable": "API ma se ka jigin. I ka dɔn OpsCore kɔnɔ, o kɔ i ka nin ɲɛ segin.",
+    "suggestedNextStep": "Ladilikan dɔrɔn (ma kɛ): {step}.",
+    "handoffQueuedQueueOnly": "Hadam bila jɔyɔrɔ ({reason}). Jɔyɔrɔ ma yira ko baarakɛla bɛ yen.",
+    "voiceHandoffStopped": "Hadam bila jɔyɔrɔ. AI baro bɛ jɔ; tɛliyɔn jɔyɔrɔ ma labɛn.",
+    "voiceCredentialRequest": "Kanw dɔnni bila dɔnni kɔnɔ…",
+    "voiceRealtimeError": "Realtime baarakɛla ye fili yira. Kanw baro jɔ, labɛn lajɛ, o kɔ i ka segin.",
+    "voiceActive": "Kanw baro bɛ baara la. Hadam bila waati o waati; a bɛ jɔyɔrɔ dilan, tɛ tɛliyɔn ye.",
+    "voiceCredentialActive": "{languageCode} · dɔnni dɔnni bilalen",
+    "queueUnavailable": "Jɔyɔrɔ tɛ yen: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Laadalabaga wajib sani baro daminɛ.",
+    "SERVER_RESPONSE_INVALID": "Server jaabi man se ka kalan.",
+    "REQUEST_FAILED": "Bila man se.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Realtime kanw baarakɛla ma se.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Nin browser tɛ se ka Realtime kanw baara.",
+    "HANDOFF_NOT_CLAIMED": "Hadam bila ma sɔn.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Nɔgɔndɛ fili."
+  }
+}

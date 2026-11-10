@@ -1,0 +1,111 @@
+{
+  "nativeName": "Oʻzbekcha",
+  "nav": {
+    "title": "AI aloqa markazi",
+    "subtitle": "Nazorat qilinadigan odamga topshirish bilan koʻptilli oʻz-oʻziga xizmat.",
+    "operationsConsole": "Operatsiyalar konsoli",
+    "interfaceLanguage": "Interfeys tili"
+  },
+  "status": {
+    "configured": "Himoyalangan rejim sozlandi",
+    "setupIncomplete": "Sozlash tugallanmagan",
+    "apiUnavailable": "Kirish / API mavjud emas"
+  },
+  "stats": {
+    "catalogueRows": "Katalog qatorlari",
+    "catalogueRowsNote": "Kirish roʻyxati saqlangan",
+    "uniqueCodes": "Yagona til kodlari",
+    "uniqueCodesNote": "Takroriyalar belgilanadi",
+    "providerQualification": "Taʼminotchi malakasi",
+    "providerQualificationNote": "Faqat mustaqil sinovdan oʻtgan tillar hisoblanadi",
+    "liveQueue": "Jonli odam navbati",
+    "liveQueueNote": "Ijara oluvchi doirasidagi topshirishlar"
+  },
+  "customer": {
+    "eyebrow": "MIJOZ TAJRIBASI",
+    "title": "Suhbatni boshlang",
+    "consentPill": "Rozilik talab qilinadi",
+    "preferredLanguage": "Afzal koʻrilgan til",
+    "consentText": "Bu suhbat sozlangan AI provayderi tomonidan qayta ishlanishiga roziman. Transkriptlar saqlashdan oldin shifrlanadi.",
+    "startChat": "Xavfsiz matn suhbatini boshlash",
+    "startVoice": "Brauzer ovozini boshlash",
+    "setupHint": "Administrator shifrlash kalitini va AI provayderini sozlamaguncha mavjud emas.",
+    "noConversation": "Faol suhbat yoʻq",
+    "startHint": "Boshlash uchun rozilik bilan sessiya yarating.",
+    "requestHuman": "Odam yordamchisini soʻrang",
+    "chatEmpty": "Xabarlaringiz shu yerda koʻrinadi. AI amallari faqat taklif; toʻlov, hisob oʻzgarishlari, qaytarish yoki yuborish bajarilmaydi.",
+    "messagePlaceholder": "Xabar yozing…",
+    "send": "Yuborish",
+    "stopVoice": "Ovoz sessiyasini toʻxtatish",
+    "voiceOff": "Ovoz oʻchirilgan.",
+    "voiceStreamNote": "Brauzer ovozi sozlangan provayderga oqim sifatida uzatiladi; OpsCore xom audioni saqlayman, deb da’vo qilmaydi.",
+    "voiceRequirement": "Brauzer ovozi HTTPS (yoki localhost), mikrofon, rozilik, sozlangan Realtime modeli va provayder kalitini talab qiladi. Bu PSTN/SIP telefon ko‘prigi emas."
+  },
+  "queue": {
+    "eyebrow": "ODAM ARALASHUVI",
+    "title": "Kuchaytirish navbati",
+    "refresh": "Yangilash",
+    "description": "Yuqori xavfli, hal qilinmagan yoki odam soʻralgan suhbatlar bu yerda koʻrinadi. Navbat elementi soʻralganini bildiradi, ulangan emas.",
+    "loading": "Navbat yuklanmoqda…",
+    "empty": "Bu tashkilot uchun faol odamga topshirish yoʻq.",
+    "openAssignment": "Topshiriqni ochish",
+    "claimAndReview": "Olib tekshirish",
+    "resolve": "Hal qilish",
+    "reply": "Javob",
+    "agentAssignedTitle": "Biriktirilgan suhbat",
+    "replyStorageNote": "Odam javoblari saqlashda shifrlanadi va suhbat transkriptida ko‘rinadi.",
+    "resolveNote": "Biriktirilgan inson operator hal qildi."
+  },
+  "boundaries": {
+    "title": "Operatsion chegaralar",
+    "automateTitle": "Avtomatlashtirish uchun moʻljallangan",
+    "automateBody": "Koʻptilli birinchi javob, aniqlashtirish, maqsad va xavfni tasniflash, xavfsiz transkript saqlash, navbat yaratish va yordamchi tayinlash.",
+    "humanTitle": "Odam qoʻliga olish talab qilinadi",
+    "humanBody": "Aniq odam soʻrovi, past ishonch, yuqori yoki hal qiluvchi xavf, siyosat yetishmasligi, hal qilinmagan ish, maxfiylik/xavfsizlik shikoyati yoki noaniq harakat.",
+    "notEnabledTitle": "Faqat ushbu paket bilan yoqilmaydi",
+    "notEnabledBody": "PSTN/SIP/WhatsApp/elektron pochta yoʻnaltirishi, jonli telefonya koʻprigi, CRM shaxsni tasdiqlash va til sifati daʼvolari haqiqiy provayder adapteri, maʼlumotnomalar va qabul sinovlarini talab qiladi."
+  },
+  "roles": {
+    "customer": "Mijoz",
+    "human": "Odam yordamchisi",
+    "ai": "AI yordamchisi"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Mijoz odam soʻradi",
+    "low_confidence": "Past ishonch",
+    "high_risk": "Yuqori xavf",
+    "policy_refusal": "Siyosatdan voz kechish / cheklash",
+    "unresolved": "Hal qilinmagan muammo",
+    "repeated_failure": "Takroriy muvaffaqiyatsizlik",
+    "model_requested": "AI tekshiruv soʻradi",
+    "voice_review_required": "Ovoz tekshiruvi talab qilinadi",
+    "other": "Boshqa"
+  },
+  "messages": {
+    "qualificationNotice": "Matn, ASR, TTS, talaffuz va kuchaytirish sinovlari oʻtmaguncha hech bir til ishlab chiqarish uchun malakali emas.",
+    "configNeeded": "Hali ham sozlash kerak: {missing}.",
+    "configOk": "Sozlash bor. Provayder aloqasi va til sifati hali haqiqiy qabul sinovlarini talab qiladi.",
+    "conversationCreated": "Xavfsiz suhbat yaratildi. Til sifati hali ishlab chiqarish uchun malakali emas.",
+    "handoffQueued": "Odamga topshirish navbatga qoʻyildi ({reason}). Bu navbat soʻrovi, jonli aloqa emas.",
+    "aiResponseFailed": "AI javobi tugallanmadi. Hech qanday harakat bajarilmadi. Odam yordamchisini soʻrashingiz mumkin.",
+    "actionNotCompleted": "Harakat tugallanmadi: {reason}.",
+    "apiUnavailable": "Aloqa markazi API yuklanmadi. OpsCore konsoliga kiring va bu sahifani qayta yuklang.",
+    "suggestedNextStep": "Faqat tavsiya etilgan keyingi qadam (bajarilmagan): {step}.",
+    "handoffQueuedQueueOnly": "Odamga topshirish navbatga qo‘yildi ({reason}). Navbat agent ulanganini isbotlamaydi.",
+    "voiceHandoffStopped": "Odamga topshirish navbatga qo‘yildi. Brauzerdagi AI seansi to‘xtatilmoqda; jonli telefon o‘tkazmasi sozlanmagan.",
+    "voiceCredentialRequest": "Qisqa muddatli ovoz hisob ma’lumotlari so‘ralmoqda…",
+    "voiceRealtimeError": "Real vaqt provayderi xato haqida xabar berdi. Ovozli seansni to‘xtating va provayder sozlamalarini tekshirgach, qayta urinib ko‘ring.",
+    "voiceActive": "Ovozli seans faol. Istalgan vaqtda “Odam yordamchisini soʻrang” tugmasini bosing; bu navbat elementini yaratadi, PSTN o‘tkazmasini emas.",
+    "voiceCredentialActive": "{languageCode} · provayderning vaqtinchalik hisob ma’lumotlari",
+    "queueUnavailable": "Navbat mavjud emas: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Suhbatni boshlashdan oldin rozilik talab qilinadi.",
+    "SERVER_RESPONSE_INVALID": "Server javobini o‘qib bo‘lmadi.",
+    "REQUEST_FAILED": "So‘rov bajarilmadi.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Real vaqtdagi ovoz provayderiga ulanib bo‘lmadi.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Bu brauzer real vaqtdagi ovozni qo‘llab-quvvatlamaydi.",
+    "HANDOFF_NOT_CLAIMED": "Topshirishni qabul qilib bo‘lmadi.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Takroriy xabar e’tiborsiz qoldirildi."
+  }
+}

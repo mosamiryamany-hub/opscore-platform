@@ -1,0 +1,111 @@
+{
+  "nativeName": "Sängö",
+  "nav": {
+    "title": "Gbagbo ti mbulavulo ti AI",
+    "subtitle": "Fadidi ti ndîngo ndê na nzïna ti zo.",
+    "operationsConsole": "Konsolo ti mbâkâ",
+    "interfaceLanguage": "Yângâ ti écran"
+  },
+  "status": {
+    "configured": "Lêgë ti gbata so a hôla",
+    "setupIncomplete": "Lêgë a lîngbi pëpe",
+    "apiUnavailable": "Lökö / API ayeke pëpe"
+  },
+  "stats": {
+    "catalogueRows": "Ndongô ti wa",
+    "catalogueRowsNote": "Wa a bata",
+    "uniqueCodes": "Kodë ti ndîngo",
+    "uniqueCodesNote": "Fündä a bä",
+    "providerQualification": "Küê ti mû mabôko",
+    "providerQualificationNote": "Ndîngo so a fa ndâ a dë",
+    "liveQueue": "Wa ti zo bîanî",
+    "liveQueueNote": "Mbele ti nzïna"
+  },
+  "customer": {
+    "eyebrow": "KOTA TI AYE SO",
+    "title": "Tî ndâ ti mbulavulo",
+    "consentPill": "Nzönzö a hînga",
+    "preferredLanguage": "Ndîngo so a maï",
+    "consentText": "Mbi ma ndâ, mbulavulo so alîngbi ti duti na AI. Mbeti a bata nzïna kûê.",
+    "startChat": "Tî ndâ ti mbulavulo ti bata",
+    "startVoice": "Tî ndâ ti maï na browser",
+    "setupHint": "A yeke pëpe juska kôlï a leke kode na AI.",
+    "noConversation": "Mbulavulo ayeke pëpe",
+    "startHint": "Lego mbulavulo ti nzönzö ti kûê.",
+    "requestHuman": "Fa zo",
+    "chatEmpty": "Füa a leke ndâ. Mbâkâ ti AI ayeke fâa ndâ pëpe; mböngö, yê so a kpëngba a yeke pëpe.",
+    "messagePlaceholder": "Kôrö tënë…",
+    "send": "Lü",
+    "stopVoice": "Kânga maï",
+    "voiceOff": "Maï a kwâ.",
+    "voiceStreamNote": "Maï ti browser a tene na wa; OpsCore a tene pëpe so a bata maï.",
+    "voiceRequirement": "Maï ti browser a hînga HTTPS, mikoro, nzönzö, Realtime na kode. Ayeke telefone pëpe."
+  },
+  "queue": {
+    "eyebrow": "MABÔKO TI ZO",
+    "title": "Wa ti zo",
+    "refresh": "Fûta",
+    "description": "Mbulavulo so a bâa na zebi a bä ndâ. Wa ayeke hînga, ndâ pëpe.",
+    "loading": "A yeke kôrö…",
+    "empty": "Wa ti zo ayeke pëpe na bungbi so.",
+    "openAssignment": "Tî ndâ ti mbâkâ",
+    "claimAndReview": "Yâ na fa",
+    "resolve": "Mbangba",
+    "reply": "Kïri tënë",
+    "agentAssignedTitle": "Mbulavulo so a mû",
+    "replyStorageNote": "Kïri tënë ti zo a bata nzïna, a bä na mbeti.",
+    "resolveNote": "A mbangba na zo so a mû."
+  },
+  "boundaries": {
+    "title": "Lêgë ti mbâkâ",
+    "automateTitle": "So a leke na mbâkâ",
+    "automateBody": "Kïri tënë kûê na ndîngo ndê, fa ndâ, bâa na kobela, bata mbeti na leke wa.",
+    "humanTitle": "Mû na zo a hînga",
+    "humanBody": "Fa zo, bê a yeke pëpe, kobela kötä, lêgë ayeke pëpe, tënë a lîngbi pëpe, kpëngba ti nzïna.",
+    "notEnabledTitle": "So a lîngbi pëpe na gbâ so",
+    "notEnabledBody": "PSTN/SIP, WhatsApp, imeil, telefone, CRM na fâa ndâ ti ndîngo a hînga wa ti vuko na bâa."
+  },
+  "roles": {
+    "customer": "Wa ti gbâ",
+    "human": "Wa ti mbâkâ",
+    "ai": "Fûta ti AI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Wa ti gbâ a fa zo",
+    "low_confidence": "Bê a yeke pëpe",
+    "high_risk": "Kobela kötä",
+    "policy_refusal": "Kânga lêgë",
+    "unresolved": "Tënë a lîngbi pëpe",
+    "repeated_failure": "Fündä na fündä",
+    "model_requested": "AI a fa bâa",
+    "voice_review_required": "Bâa ti maï a hînga",
+    "other": "Ambeni"
+  },
+  "messages": {
+    "qualificationNotice": "Ndîngo a yeke pëpe juska bâa ti mbeti, ASR, TTS na maï a sû.",
+    "configNeeded": "Lekë a hînga: {missing}.",
+    "configOk": "Lekë ayeke. Kûê ti wa na nzönzö ti ndîngo a hînga bâa ti vuko.",
+    "conversationCreated": "Mbulavulo ti batâ a leke. Nzönzö ti ndîngo a fa pëpe.",
+    "handoffQueued": "Mû na zo a bä ndâ ti wa ({reason}). Ayeke hînga, ndâ pëpe.",
+    "aiResponseFailed": "Kïri tënë ti AI a sû pëpe. Mbâkâ ayeke pëpe. Alîngbi ti fa zo.",
+    "actionNotCompleted": "Mbâkâ a sû pëpe: {reason}.",
+    "apiUnavailable": "API ti mbulavulo a bä pëpe. Lï na OpsCore, na pekô leke gi.",
+    "suggestedNextStep": "Fâa ndâ pëpe (a leke pëpe): {step}.",
+    "handoffQueuedQueueOnly": "Mû na zo a bä ndâ ti wa ({reason}). Wa a fa pëpe so zo ayeke.",
+    "voiceHandoffStopped": "Mû na zo a bä ndâ ti wa. Mbulavulo ti AI a kânga; telefone a leke pëpe.",
+    "voiceCredentialRequest": "Hînga kode ti maï ti ndâ…",
+    "voiceRealtimeError": "Wa ti Realtime a fa kobela. Kânga maï, bâa na leke, na pekô bâa.",
+    "voiceActive": "Mbulavulo ti maï a sâra. Fa zo na ndâ kûê; so a leke wa, telefone pëpe.",
+    "voiceCredentialActive": "{languageCode} · kode ti ndâ",
+    "queueUnavailable": "Wa ayeke pëpe: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Nzönzö a hînga kôzo mbulavulo.",
+    "SERVER_RESPONSE_INVALID": "Kïri tënë ti server a diko pëpe.",
+    "REQUEST_FAILED": "Hînga a lîngbi pëpe.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Wa ti maï Realtime a bä pëpe.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Browser so a lîngbi pëpe na Realtime.",
+    "HANDOFF_NOT_CLAIMED": "Mû na zo a yeke pëpe.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Tënë so a kïri a yeke pëpe."
+  }
+}

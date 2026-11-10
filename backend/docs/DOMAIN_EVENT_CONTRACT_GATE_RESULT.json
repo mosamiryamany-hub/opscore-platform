@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "opscore.domain-event-contract-gate.v1",
+  "decision": "PASS",
+  "checks": [
+    {
+      "code": "MAKE_DOMAIN_EVENT_IMPORTED",
+      "pass": true
+    },
+    {
+      "code": "ACTIVITY_OUTBOX_USES_DOMAIN_EVENT",
+      "pass": true
+    },
+    {
+      "code": "SYNC_OUTBOX_USES_DOMAIN_EVENT",
+      "pass": true
+    },
+    {
+      "code": "DOMAIN_EVENT_SCHEMA_DEFINED",
+      "pass": true
+    },
+    {
+      "code": "DOMAIN_EVENT_HAS_TENANT",
+      "pass": true
+    },
+    {
+      "code": "DOMAIN_EVENT_HAS_CORRELATION",
+      "pass": true
+    },
+    {
+      "code": "DOMAIN_EVENT_HAS_CAUSATION",
+      "pass": true
+    },
+    {
+      "code": "DOMAIN_EVENT_HAS_AGGREGATE",
+      "pass": true
+    }
+  ]
+}

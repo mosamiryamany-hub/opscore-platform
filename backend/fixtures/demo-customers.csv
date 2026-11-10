@@ -1,0 +1,3 @@
+name,email,phone,external_ref
+Demo Customer One,customer1@example.invalid,+1-555-0101,DEMO-CUST-001
+Demo Customer Two,customer2@example.invalid,+1-555-0102,DEMO-CUST-002

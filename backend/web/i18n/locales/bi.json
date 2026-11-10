@@ -1,0 +1,111 @@
+{
+  "nativeName": "Bislama",
+  "nav": {
+    "title": "AI Kontak Sentar",
+    "subtitle": "Sevis blong helpem yu long plante lanwis, wetem janis blong pas long wan man.",
+    "operationsConsole": "Konsol blong ol wok",
+    "interfaceLanguage": "Lanwis blong skrin"
+  },
+  "status": {
+    "configured": "Gardid mod i redi",
+    "setupIncomplete": "Setap i no finis yet",
+    "apiUnavailable": "Saenin / API i no stap"
+  },
+  "stats": {
+    "catalogueRows": "Ol rao long katalog",
+    "catalogueRowsNote": "Lis we yu putum i stap olsem",
+    "uniqueCodes": "Ol kod blong lanwis we i defdefren",
+    "uniqueCodesNote": "Ol kod we i sem, bae oli gat mak",
+    "providerQualification": "Kwalifikesen blong provaeda",
+    "providerQualificationNote": "Ol lanwis we oli bin tes long wan narafala fasin nomo oli kaon",
+    "liveQueue": "Laen blong man (laef)",
+    "liveQueueNote": "Ol janis blong wan tenant nomo"
+  },
+  "customer": {
+    "eyebrow": "EKSPIRIENS BLONG KASTOMA",
+    "title": "Statem wan toktok",
+    "consentPill": "I nidim agrimen",
+    "preferredLanguage": "Lanwis we yu laekem",
+    "consentText": "Mi agri se AI provaeda we oli setem, i save wokem toktok ya. Ol tekis oli kodem bifo oli sevem.",
+    "startChat": "Statem sef jat blong tekis",
+    "startVoice": "Statem voes long brawsa",
+    "setupHint": "I no save yusum inaf wan edministreta i setem ekripsen ki mo AI provaeda.",
+    "noConversation": "I no gat toktok we i stap ron",
+    "startHint": "Mekem wan sesen wetem agrimen blong statem.",
+    "requestHuman": "Askem wan man",
+    "chatEmpty": "Ol mesej bae oli kamaot long ples ya. Ol AI aksen oli sagesen nomo; i no gat pemen, jenis long akaon, ripan, no dispajem we i kasem.",
+    "messagePlaceholder": "Raetem wan mesej…",
+    "send": "Sendem",
+    "stopVoice": "Stopem voes sesen",
+    "voiceOff": "Voes i of.",
+    "voiceStreamNote": "Voes long brawsa i go long provaeda we oli setem; OpsCore i no talem se hem i kipim raw odio.",
+    "voiceRequirement": "Voes long brawsa i nidim HTTPS (o localhost), wan maekrofon, agrimen, wan Realtime model we oli setem, mo provaeda ki. Hem i no wan PSTN/SIP fon bris."
+  },
+  "queue": {
+    "eyebrow": "WAN MAN I MAS KAM LONG",
+    "title": "Laen blong eskaleisen",
+    "refresh": "Ridrawem",
+    "description": "Ol toktok we i gat bigfala resk, i no finis, o we wan man i askem, bae oli kamaot long ples ya. Wan aetem long laen i min se oli askem, i no min se i konek.",
+    "loading": "I loadem laen…",
+    "empty": "I no gat janis blong man i stap long organaesesen ya.",
+    "openAssignment": "Openem asaenmen",
+    "claimAndReview": "Tekem mo luk",
+    "resolve": "Finisim",
+    "reply": "Ansa",
+    "agentAssignedTitle": "Toktok we oli givim",
+    "replyStorageNote": "Ol ansa blong man oli kodem taem oli stap, mo oli save lukluk long toktok tekis.",
+    "resolveNote": "Wan man operata we i gat asaenmen i finisim."
+  },
+  "boundaries": {
+    "title": "Ol limit blong wok",
+    "automateTitle": "Mekem blong wok otomatik",
+    "automateBody": "Fas ansa long plante lanwis, askem moa, sotem intent mo resk, sef stoa blong tekis, mekem laen mo givim wok long wan agent.",
+    "humanTitle": "Man i mas tekem ova",
+    "humanBody": "Wan man i askem klia, konfidens i smol, resk i bigwan o kritikal, i no gat polisi, kes i no finis, kompleen long praevesi o sekuriti, o aksen i no klia.",
+    "notEnabledTitle": "I no ON long pekej ya nomo",
+    "notEnabledBody": "PSTN/SIP/WhatsApp/imel rutin, laef telefon bris, CRM identiti jek mo ol talem long kwaliti blong lanwis, oli nidim wan tru provaeda adapta, ol kredensol mo ol akseptens tes."
+  },
+  "roles": {
+    "customer": "Kastoma",
+    "human": "Man agent",
+    "ai": "AI asistan"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Kastoma i askem wan man",
+    "low_confidence": "Konfidens i smol",
+    "high_risk": "Bigfala resk",
+    "policy_refusal": "Polisi i blokem / limit",
+    "unresolved": "Problem i no finis",
+    "repeated_failure": "I fel plante taem",
+    "model_requested": "AI i askem wan luk",
+    "voice_review_required": "I nidim wan luk long voes",
+    "other": "Narafala"
+  },
+  "messages": {
+    "qualificationNotice": "I no gat wan lanwis we i kwalifae blong produkson inaf ol tes blong tekis, ASR, TTS, aksen mo eskaleisen oli pas.",
+    "configNeeded": "I nidim moa konfigurasen: {missing}.",
+    "configOk": "Konfigurasen i stap. Konekson blong provaeda mo kwaliti blong lanwis i nidim yet ol laef akseptens tes.",
+    "conversationCreated": "Sef toktok i mekem finis. Kwaliti blong lanwis i no kwalifae yet blong produkson.",
+    "handoffQueued": "Janis blong man i stap long laen ({reason}). Hemia i wan askem long laen, i no wan laef konekson.",
+    "aiResponseFailed": "AI ansa i no finis. I no gat aksen we i bin mekem. Yu save askem wan man blong ansa.",
+    "actionNotCompleted": "Aksen i no finis: {reason}.",
+    "apiUnavailable": "Contact Center API i no save load. Saenin long OpsCore konsol, afta loadem pej ya bakegen.",
+    "suggestedNextStep": "Sagesen blong nekis step nomo (i no bin mekem): {step}.",
+    "handoffQueuedQueueOnly": "Janis blong man i stap long laen ({reason}). Laen i no pruvum se wan agent i konek.",
+    "voiceHandoffStopped": "Janis blong man i stap long laen. AI sesen long brawsa i stop; laef telefon transfa i no setem.",
+    "voiceCredentialRequest": "I askem wan sot voes kredensol…",
+    "voiceRealtimeError": "Realtime provaeda i talem se wan eror i stap. Stopem voes sesen mo traem bakegen afta yu jekem konfigurasen blong provaeda.",
+    "voiceActive": "Voes sesen i stap. Presem “Askem wan man” long eni taem; hemia i mekem wan aetem long laen, i no wan PSTN transfa.",
+    "voiceCredentialActive": "{languageCode} · kredensol blong provaeda blong smoltaem",
+    "queueUnavailable": "Laen i no stap: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Agrimen i nidim bifo wan toktok i save statem.",
+    "SERVER_RESPONSE_INVALID": "I no save ridim ansa blong sava.",
+    "REQUEST_FAILED": "Rikwes i fel.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "I no save kasem realtime voes provaeda.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Brawsa ya i no sapotem realtime voes.",
+    "HANDOFF_NOT_CLAIMED": "I no save tekem janis blong man.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Mesej we i sem, i no kaon."
+  }
+}

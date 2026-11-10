@@ -1,0 +1,111 @@
+{
+  "nativeName": "Eesti",
+  "nav": {
+    "title": "AI-kontaktikeskuse",
+    "subtitle": "Mitmekeelne iseteenindus juhitud üleminekuga inimesele.",
+    "operationsConsole": "Toimingute konsool",
+    "interfaceLanguage": "Liidese keel"
+  },
+  "status": {
+    "configured": "Kaitstud režiim on seadistatud",
+    "setupIncomplete": "Seadistus on lõpetamata",
+    "apiUnavailable": "Sisselogimine / API pole saadaval"
+  },
+  "stats": {
+    "catalogueRows": "Kataloogirid",
+    "catalogueRowsNote": "Sisendloend on säilinud",
+    "uniqueCodes": "Unikaalsed keelekoodid",
+    "uniqueCodesNote": "Kordused märgistatakse",
+    "providerQualification": "Pakkuja kvalifikatsioon",
+    "providerQualificationNote": "Arvesse võetakse ainult sõltumatult testitud keeli",
+    "liveQueue": "Otseüleneb inimeste järjekord",
+    "liveQueueNote": "Üleminekud rentniku ulatuses"
+  },
+  "customer": {
+    "eyebrow": "KLIENDIKOGEMUS",
+    "title": "Alusta vestlust",
+    "consentPill": "Vaja on nõusolekut",
+    "preferredLanguage": "Eelistatud keel",
+    "consentText": "Nõustun, et seda vestlust töötleb seadistatud tehisintellekti pakkuja. Üleskirjutused krüpteeritakse enne salvestamist.",
+    "startChat": "Alusta turvalist tekstivestlust",
+    "startVoice": "Alusta brauserihäält",
+    "setupHint": "Pole saadaval, enne kuiadministraator seadistab krüpteerimisvõtme ja tehisintellekti pakkuja.",
+    "noConversation": "Pole aktiivset vestlust",
+    "startHint": "Alustamiseks loo nõusolekusega seanss.",
+    "requestHuman": "Küsi inimagenti",
+    "chatEmpty": "Sinu sõnumid kuvatakse siin. Tehisintellekti tegevused on ainult ettepanekud; makseid, konto muudatusi, hüvitisi või saadetisi ei teostata.",
+    "messagePlaceholder": "Kirjuta sõnum…",
+    "send": "Saada",
+    "stopVoice": "Peata häälne seanss",
+    "voiceOff": "Hääl on välja lülitatud.",
+    "voiceStreamNote": "Brauseri hääl voogedastatakse seadistatud teenusepakkujale; OpsCore ei väida, et salvestab toorheli.",
+    "voiceRequirement": "Brauseri hääl nõuab HTTPS-i (või localhosti), mikrofoni, nõusolekut, seadistatud Realtime-mudelit ja teenusepakkuja võtit. See ei ole PSTN/SIP telefonisild."
+  },
+  "queue": {
+    "eyebrow": "INIMESKKE SEKKUMINE",
+    "title": "Eskalatsioonijärjekord",
+    "refresh": "Värskenda",
+    "description": "Siin kuvatakse kõrge riskiga, lahendamata või inimest nõudevad vestlused. Järjekorra element tähendab taotletud, mitte ühendatud.",
+    "loading": "Järjekorra laadimine…",
+    "empty": "Sellele organisatsioonile pole aktiivseid inimeste üleminekuid.",
+    "openAssignment": "Ava määramine",
+    "claimAndReview": "Võta üle ja vaata",
+    "resolve": "Lahenda",
+    "reply": "Vasta",
+    "agentAssignedTitle": "Määratud vestlus",
+    "replyStorageNote": "Inimeste vastused krüpteeritakse salvestamisel ja on vestluse ärakirjas nähtavad.",
+    "resolveNote": "Lahendas määratud inimoperaator."
+  },
+  "boundaries": {
+    "title": "Operatiivsed piirid",
+    "automateTitle": "Suuitud automatiseerimiseks",
+    "automateBody": "Mitmekeelne esmane vastus, selgitamine, kavatsuste ja riskide kategoriseerimine, turvaline üleskirjutuste salvestus, järjekordade loomine ja agentide määramine.",
+    "humanTitle": "Vaja on inimese ülevõttu",
+    "humanBody": "Selge inimese taotlus, madal usaldus, kõrge või kriitiline risk, puuduv poliitika, lahendamata juhtum, privaatsus-/turvalisuse kaebus või ebaselge tegevus.",
+    "notEnabledTitle": "Ainult selle paketiga pole sisse lülitatud",
+    "notEnabledBody": "PSTN/SIP/WhatsApp/e-posti marsruutimine, otse telefonsild, CRM isikutuvastus ja keelekvaliteedi väited vajavad pärit pakkuja adapterit, volikirju ja vastuvõtuteste."
+  },
+  "roles": {
+    "customer": "Klient",
+    "human": "Inimagent",
+    "ai": "Tehisintellekti assistent"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Klient küsis inimest",
+    "low_confidence": "Madal usaldus",
+    "high_risk": "Kõrge risk",
+    "policy_refusal": "Poliitiline keeldumine / piirang",
+    "unresolved": "Lahendamata probleem",
+    "repeated_failure": "Korduv ebaõnnestumine",
+    "model_requested": "Tehisintellekt küsis ülevaatust",
+    "voice_review_required": "Vajalik hääle ülevaatamine",
+    "other": "Muu"
+  },
+  "messages": {
+    "qualificationNotice": "Mingi keel pole tootmiskõlbulik, enne kui on sooritatud teksti, kõne tuvastamise, kõne sünteesi, puudutuse ja eskalatsiooni testid.",
+    "configNeeded": "Siiani on vaja seadistust: {missing}.",
+    "configOk": "Seadistus on olemas. Pakkuja ühenduvus ja keele kvaliteet vajavad endiselt päris vastuvõtuteste.",
+    "conversationCreated": "Loodi turvaline vestlus. Keele kvaliteet pole veel tootmiskõlbulik.",
+    "handoffQueued": "Inimest üleminek pandi järjekorda ({reason}). See on järjekorra taotlus, mitte otseühendus.",
+    "aiResponseFailed": "Tehisintellekti vastust ei saanud lõpule. Mingeid tegevusi ei tehtud. Võid küsida inimagendi.",
+    "actionNotCompleted": "Tegevust ei lõpetatud: {reason}.",
+    "apiUnavailable": "Kontaktikeskuse API-t ei õnnestunud laadida. Logige sisse OpsCore'i konsooli ja laadige leht uuesti.",
+    "suggestedNextStep": "Ainult soovitatud järgmine samm (ei ole täidetud): {step}.",
+    "handoffQueuedQueueOnly": "Üleandmine inimesele on järjekorras ({reason}). Järjekord ei tõesta, et agent on ühendatud.",
+    "voiceHandoffStopped": "Üleandmine inimesele on järjekorras. Brauseri tehisintellekti sessioon peatub; otsene telefoniülekanne ei ole seadistatud.",
+    "voiceCredentialRequest": "Lühiajalise häälmandaadi taotlemine…",
+    "voiceRealtimeError": "Reaalajapakkuja teatas veast. Peatage häälsessioon ja proovige uuesti pärast pakkuja seadistuse kontrollimist.",
+    "voiceActive": "Häälsessioon on aktiivne. Vajutage mis tahes ajal „Küsi inimagenti“; see loob järjekorra kirje, mitte PSTN-ülekande.",
+    "voiceCredentialActive": "{languageCode} · teenusepakkuja ajutine mandaat",
+    "queueUnavailable": "Järjekord pole saadaval: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Enne vestluse alustamist on vaja nõusolekut.",
+    "SERVER_RESPONSE_INVALID": "Serveri vastust ei õnnestunud lugeda.",
+    "REQUEST_FAILED": "Päring ebaõnnestus.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Reaalajahäälepakkujani ei õnnestunud jõuda.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "See brauser ei toeta reaalajahäält.",
+    "HANDOFF_NOT_CLAIMED": "Üleandmist ei õnnestunud üle võtta.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Dubleeriv sõnum eirati."
+  }
+}

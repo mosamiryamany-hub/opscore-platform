@@ -1,0 +1,111 @@
+{
+  "nativeName": "Tiếng Việt",
+  "nav": {
+    "title": "Trung tâm Liên hệ AI",
+    "subtitle": "Tự phục vụ đa ngôn ngữ với việc chuyển giao có kiểm soát cho nhân viên.",
+    "operationsConsole": "Bảng điều khiển vận hành",
+    "interfaceLanguage": "Ngôn ngữ giao diện"
+  },
+  "status": {
+    "configured": "Chế độ được bảo vệ đã cấu hình",
+    "setupIncomplete": "Thiết lập chưa hoàn tất",
+    "apiUnavailable": "Đăng nhập / API không khả dụng"
+  },
+  "stats": {
+    "catalogueRows": "Hàng danh mục",
+    "catalogueRowsNote": "Danh sách đầu vào được bảo toàn",
+    "uniqueCodes": "Mã ngôn ngữ duy nhất",
+    "uniqueCodesNote": "Các bản trùng lặp được đánh dấu",
+    "providerQualification": "Đủ điều kiện nhà cung cấp",
+    "providerQualificationNote": "Chỉ các ngôn ngữ được kiểm thử độc lập mới được tính",
+    "liveQueue": "Hàng đợi nhân viên trực tiếp",
+    "liveQueueNote": "Chuyển giao theo phạm vi tenant"
+  },
+  "customer": {
+    "eyebrow": "TRẢI NGHIỆM KHÁCH HÀNG",
+    "title": "Bắt đầu cuộc trò chuyện",
+    "consentPill": "Cần có sự đồng ý",
+    "preferredLanguage": "Ngôn ngữ ưu tiên",
+    "consentText": "Tôi đồng ý rằng cuộc trò chuyện này có thể được xử lý bởi nhà cung cấp AI đã cấu hình. Bản ghi được mã hóa trước khi lưu trữ.",
+    "startChat": "Bắt đầu trò chuyện văn bản bảo mật",
+    "startVoice": "Bắt đầu giọng nói trên trình duyệt",
+    "setupHint": "Tính năng không khả dụng cho đến khi quản trị viên cấu hình khóa mã hóa và nhà cung cấp AI.",
+    "noConversation": "Không có cuộc trò chuyện đang hoạt động",
+    "startHint": "Tạo phiên có sự đồng ý để bắt đầu.",
+    "requestHuman": "Yêu cầu nhân viên hỗ trợ",
+    "chatEmpty": "Tin nhắn của bạn sẽ xuất hiện ở đây. Hành động của AI chỉ là gợi ý; không thực hiện thanh toán, thay đổi tài khoản, hoàn tiền hay điều phối.",
+    "messagePlaceholder": "Viết một tin nhắn…",
+    "send": "Gửi",
+    "stopVoice": "Dừng phiên thoại",
+    "voiceOff": "Giọng nói đang tắt.",
+    "voiceStreamNote": "Giọng nói trên trình duyệt được truyền trực tuyến tới nhà cung cấp đã cấu hình; OpsCore không tuyên bố lưu trữ âm thanh thô.",
+    "voiceRequirement": "Giọng nói trên trình duyệt yêu cầu HTTPS (hoặc localhost), micrô, sự đồng ý, mô hình Realtime đã cấu hình và khóa nhà cung cấp. Đây không phải cầu nối điện thoại PSTN/SIP."
+  },
+  "queue": {
+    "eyebrow": "CAN THIỆP CỦA CON NGƯỜI",
+    "title": "Hàng đợi chuyển cấp",
+    "refresh": "Làm mới",
+    "description": "Các cuộc trò chuyện rủi ro cao, chưa giải quyết hoặc yêu cầu nhân viên hiển thị tại đây. Mục trong hàng đợi có nghĩa là đã yêu cầu, không phải đã kết nối.",
+    "loading": "Đang tải hàng đợi…",
+    "empty": "Không có chuyển giao nhân viên nào đang hoạt động cho tổ chức này.",
+    "openAssignment": "Mở phân công",
+    "claimAndReview": "Nhận và xem xét",
+    "resolve": "Giải quyết",
+    "reply": "Trả lời",
+    "agentAssignedTitle": "Cuộc trò chuyện được phân công",
+    "replyStorageNote": "Phản hồi của con người được mã hóa khi lưu trữ và hiển thị trong bản ghi cuộc trò chuyện.",
+    "resolveNote": "Đã được người vận hành được phân công giải quyết."
+  },
+  "boundaries": {
+    "title": "Ranh giới vận hành",
+    "automateTitle": "Thiết kế để tự động hóa",
+    "automateBody": "Phản hồi đầu tiên đa ngôn ngữ, làm rõ, phân loại ý định và rủi ro, lưu trữ bản ghi bảo mật, tạo hàng đợi và phân công nhân viên.",
+    "humanTitle": "Cần nhân sự tiếp nhận",
+    "humanBody": "Yêu cầu rõ ràng từ con người, độ tin cậy thấp, rủi ro cao hoặc nghiêm trọng, thiếu chính sách, trường hợp chưa giải quyết, khiếu nại quyền riêng tư/bảo mật hoặc hành động không chắc chắn.",
+    "notEnabledTitle": "Chỉ riêng gói này chưa bật",
+    "notEnabledBody": "Định tuyến PSTN/SIP/WhatsApp/email, cầu nối điện thoại trực tiếp, xác minh danh tính CRM và tuyên bố chất lượng ngôn ngữ cần bộ chuyển đổi nhà cung cấp thực, thông tin xác thực và kiểm thử nghiệm thu."
+  },
+  "roles": {
+    "customer": "Khách hàng",
+    "human": "Nhân viên hỗ trợ",
+    "ai": "Trợ lý AI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Khách hàng yêu cầu nhân viên",
+    "low_confidence": "Độ tin cậy thấp",
+    "high_risk": "Rủi ro cao",
+    "policy_refusal": "Từ chối / hạn chế theo chính sách",
+    "unresolved": "Vấn đề chưa được giải quyết",
+    "repeated_failure": "Thất bại lặp lại",
+    "model_requested": "AI yêu cầu xem xét",
+    "voice_review_required": "Cần xem xét giọng nói",
+    "other": "Khác"
+  },
+  "messages": {
+    "qualificationNotice": "Không có ngôn ngữ nào đủ điều kiện sản xuất cho đến khi vượt qua các kiểm thử văn bản, nhận dạng giọng nói, tổng hợp giọng nói, giọng vùng miền và chuyển cấp.",
+    "configNeeded": "Vẫn cần cấu hình: {missing}.",
+    "configOk": "Cấu hình đã tồn tại. Kết nối nhà cung cấp và chất lượng ngôn ngữ vẫn cần kiểm thử nghiệm thu thực tế.",
+    "conversationCreated": "Đã tạo cuộc trò chuyện bảo mật. Chất lượng ngôn ngữ chưa đủ điều kiện sản xuất.",
+    "handoffQueued": "Chuyển giao nhân viên đã vào hàng đợi ({reason}). Đây là yêu cầu vào hàng đợi, không phải kết nối trực tiếp.",
+    "aiResponseFailed": "Phản hồi của AI chưa hoàn tất. Không thực hiện hành động nào. Bạn có thể yêu cầu nhân viên hỗ trợ.",
+    "actionNotCompleted": "Hành động chưa hoàn tất: {reason}.",
+    "apiUnavailable": "Không thể tải API Contact Center. Hãy đăng nhập vào bảng điều khiển OpsCore rồi tải lại trang này.",
+    "suggestedNextStep": "Chỉ là bước tiếp theo được đề xuất (chưa thực hiện): {step}.",
+    "handoffQueuedQueueOnly": "Việc chuyển giao cho người đã được xếp hàng ({reason}). Hàng đợi không chứng minh rằng nhân viên đã kết nối.",
+    "voiceHandoffStopped": "Việc chuyển giao cho người đã được xếp hàng. Phiên AI trên trình duyệt đang dừng; chuyển cuộc gọi trực tiếp chưa được cấu hình.",
+    "voiceCredentialRequest": "Đang yêu cầu thông tin xác thực giọng nói ngắn hạn…",
+    "voiceRealtimeError": "Nhà cung cấp thời gian thực báo lỗi. Hãy dừng phiên giọng nói và thử lại sau khi kiểm tra cấu hình nhà cung cấp.",
+    "voiceActive": "Phiên giọng nói đang hoạt động. Nhấn “Yêu cầu nhân viên hỗ trợ” bất cứ lúc nào; thao tác này tạo một mục hàng đợi, không phải chuyển cuộc gọi PSTN.",
+    "voiceCredentialActive": "{languageCode} · thông tin xác thực tạm thời của nhà cung cấp",
+    "queueUnavailable": "Hàng đợi không khả dụng: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Cần có sự đồng ý trước khi bắt đầu cuộc trò chuyện.",
+    "SERVER_RESPONSE_INVALID": "Không thể đọc phản hồi của máy chủ.",
+    "REQUEST_FAILED": "Yêu cầu không thành công.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Không thể kết nối tới nhà cung cấp giọng nói thời gian thực.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Trình duyệt này không hỗ trợ giọng nói thời gian thực.",
+    "HANDOFF_NOT_CLAIMED": "Không thể tiếp nhận việc chuyển giao.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Đã bỏ qua tin nhắn trùng lặp."
+  }
+}

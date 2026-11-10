@@ -1,0 +1,2784 @@
+{
+  "schemaVersion": "opscore.tenant-isolation-matrix.v1",
+  "generatedAt": "2026-10-26T00:01:44.747Z",
+  "sourceCommit": "ebc214c272eec9d15c9858d60d67a8ada2c6cca95785aa23340759bc196875fc",
+  "testedTarget": "postgresql://[REDACTED_ROLE]:***@[REDACTED_HOST]/[REDACTED_DB]",
+  "engine": "postgres",
+  "discovered": {
+    "totalRoutes": 358,
+    "tenantDataRoutes": 347,
+    "inventorySource": "docs/API_INVENTORY.json (source-derived via scripts/api-inventory.js)"
+  },
+  "tested": {
+    "unauthenticated": {
+      "checks": 347,
+      "pass": 347,
+      "fail": 0
+    },
+    "foreignIdProbe": {
+      "checks": 101,
+      "pass": 101,
+      "fail": 0
+    },
+    "crossTenantFixture": {
+      "checks": 8,
+      "pass": 8,
+      "fail": 0
+    }
+  },
+  "unauthenticatedChecks": [
+    {
+      "route": "DELETE /api/v1/{param}/{id}",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/{param}/{id}/restore",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/activity",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/admin/migration-preflight",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/admin/password-reset",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/agent-memory",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/agent-memory",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/ai/agent/run",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/ai/knowledge/index",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/ai/knowledge/search",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/ai/status",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/ai/work-orders/{id}/summary",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/api-keys",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/api-keys",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "DELETE /api/v1/api-keys/{id}",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/appointments",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/appointments",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/appointments/{id}",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "PATCH /api/v1/appointments/{id}",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/appointments/{id}/on-my-way",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/appointments/{id}/reschedule",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/appointments/{id}/unreachable",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/approvals",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/approvals",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/approvals/{id}/decide",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/assets",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/assets",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "PATCH /api/v1/assets/{id}",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/assets/{id}/events",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/assets/{id}/health",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/assets/{id}/intelligence",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/attachments/{id}",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/audit",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/audit/verify",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/autopilot/decision-memory",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/autopilot/decision-memory/build",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/autopilot/evidence-center",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/autopilot/evidence-graph",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/autopilot/evidence-integrity",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/autopilot/guardrails",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/autopilot/guardrails",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/autopilot/incidents/replay",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/autopilot/incidents/replay",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/autopilot/learning",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/autopilot/outcomes",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/autopilot/proposals",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/autopilot/proposals/{id}/{param}",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/autopilot/proposals/generate",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/autopilot/replay-package",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/autopilot/safety-contract",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/autopilot/simulations",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/billing/providers",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/billing/providers",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/billing/reconcile-provider",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/billing/stripe",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/billing/stripe/link",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/business-calendars",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/business-calendars",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/business-calendars/exceptions",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/business-due-at",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/circuits",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/client-contract",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/commands",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/commands/execute",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/completion-policies",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/completion-policies",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/completion-policies/{id}/versions",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/compliance/export",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/configs",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/configs",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/configs/activate",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/configuration-changes",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/contact-center/conversations/([A-Za-z0-9_-]+)",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/contact-center/conversations/([A-Za-z0-9_-]+)/erase",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/contact-center/conversations/([A-Za-z0-9_-]+)/handoff",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/contact-center/conversations/([A-Za-z0-9_-]+)/human-reply",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/contact-center/conversations/([A-Za-z0-9_-]+)/messages",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/contact-center/conversations/([A-Za-z0-9_-]+)/realtime-session",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/contact-center/conversations/([A-Za-z0-9_-]+)/transcript",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/contact-center/handoffs/([A-Za-z0-9_-]+)/claim",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/contact-center/handoffs/([A-Za-z0-9_-]+)/resolve",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/contracts",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/contracts",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/control-plane",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/control-plane/feature-flags",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/control-plane/feature-flags",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/control-plane/recovery-bundle",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/control-plane/recovery-bundle/verify",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/control-plane/safe-mode",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/control-plane/safe-mode",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/control-tower",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/control-tower/actions",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/custom-domains",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/custom-domains",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/custom-domains/{id}/activate",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/custom-domains/{id}/verify",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/custom-domains/resolve",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/custom-fields",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/custom-fields",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/customers",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/customers",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "PATCH /api/v1/customers/{id}",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/customers/{id}/service-line",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/customers/{id}/service-line",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/daily-planning-board",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/decision-engine",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/deleted",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/demo/closeout-path",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/dispatch-board",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/dispatcher-map",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/dispatcher-map/v2",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/entitlements",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "PUT /api/v1/entitlements",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/escalation-rules",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/escalations",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/escalations/{id}/{param}",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/escalations/evaluate",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/estimates",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/estimates",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/estimates/{id}",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/estimates/{id}/convert-to-work-order",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/estimates/{id}/pdf",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/estimates/{id}/status",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "PUT /api/v1/evidence-uploads/{id}/chunks/(\\d+)",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/evidence-uploads/{id}/complete",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/export/customers.csv",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/export/organization.json",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/export/work-orders.csv",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/faults",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/faults/{id}/transition",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/faults/{id}/unreachable",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/faults/classify",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/faults/offline-sync",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/field/live-snapshot",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/field/today",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/financial-settings",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "PUT /api/v1/financial-settings",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/geofences",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/geofences",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/geofences/{id}/technicians",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/geofences/assert-access",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/geofences/dynamic-evaluate",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/geofences/dynamic-events",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/geofences/evaluate",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/geofences/role-polygons",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/governance/audit-chain",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/governance/domain-assert",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/governance/domain-isolation",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/hierarchy",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/hierarchy/memberships",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/hierarchy/units",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/import/customers",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/import/customers.json",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/import/customers/dry-run",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/infrastructure/postgres/status",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/intelligence/status",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/intelligence/work-orders/{id}/predict",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/inventory",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/inventory/ledger",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/inventory/ledger/adjust",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/inventory/locations",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/inventory/parts",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/inventory/receive",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/invitations",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/invoices",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/invoices",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/invoices/{id}",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/invoices/{id}/payments",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/invoices/{id}/pdf",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/invoices/{id}/status",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/invoices/stripe/payment-intent",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/locations",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/locations",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/maintenance-plans",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/maintenance-plans",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/maintenance/evaluate",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/map/viewport",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/me",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/members",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "DELETE /api/v1/memberships/{id}",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "PATCH /api/v1/memberships/{id}",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/metrics",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/notification-providers",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/notifications",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/notifications/{id}/deliver",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/notifications/{id}/read",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/observability",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/observability/performance",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/operation-envelopes/{id}",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/operational-intelligence",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/operational-jobs",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/operational-jobs",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/operational-jobs/{id}",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/operations-health",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/operations/closure-sheets/chunked-preview",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/operations/closure-sheets/compile",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/operations/closure-sheets/latest",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/operations/closure-sheets/verify",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/operations/cockpit",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/operations/daily-brief",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/operations/deadlocks",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/operations/deadlocks/resolve",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/operations/dependencies",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/operations/doctor",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/organization/governance",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/organization/status",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/outbox",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/outbox/{id}/claim",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/outbox/{id}/complete",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/outbox/event-catalog",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/platform/capacity",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/platform/decisions",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/platform/decisions/{id}/replay",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/platform/recommendations",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/platform/scenarios",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/platform/skills/certifications",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/platform/skills/certifications",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/platform/skills/match",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/platform/twin",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/platform/twin/integrity",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/platform/twin/snapshots",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/platform/twin/snapshots",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/platform/twin/snapshots/{id}/verify",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/pm-templates",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/portal/access",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/portal/appointments/{id}",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "PATCH /api/v1/portal/appointments/{id}",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/portal/exchange",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/portal/overview",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/portal/self-scheduling/{id}/book",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/portal/self-scheduling/{id}/candidates",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/portal/work-orders/{id}",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/procedure-runs",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/procedure-runs/{id}/steps",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/procedures",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/procedures",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/reconciliation/latest",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/reconciliation/run",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/route-plan",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/routes/osrm",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/safety-acknowledgements",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/safety-checklists",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/safety-checklists",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/saved-views",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/saved-views",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/scheduling/conflicts/analyze",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/scheduling/conflicts/candidates",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/search",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/security-center",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/security/authorization-decisions",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/security/gateway-circuit",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/security/integrity-graph",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/security/privacy-purge",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/security/signature-chain",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/security/signature-chain/levels",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/security/signature-chain/seal",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/security/signature-chain/verify",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/security/tenant-field/protect",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/security/tenant-field/reveal",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/self-scheduling/links",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/self-scheduling/links/{id}/revoke",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/service-history/{param}/{id}",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/service-line-migrations/{id}",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/service-line-migrations/{id}",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/service-line-migrations/{id}/rollback",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/service-line-migrations/{id}/unreachable",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/service-line-migrations/preflight",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/service-lines",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/service-lines",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/sessions",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "DELETE /api/v1/sessions/{id}",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/sites",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/sites",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "PATCH /api/v1/sites/{id}",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/sla-policies",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/sla-policies",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/sla-risks",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/sync",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/sync/conflicts",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/sync/conflicts/{id}/resolve",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/system/parity-heartbeat",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/technicians",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/technicians",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/technicians/{id}/geofences",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/technicians/availability",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/technicians/skills",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/technicians/skills",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/technicians/trail",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/technicians/trail",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/technicians/trail.geojson",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/time-entries",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/time-entries/{id}/stop",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/time-entries/start",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/usage",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/usage",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/value-intelligence",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/warranties",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/warranties",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/webhook-deliveries",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/webhook-deliveries/deliver",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/webhooks",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/webhooks",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/work-order-parts/{id}/consume",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/work-order-parts/reserve",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/work-order-signoffs",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/work-orders",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/work-orders",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "PATCH /api/v1/work-orders/{id}",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/work-orders/{id}",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/attachments",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/work-orders/{id}/attachments",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/changelog",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/comments",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/work-orders/{id}/comments",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/completion-assurance",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/work-orders/{id}/completion-assurance/preview",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/completion-package",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/completion.pdf",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/dispatch-candidates",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/dispatch-eligibility",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/evidence-package",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/work-orders/{id}/evidence-uploads",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/field-duration-forecast",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/work-orders/{id}/field-invoice",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "PUT /api/v1/work-orders/{id}/financials",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/first-time-right",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/work-orders/{id}/first-time-right",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/handoff",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/operational-risk",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/parts",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/work-orders/{id}/signoff-assurance",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/work-orders/{id}/signoff-assurance/challenge",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/work-orders/{id}/signoff-assurance/complete",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/signoffs",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/time-summary",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/timeline",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/work-orders/{id}/transition",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/verified-job-record",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/why-blocked",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/work-pack",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/work-orders/{id}/workflow-transition-preview",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/work-orders/bulk",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/workflows",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "POST /api/v1/workflows",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/v1/workflows/{id}/versions",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "unauthenticated request rejected"
+    },
+    {
+      "route": "GET /api/verify/deployment",
+      "status": "PASS",
+      "httpStatus": 503,
+      "detail": "unauthenticated request rejected"
+    }
+  ],
+  "foreignIdProbes": [
+    {
+      "route": "DELETE /api/v1/{param}/{id}",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "POST /api/v1/{param}/{id}/restore",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "POST /api/v1/ai/work-orders/{id}/summary",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "DELETE /api/v1/api-keys/{id}",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "GET /api/v1/appointments/{id}",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "PATCH /api/v1/appointments/{id}",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "POST /api/v1/appointments/{id}/on-my-way",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "POST /api/v1/appointments/{id}/reschedule",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "POST /api/v1/appointments/{id}/unreachable",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "POST /api/v1/approvals/{id}/decide",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "PATCH /api/v1/assets/{id}",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "POST /api/v1/assets/{id}/events",
+      "status": "PASS",
+      "httpStatus": 422,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 422)"
+    },
+    {
+      "route": "GET /api/v1/assets/{id}/health",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "GET /api/v1/assets/{id}/intelligence",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "GET /api/v1/attachments/{id}",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "POST /api/v1/autopilot/proposals/{id}/{param}",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "GET /api/v1/completion-policies/{id}/versions",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "POST /api/v1/custom-domains/{id}/activate",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "POST /api/v1/custom-domains/{id}/verify",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "PATCH /api/v1/customers/{id}",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "GET /api/v1/customers/{id}/service-line",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "POST /api/v1/customers/{id}/service-line",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "POST /api/v1/escalations/{id}/{param}",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "GET /api/v1/estimates/{id}",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "POST /api/v1/estimates/{id}/convert-to-work-order",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "GET /api/v1/estimates/{id}/pdf",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "POST /api/v1/estimates/{id}/status",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "PUT /api/v1/evidence-uploads/{id}/chunks/(\\d+)",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "POST /api/v1/evidence-uploads/{id}/complete",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "POST /api/v1/faults/{id}/transition",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "POST /api/v1/faults/{id}/unreachable",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "POST /api/v1/geofences/{id}/technicians",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "POST /api/v1/intelligence/work-orders/{id}/predict",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "GET /api/v1/invoices/{id}",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "POST /api/v1/invoices/{id}/payments",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "GET /api/v1/invoices/{id}/pdf",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "POST /api/v1/invoices/{id}/status",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "DELETE /api/v1/memberships/{id}",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "PATCH /api/v1/memberships/{id}",
+      "status": "PASS",
+      "httpStatus": 422,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 422)"
+    },
+    {
+      "route": "POST /api/v1/notifications/{id}/deliver",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "POST /api/v1/notifications/{id}/read",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "GET /api/v1/operation-envelopes/{id}",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "GET /api/v1/operational-jobs/{id}",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "POST /api/v1/outbox/{id}/claim",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "POST /api/v1/outbox/{id}/complete",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "POST /api/v1/platform/decisions/{id}/replay",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "GET /api/v1/platform/twin/snapshots/{id}/verify",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "GET /api/v1/portal/appointments/{id}",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "PATCH /api/v1/portal/appointments/{id}",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 401)"
+    },
+    {
+      "route": "POST /api/v1/portal/self-scheduling/{id}/book",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "GET /api/v1/portal/self-scheduling/{id}/candidates",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "GET /api/v1/portal/work-orders/{id}",
+      "status": "PASS",
+      "httpStatus": 401,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 401)"
+    },
+    {
+      "route": "POST /api/v1/procedure-runs/{id}/steps",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "POST /api/v1/self-scheduling/links/{id}/revoke",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "GET /api/v1/service-history/{param}/{id}",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "GET /api/v1/service-line-migrations/{id}",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "POST /api/v1/service-line-migrations/{id}",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "POST /api/v1/service-line-migrations/{id}/rollback",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "POST /api/v1/service-line-migrations/{id}/unreachable",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "DELETE /api/v1/sessions/{id}",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "PATCH /api/v1/sites/{id}",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "POST /api/v1/sync/conflicts/{id}/resolve",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "GET /api/v1/technicians/{id}/geofences",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "POST /api/v1/time-entries/{id}/stop",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "POST /api/v1/work-order-parts/{id}/consume",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "PATCH /api/v1/work-orders/{id}",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "POST /api/v1/work-orders/{id}",
+      "status": "PASS",
+      "httpStatus": 405,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 405)"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/attachments",
+      "status": "PASS",
+      "httpStatus": 200,
+      "detail": "foreign parent not found; empty list returned (no rows leaked)"
+    },
+    {
+      "route": "POST /api/v1/work-orders/{id}/attachments",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/changelog",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/comments",
+      "status": "PASS",
+      "httpStatus": 200,
+      "detail": "foreign parent not found; empty list returned (no rows leaked)"
+    },
+    {
+      "route": "POST /api/v1/work-orders/{id}/comments",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/completion-assurance",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "POST /api/v1/work-orders/{id}/completion-assurance/preview",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/completion-package",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/completion.pdf",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/dispatch-candidates",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/dispatch-eligibility",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/evidence-package",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "POST /api/v1/work-orders/{id}/evidence-uploads",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/field-duration-forecast",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "POST /api/v1/work-orders/{id}/field-invoice",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "PUT /api/v1/work-orders/{id}/financials",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/first-time-right",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "POST /api/v1/work-orders/{id}/first-time-right",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/handoff",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/operational-risk",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/parts",
+      "status": "PASS",
+      "httpStatus": 200,
+      "detail": "foreign parent not found; empty list returned (no rows leaked)"
+    },
+    {
+      "route": "POST /api/v1/work-orders/{id}/signoff-assurance",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "POST /api/v1/work-orders/{id}/signoff-assurance/challenge",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "POST /api/v1/work-orders/{id}/signoff-assurance/complete",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/signoffs",
+      "status": "PASS",
+      "httpStatus": 200,
+      "detail": "foreign parent not found; empty list returned (no rows leaked)"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/time-summary",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/timeline",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "POST /api/v1/work-orders/{id}/transition",
+      "status": "PASS",
+      "httpStatus": 400,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 400)"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/verified-job-record",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/why-blocked",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "GET /api/v1/work-orders/{id}/work-pack",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "POST /api/v1/work-orders/{id}/workflow-transition-preview",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    },
+    {
+      "route": "GET /api/v1/workflows/{id}/versions",
+      "status": "PASS",
+      "httpStatus": 404,
+      "detail": "foreign-ID probe denied or not-found for tenant B (HTTP 404)"
+    }
+  ],
+  "crossTenantFixtureChecks": [
+    {
+      "id": "cross-tenant-work-order-read-denied",
+      "status": "PASS",
+      "detail": "tenant B GET tenant A work order \u2192 HTTP 404"
+    },
+    {
+      "id": "cross-tenant-customer-read-denied",
+      "status": "PASS",
+      "detail": "tenant B GET tenant A customer \u2192 HTTP 404"
+    },
+    {
+      "id": "cross-tenant-work-order-update-denied",
+      "status": "PASS",
+      "detail": "tenant B PATCH tenant A work order \u2192 HTTP 400"
+    },
+    {
+      "id": "cross-tenant-work-order-delete-denied",
+      "status": "PASS",
+      "detail": "tenant B DELETE tenant A work order \u2192 HTTP 404"
+    },
+    {
+      "id": "resource-unchanged-after-id-swap-attempts",
+      "status": "PASS",
+      "detail": "tenant A work order intact after tenant B update/delete ID-swap attempts (HTTP 200)"
+    },
+    {
+      "id": "cross-tenant-work-order-list-excludes-foreign-rows",
+      "status": "PASS",
+      "detail": "tenant B work-order list excludes tenant A row (rows=0)"
+    },
+    {
+      "id": "cross-tenant-customer-list-excludes-foreign-rows",
+      "status": "PASS",
+      "detail": "tenant B customer list excludes tenant A row and contains tenant B row"
+    },
+    {
+      "id": "cross-tenant-customer-update-denied",
+      "status": "PASS",
+      "detail": "tenant B PATCH tenant A customer \u2192 HTTP 404"
+    }
+  ],
+  "skipped": [],
+  "documentedExclusions": {
+    "diagnosticRoutes": [
+      "/api/verify/database",
+      "/api/verify/database-security",
+      "/metrics"
+    ],
+    "reason": "Platform diagnostic/proof endpoints (not tenant data). /metrics requires METRICS_AUTH_TOKEN in production (HTTP 404 when unconfigured); verify endpoints are public release/deployment proofs by design."
+  },
+  "cleanupErrors": [],
+  "productionCertification": false,
+  "isolationCertification": "NOT_CERTIFIED",
+  "status": "PASS",
+  "note": "Route-level matrix executed against the source-derived inventory at the tested commit. Unauthenticated and foreign-ID probes cover every tenant-data route; true cross-tenant fixture checks cover work-orders and customers. Even on PASS, formal production isolation certification remains NOT_CERTIFIED until the required certification procedures complete.",
+  "deliveryCandidateCommit": "8a4e1d7f7226968183382bed9b55cdf0dd20d7632b0a51eb9e4085f7575d0fbc",
+  "deliveryPipelineId": "2988788212",
+  "packageSha256AtPipeline": "74ad2b0881a22bd62a9ff8422b85cf05c73fb111475f8d075da5fc235cfad9d8",
+  "testedCodeCommit": "ebc214c272eec9d15c9858d60d67a8ada2c6cca95785aa23340759bc196875fc",
+  "identityNote": "deliveryCandidateCommit packages this evidence set. testedCodeCommit is the revision exercised by the named test. They may differ.",
+  "evidenceRedactedAt": "2026-10-26T10:55:23Z",
+  "redactionNote": "Neon hostnames, full connection URLs, and disposable acceptance role names were redacted before commercial packaging. Passwords were never stored in these artifacts."
+}

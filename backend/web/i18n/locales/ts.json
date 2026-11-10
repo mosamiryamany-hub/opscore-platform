@@ -1,0 +1,111 @@
+{
+  "nativeName": "Xitsonga",
+  "nav": {
+    "title": "Xiyimo xa nkhomelo wa AI",
+    "subtitle": "Matsalelo ya tindzimi to tala ni ku hundziseriwa eka munhu.",
+    "operationsConsole": "Khonsolo ya mintirho",
+    "interfaceLanguage": "Ririmi ra xikrini"
+  },
+  "status": {
+    "configured": "Xiyimo lexi hlayisiweke xi lulamisiwile",
+    "setupIncomplete": "Ku lulamisa a ku hetangi",
+    "apiUnavailable": "Ku nghena / API a yi kona"
+  },
+  "stats": {
+    "catalogueRows": "Swiphemu swa nongonoko",
+    "catalogueRowsNote": "Nongonoko wu amukeriwe",
+    "uniqueCodes": "Tikhodi to hambana ta tindzimi",
+    "uniqueCodesNote": "Ku phindha swi vonaka",
+    "providerQualification": "Ku faneleka ka muphakeli",
+    "providerQualificationNote": "Tindzimi le ti ringetiweke ntsena ti hlayiwa",
+    "liveQueue": "Xiphemu xa vanhu sweswi",
+    "liveQueueNote": "Ku hundzisela eka xipani"
+  },
+  "customer": {
+    "eyebrow": "XITLHANGI XA MUTSENGISI",
+    "title": "Sungula mbulavulo",
+    "consentPill": "Nsivelo wu laveka",
+    "preferredLanguage": "Ririmi leri tsakisiwaka",
+    "consentText": "Ndzi pfumela leswaku mbulavulo lowu wu nga hlengeletiwa hi muphakeli wa AI. Matsalwa ma hlayisiwa ma nga si hlayisiwa.",
+    "startChat": "Sungula mbulavulo wo hlayiseka",
+    "startVoice": "Sungula ri vandla eka browser",
+    "setupHint": "A swi koteki ku fikela loko mululamisi a lulamisa khii ni muphakeli.",
+    "noConversation": "A ku na mbulavulo lowu tirhaka",
+    "startHint": "Endla mbulavulo hi nsivelo ku sungula.",
+    "requestHuman": "Kombela munhu",
+    "chatEmpty": "Marungula ma vonaka laha. Mintirho ya AI i swibumabumelo ntsena; a ku na hakelo kumbe ku cinca ka akhawunti.",
+    "messagePlaceholder": "Tsala rungula…",
+    "send": "Rhumela",
+    "stopVoice": "Misa ri vandla",
+    "voiceOff": "Rivandla ri timile.",
+    "voiceStreamNote": "Rivandla ra browser ri rhumeriwa eka muphakeli; OpsCore a yi vuli leswaku yi hlayisa rivandla.",
+    "voiceRequirement": "Rivandla ra browser ri laveka HTTPS, makrofoni, nsivelo, mudel wa Realtime ni khii. A hi ri vito."
+  },
+  "queue": {
+    "eyebrow": "MATSALELO YA VANHU",
+    "title": "Xiphemu xo hundzisela",
+    "refresh": "Pfuxeta",
+    "description": "Mbulavulo leyo khomisa kumbe leyi kombelaka munhu yi vonaka laha. Xiphemu i xikombelo, a hi mbulavulo.",
+    "loading": "Ku layicha…",
+    "empty": "A ku na ku hundzisela eka nhlangano leyi.",
+    "openAssignment": "Pfula ntirho",
+    "claimAndReview": "Amukela u kambisisa",
+    "resolve": "Hetisa",
+    "reply": "Hlamula",
+    "agentAssignedTitle": "Mbulavulo lowu nyikiweke",
+    "replyStorageNote": "Tihlamulo ta vanhu ti hlayisiwile ti vonaka eka mbulavulo.",
+    "resolveNote": "Ku hetisiwile hi mutirhi loyi a nyikiweke."
+  },
+  "boundaries": {
+    "title": "Imipaka ya mintirho",
+    "automateTitle": "Yi endleriwe ku tirha",
+    "automateBody": "Ku hlamula ro sungula hi tindzimi to tala, ku hlamusela, ku kambisisa khombo ni ku hlayisa matsalwa.",
+    "humanTitle": "Ku hundzisela eka munhu swi laveka",
+    "humanBody": "Ku kombela munhu, ku tshembha loko ku nga ri kona, khombo leyikulu, milawu leyi nga riki kona, xivutiso lexi nga hlamuriwangi, xikombelo xa xihundla.",
+    "notEnabledTitle": "A swi koteki hi phakete leyi ntsena",
+    "notEnabledBody": "PSTN/SIP, WhatsApp, imeyili, ri vandla, CRM ni ku tiyisisa tindzimi swi laveka muphakeli wa ntiyiso ni miringo."
+  },
+  "roles": {
+    "customer": "Mutengisi",
+    "human": "Mutirhi wa munhu",
+    "ai": "Muthusi wa AI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Mutengisi u kombete munhu",
+    "low_confidence": "Ku tshembha loko ku nga ri kona",
+    "high_risk": "Khombo leyikulu",
+    "policy_refusal": "Ku ala milawu",
+    "unresolved": "Xivutiso lexi nga hlamuriwangi",
+    "repeated_failure": "Ku phindha ka hambi",
+    "model_requested": "AI yi kombete ku kambisisiwa",
+    "voice_review_required": "Ku kambisisa rivandla swi laveka",
+    "other": "Swimbe"
+  },
+  "messages": {
+    "qualificationNotice": "A ku na ririmi leri pfumeleriweke ku fikela miringo ya matsalwa, ASR, TTS ni rivandla yi hetiwa.",
+    "configNeeded": "Ku lulamisa swa laveka: {missing}.",
+    "configOk": "Ku lulamisa ku kona. Ku hlangana ni khwaliti ya ririmi swi laveka miringo ya ntiyiso.",
+    "conversationCreated": "Mbulavulo wo hlayiseka wu endliwile. Khwaliti ya ririmi a yi pfumeleriwangi.",
+    "handoffQueued": "Ku hundzisela eka munhu ku vekiwe eka xiphemu ({reason}). I xikombelo, a hi mbulavulo.",
+    "aiResponseFailed": "Nhlamulo ya AI a yi hetangi. A ku na ntirho lowu endliweke. U nga kombela munhu.",
+    "actionNotCompleted": "Ntirho a wu hetangi: {reason}.",
+    "apiUnavailable": "API ya nkhomelo a yi kumekangi. Nghena eka OpsCore, kutani u pfuxeta tluka leri.",
+    "suggestedNextStep": "Swibumabumelo ntsena (a swi endliwangi): {step}.",
+    "handoffQueuedQueueOnly": "Ku hundzisela ku vekiwe eka xiphemu ({reason}). Xiphemu a xi kombisi leswaku mutirhi u kona.",
+    "voiceHandoffStopped": "Ku hundzisela ku vekiwe eka xiphemu. Mbulavulo wa AI wu yima; ri vandla a ri lulamisiwangi.",
+    "voiceCredentialRequest": "Ku kombela khii ya rivandla ya nkarhana…",
+    "voiceRealtimeError": "Muphakeli wa Realtime u kombisile xihoxo. Misa rivandla, kambisisa ku lulamisa, kutani u ringeta.",
+    "voiceActive": "Mbulavulo wa rivandla wu tirha. Kombela munhu nkarhi wun'we ni wun'we; leswi swi endla xiphemu, a hi ri vandla.",
+    "voiceCredentialActive": "{languageCode} · khii ya nkarhana",
+    "queueUnavailable": "Xiphemu a xi kumekangi: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Nsivelo wu laveka mbulavulo wu nga si sungula.",
+    "SERVER_RESPONSE_INVALID": "Nhlamulo ya sevha a yi hlayekangi.",
+    "REQUEST_FAILED": "Xikombelo xi tsandzekile.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Muphakeli wa rivandla wa Realtime a wu kumekangi.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Browser leyi a yi seketeli rivandla ra Realtime.",
+    "HANDOFF_NOT_CLAIMED": "Ku hundzisela a ku amukeriwangi.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Rungula leri boheleriweke ri siyiwi."
+  }
+}

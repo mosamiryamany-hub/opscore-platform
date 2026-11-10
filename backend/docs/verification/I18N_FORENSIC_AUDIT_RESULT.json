@@ -1,0 +1,68 @@
+{
+  "schemaVersion": "opscore.i18n-forensic-audit.v1",
+  "generatedAt": "2026-11-02T10:43:58.763Z",
+  "release": "0.11.62",
+  "auditScope": "locale file integrity, structural completeness, registry alignment, and runtime-safe notice wiring",
+  "explicitNonClaims": [
+    "No native-speaker linguistic approval is asserted.",
+    "No ASR/TTS or live provider quality is asserted.",
+    "This report is not a production certification."
+  ],
+  "totalRounds": 4,
+  "passedRounds": 4,
+  "failedRounds": 0,
+  "status": "PASS",
+  "localeFiles": 114,
+  "productionQualifiedLocales": 0,
+  "rounds": [
+    {
+      "id": "01_INVENTORY_AND_JSON_INTEGRITY",
+      "title": "114 locale files parse without duplicate keys",
+      "status": "PASS",
+      "detail": {
+        "localeFiles": 114,
+        "validJson": 114,
+        "duplicateKeyCount": 0,
+        "manifestLocaleCount": 114
+      }
+    },
+    {
+      "id": "02_KEY_AND_PLACEHOLDER_PARITY",
+      "title": "All locale keys, values, and placeholders are structurally complete",
+      "status": "PASS",
+      "detail": {
+        "keysPerLocale": 89,
+        "localesChecked": 114,
+        "keySetMismatches": 0,
+        "emptyOrNonStringValues": 0,
+        "placeholderMismatches": 0
+      }
+    },
+    {
+      "id": "03_REGISTRY_AND_PROVENANCE_ALIGNMENT",
+      "title": "Server catalogue, loader, manifest and review register agree",
+      "status": "PASS",
+      "detail": {
+        "catalogueCodes": 114,
+        "manifestCodes": 114,
+        "sourceLocales": 1,
+        "machineDrafts": 109,
+        "englishFallbacks": 4,
+        "nativeSpeakerReviewedLocales": 0,
+        "productionQualifiedLocales": 0
+      }
+    },
+    {
+      "id": "04_RUNTIME_NOTICE_AND_SAFE_INTEGRATION",
+      "title": "Machine-translation notice is wired into the contact-center runtime safely",
+      "status": "PASS",
+      "detail": {
+        "localizedNoticeSelector": true,
+        "scriptOrder": "loader-before-contact-center",
+        "textContentRendering": true,
+        "unsafeInnerHtmlAssignment": false,
+        "testFilesPresent": 2
+      }
+    }
+  ]
+}

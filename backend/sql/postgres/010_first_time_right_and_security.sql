@@ -1,0 +1,3 @@
+ALTER TABLE completion_policies ADD COLUMN IF NOT EXISTS require_first_time_right BIGINT NOT NULL DEFAULT 0 CHECK(require_first_time_right IN (0,1));
+CREATE TABLE IF NOT EXISTS first_time_right_checks (id TEXT PRIMARY KEY, organization_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE, work_order_id TEXT NOT NULL REFERENCES work_orders(id) ON DELETE CASCADE, ready BIGINT NOT NULL CHECK(ready IN (0,1)), blockers_json TEXT NOT NULL, assessment_hash TEXT NOT NULL, checked_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT, checked_at TEXT NOT NULL, UNIQUE(organization_id,work_order_id));
+CREATE INDEX IF NOT EXISTS idx_first_time_right_org_ready ON first_time_right_checks(organization_id,ready,checked_at);

@@ -1,0 +1,5 @@
+-- OpsCore v0.11.50 general-purpose operational controls: agent memory, tenant domains, governed command catalog.
+CREATE TABLE IF NOT EXISTS agent_memories (id TEXT PRIMARY KEY, organization_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE, subject_type TEXT NOT NULL, subject_id TEXT NOT NULL, memory_type TEXT NOT NULL, content_ciphertext TEXT NOT NULL, content_sha256 TEXT NOT NULL, created_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS idx_agent_memories_subject ON agent_memories(organization_id,subject_type,subject_id,created_at);
+CREATE TABLE IF NOT EXISTS tenant_domains (id TEXT PRIMARY KEY, organization_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE, hostname TEXT NOT NULL UNIQUE, status TEXT NOT NULL CHECK(status IN ('pending','verified','active','disabled')), verification_token TEXT NOT NULL, verified_at TEXT, created_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+CREATE INDEX IF NOT EXISTS idx_tenant_domains_org ON tenant_domains(organization_id,status);

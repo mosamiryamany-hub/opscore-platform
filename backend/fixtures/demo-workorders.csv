@@ -1,0 +1,3 @@
+number,title,description,status,priority
+WO-DEMO-001,Demo Work Order,Example export shape only,open,high
+WO-DEMO-002,Second Demo Work Order,Example export shape only,in_progress,normal

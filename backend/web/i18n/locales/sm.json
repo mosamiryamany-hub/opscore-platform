@@ -1,0 +1,111 @@
+{
+  "nativeName": "Gagana Sāmoa",
+  "nav": {
+    "title": "Nofoaga o Fesootaiga AI",
+    "subtitle": "Fesoasoani i gagana e tele ma le tuuina atu i se tagata.",
+    "operationsConsole": "Konesola o galuega",
+    "interfaceLanguage": "Gagana o le faaaogāina"
+  },
+  "status": {
+    "configured": "Faiga puipuia ua faatulagaina",
+    "setupIncomplete": "Faatulagaga e lei maeʻa",
+    "apiUnavailable": "Saini / API e le o maua"
+  },
+  "stats": {
+    "catalogueRows": "Laina o lisi",
+    "catalogueRowsNote": "Lisi ua teuina",
+    "uniqueCodes": "Faailoga o gagana eseese",
+    "uniqueCodesNote": "O mea tutusa e faailogaina",
+    "providerQualification": "Agavaa o le kamupani",
+    "providerQualificationNote": "Na o gagana ua suʻesuʻeina tutoatasi e faitauina",
+    "liveQueue": "Laina o tagata ola",
+    "liveQueueNote": "Tuuina atu i le kamupani"
+  },
+  "customer": {
+    "eyebrow": "SOIFUA O LE TAGATA FAʻATAU",
+    "title": "Amata se talanoaga",
+    "consentPill": "E manaʻomia le faatagaga",
+    "preferredLanguage": "Gagana e fiafia i ai",
+    "consentText": "Ou te ioe e mafai ona faagaioia lenei talanoaga e le kamupani AI. O tusitusiga e faaliloliloina a o lei teuina.",
+    "startChat": "Amata talanoaga tusitusia saogalemu",
+    "startVoice": "Amata leo i le suʻesuʻe",
+    "setupHint": "E le maua seia faatulagaina e le pule le ki ma le kamupani AI.",
+    "noConversation": "E leai se talanoaga ola",
+    "startHint": "Fai se sauniga ma le faatagaga e amata ai.",
+    "requestHuman": "Talosaga se tagata",
+    "chatEmpty": "O feau e aliali mai iinei. O galuega AI o ni fautuaga; e leai ni totogi po o suiga o teugatupe.",
+    "messagePlaceholder": "Tusi se feau…",
+    "send": "Auina atu",
+    "stopVoice": "Taofi le leo",
+    "voiceOff": "Ua tape le leo.",
+    "voiceStreamNote": "O le leo o le suʻesuʻe e auina atu i le kamupani; e le tautala OpsCore e teuina le leo moni.",
+    "voiceRequirement": "O le leo o le suʻesuʻe e manaʻomia le HTTPS, masini faaleotele, faatagaga, faataitaiga Realtime ma le ki. E le o se telefoni PSTN/SIP."
+  },
+  "queue": {
+    "eyebrow": "FESOASOANI A TAGATA",
+    "title": "Laina o le faasologa",
+    "refresh": "Toe faafou",
+    "description": "O talanoaga matautia, e lei foiaina, po o talosaga a se tagata e aliali mai iinei. O le laina o se talosaga, e le o se fesootaiga.",
+    "loading": "O loo utaina…",
+    "empty": "E leai ni tuuina atu i tagata mo lenei faalapotopotoga.",
+    "openAssignment": "Tatala le galuega",
+    "claimAndReview": "Taligia ma iloilo",
+    "resolve": "Foiaina",
+    "reply": "Tali",
+    "agentAssignedTitle": "Talanoaga ua tofia",
+    "replyStorageNote": "O tali a tagata e faaliloliloina ma vaaia i tusitusiga o le talanoaga.",
+    "resolveNote": "Ua foiaina e le tagata faigaluega ua tofia."
+  },
+  "boundaries": {
+    "title": "Tapulaa o galuega",
+    "automateTitle": "Ua fuafuaina e otometi",
+    "automateBody": "Tali muamua i gagana e tele, faamalamalamaga, iloiloga o tulaga matautia, teuina o tusitusiga ma le fausiaina o laina.",
+    "humanTitle": "E manaʻomia le pule a se tagata",
+    "humanBody": "Talosaga a se tagata, maualalo le talitonuga, tulaga matautia, leai se tulafono, mataupu e lei foiaina, faitioga faalilolilo.",
+    "notEnabledTitle": "E le mafai e lenei afifi na o ia",
+    "notEnabledBody": "PSTN/SIP, WhatsApp, imeli, telefoni, CRM ma le faamaoniga o gagana e manaʻomia ai se kamupani moni ma suʻega."
+  },
+  "roles": {
+    "customer": "Tagata faʻatau",
+    "human": "Tagata faigaluega",
+    "ai": "Fesoasoani AI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Na talosaga le tagata faʻatau i se tagata",
+    "low_confidence": "Maualalo le talitonuga",
+    "high_risk": "Tulaga matautia",
+    "policy_refusal": "Teena o tulafono",
+    "unresolved": "Mataupu e lei foiaina",
+    "repeated_failure": "Toe faia pea",
+    "model_requested": "Na talosaga le AI mo se iloiloga",
+    "voice_review_required": "E manaʻomia le iloiloga o le leo",
+    "other": "Isi"
+  },
+  "messages": {
+    "qualificationNotice": "E leai se gagana ua faamaonia seia maeʻa suʻega o tusitusiga, ASR, TTS ma le leo.",
+    "configNeeded": "E manaʻomia le faatulagaga: {missing}.",
+    "configOk": "Ua i ai le faatulagaga. O fesootaiga ma le lelei o le gagana e manaʻomia suʻega moni.",
+    "conversationCreated": "Ua faia se talanoaga saogalemu. E lei faamaonia le lelei o le gagana.",
+    "handoffQueued": "Ua tuuina atu i le laina ({reason}). O se talosaga, e le o se fesootaiga ola.",
+    "aiResponseFailed": "E lei maeʻa le tali a le AI. E leai se galuega na faia. E mafai ona e talosaga i se tagata.",
+    "actionNotCompleted": "E lei maeʻa le galuega: {reason}.",
+    "apiUnavailable": "E lei mafai ona utaina le API. Saini i totonu o OpsCore, ona toe uta lea o lenei itulau.",
+    "suggestedNextStep": "Fautuaga mo le isi laasaga (e lei faia): {step}.",
+    "handoffQueuedQueueOnly": "Ua tuuina atu i le laina ({reason}). E le faamaonia e le laina o loo fesootai se tagata faigaluega.",
+    "voiceHandoffStopped": "Ua tuuina atu i le laina. Ua taofi le talanoaga AI; e lei faatulagaina le telefoni ola.",
+    "voiceCredentialRequest": "Talosaga se ki leo mo sina taimi…",
+    "voiceRealtimeError": "Na lipotia e le kamupani Realtime se mea sese. Taofi le leo, iloilo le faatulagaga, ona toe taumafai lea.",
+    "voiceActive": "O loo galue le leo. Oomi le “Request human” i so o se taimi; e faia ai se laina, e le o se telefoni PSTN.",
+    "voiceCredentialActive": "{languageCode} · ki le tumau",
+    "queueUnavailable": "E le maua le laina: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "E manaʻomia le faatagaga a o lei amataina se talanoaga.",
+    "SERVER_RESPONSE_INVALID": "E lei mafai ona faitau le tali a le server.",
+    "REQUEST_FAILED": "Ua le manuia le talosaga.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "E lei mafai ona maua le kamupani leo Realtime.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "E le lagolagoina e lenei suʻesuʻe le leo Realtime.",
+    "HANDOFF_NOT_CLAIMED": "E lei talia le tuuina atu.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Ua le amanaʻiina le feau ua uma ona lafo."
+  }
+}

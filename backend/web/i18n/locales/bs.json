@@ -1,0 +1,111 @@
+{
+  "nativeName": "Bosanski",
+  "nav": {
+    "title": "Kontekst centar s AI",
+    "subtitle": "Višejezična samousluga s nadziranim prepuštanjem ljudi.",
+    "operationsConsole": "Operativna konzola",
+    "interfaceLanguage": "Jezik interfejsa"
+  },
+  "status": {
+    "configured": "Zaštićeni režim konfigurisan",
+    "setupIncomplete": "Postavljanje nije dovršeno",
+    "apiUnavailable": "Prijava / API nedostupan"
+  },
+  "stats": {
+    "catalogueRows": "Redovi kataloga",
+    "catalogueRowsNote": "Ulazna lista očuvana",
+    "uniqueCodes": "Jedinstveni jezički kodovi",
+    "uniqueCodesNote": "Duplikati se označavaju",
+    "providerQualification": "Kvalifikacija pružatelja",
+    "providerQualificationNote": "Računaju se samo nezavisno testirani jezici",
+    "liveQueue": "Živi ljudski red",
+    "liveQueueNote": "Prepuštanja u okviru zakupca"
+  },
+  "customer": {
+    "eyebrow": "ISKUSTVO KORISNIKA",
+    "title": "Započni razgovor",
+    "consentPill": "Potrebna saglasnost",
+    "preferredLanguage": "Preferirani jezik",
+    "consentText": "Pristajem da ovaj razgovor obrađuje konfigurisani AI pružalac usluga. Transkripti se šifruju prije pohrane.",
+    "startChat": "Započni sigurnosni tekstualni razgovor",
+    "startVoice": "Započni glas u pregledniku",
+    "setupHint": "Nedostupno dok administrator ne postavi ključ za šifrovanje i AI pružatelja usluga.",
+    "noConversation": "Nema aktivnog razgovora",
+    "startHint": "Za početak napravite sesiju sa saglasnošću.",
+    "requestHuman": "Zatraži ljudskog agenta",
+    "chatEmpty": "Vaše poruke će se pojaviti ovdje. AI radnje su samo prijedlozi; ne izvode se plaćanja, promjene računa, povraćaji ili pošiljke.",
+    "messagePlaceholder": "Napišite poruku…",
+    "send": "Pošalji",
+    "stopVoice": "Zaustavi glasovnu sesiju",
+    "voiceOff": "Glas je isključen.",
+    "voiceStreamNote": "Glas preglednika se strujno šalje konfigurisanom pružaocu; OpsCore ne tvrdi da pohranjuje sirovi zvuk.",
+    "voiceRequirement": "Glas preglednika zahtijeva HTTPS (ili localhost), mikrofon, saglasnost, konfigurisan Realtime model i ključ pružaoca. Nije PSTN/SIP telefonski most."
+  },
+  "queue": {
+    "eyebrow": "LJUDSKA INTERVENCIJA",
+    "title": "Red eskalacije",
+    "refresh": "Osvježi",
+    "description": "Ovdje se pojavljuju razgovori s visokim rizikom, neriješeni ili sa zahtjevom za čovjeka. Stavka u redu znači zatraženo, a ne povezano.",
+    "loading": "Učitavanje reda…",
+    "empty": "Nema aktivnih ljudskih prepuštanja za ovu organizaciju.",
+    "openAssignment": "Otvori dodjelu",
+    "claimAndReview": "Preuzmi i pregledaj",
+    "resolve": "Riješi",
+    "reply": "Odgovori",
+    "agentAssignedTitle": "Dodijeljeni razgovor",
+    "replyStorageNote": "Odgovori ljudi šifriraju se pri pohrani i vidljivi su u transkriptu razgovora.",
+    "resolveNote": "Riješio dodijeljeni ljudski operater."
+  },
+  "boundaries": {
+    "title": "Operativne granice",
+    "automateTitle": "Dizajnirano za automatizaciju",
+    "automateBody": "Višejezični prvi odgovor, razjašnjavanje, razvrstavanje namjere i rizika, sigurno čuvanje transkripata, stvaranje redova i dodjela agenata.",
+    "humanTitle": "Potrebno je ljudsko preuzimanje",
+    "humanBody": "Izričit zahtjev za čovjekom, nisko povjerenje, visok ili kritični rizik, nedostajuća pravila, neriješeni predmet, prigovor privatnosti/sigurnosti ili nesigurna radnja.",
+    "notEnabledTitle": "Nije omogućeno samim paketom",
+    "notEnabledBody": "Usmjeravanje PSTN/SIP/WhatsApp/e-pošte, živi telefonski most, provjera identiteta u CRM-u i tvrdnje o kvaliteti jezika zahtijevaju stvarni adapter pružatelja, vjerodajnice i prihvatne testove."
+  },
+  "roles": {
+    "customer": "Korisnik",
+    "human": "Ljudski agent",
+    "ai": "AI asistent"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Korisnik je zatražio čovjeka",
+    "low_confidence": "Nisko povjerenje",
+    "high_risk": "Visok rizik",
+    "policy_refusal": "Odbijanje / ograničenje pravilima",
+    "unresolved": "Neriješeni problem",
+    "repeated_failure": "Ponovljeni kvar",
+    "model_requested": "AI je zatražio pregled",
+    "voice_review_required": "Potrebna je revizija glasa",
+    "other": "Drugo"
+  },
+  "messages": {
+    "qualificationNotice": "Nijedan jezik nije kvalifikovan za proizvodnju dok se ne polože testovi teksta, prepoznavanja i sinteze govora, naglaska i eskalacije.",
+    "configNeeded": "I dalje je potrebna konfiguracija: {missing}.",
+    "configOk": "Konfiguracija postoji. Povezanost s pružateljem i kvaliteta jezika još zahtijevaju stvarne prihvatne testove.",
+    "conversationCreated": "Napravljen je siguran razgovor. Kvalitet jezika još nije kvalifikovan za proizvodnju.",
+    "handoffQueued": "Ljudsko prepuštanje stavljeno u red ({reason}). To je zahtjev u redu, a ne živa veza.",
+    "aiResponseFailed": "AI odgovor nije završen. Nije izvedena nikakva radnja. Možete zatražiti ljudskog agenta.",
+    "actionNotCompleted": "Radnja nije dovršena: {reason}.",
+    "apiUnavailable": "API kontakt-centra nije bilo moguće učitati. Prijavite se u OpsCore konzolu, a zatim ponovo učitajte ovu stranicu.",
+    "suggestedNextStep": "Samo predloženi sljedeći korak (nije izvršen): {step}.",
+    "handoffQueuedQueueOnly": "Predaja čovjeku stavljena je u red ({reason}). Red ne dokazuje da je agent povezan.",
+    "voiceHandoffStopped": "Predaja čovjeku stavljena je u red. AI sesija preglednika se zaustavlja; prijenos telefonskog poziva uživo nije konfigurisan.",
+    "voiceCredentialRequest": "Zahtijeva se kratkotrajni glasovni kredencijal…",
+    "voiceRealtimeError": "Pružalac u stvarnom vremenu prijavio je grešku. Zaustavite glasovnu sesiju i pokušajte ponovo nakon provjere konfiguracije pružaoca.",
+    "voiceActive": "Glasovna sesija je aktivna. Pritisnite “Zatraži ljudskog agenta” u bilo kojem trenutku; to stvara stavku u redu, a ne PSTN prijenos.",
+    "voiceCredentialActive": "{languageCode} · privremeni kredencijal pružaoca",
+    "queueUnavailable": "Red nije dostupan: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Saglasnost je potrebna prije početka razgovora.",
+    "SERVER_RESPONSE_INVALID": "Odgovor servera nije bilo moguće pročitati.",
+    "REQUEST_FAILED": "Zahtjev nije uspio.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Pružalac glasa u stvarnom vremenu nije dostupan.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Ovaj preglednik ne podržava glas u stvarnom vremenu.",
+    "HANDOFF_NOT_CLAIMED": "Predaju nije bilo moguće preuzeti.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Duplirana poruka je zanemarena."
+  }
+}

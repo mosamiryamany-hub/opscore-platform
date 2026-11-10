@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en" dir="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="OpsCore — Unified operational command fabric for field, dispatch, assurance and multi-tenant control.">
+  <meta name="theme-color" content="#050814">
+  <title>OpsCore — Command Fabric</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/command-fabric-v3.css">
+  <style>
+    :root{
+      --bg:#050814;--panel:rgba(10,16,36,.72);--line:rgba(0,229,255,.22);
+      --cyan:#00e5ff;--violet:#8b5cff;--ok:#3dff9a;--warn:#ffc14d;--text:#eaf0ff;--muted:#8b97b3;
+      --glow:0 0 40px rgba(0,229,255,.18);
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}
+    body{
+      background:
+        radial-gradient(1200px 600px at 10% -10%, rgba(0,229,255,.14), transparent 55%),
+        radial-gradient(900px 500px at 90% 0%, rgba(139,92,255,.16), transparent 50%),
+        radial-gradient(800px 400px at 50% 100%, rgba(61,255,154,.06), transparent 45%),
+        var(--bg);
+    }
+    .shell{max-width:1280px;margin:0 auto;padding:20px 18px 48px}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+    .brand{display:flex;align-items:center;gap:12px}
+    .mark{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,var(--cyan),var(--violet));box-shadow:var(--glow);position:relative}
+    .mark:after{content:"";position:absolute;inset:8px;border:1.5px solid rgba(5,8,20,.7);border-radius:6px}
+    .brand h1{margin:0;font-size:1.05rem;letter-spacing:.08em;text-transform:uppercase}
+    .brand p{margin:0;color:var(--muted);font-size:.78rem}
+    .pills{display:flex;flex-wrap:wrap;gap:8px}
+    .pill{border:1px solid var(--line);background:rgba(0,229,255,.06);color:var(--cyan);padding:6px 10px;border-radius:999px;font-size:.72rem;letter-spacing:.04em}
+    .pill.ok{border-color:rgba(61,255,154,.35);color:var(--ok);background:rgba(61,255,154,.08)}
+    .hero{
+      display:grid;grid-template-columns:1.35fr .9fr;gap:16px;margin-bottom:16px
+    }
+    @media (max-width:960px){.hero{grid-template-columns:1fr}}
+    .card{
+      border:1px solid var(--line);border-radius:18px;background:var(--panel);
+      backdrop-filter:blur(16px);box-shadow:var(--glow);overflow:hidden;position:relative
+    }
+    .card::before{
+      content:"";position:absolute;inset:0;pointer-events:none;
+      background:linear-gradient(120deg, transparent 40%, rgba(0,229,255,.05) 50%, transparent 60%);
+      animation:scan 7s linear infinite
+    }
+    @keyframes scan{0%{transform:translateX(-40%)}100%{transform:translateX(40%)}}
+    .hero-main{padding:28px 28px 24px;min-height:320px;display:flex;flex-direction:column;justify-content:space-between}
+    .eyebrow{color:var(--cyan);font-size:.75rem;letter-spacing:.18em;text-transform:uppercase;margin:0 0 10px}
+    .hero-main h2{margin:0 0 12px;font-size:clamp(1.8rem,4vw,2.7rem);line-height:1.08;font-weight:700}
+    .hero-main h2 span{background:linear-gradient(90deg,var(--cyan),var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
+    .lead{margin:0;color:var(--muted);max-width:42ch;line-height:1.55;font-size:.98rem}
+    .cta-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+    .btn{
+      appearance:none;border:1px solid var(--line);border-radius:12px;padding:12px 16px;
+      background:linear-gradient(135deg,rgba(0,229,255,.2),rgba(139,92,255,.22));
+      color:var(--text);font-weight:600;text-decoration:none;font-size:.9rem
+    }
+    .btn.ghost{background:rgba(255,255,255,.03)}
+    .btn:hover{filter:brightness(1.08)}
+    .radar-wrap{padding:16px;display:grid;place-items:center;min-height:320px}
+    canvas#radar{width:100%;max-width:320px;height:auto;aspect-ratio:1;border-radius:50%}
+    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+    @media (max-width:960px){.grid{grid-template-columns:repeat(2,1fr)}}
+    @media (max-width:560px){.grid{grid-template-columns:1fr}}
+    .metric{padding:16px 16px 14px}
+    .metric .k{color:var(--muted);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase}
+    .metric .v{font-size:1.55rem;font-weight:700;margin-top:6px;font-variant-numeric:tabular-nums}
+    .metric .s{color:var(--muted);font-size:.78rem;margin-top:4px}
+    .rooms{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px}
+    @media (max-width:900px){.rooms{grid-template-columns:1fr}}
+    .room{padding:18px;text-decoration:none;color:inherit;transition:transform .15s ease,border-color .15s}
+    .room:hover{transform:translateY(-2px);border-color:rgba(0,229,255,.45)}
+    .room h3{margin:0 0 6px;font-size:1rem}
+    .room p{margin:0;color:var(--muted);font-size:.86rem;line-height:1.45}
+    .room .tag{display:inline-block;margin-top:12px;font-size:.7rem;color:var(--cyan);letter-spacing:.08em;text-transform:uppercase}
+    .panel{padding:18px 20px}
+    .panel h3{margin:0 0 10px;font-size:1rem}
+    .list{margin:0;padding:0;list-style:none}
+    .list li{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.88rem}
+    .list li span:last-child{color:var(--muted);font-variant-numeric:tabular-nums}
+    .footer{margin-top:22px;color:var(--muted);font-size:.78rem;display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between}
+    .footer a{color:var(--cyan);text-decoration:none}
+  
+    /* Command Fabric V2 — Vercel-grade visual polish, without fabricated live signals */
+    :root{--bg:#050711;--panel:rgba(12,18,34,.82);--line:rgba(139,169,225,.16);--cyan:#66f3ff;--violet:#9a83ff;--ok:#8de8c1;--warn:#ffcf87;--text:#f0f5ff;--muted:#a1afca;--glow:0 18px 58px rgba(0,0,0,.22)}
+    html{scroll-behavior:smooth;background:#050711}body{font-feature-settings:"ss01" on,"cv11" on;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;background:radial-gradient(1000px 620px at 6% -15%,rgba(101,78,255,.24),transparent 58%),radial-gradient(850px 560px at 105% 0%,rgba(0,218,255,.14),transparent 56%),linear-gradient(180deg,#070a16,#050711 78%)}
+    .shell{max-width:1560px;padding:clamp(14px,2vw,28px) clamp(12px,2vw,28px) 52px}.topbar{position:relative;padding:14px 16px;margin-bottom:18px;border:1px solid rgba(139,169,225,.15);border-radius:20px;background:rgba(8,12,25,.78);box-shadow:0 16px 55px rgba(0,0,0,.2);backdrop-filter:blur(20px)}
+    .mark{width:44px;height:44px;border-radius:15px;background:linear-gradient(145deg,#9bf8ff,#58cfff 42%,#9b83ff);box-shadow:0 8px 28px rgba(78,217,255,.22)}.brand h1{letter-spacing:.04em;font-size:.92rem}.brand p{margin-top:4px;letter-spacing:.02em}
+    .pill{border-color:rgba(139,169,225,.17);background:rgba(255,255,255,.035);color:#d9e7ff;padding:7px 11px}.pill.ok{border-color:rgba(141,232,193,.22);background:rgba(141,232,193,.07);color:#a8efd1}
+    .hero{grid-template-columns:minmax(0,1.2fr) minmax(320px,.8fr);gap:18px;margin-bottom:18px}.card{border-color:rgba(139,169,225,.16);border-radius:24px;background:linear-gradient(145deg,rgba(15,22,42,.88),rgba(8,13,27,.83));box-shadow:inset 0 1px rgba(255,255,255,.035),0 20px 65px rgba(0,0,0,.18);backdrop-filter:blur(18px)}.card::before{background:linear-gradient(110deg,transparent 15%,rgba(102,243,255,.025) 50%,transparent 75%);animation:scan 14s ease-in-out infinite}
+    .hero-main{padding:clamp(24px,3.2vw,48px);min-height:360px}.eyebrow{font-size:.66rem;letter-spacing:.2em;color:#8cefff}.hero-main h2{font-size:clamp(2.15rem,4.5vw,4.25rem);letter-spacing:-.055em;line-height:1.02;max-width:13ch}.hero-main h2 span{background:linear-gradient(100deg,#a4f4ff 0%,#84caff 48%,#c2b3ff 100%);-webkit-background-clip:text;background-clip:text;color:transparent}.lead{max-width:54ch;font-size:1rem;line-height:1.72;color:#aab7d0}
+    .btn{border-radius:999px;padding:12px 16px;background:linear-gradient(110deg,#9cf7ff,#7bc9ff 50%,#b5a4ff);color:#07101e;border:1px solid transparent;box-shadow:0 8px 24px rgba(102,211,255,.11);transition:transform .2s,border-color .2s,background .2s}.btn:hover{transform:translateY(-2px)}.btn.ghost{background:rgba(255,255,255,.025);border-color:rgba(139,169,225,.18);color:#dce8ff;box-shadow:none}.btn.ghost:hover{border-color:rgba(102,243,255,.4);background:rgba(102,243,255,.05)}
+    .radar-wrap{padding:clamp(18px,2.4vw,32px);min-height:360px;background:radial-gradient(ellipse at 50% 48%,rgba(102,243,255,.06),transparent 62%),linear-gradient(145deg,rgba(15,22,42,.9),rgba(6,11,23,.9))}.radar-wrap:after{content:"VISUAL MODEL · NOT LIVE GEO";position:absolute;bottom:17px;left:0;right:0;text-align:center;color:#8e9fbd;font-size:.59rem;letter-spacing:.16em}.radar-wrap canvas{filter:drop-shadow(0 0 24px rgba(0,229,255,.1))}
+    .grid{gap:14px}.metric{padding:20px 22px;min-height:126px}.metric .k{font-size:.66rem;letter-spacing:.14em;text-transform:uppercase;color:#a6b6d4}.metric .v{font-size:clamp(1.35rem,2vw,1.8rem);letter-spacing:-.04em;font-weight:750;margin-top:10px;font-variant-numeric:tabular-nums}.metric .s{font-size:.75rem;line-height:1.5;color:#8f9fbd;margin-top:6px}
+    .rooms{gap:14px}.room{padding:23px 24px;min-height:180px;transition:transform .22s,border-color .22s,box-shadow .22s}.room:hover{transform:translateY(-4px);border-color:rgba(102,243,255,.38);box-shadow:0 24px 65px rgba(0,0,0,.26),0 0 28px rgba(102,243,255,.05)}.room h3{font-size:1.05rem;letter-spacing:-.025em}.room p{line-height:1.65;color:#a1afca}.tag{border-radius:999px;padding:6px 9px;border:1px solid rgba(102,243,255,.17);background:rgba(102,243,255,.05);color:#8cefff;letter-spacing:.11em}
+    .panel{padding:24px}.list li{border-bottom-color:rgba(139,169,225,.11);padding:12px 0}.footer{color:#8999b7;border-top-color:rgba(139,169,225,.12);margin-top:24px;padding-top:20px}.footer a{color:#9cefff}
+    a:focus-visible,button:focus-visible{outline:2px solid #8cefff;outline-offset:3px}
+    @media(max-width:960px){.hero{grid-template-columns:1fr}.hero-main{min-height:300px}.radar-wrap{min-height:320px}.hero-main h2{max-width:16ch}}
+    @media(max-width:640px){.shell{padding:10px 9px 32px}.topbar{align-items:flex-start;flex-direction:column;padding:13px;border-radius:17px}.pills{gap:6px}.pill{font-size:.64rem}.hero-main{padding:24px 20px;min-height:300px}.hero-main h2{font-size:clamp(2.05rem,10vw,3rem)}.radar-wrap{min-height:270px;padding:12px}.radar-wrap:after{font-size:.52rem}.metric{padding:16px;min-height:112px}.room{padding:19px;min-height:0}.panel{padding:18px}}
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="mark" aria-hidden="true"></div>
+        <div>
+          <h1>OpsCore Command Fabric</h1>
+          <p>Unified operations · Field · Dispatch · Assurance</p>
+        </div>
+      </div>
+      <div class="pills">
+        <span class="pill ok" id="livePill">RUNTIME · CHECKING</span>
+        <span class="pill" id="verPill">v0.11.62</span>
+        <span class="pill" id="engPill">ENGINE · —</span>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="card hero-main">
+        <div>
+          <p class="eyebrow">Operational picture · 2026</p>
+          <h2>See the whole picture.<br><span>Make the right call.</span></h2>
+          <p class="lead">Multi-tenant command surface for work orders, dispatch, GPS field tracking, assurance gates, and governed AI contact flows — one fabric, clear trust boundaries.</p>
+        </div>
+        <div class="cta-row">
+          <a class="btn" href="/command-bridge.html">Enter Mission Control</a>
+          <a class="btn ghost" href="/control-rooms.html">All control rooms</a>
+          <a class="btn ghost" href="/control-plane.html">Control plane</a>
+          <a class="btn ghost" href="/portal.html">Customer portal</a>
+          <a class="btn ghost" href="/verify/release.html">Release proof</a>
+        </div>
+      </div>
+      <div class="card radar-wrap">
+        <canvas id="radar" width="640" height="640" aria-label="Decorative synthetic operations radar; not a live geographic feed"></canvas>
+      </div>
+    </section>
+
+    <section class="grid" aria-label="Live metrics">
+      <div class="card metric"><div class="k">Platform</div><div class="v" id="mStatus">—</div><div class="s" id="mStatusSub">Health probe</div></div>
+      <div class="card metric"><div class="k">Runtime</div><div class="v" id="mEngine">—</div><div class="s">Resolved store engine</div></div>
+      <div class="card metric"><div class="k">Version</div><div class="v" id="mVer">0.11.62</div><div class="s">Commercial line</div></div>
+      <div class="card metric"><div class="k">Latency</div><div class="v" id="mLat">—</div><div class="s">Round-trip probe</div></div>
+    </section>
+
+    <section class="rooms" aria-label="Control rooms">
+      <a class="card room" href="/command-bridge.html">
+        <h3>Mission Control</h3>
+        <p>Cinematic bridge with verified health probes, clearly labeled demo signals, and an operational visualization.</p>
+        <span class="tag">Primary surface</span>
+      </a>
+      <a class="card room" href="/control-rooms.html">
+        <h3>Control Rooms Hub</h3>
+        <p>Navigate every command room from one governed entry — ops, assurance, portal.</p>
+        <span class="tag">Directory</span>
+      </a>
+      <a class="card room" href="/verify/database.html">
+        <h3>Integrity Proof</h3>
+        <p>Public connectivity proof without exposing hosts, roles, or credentials.</p>
+        <span class="tag">Trust boundary</span>
+      </a>
+    </section>
+
+    <section class="card panel">
+      <h3>Trust boundaries</h3>
+      <ul class="list">
+        <li><span>Live indicators</span><span>Only after verified probe</span></li>
+        <li><span>Source &amp; artifacts</span><span>Private · licensed delivery</span></li>
+        <li><span>Database proof</span><span>Status only · no host leak</span></li>
+        <li><span>Mobile store binaries</span><span>Buyer residual</span></li>
+      </ul>
+    </section>
+
+    <footer class="footer">
+      <span>OpsCore · Command Fabric · Commercial line 0.11.62</span>
+      <span>
+        <a href="/api/verify/release">/api/verify/release</a> ·
+        <a href="/api/health">/api/health</a>
+      </span>
+    </footer>
+  </div>
+    <script src="/home-fabric.js" defer></script>
+</body>
+</html>

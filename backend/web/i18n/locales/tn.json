@@ -1,0 +1,111 @@
+{
+  "nativeName": "Setswana",
+  "nav": {
+    "title": "Setsi sa puisano ya AI",
+    "subtitle": "Thuso ya dipuo tse dintsi le phetisetso e laolwang go motho.",
+    "operationsConsole": "Khonsolo ya ditiro",
+    "interfaceLanguage": "Puo ya sefaleng"
+  },
+  "status": {
+    "configured": "Mokgwa o o babaletsweng o tlhophilwe",
+    "setupIncomplete": "Peakanyo ga e a felela",
+    "apiUnavailable": "Go tsena / API ga e yo"
+  },
+  "stats": {
+    "catalogueRows": "Mela ya lenane",
+    "catalogueRowsNote": "Lenane le tshedimosiwe",
+    "uniqueCodes": "Dikhoutu tsa dipuo tse di farologaneng",
+    "uniqueCodesNote": "Go boeletsa go a lemogwa",
+    "providerQualification": "Go nna le bokgoni ga motlamedi",
+    "providerQualificationNote": "Dipuo tse di tlhatlhilweng fela di balwa",
+    "liveQueue": "Kelotlhoko ya batho jaanong",
+    "liveQueueNote": "Phetisetso mo setlhopheng"
+  },
+  "customer": {
+    "eyebrow": "MAITEMOGELO A MORATEDI",
+    "title": "Simolola puisano",
+    "consentPill": "Tumelano e a tlhokega",
+    "preferredLanguage": "Puo e e ratwang",
+    "consentText": "Ke dumela gore puisano eno e ka dirwa ke motlamedi wa AI. Dikwalo di khutsufadiwa pele di bolokwa.",
+    "startChat": "Simolola puisano ya sekwalwa e e babalesegileng",
+    "startVoice": "Simolola lentswe mo browser",
+    "setupHint": "Ga e yo go fitlha molaodi a tlhoma senotlolo le motlamedi wa AI.",
+    "noConversation": "Ga go na puisano e e dirang",
+    "startHint": "Dira puisano ka tumelano go simolola.",
+    "requestHuman": "Kopa motho",
+    "chatEmpty": "Molaetsa o a bonala fano. Ditiro tsa AI ke dikatso fela; ga go na tefo kgotsa phetolo ya akhaonto.",
+    "messagePlaceholder": "Kwala molaetsa…",
+    "send": "Romela",
+    "stopVoice": "Emisa lentswe",
+    "voiceOff": "Lentswe le timilwe.",
+    "voiceStreamNote": "Lentswe la browser le romelwa kwa motlameding; OpsCore ga e bue gore e boloka lentswe la nnete.",
+    "voiceRequirement": "Lentswe la browser le tlhoka HTTPS, maekorofono, tumelano, mofuta wa Realtime le senotlolo. Ga se mogala."
+  },
+  "queue": {
+    "eyebrow": "THUSO YA BATHO",
+    "title": "Kelotlhoko ya phetisetso",
+    "refresh": "Ntšhafatsa",
+    "description": "Dipuisano tse di kotsi kgotsa tse di kopileng motho di a bonala fano. Kelotlhoko ke kopo, ga se kgokagano.",
+    "loading": "Go a laisiwa…",
+    "empty": "Ga go na phetisetso mo setlhopheng seno.",
+    "openAssignment": "Bula tiro",
+    "claimAndReview": "Amogela o sekaseke",
+    "resolve": "Fetsa",
+    "reply": "Arabela",
+    "agentAssignedTitle": "Puisano e e abetsweng",
+    "replyStorageNote": "Dikarabo tsa batho di bolokilwe di khutsufaditswe mme di a bonala mo puisanong.",
+    "resolveNote": "E feditswe ke modiri yo o abetsweng."
+  },
+  "boundaries": {
+    "title": "Melelwane ya ditiro",
+    "automateTitle": "E etseditswe go dira",
+    "automateBody": "Karabo ya ntlha ka dipuo tse dintsi, tlhaloso, tekolo ya kotsi, go boloka dikwalo le go aga kelotlhoko.",
+    "humanTitle": "Phetisetso kwa mothong e a tlhokega",
+    "humanBody": "Kopo ya motho, go sa tshepe, kotsi e kgolo, melao e e tshwerweng, kgetse e e sa rarabololwang, ngongoregiso ya sephiri.",
+    "notEnabledTitle": "Ga e a kgonwa ke setlhopha seno fela",
+    "notEnabledBody": "PSTN/SIP, WhatsApp, imeile, mogala, CRM le netefatso ya puo di tlhoka motlamedi wa nnete le diteko."
+  },
+  "roles": {
+    "customer": "Moratedi",
+    "human": "Modiri wa motho",
+    "ai": "Mothusi wa AI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Moratedi o kopile motho",
+    "low_confidence": "Go sa tshepe",
+    "high_risk": "Kotsi e kgolo",
+    "policy_refusal": "Go gana melao",
+    "unresolved": "Kgetse e e sa rarabololwang",
+    "repeated_failure": "Go ikuela kgapetsakgapetsa",
+    "model_requested": "AI e kopile tlhatlhobo",
+    "voice_review_required": "Tlhatlhobo ya lentswe e a tlhokega",
+    "other": "Tse dingwe"
+  },
+  "messages": {
+    "qualificationNotice": "Ga go na puo e e netefaditsweng go fitlha diteko tsa sekwalwa, ASR, TTS le lentswe di feta.",
+    "configNeeded": "Peakanyo e sa ntse e tlhokega: {missing}.",
+    "configOk": "Peakanyo e teng. Kgokagano le boleng jwa puo di tlhoka diteko tsa nnete.",
+    "conversationCreated": "Puisano e e babalesegileng e dirilwe. Boleng jwa puo ga bo a netefadiwa.",
+    "handoffQueued": "Phetisetso kwa mothong e beilwe mo kelotlhokong ({reason}). Ke kopo, ga se kgokagano.",
+    "aiResponseFailed": "Karabo ya AI ga e a felela. Ga go na tiro e e dirilweng. O ka kopa motho.",
+    "actionNotCompleted": "Tiro ga e a felela: {reason}.",
+    "apiUnavailable": "API ya setsi ga e a bonwa. Tsena mo OpsCore, morago o ntšhafatse tsebe eno.",
+    "suggestedNextStep": "Katso fela (ga e a dirwa): {step}.",
+    "handoffQueuedQueueOnly": "Phetisetso e beilwe mo kelotlhokong ({reason}). Kelotlhoko ga e bontshe gore modiri o teng.",
+    "voiceHandoffStopped": "Phetisetso e beilwe mo kelotlhokong. Puisano ya AI e a ema; mogala ga o a tlhomiwa.",
+    "voiceCredentialRequest": "Go kopa senotlolo sa lentswe sa nakwana…",
+    "voiceRealtimeError": "Motlamedi wa Realtime o bontshitse phoso. Emisa lentswe, sekaseka peakanyo, o leke gape.",
+    "voiceActive": "Puisano ya lentswe e a dira. Kopa motho nako nngwe le nngwe; se dirile kelotlhoko, ga se mogala.",
+    "voiceCredentialActive": "{languageCode} · senotlolo sa nakwana",
+    "queueUnavailable": "Kelotlhoko ga e yo: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Tumelano e a tlhokega pele puisano e simolola.",
+    "SERVER_RESPONSE_INVALID": "Karabo ya server ga e a balega.",
+    "REQUEST_FAILED": "Kopo ga e a atlega.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Motlamedi wa lentswe wa Realtime ga o a bonwa.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Browser eno ga e tshegetse lentswe la Realtime.",
+    "HANDOFF_NOT_CLAIMED": "Phetisetso ga e a amogelwa.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Molaetsa o boeleditswe."
+  }
+}

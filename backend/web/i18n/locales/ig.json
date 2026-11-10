@@ -1,0 +1,111 @@
+{
+  "nativeName": "Igbo",
+  "nav": {
+    "title": "Ebe Nzụlite AI",
+    "subtitle": "Ọrụ onwe n'asụsụ dị iche iche na ntụgharị aka n'aka nke mmadụ.",
+    "operationsConsole": "Igbe njikwa ọrụ",
+    "interfaceLanguage": "Asụsụ interface"
+  },
+  "status": {
+    "configured": "Ọnọdụ echekwabara haziri",
+    "setupIncomplete": "Ntinye ezughi oke",
+    "apiUnavailable": "Mbanye / API enweghị"
+  },
+  "stats": {
+    "catalogueRows": "Ahịrị ndetu",
+    "catalogueRowsNote": "Ndepụta mbido echekwabara",
+    "uniqueCodes": "Koodu asụsụ pụrụ iche",
+    "uniqueCodesNote": "Ndị megharịara anara akara",
+    "providerQualification": "Ọkwa onye nnyefe",
+    "providerQualificationNote": "Naanị asụsụ anwalewalara onwe ha bụ ndị a gụrụ",
+    "liveQueue": "Ndị mmadụ ọchịchere elu",
+    "liveQueueNote": "Ntụgharị nke onye ọrụ ụlọ"
+  },
+  "customer": {
+    "eyebrow": "AHỤ ONYE ZỤTARA",
+    "title": "Malite mkparịta ụka",
+    "consentPill": "Mmachibido ihe achọrọ",
+    "preferredLanguage": "Asụsụ ọkachọrọ",
+    "consentText": "M kwetara na mkparịta ụka a ga-enyocha ya site n'aka onye nnyefe AI haziri. A ga-enyocha ya kweọdo ebe obibi.",
+    "startChat": "Malite okwu ederede echedoro",
+    "startVoice": "Malite olu nke onye nyocha",
+    "setupHint": "Ọ gaghị adị ruo mgbe onye nchịkwa haziri igodo nyocha na onye nnyefe AI.",
+    "noConversation": "Enweghị mkparịta ụka na-aga nke ọma",
+    "startHint": "Iji malite, mepụta oge mmachibido ihe.",
+    "requestHuman": "Rịọ onye nnọchite mmadụ",
+    "chatEmpty": "Ozi gị ga-apụta ebe a. Omume AI bụ naanị atụmatụ; a naghị eme ụgwọ, mgbanwe akaụntụ, nloghachi ma ọ bụ ọrụ nzipu.",
+    "messagePlaceholder": "Dee ozi…",
+    "send": "Zipu",
+    "stopVoice": "Ọkwọ vuzị",
+    "voiceOff": "Olu gbanyụọ.",
+    "voiceStreamNote": "A na-ebufe olu ihe nchọgharị n'ụdị iyi gaa n'onye na-enye ọrụ e debere; OpsCore anaghị ekwu na ọ na-echekwa ụda ahụ a na-edoghị.",
+    "voiceRequirement": "Olu ihe nchọgharị chọrọ HTTPS (ma ọ bụ localhost), igwe okwu, nkwenye, ụdị Realtime e debere na igodo onye na-enye ọrụ. Ọ bụghị àkwà ekwentị PSTN/SIP."
+  },
+  "queue": {
+    "eyebrow": "NNWENYE MMADỤ",
+    "title": "Ọchịchere elu",
+    "refresh": "Weta ọhụrụ",
+    "description": "Mkparịta ụka dị okwu dị elu, ma enweghị mmechi ma ọ bụ ọchịchọ mmadụ na-apụta ebe a. Ihe ndekọ na-egosi arịrịọ, njikọ bụghị.",
+    "loading": "Na-eweta ọchịchere…",
+    "empty": "Enweghị ntụgharị mmadụ na-arụ ọrụ maka nzukọ a.",
+    "openAssignment": "Mepe nkènye",
+    "claimAndReview": "Banye ma nyocha",
+    "resolve": "Gbanye mgbaze",
+    "reply": "Zaghachi",
+    "agentAssignedTitle": "Mkparịta ụka e kenyere",
+    "replyStorageNote": "A na-ezo ya zoo azịza mmadụ mgbe a na-echekwa ha, ha na-apụtakwa na ihe e dere nke mkparịta ụka.",
+    "resolveNote": "Onye ọrụ mmadụ e kenyere dozie ya."
+  },
+  "boundaries": {
+    "title": "Oke nke ọrụ",
+    "automateTitle": "Haziri maka mmachi onwe",
+    "automateBody": "Mmeghachi omume mbụ n'asụsụ dị iche iche, ịkọwapụta, usoro ihe e chere ma ihe ize ndụ, echekwa ndetu, ịmepụta ohere na inye ndị nnọchite anya.",
+    "humanTitle": "Ọ dị mkpa mmadụ were ọrụ",
+    "humanBody": "Arịrịọ mmadụ kpụ ọkụ, obi ntụkwasị obi dị ala, ihe ize ndụ dị elu ma ọ bụ dị oké, iwu enweghị, okwu emechaghị, mkpesa nke nzuzo/nchekwa ma ọ bụ omume nkechighaghị.",
+    "notEnabledTitle": "Ọ gaghị arụ naanị na ngwugwu a",
+    "notEnabledBody": "Nhazi PSTN/SIP/WhatsApp/imeel, osisi oku na-aga nke ọma, nkwenye njirimara CRM na nkwupụta oke asụsụ chọrọ onye nnyefe, nkwenye na nnwale nnabata."
+  },
+  "roles": {
+    "customer": "Onye zụtara",
+    "human": "Onye nnọchite mmadụ",
+    "ai": "Onye enyemaka AI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Onye zụtara rịọrọ mmadụ",
+    "low_confidence": "Obi ntụkwasị obi dị ala",
+    "high_risk": "Ihe ize ndụ dị elu",
+    "policy_refusal": "Ajụ / mmachi iwu",
+    "unresolved": "Nsogbu enweghị mmechi",
+    "repeated_failure": "Ọdịda ugboro ugboro",
+    "model_requested": "AI rịọrọ nyocha",
+    "voice_review_required": "Nyocha olu dị mkpa",
+    "other": "Ndị ọzọ"
+  },
+  "messages": {
+    "qualificationNotice": "Enweghị asụsụ ọ bụla dị mma ruo mgbe nnwale ederede, ASR, TTS, olu na mmeghari dị mma.",
+    "configNeeded": "Haziri nọ ka achọrọ: {missing}.",
+    "configOk": "Haziri dị. Njikọ onye nnyefe na ọkwa asụsụ ka achọrọ nnwale nnabata nke mmadụ.",
+    "conversationCreated": "Emepụtara mkparịta ụka echedoro. Ọkwa asụsụ erughi nnwale ndụ.",
+    "handoffQueued": "Ntụgharị mmadụ edoro n'usoro ({reason}). Nke a bụ arịrịọ n'usoro, njikọ na-aga n'ihu bụghị.",
+    "aiResponseFailed": "Mmachị AI ezughi oke. Enweghị omume emeziri. Ị nwere ike ịrịọ onye nnọchite mmadụ.",
+    "actionNotCompleted": "Omume ezughi oke: {reason}.",
+    "apiUnavailable": "Enweghị ike ibu API Ụlọ Ọrụ Mkpakọrịta. Banye na console OpsCore, wee bugharịa ibe a.",
+    "suggestedNextStep": "Naanị nzọụkwụ na-esote e nyere aro (emeghị ya): {step}.",
+    "handoffQueuedQueueOnly": "E tinyela nnyefe nye mmadụ n'ahịrị ({reason}). Ahịrị anaghị egosi na onye nnọchi anya jikọtara.",
+    "voiceHandoffStopped": "E tinyela nnyefe nye mmadụ n'ahịrị. Oge AI nke ihe nchọgharị na-akwụsị; a hazighị nnyefe ekwentị ozugbo.",
+    "voiceCredentialRequest": "Na-arịọ asambodo olu nwa oge…",
+    "voiceRealtimeError": "Onye na-enye ọrụ oge ezi kọrọ njehie. Kwụsị oge olu wee nwaa ọzọ mgbe ị lelachara nhazi onye na-enye ọrụ.",
+    "voiceActive": "Oge olu na-arụ ọrụ. Pịa “Rịọ onye nnọchite mmadụ” oge ọ bụla; nke a na-emepụta ihe n'ahịrị, ọ bụghị nnyefe PSTN.",
+    "voiceCredentialActive": "{languageCode} · asambodo nwa oge nke onye na-enye ọrụ",
+    "queueUnavailable": "Ahịrị adịghị: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "A chọrọ nkwenye tupu mkparịta ụka amalite.",
+    "SERVER_RESPONSE_INVALID": "Enweghị ike ịgụ azịza sava ahụ.",
+    "REQUEST_FAILED": "Arịrịọ ahụ dara.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Enweghị ike ịkpọtụrụ onye na-enye olu oge ezi.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Ihe nchọgharị a anaghị akwado olu oge ezi.",
+    "HANDOFF_NOT_CLAIMED": "Enweghị ike ịnara nnyefe ahụ.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "A leghaara ozi e megharịrị anya."
+  }
+}

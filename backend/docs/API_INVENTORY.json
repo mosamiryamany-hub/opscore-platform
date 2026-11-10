@@ -1,0 +1,2622 @@
+{
+  "routeCount": 358,
+  "routePatternInventory": "source-derived.v3",
+  "routes": [
+    {
+      "method": "GET",
+      "route": "/api/health",
+      "auth": "public",
+      "scope": null,
+      "sourceLine": 1038
+    },
+    {
+      "method": "GET",
+      "route": "/api/openapi.json",
+      "auth": "public",
+      "scope": null,
+      "sourceLine": 1070
+    },
+    {
+      "method": "DELETE",
+      "route": "/api/v1/{param}/{id}",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2324,
+      "patternVariable": "del"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/{param}/{id}/restore",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2339,
+      "patternVariable": "rest"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/activity",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2715
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/admin/migration-preflight",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 2753
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/admin/password-reset",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 1883
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/agent-memory",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2030
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/agent-memory",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2029
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/ai/agent/run",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1127
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/ai/knowledge/index",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 1130
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/ai/knowledge/search",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 1135
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/ai/status",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 1975
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/ai/work-orders/{id}/summary",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 1978,
+      "patternVariable": "aiw"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/api-keys",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1809
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/api-keys",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 1811
+    },
+    {
+      "method": "DELETE",
+      "route": "/api/v1/api-keys/{id}",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 1819,
+      "patternVariable": "kr"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/appointments",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2136
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/appointments",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2142
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/appointments/{id}",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2171,
+      "patternVariable": "apt"
+    },
+    {
+      "method": "PATCH",
+      "route": "/api/v1/appointments/{id}",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2171,
+      "patternVariable": "apt"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/appointments/{id}/on-my-way",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2153,
+      "patternVariable": "aw"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/appointments/{id}/reschedule",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1680,
+      "patternVariable": "apptReschedule"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/appointments/{id}/unreachable",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2163,
+      "patternVariable": "aun"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/approvals",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2727
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/approvals",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2719
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/approvals/{id}/decide",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 2729,
+      "patternVariable": "apr"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/assets",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2679
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/assets",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2697
+    },
+    {
+      "method": "PATCH",
+      "route": "/api/v1/assets/{id}",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2897,
+      "patternVariable": "asr"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/assets/{id}/events",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2684,
+      "patternVariable": "ae"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/assets/{id}/health",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2696,
+      "patternVariable": "ah"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/assets/{id}/intelligence",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2681,
+      "patternVariable": "ai"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/attachments/{id}",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2899,
+      "patternVariable": "ar"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/audit",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2761
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/audit/verify",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1397
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/auth/bootstrap",
+      "auth": "public/scoped",
+      "scope": null,
+      "sourceLine": 1138
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/auth/invitations/accept",
+      "auth": "public/scoped",
+      "scope": null,
+      "sourceLine": 1203
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/auth/logout",
+      "auth": "public/scoped",
+      "scope": null,
+      "sourceLine": 1197
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/auth/oidc/exchange",
+      "auth": "public/scoped",
+      "scope": null,
+      "sourceLine": 1154
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/auth/password-reset",
+      "auth": "public/scoped",
+      "scope": null,
+      "sourceLine": 1201
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/autopilot/decision-memory",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2076
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/autopilot/decision-memory/build",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2075
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/autopilot/evidence-center",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2082
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/autopilot/evidence-graph",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2100
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/autopilot/evidence-integrity",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2088
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/autopilot/guardrails",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2105
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/autopilot/guardrails",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 2109
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/autopilot/incidents/replay",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2074
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/autopilot/incidents/replay",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2073
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/autopilot/learning",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2114
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/autopilot/outcomes",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2118
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/autopilot/proposals",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2078
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/autopilot/proposals/{id}/{param}",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2079,
+      "patternVariable": "ap"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/autopilot/proposals/generate",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2077
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/autopilot/replay-package",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2085
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/autopilot/safety-contract",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2091
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/autopilot/simulations",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2094
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/billing/providers",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2814
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/billing/providers",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 2815
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/billing/reconcile-provider",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2816
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/billing/stripe",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1828
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/billing/stripe/link",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 1833
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/billing/stripe/webhook",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 1252
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/business-calendars",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1923
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/business-calendars",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 1925
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/business-calendars/exceptions",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1933
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/business-due-at",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 1941
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/circuits",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 2523
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/client-contract",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2362
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/commands",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2028
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/commands/execute",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2027
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/completion-policies",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1639
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/completion-policies",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 1641
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/completion-policies/{id}/versions",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1649,
+      "patternVariable": "cpv"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/compliance/export",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 1429
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/configs",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1409
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/configs",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 1411
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/configs/activate",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 1421
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/configuration-changes",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1419
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/contact-center/conversations/([A-Za-z0-9_-]+)",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 1328,
+      "patternVariable": "ccConversation"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/contact-center/conversations/([A-Za-z0-9_-]+)/erase",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 1336,
+      "patternVariable": "ccErase"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/contact-center/conversations/([A-Za-z0-9_-]+)/handoff",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1356,
+      "patternVariable": "ccHumanRequest"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/contact-center/conversations/([A-Za-z0-9_-]+)/human-reply",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1352,
+      "patternVariable": "ccHumanReply"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/contact-center/conversations/([A-Za-z0-9_-]+)/messages",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1344,
+      "patternVariable": "ccMessage"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/contact-center/conversations/([A-Za-z0-9_-]+)/realtime-session",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1363,
+      "patternVariable": "ccRealtime"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/contact-center/conversations/([A-Za-z0-9_-]+)/transcript",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1348,
+      "patternVariable": "ccTranscript"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/contact-center/handoffs/([A-Za-z0-9_-]+)/claim",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1367,
+      "patternVariable": "ccClaim"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/contact-center/handoffs/([A-Za-z0-9_-]+)/resolve",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1371,
+      "patternVariable": "ccResolve"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/contracts",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1575
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/contracts",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1577
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/control-plane",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2000
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/control-plane/feature-flags",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2003
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/control-plane/feature-flags",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 2006
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/control-plane/recovery-bundle",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 2017
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/control-plane/recovery-bundle/verify",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 2020
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/control-plane/safe-mode",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2010
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/control-plane/safe-mode",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 2013
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/control-tower",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1438
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/control-tower/actions",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1442
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/custom-domains",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 2040
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/custom-domains",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 2041
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/custom-domains/{id}/activate",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 2043,
+      "patternVariable": "da"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/custom-domains/{id}/verify",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 2042,
+      "patternVariable": "dv"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/custom-domains/resolve",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2031
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/custom-fields",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1863
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/custom-fields",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1865
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/customers",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2412
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/customers",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2414
+    },
+    {
+      "method": "PATCH",
+      "route": "/api/v1/customers/{id}",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2893,
+      "patternVariable": "cur"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/customers/{id}/service-line",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2774,
+      "patternVariable": "csl"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/customers/{id}/service-line",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2774,
+      "patternVariable": "csl"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/daily-planning-board",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1963
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/decision-engine",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1440
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/deleted",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2354
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/demo/closeout-path",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 1954
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/dispatch-board",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1951
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/dispatcher-map",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1959
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/dispatcher-map/v2",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1966
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/entitlements",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1843
+    },
+    {
+      "method": "PUT",
+      "route": "/api/v1/entitlements",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 1845
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/escalation-rules",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1751
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/escalations",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1736
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/escalations/{id}/{param}",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1759,
+      "patternVariable": "esc"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/escalations/evaluate",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1738
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/estimates",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1452
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/estimates",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1454
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/estimates/{id}",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1462,
+      "patternVariable": "eg"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/estimates/{id}/convert-to-work-order",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1474,
+      "patternVariable": "ew"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/estimates/{id}/pdf",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 1515,
+      "patternVariable": "epdf"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/estimates/{id}/status",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1465,
+      "patternVariable": "es"
+    },
+    {
+      "method": "PUT",
+      "route": "/api/v1/evidence-uploads/{id}/chunks/(\\d+)",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2642,
+      "patternVariable": "ec"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/evidence-uploads/{id}/complete",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2651,
+      "patternVariable": "ex"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/export/customers.csv",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2937
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/export/organization.json",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2919
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/export/work-orders.csv",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2950
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/faults",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2436
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/faults/{id}/transition",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2443,
+      "patternVariable": "ftrans"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/faults/{id}/unreachable",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2451,
+      "patternVariable": "funr"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/faults/classify",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2432
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/faults/offline-sync",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2459
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/field/live-snapshot",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2807
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/field/today",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1949
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/financial-settings",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1450
+    },
+    {
+      "method": "PUT",
+      "route": "/api/v1/financial-settings",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1558
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/geofences",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2794
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/geofences",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2789
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/geofences/{id}/technicians",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2790,
+      "patternVariable": "gta"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/geofences/assert-access",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2515
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/geofences/dynamic-evaluate",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2798
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/geofences/dynamic-events",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2797
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/geofences/evaluate",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2808
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/geofences/role-polygons",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2519
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/governance/audit-chain",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 2493
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/governance/domain-assert",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2506
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/governance/domain-isolation",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2500
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/hierarchy",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2850
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/hierarchy/memberships",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 2860
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/hierarchy/units",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 2852
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/import/customers",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2908
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/import/customers.json",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2885
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/import/customers/dry-run",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2877
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/infrastructure/postgres/status",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 1124
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/intelligence/status",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 1972
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/intelligence/work-orders/{id}/predict",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 1973,
+      "patternVariable": "ipred"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/inventory",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2217
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/inventory/ledger",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2219
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/inventory/ledger/adjust",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2231
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/inventory/locations",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2242
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/inventory/parts",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2250
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/inventory/receive",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2258
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/invitations",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2404
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/invoices",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1483
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/invoices",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1485
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/invoices/{id}",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1493,
+      "patternVariable": "ig"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/invoices/{id}/payments",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1505,
+      "patternVariable": "ip"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/invoices/{id}/pdf",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 1529,
+      "patternVariable": "ipdf"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/invoices/{id}/status",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1496,
+      "patternVariable": "is"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/invoices/stripe/payment-intent",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2203
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/locations",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2705
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/locations",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2707
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/maintenance-plans",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1595
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/maintenance-plans",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1597
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/maintenance/evaluate",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1605
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/map/viewport",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2531
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/me",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1381
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/members",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2402
+    },
+    {
+      "method": "DELETE",
+      "route": "/api/v1/memberships/{id}",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 2868,
+      "patternVariable": "mr"
+    },
+    {
+      "method": "PATCH",
+      "route": "/api/v1/memberships/{id}",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 2868,
+      "patternVariable": "mr"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/metrics",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2378
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/notification-providers",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2044
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/notifications",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2819
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/notifications/{id}/deliver",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 2047,
+      "patternVariable": "ndel"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/notifications/{id}/read",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2821,
+      "patternVariable": "nr"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/observability",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2380
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/observability/performance",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1430
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/operation-envelopes/{id}",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1405,
+      "patternVariable": "opEnv"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/operational-intelligence",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1395
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/operational-jobs",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2769
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/operational-jobs",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2770
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/operational-jobs/{id}",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2771,
+      "patternVariable": "oj"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/operations-health",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1997
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/operations/closure-sheets/chunked-preview",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2788
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/operations/closure-sheets/compile",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2779
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/operations/closure-sheets/latest",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2781
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/operations/closure-sheets/verify",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2780
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/operations/cockpit",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1434
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/operations/daily-brief",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1432
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/operations/deadlocks",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2783
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/operations/deadlocks/resolve",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2784
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/operations/dependencies",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2782
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/operations/doctor",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2741
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/organization/governance",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1375
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/organization/status",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 1377
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/outbox",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2382
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/outbox/{id}/claim",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2384,
+      "patternVariable": "ob"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/outbox/{id}/complete",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2393,
+      "patternVariable": "oc"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/outbox/event-catalog",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2024
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/platform/capacity",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2068
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/platform/decisions",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2065
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/platform/decisions/{id}/replay",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2066,
+      "patternVariable": "dr"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/platform/recommendations",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2064
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/platform/scenarios",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2067
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/platform/skills/certifications",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2069
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/platform/skills/certifications",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 2070
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/platform/skills/match",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2071
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/platform/twin",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2063
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/platform/twin/integrity",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2059
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/platform/twin/snapshots",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2060
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/platform/twin/snapshots",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2061
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/platform/twin/snapshots/{id}/verify",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2062,
+      "patternVariable": "twinVerify"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/pm-templates",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1969
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/portal/access",
+      "auth": "public/scoped",
+      "scope": "write",
+      "sourceLine": 2290
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/portal/appointments/{id}",
+      "auth": "public/scoped",
+      "scope": null,
+      "sourceLine": 1239,
+      "patternVariable": "portalAppt"
+    },
+    {
+      "method": "PATCH",
+      "route": "/api/v1/portal/appointments/{id}",
+      "auth": "public/scoped",
+      "scope": null,
+      "sourceLine": 1239,
+      "patternVariable": "portalAppt"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/portal/exchange",
+      "auth": "public/scoped",
+      "scope": null,
+      "sourceLine": 1214
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/portal/overview",
+      "auth": "public/scoped",
+      "scope": null,
+      "sourceLine": 1229
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/portal/self-scheduling/{id}/book",
+      "auth": "public/scoped",
+      "scope": null,
+      "sourceLine": 1228,
+      "patternVariable": "psb"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/portal/self-scheduling/{id}/candidates",
+      "auth": "public/scoped",
+      "scope": null,
+      "sourceLine": 1227,
+      "patternVariable": "psc"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/portal/work-orders/{id}",
+      "auth": "public/scoped",
+      "scope": null,
+      "sourceLine": 1236,
+      "patternVariable": "portalWo"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/procedure-runs",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1778
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/procedure-runs/{id}/steps",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1786,
+      "patternVariable": "pr"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/procedures",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1768
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/procedures",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1770
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/reconciliation/latest",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2817
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/reconciliation/run",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2818
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/route-plan",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2209
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/routes/osrm",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2198
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/safety-acknowledgements",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1628
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/safety-checklists",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1618
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/safety-checklists",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1620
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/saved-views",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1873
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/saved-views",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1875
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/scheduling/conflicts/analyze",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2188
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/scheduling/conflicts/candidates",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2193
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/search",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1994
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/security-center",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1393
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/security/authorization-decisions",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1399
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/security/gateway-circuit",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2810
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/security/integrity-graph",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1402
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/security/privacy-purge",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 2811
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/security/signature-chain",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2812
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/security/signature-chain/levels",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2809
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/security/signature-chain/seal",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2792
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/security/signature-chain/verify",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2813
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/security/tenant-field/protect",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2786
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/security/tenant-field/reveal",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 2787
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/self-scheduling/links",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 1208
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/self-scheduling/links/{id}/revoke",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 1209,
+      "patternVariable": "ssl"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/service-history/{param}/{id}",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1795,
+      "patternVariable": "hist"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/service-line-migrations/{id}",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2776,
+      "patternVariable": "lm"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/service-line-migrations/{id}",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2776,
+      "patternVariable": "lm"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/service-line-migrations/{id}/rollback",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 2777,
+      "patternVariable": "lmr"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/service-line-migrations/{id}/unreachable",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2778,
+      "patternVariable": "lmu"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/service-line-migrations/preflight",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2775
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/service-lines",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2772
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/service-lines",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2773
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/sessions",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1798
+    },
+    {
+      "method": "DELETE",
+      "route": "/api/v1/sessions/{id}",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1800,
+      "patternVariable": "sr"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/sites",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2422
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/sites",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2424
+    },
+    {
+      "method": "PATCH",
+      "route": "/api/v1/sites/{id}",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2895,
+      "patternVariable": "sir"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/sla-policies",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1911
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/sla-policies",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1913
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/sla-risks",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1921
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/sync",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2312
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/sync/conflicts",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 1984
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/sync/conflicts/{id}/resolve",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1985,
+      "patternVariable": "sc"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/system/parity-heartbeat",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2785
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/technicians",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1891
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/technicians",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1893
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/technicians/{id}/geofences",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2791,
+      "patternVariable": "gtl"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/technicians/availability",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2124
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/technicians/skills",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1909
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/technicians/skills",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1901
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/technicians/trail",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2474
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/technicians/trail",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2467
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/technicians/trail.geojson",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2483
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/time-entries",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 1987
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/time-entries/{id}/stop",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1989,
+      "patternVariable": "stopTime"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/time-entries/start",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1988
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/usage",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1853
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/usage",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1855
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/value-intelligence",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1436
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/warranties",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1585
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/warranties",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1587
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/webhook-deliveries",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2840
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/webhook-deliveries/deliver",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2842
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/webhooks",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2830
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/webhooks",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 2832
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/work-order-parts/{id}/consume",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2277,
+      "patternVariable": "wpart"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/work-order-parts/reserve",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2266
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/work-order-signoffs",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2298
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/work-orders",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2543
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/work-orders",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2573
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/work-orders/{id}",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2593,
+      "patternVariable": "wm"
+    },
+    {
+      "method": "PATCH",
+      "route": "/api/v1/work-orders/{id}",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2593,
+      "patternVariable": "wm"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/work-orders/{id}",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2593,
+      "patternVariable": "wm"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/work-orders/{id}/attachments",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2660,
+      "patternVariable": "am"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/work-orders/{id}/attachments",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2660,
+      "patternVariable": "am"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/work-orders/{id}/changelog",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1668,
+      "patternVariable": "wo_changelog"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/work-orders/{id}/comments",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2613,
+      "patternVariable": "cm"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/work-orders/{id}/comments",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2613,
+      "patternVariable": "cm"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/work-orders/{id}/completion-assurance",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1698,
+      "patternVariable": "ca"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/work-orders/{id}/completion-assurance/preview",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 1652,
+      "patternVariable": "cpp"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/work-orders/{id}/completion-package",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2581,
+      "patternVariable": "wcp"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/work-orders/{id}/completion.pdf",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 1543,
+      "patternVariable": "cpdf"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/work-orders/{id}/dispatch-candidates",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2185,
+      "patternVariable": "cand"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/work-orders/{id}/dispatch-eligibility",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2738,
+      "patternVariable": "de"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/work-orders/{id}/evidence-package",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2584,
+      "patternVariable": "ep"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/work-orders/{id}/evidence-uploads",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2627,
+      "patternVariable": "eu"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/work-orders/{id}/field-duration-forecast",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2795,
+      "patternVariable": "fdf"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/work-orders/{id}/field-invoice",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2805,
+      "patternVariable": "fb"
+    },
+    {
+      "method": "PUT",
+      "route": "/api/v1/work-orders/{id}/financials",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1566,
+      "patternVariable": "wfin"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/work-orders/{id}/first-time-right",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2916,
+      "patternVariable": "ftr"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/work-orders/{id}/first-time-right",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 2916,
+      "patternVariable": "ftr"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/work-orders/{id}/handoff",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2590,
+      "patternVariable": "wh"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/work-orders/{id}/operational-risk",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2610,
+      "patternVariable": "wr"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/work-orders/{id}/parts",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2287,
+      "patternVariable": "wparts"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/work-orders/{id}/signoff-assurance",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2803,
+      "patternVariable": "fsig"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/work-orders/{id}/signoff-assurance/challenge",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2799,
+      "patternVariable": "fsc"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/work-orders/{id}/signoff-assurance/complete",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2801,
+      "patternVariable": "fscDone"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/work-orders/{id}/signoffs",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2309,
+      "patternVariable": "sign"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/work-orders/{id}/time-summary",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 1991,
+      "patternVariable": "wtime"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/work-orders/{id}/timeline",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 2587,
+      "patternVariable": "wt"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/work-orders/{id}/transition",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1723,
+      "patternVariable": "wtrans"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/work-orders/{id}/verified-job-record",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1674,
+      "patternVariable": "wo_verified_job_record"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/work-orders/{id}/why-blocked",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1662,
+      "patternVariable": "wo_why_blocked"
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/work-orders/{id}/work-pack",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1693,
+      "patternVariable": "woPack"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/work-orders/{id}/workflow-transition-preview",
+      "auth": "required",
+      "scope": "admin",
+      "sourceLine": 1706,
+      "patternVariable": "wfp"
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/work-orders/bulk",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 2562
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/workflows",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1701
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/workflows",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1715
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/workflows/{id}/versions",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1703,
+      "patternVariable": "wfv"
+    },
+    {
+      "method": "GET",
+      "route": "/api/verify/database",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1105
+    },
+    {
+      "method": "GET",
+      "route": "/api/verify/database-security",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1080
+    },
+    {
+      "method": "GET",
+      "route": "/api/verify/deployment",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1072
+    },
+    {
+      "method": "GET",
+      "route": "/metrics",
+      "auth": "required",
+      "scope": null,
+      "sourceLine": 1059
+    }
+  ]
+}

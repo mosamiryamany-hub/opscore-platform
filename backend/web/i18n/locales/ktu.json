@@ -1,0 +1,111 @@
+{
+  "nativeName": "Kituba",
+  "nav": {
+    "title": "Kituo ya masolo ya AI",
+    "subtitle": "Lusadisu ya bandinga mingi ti kukabasila na muntu.",
+    "operationsConsole": "Konsolo ya bisalu",
+    "interfaceLanguage": "Bandingu ya kiteso"
+  },
+  "status": {
+    "configured": "Mwaya ya kukengidilwa me yatulwa",
+    "setupIncomplete": "Kuyidika kulungana ve",
+    "apiUnavailable": "Kukota / API ke ko"
+  },
+  "stats": {
+    "catalogueRows": "Mizila ya ndandanda",
+    "catalogueRowsNote": "Ndandanda me yatambulwa",
+    "uniqueCodes": "Bikodi ya bandinga ya kuswaswana",
+    "uniqueCodesNote": "Kuvutukila ke kwimonikaka",
+    "providerQualification": "Kukonda kwa mupesi",
+    "providerQualificationNote": "Bandingu me yamekwa mpamba ke mibalwa",
+    "liveQueue": "Mzila wa bantu ntangu yai",
+    "liveQueueNote": "Kukabasila na kimvuka"
+  },
+  "customer": {
+    "eyebrow": "BILENGE BIA MUSUMBI",
+    "title": "Kuyantika masolo",
+    "consentPill": "Lusundusu ke ludingaka",
+    "preferredLanguage": "Bandingu ya kusola",
+    "consentText": "Mono ndingaka nde masolo yai lenda salwa na mupesi wa AI. Mikanda ke kusengomwa ntete bo kusimba.",
+    "startChat": "Kuyantika masolo ya kusonika",
+    "startVoice": "Kuyantika ndinga na browser",
+    "setupHint": "Ke lenda salwa ve tii mfumu kuyidika kiyitu ti mupesi wa AI.",
+    "noConversation": "Masolo ya kesalaka ve",
+    "startHint": "Kusala masolo ti lusundusu mu kuyantika.",
+    "requestHuman": "Kulomba muntu",
+    "chatEmpty": "Nsangu ke kwimonikaka awa. Bisalu ya AI ke ngindu mpamba; ke ko kufuta to kusoba konti.",
+    "messagePlaceholder": "Sonika nsangu…",
+    "send": "Kutinda",
+    "stopVoice": "Kukanga ndinga",
+    "voiceOff": "Ndinga me kuzimwa.",
+    "voiceStreamNote": "Ndinga ya browser ke kutindwa na mupesi; OpsCore ke tubaka ve nde yo ke bumba ndinga.",
+    "voiceRequirement": "Ndinga ya browser ke lomba HTTPS, makrofoni, lusundusu, mudelu Realtime ti kiyitu. Ke nzila ya telefone ve."
+  },
+  "queue": {
+    "eyebrow": "LUSADISU YA BANTU",
+    "title": "Mzila ya kukabasila",
+    "refresh": "Kuvutukisa",
+    "description": "Masolo ya kigonsa to me lolula muntu ke kwimonikaka awa. Mzila ke kulomba, ke kukutana ve.",
+    "loading": "Ke kutula…",
+    "empty": "Ke ko kukabasila na kimvuka yai.",
+    "openAssignment": "Kubula kisalu",
+    "claimAndReview": "Kundima ti kufimpa",
+    "resolve": "Kumanisa",
+    "reply": "Kuvutula",
+    "agentAssignedTitle": "Masolo me kupelwa",
+    "replyStorageNote": "Mavutula ya bantu me kusengomwa ti ke kwimonikaka na masolo.",
+    "resolveNote": "Me kumaniswa na kisalu me kupelwa."
+  },
+  "boundaries": {
+    "title": "Mipaka ya bisalu",
+    "automateTitle": "Me salwa sambu kusala",
+    "automateBody": "Kuvutula ntete na bandinga mingi, kuyela, kufimpa kigonsa ti kusimba mikanda.",
+    "humanTitle": "Kukabasila na muntu ke ludingaka",
+    "humanBody": "Kulomba muntu, kukonda ve, kigonsa nene, minsiku ke ko, diambu ke kumaniswa ve, nkembo ya nsaku.",
+    "notEnabledTitle": "Ke lenda salwa ti paketi yai mpamba ve",
+    "notEnabledBody": "PSTN/SIP, WhatsApp, imeyili, telefone, CRM ti kumonisa bandinga ke lomba mupesi ya kieleka ti mimekwa."
+  },
+  "roles": {
+    "customer": "MUSUMBI",
+    "human": "Kisalu ya muntu",
+    "ai": "Mukwidi wa AI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Musumbi me lolula muntu",
+    "low_confidence": "Kukonda ve",
+    "high_risk": "Kigonsa nene",
+    "policy_refusal": "Kubuyisa minsiku",
+    "unresolved": "Diambu ke kumaniswa ve",
+    "repeated_failure": "Kuvutukila kuluta",
+    "model_requested": "AI me lolula kufimpa",
+    "voice_review_required": "Kufimpa ndinga ke ludingaka",
+    "other": "Yankaka"
+  },
+  "messages": {
+    "qualificationNotice": "Ke ko bandingu me kundimwa ve tii mimekwa ya mikanda, ASR, TTS ti ndinga me maniswa.",
+    "configNeeded": "Kuyidika ke ludingaka: {missing}.",
+    "configOk": "Kuyidika ke ko. Kukutana ti bingana ya bandingu ke lomba mimekwa ya kieleka.",
+    "conversationCreated": "Masolo ya kukengidilwa me salwa. Bingana ya bandingu me kundimwa ve.",
+    "handoffQueued": "Kukabasila na muntu me kutulwa na mzila ({reason}). Ke kulomba, ke kukutana ve.",
+    "aiResponseFailed": "Mavutula ya AI me maniswa ve. Ke ko kisalu me salwa. Lenda lolula muntu.",
+    "actionNotCompleted": "Kisalu me maniswa ve: {reason}.",
+    "apiUnavailable": "API ya masolo ke monanaka ve. Kota na OpsCore, mbazi kuvutukisa balo yai.",
+    "suggestedNextStep": "Ngindu mpamba (ke salwa ve): {step}.",
+    "handoffQueuedQueueOnly": "Kukabasila me kutulwa na mzila ({reason}). Mzila ke monisaka ve nde kisalu ke ko.",
+    "voiceHandoffStopped": "Kukabasila me kutulwa na mzila. Masolo ya AI ke kukanga; telefone me yidikwa ve.",
+    "voiceCredentialRequest": "Ke kulomba kiyitu ya ndinga ya ntangu wakufi…",
+    "voiceRealtimeError": "Mupesi ya Realtime me monisa libaku. Kanga ndinga, fimpa kuyidika, mbazi kumeka.",
+    "voiceActive": "Masolo ya ndinga ke salaka. Lolula muntu ntangu yonso; yai ke sala mzila, ke telefone ve.",
+    "voiceCredentialActive": "{languageCode} · kiyitu ya ntangu wakufi",
+    "queueUnavailable": "Mzila ke monanaka ve: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Lusundusu ke ludingaka ntete masolo kuyantika.",
+    "SERVER_RESPONSE_INVALID": "Mavutula ya seve me tangwa ve.",
+    "REQUEST_FAILED": "Kulomba me kufwa.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Mupesi ya ndinga Realtime me kutanwa ve.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Browser yai ke sadisaka ve ndinga Realtime.",
+    "HANDOFF_NOT_CLAIMED": "Kukabasila me kundimwa ve.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Nsangu ya kuvutukila me kufwa."
+  }
+}

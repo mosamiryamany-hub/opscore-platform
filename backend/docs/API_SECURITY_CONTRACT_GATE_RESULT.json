@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "opscore.api-security-contract.v1",
+  "generatedAt": "2026-09-17T06:49:12.869Z",
+  "status": "PASS",
+  "checks": [
+    {
+      "code": "AUTH_CONTEXT_GATE",
+      "pass": true
+    },
+    {
+      "code": "API_KEY_SCOPE_GATE",
+      "pass": true
+    },
+    {
+      "code": "CORRELATION_GATE",
+      "pass": true
+    },
+    {
+      "code": "BODY_LIMIT_GATE",
+      "pass": true
+    },
+    {
+      "code": "SAFE_ERROR_EGRESS",
+      "pass": true
+    },
+    {
+      "code": "TENANT_AUTHZ_EVIDENCE",
+      "pass": true
+    },
+    {
+      "code": "INTEGRITY_GRAPH_ENDPOINT",
+      "pass": true
+    },
+    {
+      "code": "OPERATION_ENVELOPE_ENDPOINT",
+      "pass": true
+    },
+    {
+      "code": "NO_PRODUCTION_EVAL",
+      "pass": true
+    }
+  ],
+  "failed": []
+}

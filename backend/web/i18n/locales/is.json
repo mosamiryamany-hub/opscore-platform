@@ -1,0 +1,111 @@
+{
+  "nativeName": "Íslenska",
+  "nav": {
+    "title": "AI-samskiptamiðstöð",
+    "subtitle": "Fjöltyngd sjálf þjónustan með stýrðri afhendingu til manneskju.",
+    "operationsConsole": "Rekstrartakki",
+    "interfaceLanguage": "Tungumál viðmóts"
+  },
+  "status": {
+    "configured": "Verndaður hamur stilltur",
+    "setupIncomplete": "Uppsetning óklárnuð",
+    "apiUnavailable": "Innskráning / API ekki tiltækt"
+  },
+  "stats": {
+    "catalogueRows": "Línur efnisskráningar",
+    "catalogueRowsNote": "Inntakslisti varðveittur",
+    "uniqueCodes": "Einstakir málkóðar",
+    "uniqueCodesNote": "Afrit merkt",
+    "providerQualification": "Hæfing þjónustuaðila",
+    "providerQualificationNote": "Aðeins sjálfstætt prófuð tungumál teljast",
+    "liveQueue": "Bein mannröð",
+    "liveQueueNote": "Afhendingar á leigjanda"
+  },
+  "customer": {
+    "eyebrow": "UPPLEIFING VIÐSKOTAVINNSLU",
+    "title": "Byrjaðu samtöl",
+    "consentPill": "Samþykki krafist",
+    "preferredLanguage": "Valið mál",
+    "consentText": "Ég samþykki að þetta samtal sé unnið af stilltum AI-þjónustuaðila. Uppskriftir eru dulrituð áður en geymt er.",
+    "startChat": "Byrjaðu öruggt textaspjall",
+    "startVoice": "Byrjaðu vafrarödd",
+    "setupHint": "Ófáanlegt þar til kerfisstjóri stillir dulritunarlykil og AI-þjónustuaðila.",
+    "noConversation": "Engin virk samtöl",
+    "startHint": "Búið til setu með samþykki til að byrja.",
+    "requestHuman": "Beiðni um mannlegt umboð",
+    "chatEmpty": "Skilaboðin þín birtast hér. Aðgerðir AI eru aðeins tillögur; engar greiðslur, breytingar á reikningum, endurgreiðslur eða sendingar framkvæmdar.",
+    "messagePlaceholder": "Skrifaðu skilaboð…",
+    "send": "Senda",
+    "stopVoice": "Stöðvaðu raddsetu",
+    "voiceOff": "Raddinn er slökkt.",
+    "voiceStreamNote": "Vafraraddir eru straumaðar til stilltrar þjónustuaðila; OpsCore heldur ekki fram að hrátt hljóð sé geymt.",
+    "voiceRequirement": "Vafraraddir krefjast HTTPS (eða localhost), hljóðnema, samþykkis, stilltrar Realtime-gerðar og lykils þjónustuaðila. Þetta er ekki PSTN/SIP símabrú."
+  },
+  "queue": {
+    "eyebrow": "MANNLEG INNGRIP",
+    "title": "Biðröð flutnings",
+    "refresh": "Endurnýja",
+    "description": "Samtöl með mikilli hættu, óleyst eða með beiðni um mann birtast hér. Atriði í röð þýðir beitt, ekki tengt.",
+    "loading": "Hleð röð…",
+    "empty": "Engar virkar mannaafhendingar fyrir þetta fyrirtæki.",
+    "openAssignment": "Opna úthlutun",
+    "claimAndReview": "Krefjast og skoða",
+    "resolve": "Leysa",
+    "reply": "Svara",
+    "agentAssignedTitle": "Úthlutað samtal",
+    "replyStorageNote": "Svör manna eru dulkóðuð í geymslu og sjást í afriti samtalsins.",
+    "resolveNote": "Leyst af úthlutuðum mannlegum rekstraraðila."
+  },
+  "boundaries": {
+    "title": "Rekstrarmörk",
+    "automateTitle": "Hannað til sjálfvirkni",
+    "automateBody": "Fjöltyngd fyrsta svar, skýring, flokkun á undirmáli og hættu, örugg geymsla uppskrifta, gerð raða og úthlutun umboðsmanna.",
+    "humanTitle": "Mannleg yfirtaka nauðsynleg",
+    "humanBody": "Bein beiðni um mann, lítill trúnaður, mikil eða alvarleg hætta, fjarverandi reglur, óleyst mál, kvörtun um persónuvernd/öryggi eða óviss aðgerð.",
+    "notEnabledTitle": "Ekki virkjað af þessari pakka einni",
+    "notEnabledBody": "PSTN/SIP/WhatsApp/netfang-leiðbeining, beinn símabrygga, CRM auðkennisyfirferð og kröfur um málgæði krefjast raunverulegs þjónustuaðila viðmóts, skilríkja og prófunar."
+  },
+  "roles": {
+    "customer": "Viðskiptavinur",
+    "human": "Mannlegt umboð",
+    "ai": "AI aðstoðarmaður"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Viðskiptavinur bað um mann",
+    "low_confidence": "Lítill trúnaður",
+    "high_risk": "Mikil hætta",
+    "policy_refusal": "Regluforun / takmarkun",
+    "unresolved": "Óleyst vandamál",
+    "repeated_failure": "Endurtekin misheppnun",
+    "model_requested": "AI bað um yfirferð",
+    "voice_review_required": "Raddyfirferð nauðsynleg",
+    "other": "Annað"
+  },
+  "messages": {
+    "qualificationNotice": "Ekkert mál er framleiðsluhæft fyrr en texta-, talgreiningar-, talmyndunar-, áherslu- og flutningspróf standast.",
+    "configNeeded": "Stillingar enn nauðsynlegar: {missing}.",
+    "configOk": "Stillingar eru til. Tenging við þjónustuaðila og málgæði krefjast enn raunverulegrar prófunar.",
+    "conversationCreated": "Öruggt samtal búið til. Málgæði eru ekki enn framleiðsluhæf.",
+    "handoffQueued": "Mannaafhending sett í röð ({reason}). Þetta er röðbeiðni, ekki bein tenging.",
+    "aiResponseFailed": "AI-svar kláraðist ekki. Engin aðgerð framkvæmd. Þú getur beitt um mannlegt umboð.",
+    "actionNotCompleted": "Aðgerð ekki lokið: {reason}.",
+    "apiUnavailable": "Ekki tókst að hlaða Contact Center API. Skráðu þig inn í OpsCore-stjórnborðið og endurhlaðið síðuna.",
+    "suggestedNextStep": "Aðeins tillaga að næsta skrefi (ekki framkvæmt): {step}.",
+    "handoffQueuedQueueOnly": "Framsending til manneskju er sett í biðröð ({reason}). Biðröðin sannar ekki að þjónustufulltrúi sé tengdur.",
+    "voiceHandoffStopped": "Framsending til manneskju er sett í biðröð. Gervigreindarlotu í vafra er verið að stöðva; bein símaflutningur er ekki stilltur.",
+    "voiceCredentialRequest": "Óskað er eftir skammlífum raddauðkennum…",
+    "voiceRealtimeError": "Rauntímaþjónustuaðili tilkynnti villu. Stöðvaðu raddlotuna og reyndu aftur eftir að hafa athugað stillingar þjónustuaðila.",
+    "voiceActive": "Raddlota er virk. Ýttu hvenær sem er á „Beiðni um mannlegt umboð“; það býr til færslu í biðröð, ekki PSTN-flutning.",
+    "voiceCredentialActive": "{languageCode} · tímabundin auðkenni þjónustuaðila",
+    "queueUnavailable": "Biðröð er ekki tiltæk: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Samþykki þarf áður en samtal getur hafist.",
+    "SERVER_RESPONSE_INVALID": "Ekki var hægt að lesa svar þjónsins.",
+    "REQUEST_FAILED": "Beiðnin mistókst.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Ekki náðist í rauntímaraddþjónustuna.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Þessi vafri styður ekki rauntímaraddir.",
+    "HANDOFF_NOT_CLAIMED": "Ekki var hægt að taka yfir framsendinguna.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Tvítekin skilaboð voru hunsuð."
+  }
+}

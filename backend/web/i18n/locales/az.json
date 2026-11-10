@@ -1,0 +1,111 @@
+{
+  "nativeName": "Azərbaycan dili",
+  "nav": {
+    "title": "Sİ Əlaqə Mərkəzi",
+    "subtitle": "Nəzarət olunan insan ötürülməsi ilə çoxdilli özünəxidmət.",
+    "operationsConsole": "Əməliyyat konsolu",
+    "interfaceLanguage": "İnterfeys dili"
+  },
+  "status": {
+    "configured": "Qorunan rejim tənzimləndi",
+    "setupIncomplete": "Quraşdırma tamamlanmadı",
+    "apiUnavailable": "Giriş / API əlçatmazdır"
+  },
+  "stats": {
+    "catalogueRows": "Kataloq sətirləri",
+    "catalogueRowsNote": "Giriş siyahısı saxlanıldı",
+    "uniqueCodes": "Təkrarsız dil kodları",
+    "uniqueCodesNote": "Təkrarlar işarələnir",
+    "providerQualification": "Təchizatçı keyfiyyəti",
+    "providerQualificationNote": "Yalnız müstəqil sınaqdan keçən dillər hesablanır",
+    "liveQueue": "Canlı insan növbəsi",
+    "liveQueueNote": "İcarəyə görə ötürülmələr"
+  },
+  "customer": {
+    "eyebrow": "MÜŞTƏRİ TƏCRÜBƏSİ",
+    "title": "Söhbətə başla",
+    "consentPill": "Razılıq tələb olunur",
+    "preferredLanguage": "Üstünlük verilən dil",
+    "consentText": "Bu söhbətin konfiqurasiya olunan Süni İntellekt təchizatçısı tərəfindən emal olunmasına razılaşıram. Transkriptlər saxlanmadan əvvəl şifrələnir.",
+    "startChat": "Təhlükəsiz mətn söhbətini başlat",
+    "startVoice": "Brauzer səsini başlat",
+    "setupHint": "Administrator şifrələmə açarını və Sİ təchizatçısını tənzimləməyincə əlçatmazdır.",
+    "noConversation": "Aktiv söhbət yoxdur",
+    "startHint": "Başlamaq üçün razılıqlı sessiya yaradın.",
+    "requestHuman": "İnsan agenti istə",
+    "chatEmpty": "Mesajlarınız burada görünəcək. Sİ hərəkətləri yalnız təklifdir; ödənişlər, hesab dəyişiklikləri, geri qaytarmalar və ya göndərişlər icra olunmur.",
+    "messagePlaceholder": "Mesaj yaz…",
+    "send": "Göndər",
+    "stopVoice": "Səs sessiyasını dayandır",
+    "voiceOff": "Səs söndürülüb.",
+    "voiceStreamNote": "Brauzer səsi konfiqurasiya olunmuş provayderə axın kimi ötürülür; OpsCore xam audionu saxladığını iddia etmir.",
+    "voiceRequirement": "Brauzer səsi HTTPS (və ya localhost), mikrofon, razılıq, konfiqurasiya olunmuş Realtime modeli və provayder açarı tələb edir. Bu, PSTN/SIP telefon körpüsü deyil."
+  },
+  "queue": {
+    "eyebrow": "İNSAN MÜDAHİLƏSİ",
+    "title": "Eskalasiya növbəsi",
+    "refresh": "Yenilə",
+    "description": "Yüksək riskli, həll olunmamış və ya insan istənilən söhbətlər burada görünür. Növbə elementi istənildiyini bildirir, qoşulmadığını.",
+    "loading": "Növbə yüklənir…",
+    "empty": "Bu təşkilat üçün aktiv insan ötürülməsi yoxdur.",
+    "openAssignment": "Təyinatı aç",
+    "claimAndReview": "Götür və yoxla",
+    "resolve": "Həll et",
+    "reply": "Cavab ver",
+    "agentAssignedTitle": "Təyin edilmiş söhbət",
+    "replyStorageNote": "İnsan cavabları saxlanılarkən şifrələnir və söhbət transkriptində görünür.",
+    "resolveNote": "Təyin edilmiş insan operator tərəfindən həll edildi."
+  },
+  "boundaries": {
+    "title": "Əməliyyat hüdudları",
+    "automateTitle": "Avtomatlaşdırma üçün dizayn edilib",
+    "automateBody": "Çoxdilli ilk cavab, dəqiqləşdirmə, məqsəd və risk təsnifatı, təhlükəsiz transkript saxlama, növbə yaratma və agent təyini.",
+    "humanTitle": "İnsan tərəfindən götürülmə tələb olunur",
+    "humanBody": "Açıq insan istəyi, aşağı etibar, yüksək və ya kritik risk, olmayan siyasət, həll olunmamış iş, məxfilik/təhlükəsizlik şikayəti və ya qeyri-müəyyən hərəkət.",
+    "notEnabledTitle": "Yalnız bu paketlə aktivləşmir",
+    "notEnabledBody": "PSTN/SIP/WhatsApp/e-poçt yönləndirməsi, canlı telefon körpüsü, CRM şəxsiyyət yoxlaması və dil keyfiyyəti iddiaları real təchizatçı adapteri, etimadnamələr və qəbul testləri tələb edir."
+  },
+  "roles": {
+    "customer": "Müştəri",
+    "human": "İnsan agenti",
+    "ai": "Sİ köməkçisi"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Müştəri insan istədi",
+    "low_confidence": "Aşağı etibar",
+    "high_risk": "Yüksək risk",
+    "policy_refusal": "Siyasət imtinası / məhdudiyyəti",
+    "unresolved": "Həll olunmamış problem",
+    "repeated_failure": "Təkrarlanan uğursuzluq",
+    "model_requested": "Sİ nəzərdən keçirmə istədi",
+    "voice_review_required": "Səs yoxlaması tələb olunur",
+    "other": "Digər"
+  },
+  "messages": {
+    "qualificationNotice": "Mətn, səs tanıma, səs sintezi, ləhcə və eskalasiya testləri keçənə qədər heç bir dil istehsal üçün keyfiyyətli deyil.",
+    "configNeeded": "Hələ tənzimləmə lazımdır: {missing}.",
+    "configOk": "Tənzimləmə var. Təchizatçı bağlantısı və dil keyfiyyəti hələ real qəbul testləri tələb edir.",
+    "conversationCreated": "Təhlükəsiz söhbət yaradıldı. Dil keyfiyyəti hələ istehsal üçün keyfiyyətli deyil.",
+    "handoffQueued": "İnsana ötürülmə növbəyə salındı ({reason}). Bu növbə sorğusudur, canlı bağlantı deyil.",
+    "aiResponseFailed": "Sİ cavabı tamamlanmadı. Heç bir hərəkət icra olunmadı. İnsan agenti istəyə bilərsiniz.",
+    "actionNotCompleted": "Hərəkət tamamlanmadı: {reason}.",
+    "apiUnavailable": "Əlaqə Mərkəzi API-sini yükləmək mümkün olmadı. OpsCore konsoluna daxil olun və bu səhifəni yenidən yükləyin.",
+    "suggestedNextStep": "Yalnız təklif olunan növbəti addım (icra edilməyib): {step}.",
+    "handoffQueuedQueueOnly": "İnsana təhvil növbəyə qoyuldu ({reason}). Növbə agentin qoşulduğunu sübut etmir.",
+    "voiceHandoffStopped": "İnsana təhvil növbəyə qoyuldu. Brauzerdəki AI sessiyası dayandırılır; canlı telefon transferi konfiqurasiya edilməyib.",
+    "voiceCredentialRequest": "Qısamüddətli səs etimadnaməsi tələb olunur…",
+    "voiceRealtimeError": "Real vaxt provayderi xəta bildirdi. Səs sessiyasını dayandırın və provayder konfiqurasiyasını yoxladıqdan sonra yenidən cəhd edin.",
+    "voiceActive": "Səs sessiyası aktivdir. İstənilən vaxt “İnsan agenti istə” düyməsini basın; bu, növbə elementi yaradır, PSTN transferi yox.",
+    "voiceCredentialActive": "{languageCode} · provayderin müvəqqəti etimadnaməsi",
+    "queueUnavailable": "Növbə əlçatan deyil: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Söhbət başlamazdan əvvəl razılıq tələb olunur.",
+    "SERVER_RESPONSE_INVALID": "Server cavabını oxumaq mümkün olmadı.",
+    "REQUEST_FAILED": "Sorğu uğursuz oldu.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Real vaxt səs provayderinə çatmaq mümkün olmadı.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Bu brauzer real vaxt səsini dəstəkləmir.",
+    "HANDOFF_NOT_CLAIMED": "Təhvili qəbul etmək mümkün olmadı.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Təkrarlanan mesaj nəzərə alınmadı."
+  }
+}

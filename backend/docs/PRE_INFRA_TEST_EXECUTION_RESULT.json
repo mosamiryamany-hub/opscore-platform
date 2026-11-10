@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "opscore.pre-infra-test-execution.v1",
+  "release": "0.11.62",
+  "generatedAt": "2026-11-02T10:43:58.353Z",
+  "nodeVersion": "22.23.4",
+  "declaredNodeEngine": ">=22.23.4 <23",
+  "tests": 494,
+  "passed": 494,
+  "failed": 0,
+  "skipped": 0,
+  "status": "PASS",
+  "runtimeMinimumSatisfied": true,
+  "evidenceSource": "Completed isolated parallel release-test-runner execution with per-file runtime isolation.",
+  "productionCertification": false
+}

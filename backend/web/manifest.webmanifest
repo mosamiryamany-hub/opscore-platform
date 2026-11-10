@@ -1,0 +1,10 @@
+{
+  "name": "OpsCore — Operational Field Console",
+  "short_name": "OpsCore",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f7fb",
+  "theme_color": "#171c2b",
+  "description": "OpsCore operational field-service console.",
+  "icons": []
+}

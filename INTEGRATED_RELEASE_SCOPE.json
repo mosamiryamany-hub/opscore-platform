@@ -1,0 +1,154 @@
+{
+  "schemaVersion": "opscore.integrated-release-scope.v4",
+  "version": "0.11.62",
+  "mobileVersion": "0.1.16",
+  "product": "Multi-Sector Operational Source Kit; web/API plus Expo mobile source",
+  "candidateBranch": "security/mobile-dependency-remediation-2026-11-01",
+  "mainChangePolicy": "NO_MERGE_WITHOUT_SEPARATE_RELEASE_AUTHORIZATION",
+  "authoritativeEvidenceRule": "The exact archive-producing pipeline is authoritative for source commit, pipeline ID, JUnit, root/mobile dependency reports, i18n report, archive digest and byte count. Never copy prior-candidate identifiers into a newer release.",
+  "previousSuccessfulCandidate": {
+    "status": "SUPERSEDED_FOR_CURRENT_HEAD",
+    "commit": "30bf29aa1a995a476f40a37600e869772c086ece9f3148da5e9140766806bbf6",
+    "pipelineId": 3014428936,
+    "junit": {
+      "total": 468,
+      "passed": 467,
+      "failed": 0,
+      "skipped": 1
+    },
+    "rootAudit": {
+      "total": 0,
+      "critical": 0,
+      "high": 0,
+      "moderate": 0,
+      "low": 0
+    },
+    "mobileAudit": {
+      "total": 12,
+      "critical": 0,
+      "high": 0,
+      "moderate": 10,
+      "low": 2
+    },
+    "archive": {
+      "filename": "OPSCORE.zip",
+      "bytes": 1952068,
+      "sha256": "720c667d3f79da9c6f2d07ddc75c100986645a3278b0c300661054e03680083e"
+    },
+    "note": "This evidence identifies only the previous candidate commit. It is not the current archive identity."
+  },
+  "currentCandidate": {
+    "status": "EXACT_HEAD_RELEASE_EVIDENCE_BOUND_TO_PIPELINE_ARTIFACTS",
+    "sourceCommit": "GENERATED_IN_DIST_COMMERCIAL_RELEASE_STATEMENT_JSON",
+    "pipelineId": "GENERATED_IN_DIST_COMMERCIAL_RELEASE_STATEMENT_JSON",
+    "buildStatus": "GENERATED_BY_EXACT_HEAD_PIPELINE",
+    "archiveStatus": "GENERATED_AND_ATTESTED_BY_EXACT_HEAD_PIPELINE",
+    "previewStatus": "VERIFY_READY_PREVIEW_AGAINST_EXACT_HEAD_COMMIT_AND_PACKAGE",
+    "requiredArtifacts": [
+      "dist/OPSCORE.zip",
+      "dist/COMMERCIAL_RELEASE_STATEMENT.json",
+      "dist/SHA256SUMS.txt",
+      "backend/junit.xml",
+      "root-dependency-audit.json",
+      "mobile/mobile-dependency-audit.json",
+      "backend/docs/verification/I18N_FORENSIC_AUDIT_RESULT.json"
+    ],
+    "postgresHttpAcceptance": "PASS_ONLY_WHEN_COMMIT_AND_PIPELINE_MATCH; OTHERWISE_NOT_VERIFIED",
+    "postgresHttpAcceptanceOwner": "SELLER_BEFORE_HANDOVER",
+    "noStaleEvidencePolicy": "Never copy historical commits, pipeline IDs, test counts, dependency reports, preview URLs or digests into a newer candidate.",
+    "productionCertification": "NOT_ESTABLISHED",
+    "productionIsolationCertification": "NOT_CERTIFIED"
+  },
+  "translation": {
+    "status": "INTEGRATED_IN_CONTACT_CENTER",
+    "localeCount": 114,
+    "keysPerLocale": 89,
+    "englishSourceLocales": 1,
+    "machineAssistedDraftLocales": 109,
+    "englishFallbackLocales": 4,
+    "englishFallbackCodes": [
+      "din",
+      "nus",
+      "pau",
+      "ch"
+    ],
+    "nativeSpeakerReviewed": 0,
+    "productionQualified": 0,
+    "forensicAuditRounds": 4,
+    "generatedReport": "backend/docs/verification/I18N_FORENSIC_AUDIT_RESULT.json",
+    "scopeLimit": "Structural integrity and safe integration only; not native-speaker linguistic approval. Keep visible AI/machine-translation disclosure.",
+    "nativeSpeakerReviewOwner": "BUYER_BEFORE_PRODUCTION_LANGUAGE_CLAIMS"
+  },
+  "externalIntegrations": {
+    "owner": "BUYER_CUSTOMER",
+    "status": "NOT_ASSUMED_CONNECTED",
+    "responsibility": [
+      "Identity/OIDC/JWKS, email, SMS, WhatsApp, PSTN/SIP and external call-center/telephony accounts and live acceptance",
+      "Payment providers, webhooks, object storage, KMS/HSM and cloud credentials/contracts",
+      "Licensed maps/road routing, API keys, attribution, quotas and provider acceptance"
+    ]
+  },
+  "mobile": {
+    "sourceIncluded": true,
+    "signedAndroid": "NOT_INCLUDED",
+    "signedIOS": "NOT_INCLUDED",
+    "nativeBuild": "BUYER_RESPONSIBILITY",
+    "physicalDeviceTests": "BUYER_RESPONSIBILITY",
+    "storeSubmission": "BUYER_RESPONSIBILITY",
+    "ongoingDependencyMaintenance": "BUYER_RESPONSIBILITY_AFTER_HANDOVER",
+    "preHandoverSourceDefectsAndHighCriticalRemediation": "SELLER_RESPONSIBILITY",
+    "lastVerifiedCandidateAudit": {
+      "pipelineId": 3014428936,
+      "status": "PREVIOUS_CANDIDATE_ONLY",
+      "total": 12,
+      "critical": 0,
+      "high": 0,
+      "moderate": 10,
+      "low": 2
+    },
+    "currentAuditArtifact": "mobile/mobile-dependency-audit.json from exact current archive-producing pipeline",
+    "currentCandidateAudit": {
+      "status": "AUTHORITATIVE_IN_EXACT_ARCHIVE_PIPELINE",
+      "artifact": "mobile/mobile-dependency-audit.json",
+      "rule": "Use the full current locked-tree audit JSON from the same pipeline that builds OPSCORE.zip; disclose Moderate/Low findings and do not claim vulnerability-free status."
+    }
+  },
+  "productionCertification": "NOT_ESTABLISHED",
+  "productionIsolationCertification": "NOT_CERTIFIED",
+  "productionChangesMadeByThisCandidateCloseout": false,
+  "buyerResiduals": [
+    "External provider accounts, credentials, licenses and live acceptance including call-center/telephony",
+    "Maps/road-routing license, keys, attribution and quotas",
+    "Android/iOS EAS linkage, signing, physical-device acceptance and app-store publication",
+    "Native-speaker translation review before production language claims",
+    "Post-handover mobile dependency/security maintenance"
+  ],
+  "productionEvidence": {
+    "snapshotDate": "2026-11-01",
+    "neonProductionBranch": "br-calm-king-b4lk20xx",
+    "postgresVersion": "18.6",
+    "publicBaseTables": 131,
+    "rlsEnabledAndForcedTables": 130,
+    "publicPolicies": 266,
+    "nonPostgisApplicationTablesWithoutRls": 0,
+    "productionSchemaMigrationsLedger": "ABSENT_AT_INSPECTION",
+    "passwordResetCreateDefinerRowSecurityOff": false,
+    "runtimeDatabaseRole": "NOT_VERIFIED",
+    "vercelDeploymentIdentity": "READY_CLI_ORIGIN_NATIVE_GIT_COMMIT_NOT_EXPOSED",
+    "productionAcceptanceMetadata": "STALE",
+    "opscoreGateRole": "LOGIN; can SET ROLE neon_superuser; no active connection observed; no application-source reference found",
+    "productionChangeStatus": "READ_ONLY_ONLY; NO_ROLE_REVOKE_OR_MIGRATION"
+  },
+  "previewEvidence": {
+    "neonBranch": "br-lively-brook-b4an6tm8",
+    "database": "opscore_preview_virgin",
+    "migrationRows": 45,
+    "migrationLedger": "RLS_AND_FORCE_RLS; OWNER_ONLY; opscore_app has no privileges",
+    "identityRoutine043": "SECURITY_DEFINER",
+    "resetTokenRoutine045": "SECURITY_DEFINER; row_security=off; strict_less_than_30_minutes",
+    "migration046": "APPLIED_AND_CHECKSUM_RECORDED",
+    "publicOrdinaryTables": 132,
+    "forcedRlsTables": 131,
+    "unprotectedRelation": "spatial_ref_sys (read-only for app role)"
+  }
+}

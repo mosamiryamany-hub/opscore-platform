@@ -1,0 +1,111 @@
+{
+  "nativeName": "Español",
+  "nav": {
+    "title": "Centro de contacto con IA",
+    "subtitle": "Autoservicio multilingüe con traspaso supervisado a agentes humanos.",
+    "operationsConsole": "Consola de operaciones",
+    "interfaceLanguage": "Idioma de la interfaz"
+  },
+  "status": {
+    "configured": "Modo protegido configurado",
+    "setupIncomplete": "Configuración incompleta",
+    "apiUnavailable": "Inicio de sesión / API no disponible"
+  },
+  "stats": {
+    "catalogueRows": "Filas del catálogo",
+    "catalogueRowsNote": "Lista de entrada conservada",
+    "uniqueCodes": "Códigos de idioma únicos",
+    "uniqueCodesNote": "Los duplicados se marcan",
+    "providerQualification": "Cualificación del proveedor",
+    "providerQualificationNote": "Solo cuentan los idiomas probados de forma independiente",
+    "liveQueue": "Cola humana en vivo",
+    "liveQueueNote": "Traspasos por inquilino"
+  },
+  "customer": {
+    "eyebrow": "EXPERIENCIA DEL CLIENTE",
+    "title": "Iniciar una conversación",
+    "consentPill": "Consentimiento requerido",
+    "preferredLanguage": "Idioma preferido",
+    "consentText": "Acepto que esta conversación sea procesada por el proveedor de IA configurado. Las transcripciones se cifran antes de almacenarse.",
+    "startChat": "Iniciar chat de texto seguro",
+    "startVoice": "Iniciar voz del navegador",
+    "setupHint": "No disponible hasta que un administrador configure la clave de cifrado y el proveedor de IA.",
+    "noConversation": "No hay conversación activa",
+    "startHint": "Crea una sesión con consentimiento para empezar.",
+    "requestHuman": "Solicitar agente humano",
+    "chatEmpty": "Tus mensajes aparecerán aquí. Las acciones de la IA son solo sugerencias; no se ejecutan pagos, cambios de cuenta, reembolsos ni envíos.",
+    "messagePlaceholder": "Escribe un mensaje…",
+    "send": "Enviar",
+    "stopVoice": "Detener sesión de voz",
+    "voiceOff": "Voz desactivada.",
+    "voiceStreamNote": "La voz del navegador se transmite al proveedor configurado; OpsCore no afirma almacenar el audio sin procesar.",
+    "voiceRequirement": "La voz del navegador requiere HTTPS (o localhost), un micrófono, consentimiento, un modelo Realtime configurado y una clave de proveedor. No es un puente telefónico PSTN/SIP."
+  },
+  "queue": {
+    "eyebrow": "INTERVENCIÓN HUMANA",
+    "title": "Cola de escalada",
+    "refresh": "Actualizar",
+    "description": "Aquí aparecen las conversaciones de alto riesgo, no resueltas o con solicitud de agente humano. Un elemento en cola significa solicitado, no conectado.",
+    "loading": "Cargando cola…",
+    "empty": "No hay traspasos humanos activos para esta organización.",
+    "openAssignment": "Abrir asignación",
+    "claimAndReview": "Reclamar y revisar",
+    "resolve": "Resolver",
+    "reply": "Responder",
+    "agentAssignedTitle": "Conversación asignada",
+    "replyStorageNote": "Las respuestas humanas se cifran en reposo y son visibles en la transcripción de la conversación.",
+    "resolveNote": "Resuelto por el operador humano asignado."
+  },
+  "boundaries": {
+    "title": "Límites operativos",
+    "automateTitle": "Diseñado para automatizar",
+    "automateBody": "Primera respuesta multilingüe, aclaración, clasificación de intención y riesgo, almacenamiento seguro de transcripciones, creación de colas y asignación de agentes.",
+    "humanTitle": "Se requiere toma de control humana",
+    "humanBody": "Solicitud humana explícita, confianza baja, riesgo alto o crítico, política ausente, caso no resuelto, queja de privacidad o seguridad, o acción incierta.",
+    "notEnabledTitle": "No habilitado solo con este paquete",
+    "notEnabledBody": "El enrutamiento PSTN/SIP/WhatsApp/correo, el puente telefónico en vivo, la verificación de identidad CRM y las afirmaciones de calidad de idioma requieren un adaptador real, credenciales y pruebas de aceptación."
+  },
+  "roles": {
+    "customer": "Cliente",
+    "human": "Agente humano",
+    "ai": "Asistente de IA"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "El cliente solicitó un agente humano",
+    "low_confidence": "Confianza baja",
+    "high_risk": "Riesgo alto",
+    "policy_refusal": "Rechazo / restricción de política",
+    "unresolved": "Problema no resuelto",
+    "repeated_failure": "Fallo repetido",
+    "model_requested": "La IA solicitó revisión",
+    "voice_review_required": "Revisión de voz requerida",
+    "other": "Otro"
+  },
+  "messages": {
+    "qualificationNotice": "Ningún idioma está cualificado para producción hasta pasar las pruebas de texto, ASR, TTS, acento y escalada.",
+    "configNeeded": "Configuración aún necesaria: {missing}.",
+    "configOk": "La configuración existe. La conectividad del proveedor y la calidad del idioma aún requieren pruebas de aceptación reales.",
+    "conversationCreated": "Conversación segura creada. La calidad del idioma aún no está cualificada para producción.",
+    "handoffQueued": "Traspaso humano en cola ({reason}). Es una solicitud en cola, no una conexión en vivo.",
+    "aiResponseFailed": "La respuesta de la IA no se completó. No se ejecutó ninguna acción. Puede solicitar un agente humano.",
+    "actionNotCompleted": "Acción no completada: {reason}.",
+    "apiUnavailable": "No se pudo cargar la API del centro de contacto. Inicie sesión en la consola de OpsCore y vuelva a cargar esta página.",
+    "suggestedNextStep": "Siguiente paso sugerido únicamente (no ejecutado): {step}.",
+    "handoffQueuedQueueOnly": "Traspaso humano en cola ({reason}). La cola no demuestra que un agente esté conectado.",
+    "voiceHandoffStopped": "Traspaso humano en cola. La sesión de IA del navegador se está deteniendo; no hay transferencia telefónica en directo configurada.",
+    "voiceCredentialRequest": "Solicitando una credencial de voz de corta duración…",
+    "voiceRealtimeError": "El proveedor en tiempo real informó de un error. Detenga la sesión de voz y vuelva a intentarlo tras revisar la configuración del proveedor.",
+    "voiceActive": "La sesión de voz está activa. Pulse «Solicitar agente humano» en cualquier momento; esto crea un elemento de cola, no una transferencia PSTN.",
+    "voiceCredentialActive": "{languageCode} · credencial de proveedor temporal",
+    "queueUnavailable": "Cola no disponible: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Se requiere consentimiento antes de iniciar una conversación.",
+    "SERVER_RESPONSE_INVALID": "No se pudo leer la respuesta del servidor.",
+    "REQUEST_FAILED": "La solicitud falló.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "No se pudo contactar con el proveedor de voz en tiempo real.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Este navegador no admite voz en tiempo real.",
+    "HANDOFF_NOT_CLAIMED": "No se pudo tomar el traspaso.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Mensaje duplicado ignorado."
+  }
+}

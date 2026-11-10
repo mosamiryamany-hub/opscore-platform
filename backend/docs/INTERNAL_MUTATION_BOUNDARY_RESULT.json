@@ -1,0 +1,79 @@
+{
+  "schemaVersion": "opscore.internal-mutation-boundary.v1",
+  "generatedAt": "2026-09-24T08:18:10.796Z",
+  "scope": "pre-infrastructure-source-audit-of-non-HTTP mutation boundaries",
+  "total": 7,
+  "covered": 7,
+  "unresolved": [],
+  "classes": [
+    {
+      "id": "field-signoff",
+      "file": "backend/src/field-value-extensions.js",
+      "method": "recordFieldSignoffAssurance",
+      "kind": "tenant-mutation",
+      "policy": "API boundary idempotentWrite",
+      "marker": "INSERT INTO field_signoff_assurance",
+      "contractPresent": true
+    },
+    {
+      "id": "billing-reconcile",
+      "file": "backend/src/enterprise-value-additions.js",
+      "method": "reconcileViaBillingProvider",
+      "kind": "external-read-persisted-result",
+      "policy": "internal idempotentAsyncWrite for Stripe",
+      "marker": "this.idempotentAsyncWrite(ctx,'billing_provider_reconcile_stripe'",
+      "contractPresent": true
+    },
+    {
+      "id": "commercial-reconcile",
+      "file": "backend/src/operational-enhancements.js",
+      "method": "reconcileCommercial",
+      "kind": "tenant-mutation",
+      "policy": "API idempotentWrite for local report",
+      "marker": "INSERT INTO payment_reconciliation_runs",
+      "contractPresent": true
+    },
+    {
+      "id": "operational-worker-claim",
+      "file": "backend/src/operational-enhancements.js",
+      "method": "claimOperationalJob",
+      "kind": "system-worker-state",
+      "policy": "BEGIN IMMEDIATE + claim predicate",
+      "marker": "BEGIN IMMEDIATE",
+      "contractPresent": true
+    },
+    {
+      "id": "operational-worker-complete",
+      "file": "backend/src/operational-enhancements.js",
+      "method": "completeOperationalJob",
+      "kind": "system-worker-state",
+      "policy": "claim-status guarded update",
+      "marker": "status='processing'",
+      "contractPresent": true
+    },
+    {
+      "id": "operational-worker-fail",
+      "file": "backend/src/operational-enhancements.js",
+      "method": "failOperationalJob",
+      "kind": "system-worker-state",
+      "policy": "claim-status guarded update",
+      "marker": "status='processing'",
+      "contractPresent": true
+    },
+    {
+      "id": "simulation-fixture",
+      "file": "backend/src/operational-intelligence-fabric.js",
+      "method": "makeScenarioArtifacts",
+      "kind": "simulation-fixture",
+      "policy": "simulation transaction boundary",
+      "marker": "synthetic: true",
+      "contractPresent": true
+    }
+  ],
+  "decision": "PASS",
+  "notes": [
+    "Tenant business mutations are expected to be entered from explicit API idempotency boundaries where applicable.",
+    "System-worker state changes use an atomic claim/transition predicate rather than API idempotency, because they are not user replay commands.",
+    "Simulation fixtures remain explicitly synthetic and are not promoted to production domain events."
+  ]
+}

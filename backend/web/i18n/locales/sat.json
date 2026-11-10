@@ -1,0 +1,111 @@
+{
+  "nativeName": "ᱥᱟᱱᱛᱟᱲᱤ",
+  "nav": {
+    "title": "ᱟᱹᱭᱤ ᱠᱟᱛᱷᱟ ᱛᱟᱞᱢᱟ AI",
+    "subtitle": "ᱥᱟᱸᱜᱮ ᱯᱟᱹᱨᱥᱤ ᱜᱚᱲᱚ ᱟᱨ ᱢᱟᱹᱱᱢᱤ ᱛᱮ ᱦᱟᱹᱴᱤᱧ ᱾",
+    "operationsConsole": "ᱠᱟᱹᱢᱤ ᱠᱚᱱᱥᱚᱞ",
+    "interfaceLanguage": "ᱤᱱᱴᱟᱨᱯᱷᱮᱥ ᱯᱟᱹᱨᱥᱤ"
+  },
+  "status": {
+    "configured": "ᱨᱩᱠᱷᱭᱟᱹ ᱢᱳᱰ ᱥᱟᱡᱟᱣ ᱟᱠᱟᱱᱟ",
+    "setupIncomplete": "ᱥᱟᱡᱟᱣ ᱵᱟᱝ ᱯᱩᱨᱟᱹᱣ",
+    "apiUnavailable": "ᱵᱚᱞᱚᱱ / API ᱵᱟᱹᱱᱩᱜᱼᱟ"
+  },
+  "stats": {
+    "catalogueRows": "ᱛᱟᱞᱠᱟ ᱛᱷᱟᱹᱛᱤ",
+    "catalogueRowsNote": "ᱤᱱᱯᱩᱴ ᱛᱷᱟᱹᱛᱤ ᱫᱚᱦᱚ ᱟᱠᱟᱱᱟ",
+    "uniqueCodes": "ᱟᱞᱟᱜ ᱯᱟᱹᱨᱥᱤ ᱠᱚᱰ",
+    "uniqueCodesNote": "ᱫᱚᱦᱲᱟ ᱠᱚ ᱪᱤᱱᱦᱟᱹᱣᱼᱟ",
+    "providerQualification": "ᱥᱟᱯᱞᱟᱭᱤᱠ ᱮᱠᱛᱤᱭᱟᱹᱨ",
+    "providerQualificationNote": "ᱵᱟᱝᱢᱟ ᱯᱷᱮᱨᱟᱱ ᱯᱟᱹᱨᱥᱤ ᱜᱮ ᱞᱮᱠᱷᱟᱼᱟ",
+    "liveQueue": "ᱱᱤᱛᱚᱜ ᱢᱟᱹᱱᱢᱤ ᱛᱷᱟᱹᱛᱤ",
+    "liveQueueNote": "ᱴᱮᱱᱟᱱᱴ ᱛᱮ ᱦᱟᱹᱴᱤᱧ"
+  },
+  "customer": {
+    "eyebrow": "ᱠᱷᱚᱨᱚᱠ ᱟᱱᱩᱵᱷᱚᱵ",
+    "title": "ᱠᱟᱛᱷᱟ ᱮᱦᱚᱵ ᱢᱮ",
+    "consentPill": "ᱥᱚᱦᱚᱫ ᱞᱟᱹᱠᱛᱤᱭᱟᱱᱟ",
+    "preferredLanguage": "ᱠᱚᱸᱭ ᱯᱟᱹᱨᱥᱤ",
+    "consentText": "ᱟᱹᱭ ᱥᱚᱦᱚᱫ ᱮᱢᱮᱫᱟ ᱡᱮ ᱱᱚᱶᱟ ᱠᱟᱛᱷᱟ AI ᱥᱟᱯᱞᱟᱭᱤᱠ ᱛᱮ ᱯᱟᱨᱥᱮᱥᱚᱜᱼᱟ ᱾ ᱚᱞ ᱠᱚ ᱫᱚᱦᱚ ᱢᱟᱲᱟᱝ ᱤᱱᱠᱨᱤᱯᱴᱚᱜᱼᱟ ᱾",
+    "startChat": "ᱥᱩᱨᱚᱠᱷᱤᱛ ᱚᱞ ᱠᱟᱛᱷᱟ ᱮᱦᱚᱵ ᱢᱮ",
+    "startVoice": "ᱵᱨᱟᱩᱡᱟᱨ ᱟᱲᱟᱝ ᱮᱦᱚᱵ ᱢᱮ",
+    "setupHint": "ᱮᱰᱢᱤᱱ ᱮᱱᱠᱨᱤᱯᱥᱚᱱ ᱠᱤ ᱟᱨ AI ᱥᱟᱯᱞᱟᱭᱤᱠ ᱵᱟᱝ ᱥᱟᱡᱟᱣ ᱛᱟᱦᱮᱸ ᱫᱷᱟᱹᱨᱤᱡ ᱵᱟᱝ ᱧᱟᱢᱚᱜᱼᱟ ᱾",
+    "noConversation": "ᱪᱟᱞᱟᱜ ᱠᱟᱛᱷᱟ ᱵᱟᱹᱱᱩᱜᱼᱟ",
+    "startHint": "ᱮᱦᱚᱵ ᱞᱟᱹᱜᱤᱫ ᱥᱚᱦᱚᱫ ᱥᱟᱶ ᱥᱮᱥᱟᱱ ᱵᱮᱱᱟᱣ ᱢᱮ ᱾",
+    "requestHuman": "ᱢᱟᱹᱱᱢᱤ ᱞᱟᱹᱭ ᱢᱮ",
+    "chatEmpty": "ᱠᱟᱛᱷᱟ ᱠᱚ ᱱᱚᱸᱰᱮ ᱧᱮᱞᱚᱜᱼᱟ ᱾ AI ᱠᱟᱹᱢᱤ ᱫᱚ ᱥᱚᱞᱦᱟ ᱜᱮᱭᱟ; ᱯᱟᱭᱢᱮᱱᱴ, ᱮᱠᱟᱶᱴ ᱵᱚᱫᱚᱞ, ᱨᱤᱯᱷᱚᱸᱰ ᱵᱟᱝ ᱦᱩᱭᱩᱜᱼᱟ ᱾",
+    "messagePlaceholder": "ᱠᱟᱛᱷᱟ ᱚᱞ ᱢᱮ…",
+    "send": "ᱠᱩᱞ ᱢᱮ",
+    "stopVoice": "ᱟᱲᱟᱝ ᱵᱚᱸᱫᱚᱭ ᱢᱮ",
+    "voiceOff": "ᱟᱲᱟᱝ ᱵᱚᱸᱫᱚᱭ ᱟᱠᱟᱱᱟ ᱾",
+    "voiceStreamNote": "ᱵᱨᱟᱩᱡᱟᱨ ᱟᱲᱟᱝ ᱥᱟᱯᱞᱟᱭᱤᱠ ᱴᱷᱮᱱ ᱠᱩᱞᱚᱜᱼᱟ; OpsCore ᱫᱚ ᱥᱟᱹᱨᱤ ᱟᱲᱟᱝ ᱫᱚᱦᱚ ᱨᱮᱱᱟᱜ ᱵᱟᱝ ᱞᱟᱹᱭᱟ ᱾",
+    "voiceRequirement": "ᱵᱨᱟᱩᱡᱟᱨ ᱟᱲᱟᱝ ᱞᱟᱹᱜᱤᱫ HTTPS, ᱢᱟᱭᱠᱨᱚᱯᱷᱚᱱ, ᱥᱚᱦᱚᱫ, ᱥᱟᱡᱟᱣ ᱟᱠᱟᱱ Realtime ᱢᱚᱰᱮᱞ ᱟᱨ ᱠᱤ ᱞᱟᱹᱠᱛᱤᱭᱟ ᱾ ᱱᱚᱶᱟ ᱯᱷᱚᱱ ᱵᱟᱝ ᱠᱟᱱᱟ ᱾"
+  },
+  "queue": {
+    "eyebrow": "ᱢᱟᱹᱱᱢᱤ ᱜᱚᱲᱚ",
+    "title": "ᱮᱥᱠᱟᱞᱮᱥᱚᱱ ᱛᱷᱟᱹᱛᱤ",
+    "refresh": "ᱱᱟᱶᱟ ᱠᱟᱹᱢᱤ ᱢᱮ",
+    "description": "ᱵᱤᱯᱚᱫᱽ ᱟᱱ ᱥᱮ ᱢᱟᱹᱱᱢᱤ ᱠᱚ ᱠᱩᱞᱟᱜ ᱠᱟᱱ ᱠᱟᱛᱷᱟ ᱠᱚ ᱱᱚᱸᱰᱮ ᱧᱮᱞᱚᱜᱼᱟ ᱾ ᱛᱷᱟᱹᱛᱤ ᱫᱚ ᱱᱮᱦᱚᱨ ᱠᱟᱱᱟ, ᱡᱚᱯᱚᱲᱟᱣ ᱫᱚ ᱵᱟᱝ ᱾",
+    "loading": "ᱞᱳᱰ ᱪᱟᱞᱟᱜ ᱠᱟᱱᱟ…",
+    "empty": "ᱱᱚᱶᱟ ᱜᱟᱶᱛᱟ ᱞᱟᱹᱜᱤᱫ ᱢᱟᱹᱱᱢᱤ ᱦᱟᱹᱴᱤᱧ ᱵᱟᱹᱱᱩᱜᱼᱟ ᱾",
+    "openAssignment": "ᱠᱟᱹᱢᱤ ᱡᱷᱤᱡ ᱢᱮ",
+    "claimAndReview": "ᱦᱟᱛᱟᱶ ᱟᱨ ᱧᱮᱞ ᱢᱮ",
+    "resolve": "ᱥᱟᱹᱛ ᱢᱮ",
+    "reply": "ᱛᱮᱞᱟ ᱢᱮ",
+    "agentAssignedTitle": "ᱦᱟᱹᱴᱤᱧ ᱟᱠᱟᱱ ᱠᱟᱛᱷᱟ",
+    "replyStorageNote": "ᱢᱟᱹᱱᱢᱤ ᱛᱮᱞᱟ ᱠᱚ ᱤᱱᱠᱨᱤᱯᱴ ᱠᱟᱛᱮ ᱫᱚᱦᱚ ᱟᱠᱟᱱᱟ ᱟᱨ ᱠᱟᱛᱷᱟ ᱨᱮ ᱧᱮᱞᱚᱜᱼᱟ ᱾",
+    "resolveNote": "ᱦᱟᱹᱴᱤᱧ ᱟᱠᱟᱱ ᱠᱟᱹᱢᱤᱭᱟᱹ ᱛᱮ ᱥᱟᱹᱛ ᱟᱠᱟᱱᱟ ᱾"
+  },
+  "boundaries": {
+    "title": "ᱠᱟᱹᱢᱤ ᱥᱤᱢᱟᱹ",
+    "automateTitle": "ᱚᱴᱚᱢᱮᱴ ᱞᱟᱹᱜᱤᱫ ᱵᱮᱱᱟᱣ",
+    "automateBody": "ᱥᱟᱸᱜᱮ ᱯᱟᱹᱨᱥᱤ ᱯᱩᱭᱞᱩ ᱛᱮᱞᱟ, ᱥᱯᱚᱥᱴᱤᱠᱚᱨᱚᱱ, ᱤᱱᱴᱮᱱᱴ ᱟᱨ ᱵᱤᱯᱚᱫᱽ ᱡᱟᱸᱪ, ᱚᱞ ᱫᱚᱦᱚ ᱟᱨ ᱛᱷᱟᱹᱛᱤ ᱵᱮᱱᱟᱣ ᱾",
+    "humanTitle": "ᱢᱟᱹᱱᱢᱤ ᱛᱮ ᱦᱟᱛᱟᱶ ᱞᱟᱹᱠᱛᱤᱭᱟ",
+    "humanBody": "ᱢᱟᱹᱱᱢᱤ ᱱᱮᱦᱚᱨ, ᱠᱚᱢ ᱵᱷᱚᱨᱚᱥᱟ, ᱢᱟᱨᱟᱝ ᱵᱤᱯᱚᱫᱽ, ᱵᱟᱝ ᱧᱟᱢ ᱟᱹᱨᱤ, ᱵᱟᱝ ᱥᱟᱹᱛ ᱠᱟᱛᱷᱟ, ᱱᱤᱡᱮᱨᱟᱜ ᱠᱩᱞ ᱾",
+    "notEnabledTitle": "ᱱᱚᱶᱟ ᱯᱮᱠᱮᱡ ᱛᱮ ᱵᱟᱝ ᱪᱟᱞᱟᱜᱼᱟ",
+    "notEnabledBody": "PSTN/SIP, WhatsApp, ᱤᱢᱮᱞ, ᱯᱷᱚᱱ, CRM ᱟᱨ ᱯᱟᱹᱨᱥᱤ ᱥᱟᱹᱨᱤ ᱞᱟᱹᱜᱤᱫ ᱥᱟᱹᱨᱤ ᱥᱟᱯᱞᱟᱭᱤᱠ ᱟᱨ ᱡᱟᱸᱪ ᱞᱟᱹᱠᱛᱤᱭᱟ ᱾"
+  },
+  "roles": {
+    "customer": "ᱠᱷᱚᱨᱚᱠ",
+    "human": "ᱢᱟᱹᱱᱢᱤ ᱠᱟᱹᱢᱤᱭᱟᱹ",
+    "ai": "AI ᱜᱚᱲᱚᱭᱤᱡ"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "ᱠᱷᱚᱨᱚᱠ ᱮ ᱢᱟᱹᱱᱢᱤ ᱠᱩᱞᱮᱫᱟ",
+    "low_confidence": "ᱠᱚᱢ ᱵᱷᱚᱨᱚᱥᱟ",
+    "high_risk": "ᱢᱟᱨᱟᱝ ᱵᱤᱯᱚᱫᱽ",
+    "policy_refusal": "ᱟᱹᱨᱤ ᱟᱵᱟᱨ",
+    "unresolved": "ᱵᱟᱝ ᱥᱟᱹᱛ ᱠᱟᱛᱷᱟ",
+    "repeated_failure": "ᱫᱚᱦᱲᱟ ᱵᱟᱝᱠᱷᱟᱱ",
+    "model_requested": "AI ᱧᱮᱞ ᱞᱟᱹᱭᱮᱫᱟ",
+    "voice_review_required": "ᱟᱲᱟᱝ ᱧᱮᱞ ᱞᱟᱹᱠᱛᱤᱭᱟ",
+    "other": "ᱟᱭᱢᱟ"
+  },
+  "messages": {
+    "qualificationNotice": "ᱪᱮᱫ ᱯᱟᱹᱨᱥᱤ ᱦᱚᱸ ᱵᱟᱝ ᱥᱟᱹᱨᱤ ᱟᱠᱟᱱᱟ ᱡᱟᱸᱪ ᱯᱩᱨᱟᱹᱣ ᱵᱟᱝ ᱦᱩᱭ ᱫᱷᱟᱹᱨᱤᱡ ᱾",
+    "configNeeded": "ᱥᱟᱡᱟᱣ ᱞᱟᱹᱠᱛᱤᱭᱟ: {missing} ᱾",
+    "configOk": "ᱥᱟᱡᱟᱣ ᱢᱮᱱᱟᱜᱼᱟ ᱾ ᱡᱚᱯᱚᱲᱟᱣ ᱟᱨ ᱯᱟᱹᱨᱥᱤ ᱜᱩᱱ ᱥᱟᱹᱨᱤ ᱡᱟᱸᱪ ᱞᱟᱹᱠᱛᱤᱭᱟ ᱾",
+    "conversationCreated": "ᱥᱩᱨᱚᱠᱷᱤᱛ ᱠᱟᱛᱷᱟ ᱵᱮᱱᱟᱣ ᱟᱠᱟᱱᱟ ᱾ ᱯᱟᱹᱨᱥᱤ ᱜᱩᱱ ᱵᱟᱝ ᱥᱟᱹᱨᱤ ᱟᱠᱟᱱᱟ ᱾",
+    "handoffQueued": "ᱢᱟᱹᱱᱢᱤ ᱦᱟᱹᱴᱤᱧ ᱛᱷᱟᱹᱛᱤ ᱨᱮ ᱫᱚᱦᱚ ᱟᱠᱟᱱᱟ ({reason}) ᱾ ᱱᱚᱶᱟ ᱱᱮᱦᱚᱨ, ᱡᱚᱯᱚᱲᱟᱣ ᱫᱚ ᱵᱟᱝ ᱾",
+    "aiResponseFailed": "AI ᱛᱮᱞᱟ ᱵᱟᱝ ᱯᱩᱨᱟᱹᱣ ᱟᱠᱟᱱᱟ ᱾ ᱪᱮᱫ ᱠᱟᱹᱢᱤ ᱦᱚᱸ ᱵᱟᱝ ᱦᱩᱭ ᱟᱠᱟᱱᱟ ᱾ ᱢᱟᱹᱱᱢᱤ ᱠᱩᱞ ᱫᱟᱲᱮᱭᱟᱜᱼᱟᱢ ᱾",
+    "actionNotCompleted": "ᱠᱟᱹᱢᱤ ᱵᱟᱝ ᱯᱩᱨᱟᱹᱣ: {reason} ᱾",
+    "apiUnavailable": "ᱟᱡᱟᱭᱟᱜ API ᱵᱟᱝ ᱧᱟᱢᱚᱜᱼᱟ ᱾ OpsCore ᱨᱮ ᱵᱚᱞᱚᱱ ᱠᱟᱛᱮ ᱱᱚᱶᱟ ᱥᱟᱦᱴᱟ ᱱᱟᱶᱟ ᱢᱮ ᱾",
+    "suggestedNextStep": "ᱥᱚᱞᱦᱟ ᱜᱮ (ᱵᱟᱝ ᱦᱩᱭ ᱟᱠᱟᱱᱟ): {step} ᱾",
+    "handoffQueuedQueueOnly": "ᱢᱟᱹᱱᱢᱤ ᱦᱟᱹᱴᱤᱧ ᱛᱷᱟᱹᱛᱤ ᱨᱮ ᱫᱚᱦᱚ ᱟᱠᱟᱱᱟ ({reason}) ᱾ ᱛᱷᱟᱹᱛᱤ ᱫᱚ ᱠᱟᱹᱢᱤᱭᱟᱹ ᱡᱚᱯᱚᱲᱟᱣ ᱵᱟᱭ ᱥᱚᱫᱚᱨᱟ ᱾",
+    "voiceHandoffStopped": "ᱢᱟᱹᱱᱢᱤ ᱦᱟᱹᱴᱤᱧ ᱛᱷᱟᱹᱛᱤ ᱨᱮ ᱫᱚᱦᱚ ᱟᱠᱟᱱᱟ ᱾ AI ᱠᱟᱛᱷᱟ ᱵᱚᱸᱫᱚᱜ ᱠᱟᱱᱟ; ᱥᱟᱹᱨᱤ ᱯᱷᱚᱱ ᱵᱟᱝ ᱥᱟᱡᱟᱣ ᱟᱠᱟᱱᱟ ᱾",
+    "voiceCredentialRequest": "ᱟᱲᱟᱝ ᱠᱤ ᱠᱩᱞ ᱪᱟᱞᱟᱜ ᱠᱟᱱᱟ…",
+    "voiceRealtimeError": "Realtime ᱥᱟᱯᱞᱟᱭᱤᱠ ᱵᱷᱩᱞ ᱞᱟᱹᱭᱮᱫᱟ ᱾ ᱟᱲᱟᱝ ᱵᱚᱸᱫᱚᱭ ᱢᱮ, ᱥᱟᱡᱟᱣ ᱧᱮᱞ ᱢᱮ, ᱛᱟᱭᱚᱢ ᱟᱨᱦᱚᱸ ᱠᱩᱞ ᱢᱮ ᱾",
+    "voiceActive": "ᱟᱲᱟᱝ ᱠᱟᱛᱷᱟ ᱪᱟᱞᱟᱜ ᱠᱟᱱᱟ ᱾ ᱡᱟᱦᱟᱸ ᱚᱠᱛᱚ ᱢᱟᱹᱱᱢᱤ ᱠᱩᱞ ᱢᱮ; ᱱᱚᱶᱟ ᱛᱷᱟᱹᱛᱤ ᱵᱮᱱᱟᱣᱼᱟ, ᱯᱷᱚᱱ ᱵᱟᱝ ᱾",
+    "voiceCredentialActive": "{languageCode} · ᱱᱟᱵᱟᱫᱽ ᱠᱤ",
+    "queueUnavailable": "ᱛᱷᱟᱹᱛᱤ ᱵᱟᱹᱱᱩᱜᱼᱟ: {reason} ᱾"
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "ᱠᱟᱛᱷᱟ ᱮᱦᱚᱵ ᱢᱟᱲᱟᱝ ᱥᱚᱦᱚᱫ ᱞᱟᱹᱠᱛᱤᱭᱟ ᱾",
+    "SERVER_RESPONSE_INVALID": "ᱥᱟᱨᱵᱷᱟᱨ ᱛᱮᱞᱟ ᱵᱟᱝ ᱯᱟᱲᱦᱟᱣᱚᱜᱼᱟ ᱾",
+    "REQUEST_FAILED": "ᱱᱮᱦᱚᱨ ᱵᱟᱝ ᱥᱟᱹᱛ ᱞᱮᱱᱟ ᱾",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Realtime ᱟᱲᱟᱝ ᱥᱟᱯᱞᱟᱭᱤᱠ ᱵᱟᱝ ᱧᱟᱢ ᱞᱮᱱᱟ ᱾",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "ᱱᱚᱶᱟ ᱵᱨᱟᱩᱡᱟᱨ Realtime ᱟᱲᱟᱝ ᱵᱟᱭ ᱜᱚᱲᱚᱭᱟ ᱾",
+    "HANDOFF_NOT_CLAIMED": "ᱦᱟᱹᱴᱤᱧ ᱵᱟᱝ ᱦᱟᱛᱟᱶ ᱞᱮᱱᱟ ᱾",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "ᱫᱚᱦᱲᱟ ᱠᱟᱛᱷᱟ ᱵᱟᱝ ᱠᱚ ᱧᱮᱞ ᱠᱮᱫᱟ ᱾"
+  }
+}

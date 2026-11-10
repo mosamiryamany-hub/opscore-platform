@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "opscore.sector-neutrality.v2",
+  "release": "0.11.62",
+  "status": "PASS",
+  "checks": {
+    "runtimeNoIndustrySpecificTokens": true,
+    "commercialNoSingleIndustryTargeting": true,
+    "genericCustomFields": true,
+    "genericWorkTypeControls": true,
+    "genericAssets": true,
+    "genericSavedViews": true
+  },
+  "runtimeFilesScanned": 251,
+  "runtimeHits": [],
+  "commercialHits": [],
+  "legacyCompatibility": {
+    "file": "backend/src/db.js",
+    "identifier": "network_ref",
+    "expectedOccurrences": 2,
+    "actualOccurrences": 2,
+    "isolatedToCompatibilityMigration": true
+  },
+  "notes": [
+    "This gate establishes source-level sector neutrality and generic extension points across backend runtime, web console, mobile source, and shipped operational scripts.",
+    "The only permitted legacy industry-adjacent identifier is network_ref, and only inside the explicit SQLite v23 -> v24 compatibility migration; current contracts use service_ref.",
+    "This gate does not certify any external provider, live database, production network edge, or deployment environment."
+  ],
+  "generatedAt": "2026-10-21T11:02:27.672Z"
+}

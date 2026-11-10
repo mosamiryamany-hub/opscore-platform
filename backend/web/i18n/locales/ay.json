@@ -1,0 +1,111 @@
+{
+  "nativeName": "Aymar aru",
+  "nav": {
+    "title": "AI Jiwawi Uyfasthana",
+    "subtitle": "Jach'a k'atuki arunaka, jani ukhamäkiwa janîri jaqukipxañaniki.",
+    "operationsConsole": "Lurawinaka konsola",
+    "interfaceLanguage": "Interface aru"
+  },
+  "status": {
+    "configured": "Munayiri modo wakichata",
+    "setupIncomplete": "Wakichawi jan tukuski",
+    "apiUnavailable": "Mantaña / API janï wakichati"
+  },
+  "stats": {
+    "catalogueRows": "Katallu qillqata tanqanaka",
+    "catalogueRowsNote": "Aynacht'iri tanqa wakichata",
+    "uniqueCodes": "Mayni aru kodinaka",
+    "uniqueCodesNote": "Yaqha janï ukhamäkiwa",
+    "providerQualification": "Qhatawiri suma tara",
+    "providerQualificationNote": "Chiqa mä kirkiwa mayni arunakaxa yup'ata",
+    "liveQueue": "Jakäñapataki tanqa",
+    "liveQueueNote": "Uywiri (tenant) juk'aptayañanaka"
+  },
+  "customer": {
+    "eyebrow": "MANDINGIRI WAKICHAWI",
+    "title": "Jiwaki qalltaña",
+    "consentPill": "Chuymani wakichäwi",
+    "preferredLanguage": "Munaña aru",
+    "consentText": "Janïrakispä ukhamäkiwa, jiwakixa wakichata AI qhatawirinaka lurasiña. Yatiyawinakaxa wakichäwinxa p'iqinchata.",
+    "startChat": "Mistura qillqa jiwaki qalltaña",
+    "startVoice": "Wamp'uni (browser) arusiña qalltaña",
+    "setupHint": "Janï wakichati, jach'a kamachirinakaxa p'iqinchiri ch'utunaka ukat AI qhatawiri wakichasñkama.",
+    "noConversation": "Janï jiwaki jakäñanakäki",
+    "startHint": "Qalltañataki, chuymani tuqita (sesión) luramam.",
+    "requestHuman": "Janîri jaqukipiri k'uchiña",
+    "chatEmpty": "Yatiyawinakamaxa akxankapuniwa. AI lurawinakaxa yatiyaw ukhamäkiwa; manam qullqi, apthapi ukata kutxuña jan ukat apsuña lurapxi.",
+    "messagePlaceholder": "Yatiyaw qillqamam…",
+    "send": "Apnaqaña",
+    "stopVoice": "Arusiña tuqi tukuyaña",
+    "voiceOff": "Aruxa ch'usañchatawa.",
+    "voiceStreamNote": "Browser arux ch'amanchata churirimpiw apayatäki; OpsCore janiw sapa audio imaski sasajj sititi.",
+    "voiceRequirement": "Browser arux HTTPS (jan ukax localhost), micrófono, jaysäwi, ch'amanchata Realtime modelo ukat churiri jakhuru munasi. Janiw PSTN/SIP telefono chakana ukhamäkiti."
+  },
+  "queue": {
+    "eyebrow": "JANÎRI JAQUKIPXAÑA",
+    "title": "Jach'a suyt'aña",
+    "refresh": "Machaqaña",
+    "description": "Akxankapuniwa jank'aki ch'amani, jani tukuski jan ukat janîri k'uchirinakaxa. Tanqana ankichiwa k'uchirima, jani tukuyata.",
+    "loading": "Tanqa aynacht'ayawa…",
+    "empty": "Janï jank'aki jaqukipäwinakaxa ak thamampi.",
+    "openAssignment": "Churawini jist'araña",
+    "claimAndReview": "Katuki ukat katxataña",
+    "resolve": "Maynachaña",
+    "reply": "Kutipaña",
+    "agentAssignedTitle": "Uñt'ayata aruskipäwi",
+    "replyStorageNote": "Jaqin jaysäwinakax imañ pachanx jarkat'ataw, aruskipäwi qillqatan uñjasiwa.",
+    "resolveNote": "Uñt'ayata jaqi operadorampiw askichata."
+  },
+  "boundaries": {
+    "title": "Lurawi saythapinaka",
+    "automateTitle": "Kikinpa lurayañataki",
+    "automateBody": "Jach'a k'atuki aru nayriri kutipaña, ch'iyaraqta, amuyu ch'amani phuqichaña, ch'usa yatiyawinaka wakichaña, tanqa lurawi jan ukat yanapt'iri churaña.",
+    "humanTitle": "Janîri jaqukipaña suma",
+    "humanBody": "Chiqa janîri k'uchiña, pusi amuyu, ch'amani suma mä suyt'aña, kamachi janï utjki, jani tukuski phuqichawi, ch'usa kunayman saraqawi jan ukat jani qhana arusiri.",
+    "notEnabledTitle": "Aka wakichaña janï wakichati ukhamäki",
+    "notEnabledBody": "PSTN/SIP/WhatsApp/correo puriyana, kawsaq sirwiñu chaka, CRM janîri wakichaña ukat aru suma tarunakaxa chiqa qhatawiri t'uxyu, ch'amañanaka ukat chuymani phuqichawi munañapa."
+  },
+  "roles": {
+    "customer": "Mandingiru",
+    "human": "Janîri jaqukipiri",
+    "ai": "AI yanapt'iri"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Mandingiruxa janîri k'uchurakiwa",
+    "low_confidence": "Pusi amuyu",
+    "high_risk": "Ch'amani suma",
+    "policy_refusal": "Kamachi janï churki / jank'aki suyt'aña",
+    "unresolved": "Janï tukuski sarxawi",
+    "repeated_failure": "Yaqha jani suma",
+    "model_requested": "AI katxataña k'uchurakiwa",
+    "voice_review_required": "Arusiña katxataña munañawa",
+    "other": "Yaqha"
+  },
+  "messages": {
+    "qualificationNotice": "Janï mä arutakixwa llamk'ayatäki, qillqa, aru katxata, aru lurawi, jaqukipaña ukat jach'a suyt'aña phuqichawinakaxa jan chuykïnkanïkiti.",
+    "configNeeded": "Janïrakiwa wakichäwi: {missing}.",
+    "configOk": "Wakichäwi utjiwa. Qhatawiri tukuyawi ukat aru suma tarunakaxa janïrakiwa chuymani phuqichawinakapa.",
+    "conversationCreated": "Ch'usa jiwaki luratawa. Aru suma taruxa janïrakiwa llamk'ayatäki.",
+    "handoffQueued": "Janîri jaqukipäwi tanqarakiwa ({reason}). Akaxa tanqa k'uchiriwa, jan kawsaq tukuyati.",
+    "aiResponseFailed": "AI kutipäwi jan tukuski. Janï kunas luratäki. Janîri jaqukipiri k'uchiyaska munañamam.",
+    "actionNotCompleted": "Lurawi jan tukuski: {reason}.",
+    "apiUnavailable": "Contact Center API ukax janiw apkataña atiskänti. OpsCore consolar mantam, ukatx aka pä'ñi mayampi apkatam.",
+    "suggestedNextStep": "Qhipa lurawinaka amuyt'ayata ukakiwa (jan phuqhata): {step}.",
+    "handoffQueuedQueueOnly": "Jaqiru katuyaña colanakar uchata ({reason}). Colax janiw uñacht'ayiti agente tinkitätap.",
+    "voiceHandoffStopped": "Jaqiru katuyaña colanakar uchata. Browser AI sesiónax sayt'asiski; kuna pachas telefono apayañax janiw ch'amanchatäkiti.",
+    "voiceCredentialRequest": "Jisk'a pacha arux credencial mayiski…",
+    "voiceRealtimeError": "Chiqpach pacha churirix pantjasiw yatiyi. Arux sesión sayt'ayam, ukatx churiri ch'amanchäwip uñakipasax mayampi jikxatam.",
+    "voiceActive": "Arux sesión lurasiski. Kunapachatix munätaxa “Janîri jaqukipiri k'uchiña” ñit'am; ukax colan mä yänak lurasi, janiw PSTN apayañakiti.",
+    "voiceCredentialActive": "{languageCode} · churirin pachaki credencialapa",
+    "queueUnavailable": "Colax janiw utjkiti: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Aruskipäwi qalltañapatakix nayraqat jaysäwi muniwa.",
+    "SERVER_RESPONSE_INVALID": "Servidor jaysäwix janiw ullañ atiskänti.",
+    "REQUEST_FAILED": "Mayiwix jan phuqhasiwa.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Chiqpach pachan arux churirimp chikt'añax janiw atiskänti.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Aka browserax janiw chiqpach pachan arux yanapkiti.",
+    "HANDOFF_NOT_CLAIMED": "Katuqañax janiw atiskänti.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Mayampi apayat yatiyäw jan uñtatawa."
+  }
+}

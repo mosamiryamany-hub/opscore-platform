@@ -1,0 +1,180 @@
+{
+  "schemaVersion": "opscore.pre-infrastructure-gate.v1",
+  "release": "0.11.62",
+  "mobileVersion": "0.1.16",
+  "generatedAt": "2026-11-02T10:43:07.177Z",
+  "status": "PASS_WITH_REMAINING",
+  "sourceFileCount": 773,
+  "evidenceBoundary": "SOURCE_STATIC_DETERMINISTIC",
+  "summary": "Pre-database and pre-infrastructure readiness assessment for generic OpsCore; not a production certification.",
+  "checks": [
+    {
+      "id": "http-runtime-bounds",
+      "status": "VERIFIED",
+      "evidence": null,
+      "next": null
+    },
+    {
+      "id": "request-body-uri-bounds",
+      "status": "VERIFIED",
+      "evidence": "explicit URI/body/header bounds in request inspection",
+      "next": null
+    },
+    {
+      "id": "security-response-headers",
+      "status": "VERIFIED",
+      "evidence": null,
+      "next": null
+    },
+    {
+      "id": "session-cookie-hardening",
+      "status": "VERIFIED",
+      "evidence": "production Secure + HttpOnly + SameSite=Strict cookie policy",
+      "next": null
+    },
+    {
+      "id": "rate-limit-boundary",
+      "status": "VERIFIED",
+      "evidence": "route-specific authentication throttling plus global firewall throttling",
+      "next": null
+    },
+    {
+      "id": "rate-limit-distributed-state",
+      "status": "REMAINING",
+      "evidence": "multi-instance rate limiting requires shared state and deployment confirmation; the code already fails closed when expected instances > 1 without it",
+      "next": "configure shared rate state in the real deployment topology"
+    },
+    {
+      "id": "ssrf-destination-control",
+      "status": "VERIFIED",
+      "evidence": "destination validation + DNS resolution guard + private-range rejection",
+      "next": null
+    },
+    {
+      "id": "external-integrations-fail-closed",
+      "status": "VERIFIED",
+      "evidence": "external provider gates remain environment-bound",
+      "next": null
+    },
+    {
+      "id": "idempotency-contract",
+      "status": "VERIFIED",
+      "evidence": "idempotency key path and regression coverage exist",
+      "next": null
+    },
+    {
+      "id": "tenant-isolation-preflight",
+      "status": "VERIFIED",
+      "evidence": "cross-tenant tests + PostgreSQL RLS contract exist; live DB proof remains later",
+      "next": null
+    },
+    {
+      "id": "backup-recovery-harness",
+      "status": "VERIFIED",
+      "evidence": "backup verification and recovery drill harnesses present",
+      "next": null
+    },
+    {
+      "id": "release-provenance",
+      "status": "VERIFIED",
+      "evidence": "release digests/manifests present",
+      "next": null
+    },
+    {
+      "id": "lockfile-backend",
+      "status": "VERIFIED",
+      "evidence": "backend npm lockfile v3 present",
+      "next": null
+    },
+    {
+      "id": "lockfile-mobile",
+      "status": "VERIFIED",
+      "evidence": "mobile npm lockfile v3 present",
+      "next": null
+    },
+    {
+      "id": "docker-install-determinism",
+      "status": "VERIFIED",
+      "evidence": "container uses npm ci and non-root runtime",
+      "next": null
+    },
+    {
+      "id": "production-hold",
+      "status": "VERIFIED",
+      "evidence": "production hold remains explicit until live verification",
+      "next": null
+    },
+    {
+      "id": "domain-neutrality-gate",
+      "status": "VERIFIED",
+      "evidence": "generic operational domain gate exists",
+      "next": null
+    },
+    {
+      "id": "secret-hygiene",
+      "status": "VERIFIED",
+      "evidence": "secret/environment patterns ignored",
+      "next": null
+    },
+    {
+      "id": "request-correlation",
+      "status": "VERIFIED",
+      "evidence": "request correlation identifier emitted",
+      "next": null
+    },
+    {
+      "id": "mobile-live-signing",
+      "status": "UNVERIFIED",
+      "evidence": "device signing, physical-device validation, and store build remain outside source-only evidence",
+      "next": "real buyer build environment"
+    },
+    {
+      "id": "postgres-live",
+      "status": "UNVERIFIED",
+      "evidence": "DATABASE_URL and live tenant/RLS transaction tests are environment-bound",
+      "next": "real PostgreSQL runtime"
+    },
+    {
+      "id": "oidc-live",
+      "status": "UNVERIFIED",
+      "evidence": "OIDC discovery/JWKS/token validation is environment-bound",
+      "next": "real identity provider"
+    },
+    {
+      "id": "network-edge",
+      "status": "UNVERIFIED",
+      "evidence": "TLS termination, reverse proxy/WAF, segmentation, DNS/CAA and network policy require deployment infrastructure",
+      "next": "buyer infrastructure"
+    },
+    {
+      "id": "external-observability",
+      "status": "UNVERIFIED",
+      "evidence": "central metrics/logs/traces and alerting require deployment infrastructure",
+      "next": "buyer observability stack"
+    },
+    {
+      "id": "sbom-inventory",
+      "status": "VERIFIED",
+      "evidence": "deterministic CycloneDX SBOM generated from both committed npm lockfiles; validation script present",
+      "next": null
+    },
+    {
+      "id": "sbom-online-resolution",
+      "status": "REMAINING",
+      "evidence": "source-only environment cannot truthfully prove fresh registry resolution or vulnerability state; lockfile-derived inventory is present",
+      "next": "run npm ci and npm audit in connected CI/release environment"
+    },
+    {
+      "id": "signed-build-provenance",
+      "status": "REMAINING",
+      "evidence": "GitHub Actions workflow prepared to generate artifact/SBOM attestation; hosted cryptographic attestation is not present in this ZIP-only execution",
+      "next": "run the secure release workflow in the real repository and verify the published attestation"
+    },
+    {
+      "id": "security-disclosure-policy",
+      "status": "VERIFIED",
+      "evidence": "security reporting and production-evidence disclosure boundary documented",
+      "next": null
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <title data-i18n="nav.title">OpsCore AI Contact Center</title>
+  <link rel="stylesheet" href="/contact-center.css">
+  <script defer src="/i18n/i18n-loader.js"></script>
+  <script defer src="/contact-center.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div><p class="eyebrow">OPSCORE FIELD</p><h1 data-i18n="nav.title">AI Contact Center</h1><p class="subhead" data-i18n="nav.subtitle">Multilingual self-service with governed human handoff.</p></div>
+    <div class="top-actions">
+      <label class="sr-only" for="interfaceLanguageSelect" data-i18n="nav.interfaceLanguage">Preferred language</label>
+      <select id="interfaceLanguageSelect" class="locale-switch" data-i18n-aria-label="nav.interfaceLanguage" aria-label="Interface language"></select>
+      <a href="/" class="secondary" data-i18n="nav.operationsConsole">Operations console</a>
+      <span id="statusBadge" class="badge" data-i18n="status.setupIncomplete">Setup incomplete</span>
+    </div>
+  </header>
+  <main>
+    <p class="machine-notice" data-i18n-machine-notice role="note"></p>
+    <section class="status-grid" aria-label="AI Contact Center" data-i18n-aria-label="nav.title">
+      <article class="stat"><span data-i18n="stats.catalogueRows">Catalogue rows</span><strong id="languageRows">—</strong><small data-i18n="stats.catalogueRowsNote">Input list preserved</small></article>
+      <article class="stat"><span data-i18n="stats.uniqueCodes">Unique language codes</span><strong id="uniqueLanguages">—</strong><small data-i18n="stats.uniqueCodesNote">Duplicates are flagged</small></article>
+      <article class="stat"><span data-i18n="stats.providerQualification">Provider qualification</span><strong id="qualifiedLanguages">—</strong><small data-i18n="stats.providerQualificationNote">Only independently tested languages count</small></article>
+      <article class="stat"><span data-i18n="stats.liveQueue">Live human queue</span><strong id="queueCount">—</strong><small data-i18n="stats.liveQueueNote">Tenant-scoped handoffs</small></article>
+    </section>
+
+    <section class="notice" id="languageWarning" role="status" aria-live="polite" data-i18n="messages.qualificationNotice">No language is production-qualified until text, ASR, TTS, accent and escalation tests pass.</section>
+    <section class="workspace">
+      <section class="panel customer-panel">
+        <div class="panel-title"><div><p class="eyebrow" data-i18n="customer.eyebrow">CUSTOMER EXPERIENCE</p><h2 data-i18n="customer.title">Start a conversation</h2></div><span class="pill" data-i18n="customer.consentPill">Consent required</span></div>
+        <label for="languageSelect" data-i18n="customer.preferredLanguage">Preferred language</label>
+        <select id="languageSelect"><option value="en">English (en)</option></select>
+        <label class="consent-row"><input id="consent" type="checkbox"><span><span data-i18n="customer.consentText">I agree this conversation may be processed by the configured AI provider. Transcripts are encrypted before storage.</span> <span data-i18n="customer.voiceStreamNote">Browser voice is streamed to the configured provider; OpsCore does not claim to store raw audio.</span></span></label>
+        <div class="toolbar">
+          <button id="startChat" class="primary" data-i18n="customer.startChat">Start secure text chat</button>
+          <button id="startVoice" class="primary alt" data-i18n="customer.startVoice">Start browser voice</button>
+        </div>
+        <p class="muted" id="setupHint" data-i18n="customer.setupHint">Unavailable until an administrator configures the encryption key and AI provider.</p>
+        <div class="conversation-head"><div><strong id="conversationTitle" data-i18n="customer.noConversation">No active conversation</strong><small id="conversationMeta" data-i18n="customer.startHint">Create a consented session to begin.</small></div><button id="requestHuman" class="danger" disabled data-i18n="customer.requestHuman">Request human</button></div>
+        <div id="chatLog" class="chat-log" aria-live="polite"><div class="empty" data-i18n="customer.chatEmpty">Messages appear here. AI actions are suggestions only; no payments, account changes, refunds, or dispatches are executed.</div></div>
+        <form id="chatForm" class="chat-form">
+          <label class="sr-only" for="chatInput" data-i18n="customer.messagePlaceholder">Write a message…</label><textarea id="chatInput" rows="2" maxlength="4000" data-i18n-placeholder="customer.messagePlaceholder" placeholder="Write a message…" disabled></textarea>
+          <button id="sendMessage" type="submit" class="primary" disabled data-i18n="customer.send">Send</button>
+        </form>
+        <div class="voice-controls"><audio id="remoteAudio" autoplay></audio><button id="stopVoice" class="secondary" disabled data-i18n="customer.stopVoice">Stop voice session</button><span id="voiceState" aria-live="polite" data-i18n="customer.voiceOff">Voice is off.</span></div>
+        <p class="muted small" data-i18n="customer.voiceRequirement">Browser voice requires HTTPS (or localhost), a microphone, consent, a configured Realtime model and provider key. It is not a PSTN/SIP phone bridge.</p>
+      </section>
+
+      <section class="panel queue-panel">
+        <div class="panel-title"><div><p class="eyebrow" data-i18n="queue.eyebrow">HUMAN INTERVENTION</p><h2 data-i18n="queue.title">Escalation queue</h2></div><button id="refreshQueue" class="secondary" data-i18n="queue.refresh">Refresh</button></div>
+        <p class="muted" data-i18n="queue.description">High-risk, unresolved, or human-requested conversations appear here. A queue item means requested, not connected.</p>
+        <div id="handoffQueue" class="queue-list"><div class="empty" data-i18n="queue.loading">Loading queue…</div></div>
+        <section id="agentWork" class="agent-work" hidden>
+          <div class="conversation-head"><div><strong id="agentConversationTitle" data-i18n="queue.agentAssignedTitle">Assigned conversation</strong><small id="agentConversationMeta"></small></div><button id="resolveHandoff" class="primary" data-i18n="queue.resolve">Resolve</button></div>
+          <div id="agentTranscript" class="agent-transcript"></div>
+          <form id="agentReplyForm" class="chat-form"><label class="sr-only" for="agentReply" data-i18n="queue.reply">Reply</label><textarea id="agentReply" rows="2" maxlength="4000" data-i18n-placeholder="queue.reply" placeholder="Reply"></textarea><button class="primary" type="submit" data-i18n="queue.reply">Reply</button></form>
+          <p class="muted small" data-i18n="queue.replyStorageNote">Human replies are encrypted at rest and are visible in the conversation transcript.</p>
+        </section>
+      </section>
+    </section>
+
+    <section class="panel boundary-panel">
+      <h2 data-i18n="boundaries.title">Operational boundaries</h2>
+      <div class="boundary-grid">
+        <div><strong data-i18n="boundaries.automateTitle">Designed to automate</strong><p data-i18n="boundaries.automateBody">Multilingual first response, clarification, intent/risk triage, secure transcript storage, queue creation and human-agent assignment.</p></div>
+        <div><strong data-i18n="boundaries.humanTitle">Human takeover required</strong><p data-i18n="boundaries.humanBody">Explicit human request, low confidence, high or critical risk, missing policy, unresolved case, privacy/security complaint or uncertain action.</p></div>
+        <div><strong data-i18n="boundaries.notEnabledTitle">Not enabled by this package alone</strong><p data-i18n="boundaries.notEnabledBody">PSTN/SIP/WhatsApp/email routing, live telephony bridge, CRM identity verification and production language-quality claims need a real provider adapter, credentials and acceptance tests.</p></div>
+      </div>
+    </section>
+  </main>
+  <footer>OpsCore FIELD · <span data-i18n="nav.title">AI Contact Center</span></footer>
+</body>
+</html>

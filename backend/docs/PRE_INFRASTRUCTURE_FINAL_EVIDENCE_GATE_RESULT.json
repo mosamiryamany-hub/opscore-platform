@@ -1,0 +1,98 @@
+{
+  "schemaVersion": "opscore.pre-infrastructure-final-evidence-gate.v1",
+  "release": "0.11.62",
+  "generatedAt": "2026-10-21T00:56:00.116Z",
+  "decision": "PASS",
+  "evidenceBoundary": "SOURCE_STATIC_DETERMINISTIC_PLUS_RECORDED_LOCAL_TEST_EXECUTION",
+  "checks": [
+    {
+      "id": "backend-test-execution",
+      "status": "PASS",
+      "evidence": {
+        "schemaVersion": "opscore.pre-infra-test-execution.v1",
+        "release": "0.11.62",
+        "generatedAt": "2026-10-21T00:56:00.116Z",
+        "nodeVersion": "22.16.0",
+        "declaredNodeEngine": ">=22.16.0 <23",
+        "tests": 361,
+        "passed": 361,
+        "failed": 0,
+        "skipped": 0,
+        "status": "PASS",
+        "runtimeMinimumSatisfied": true,
+        "evidenceSource": "Completed isolated parallel release-test-runner execution with per-file runtime isolation.",
+        "productionCertification": false
+      }
+    },
+    {
+      "id": "red-team-transaction-audit",
+      "status": "PASS",
+      "evidence": "decision=PASS; unwrapped=0; staleReview=0; findings=0"
+    },
+    {
+      "id": "mutation-route-policy",
+      "status": "PASS",
+      "evidence": "decision=PASS; routes=35; contracts=35; mutating=30; async=2"
+    },
+    {
+      "id": "mutation-boundary-gate",
+      "status": "PASS",
+      "evidence": "status=PASS; idempotent=28; async=2; uncovered=0"
+    },
+    {
+      "id": "internal-mutation-boundary",
+      "status": "PASS",
+      "evidence": "decision=PASS; covered=7/7; unresolved=0"
+    },
+    {
+      "id": "outbox-domain-event-inventory",
+      "status": "PASS",
+      "evidence": "decision=PASS; writers=3; allClassified=true"
+    },
+    {
+      "id": "domain-event-contract-gate",
+      "status": "PASS",
+      "evidence": "decision=PASS; checks=8; failed=0"
+    },
+    {
+      "id": "api-security-contract-gate",
+      "status": "PASS",
+      "evidence": "status=PASS; failed=0"
+    },
+    {
+      "id": "deterministic-sbom",
+      "status": "PASS",
+      "evidence": {
+        "schemaVersion": "opscore.sbom.gate.v1",
+        "status": "PASS",
+        "format": "CycloneDX 1.6",
+        "components": 476,
+        "dependenciesWithEdges": 246,
+        "sourceLockfiles": [
+          "backend/package-lock.json",
+          "mobile/package-lock.json"
+        ],
+        "output": "docs/sbom/opscore-v0.11.62.cyclonedx.json",
+        "note": "Generated from committed npm package-lock.json files. This is an inventory/provenance input, not a vulnerability verdict."
+      }
+    },
+    {
+      "id": "provenance-manifest-present",
+      "status": "PASS",
+      "evidence": "backend provenance manifest and checksum files are present; final staged package verification remains a separate release gate"
+    },
+    {
+      "id": "execution-runtime-minimum",
+      "status": "PASS",
+      "evidence": "current executor Node 22.16.0; declared backend engine >=22.16.0 <23"
+    }
+  ],
+  "limitations": [
+    "Live PostgreSQL/RLS tenant isolation and transaction-concurrency proof are UNVERIFIED until real infrastructure is connected.",
+    "Live OIDC/JWKS identity-provider verification is UNVERIFIED until a real identity provider is configured.",
+    "TLS/reverse-proxy/WAF/network-segmentation and distributed shared rate-limit behavior are deployment-bound and UNVERIFIED.",
+    "External provider live behavior, hosted CI cryptographic attestation, and physical mobile signing/device validation remain UNVERIFIED."
+  ],
+  "freezeRule": "No feature expansion before real database/infrastructure verification unless a concrete defect, security finding, integration requirement, or buyer acceptance requirement is identified.",
+  "productionCertification": false
+}

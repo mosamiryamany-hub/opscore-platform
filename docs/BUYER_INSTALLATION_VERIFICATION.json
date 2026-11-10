@@ -1,0 +1,43 @@
+{
+  "release": "0.11.62",
+  "currentRelease": "0.11.62",
+  "generatedAt": "2026-11-02T10:44:35.833Z",
+  "node": "v22.23.4",
+  "npm": "10.9.9",
+  "checks": [
+    {
+      "name": "Node.js version satisfies the exact release engine range",
+      "status": "PASS"
+    },
+    {
+      "name": "Backend package declares the exact supported Node range",
+      "status": "PASS"
+    },
+    {
+      "name": "PostgreSQL driver is a pinned direct dependency and matches the lockfile",
+      "status": "PASS"
+    },
+    {
+      "name": "Backend package.json",
+      "status": "PASS"
+    },
+    {
+      "name": "Backend lockfile",
+      "status": "PASS"
+    },
+    {
+      "name": "Mobile package.json",
+      "status": "PASS"
+    },
+    {
+      "name": "Mobile lockfile",
+      "status": "PASS"
+    },
+    {
+      "name": "No runtime attachment store in release",
+      "status": "PASS"
+    }
+  ],
+  "status": "PASS",
+  "scope": "Local source/package preflight only; does not certify production infrastructure, PostgreSQL, OIDC/JWKS, TLS, external providers, or mobile store signing."
+}

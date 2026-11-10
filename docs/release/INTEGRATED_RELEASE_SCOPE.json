@@ -1,0 +1,31 @@
+{
+  "version": "0.11.62",
+  "mobileVersion": "0.1.16",
+  "product": "OpsCore FIELD \u2014 multi-sector operational platform with guarded AI contact center candidate",
+  "backendTests": "PASS_361_TESTS_92_FILES; zero failures, cancellations, or open-handle timeout files; Node 22.16.0",
+  "targetedContactCenterTests": "PASS_10_OF_10; included in full release runner",
+  "targetedRuntimeContractTests": "PASS_6_OF_6; separate targeted run",
+  "mobileContract": "PASS_STATIC_SOURCE_CONTRACTS_ONLY; Expo install/build blocked by EAI_AGAIN registry.npmjs.org",
+  "postgres": "STATIC_SCHEMA_PARITY_126_TABLES_PASS; live PostgreSQL/RLS/runtime concurrency NOT RUN",
+  "sbom": "PASS \u2014 CycloneDX 1.6 regenerated from lockfiles and verifier passed; not a vulnerability verdict",
+  "dependencyAudit": {
+    "backendAudit": "Base backend has no required npm runtime dependencies; optional peer pg is external and must be installed/audited in a deployment lockfile when PostgreSQL is selected.",
+    "mobileAudit": "BLOCKED_DNS_EAI_AGAIN_REGISTRY_NPMJS_ORG; no current vulnerability verdict."
+  },
+  "aiContactCenter": {
+    "sourceLanguageRows": 114,
+    "uniqueCodes": 114,
+    "productionQualifiedLanguages": 0,
+    "browserRealtimeVoice": "provider key/model required; integration not live-tested",
+    "pstnSipWhatsAppEmail": "provider adapters/credentials not connected",
+    "humanHandoff": "implemented in-app queue; does not itself transfer PSTN/SIP calls",
+    "encryption": "AES-256-GCM content-at-rest; key ID and JSON keyring rotation supported; environment-managed server keys required"
+  },
+  "physicalDevices": "UNVERIFIED",
+  "expoBuild": "BLOCKED_NPM_REGISTRY_DNS_EAI_AGAIN_NOT_BUILT",
+  "signedAndroid": "UNVERIFIED",
+  "signedIOS": "UNVERIFIED",
+  "multiInstance": "FAIL_CLOSED_UNLESS_SHARED_POSTGRES_RUNTIME_IS_CONFIGURED_AND_VERIFIED",
+  "productionCertification": "NOT_ESTABLISHED",
+  "generatedAt": "2026-10-21T00:45:38+00:00"
+}

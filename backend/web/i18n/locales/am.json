@@ -1,0 +1,111 @@
+{
+  "nativeName": "አማርኛ",
+  "nav": {
+    "title": "የአርቴፊሻል ኢንተለጀንስ ተገናኝ ማዕከል",
+    "subtitle": "ከተቆጣጠረ የሰው ማስረከብ ጋር ብዙ ቋንቋ ራስ-አገልግሎት።",
+    "operationsConsole": "የሥራ ኮንሶል",
+    "interfaceLanguage": "የበይነገጽ ቋንቋ"
+  },
+  "status": {
+    "configured": "የተጠበቀ ሁኔታ ተዋቅሯል",
+    "setupIncomplete": "ማዋቀር አልተጠናቀቀም",
+    "apiUnavailable": "መግቢያ / API አይገኝም"
+  },
+  "stats": {
+    "catalogueRows": "የመዝገብ ረድፎች",
+    "catalogueRowsNote": "የግቤት ዝርዝር ተጠብቋል",
+    "uniqueCodes": "ልዩ የቋንቋ ኮዶች",
+    "uniqueCodesNote": "ተደጋጋሚዎች ይሰየማሉ",
+    "providerQualification": "የአቅራቢ ብቁነት",
+    "providerQualificationNote": "ብቻ በነጻነት የተሞከሩ ቋንቋዎች ይቆጠራሉ",
+    "liveQueue": "የቀጥታ የሰው ወረፋ",
+    "liveQueueNote": "በእያንዳንዱ ተከራይ የሚደረግ ማስረከብ"
+  },
+  "customer": {
+    "eyebrow": "የደንበኛ ልምድ",
+    "title": "ውይይት ጀምር",
+    "consentPill": "ፈቃድ ያስፈልጋል",
+    "preferredLanguage": "የመረጡት ቋንቋ",
+    "consentText": "ይህ ውይይት በተዋቀረው የኤአይ አቅራቢ እንዲከናወን እንደሚስማማለሁ። ጽሁፎች ከመቀመጡ በፊት ይመስጠራሉ።",
+    "startChat": "የተጠበቀ የጽሑፍ ውይይት ጀምር",
+    "startVoice": "የአሳሽ ድምጽ ጀምር",
+    "setupHint": "አስተዳዳሪ የመመስጠሪያ ቁልፍንና የኤአይ አቅራቢን ሳያዋቅር ይህ አይሰራም።",
+    "noConversation": "ንቁ ውይይት የለም",
+    "startHint": "ለመጀመር ፈቃድ ያለው ክፍለ-ጊዜ ይፍጠሩ።",
+    "requestHuman": "የሰው ወኪል ጠይቅ",
+    "chatEmpty": "መልእክቶችዎ እዚህ ይታያሉ። የኤአይ ተግባራት አስተያየት ብቻ ናቸው፤ ክፍያ፣ የሂሳብ ለውጥ፣ መመለስ ወይም መላክ አይከናወንም።",
+    "messagePlaceholder": "መልእክት ይጻፉ…",
+    "send": "ላክ",
+    "stopVoice": "የድምጽ ክፍለ-ጊዜ አቁም",
+    "voiceOff": "ድምጽ ጠፍቷል።",
+    "voiceStreamNote": "የአሳሽ ድምፅ ወደ ተዋቀረው አቅራቢ በዥረት ይላካል፤ OpsCore ጥሬ ኦዲዮ እንደሚያከማች አይገልጽም።",
+    "voiceRequirement": "የአሳሽ ድምፅ HTTPS (ወይም localhost)፣ ማይክሮፎን፣ ፈቃድ፣ የተዋቀረ Realtime ሞዴል እና የአቅራቢ ቁልፍ ይፈልጋል። ይህ የPSTN/SIP የስልክ ድልድይ አይደለም።"
+  },
+  "queue": {
+    "eyebrow": "የሰው ጣልቃ ገብነት",
+    "title": "የማሳደግ ወረፋ",
+    "refresh": "አድስ",
+    "description": "ከፍተኛ አደጋ ያላቸው፣ ያልተፈቱ ወይም የሰው የጠየቁ ውይይቶች እዚህ ይታያሉ። ወረፋ ማለት የተጠየቀ ማለት ነው፤ የተገናኘ አይደለም።",
+    "loading": "ወረፋ በመጫን ላይ…",
+    "empty": "ለዚህ ድርጅት ንቁ የሰው ማስረከብ የለም።",
+    "openAssignment": "ተመደበ ክፈት",
+    "claimAndReview": "ውሰድ እና ገምግም",
+    "resolve": "አስፈታ",
+    "reply": "መልስ",
+    "agentAssignedTitle": "የተመደበ ውይይት",
+    "replyStorageNote": "የሰው ምላሾች ሲከማቹ ይመሰጠራሉ፤ በውይይቱ ቅጂ ውስጥ ይታያሉ።",
+    "resolveNote": "በተመደበው የሰው ኦፕሬተር ተፈትቷል።"
+  },
+  "boundaries": {
+    "title": "የሥራ ድንበሮች",
+    "automateTitle": "ለራስ-አሰራር የተነደፈ",
+    "automateBody": "ብዙ ቋንቋ የመጀመሪያ ምላሽ፣ ማብራሪያ፣ የዓላማና አደጋ ምደባ፣ የተጠበቀ የጽሑፍ ማከማቻ፣ የወረፋ ማዘጋጀት እና የወኪል ምደባ።",
+    "humanTitle": "የሰው ወሰድ ያስፈልጋል",
+    "humanBody": "ግልጽ የሰው ጥያቄ፣ ዝቅተኛ እምነት፣ ከፍተኛ ወይም ወሳኝ አደጋ፣ የጎደለ ደንብ፣ ያልተፈታ ጉዳይ፣ የግላዊነት/ደህንነት ቅሬታ ወይም ግልጽ ያልሆነ ተግባር።",
+    "notEnabledTitle": "በዚህ ጥቅሉ ብቻ አይነቃም",
+    "notEnabledBody": "PSTN/SIP/ዋትስአፕ/ኢሜይል አቅጣጫ፣ ቀጥታ ስልክ ድልድይ፣ የCRM ማንነት ማረጋገጫ እና የቋንቋ ጥራት ቃል ኪዳኖች እውነተኛ የአቅራቢ መለወጫ፣ ማእረግ እና ተቀባይነት ሙከራዎችን ይጠይቃሉ።"
+  },
+  "roles": {
+    "customer": "ደንበኛ",
+    "human": "የሰው ወኪል",
+    "ai": "የኤአይ ረዳት"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "ደንበኛው ሰው ጠየቀ",
+    "low_confidence": "ዝቅተኛ እምነት",
+    "high_risk": "ከፍተኛ አደጋ",
+    "policy_refusal": "የደንብ ማስታወቂያ ማስወገድ / ገደብ",
+    "unresolved": "ያልተፈታ ችግር",
+    "repeated_failure": "ተደጋጋሚ ከሽፍታ",
+    "model_requested": "ኤአይ ግምገማ ጠየቀ",
+    "voice_review_required": "የድምጽ ግምገማ ያስፈልጋል",
+    "other": "ሌላ"
+  },
+  "messages": {
+    "qualificationNotice": "የጽሑፍ፣ የንግግር ማዳመጥ፣ የንግግር ማመንጨት፣ የአነጣጠርና የማሳደግ ሙከራዎች ሳይሳካ ምንም ቋንቋ ለምርት አይብቃም።",
+    "configNeeded": "አሁንም ማዋቀር ያስፈልጋል፦ {missing}።",
+    "configOk": "ማዋቀር አለ። የአቅራቢ ግንኙነትና የቋንቋ ጥራት አሁንም እውነተኛ የተቀባይነት ሙከራዎችን ይጠይቃሉ።",
+    "conversationCreated": "የተጠበቀ ውይይት ተፈጠረ። የቋንቋ ጥራት እስካሁን ለምርት አይብቃም።",
+    "handoffQueued": "የሰው ማስረከብ ወረፋ ገባ ({reason})። ይህ የወረፋ ጥያቄ ነው፤ ቀጥታ ግንኙነት አይደለም።",
+    "aiResponseFailed": "የኤአይ መልስ አልተጠናቀቀም። ምንም ተግባር አልተከናወነም። የሰው ወኪል መጠየቅ ይችላሉ።",
+    "actionNotCompleted": "ተግባሩ አልተጠናቀቀም፦ {reason}።",
+    "apiUnavailable": "የግንኙነት ማዕከል API መጫን አልተቻለም። ወደ OpsCore ኮንሶል ይግቡ፣ ከዚያ ይህን ገጽ እንደገና ይጫኑ።",
+    "suggestedNextStep": "የተጠቆመ ቀጣይ ደረጃ ብቻ (አልተከናወነም)፦ {step}።",
+    "handoffQueuedQueueOnly": "ወደ ሰው የሚደረገው ርክክብ ወረፋ ውስጥ ገብቷል ({reason})። ወረፋው ወኪል መገናኘቱን አያረጋግጥም።",
+    "voiceHandoffStopped": "ወደ ሰው የሚደረገው ርክክብ ወረፋ ውስጥ ገብቷል። የአሳሹ AI ክፍለ ጊዜ እየቆመ ነው፤ ቀጥታ የስልክ ዝውውር አልተዋቀረም።",
+    "voiceCredentialRequest": "አጭር ጊዜ የሚቆይ የድምፅ ምስክር በመጠየቅ ላይ…",
+    "voiceRealtimeError": "የቅጽበታዊ አቅራቢው ስህተት ዘግቧል። የድምፅ ክፍለ ጊዜውን አቁመው የአቅራቢውን ውቅር ከፈተሹ በኋላ እንደገና ይሞክሩ።",
+    "voiceActive": "የድምፅ ክፍለ ጊዜ ንቁ ነው። በማንኛውም ጊዜ “የሰው ወኪል ጠይቅ” ይጫኑ፤ ይህ በወረፋ ውስጥ አንድ ንጥል ይፈጥራል እንጂ የPSTN ዝውውር አይደለም።",
+    "voiceCredentialActive": "{languageCode} · የአቅራቢ ጊዜያዊ ምስክር",
+    "queueUnavailable": "ወረፋ አይገኝም፦ {reason}።"
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "ውይይት ከመጀመሩ በፊት ፈቃድ ያስፈልጋል።",
+    "SERVER_RESPONSE_INVALID": "የአገልጋዩን ምላሽ ማንበብ አልተቻለም።",
+    "REQUEST_FAILED": "ጥያቄው አልተሳካም።",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "የቅጽበታዊ ድምፅ አቅራቢውን ማግኘት አልተቻለም።",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "ይህ አሳሽ የቅጽበታዊ ድምፅን አይደግፍም።",
+    "HANDOFF_NOT_CLAIMED": "ርክክቡን መቀበል አልተቻለም።",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "የተደገመ መልዕክት ችላ ተብሏል።"
+  }
+}

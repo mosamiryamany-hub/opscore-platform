@@ -1,0 +1,111 @@
+{
+  "nativeName": "Lietuvių",
+  "nav": {
+    "title": "AI kontaktų centras",
+    "subtitle": "Daugiakalbė saviaptarnautė su prižiūrimu perdavimu žmogui.",
+    "operationsConsole": "Operacijų pultas",
+    "interfaceLanguage": "Sąsajos kalba"
+  },
+  "status": {
+    "configured": "Apsaugotas režimas sukonfigūruotas",
+    "setupIncomplete": "Sąranka nepilna",
+    "apiUnavailable": "Prisijungimas / API neprieinami"
+  },
+  "stats": {
+    "catalogueRows": "Katalogo eilutės",
+    "catalogueRowsNote": "Įvesties sąrašas išsaugotas",
+    "uniqueCodes": "Unikalios kalbų kodai",
+    "uniqueCodesNote": "Dubliai pažymimi",
+    "providerQualification": "Tiekėjo kvalifikacija",
+    "providerQualificationNote": "Skaičiuojamos tik nepriklausomai išbandytos kalbos",
+    "liveQueue": "Tiesioginė žmonių eilė",
+    "liveQueueNote": "Perdavimai nuomotojo apimtyje"
+  },
+  "customer": {
+    "eyebrow": "KLIENTO PATIRTIS",
+    "title": "Pradėti pokalbį",
+    "consentPill": "Reikalingas sutikimas",
+    "preferredLanguage": "Pageidaujama kalba",
+    "consentText": "Sutinku, kad šis pokalbis būtų apdorojamas sukonfigūruoto AI teikėjo. Įrašai šifruojami prieš saugojimą.",
+    "startChat": "Pradėti saugų teksto pokalbį",
+    "startVoice": "Pradėti naršyklės balsą",
+    "setupHint": "Neprieinama, kol administratorius nesukonfigūruoja šifravimo rakto ir AI teikėjo.",
+    "noConversation": "Nėra aktyvaus pokalbio",
+    "startHint": "Norėdami pradėti, sukurkite sesiją su sutikimu.",
+    "requestHuman": "Paprašyti žmogaus agento",
+    "chatEmpty": "Jūsų žinutės čia pasirodys. AI veiksmai yra tik pasiūlymai; mokėjimai, sąskaitų pakeitimai, grąžinimai ar išsiuntimai neatliekami.",
+    "messagePlaceholder": "Rašykite žinutę…",
+    "send": "Siųsti",
+    "stopVoice": "Sustabdyti balso seansą",
+    "voiceOff": "Balsas išjungtas.",
+    "voiceStreamNote": "Naršyklės balsas siunčiamas srautu sukonfigūruotam teikėjui; OpsCore nedeklaruoja, kad saugo neapdorotą garsą.",
+    "voiceRequirement": "Naršyklės balsui reikia HTTPS (arba localhost), mikrofono, sutikimo, sukonfigūruoto Realtime modelio ir teikėjo rakto. Tai nėra PSTN/SIP telefono tiltas."
+  },
+  "queue": {
+    "eyebrow": "ŽMOGAUS INTERVENCIA",
+    "title": "Eskalacijos eilė",
+    "refresh": "Atnaujinti",
+    "description": "Čia rodomi didelės rizikos, neišspręsti pokalbiai arba su prašymu dėl žmogaus. Eilės elementas reiškia „prašyta“, o ne „prieta.“",
+    "loading": "Įkeliana eilė…",
+    "empty": "Nėra aktyvių žmonių perdavimų šiai organizacijai.",
+    "openAssignment": "Atidaryti paskyrimą",
+    "claimAndReview": "Pasirinkti ir peržiūrėti",
+    "resolve": "Išspręsti",
+    "reply": "Atsakyti",
+    "agentAssignedTitle": "Priskirtas pokalbis",
+    "replyStorageNote": "Žmonių atsakymai saugojimo metu šifruojami ir matomi pokalbio nuoraše.",
+    "resolveNote": "Išsprendė priskirtas žmogus operatorius."
+  },
+  "boundaries": {
+    "title": "Operacinės ribos",
+    "automateTitle": "Sukurta automatizavimui",
+    "automateBody": "Dugiakalbis pirmas atsakymas, paaiškinimas, ketinimų ir rizikos rikiavimas, saugus transkriptų saugojimas, eilių kūrimas ir agentų paskyrimas.",
+    "humanTitle": "Reikalingas žmogaus perėmimas",
+    "humanBody": "Išreikšta žmogaus prašymas, žemas pasitikėjimas, didelė ar kritinė rizika, trūkstama politika, neišspręstas atvejis, privatumo/saugumo skundas arba neaiškus veiksmas.",
+    "notEnabledTitle": "Neaktyvuota vien šiuo paketu",
+    "notEnabledBody": "PSTN/SIP/WhatsApp/el. pašto maršrutas, tiesioginis telefoninis tiltas, CRM tapatybės patikra ir kalbų kokybės teiginiai reikalauja tikro tiekėjo adapterio, kredencialų ir priėmimo testų."
+  },
+  "roles": {
+    "customer": "Klientas",
+    "human": "Žmogaus agentas",
+    "ai": "AI asistentas"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Klientas paprašė žmogaus",
+    "low_confidence": "Žemas pasitikėjimas",
+    "high_risk": "Didelė rizika",
+    "policy_refusal": "Politikos atmetimas / apribojimas",
+    "unresolved": "Neišspręsta problema",
+    "repeated_failure": "Pasikartojanti nesėkmė",
+    "model_requested": "AI paprašė peržiūros",
+    "voice_review_required": "Reikalinga balso peržiūra",
+    "other": "Kita"
+  },
+  "messages": {
+    "qualificationNotice": "Jokia kalba nėra kvalifikuota gamybai, kol neišlaikomi teksto, ASR, TTS, akcento ir eskalacijos testai.",
+    "configNeeded": "Vis dar reikia konfigūracijos: {missing}.",
+    "configOk": "Konfigūracija yra. Tiekėjo jungiamumas ir kalbų kokybė vis dar reikalauja tikrų priėmimo testų.",
+    "conversationCreated": "Saugus pokalbis sukurtas. Kalbų kokybė dar nėra kvalifikuota gamybai.",
+    "handoffQueued": "Žmogaus perdavimas įtrauktas į eilę ({reason}). Tai eilės prašymas, ne tiesioginis ryšys.",
+    "aiResponseFailed": "AI atsakymas neužbaigtas. Niekas nebuvo atlikta. Galite paprašyti žmogaus agento.",
+    "actionNotCompleted": "Veiksmas neužbaigtas: {reason}.",
+    "apiUnavailable": "Nepavyko įkelti kontaktų centro API. Prisijunkite prie OpsCore konsolės ir iš naujo įkelkite šį puslapį.",
+    "suggestedNextStep": "Tik siūlomas kitas žingsnis (neįvykdytas): {step}.",
+    "handoffQueuedQueueOnly": "Perdavimas žmogui įtrauktas į eilę ({reason}). Eilė neįrodo, kad agentas prisijungęs.",
+    "voiceHandoffStopped": "Perdavimas žmogui įtrauktas į eilę. Naršyklės AI seansas stabdomas; tiesioginis telefono perjungimas nesukonfigūruotas.",
+    "voiceCredentialRequest": "Prašoma trumpalaikių balso kredencialų…",
+    "voiceRealtimeError": "Realaus laiko teikėjas pranešė apie klaidą. Sustabdykite balso seansą ir bandykite dar kartą patikrinę teikėjo konfigūraciją.",
+    "voiceActive": "Balso seansas aktyvus. Bet kada paspauskite „Paprašyti žmogaus agento“; tai sukuria eilės elementą, o ne PSTN perjungimą.",
+    "voiceCredentialActive": "{languageCode} · laikini teikėjo kredencialai",
+    "queueUnavailable": "Eilė nepasiekiama: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Prieš pradedant pokalbį reikalingas sutikimas.",
+    "SERVER_RESPONSE_INVALID": "Nepavyko perskaityti serverio atsakymo.",
+    "REQUEST_FAILED": "Užklausa nepavyko.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Nepavyko pasiekti realaus laiko balso teikėjo.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Ši naršyklė nepalaiko realaus laiko balso.",
+    "HANDOFF_NOT_CLAIMED": "Perdavimo nepavyko perimti.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Pasikartojantis pranešimas ignoruotas."
+  }
+}

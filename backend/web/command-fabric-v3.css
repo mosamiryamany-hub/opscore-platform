@@ -1,0 +1,29 @@
+/* OpsCore Command Fabric v3 — deep-space command theater layer (CSS-only visuals; no external assets) */
+:root{--v3-bg:#04060e;--v3-glass:rgba(10,16,32,.66);--v3-line:rgba(120,190,255,.16);--v3-cyan:#6df3ff;--v3-violet:#a88bff;--v3-lime:#7df5bd;--v3-text:#eef4ff;--v3-muted:#9fb0cf}
+@media (prefers-reduced-motion:no-preference){
+  body{position:relative}
+  body::before{content:"";position:fixed;inset:0;z-index:-2;background:
+    radial-gradient(1100px 640px at 8% -12%,rgba(104,86,255,.26),transparent 60%),
+    radial-gradient(900px 560px at 96% 4%,rgba(0,214,255,.16),transparent 58%),
+    radial-gradient(760px 480px at 50% 112%,rgba(122,245,189,.08),transparent 60%),
+    var(--v3-bg);
+    animation:v3aurora 26s ease-in-out infinite alternate}
+  body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.5;
+    background-image:linear-gradient(rgba(130,180,240,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(130,180,240,.05) 1px,transparent 1px);
+    background-size:46px 46px;
+    mask-image:radial-gradient(ellipse 75% 60% at 50% 32%,#000 20%,transparent 85%)}
+  @keyframes v3aurora{0%{filter:hue-rotate(0deg) saturate(1)}100%{filter:hue-rotate(18deg) saturate(1.12)}}
+}
+.card,.mc-card,.panel,.metric,.room,a.card,.mc-hero-panel,.mc-kpi,.mc-top,.topbar,.nav,.bar{position:relative;border-color:var(--v3-line)!important;border-radius:22px!important;background:linear-gradient(150deg,rgba(16,24,46,.78),rgba(7,11,24,.86))!important;backdrop-filter:blur(22px) saturate(150%);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 24px 70px rgba(2,4,12,.5)!important}
+.card::after,.mc-card::after,.panel::after{content:"";position:absolute;left:8%;right:8%;top:-1px;height:1px;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(109,243,255,.55),rgba(168,139,255,.4),transparent)}
+.card:hover,.room:hover,a.card:hover,.mc-card:hover{border-color:rgba(109,243,255,.4)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 30px 90px rgba(2,4,12,.55),0 0 44px rgba(109,243,255,.09)!important}
+.metric .v,.mc-kpi strong{background:linear-gradient(100deg,#f4f9ff 10%,#9ff2ff 55%,#c6b8ff 95%);-webkit-background-clip:text;background-clip:text;color:transparent;font-variant-numeric:tabular-nums}
+.hero-main h2,.hero h1,.mc-hero-panel h1{background:linear-gradient(102deg,#f8fcff 12%,#a2f3ff 52%,#c9baff 92%);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 6px 26px rgba(109,243,255,.14))}
+.btn,.mc-cta{background:linear-gradient(112deg,#9ff6ff,#7fccff 46%,#bcaaff)!important;color:#06101d!important;border:0!important;box-shadow:0 10px 34px rgba(103,206,255,.16)!important}
+.btn.ghost{background:rgba(255,255,255,.03)!important;color:#dfeaff!important;box-shadow:none!important;border:1px solid var(--v3-line)!important}
+.pill,.mc-tag,.tag{border:1px solid var(--v3-line)!important;background:rgba(109,243,255,.06)!important;color:#a9f4ff!important;letter-spacing:.12em}
+.pill.ok{border-color:rgba(125,245,189,.3)!important;background:rgba(125,245,189,.07)!important;color:#a5f0cf!important}
+.mc-fabric,.mc-map,.radar-wrap{background:radial-gradient(ellipse at 50% 100%,rgba(0,229,255,.08),transparent 66%),rgba(3,6,15,.6)!important;border-color:rgba(109,243,255,.14)!important;box-shadow:inset 0 0 60px rgba(0,229,255,.05)}
+.mc-room.active{background:linear-gradient(110deg,rgba(109,243,255,.12),rgba(168,139,255,.08))!important;box-shadow:inset 3px 0 var(--v3-cyan),0 0 24px rgba(109,243,255,.08)}
+a{outline-offset:3px}a:focus-visible,button:focus-visible{outline:2px solid var(--v3-cyan)!important;border-radius:8px}
+html[dir='rtl'] .card::after,html[dir='rtl'] .mc-card::after,html[dir='rtl'] .panel::after{background:linear-gradient(270deg,transparent,rgba(109,243,255,.55),rgba(168,139,255,.4),transparent)}

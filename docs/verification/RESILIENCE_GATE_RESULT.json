@@ -1,0 +1,110 @@
+{
+  "schemaVersion": "opscore.resilience-gate.v1",
+  "generatedAt": "2026-10-21T02:10:20.632Z",
+  "release": "0.11.62",
+  "status": "PASS",
+  "results": [
+    {
+      "id": "scenario-rollback:outbox-backlog",
+      "status": "PASS",
+      "detail": "Injected fault was detected then fully rolled back.",
+      "metrics": {
+        "detected": true
+      }
+    },
+    {
+      "id": "scenario-rollback:worker-degradation",
+      "status": "PASS",
+      "detail": "Injected fault was detected then fully rolled back.",
+      "metrics": {
+        "detected": true
+      }
+    },
+    {
+      "id": "scenario-rollback:geofence-anomalies",
+      "status": "PASS",
+      "detail": "Injected fault was detected then fully rolled back.",
+      "metrics": {
+        "detected": true
+      }
+    },
+    {
+      "id": "scenario-rollback:runtime-failure",
+      "status": "PASS",
+      "detail": "Injected fault was detected then fully rolled back.",
+      "metrics": {
+        "detected": true
+      }
+    },
+    {
+      "id": "scenario-rollback:capacity-pressure",
+      "status": "PASS",
+      "detail": "Injected fault was detected then fully rolled back.",
+      "metrics": {
+        "detected": true
+      }
+    },
+    {
+      "id": "scenario-rollback:dependency-outage",
+      "status": "PASS",
+      "detail": "Injected fault was detected then fully rolled back.",
+      "metrics": {
+        "detected": true
+      }
+    },
+    {
+      "id": "scenario-rollback:cascading-worker-failure",
+      "status": "PASS",
+      "detail": "Injected fault was detected then fully rolled back.",
+      "metrics": {
+        "detected": true
+      }
+    },
+    {
+      "id": "idempotency-pressure",
+      "status": "PASS",
+      "detail": "40 repeated requests preserved one side effect.",
+      "metrics": {
+        "replays": 40,
+        "commentCount": 1
+      }
+    },
+    {
+      "id": "sqlite-concurrent-writers",
+      "status": "PASS",
+      "detail": "Independent Store processes completed concurrent writes on the same SQLite database.",
+      "metrics": {
+        "workers": 4,
+        "perWorker": 60,
+        "workOrderCount": 241,
+        "expectedMin": 241,
+        "elapsedMs": 3735,
+        "writesPerSecond": 64.26
+      }
+    },
+    {
+      "id": "governed-worker-recovery",
+      "status": "PASS",
+      "detail": "Expired leases were requeued through governed recovery.",
+      "metrics": {
+        "recovered": 6,
+        "remaining": 0
+      }
+    },
+    {
+      "id": "evidence-integrity-after-drill",
+      "status": "PASS",
+      "detail": "Evidence graph and audit chain remain cryptographically verifiable after recovery activity.",
+      "metrics": {
+        "graphSha256": "ee2807dde8a20a030d69914a92edd7b497e8e2137c717c2d1ec983c7b5533933",
+        "auditValid": true
+      }
+    }
+  ],
+  "scope": {
+    "deterministicFailureScenarios": 7,
+    "concurrentWorkers": 4,
+    "writesPerWorker": 60,
+    "note": "Local resilience/load gate. Network-edge chaos, real PostgreSQL failover, external provider outages and physical-device power-loss remain environment-bound."
+  }
+}

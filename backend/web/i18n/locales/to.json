@@ -1,0 +1,111 @@
+{
+  "nativeName": "Lea Faka-Tonga",
+  "nav": {
+    "title": "Sēnita Fetuʻutaki AI",
+    "subtitle": "Tokoni ʻi he ngaahi lea lahi mo e tuku ki he tangata.",
+    "operationsConsole": "Konsolo ʻo e ngaahi ngāue",
+    "interfaceLanguage": "Lea ʻo e ʻatamai"
+  },
+  "status": {
+    "configured": "Ngāue malu kuo fokotuʻu",
+    "setupIncomplete": "Fokotuʻu ʻoku teʻeki ʻosi",
+    "apiUnavailable": "Hū / API ʻoku ʻikai maʻu"
+  },
+  "stats": {
+    "catalogueRows": "Ngaahi laine ʻo e lisi",
+    "catalogueRowsNote": "Lisi kuo tauhi",
+    "uniqueCodes": "Ngaahi kōti lea makehe",
+    "uniqueCodesNote": "ʻOku fakaʻilonga e tuʻo ua",
+    "providerQualification": "Malavaʻi ʻa e tokotaha ʻo e tokoni",
+    "providerQualificationNote": "Ko e ngaahi lea kuo siviʻi pē ʻe kau ʻoku lau",
+    "liveQueue": "Laine ʻo e kakai moʻui",
+    "liveQueueNote": "Tuku ki he kautaha"
+  },
+  "customer": {
+    "eyebrow": "AHO ʻO E KASI",
+    "title": "Kamata ha fetalanoaʻaki",
+    "consentPill": "ʻOku fiemaʻu e fakangofua",
+    "preferredLanguage": "Lea ʻoku saiʻia ai",
+    "consentText": "ʻOku ou loto ki ai ʻe lava ke ngāueʻaki ʻe he tokotaha AI ʻa e fetalanoaʻaki ni. ʻOku fakapulí e ngaahi tohi kimuʻa pea tauhi.",
+    "startChat": "Kamata e fetalanoaʻaki tohi malu",
+    "startVoice": "Kamata e leʻo ʻi he palausa",
+    "setupHint": "ʻOku ʻikai maʻu kae ʻoua kuo fokotuʻu ʻe he pule e kī mo e tokotaha AI.",
+    "noConversation": "ʻOku ʻikai ha fetalanoaʻaki ngāue",
+    "startHint": "Fai ha sēsoni mo e fakangofua ke kamata.",
+    "requestHuman": "Kole ha tangata",
+    "chatEmpty": "ʻOku hā e ngaahi pōpoaki ʻi heni. Ko e ngaahi ngāue AI ko e faleʻi pē; ʻoku ʻikai fai ha totongi pe liliu ʻo e ʻakauni.",
+    "messagePlaceholder": "Tohi ha pōpoaki…",
+    "send": "ʻAve",
+    "stopVoice": "Taʻofi e leʻo",
+    "voiceOff": "Kuo tāmateʻi e leʻo.",
+    "voiceStreamNote": "ʻOku ʻave e leʻo ʻo e palausa ki he tokotaha; ʻoku ʻikai pehē ʻe OpsCore ʻoku tauhi e leʻo moʻoni.",
+    "voiceRequirement": "ʻOku fiemaʻu e leʻo ʻo e palausa ʻa e HTTPS, maikolofoni, fakangofua, faʻunga Realtime mo e kī. ʻOku ʻikai ko ha telefoni PSTN/SIP."
+  },
+  "queue": {
+    "eyebrow": "TOKONI ʻA E KAKAI",
+    "title": "Laine ʻo e tuku",
+    "refresh": "Fakaʻoutoutou",
+    "description": "ʻOku hā ʻi heni e ngaahi fetalanoaʻaki fakatuʻutāmaki, ʻikai keʻosi, pe kole ʻe ha tangata. Ko e laine ko ha kole, ʻoku ʻikai ko ha fehokotaki.",
+    "loading": "ʻOku hiki…",
+    "empty": "ʻOku ʻikai ha tuku ki he kakai ʻi he kautaha ni.",
+    "openAssignment": "Fakaava e ngāue",
+    "claimAndReview": "Tali mo sivi",
+    "resolve": "ʻOsi",
+    "reply": "Tali",
+    "agentAssignedTitle": "Fetalanoaʻaki kuo vahe",
+    "replyStorageNote": "ʻOku fakapulí e ngaahi tali ʻa e kakai pea hā ʻi he tohi ʻo e fetalanoaʻaki.",
+    "resolveNote": "Kuo ʻosi ʻe he tokotaha ngāue kuo vahe."
+  },
+  "boundaries": {
+    "title": "Ngaahi kau ʻo e ngāue",
+    "automateTitle": "Kuo fokotuʻu ke ʻotometiki",
+    "automateBody": "Tali ʻuluaki ʻi he ngaahi lea lahi, fakamatala, sivi ʻo e fakatuʻutāmaki, tauhi ʻo e tohi mo e fokotuʻu ʻo e laine.",
+    "humanTitle": "ʻOku fiemaʻu e tokoni ʻa ha tangata",
+    "humanBody": "Kole ʻa e tangata, tui siʻisiʻi, fakatuʻutāmaki lahi, ʻikai ha lao, meʻa ʻoku teʻeki keʻosi, kōketi fakapulipuli.",
+    "notEnabledTitle": "ʻOku ʻikai lava ʻe he pakití ni pē",
+    "notEnabledBody": "PSTN/SIP, WhatsApp, ʻīmeli, telefoni, CRM mo e fakamoʻoni ʻo e lea ʻoku fiemaʻu ha tokotaha moʻoni mo e ngaahi sivi."
+  },
+  "roles": {
+    "customer": "Kasi",
+    "human": "Tokotaha ngāue",
+    "ai": "Tokoni AI"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Naʻe kole e kasi ha tangata",
+    "low_confidence": "Tui siʻisiʻi",
+    "high_risk": "Fakatuʻutāmaki lahi",
+    "policy_refusal": "Fakaʻikaiʻi ʻo e lao",
+    "unresolved": "Meʻa ʻoku teʻeki keʻosi",
+    "repeated_failure": "Fai tuʻo lahi",
+    "model_requested": "Naʻe kole e AI ha sivi",
+    "voice_review_required": "ʻOku fiemaʻu e sivi ʻo e leʻo",
+    "other": "Kehe"
+  },
+  "messages": {
+    "qualificationNotice": "ʻOku ʻikai ha lea kuo fakamoʻoniʻi kae ʻoua kuo ʻosi e ngaahi sivi ʻo e tohi, ASR, TTS mo e leʻo.",
+    "configNeeded": "ʻOku fiemaʻu e fokotuʻu: {missing}.",
+    "configOk": "ʻOku ʻi ai e fokotuʻu. ʻOku fiemaʻu e sivi moʻoni ki he fehokotaki mo e lelei ʻo e lea.",
+    "conversationCreated": "Kuo fai ha fetalanoaʻaki malu. ʻOku teʻeki fakamoʻoniʻi e lelei ʻo e lea.",
+    "handoffQueued": "Kuo tuku ki he laine ({reason}). Ko ha kole, ʻoku ʻikai ko ha fehokotaki.",
+    "aiResponseFailed": "Naʻe ʻikai keʻosi e tali ʻa e AI. ʻOku ʻikai ha ngāue naʻe fai. ʻE lava ke ke kole ha tangata.",
+    "actionNotCompleted": "Naʻe ʻikai keʻosi e ngāue: {reason}.",
+    "apiUnavailable": "Naʻe ʻikai lava ʻo hiki e API. Hū ki OpsCore, pea fakaʻoutoutou e peesi ni.",
+    "suggestedNextStep": "Faleʻi pē (naʻe ʻikai fai): {step}.",
+    "handoffQueuedQueueOnly": "Kuo tuku ki he laine ({reason}). ʻOku ʻikai fakamoʻoniʻi ʻe he laine ʻoku fehokotaki ha tokotaha ngāue.",
+    "voiceHandoffStopped": "Kuo tuku ki he laine. ʻOku taʻofi e fetalanoaʻaki AI; ʻoku teʻeki fokotuʻu e telefoni moʻui.",
+    "voiceCredentialRequest": "ʻOku kole ha kī leʻo mo taimi nounou…",
+    "voiceRealtimeError": "Naʻe lipooti ʻe he tokotaha Realtime ha hala. Taʻofi e leʻo, sivi e fokotuʻu, pea toe feinga.",
+    "voiceActive": "ʻOku ngāue e leʻo. Lomiʻi e “Request human” ʻi ha taimi; ʻoku fai ha laine, ʻoku ʻikai ko ha telefoni PSTN.",
+    "voiceCredentialActive": "{languageCode} · kī fakataimi",
+    "queueUnavailable": "ʻOku ʻikai maʻu e laine: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "ʻOku fiemaʻu e fakangofua kimuʻa pea kamata ha fetalanoaʻaki.",
+    "SERVER_RESPONSE_INVALID": "Naʻe ʻikai lava ʻo lau e tali ʻa e sēvā.",
+    "REQUEST_FAILED": "Naʻe ʻikai lava e kole.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Naʻe ʻikai maʻu e tokotaha leʻo Realtime.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "ʻOku ʻikai poupouʻi ʻe he palausa ni e leʻo Realtime.",
+    "HANDOFF_NOT_CLAIMED": "Naʻe ʻikai tali e tuku.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Kuo tuku kehe e pōpoaki tuʻo ua."
+  }
+}

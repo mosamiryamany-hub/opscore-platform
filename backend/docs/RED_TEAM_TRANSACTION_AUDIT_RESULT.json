@@ -1,0 +1,284 @@
+{
+  "schemaVersion": "opscore.red-team-transaction-audit.v2",
+  "scope": "pre-infrastructure-static-independent",
+  "generatedAt": "2026-10-21T00:57:21.310Z",
+  "checks": {
+    "sourceFiles": 53,
+    "mutationRoutes": 33,
+    "unwrappedMutationRoutes": 0,
+    "semanticallyReviewedScopeFindings": 29,
+    "staleSemanticReviewEntries": 0
+  },
+  "findings": [],
+  "semanticallyReviewed": [
+    {
+      "code": "UNSCOPED_UPDATE",
+      "file": "backend/src/operational-enhancements.js",
+      "originalLine": 17,
+      "currentLine": 19,
+      "sha256": "ba28d9afa5113eeed943f9cf2b17a2f9532a50a6534e8ba9dd3197a0324cb2ca",
+      "classification": "ACCEPTED_SEMANTIC_SCOPE",
+      "reason": "System worker claim: queue selection is intentionally cross-tenant; the job row is selected atomically inside BEGIN IMMEDIATE before the status update."
+    },
+    {
+      "code": "UNSCOPED_UPDATE",
+      "file": "backend/src/operational-enhancements.js",
+      "originalLine": 18,
+      "currentLine": 20,
+      "sha256": "5416e654e81b6146ea8b19c523b65d23b212501cfb4143dd7ee17f6923c8a75d",
+      "classification": "ACCEPTED_SEMANTIC_SCOPE",
+      "reason": "System worker completion: caller operates on an already claimed operational job; status predicate prevents completing non-processing jobs."
+    },
+    {
+      "code": "UNSCOPED_UPDATE",
+      "file": "backend/src/operational-enhancements.js",
+      "originalLine": 18,
+      "currentLine": 21,
+      "sha256": "723762c7c33207c15afe64c530a2ac89118147731709f5f36c94a7fa2d581bf4",
+      "classification": "ACCEPTED_SEMANTIC_SCOPE",
+      "reason": "System worker failure handling: caller operates on an already claimed operational job; status predicate prevents changing non-processing jobs."
+    },
+    {
+      "code": "UNSCOPED_UPDATE",
+      "file": "backend/src/store.js",
+      "originalLine": 217,
+      "currentLine": 229,
+      "sha256": "13f4f6194ed9c0ebb62340765be8be16583b1c152048fc951abff703e9dc9d93",
+      "classification": "ACCEPTED_SEMANTIC_SCOPE",
+      "reason": "Operation-envelope commit is internal transaction bookkeeping keyed by the unique envelope id created inside the tenant-scoped idempotency transaction."
+    },
+    {
+      "code": "UNSCOPED_UPDATE",
+      "file": "backend/src/store.js",
+      "originalLine": 259,
+      "currentLine": 271,
+      "sha256": "4c26fe54aa983193c011e2ba0a5ed3ef99f5a96236d5f7af2417a599f87785a7",
+      "classification": "ACCEPTED_SEMANTIC_SCOPE",
+      "reason": "Async idempotency reservation is addressed by the reservation id selected under tenant+actor+operation+key; internal reservation state."
+    },
+    {
+      "code": "UNSCOPED_UPDATE",
+      "file": "backend/src/store.js",
+      "originalLine": 260,
+      "currentLine": 272,
+      "sha256": "933b578d47e3626f54584d709becc3205146c79f6e39319242a40e33bb1d26b5",
+      "classification": "ACCEPTED_SEMANTIC_SCOPE",
+      "reason": "Async operation envelope is addressed by the unique envelope id stored on the reservation; internal transaction bookkeeping."
+    },
+    {
+      "code": "UNSCOPED_UPDATE",
+      "file": "backend/src/store.js",
+      "originalLine": 269,
+      "currentLine": 281,
+      "sha256": "9f4bd536b6cdcc2c4cfbdf806ab98cac4625495ea12fda36692dbaae67387bce",
+      "classification": "ACCEPTED_SEMANTIC_SCOPE",
+      "reason": "Async reservation commit is addressed by the reservation id selected under tenant+actor+operation+key and guarded by status=started."
+    },
+    {
+      "code": "UNSCOPED_UPDATE",
+      "file": "backend/src/store.js",
+      "originalLine": 270,
+      "currentLine": 282,
+      "sha256": "18b201f89371b8d120d18b4505dbac238451af9b2fa7b4552f8b3b09c5a3b293",
+      "classification": "ACCEPTED_SEMANTIC_SCOPE",
+      "reason": "Async envelope commit is addressed by the envelope id associated with the reservation and guarded by status=started."
+    },
+    {
+      "code": "UNSCOPED_UPDATE",
+      "file": "backend/src/store.js",
+      "originalLine": 295,
+      "currentLine": 311,
+      "sha256": "bed9b0fe283d742562e72df346028476c59e4708a67560486e790395006a5f8d",
+      "classification": "ACCEPTED_SEMANTIC_SCOPE",
+      "reason": "Async reservation commit is internal bookkeeping keyed by reservation id and status."
+    },
+    {
+      "code": "UNSCOPED_UPDATE",
+      "file": "backend/src/store.js",
+      "originalLine": 296,
+      "currentLine": 312,
+      "sha256": "6a1446d60ec23e6d5f8894a7cad1ad8311f29e1a227385dbf904d8999b880efc",
+      "classification": "ACCEPTED_SEMANTIC_SCOPE",
+      "reason": "Async envelope commit is internal bookkeeping keyed by envelope id."
+    },
+    {
+      "code": "UNSCOPED_UPDATE",
+      "file": "backend/src/store.js",
+      "originalLine": 317,
+      "currentLine": 329,
+      "sha256": "67507abd1bdbb9e589b30f3c1e62bcab53109f3958adc1925a75e59c341b4e57",
+      "classification": "ACCEPTED_SEMANTIC_SCOPE",
+      "reason": "Async reservation failure state is internal bookkeeping keyed by reservation id and status."
+    },
+    {
+      "code": "UNSCOPED_UPDATE",
+      "file": "backend/src/store.js",
+      "originalLine": 318,
+      "currentLine": 330,
+      "sha256": "6525f9b01c340707ee7c6f39abd7256350341e60c98752ab9c9d607b2fad78c1",
+      "classification": "ACCEPTED_SEMANTIC_SCOPE",
+      "reason": "Async envelope failure state is internal bookkeeping keyed by envelope id and status."
+    },
+    {
+      "code": "UNSCOPED_UPDATE",
+      "file": "backend/src/store.js",
+      "originalLine": 590,
+      "currentLine": 676,
+      "sha256": "2b4b34ba1a7144c689293339497c22e0d074c38f7ce1b02c4e5e835479c9baa2",
+      "classification": "ACCEPTED_SEMANTIC_SCOPE",
+      "reason": "Authentication-time password rehash is intentionally system-scoped in the async login path: the user row is selected by globally unique user id after a successful credential check and before issuing a session; no tenant-owned resource is being mutated."
+    },
+    {
+      "code": "UNSCOPED_UPDATE",
+      "file": "backend/src/store.js",
+      "originalLine": 589,
+      "currentLine": 736,
+      "sha256": "8ad2efa82f8636a04036a4d01f729d441209e5be9886bbf2dabfa0592634a735",
+      "classification": "ACCEPTED_SEMANTIC_SCOPE",
+      "reason": "Authentication-time password rehash is intentionally system-scoped: the user row is selected by globally unique user id after a successful credential check and before issuing a session; no tenant-owned resource is being mutated."
+    },
+    {
+      "code": "UNSCOPED_DELETE",
+      "file": "backend/src/store.js",
+      "originalLine": 614,
+      "currentLine": 805,
+      "sha256": "f5eecca9e704ccc99f4d7d8eb495574f81c098cd2ce5db7a52d15e698fdfa2e6",
+      "classification": "ACCEPTED_SEMANTIC_SCOPE",
+      "reason": "Session deletion follows a previously authenticated session lookup; session ids are globally unique authentication-plane state."
+    },
+    {
+      "code": "UNSCOPED_UPDATE",
+      "file": "backend/src/store.js",
+      "originalLine": 713,
+      "currentLine": 907,
+      "sha256": "810f509a34a3f583a37acd6fd85b3cec0c94aa24fc119325dcdbbd205f03a19f",
+      "classification": "ACCEPTED_SEMANTIC_SCOPE",
+      "reason": "API-key last-use timestamp follows a globally unique authenticated key lookup; it does not mutate tenant business data."
+    },
+    {
+      "code": "UNSCOPED_UPDATE",
+      "file": "backend/src/store.js",
+      "originalLine": 1319,
+      "currentLine": 1370,
+      "sha256": "7053065a938fdc3df1e8dd4a4c91a14fdb21ed4e972098aced57e67fb5a350d4",
+      "classification": "ACCEPTED_SEMANTIC_SCOPE",
+      "reason": "Password reset updates the user selected by a previously validated reset-token row; token is globally unique and the reset is transactional."
+    },
+    {
+      "code": "UNSCOPED_UPDATE",
+      "file": "backend/src/store.js",
+      "originalLine": 1174,
+      "currentLine": 1371,
+      "sha256": "87c124c5e716349d03902b80d822d523f1eafb5d0a52db5dc694562d845defe1",
+      "classification": "ACCEPTED_SEMANTIC_SCOPE",
+      "reason": "Password-reset token is globally unique and guarded by used_at IS NULL."
+    },
+    {
+      "code": "UNSCOPED_UPDATE",
+      "file": "backend/src/store.js",
+      "originalLine": 1239,
+      "currentLine": 1463,
+      "sha256": "5a36be0f19476ed65f54bad3831a9e802c34a4f6b3b6335dbd089a806bf18265",
+      "classification": "ACCEPTED_SEMANTIC_SCOPE",
+      "reason": "Invitation acceptance updates the invitation already loaded and validated against the target organization; accepted_at is guarded against replay."
+    },
+    {
+      "code": "UNSCOPED_UPDATE",
+      "file": "backend/src/store.js",
+      "originalLine": 1291,
+      "currentLine": 1515,
+      "sha256": "3059bde2e7cba59fe9e145be4ab11fc53290dd3a063373521906f09769b7c67e",
+      "classification": "ACCEPTED_SEMANTIC_SCOPE",
+      "reason": "Deleted-record restore operates on a record already loaded under authenticated organization scope; deleted record id is globally unique."
+    },
+    {
+      "code": "UNSCOPED_UPDATE",
+      "file": "backend/src/store.js",
+      "originalLine": 2325,
+      "currentLine": 2596,
+      "sha256": "36fcceddc5c732a337be8bc3de868e845f4f4d2a7ea6897c3099f92ee584b1de",
+      "classification": "ACCEPTED_SEMANTIC_SCOPE",
+      "reason": "Notification read operates on a notification already loaded under tenant scope; notification id is globally unique."
+    },
+    {
+      "code": "UNSCOPED_UPDATE",
+      "file": "backend/src/store.js",
+      "originalLine": 2376,
+      "currentLine": 2649,
+      "sha256": "ab0ed2e751a133a25032864b4722084196ca7c7253181008b2b8028ea4c96487",
+      "classification": "ACCEPTED_SEMANTIC_SCOPE",
+      "reason": "Webhook delivery state follows prior tenant-scoped delivery validation; delivery id is globally unique."
+    },
+    {
+      "code": "UNSCOPED_UPDATE",
+      "file": "backend/src/store.js",
+      "originalLine": 2387,
+      "currentLine": 2660,
+      "sha256": "072b32de5232a100d53fbad5f0a28415fc36fdabe6d96c4ec67aa5c1d7c5b9a0",
+      "classification": "ACCEPTED_SEMANTIC_SCOPE",
+      "reason": "Webhook delivery state follows prior tenant-scoped delivery validation; delivery id is globally unique."
+    },
+    {
+      "code": "UNSCOPED_UPDATE",
+      "file": "backend/src/store.js",
+      "originalLine": 2396,
+      "currentLine": 2669,
+      "sha256": "197451999ecc15eec89d99164c2d34ed4300d03294aa9ad0db416116f5a44772",
+      "classification": "ACCEPTED_SEMANTIC_SCOPE",
+      "reason": "Webhook delivery failure state follows prior tenant-scoped delivery validation; delivery id is globally unique."
+    },
+    {
+      "code": "UNSCOPED_UPDATE",
+      "file": "backend/src/store.js",
+      "originalLine": 3583,
+      "currentLine": 4042,
+      "sha256": "652d69ef5e885463158e6d3934966ae6a16f4c9e7f5515e65c7ae6eab7edef08",
+      "classification": "ACCEPTED_SEMANTIC_SCOPE",
+      "reason": "Inventory stock is loaded through tenant-scoped location/stock validation before this atomic quantity decrement; quantity>=requested prevents negative inventory."
+    },
+    {
+      "code": "UNSCOPED_UPDATE",
+      "file": "backend/src/store.js",
+      "originalLine": 3840,
+      "currentLine": 4301,
+      "sha256": "df0ccfabd5723c451f71198a0429bfa47187964440873eb5e1190fc355ccc0e5",
+      "classification": "ACCEPTED_SEMANTIC_SCOPE",
+      "reason": "Portal token rotation follows tenant-scoped token validation; token id is globally unique and single-use guarded."
+    },
+    {
+      "code": "UNSCOPED_UPDATE",
+      "file": "backend/src/store.js",
+      "originalLine": 3852,
+      "currentLine": 4313,
+      "sha256": "a398d97a13b9e9a5d2328584e3c67a4ca9f63bb748293dfeaed711ddee8b57ee",
+      "classification": "ACCEPTED_SEMANTIC_SCOPE",
+      "reason": "Portal token usage follows tenant-scoped token validation; token id is globally unique."
+    },
+    {
+      "code": "UNSCOPED_UPDATE",
+      "file": "backend/src/store.js",
+      "originalLine": 4886,
+      "currentLine": 5367,
+      "sha256": "49258d897bef8e33c0cc88b0d060b8dfa7c1095530f3dab78849de80252d1100",
+      "classification": "ACCEPTED_SEMANTIC_SCOPE",
+      "reason": "Procedure run is loaded through tenant-scoped procedure/run validation before state advancement; run id is globally unique."
+    },
+    {
+      "code": "UNSCOPED_UPDATE",
+      "file": "backend/src/store.js",
+      "originalLine": 5133,
+      "currentLine": 5618,
+      "sha256": "f378e92eaa07a47188ee6deab29b3e2dd65f0e59d835387fe86b7ec03a332987",
+      "classification": "ACCEPTED_SEMANTIC_SCOPE",
+      "reason": "Maintenance plan is loaded through tenant-scoped maintenance validation before advancing due state; plan id is globally unique."
+    }
+  ],
+  "staleSemanticReviewEntries": [],
+  "decision": "PASS",
+  "notes": [
+    "Semantic scope acceptance is bound to the exact current source-line SHA-256, independent of line-number drift.",
+    "Accepted semantic entries are classified explicitly and removed from unresolved findings; source changes reopen review.",
+    "Static analysis does not certify runtime tenant isolation or concurrency safety.",
+    "Infrastructure-required controls remain UNVERIFIED."
+  ]
+}

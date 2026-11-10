@@ -1,0 +1,111 @@
+{
+  "nativeName": "Deutsch",
+  "nav": {
+    "title": "KI-Contact-Center",
+    "subtitle": "Mehrsprachiger Selfservice mit geregelten Übergaben an Menschen.",
+    "operationsConsole": "Betriebskonsole",
+    "interfaceLanguage": "Sprache der Oberfläche"
+  },
+  "status": {
+    "configured": "Geschützter Modus konfiguriert",
+    "setupIncomplete": "Einrichtung unvollständig",
+    "apiUnavailable": "Anmeldung / API nicht verfügbar"
+  },
+  "stats": {
+    "catalogueRows": "Katalogzeilen",
+    "catalogueRowsNote": "Eingabeliste erhalten",
+    "uniqueCodes": "Eindeutige Sprachcodes",
+    "uniqueCodesNote": "Duplikate werden markiert",
+    "providerQualification": "Anbieterqualifikation",
+    "providerQualificationNote": "Nur unabhängig getestete Sprachen zählen",
+    "liveQueue": "Live-Warteschlange (menschlich)",
+    "liveQueueNote": "Übergaben pro Mandant"
+  },
+  "customer": {
+    "eyebrow": "KUNDENERLEBNIS",
+    "title": "Gespräch starten",
+    "consentPill": "Zustimmung erforderlich",
+    "preferredLanguage": "Bevorzugte Sprache",
+    "consentText": "Ich stimme zu, dass diese Konversation vom konfigurierten KI-Anbieter verarbeitet wird. Protokolle werden vor der Speicherung verschlüsselt.",
+    "startChat": "Sicheren Text-Chat starten",
+    "startVoice": "Browser-Sprache starten",
+    "setupHint": "Nicht verfügbar, bis ein Administrator Verschlüsselungsschlüssel und KI-Anbieter konfiguriert.",
+    "noConversation": "Keine aktive Konversation",
+    "startHint": "Erstellen Sie eine Sitzung mit Zustimmung, um zu beginnen.",
+    "requestHuman": "Menschlichen Agenten anfordern",
+    "chatEmpty": "Ihre Nachrichten erscheinen hier. KI-Aktionen sind nur Vorschläge; keine Zahlungen, Kontoänderungen, Erstattungen oder Dispatches werden ausgeführt.",
+    "messagePlaceholder": "Nachricht schreiben…",
+    "send": "Senden",
+    "stopVoice": "Sprachsitzung beenden",
+    "voiceOff": "Sprache ist aus.",
+    "voiceStreamNote": "Browser-Sprache wird an den konfigurierten Anbieter gestreamt; OpsCore beansprucht nicht, Rohaudio zu speichern.",
+    "voiceRequirement": "Browser-Sprache erfordert HTTPS (oder localhost), ein Mikrofon, Einwilligung, ein konfiguriertes Realtime-Modell und einen Anbieterschlüssel. Sie ist keine PSTN/SIP-Telefonbrücke."
+  },
+  "queue": {
+    "eyebrow": "MENSCHLICHES EINGREIFEN",
+    "title": "Eskalationswarteschlange",
+    "refresh": "Aktualisieren",
+    "description": "Hochriskante, ungelöste oder mit Agentenwunsch versehene Konversationen erscheinen hier. Ein Warteschlangeneintrag heißt „angefordert“, nicht „verbunden“.",
+    "loading": "Warteschlange wird geladen…",
+    "empty": "Keine aktiven menschlichen Übergaben für diese Organisation.",
+    "openAssignment": "Zuweisung öffnen",
+    "claimAndReview": "Übernehmen und prüfen",
+    "resolve": "Lösen",
+    "reply": "Antworten",
+    "agentAssignedTitle": "Zugewiesene Unterhaltung",
+    "replyStorageNote": "Antworten von Mitarbeitenden werden im Ruhezustand verschlüsselt und sind im Gesprächsprotokoll sichtbar.",
+    "resolveNote": "Vom zugewiesenen menschlichen Mitarbeiter abgeschlossen."
+  },
+  "boundaries": {
+    "title": "Betriebliche Grenzen",
+    "automateTitle": "Für Automatisierung ausgelegt",
+    "automateBody": "Mehrsprachige Erstantwort, Klärung, Absichts- und Risikoeinstufung, sichere Protokollspeicherung, Warteschlangenerstellung und Agentenzuweisung.",
+    "humanTitle": "Menschliche Übernahme erforderlich",
+    "humanBody": "Ausdrücklicher Menschenwunsch, geringes Vertrauen, hohes oder kritisches Risiko, fehlende Richtlinie, ungelöster Fall, Datenschutz- oder Sicherheitsbeschwerde oder unsichere Aktion.",
+    "notEnabledTitle": "Allein mit diesem Paket nicht aktiviert",
+    "notEnabledBody": "PSTN/SIP/WhatsApp/E-Mail-Routing, Live-Telefoniebrücke, CRM-Identitätsprüfung und Sprachqualitätsansprüche erfordern einen echten Anbieteradapter, Zugangsdaten und Abnahmetests."
+  },
+  "roles": {
+    "customer": "Kunde",
+    "human": "Menschlicher Agent",
+    "ai": "KI-Assistent"
+  },
+  "handoffReasons": {
+    "customer_requested_human": "Kunde hat menschlichen Agenten angefordert",
+    "low_confidence": "Geringes Vertrauen",
+    "high_risk": "Hohes Risiko",
+    "policy_refusal": "Richtlinienablehnung / -einschränkung",
+    "unresolved": "Ungelöstes Problem",
+    "repeated_failure": "Wiederholter Fehlschlag",
+    "model_requested": "KI hat Überprüfung angefordert",
+    "voice_review_required": "Sprachprüfung erforderlich",
+    "other": "Sonstiges"
+  },
+  "messages": {
+    "qualificationNotice": "Keine Sprache ist produktionsqualifiziert, bis Text-, ASR-, TTS-, Akzent- und Eskalationstests bestanden sind.",
+    "configNeeded": "Konfiguration noch erforderlich: {missing}.",
+    "configOk": "Konfiguration vorhanden. Anbieterkonnektivität und Sprachqualität erfordern weiterhin echte Abnahmetests.",
+    "conversationCreated": "Sichere Konversation erstellt. Sprachqualität ist noch nicht produktionsqualifiziert.",
+    "handoffQueued": "Menschliche Übergabe in Warteschlange ({reason}). Dies ist eine Warteschlangenanfrage, keine Live-Verbindung.",
+    "aiResponseFailed": "Die KI-Antwort wurde nicht abgeschlossen. Es wurde keine Aktion ausgeführt. Sie können einen menschlichen Agenten anfordern.",
+    "actionNotCompleted": "Aktion nicht abgeschlossen: {reason}.",
+    "apiUnavailable": "Die Contact-Center-API konnte nicht geladen werden. Melden Sie sich in der OpsCore-Konsole an und laden Sie diese Seite neu.",
+    "suggestedNextStep": "Nur vorgeschlagener nächster Schritt (nicht ausgeführt): {step}.",
+    "handoffQueuedQueueOnly": "Menschliche Übergabe in der Warteschlange ({reason}). Die Warteschlange belegt nicht, dass ein Mitarbeiter verbunden ist.",
+    "voiceHandoffStopped": "Menschliche Übergabe in der Warteschlange. Die Browser-KI-Sitzung wird beendet; eine Live-Telefonieübergabe ist nicht konfiguriert.",
+    "voiceCredentialRequest": "Kurzlebiges Sprach-Zugangstoken wird angefordert…",
+    "voiceRealtimeError": "Der Realtime-Anbieter hat einen Fehler gemeldet. Beenden Sie die Sprachsitzung und versuchen Sie es nach Prüfung der Anbieterkonfiguration erneut.",
+    "voiceActive": "Die Sprachsitzung ist aktiv. Betätigen Sie jederzeit „Menschlichen Mitarbeiter anfordern“; dies erzeugt einen Warteschlangeneintrag, keine PSTN-Übergabe.",
+    "voiceCredentialActive": "{languageCode} · temporäres Anbieter-Token",
+    "queueUnavailable": "Warteschlange nicht verfügbar: {reason}."
+  },
+  "errors": {
+    "CONTACT_CENTER_CONSENT_REQUIRED": "Vor dem Start eines Gesprächs ist eine Einwilligung erforderlich.",
+    "SERVER_RESPONSE_INVALID": "Die Serverantwort konnte nicht gelesen werden.",
+    "REQUEST_FAILED": "Die Anfrage ist fehlgeschlagen.",
+    "CONTACT_CENTER_REALTIME_CONNECT_FAILED": "Der Realtime-Sprachanbieter war nicht erreichbar.",
+    "BROWSER_REALTIME_VOICE_UNSUPPORTED": "Dieser Browser unterstützt keine Echtzeitsprache.",
+    "HANDOFF_NOT_CLAIMED": "Die Übergabe konnte nicht übernommen werden.",
+    "CONTACT_CENTER_DUPLICATE_MESSAGE": "Doppelte Nachricht ignoriert."
+  }
+}

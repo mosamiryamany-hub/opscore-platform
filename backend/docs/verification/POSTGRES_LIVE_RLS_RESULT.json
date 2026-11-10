@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "opscore.postgres-live-rls-gate.v1",
+  "generatedAt": "2026-11-02T10:44:05.784Z",
+  "status": "PASS",
+  "target": "isolated temporary schema; operational_twin_chain_events migration 031",
+  "productionCertification": false,
+  "database": "buyer_acceptance_clean_20261101",
+  "serverVersion": "18.6 (4e5fd08)",
+  "executedChecks": [
+    {
+      "id": "database-safety-guard",
+      "status": "PASS",
+      "database": "buyer_acceptance_clean_20261101",
+      "serverVersion": "18.6 (4e5fd08)",
+      "connectedRole": "neondb_owner"
+    },
+    {
+      "id": "admin-ddl-connection",
+      "status": "PASS",
+      "role": "neondb_owner",
+      "note": "DDL via migration owner; RLS checks run under SET LOCAL ROLE opscore_app"
+    },
+    {
+      "id": "migration-rls-flags",
+      "status": "PASS",
+      "rowSecurity": true,
+      "forceRowSecurity": true
+    },
+    {
+      "id": "tenant-self-read",
+      "status": "PASS"
+    },
+    {
+      "id": "tenant-cross-tenant-read-update-delete",
+      "status": "PASS",
+      "crossReadRows": 0,
+      "crossUpdateRows": 0,
+      "crossDeleteRows": 0
+    },
+    {
+      "id": "tenant-cross-tenant-insert",
+      "status": "PASS",
+      "deniedByRls": true
+    },
+    {
+      "id": "missing-tenant-context-fails-closed",
+      "status": "PASS"
+    }
+  ],
+  "checkCount": 7,
+  "note": "This gate tests migration 031 and RLS behavior in a rollback-only isolated schema. It does not certify all production migrations, grants, or application-level PostgreSQL parity."
+}
