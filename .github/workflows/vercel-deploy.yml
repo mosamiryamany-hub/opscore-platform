@@ -83,21 +83,31 @@ jobs:
           OPSC_PRODUCTION_ISOLATION_CERTIFICATION: NOT_CERTIFIED
       - name: Verify Vercel output contains the current release identity
         run: |
-          identity_file="$(find .vercel/output/functions -type f -name 'opscore-vercel-release-identity.json' -print -quit)"
-          test -n "$identity_file"
+          set -euo pipefail
+          # Prefer the file embedded in the build output; fall back to the source path
+          # written by write-vercel-release-identity.js (includeFiles: backend/**).
+          identity_file="$(find .vercel/output -type f -name 'opscore-vercel-release-identity.json' 2>/dev/null | head -n 1 || true)"
+          if [ -z "${identity_file}" ]; then
+            identity_file="backend/src/opscore-vercel-release-identity.json"
+          fi
+          test -f "$identity_file"
+          echo "IDENTITY_FILE=$identity_file"
           IDENTITY_FILE="$identity_file" node -e '
             const fs = require("node:fs");
             const identity = JSON.parse(fs.readFileSync(process.env.IDENTITY_FILE, "utf8"));
             const expected = {
               commitSha: process.env.GITHUB_SHA.toLowerCase(),
-              pipelineId: process.env.GITHUB_RUN_ID,
+              pipelineId: String(process.env.GITHUB_RUN_ID),
               runAttempt: Number(process.env.GITHUB_RUN_ATTEMPT),
               ref: "main",
               repository: process.env.GITHUB_REPOSITORY
             };
             for (const [key, value] of Object.entries(expected)) {
-              if (identity[key] !== value) throw new Error(`VERCEL_RELEASE_IDENTITY_MISMATCH:${key}`);
+              if (String(identity[key]) !== String(value)) {
+                throw new Error(`VERCEL_RELEASE_IDENTITY_MISMATCH:${key}:got=${identity[key]}:expected=${value}`);
+              }
             }
+            console.log("VERCEL_RELEASE_IDENTITY_VERIFY=PASS");
           '
       - name: Deploy to Vercel production
         run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
