@@ -76,6 +76,9 @@ test('production Vercel deploy is main-only, waits on the mobile high-severity a
   assert.match(workflow, /opscore-vercel-release-identity\.json/);
   assert.match(workflow, /backend\/src\/opscore-vercel-release-identity\.json/);
   assert.match(workflow, /OPSC_RELEASE_CI_COMMIT: \$\{\{ github\.sha \}\}/);
+  assert.match(workflow, /Compute package fingerprint for this commit/);
+  assert.match(workflow, /OPSC_RELEASE_PACKAGE_SHA256: \$\{\{ steps\.package_fp\.outputs\.sha \}\}/);
+  assert.match(workflow, /OPSC_RELEASE_PACKAGE_COMMIT: \$\{\{ github\.sha \}\}/);
 });
 
 test('Vercel function inclusion uses a valid single glob that carries backend runtime proof files', () => {
