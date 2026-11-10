@@ -79,13 +79,18 @@ function readEmbeddedBuildIdentity(identityPath = path.join(__dirname, 'opscore-
   if (value.schemaVersion !== IDENTITY_SCHEMA || value.deploymentSource !== 'github-actions-cli' ||
       !commitSha || !PIPELINE_RE.test(pipelineId) || ref !== 'main') return null;
   const runAttempt = Number(value.runAttempt);
+  const packageSha256 = String(value.packageSha256 || '').trim().toLowerCase();
+  const packageCommit = normalizedSha(value.packageCommit || value.commitSha);
+  const packageOk = Boolean(packageSha256 && HASH_RE.test(packageSha256) && packageCommit && packageCommit === commitSha);
   return {
     deploymentSource: value.deploymentSource,
     commitSha,
     pipelineId,
     ref,
     runAttempt: Number.isSafeInteger(runAttempt) && runAttempt > 0 ? runAttempt : null,
-    pipelineUrl: normalizedGithubRunUrl(value.runUrl, value.repository, pipelineId)
+    pipelineUrl: normalizedGithubRunUrl(value.runUrl, value.repository, pipelineId),
+    packageSha256: packageOk ? packageSha256 : null,
+    packageCommit: packageOk ? packageCommit : null
   };
 }
 

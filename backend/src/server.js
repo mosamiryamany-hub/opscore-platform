@@ -8,7 +8,7 @@ const {assertRuntimeConfiguration} = require('./runtime-contract');
 const {openDatabase} = require('./db-open');
 const {runWithRequest} = require('./pg-database-sync');
 const { createDeploymentProof } = require('./deployment-proof');
-const { createPublicReleaseProof } = require('./release-proof');
+const { createPublicReleaseProof, readEmbeddedBuildIdentity } = require('./release-proof');
 const { readDatabaseSecurityProof } = require('./database-security-proof');
 
 // Commercial runtime: single engine. DATABASE_ENGINE=postgres → Store runs on Neon via sync helper.
@@ -1070,7 +1070,16 @@ function route(req, res) {
   if (req.method === 'GET' && url.pathname === '/api/openapi.json')
     return sendFile(res, path.resolve(__dirname, '..', 'docs', 'openapi.json'));
   if (req.method === 'GET' && url.pathname === '/api/verify/deployment') {
-    const proof = createDeploymentProof(process.env);
+    const identity = readEmbeddedBuildIdentity();
+    const deploymentEnv = identity ? {
+      ...process.env,
+      OPSC_RELEASE_DEPLOYMENT_SOURCE: identity.deploymentSource,
+      OPSC_RELEASE_CI_COMMIT: identity.commitSha,
+      OPSC_RELEASE_CI_PIPELINE_ID: identity.pipelineId,
+      OPSC_RELEASE_CI_REF: identity.ref,
+      OPSC_SOURCE_COMMIT_SHA: identity.commitSha
+    } : process.env;
+    const proof = createDeploymentProof(deploymentEnv);
     return json(res, proof.status === 'identified' ? 200 : 503, proof);
   }
 
