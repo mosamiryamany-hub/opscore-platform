@@ -143,5 +143,8 @@
     "applied": true,
     "at": "2026-11-02T10:44:36.384Z",
     "note": "Neon hosts, connection URLs, and disposable acceptance role names redacted at package time."
-  }
+  },
+  "currentHeadAcceptance": "NOT_VERIFIED",
+  "evidenceClass": "HISTORICAL_ACCEPTANCE_SNAPSHOT",
+  "platformBaselineNote": "Historical acceptance snapshot retained from prior CI lineage. New GitHub/Neon/Vercel stack does not inherit production certification."
 }

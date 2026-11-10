@@ -31,3 +31,9 @@ The Vercel endpoint URLs above are locations to check after deployment; this bui
 - Root PostgreSQL runtime dependency audit summary: {"total":0,"info":0,"low":0,"moderate":0,"high":0,"critical":0}; see root-dependency-audit.json for the complete report.
 - The final ZIP SHA-256 and byte length are recorded in external dist/COMMERCIAL_RELEASE_STATEMENT.json; a ZIP cannot reliably contain its own final digest.
 - This snapshot proves only the stated facts. A successful CI status does not guarantee zero defects or instant setup in every buyer environment.
+
+## Buyer residuals (explicit)
+
+- Mobile store signing and publication remain buyer-owned.
+- Human translation / locale review remains buyer-owned; machine translation is not a certified localization.
+- Licensed maps and external provider accounts remain buyer-owned.
