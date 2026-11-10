@@ -27,7 +27,7 @@ test('migration runner verifies runtime role RLS helper privileges without grant
   assert.match(runner, /runtime_database_create/);
   assert.match(runner, /runtime_schema_create/);
   assert.match(runner, /runtime_neon_superuser_set/);
-  assert.match(runner, /!post\\.runtime_role_exists/);
+  assert.match(runner, /!post\.runtime_role_exists/);
 });
 
 test('live PostgreSQL gate tests the runtime role and tenant policies', () => {
