@@ -22,6 +22,10 @@ test('migration runner verifies runtime role RLS helper privileges without grant
   assert.match(runner, /runtime_privileged_execute/);
   assert.match(runner, /runtime_policy_function_gap_count/);
   assert.match(runner, /runtime_control_plane_privilege_gap_count/);
+  assert.match(runner, /runtime_database_create/);
+  assert.match(runner, /runtime_schema_create/);
+  assert.match(runner, /runtime_neon_superuser_set/);
+  assert.match(runner, /!post\\.runtime_role_exists/);
 });
 
 test('live PostgreSQL gate tests the runtime role and tenant policies', () => {
