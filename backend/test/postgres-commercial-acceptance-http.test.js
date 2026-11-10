@@ -26,14 +26,13 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
+const { validatePostgresAcceptanceTarget } = require('../scripts/validate-postgres-acceptance-target');
 
 // Keep generated evidence in the job's temporary workspace while the test suite runs.
 // The CI job promotes it to the release evidence path only after this test and all other tests pass.
 const RESULT_PATH = process.env.OPSC_PG_ACCEPTANCE_RESULT_FILE
   ? path.resolve(process.env.OPSC_PG_ACCEPTANCE_RESULT_FILE)
   : path.join(os.tmpdir(), 'opscore-postgres-http-acceptance-result.json');
-const PRODUCTION_HOST_MARKERS = ['ep-winter-leaf-b4d0bwgk'];
-const DISPOSABLE_NAME = /(?:^|[-_])(acceptance|test|testing|ci|disposable|scratch|hardening)(?:$|[-_])/i;
 
 function waitForServer(child) {
   return new Promise((resolve, reject) => {
@@ -109,32 +108,20 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
   }
 
   const startedAt = new Date().toISOString();
-  let parsed;
-  try { parsed = new URL(urlText); }
-  catch { throw new Error('OPSC_PG_ACCEPTANCE_URL_INVALID'); }
-  assert.ok(['postgres:', 'postgresql:'].includes(parsed.protocol), 'acceptance URL must be PostgreSQL');
-
-  const database = decodeURIComponent(parsed.pathname.replace(/^\/+/, ''));
-  if (PRODUCTION_HOST_MARKERS.some(marker => parsed.host.includes(marker))) {
+  let parsed, database;
+  try {
+    const target = validatePostgresAcceptanceTarget({ urlText, expectedHost: process.env.OPSC_PG_ACCEPTANCE_HOST });
+    parsed = target.parsed;
+    database = target.database;
+  } catch (error) {
     writeResult({
       schemaVersion: 'opscore.postgres-http-acceptance.v1',
       generatedAt: startedAt,
       status: 'BLOCKED',
-      reason: 'TARGET_IS_PRODUCTION_HOST',
+      reason: error.code || 'ACCEPTANCE_TARGET_INVALID',
       target: redact(urlText)
     });
-    throw new Error('Refusing to run commercial acceptance against the production PostgreSQL host.');
-  }
-  if (!DISPOSABLE_NAME.test(database) && process.env.OPSC_PG_TEST_ALLOW_NON_TEST_DATABASE !== '1') {
-    writeResult({
-      schemaVersion: 'opscore.postgres-http-acceptance.v1',
-      generatedAt: startedAt,
-      status: 'BLOCKED',
-      reason: 'DATABASE_NAME_NOT_MARKED_AS_ACCEPTANCE',
-      database,
-      target: redact(urlText)
-    });
-    throw new Error(`Refusing to run: database "${database}" is not marked as a disposable acceptance database.`);
+    throw new Error(`Refusing to run PostgreSQL HTTP acceptance: ${error.code || 'ACCEPTANCE_TARGET_INVALID'}.`);
   }
 
   const { Pool } = require('pg');

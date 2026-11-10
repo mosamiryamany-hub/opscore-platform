@@ -38,7 +38,10 @@ jobs:
         run: npm run verify:hardened
       - name: Backend release regression suite
         working-directory: backend
-        run: OPSC_RELEASE_TEST_CONCURRENCY=12 node scripts/release-test-runner.js
+        run: OPSC_RELEASE_TEST_CONCURRENCY=4 node scripts/release-test-runner.js
       - name: Security dependency audit
         working-directory: backend
+        run: npm audit --omit=dev --audit-level=high
+      - name: Mobile dependency audit
+        working-directory: mobile
         run: npm audit --omit=dev --audit-level=high

@@ -40,7 +40,7 @@ else
 for (const [id, script] of gates) {
   if (results.some(x => x.id === 'backend-regression' && x.status === 'FAIL')) break;
   try {
-    cp.execFileSync(process.execPath, [script], { cwd: root, stdio: 'inherit', env: { ...process.env, OPSC_RELEASE_TEST_CONCURRENCY: process.env.OPSC_RELEASE_TEST_CONCURRENCY || '12' } });
+    cp.execFileSync(process.execPath, [script], { cwd: root, stdio: 'inherit', env: { ...process.env, OPSC_RELEASE_TEST_CONCURRENCY: process.env.OPSC_RELEASE_TEST_CONCURRENCY || '4' } });
     results.push({ id, status: 'PASS' });
   } catch (e) {
     results.push({ id, status: 'FAIL', code: e.status ?? null });

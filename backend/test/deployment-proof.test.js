@@ -10,7 +10,7 @@ test('deployment proof exposes the actual Vercel Git identity with a validated c
   const proof = createDeploymentProof({
     VERCEL_GIT_COMMIT_SHA: '0551c92e543b82312f1a2ac8dc4f37ddd41bc04a',
     VERCEL_GIT_COMMIT_REF: 'main',
-    VERCEL_GIT_PROVIDER: 'gitlab',
+    VERCEL_GIT_PROVIDER: 'github',
     VERCEL_DEPLOYMENT_ID: 'dpl_CwEH24wVifpz5e7VeHSqTuEEaE38',
     VERCEL_ENV: 'production',
     DATABASE_URL: 'postgres://private-secret'
@@ -18,7 +18,7 @@ test('deployment proof exposes the actual Vercel Git identity with a validated c
 
   assert.equal(proof.schemaVersion, 'opscore.public-deployment-proof.v2');
   assert.equal(proof.status, 'identified');
-  assert.equal(proof.source.provider, 'gitlab');
+  assert.equal(proof.source.provider, 'github');
   assert.equal(proof.source.ref, 'main');
   assert.equal(proof.source.commitSha, '0551c92e543b82312f1a2ac8dc4f37ddd41bc04a');
   assert.equal(proof.deployment.environment, 'production');
@@ -38,8 +38,8 @@ test('deployment proof accepts SHA-256 CI identity and labels its authority expl
   }, fixedTime);
   assert.equal(proof.status, 'identified');
   assert.equal(proof.source.commitSha, sha256Commit);
-  assert.equal(proof.source.commitIdentitySource, 'gitlab-ci-runtime-assertion');
-  assert.equal(proof.source.provider, 'gitlab');
+  assert.equal(proof.source.commitIdentitySource, 'github-actions-runtime-assertion');
+  assert.equal(proof.source.provider, 'github');
   assert.equal(proof.source.ref, 'main');
 });
 
@@ -57,18 +57,18 @@ test('deployment proof prefers native Vercel Git metadata over a separate CI ass
 test('CLI deployment identity ignores stale Vercel Git variables and uses the explicit CI commit', () => {
   const sha256Commit = '59bd4c8bd4ab8227bd6dce02cb6c9b67d77dd8feafa77658e4ed849df2cce8e1';
   const proof = createDeploymentProof({
-    OPSC_RELEASE_DEPLOYMENT_SOURCE: 'gitlab-ci-cli',
+    OPSC_RELEASE_DEPLOYMENT_SOURCE: 'github-actions-cli',
     OPSC_RELEASE_CI_COMMIT: sha256Commit,
     OPSC_RELEASE_CI_REF: 'main',
     VERCEL_GIT_COMMIT_SHA: '0551c92e543b82312f1a2ac8dc4f37ddd41bc04a',
     VERCEL_GIT_COMMIT_REF: 'stale-branch',
-    VERCEL_GIT_PROVIDER: 'gitlab',
+    VERCEL_GIT_PROVIDER: 'github',
     VERCEL_DEPLOYMENT_ID: 'dpl_123456',
     VERCEL_ENV: 'production'
   }, fixedTime);
   assert.equal(proof.source.commitSha, sha256Commit);
   assert.equal(proof.source.ref, 'main');
-  assert.equal(proof.source.commitIdentitySource, 'gitlab-ci-cli-assertion');
+  assert.equal(proof.source.commitIdentitySource, 'github-actions-cli-assertion');
   assert.equal(proof.deployment.method, 'cli');
 });
 

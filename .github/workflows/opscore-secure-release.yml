@@ -17,6 +17,7 @@ concurrency:
 
 jobs:
   verify-and-release:
+    if: github.ref_type == 'tag' && startsWith(github.ref_name, 'v')
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -24,6 +25,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -33,6 +35,13 @@ jobs:
           cache-dependency-path: |
             backend/package-lock.json
             mobile/package-lock.json
+
+      - name: Verify release tag matches package version and main
+        run: |
+          test "$GITHUB_REF_TYPE" = "tag"
+          expected_tag="v$(node -p "require('./backend/package.json').version")"
+          test "$GITHUB_REF_NAME" = "$expected_tag"
+          git merge-base --is-ancestor "$(git rev-parse HEAD)" origin/main
 
       - name: Install backend dependencies from lockfile
         working-directory: backend
@@ -44,7 +53,7 @@ jobs:
 
       - name: Run backend regression suite
         working-directory: backend
-        run: OPSC_RELEASE_TEST_CONCURRENCY=12 node scripts/release-test-runner.js
+        run: OPSC_RELEASE_TEST_CONCURRENCY=4 node scripts/release-test-runner.js
 
       - name: PostgreSQL schema parity gate
         working-directory: backend
@@ -93,6 +102,14 @@ jobs:
         run: npm audit --audit-level=high
 
       - name: Build buyer release archive
+        env:
+          CI_COMMIT_TAG: ${{ github.ref_name }}
+          CI_COMMIT_SHA: ${{ github.sha }}
+          CI_PIPELINE_ID: ${{ github.run_id }}
+          CI_PIPELINE_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          CI_PROJECT_URL: ${{ github.server_url }}/${{ github.repository }}
+          CI_PROJECT_PATH: ${{ github.repository }}
+          CI_JOB_NAME: commercial-closure
         run: node scripts/package-release.js "$RUNNER_TEMP/OpsCore-release.zip"
 
       - name: Generate release provenance attestation

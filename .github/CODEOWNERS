@@ -1,0 +1,10 @@
+# Default owners for this repository.
+# Everything requires review from the repository owner.
+* @mosamiryamany-hub
+
+# Deployment-critical paths require owner review explicitly.
+/vercel.json @mosamiryamany-hub
+/api/ @mosamiryamany-hub
+/backend/src/ @mosamiryamany-hub
+/backend/sql/ @mosamiryamany-hub
+/.github/workflows/ @mosamiryamany-hub

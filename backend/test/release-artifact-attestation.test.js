@@ -28,7 +28,7 @@ test('external release attestation binds the exact completed archive digest and 
         CI_JOB_NAME: 'commercial-closure',
         CI_COMMIT_SHA: sourceCommit,
         CI_PIPELINE_ID: pipelineId,
-        CI_PIPELINE_URL: 'https://gitlab.com/mosamiryamany-hub1/opscore-commercial-final/-/pipelines/2978621516',
+        CI_PIPELINE_URL: 'https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/2978621516',
         CI_PROJECT_PATH: 'mosamiryamany-hub1/opscore-commercial-final',
         OPSC_PRODUCTION_ACCEPTANCE_COMMIT: '',
         OPSC_PRODUCTION_ACCEPTANCE_AT: '',

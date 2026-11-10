@@ -15,26 +15,18 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Require disposable acceptance URL
         env:
           OPSC_PG_ACCEPTANCE_URL: ${{ secrets.OPSC_PG_ACCEPTANCE_URL }}
-        run: |
-          if [ -z "${OPSC_PG_ACCEPTANCE_URL}" ]; then
-            echo "OPSC_PG_ACCEPTANCE_URL secret is not configured."
-            exit 1
-          fi
-          # Refuse production host markers and non-acceptance database names.
-          case "${OPSC_PG_ACCEPTANCE_URL}" in
-            *ep-winter-leaf*) echo "Refusing production host marker"; exit 1 ;;
-          esac
-          echo "Acceptance URL secret is present (value not printed)."
+          OPSC_PG_ACCEPTANCE_HOST: ${{ secrets.OPSC_PG_ACCEPTANCE_HOST }}
+        run: node backend/scripts/validate-postgres-acceptance-target.js
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22.23.4'
           cache: npm
@@ -48,6 +40,7 @@ jobs:
         working-directory: backend
         env:
           OPSC_PG_ACCEPTANCE_URL: ${{ secrets.OPSC_PG_ACCEPTANCE_URL }}
+          OPSC_PG_ACCEPTANCE_HOST: ${{ secrets.OPSC_PG_ACCEPTANCE_HOST }}
           OPSC_PG_ACCEPTANCE_RESULT_FILE: ${{ github.workspace }}/POSTGRES_HTTP_ACCEPTANCE_RESULT.json
           CI_COMMIT_SHA: ${{ github.sha }}
           CI_PIPELINE_ID: ${{ github.run_id }}
@@ -73,7 +66,7 @@ jobs:
 
       - name: Upload acceptance evidence artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: postgres-http-acceptance-${{ github.run_id }}
           path: POSTGRES_HTTP_ACCEPTANCE_RESULT.json

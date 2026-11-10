@@ -69,6 +69,7 @@ function collect(dir, rel = '') {
   const out = [];
   for (const e of fs.readdirSync(path.join(dir, rel), { withFileTypes: true })) {
     const r = rel ? path.join(rel, e.name) : e.name;
+    if (r === 'backend/src/opscore-vercel-release-identity.json') continue;
     if (e.isDirectory()) {
       if (r.split(path.sep).some(part => part === 'node_modules' || part === '.git') || ['backend/data/files', 'data/files', 'backend/data'].includes(r))
         continue;
@@ -209,11 +210,11 @@ const statusSnapshot = [
   '**Mobile dependency audit:** ' + JSON.stringify(mobileAuditSummary) + ' (high/critical are release-blocking; moderate/low remain disclosed)',
   '**Root PostgreSQL runtime dependency audit:** ' + JSON.stringify(rootAuditSummary) + ' (high/critical are release-blocking)',
   '**Source commit:** ' + (sourceCommit || 'UNVERIFIED'),
-  '**GitLab pipeline:** ' + (pipelineUrl || 'UNVERIFIED'),
+  '**CI pipeline:** ' + (pipelineUrl || 'UNVERIFIED'),
   '',
   '## Evidence links',
   '',
-  '- GitLab repository: https://gitlab.com/mosamiryamany-hub1/opscore-commercial-final',
+  '- CI repository: https://github.com/mosamiryamany-hub/opscore-platform',
   '- Exact CI pipeline: ' + (pipelineUrl || 'UNVERIFIED'),
   '- Vercel production health: https://opscore-commercial-final.vercel.app/api/health',
   '- Vercel deployment identity: https://opscore-commercial-final.vercel.app/api/verify/deployment',
