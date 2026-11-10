@@ -72,7 +72,9 @@ test('production Vercel deploy is main-only, waits on the mobile high-severity a
   assert.match(workflow, /working-directory: mobile\s+run: npm audit --omit=dev --audit-level=high/);
   assert.match(workflow, /node scripts\/write-vercel-release-identity\.js/);
   assert.match(workflow, /Verify Vercel output contains the current release identity/);
-  assert.match(workflow, /find \.vercel\/output\/functions .*opscore-vercel-release-identity\.json/);
+  assert.match(workflow, /find \.vercel\/output/);
+  assert.match(workflow, /opscore-vercel-release-identity\.json/);
+  assert.match(workflow, /backend\/src\/opscore-vercel-release-identity\.json/);
   assert.match(workflow, /OPSC_RELEASE_CI_COMMIT: \$\{\{ github\.sha \}\}/);
 });
 
