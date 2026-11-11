@@ -33,7 +33,7 @@ Open `http://127.0.0.1:3000` unless you set a different `PORT`.
 
 The demo seed creates a deliberately non-production organization with sample customers, site, asset and work order plus four verification accounts. It refuses to seed a database that already contains users, is blocked when `NODE_ENV=production`, and now refuses whenever the runtime is configured for PostgreSQL or any database URL is set. Demo passwords are supplied through the four `OPSC_DEMO_PASSWORD_*` environment variables; they are never printed. Do not use demo accounts or demo data in a real customer environment.
 
-**Do not run `seed:demo` when `DATABASE_ENGINE=postgres`.** It is a local SQLite demonstration only. For a real PostgreSQL activation, use the owner bootstrap flow below after migrations.
+**Do not run `seed:demo` when `DATABASE_ENGINE=postgres`.** It is a local SQLite demonstration only. For a real PostgreSQL activation, use the one-time owner bootstrap flow below after migrations.
 
 ## 2. Verify the package
 
@@ -55,17 +55,19 @@ cd backend
 export DATABASE_ENGINE=postgres
 export OPSC_DATABASE_URL='postgresql://opscore_runtime:REPLACE_LOCALLY@HOST/DATABASE?sslmode=require'
 export OPSC_MIGRATION_DATABASE_URL='postgresql://neondb_owner:REPLACE_LOCALLY@HOST/DATABASE?sslmode=require'
+export OPSC_BOOTSTRAP_DATABASE_URL='postgresql://neondb_owner:REPLACE_LOCALLY@HOST/DATABASE?sslmode=require' # one-time CLI only; never Vercel
 export OPSC_MIGRATION_CONFIRM_DATABASE='DATABASE'
 
 # Apply schema through the owner-only migration connection.
 node scripts/apply-postgres-migrations.js --apply
+unset OPSC_MIGRATION_DATABASE_URL
 
 # Remove local demo flags before real-data bootstrap.
 unset OPSC_DEMO_PASSWORD_ADMIN OPSC_DEMO_PASSWORD_DISPATCHER
 unset OPSC_DEMO_PASSWORD_TECHNICIAN OPSC_DEMO_PASSWORD_VIEWER
 unset OPSC_DEMO_CLEANUP OPSC_SEED_DEMO
 
-# Create the real first organization and owner; the password is read silently.
+# Create the real first organization and owner; the password is read silently. Bootstrap URL must be separate from OPSC_DATABASE_URL.
 export OPSC_BOOTSTRAP_ORG_NAME='Your organization name'
 export OPSC_BOOTSTRAP_CEO_EMAIL='owner@example.com'
 read -rsp 'Initial owner password (minimum 12 characters): ' OPSC_BOOTSTRAP_CEO_PASSWORD; echo
@@ -73,7 +75,7 @@ export OPSC_BOOTSTRAP_CEO_PASSWORD
 
 NODE_ENV=production HOST=0.0.0.0 npm run bootstrap
 HOST=0.0.0.0 npm start
-unset OPSC_BOOTSTRAP_CEO_PASSWORD
+unset OPSC_BOOTSTRAP_CEO_PASSWORD OPSC_BOOTSTRAP_DATABASE_URL
 ```
 
 Replace placeholders locally; never commit connection strings or share credentials in support messages. The migration runner requires a dedicated test/acceptance database by default and refuses production targets unless the buyer explicitly enables its production opt-in and confirms the exact database name. The bootstrap command creates only the real organization and initial owner; it does not seed demo fixtures. Validate first on a disposable acceptance database before a buyer production activation.
