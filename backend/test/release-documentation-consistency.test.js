@@ -173,3 +173,17 @@ test('SQLite demo and PostgreSQL real-owner activation remain separate in buyer 
     assert.ok(doc.includes('seed:demo') && doc.includes('DATABASE_ENGINE=postgres'));
   }
 });
+
+test('release test runner enforces the exact declared Node 22 engine and fails closed', () => {
+  const { isSupportedNodeVersion } = require('../scripts/release-test-runner');
+  assert.equal(isSupportedNodeVersion('22.23.3'), false);
+  assert.equal(isSupportedNodeVersion('22.23.4'), true);
+  assert.equal(isSupportedNodeVersion('22.24.0'), true);
+  assert.equal(isSupportedNodeVersion('22.16.0'), false);
+  assert.equal(isSupportedNodeVersion('23.0.0'), false);
+  assert.equal(isSupportedNodeVersion('not-a-version'), false);
+
+  const runner = read('scripts/release-test-runner.js');
+  assert.match(runner, /status: failedFiles === 0 && runtimeMinimumSatisfied \? 'PASS' : 'FAIL'/);
+  assert.match(runner, /process\.exitCode = report\.status === 'PASS' \? 0 : 1/);
+});
