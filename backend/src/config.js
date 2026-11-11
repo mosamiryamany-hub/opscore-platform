@@ -30,7 +30,7 @@ module.exports = {
   publicOrigin,
   sqlitePath: path.resolve(process.cwd(), env('SQLITE_PATH', './data/opscore.sqlite')),
   sessionTtlHours: positiveInt('SESSION_TTL_HOURS', 24, { max: 8760 }),
-  databaseUrl: process.env.OPSC_DATABASE_URL || process.env.DATABASE_URL || null,
+  databaseUrl: process.env.OPSC_DATABASE_URL || (String(env('NODE_ENV', 'development')).trim().toLowerCase() === 'production' ? null : process.env.DATABASE_URL || null),
   databaseEngine: env('DATABASE_ENGINE', 'sqlite'),
   storageProvider: oneOf('STORAGE_PROVIDER', 'local', ['local']),
   authMode: env('AUTH_MODE', 'local'),
