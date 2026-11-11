@@ -44,7 +44,7 @@ The tracked `docs/release/COMMERCIAL_RELEASE_STATEMENT.json` describes historica
 
 ## SBOM and supply-chain assurance
 
-- The tracked SBOM is CycloneDX 1.6 with 491 components; 489 components carry component hashes and license entries. The two top-level application components do not currently carry those component-level entries. The BOM metadata also lacks `metadata.timestamp` and `metadata.authors`.
+- The committed SBOM snapshot remains CycloneDX 1.6 with 491 components; 489 components carry component hashes and license entries. PR #24 now implements a CycloneDX 1.7 generator with timestamp, release-engineering author, tool identity, build lifecycle, exact source commit/lockfile context, SHA-256 source archives for both top-level application components, and explicit proprietary-license entries. The verifier checks every lockfile component hash/license plus source-tree digests. This implementation is pending the combined PR #24 CI run; do not deliver the old tracked 1.6 snapshot as the final SBOM.
 - Main currently creates GitHub artifact/SBOM attestations but does not yet run explicit verification commands. PR #23 adds provenance and CycloneDX predicate verification before publishing the buyer bundle; that change is not merged or executed in a current-head release run.
 - CISA's published Minimum Elements for a Software Bill of Materials guidance calls out SBOM Author, Component Hash, License, Tool Name, Timestamp, and Generation Context. CycloneDX 1.7 is the current specification. Update the generator, close component coverage, and verify the attestation before buyer delivery.
 
