@@ -147,16 +147,20 @@ async function main() {
     );
 
     async function runtimeTenant(tenantId, action) {
-      await client.query('BEGIN');
+      await client.query('SAVEPOINT runtime_tenant_action');
       try {
         await client.query('SET LOCAL ROLE opscore_runtime');
         await client.query('SET LOCAL search_path TO ' + qSchema + ', public');
         await client.query("SELECT set_config('app.tenant_id', $1, true)", [tenantId]);
         const result = await action();
-        await client.query('COMMIT');
+        await client.query('RESET ROLE');
+        await client.query('RELEASE SAVEPOINT runtime_tenant_action');
         return result;
       } catch (error) {
-        try { await client.query('ROLLBACK'); } catch (_) {}
+        try {
+          await client.query('ROLLBACK TO SAVEPOINT runtime_tenant_action');
+          await client.query('RELEASE SAVEPOINT runtime_tenant_action');
+        } catch (_) {}
         throw error;
       }
     }
@@ -316,6 +320,9 @@ async function main() {
     assert.equal(Number(remaining.n), 0, 'no unpaired tenant-to-tenant FK may remain');
     checks.push({ id: 'no-unpaired-tenant-foreign-keys-remain', status: 'PASS' });
 
+    await client.query('ROLLBACK');
+    transactionOpen = false;
+
     process.stdout.write(JSON.stringify({
       schemaVersion: 'opscore.postgres-tenant-composite-fk-gate.v1',
       status: 'PASS',
@@ -327,9 +334,6 @@ async function main() {
       totalChecks: checks.length,
       note: 'Disposable transaction-only schema. No production or Neon persistent database was changed.'
     }, null, 2) + '\n');
-
-    await client.query('ROLLBACK');
-    transactionOpen = false;
   } catch (error) {
     if (transactionOpen) {
       try { await client.query('ROLLBACK'); } catch (_) {}
