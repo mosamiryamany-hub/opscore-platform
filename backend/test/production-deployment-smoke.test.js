@@ -18,7 +18,7 @@ test('deployment URL accepts only HTTPS Vercel deployment hosts without paths or
 });
 
 test('curl response parser extracts status, content type and body without exposing headers', () => {
-  const parsed = parseCurlResponse('HTTP/2 200\\r\\ncontent-type: application/json; charset=utf-8\\r\\ncache-control: no-store\\r\\n\\r\\n{"ok":true}\\n__OPSC_HTTP_STATUS__:200');
+  const parsed = parseCurlResponse(['HTTP/2 200', 'content-type: application/json; charset=utf-8', 'cache-control: no-store', '', '{"ok":true}', '__OPSC_HTTP_STATUS__:200'].join(String.fromCharCode(13, 10)));
   assert.equal(parsed.statusCode, 200);
   assert.equal(parsed.contentType, 'application/json; charset=utf-8');
   assert.deepEqual(JSON.parse(parsed.body), { ok: true });
