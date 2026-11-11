@@ -25,17 +25,58 @@ async function verifyLegacy042Catalog(client){
  const tables=(await client.query("SELECT c.relname,c.relrowsecurity,c.relforcerowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname=ANY($1::text[])",[names])).rows;
  const secure=new Set(tables.filter(x=>x.relrowsecurity&&x.relforcerowsecurity).map(x=>x.relname));
  const missingRlsTables=names.filter(x=>!secure.has(x));
- const policies=(await client.query("SELECT c.relname,pg_get_expr(p.polqual,p.polrelid) AS using_expr,pg_get_expr(p.polwithcheck,p.polrelid) AS check_expr FROM pg_policy p JOIN pg_class c ON c.oid=p.polrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname=ANY($1::text[]) AND p.polname='opscore_tenant_boundary_guard'",[names])).rows;
+ const policies=(await client.query("SELECT c.relname,p.polpermissive AS permissive,pg_get_expr(p.polqual,p.polrelid) AS using_expr,pg_get_expr(p.polwithcheck,p.polrelid) AS check_expr FROM pg_policy p JOIN pg_class c ON c.oid=p.polrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname=ANY($1::text[]) AND p.polname='opscore_tenant_boundary_guard'",[names])).rows;
  const tenantBound=x=>{const s=String(x||'').toLowerCase();return s.includes('opscore_current_tenant()')||(s.includes('current_setting')&&s.includes('app.tenant_id'));};
- const valid=new Set(policies.filter(x=>tenantBound(x.using_expr)&&tenantBound(x.check_expr)).map(x=>x.relname));
+ const valid=new Set(policies.filter(x=>x.permissive===true&&tenantBound(x.using_expr)&&tenantBound(x.check_expr)).map(x=>x.relname));
  const missingPolicies=names.filter(x=>!valid.has(x));
  const constraints=(await client.query("SELECT conname FROM pg_constraint WHERE conrelid=ANY(ARRAY['public.feature_flags'::regclass,'public.safe_mode_states'::regclass,'public.control_plane_runs'::regclass])")).rows;
  const constraintNames=new Set(constraints.map(x=>x.conname));
  const required=['feature_flags_pkey','feature_flags_organization_id_flag_key_key','feature_flags_enabled_check','feature_flags_organization_id_fkey','feature_flags_updated_by_fkey','safe_mode_states_pkey','safe_mode_states_enabled_check','safe_mode_states_organization_id_fkey','safe_mode_states_updated_by_fkey','control_plane_runs_pkey','control_plane_runs_organization_id_fkey','control_plane_runs_created_by_fkey'];
  const missingConstraints=required.filter(x=>!constraintNames.has(x));
  const hasUniqueIndex=(await client.query("SELECT 1 FROM pg_indexes WHERE schemaname='public' AND indexname='feature_flags_organization_id_flag_key_key'")).rowCount===1;
- const verified=actual.size===EXPECTED_042_COLUMNS.length&&!missingColumns.length&&!missingRlsTables.length&&!missingPolicies.length&&!missingConstraints.length&&hasUniqueIndex;
- return {verified,verifier:'control_plane_catalog_equivalence_v1',expectedColumns:EXPECTED_042_COLUMNS.length,actualColumns:actual.size,missingColumns,missingRlsTables,missingPolicies,missingConstraints,uniqueIndexPresent:hasUniqueIndex,note:'Historical ledger hash is retained unchanged; this is a catalog-equivalence check, not historic SQL byte identity.'};
+ const legacy042PolicyWasPermissive=policies.length===3&&policies.every(x=>x.permissive===true);
+ const verified=actual.size===EXPECTED_042_COLUMNS.length&&!missingColumns.length&&!missingRlsTables.length&&!missingPolicies.length&&!missingConstraints.length&&hasUniqueIndex&&legacy042PolicyWasPermissive;
+ return {verified,verifier:'control_plane_catalog_equivalence_v1',expectedColumns:EXPECTED_042_COLUMNS.length,actualColumns:actual.size,missingColumns,missingRlsTables,missingPolicies,missingConstraints,uniqueIndexPresent:hasUniqueIndex,legacy042PolicyWasPermissive,note:'This validates the historical 042 catalog before migration 053 normalizes its default-PERMISSIVE tenant policy into a separate PERMISSIVE access policy and RESTRICTIVE boundary guard.'};
+}
+async function verifyControlPlane053Catalog(client){
+ const names=['feature_flags','safe_mode_states','control_plane_runs'];
+ const tables=(await client.query(
+  "SELECT c.relname,c.relrowsecurity,c.relforcerowsecurity FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='r' AND c.relname=ANY($1::text[])",
+  [names]
+ )).rows;
+ const policies=(await client.query(
+  "SELECT c.relname AS table_name,p.polname AS policy_name,p.polpermissive AS permissive,p.polcmd AS command,p.polroles::text AS policy_roles,pg_get_expr(p.polqual,p.polrelid) AS using_expr,pg_get_expr(p.polwithcheck,p.polrelid) AS check_expr FROM pg_policy p JOIN pg_class c ON c.oid=p.polrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname=ANY($1::text[])",
+  [names]
+ )).rows;
+ // Compare pg_get_expr's canonical representation verbatim; quoted literal whitespace is significant.
+ const expectedExpr="(organization_id = NULLIF(current_setting('app.tenant_id'::text, true), ''::text))";
+ const results=names.map(tableName=>{
+  const tableRows=tables.filter(x=>x.relname===tableName);
+  const rows=policies.filter(x=>x.table_name===tableName);
+  const permissive=rows.filter(x=>x.policy_name==='opscore_tenant_permissive'&&x.permissive===true);
+  const restrictive=rows.filter(x=>x.policy_name==='opscore_tenant_boundary_guard'&&x.permissive===false);
+   const expressionExact=row=>row.using_expr===expectedExpr&&row.check_expr===expectedExpr;
+  const valid=tableRows.length===1&&tableRows[0].relrowsecurity===true&&tableRows[0].relforcerowsecurity===true&&
+   rows.length===2&&permissive.length===1&&restrictive.length===1&&
+   [permissive[0],restrictive[0]].every(row=>row.command==='*'&&row.policy_roles==='{0}'&&expressionExact(row));
+  return {
+   table:tableName,
+   status:valid?'PASS':'FAIL',
+   rlsEnabled:tableRows[0]?.relrowsecurity===true,
+   forceRls:tableRows[0]?.relforcerowsecurity===true,
+   policyCount:rows.length,
+   permissivePolicies:permissive.length,
+   restrictivePolicies:restrictive.length,
+   unexpectedPolicies:rows.filter(x=>!['opscore_tenant_permissive','opscore_tenant_boundary_guard'].includes(x.policy_name)).map(x=>x.policy_name),
+   exactTenantPredicates:[...permissive,...restrictive].filter(expressionExact).length
+  };
+ });
+ return {
+  verified:results.every(x=>x.status==='PASS'),
+  verifier:'control_plane_053_catalog_equivalence_v1',
+  tables:results,
+  note:'Catalog-equivalence proof only; it does not establish byte-for-byte identity of the historical migration payload or behavioral Tenant A/B acceptance.'
+ };
 }
 async function main(){
  const raw=String(process.env.OPSC_MIGRATION_DATABASE_URL||'').trim();if(!raw)throw new Error('OPSC_MIGRATION_DATABASE_URL_REQUIRED');
@@ -66,11 +107,14 @@ async function main(){
   const migrations=readMigrations();
   const legacy=LEGACY_CHECKSUM_RECONCILIATIONS['042_control_plane_tables.sql'];
   const row42=ledger.find(x=>x.filename===legacy.ledgerFilename),file42=migrations.find(x=>x.filename==='042_control_plane_tables.sql');
-  let legacy042Evidence=null,verifiedLegacy=[];
-  if(row42&&file42&&String(row42.sha256).toLowerCase()===legacy.ledgerSha256&&file42.sha256===legacy.sourceSha256){legacy042Evidence=await verifyLegacy042Catalog(client);if(legacy042Evidence.verified)verifiedLegacy=['042_control_plane_tables.sql'];}
+  const reconciliation053=LEGACY_CHECKSUM_RECONCILIATIONS['053_control_plane_restrictive_tenant_guards.sql'];
+  const row53=ledger.find(x=>x.filename===reconciliation053.ledgerFilename),file53=migrations.find(x=>x.filename==='053_control_plane_restrictive_tenant_guards.sql');
+  let legacy042Evidence=null,controlPlane053Evidence=null,verifiedLegacy=[];
+  if(row42&&file42&&String(row42.sha256).toLowerCase()===legacy.ledgerSha256&&file42.sha256===legacy.sourceSha256){legacy042Evidence=await verifyLegacy042Catalog(client);if(legacy042Evidence.verified)verifiedLegacy.push('042_control_plane_tables.sql');}
+  if(row53&&file53&&String(row53.sha256).toLowerCase()===reconciliation053.ledgerSha256&&file53.sha256===reconciliation053.sourceSha256){controlPlane053Evidence=await verifyControlPlane053Catalog(client);if(controlPlane053Evidence.verified)verifiedLegacy.push('053_control_plane_restrictive_tenant_guards.sql');}
   const plan=buildMigrationPlan(migrations,ledger,verifiedLegacy);
-  if(plan.blockers.length){emit({status:'BLOCKED',target:{database:info.database,role:info.role,targetClass},serverVersion:info.server_version,legacy042Evidence,pending:plan.pending.map(x=>x.filename),skipped:plan.skipped,blockers:plan.blockers,note:'No SQL changes were made because migration history or catalog reconciliation was not fully verified.'},2);return;}
-  if(!apply){emit({status:'DRY_RUN_PASS',target:{database:info.database,role:info.role,targetClass},serverVersion:info.server_version,legacy042Evidence,pending:plan.pending.map(x=>({filename:x.filename,sha256:x.sha256})),skipped:plan.skipped,note:'No database changes were made. Apply requires --apply and exact OPSC_MIGRATION_CONFIRM_DATABASE.'});return;}
+  if(plan.blockers.length){emit({status:'BLOCKED',target:{database:info.database,role:info.role,targetClass},serverVersion:info.server_version,legacy042Evidence,controlPlane053Evidence,pending:plan.pending.map(x=>x.filename),skipped:plan.skipped,blockers:plan.blockers,note:'No SQL changes were made because migration history or catalog reconciliation was not fully verified.'},2);return;}
+  if(!apply){emit({status:'DRY_RUN_PASS',target:{database:info.database,role:info.role,targetClass},serverVersion:info.server_version,legacy042Evidence,controlPlane053Evidence,pending:plan.pending.map(x=>({filename:x.filename,sha256:x.sha256})),skipped:plan.skipped,note:'No database changes were made. Apply requires --apply and exact OPSC_MIGRATION_CONFIRM_DATABASE.'});return;}
   const applied=[];
   for(const migration of plan.pending){
    await client.query('BEGIN');
@@ -178,8 +222,23 @@ SELECT
     OR (c.relname='safe_mode_states' AND (NOT has_table_privilege('opscore_app',c.oid,'SELECT') OR NOT has_table_privilege('opscore_app',c.oid,'INSERT') OR NOT has_table_privilege('opscore_app',c.oid,'UPDATE') OR has_table_privilege('opscore_app',c.oid,'DELETE') OR has_table_privilege('opscore_app',c.oid,'TRUNCATE')))
     OR (c.relname='control_plane_runs' AND (NOT has_table_privilege('opscore_app',c.oid,'INSERT') OR has_table_privilege('opscore_app',c.oid,'SELECT') OR has_table_privilege('opscore_app',c.oid,'UPDATE') OR has_table_privilege('opscore_app',c.oid,'DELETE') OR has_table_privilege('opscore_app',c.oid,'TRUNCATE')))
   )) AS control_plane_privilege_gap_count
-`)).rows[0];  if((!post.runtime_role_exists&&(post.app_can_create_database_schema||post.app_can_create_public_objects||post.app_can_select||post.app_can_insert||post.app_can_update||post.app_can_delete||Number(post.control_plane_privilege_gap_count)!==0))||!post.ledger_forced_rls||!post.privileged_is_definer||!post.reset_token_row_security_off||Number(post.control_plane_table_count)!==3||(post.runtime_role_exists&&(!post.runtime_login||post.runtime_superuser||post.runtime_bypassrls||post.runtime_create_role||post.runtime_create_db||Number(post.runtime_privileged_membership_count)!==0||post.runtime_database_create||post.runtime_schema_create||post.runtime_neon_superuser_member||post.runtime_neon_superuser_set||post.runtime_schema_migrations_access||!post.runtime_privileged_execute||Number(post.runtime_policy_function_gap_count)!==0||Number(post.runtime_control_plane_privilege_gap_count)!==0)))throw new Error('MIGRATION_POSTCONDITION_FAILED');
-  emit({status:'APPLIED_AND_VERIFIED',target:{database:info.database,role:info.role,targetClass},serverVersion:info.server_version,legacy042Evidence,applied,skipped:plan.skipped,postconditions:post,note:'Only the explicitly confirmed target database was changed. Production certification remains separate.'});
+`)).rows[0];
+  const controlPlaneTables=['feature_flags','safe_mode_states','control_plane_runs'];
+  const controlPlanePolicyRows=(await client.query(`SELECT c.relname AS table_name,p.polname AS policy_name,p.polpermissive AS permissive,pg_get_expr(p.polqual,p.polrelid) AS using_expr,pg_get_expr(p.polwithcheck,p.polrelid) AS check_expr FROM pg_policy p JOIN pg_class c ON c.oid=p.polrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname=ANY($1::text[])`,[controlPlaneTables])).rows;
+  const controlPlaneRlsRows=(await client.query(`SELECT c.relname AS table_name,c.relrowsecurity AS rls_enabled,c.relforcerowsecurity AS force_rls FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname=ANY($1::text[])`,[controlPlaneTables])).rows;
+  const tenantPolicyExprValid=x=>{const value=String(x||'').toLowerCase();return value.includes("current_setting('app.tenant_id'")&&value.includes('organization_id')&&value.includes('nullif(');};
+  const controlPlanePolicyResults=controlPlaneTables.map(tableName=>{
+    const rows=controlPlanePolicyRows.filter(x=>x.table_name===tableName);
+    const rls=controlPlaneRlsRows.find(x=>x.table_name===tableName);
+    const permissive=rows.filter(x=>x.policy_name==='opscore_tenant_permissive'&&x.permissive===true&&tenantPolicyExprValid(x.using_expr)&&tenantPolicyExprValid(x.check_expr));
+    const restrictive=rows.filter(x=>x.policy_name==='opscore_tenant_boundary_guard'&&x.permissive===false&&tenantPolicyExprValid(x.using_expr)&&tenantPolicyExprValid(x.check_expr));
+    const valid=Boolean(rls&&rls.rls_enabled&&rls.force_rls&&permissive.length===1&&restrictive.length===1);
+    return {table:tableName,status:valid?'PASS':'FAIL',rlsEnabled:Boolean(rls&&rls.rls_enabled),forceRls:Boolean(rls&&rls.force_rls),permissiveTenantPolicies:permissive.length,restrictiveBoundaryGuards:restrictive.length};
+  });
+  post.control_plane_policy_results=controlPlanePolicyResults;
+  post.control_plane_restrictive_policy_gap_count=controlPlanePolicyResults.filter(x=>x.status!=='PASS').length;
+  if((!post.runtime_role_exists&&(post.app_can_create_database_schema||post.app_can_create_public_objects||post.app_can_select||post.app_can_insert||post.app_can_update||post.app_can_delete||Number(post.control_plane_privilege_gap_count)!==0))||!post.ledger_forced_rls||!post.privileged_is_definer||!post.reset_token_row_security_off||Number(post.control_plane_table_count)!==3||Number(post.control_plane_restrictive_policy_gap_count)!==0||(post.runtime_role_exists&&(!post.runtime_login||post.runtime_superuser||post.runtime_bypassrls||post.runtime_create_role||post.runtime_create_db||Number(post.runtime_privileged_membership_count)!==0||post.runtime_database_create||post.runtime_schema_create||post.runtime_neon_superuser_member||post.runtime_neon_superuser_set||post.runtime_schema_migrations_access||!post.runtime_privileged_execute||Number(post.runtime_policy_function_gap_count)!==0||Number(post.runtime_control_plane_privilege_gap_count)!==0)))throw new Error('MIGRATION_POSTCONDITION_FAILED');
+  emit({status:'APPLIED_AND_VERIFIED',target:{database:info.database,role:info.role,targetClass},serverVersion:info.server_version,legacy042Evidence,controlPlane053Evidence,applied,skipped:plan.skipped,postconditions:post,note:'Only the explicitly confirmed target database was changed. Production certification remains separate.'});
  }finally{
   if(locked&&client)try{await client.query("SELECT pg_advisory_unlock(hashtext(current_database()),hashtext('opscore-schema-migrations'))");}catch(_){}
   if(client)client.release();await pool.end();

@@ -4,10 +4,22 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const { DATABASE_SECURITY_SQL } = require('../src/database-security-proof');
+
+function controlPlaneCatalogProofSql() {
+  const namespaceFilter = "n.nspname = 'public'";
+  const occurrences = DATABASE_SECURITY_SQL.split(namespaceFilter).length - 1;
+  if (occurrences !== 2) {
+    throw new Error('DATABASE_SECURITY_PROOF_NAMESPACE_FILTER_COUNT_INVALID');
+  }
+  return DATABASE_SECURITY_SQL.replaceAll(namespaceFilter, 'n.nspname = $1');
+}
+
 
 const backendRoot = path.resolve(__dirname, '..');
 const migrationPath = path.join(backendRoot, 'sql', 'postgres', '031_digital_twin_chain_hardening.sql');
 const runtimeGrantMigrationPath = path.join(backendRoot, 'sql', 'postgres', '052_runtime_policy_function_grants.sql');
+const controlPlanePolicyMigrationPath = path.join(backendRoot, 'sql', 'postgres', '053_control_plane_restrictive_tenant_guards.sql');
 const reportPath = path.join(backendRoot, 'docs', 'verification', 'POSTGRES_LIVE_RLS_RESULT.json');
 
 function emit(status, details = {}, exitCode = 0) {
@@ -15,7 +27,7 @@ function emit(status, details = {}, exitCode = 0) {
     schemaVersion: 'opscore.postgres-live-rls-gate.v1',
     generatedAt: new Date().toISOString(),
     status,
-    target: 'isolated temporary schema; operational_twin_chain_events migration 031',
+    target: 'GitHub Actions disposable PostgreSQL 18 service; rollback-only temporary schema; migrations 031, 052 and 053; tenant RLS for twin, work, appointment and control-plane tables',
     productionCertification: false,
     ...details
   };
@@ -149,6 +161,148 @@ async function main() {
     await client.query('REVOKE ALL ON FUNCTION public.opscore_is_privileged() FROM PUBLIC');
     await client.query('GRANT EXECUTE ON FUNCTION public.opscore_current_user() TO opscore_runtime');
 
+    await client.query(`CREATE TABLE feature_flags (
+      id text PRIMARY KEY,
+      organization_id text NOT NULL REFERENCES organizations(id),
+      flag_key text NOT NULL,
+      enabled integer NOT NULL DEFAULT 0 CHECK (enabled IN (0, 1)),
+      reason text NOT NULL DEFAULT '',
+      updated_by text NOT NULL REFERENCES users(id),
+      created_at text NOT NULL,
+      updated_at text NOT NULL,
+      UNIQUE (organization_id, flag_key)
+    )`);
+    await client.query(`CREATE TABLE safe_mode_states (
+      organization_id text PRIMARY KEY REFERENCES organizations(id),
+      enabled integer NOT NULL DEFAULT 0 CHECK (enabled IN (0, 1)),
+      reason text NOT NULL DEFAULT '',
+      updated_by text NOT NULL REFERENCES users(id),
+      updated_at text NOT NULL
+    )`);
+    await client.query(`CREATE TABLE control_plane_runs (
+      id text PRIMARY KEY,
+      organization_id text NOT NULL REFERENCES organizations(id),
+      run_type text NOT NULL,
+      result_json text NOT NULL,
+      result_sha256 text NOT NULL,
+      created_by text NOT NULL REFERENCES users(id),
+      created_at text NOT NULL
+    )`);
+    const controlPlaneMigration = fs.readFileSync(controlPlanePolicyMigrationPath, 'utf8');
+    await client.query(controlPlaneMigration);
+    const controlPolicyRows = (await client.query(
+      "SELECT c.relname AS table_name,p.polname AS policy_name, " +
+      "p.polpermissive AS permissive,p.polcmd AS command,p.polroles::text AS policy_roles, " +
+      "pg_get_expr(p.polqual,p.polrelid) AS using_expr, " +
+      "pg_get_expr(p.polwithcheck,p.polrelid) AS check_expr " +
+      "FROM pg_policy p JOIN pg_class c ON c.oid=p.polrelid " +
+      "JOIN pg_namespace n ON n.oid=c.relnamespace " +
+      "WHERE n.nspname=$1 AND c.relname=ANY($2::text[])",
+      [schemaName, ['feature_flags', 'safe_mode_states', 'control_plane_runs']]
+    )).rows;
+    // Compare PostgreSQL's canonical pg_get_expr representation verbatim.
+    // Whitespace inside quoted literals is semantically significant.
+    const expectedControlPlanePredicate = "(organization_id = NULLIF(current_setting('app.tenant_id'::text, true), ''::text))";
+    const isExactTenantPolicy = row => row.command === '*' &&
+      row.policy_roles === '{0}' &&
+      row.using_expr === expectedControlPlanePredicate &&
+      row.check_expr === expectedControlPlanePredicate;
+    const controlPolicyResults = ['feature_flags', 'safe_mode_states', 'control_plane_runs'].map(table => {
+      const rows = controlPolicyRows.filter(row => row.table_name === table);
+      const permissive = rows.filter(row =>
+        row.policy_name === 'opscore_tenant_permissive' && row.permissive === true);
+      const restrictive = rows.filter(row =>
+        row.policy_name === 'opscore_tenant_boundary_guard' && row.permissive === false);
+      const exactPermissive = permissive.filter(isExactTenantPolicy).length;
+      const exactRestrictive = restrictive.filter(isExactTenantPolicy).length;
+      const unexpectedPolicies = rows.filter(row =>
+        !['opscore_tenant_permissive', 'opscore_tenant_boundary_guard'].includes(row.policy_name)
+      ).map(row => row.policy_name);
+      const valid = rows.length === 2 && permissive.length === 1 && restrictive.length === 1 &&
+        exactPermissive === 1 && exactRestrictive === 1 && unexpectedPolicies.length === 0;
+      return {
+        table, policyCount: rows.length, permissive: permissive.length, restrictive: restrictive.length,
+        exactPermissive, exactRestrictive, unexpectedPolicies,
+        status: valid ? 'PASS' : 'FAIL'
+      };
+    });
+    if (controlPolicyResults.some(row => row.status !== 'PASS')) {
+      throw new Error('CONTROL_PLANE_RESTRICTIVE_POLICY_CATALOG_INVALID');
+    }
+    checks.push({ id: 'control-plane-policy-catalog', status: 'PASS', tables: controlPolicyResults });
+
+    // Run the same read-only catalog proof used by /api/verify/database-security
+    // against this disposable schema. Only its schema filter is parameterized.
+    const proofSql = controlPlaneCatalogProofSql();
+    const readControlPlaneProofCount = async () => {
+      const result = await client.query(proofSql, [schemaName]);
+      return Number(result.rows?.[0]?.control_plane_policy_valid_table_count ?? 0);
+    };
+    const initialProofCount = await readControlPlaneProofCount();
+    if (initialProofCount !== 3) {
+      throw new Error('CONTROL_PLANE_DATABASE_SECURITY_PROOF_DID_NOT_VALIDATE_ALL_TABLES');
+    }
+    checks.push({
+      id: 'control-plane-database-security-proof',
+      status: 'PASS',
+      validatedTableCount: initialProofCount
+    });
+
+    // Negative control: changing the policy role away from PUBLIC must fail proof.
+    await client.query(`ALTER POLICY opscore_tenant_permissive ON ${quotedSchema}.feature_flags TO opscore_runtime`);
+    const wrongRoleProofCount = await readControlPlaneProofCount();
+    if (wrongRoleProofCount !== 2) {
+      throw new Error('DATABASE_SECURITY_PROOF_ACCEPTED_WRONG_POLICY_ROLE');
+    }
+    await client.query(`ALTER POLICY opscore_tenant_permissive ON ${quotedSchema}.feature_flags TO PUBLIC`);
+
+    // Whitespace inside a quoted literal changes the predicate and must be rejected.
+    await client.query(
+      `ALTER POLICY opscore_tenant_boundary_guard ON ${quotedSchema}.feature_flags
+       USING (organization_id = NULLIF(current_setting('app.tenant_id', true), ' '))
+       WITH CHECK (organization_id = NULLIF(current_setting('app.tenant_id', true), ' '))`
+    );
+    const whitespaceLiteralProofCount = await readControlPlaneProofCount();
+    if (whitespaceLiteralProofCount !== 2) {
+      throw new Error('DATABASE_SECURITY_PROOF_ACCEPTED_WHITESPACE_ALTERED_LITERAL');
+    }
+
+    // A tautological tenant predicate must fail proof as well.
+    await client.query(`ALTER POLICY opscore_tenant_boundary_guard ON ${quotedSchema}.feature_flags USING (true) WITH CHECK (true)`);
+    const weakPredicateProofCount = await readControlPlaneProofCount();
+    if (weakPredicateProofCount !== 2) {
+      throw new Error('DATABASE_SECURITY_PROOF_ACCEPTED_WEAK_TENANT_PREDICATE');
+    }
+    await client.query(
+      `ALTER POLICY opscore_tenant_boundary_guard ON ${quotedSchema}.feature_flags
+       USING (organization_id = NULLIF(current_setting('app.tenant_id', true), ''))
+       WITH CHECK (organization_id = NULLIF(current_setting('app.tenant_id', true), ''))`
+    );
+    const restoredProofCount = await readControlPlaneProofCount();
+    if (restoredProofCount !== 3) {
+      throw new Error('DATABASE_SECURITY_PROOF_DID_NOT_RECOVER_AFTER_NEGATIVE_CONTROLS');
+    }
+    checks.push({
+      id: 'control-plane-database-security-proof-negative-controls',
+      status: 'PASS',
+      wrongRoleRejected: wrongRoleProofCount === 2,
+      whitespaceLiteralRejected: whitespaceLiteralProofCount === 2,
+      weakPredicateRejected: weakPredicateProofCount === 2,
+      restoredValidatedTableCount: restoredProofCount
+    });
+
+    const flagA = `feature_flag_a_${crypto.randomBytes(4).toString('hex')}`;
+    const safeModeA = `safe_mode_a_${crypto.randomBytes(4).toString('hex')}`;
+    await client.query(
+      'INSERT INTO feature_flags(id,organization_id,flag_key,enabled,reason,updated_by,created_at,updated_at) VALUES ($1,$2,$3,1,$4,$5,$6,$6)',
+      [flagA, orgA, 'test-flag', 'isolated RLS fixture', userA, new Date().toISOString()]
+    );
+    await client.query(
+      'INSERT INTO safe_mode_states(organization_id,enabled,reason,updated_by,updated_at) VALUES ($1,1,$2,$3,$4)',
+      [orgA, 'isolated RLS fixture', userA, new Date().toISOString()]
+    );
+
+
     await client.query('CREATE TABLE appointments (id text PRIMARY KEY, organization_id text NOT NULL, technician_id text NOT NULL)');
     await client.query('CREATE TABLE work_orders (id text PRIMARY KEY, organization_id text NOT NULL, assigned_to text, created_by text)');
     await client.query('ALTER TABLE appointments ENABLE ROW LEVEL SECURITY');
@@ -165,6 +319,8 @@ async function main() {
       WITH CHECK (organization_id = current_setting('app.tenant_id', true))`);
     await client.query(`GRANT USAGE ON SCHEMA ${quotedSchema} TO opscore_runtime`);
     await client.query('GRANT SELECT ON appointments, work_orders TO opscore_runtime');
+    await client.query('GRANT SELECT, INSERT, UPDATE ON feature_flags, safe_mode_states TO opscore_runtime');
+    await client.query('GRANT INSERT ON control_plane_runs TO opscore_runtime');
     const runtimeGrantMigration = fs.readFileSync(runtimeGrantMigrationPath, 'utf8');
     await client.query(runtimeGrantMigration);
     const runtimeFunctionGrant = (await client.query("SELECT has_function_privilege('opscore_runtime','public.opscore_is_privileged()','EXECUTE') AS can_execute")).rows[0];
@@ -246,10 +402,51 @@ async function main() {
     if (crossWorkOrders.rowCount !== 0) throw new Error('RUNTIME_WORK_ORDER_CROSS_TENANT_READ_BREACH');
     checks.push({ id: 'runtime-role-cross-tenant-read-denied', status: 'PASS', appointmentsRows: crossAppointments.rowCount, workOrdersRows: crossWorkOrders.rowCount });
 
+    // Control-plane rows must remain tenant-scoped even if another permissive
+    // policy is introduced later. The restrictive policy is tested under the
+    // exact NOBYPASSRLS runtime role, not the migration owner.
+    await client.query("SELECT set_config('app.tenant_id',$1,true),set_config('app.user_id',$2,true),set_config('app.access_mode','field',true)", [orgA, userA]);
+    const ownFeatureFlags = await client.query('SELECT id FROM feature_flags WHERE id=$1', [flagA]);
+    const ownSafeMode = await client.query('SELECT organization_id FROM safe_mode_states WHERE organization_id=$1', [orgA]);
+    if (ownFeatureFlags.rowCount !== 1 || ownSafeMode.rowCount !== 1) throw new Error('CONTROL_PLANE_TENANT_SELF_READ_FAILED');
+    checks.push({ id: 'control-plane-tenant-self-read', status: 'PASS', featureFlagsRows: ownFeatureFlags.rowCount, safeModeRows: ownSafeMode.rowCount });
+
+    await client.query("SELECT set_config('app.tenant_id',$1,true),set_config('app.user_id',$2,true)", [orgB, userB]);
+    const crossFeatureFlags = await client.query('SELECT id FROM feature_flags WHERE id=$1', [flagA]);
+    const crossSafeMode = await client.query('SELECT organization_id FROM safe_mode_states WHERE organization_id=$1', [orgA]);
+    if (crossFeatureFlags.rowCount !== 0 || crossSafeMode.rowCount !== 0) throw new Error('CONTROL_PLANE_CROSS_TENANT_READ_BREACH');
+    const crossFlagUpdate = await client.query("UPDATE feature_flags SET reason='cross-tenant-write' WHERE id=$1", [flagA]);
+    if (crossFlagUpdate.rowCount !== 0) throw new Error('CONTROL_PLANE_CROSS_TENANT_UPDATE_BREACH');
+    checks.push({ id: 'control-plane-cross-tenant-read-denied', status: 'PASS', featureFlagsRows: crossFeatureFlags.rowCount, safeModeRows: crossSafeMode.rowCount, updateRows: crossFlagUpdate.rowCount });
+
+    const controlRunA = `control_run_a_${crypto.randomBytes(4).toString('hex')}`;
+    await client.query("SELECT set_config('app.tenant_id',$1,true),set_config('app.user_id',$2,true)", [orgA, userA]);
+    await client.query(
+      'INSERT INTO control_plane_runs(id,organization_id,run_type,result_json,result_sha256,created_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7)',
+      [controlRunA, orgA, 'rls-test', '{}', 'a'.repeat(64), userA, new Date().toISOString()]
+    );
+    checks.push({ id: 'control-plane-tenant-self-insert', status: 'PASS' });
+    await client.query("SELECT set_config('app.tenant_id',$1,true),set_config('app.user_id',$2,true)", [orgB, userB]);
+    await client.query('SAVEPOINT control_plane_cross_insert');
+    let controlCrossInsertDenied = false;
+    try {
+      await client.query(
+        'INSERT INTO control_plane_runs(id,organization_id,run_type,result_json,result_sha256,created_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7)',
+        [`control_run_cross_${crypto.randomBytes(4).toString('hex')}`, orgA, 'rls-test-cross', '{}', 'b'.repeat(64), userA, new Date().toISOString()]
+      );
+    } catch (error) {
+      controlCrossInsertDenied = error.code === '42501';
+      await client.query('ROLLBACK TO SAVEPOINT control_plane_cross_insert');
+    }
+    await client.query('RELEASE SAVEPOINT control_plane_cross_insert');
+    if (!controlCrossInsertDenied) throw new Error('CONTROL_PLANE_CROSS_TENANT_INSERT_NOT_DENIED');
+    checks.push({ id: 'control-plane-cross-tenant-insert-denied', status: 'PASS', deniedByRls: true });
+
+
     await client.query('RESET ROLE');
     await client.query('ROLLBACK');
     inTransaction = false;
-    emit('PASS', { database: info.database, serverVersion: info.server_version, executedChecks: checks, checkCount: checks.length, note: 'This gate tests migrations 031 and 052 plus tenant policy execution under the actual opscore_runtime role in a rollback-only isolated schema. It does not certify all production data or production isolation.' });
+    emit('PASS', { database: info.database, serverVersion: info.server_version, executedChecks: checks, checkCount: checks.length, note: 'This gate runs on the disposable PostgreSQL 18 service created by GitHub Actions. It tests migrations 031, 052 and 053 plus tenant policy execution for twin, appointment, work-order and control-plane tables under the opscore_runtime role in a rollback-only isolated schema. It does not connect to Neon and does not certify all production data or production isolation.' });
   } catch (error) {
     if (inTransaction) {
       try { await client.query('ROLLBACK'); } catch (rollbackError) {

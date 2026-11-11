@@ -39,6 +39,43 @@ SELECT
     WHERE c.relkind = 'r'
       AND c.relname = ANY (ARRAY['feature_flags','safe_mode_states','control_plane_runs']::text[])
   )::int AS control_plane_table_count,
+  (
+    SELECT COUNT(*)::int
+    FROM (
+      SELECT c.oid
+      FROM pg_class c
+      JOIN pg_namespace n ON n.oid = c.relnamespace
+      LEFT JOIN pg_policy p ON p.polrelid = c.oid
+      WHERE n.nspname = 'public'
+        AND c.relkind = 'r'
+        AND c.relname = ANY (ARRAY['feature_flags','safe_mode_states','control_plane_runs']::text[])
+      GROUP BY c.oid, c.relrowsecurity, c.relforcerowsecurity
+      HAVING c.relrowsecurity
+        AND c.relforcerowsecurity
+        -- Exactly two policies are permitted: one tenant access and one boundary guard.
+        AND COUNT(p.oid) = 2
+        AND COUNT(p.oid) FILTER (
+          WHERE p.polname = 'opscore_tenant_permissive'
+            AND p.polpermissive IS TRUE
+            AND p.polcmd = '*'
+            AND p.polroles::text = '{0}'
+            AND COALESCE(pg_get_expr(p.polqual,p.polrelid),'') =
+              '(organization_id = NULLIF(current_setting(''app.tenant_id''::text, true), ''''::text))'
+            AND COALESCE(pg_get_expr(p.polwithcheck,p.polrelid),'') =
+              '(organization_id = NULLIF(current_setting(''app.tenant_id''::text, true), ''''::text))'
+        ) = 1
+        AND COUNT(p.oid) FILTER (
+          WHERE p.polname = 'opscore_tenant_boundary_guard'
+            AND p.polpermissive IS FALSE
+            AND p.polcmd = '*'
+            AND p.polroles::text = '{0}'
+            AND COALESCE(pg_get_expr(p.polqual,p.polrelid),'') =
+              '(organization_id = NULLIF(current_setting(''app.tenant_id''::text, true), ''''::text))'
+            AND COALESCE(pg_get_expr(p.polwithcheck,p.polrelid),'') =
+              '(organization_id = NULLIF(current_setting(''app.tenant_id''::text, true), ''''::text))'
+        ) = 1
+    ) AS valid_control_plane_policy_tables
+  ) AS control_plane_policy_valid_table_count,
   COUNT(*) FILTER (
     WHERE c.relkind = 'r' AND (
       (c.relname = 'feature_flags' AND (
@@ -87,6 +124,7 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
   const identityTablesWithoutRlsWithRuntimeAccessCount =
     count(row.identity_tables_without_rls_with_runtime_access_count);
   const controlPlaneTableCount = count(row.control_plane_table_count);
+  const controlPlanePolicyValidTableCount = count(row.control_plane_policy_valid_table_count);
   const controlPlaneRuntimePrivilegeGapCount = count(row.control_plane_runtime_privilege_gap_count);
 
   const identityPlaneHardened = identityTablesWithoutRlsWithRuntimeAccessCount === 0;
@@ -97,6 +135,7 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
     migrationLedgerWithoutForceRlsCount === 0 &&
     migrationLedgerRuntimePrivilegesCount === 0 &&
     controlPlaneTableCount === 3 &&
+    controlPlanePolicyValidTableCount === 3 &&
     controlPlaneRuntimePrivilegeGapCount === 0;
 
   let status = 'NOT_CERTIFIED';
@@ -111,7 +150,7 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
     note = 'Every public application table except the read-only PostGIS spatial_ref_sys catalog has FORCE RLS. The schema_migrations ledger is owner-only. Control-plane tables have explicit least-privilege runtime grants independent of provider default ACLs. Authenticated path-by-path and cross-tenant behavioral tests are still required before production isolation certification.';
   } else if (identityPlaneHardened) {
     status = 'REVIEW_REQUIRED';
-    note = 'Identity-plane RLS is present, but a non-PostGIS relation, migration-ledger boundary, or PostGIS write privilege still requires review.';
+    note = 'Identity-plane RLS is present, but a non-PostGIS relation, migration-ledger boundary, PostGIS write privilege, or control-plane tenant-boundary policy still requires review.';
   } else {
     note = 'Critical identity tables remain accessible to the runtime role without RLS.';
   }
@@ -142,6 +181,11 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
       tableCount: controlPlaneTableCount,
       privilegeGapCount: controlPlaneRuntimePrivilegeGapCount,
       status: controlPlaneTableCount === 3 && controlPlaneRuntimePrivilegeGapCount === 0 ? 'LEAST_PRIVILEGE_PRESENT' : 'REVIEW_REQUIRED'
+    },
+    controlPlaneTenantBoundaryPolicies: {
+      tableCount: controlPlaneTableCount,
+      validatedTableCount: controlPlanePolicyValidTableCount,
+      status: controlPlaneTableCount === 3 && controlPlanePolicyValidTableCount === 3 ? 'CATALOG_ENFORCED' : 'REVIEW_REQUIRED'
     },
     identityPlane: {
       criticalTablesWithoutRlsButAccessibleToRuntimeRole: identityTablesWithoutRlsWithRuntimeAccessCount,

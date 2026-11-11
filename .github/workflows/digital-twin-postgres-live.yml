@@ -1,4 +1,4 @@
-name: Digital Twin PostgreSQL Live RLS
+name: Digital Twin PostgreSQL 18 Isolated RLS
 
 on:
   push:
@@ -8,14 +8,18 @@ on:
       - '.github/workflows/digital-twin-postgres-live.yml'
       - 'backend/src/adapters/postgres.js'
       - 'backend/scripts/postgres-live-rls-gate.js'
+      - 'backend/scripts/apply-postgres-migrations.js'
       - 'backend/sql/postgres/031_digital_twin_chain_hardening.sql'
       - 'backend/sql/postgres/052_runtime_policy_function_grants.sql'
+      - 'backend/sql/postgres/053_control_plane_restrictive_tenant_guards.sql'
       - 'backend/package.json'
       - 'backend/package-lock.json'
       - 'package.json'
       - 'package-lock.json'
       - 'backend/test/postgres_rls_context_contract.test.js'
       - 'backend/test/postgres_rls_static_hardening.test.js'
+      - 'backend/test/postgres-runtime-policy-grants.test.js'
+      - 'backend/test/postgres-control-plane-rls.test.js'
   workflow_dispatch:
 
 permissions:
@@ -23,6 +27,7 @@ permissions:
 
 jobs:
   live-rls:
+    name: isolated-postgres-rls
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     services:
@@ -90,7 +95,8 @@ jobs:
       - name: Check live gate syntax
         run: |
           node --check backend/scripts/postgres-live-rls-gate.js
+          node --check backend/scripts/apply-postgres-migrations.js
           node --check backend/src/adapters/postgres.js
-      - name: Run real PostgreSQL 18 tenant-isolation gate
+      - name: Run isolated PostgreSQL 18 tenant-isolation gate
         working-directory: backend
         run: npm run db:postgres-live-rls
