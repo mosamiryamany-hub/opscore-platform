@@ -329,6 +329,8 @@ async function main() {
       'INSERT INTO control_plane_runs(id,organization_id,run_type,result_json,result_sha256,created_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7)',
       [controlRunA, orgA, 'rls-test', '{}', 'a'.repeat(64), userA, new Date().toISOString()]
     );
+    checks.push({ id: 'control-plane-tenant-self-insert', status: 'PASS' });
+    await client.query("SELECT set_config('app.tenant_id',$1,true),set_config('app.user_id',$2,true)", [orgB, userB]);
     await client.query('SAVEPOINT control_plane_cross_insert');
     let controlCrossInsertDenied = false;
     try {
