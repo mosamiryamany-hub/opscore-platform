@@ -1,4 +1,4 @@
-name: Digital Twin PostgreSQL Live RLS
+name: Digital Twin PostgreSQL 18 Isolated RLS
 
 on:
   push:
@@ -27,6 +27,7 @@ permissions:
 
 jobs:
   live-rls:
+    name: isolated-postgres-rls
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     services:
@@ -96,6 +97,6 @@ jobs:
           node --check backend/scripts/postgres-live-rls-gate.js
           node --check backend/scripts/apply-postgres-migrations.js
           node --check backend/src/adapters/postgres.js
-      - name: Run real PostgreSQL 18 tenant-isolation gate
+      - name: Run isolated PostgreSQL 18 tenant-isolation gate
         working-directory: backend
         run: npm run db:postgres-live-rls
