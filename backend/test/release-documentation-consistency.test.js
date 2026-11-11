@@ -46,7 +46,7 @@ test('active release and deployment automation is GitHub Actions; legacy GitLab 
   const vercelDeploy = read('.github/workflows/vercel-deploy.yml');
   const historicalGitLab = read('docs/archive/legacy-gitlab-ci.yml');
   assert.match(secureRelease, /workflow_dispatch/);
-  assert.match(secureRelease, /github\\.ref == 'refs\\/heads\\/main'/);
+  assert.ok(secureRelease.includes("github.ref == 'refs/heads/main'"));
   assert.match(secureRelease, /cancel-in-progress: false/);
   assert.match(vercelDeploy, /GITHUB_SHA/);
   assert.match(vercelDeploy, /vercel deploy --prebuilt --prod/);
@@ -130,8 +130,8 @@ test('Vercel production deploy requires same-run disposable PostgreSQL HTTP acce
   const targetValidator = read('backend/scripts/validate-postgres-acceptance-target.js');
   const acceptanceTest = read('backend/test/postgres-commercial-acceptance-http.test.js');
   assert.match(workflow, /OPSC_PG_ACCEPTANCE_URL/);
-  assert.match(workflow, /validate-postgres-acceptance-target\\.js/);
-  assert.match(workflow, /postgres-commercial-acceptance-http\\.test\\.js/);
+  assert.ok(workflow.includes('validate-postgres-acceptance-target.js'));
+  assert.ok(workflow.includes('postgres-commercial-acceptance-http.test.js'));
   assert.match(workflow, /acceptance_commit_mismatch/);
   assert.match(workflow, /acceptance_pipeline_mismatch/);
   assert.ok(workflow.includes("data['productionCertification'] = false"));
