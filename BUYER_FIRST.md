@@ -34,7 +34,7 @@ export OPSC_MIGRATION_DATABASE_URL='postgresql://USER:PASS@HOST/your_acceptance_
 export OPSC_MIGRATION_CONFIRM_DATABASE='your_acceptance_db'
 node scripts/apply-postgres-migrations.js --apply
 ```
-The database name must match `/preview|test|testing|ci|acceptance|scratch|disposable/i`, **or** you must set `OPSC_MIGRATION_ALLOW_PRODUCTION=1` with explicit confirmation (production risk — your responsibility).
+The database name must match `/preview|test|testing|ci|acceptance|scratch|disposable/i`. **Do not set `OPSC_MIGRATION_ALLOW_PRODUCTION` from this buyer quickstart and do not run this command against Production.** A production migration is a separate controlled change: it requires an explicitly approved target, current restorable backup/restore evidence, a reviewed migration plan and rollback procedure, a maintenance window, and separate authorization by the production owner.
 
 ### Real PostgreSQL activation
 
@@ -58,10 +58,13 @@ Treat live proofs as **operator evidence for that deployment**, not as certifica
 ## Honesty — do not over-claim
 **Included and verified in CI / seller acceptance paths:** multi-tenant RLS patterns, auth/session flows, commercial closure gates, package fingerprinting.
 
-**Buyer residuals (your scope unless contracted otherwise):**
-1. Signed mobile store artifacts (Android/iOS) and store submission
-2. Native-speaker review of locales before claiming linguistic quality
-3. Licensed street-map / third-party API keys and accounts
+**Buyer / deployment-owner residuals (unless covered by a separate written agreement):**
+1. Buyer-specific Android/iOS signing, native AAB/IPA builds, physical-device QA and app-store submission.
+2. Native-speaker/domain review of all 114 locale resources before making production language-quality claims; 0/114 are currently production-qualified.
+3. Licensed maps/road-routing, attribution, provider keys and quotas.
+4. External provider accounts, contracts, licenses and live acceptance for OIDC/JWKS, email/SMS/WhatsApp/PSTN/SIP, call-center/telephony, payments, webhooks, object storage, KMS/HSM and cloud services.
+5. Exact-target production tenant-isolation, database privilege, backup/restore, RPO/RTO, TLS/WAF, observability, incident-response and operational acceptance.
+6. A separately signed commercial agreement defining ownership, permitted modification/distribution, resale/sublicensing rights, support, updates and responsibility allocation. The bundled license grants internal-use rights only.
 
 **Formal production isolation certification** remains `NOT_CERTIFIED` in product proofs until a separate formal certification process is recorded. Catalog RLS enforcement and sample production behavioral acceptance are **not** the same as that formal badge.
 
