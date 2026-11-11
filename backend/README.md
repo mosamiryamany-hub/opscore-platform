@@ -32,7 +32,7 @@ OpsCore is a reusable multi-sector operational application foundation for field 
 
 Local/dev persistence defaults to Node's built-in `node:sqlite`. The Vercel serverless entry point (`api/index.js`) explicitly selects `DATABASE_ENGINE=postgres`; `backend/src/db-open.js` then opens the PostgreSQL adapter through the synchronous bridge. The `pg` runtime driver is pinned as `pg@8.23.1` in the repository-root `package.json` and `package-lock.json`, and the Vercel install command uses `npm ci`. SQLite is loaded lazily only when the SQLite engine is selected.
 
-CI includes PostgreSQL HTTP acceptance and RLS tests against an isolated acceptance database. Those tests establish the tested source path, not proof that the current Vercel production deployment uses the intended commit or least-privilege role. The actual production `DATABASE_URL` role, production session/tenant boundary and production recovery remain unverified; production certification is not claimed.
+CI includes PostgreSQL HTTP acceptance and RLS tests against an isolated acceptance database. Those tests establish the tested source path, not proof that the current Vercel production deployment uses the intended commit or least-privilege role. The actual Vercel `OPSC_DATABASE_URL` role, production session/tenant boundary and production recovery remain unverified; production certification is not claimed.
 
 PostGIS is available in the inspected Neon production catalog, but that does not supply a licensed map/road-routing service or traffic ETA. The package does not pretend to deliver email, SMS, WhatsApp, external webhooks, S3, enterprise SSO or billing without real provider integration and buyer-environment verification.
 
@@ -54,7 +54,7 @@ Then open `http://127.0.0.1:3000` (or the port configured by `PORT`).
 
 The demo seed is **SQLite-only** and refuses to run when `DATABASE_ENGINE=postgres` or a database URL is configured. Do not use it for PostgreSQL or real customer activation. Do not run `seed:demo` when `DATABASE_ENGINE=postgres`; use the real-owner `npm run bootstrap` flow instead.
 
-For PostgreSQL, apply migrations using the separate `OPSC_MIGRATION_DATABASE_URL` owner connection, keep `OPSC_DATABASE_URL` on the restricted `opscore_app` runtime role, and run `npm run bootstrap` with `OPSC_BOOTSTRAP_ORG_NAME`, `OPSC_BOOTSTRAP_CEO_EMAIL` and a privately supplied `OPSC_BOOTSTRAP_CEO_PASSWORD`. This creates the real initial organization and owner without demo fixtures.
+For PostgreSQL, apply migrations using the separate `OPSC_MIGRATION_DATABASE_URL` owner connection. Keep `OPSC_DATABASE_URL` on the least-privilege `opscore_runtime` role. Run the one-time CLI bootstrap with a separate `OPSC_BOOTSTRAP_DATABASE_URL` authenticated as `neondb_owner`, plus `OPSC_BOOTSTRAP_ORG_NAME`, `OPSC_BOOTSTRAP_CEO_EMAIL` and a privately supplied `OPSC_BOOTSTRAP_CEO_PASSWORD`. Never place migration or bootstrap credentials in Vercel runtime; remove/rotate the bootstrap credential after initialization. The production HTTP bootstrap route is disabled.
 
 ### Demo accounts
 
@@ -69,7 +69,7 @@ Demo passwords are supplied only through the four `OPSC_DEMO_PASSWORD_*` environ
 
 ### PostgreSQL runtime and local bridge
 
-The Vercel runtime uses PostgreSQL when `DATABASE_ENGINE=postgres` and `DATABASE_URL` (or `OPSC_DATABASE_URL`) is configured. The repository root pins the runtime driver and Vercel installs it from the root lockfile. `docker-compose.postgres.yml` is an optional local PostgreSQL environment for development and tests; local SQLite remains the default. No production certification is inferred from local or CI tests.
+The Vercel runtime uses PostgreSQL when `DATABASE_ENGINE=postgres` and the explicit `OPSC_DATABASE_URL` is configured; production does not fall back to `DATABASE_URL`. The repository root pins the runtime driver and Vercel installs it from the root lockfile. `docker-compose.postgres.yml` is an optional local PostgreSQL environment for development and tests; local SQLite remains the default. No production certification is inferred from local or CI tests.
 
 ### Local recovery
 
@@ -82,7 +82,7 @@ These commands verify SQLite integrity; production backup/restore remains a buye
 
 ## Production handoff
 
-The application has a PostgreSQL runtime path, but a buyer-specific production deployment still requires exact-commit deployment provenance, proof that Vercel connects as the least-privilege `opscore_app` role, live session/tenant-isolation acceptance, recovery drills, TLS/ingress, secret management, distributed rate limiting, and buyer-owned identity, notifications, object storage, maps and telephony provider setup. CI success alone does not certify production.
+The application has a PostgreSQL runtime path, but a buyer-specific production deployment still requires exact-commit deployment provenance, proof that Vercel connects as the least-privilege `opscore_runtime` role, live session/tenant-isolation acceptance, recovery drills, TLS/ingress, secret management, distributed rate limiting, and buyer-owned identity, notifications, object storage, maps and telephony provider setup. CI success alone does not certify production.
 
 ## v0.11.61 additions
 - Added an executable recovery drill: backup, integrity/FK verification, isolated restore and application-table/count comparison.
