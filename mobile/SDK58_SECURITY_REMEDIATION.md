@@ -1,6 +1,6 @@
 # Mobile SDK 58 Security Remediation
 
-Status: second isolated CI resolution attempt queued after the initial audit-fix command refused a breaking downgrade. Explicit patched transitive versions are now pinned; the lockfile must be regenerated and validated by CI.
+Status: security dependency graph resolved to zero findings in isolated CI. Expo Doctor exposed an obsolete app config property; this branch removes it and reruns all SDK 58 checks before any PR promotion.
 
 ## Current requested target
 - Expo SDK: 58
