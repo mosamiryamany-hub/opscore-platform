@@ -65,13 +65,14 @@ jobs:
             backend/package-lock.json
       - name: Create application and runtime roles without BYPASSRLS
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq postgresql-client
-          for i in 1 2 3 4 5 6 7 8 9 10; do
-            pg_isready -h 127.0.0.1 -p 5432 -U postgres -d opscore_test && break
-            sleep 2
-          done
-          PGPASSWORD=postgres psql -h 127.0.0.1 -p 5432 -U postgres -d opscore_test -v ON_ERROR_STOP=1 <<'SQL'
+          # Prefer the service container client to avoid apt mirror flakes (exit 100).
+          # Fallback path installs postgresql-client only if docker exec is unavailable.
+          set -euo pipefail
+          cid="$(docker ps --filter 'ancestor=postgres:18' --format '{{.ID}}' | head -n1)"
+          if [ -z "${cid}" ]; then
+            cid="$(docker ps --format '{{.ID}} {{.Image}}' | awk '/postgres/ {print $1; exit}')"
+          fi
+          sql=$(cat <<'SQL'
           DROP ROLE IF EXISTS opscore_app;
           DROP ROLE IF EXISTS opscore_runtime;
           CREATE ROLE opscore_app LOGIN PASSWORD 'app_test_pw'
@@ -85,8 +86,25 @@ jobs:
           ALTER DEFAULT PRIVILEGES IN SCHEMA public
             GRANT USAGE, SELECT ON SEQUENCES TO opscore_app;
           SQL
-          PGPASSWORD=postgres psql -h 127.0.0.1 -p 5432 -U postgres -d opscore_test -Atc \
-            "SELECT rolname||' super='||rolsuper||' bypass='||rolbypassrls FROM pg_roles WHERE rolname IN ('opscore_app','opscore_runtime') ORDER BY rolname"
+          )
+          if [ -n "${cid}" ]; then
+            echo "$sql" | docker exec -i -e PGPASSWORD=postgres "$cid" \
+              psql -U postgres -d opscore_test -v ON_ERROR_STOP=1
+            docker exec -e PGPASSWORD=postgres "$cid" \
+              psql -U postgres -d opscore_test -Atc \
+              "SELECT rolname||' super='||rolsuper||' bypass='||rolbypassrls FROM pg_roles WHERE rolname IN ('opscore_app','opscore_runtime') ORDER BY rolname"
+          else
+            echo "WARN: postgres container id not found; falling back to host postgresql-client"
+            sudo apt-get update -qq || true
+            sudo apt-get install -y -qq postgresql-client
+            for i in 1 2 3 4 5 6 7 8 9 10; do
+              pg_isready -h 127.0.0.1 -p 5432 -U postgres -d opscore_test && break
+              sleep 2
+            done
+            echo "$sql" | PGPASSWORD=postgres psql -h 127.0.0.1 -p 5432 -U postgres -d opscore_test -v ON_ERROR_STOP=1
+            PGPASSWORD=postgres psql -h 127.0.0.1 -p 5432 -U postgres -d opscore_test -Atc \
+              "SELECT rolname||' super='||rolsuper||' bypass='||rolbypassrls FROM pg_roles WHERE rolname IN ('opscore_app','opscore_runtime') ORDER BY rolname"
+          fi
       - name: Install root-pinned PostgreSQL runtime dependency
         run: npm ci --ignore-scripts
       - name: Install backend package
