@@ -1,12 +1,12 @@
 'use strict';
 const DATABASE_SECURITY_SQL = `
 SELECT
-  COUNT(*) FILTER (WHERE c.relkind = 'r')::int AS public_table_count,
-  COUNT(*) FILTER (WHERE c.relkind = 'r' AND c.relrowsecurity)::int AS rls_enabled_table_count,
-  COUNT(*) FILTER (WHERE c.relkind = 'r' AND c.relforcerowsecurity)::int AS rls_forced_table_count,
-  COUNT(*) FILTER (WHERE c.relkind = 'r' AND NOT c.relrowsecurity)::int AS tables_without_rls_count,
-  COUNT(*) FILTER (WHERE c.relkind = 'r' AND c.relname <> 'spatial_ref_sys' AND NOT c.relrowsecurity)::int AS non_postgis_tables_without_rls_count,
-  COUNT(*) FILTER (WHERE c.relkind = 'r' AND c.relname <> 'spatial_ref_sys' AND NOT c.relforcerowsecurity)::int AS non_postgis_tables_without_force_rls_count,
+  COUNT(*) FILTER (WHERE c.relkind IN ('r','p'))::int AS public_table_count,
+  COUNT(*) FILTER (WHERE c.relkind IN ('r','p') AND c.relrowsecurity)::int AS rls_enabled_table_count,
+  COUNT(*) FILTER (WHERE c.relkind IN ('r','p') AND c.relforcerowsecurity)::int AS rls_forced_table_count,
+  COUNT(*) FILTER (WHERE c.relkind IN ('r','p') AND NOT c.relrowsecurity)::int AS tables_without_rls_count,
+  COUNT(*) FILTER (WHERE c.relkind IN ('r','p') AND c.relname <> 'spatial_ref_sys' AND NOT c.relrowsecurity)::int AS non_postgis_tables_without_rls_count,
+  COUNT(*) FILTER (WHERE c.relkind IN ('r','p') AND c.relname <> 'spatial_ref_sys' AND NOT c.relforcerowsecurity)::int AS non_postgis_tables_without_force_rls_count,
   COUNT(*) FILTER (
     WHERE c.relkind = 'r' AND c.relname = 'spatial_ref_sys'
       AND (has_table_privilege(current_user,c.oid,'INSERT')
@@ -117,7 +117,7 @@ SELECT
   ) AS runtime_role_elevated_membership_count
 FROM pg_class c
 JOIN pg_namespace n ON n.oid = c.relnamespace
-WHERE n.nspname = 'public' AND c.relkind = 'r';
+WHERE n.nspname = 'public' AND c.relkind IN ('r','p');
 `;
 
 function count(value) {
