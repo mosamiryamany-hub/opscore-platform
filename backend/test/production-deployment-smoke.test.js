@@ -94,7 +94,9 @@ test('full staged smoke requires every endpoint to match the same release identi
     '/api/verify/database-security': {
       status: 'IDENTITY_PLANE_RLS_ENFORCED',
       controlPlaneTenantBoundaryPolicies: { status: 'CATALOG_ENFORCED', validatedTableCount: 3 },
-      controlPlaneRuntimePrivileges: { status: 'LEAST_PRIVILEGE_PRESENT', privilegeGapCount: 0 }
+      controlPlaneRuntimePrivileges: { status: 'LEAST_PRIVILEGE_PRESENT', privilegeGapCount: 0 },
+      runtimeRole: { name: 'opscore_runtime', status: 'LEAST_PRIVILEGE_PRESENT', login: true, superuser: false, bypassRls: false, createRole: false, createDatabase: false, elevatedMembershipCount: 0 },,
+      runtimeRole: { name: 'opscore_runtime', status: 'LEAST_PRIVILEGE_PRESENT', login: true, superuser: false, bypassRls: false, createRole: false, createDatabase: false, elevatedMembershipCount: 0 },
     },
     '/api/verify/release': release
   };
