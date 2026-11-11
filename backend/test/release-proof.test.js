@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const crypto = require('node:crypto');
 const { createPublicReleaseProof, hasVerifiedProductionRelease } = require('../src/release-proof');
 
 const SHA = 'bbbee88e34a9b7e1847571367904fa96a3166bcc';
@@ -12,6 +13,57 @@ const SHA256_COMMIT = '59bd4c8bd4ab8227bd6dce02cb6c9b67d77dd8feafa77658e4ed849df
 const PACKAGE_SHA = 'a'.repeat(64);
 const EVIDENCE_SHA = 'b'.repeat(64);
 const fixedNow = () => new Date('2026-10-23T00:00:00.000Z');
+
+function productionAcceptanceEvidence(commit = SHA, pipelineId = '2978538209', overrides = {}) {
+  return {
+    schemaVersion: 'opscore.production-acceptance.v1',
+    status: 'PASS',
+    environment: 'production',
+    databaseEngine: 'postgres',
+    sourceCommit: commit,
+    pipelineId,
+    testedAt: '2026-10-23T00:00:00.000Z',
+    checks: {
+      migration053: 'PASS',
+      tenantSessionIsolation: 'PASS',
+      crossTenantAccessDenied: 'PASS',
+      recoveryRestore: 'PASS',
+      backupIntegrity: 'PASS'
+    },
+    tenantTableCoverage: { status: 'PASS', totalTables: 17, testedTables: 17 },
+    apiRouteCoverage: { status: 'PASS', totalRoutes: 12, testedRoutes: 12 },
+    runtimeRole: {
+      name: 'opscore_runtime',
+      login: true,
+      superuser: false,
+      bypassRls: false,
+      createRole: false,
+      createDatabase: false,
+      elevatedMembershipCount: 0
+    },
+    ...overrides
+  };
+}
+
+function writeJsonEvidence(dir, filename, value) {
+  const filePath = path.join(dir, filename);
+  const raw = JSON.stringify(value, null, 2) + '\n';
+  fs.writeFileSync(filePath, raw);
+  return {
+    path: filePath,
+    sha256: crypto.createHash('sha256').update(raw, 'utf8').digest('hex')
+  };
+}
+
+function postgresHttpEvidence(commit, pipelineId) {
+  return {
+    schemaVersion: 'opscore.postgres-http-acceptance.v1',
+    status: 'PASS',
+    generatedAt: '2026-10-23T00:00:00.000Z',
+    commit,
+    pipelineId: Number(pipelineId)
+  };
+}
 
 function deploymentEnv(extra = {}) {
   return {
@@ -33,31 +85,36 @@ test('release proof binds source and CI evidence to the running deployment commi
   assert.equal(proof.gates.productionIsolationCertification, 'NOT_CERTIFIED');
 });
 
-test('release proof exposes the published package SHA only when it matches the live source commit', () => {
-  const proof = createPublicReleaseProof(deploymentEnv({
-    OPSC_RELEASE_CI_COMMIT: SHA,
-    OPSC_RELEASE_CI_PIPELINE_ID: '2978538209',
-    OPSC_RELEASE_PACKAGE_COMMIT: SHA,
-    OPSC_RELEASE_PACKAGE_SHA256: PACKAGE_SHA,
-    OPSC_PRODUCTION_ACCEPTANCE_COMMIT: SHA,
-    OPSC_PRODUCTION_ACCEPTANCE_AT: '2026-10-23T00:00:00.000Z',
-    OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: EVIDENCE_SHA
-  }), fixedNow);
-  assert.equal(proof.status, 'PASS_WITH_BUYER_RESIDUALS');
-  assert.equal(proof.releaseTag, null);
-  assert.equal(proof.sourceCommitIdentitySource, 'vercel-git-metadata');
-  assert.equal(proof.ci.status, 'PASS');
-  assert.equal(proof.ci.pipelineId, 2978538209);
-  assert.equal(proof.packageFingerprint.status, 'PUBLISHED');
-  assert.equal(proof.packageFingerprint.value, PACKAGE_SHA);
-  assert.equal(proof.gates.productionSessionTenantBoundary, 'PASS_PRODUCTION');
-  assert.equal(proof.gates.productionRecoveryBundle, 'PASS_PRODUCTION');
-  assert.equal(proof.gates.productionIsolationCertification, 'NOT_CERTIFIED');
-  assert.equal(proof.gates.mobileStoreArtifacts, 'REMAINING_BUYER');
-  assert.equal(proof.productionAcceptance.evidenceSha256, EVIDENCE_SHA);
+test('release proof accepts production acceptance only when the embedded JSON hash and exact CI identity match', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-production-acceptance-'));
+  try {
+    const evidence = writeJsonEvidence(dir, 'production-acceptance.json', productionAcceptanceEvidence(SHA, '2978538209'));
+    const proof = createPublicReleaseProof(deploymentEnv({
+      OPSC_RELEASE_CI_COMMIT: SHA,
+      OPSC_RELEASE_CI_PIPELINE_ID: '2978538209',
+      OPSC_RELEASE_PACKAGE_COMMIT: SHA,
+      OPSC_RELEASE_PACKAGE_SHA256: PACKAGE_SHA,
+      OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: evidence.sha256
+    }), fixedNow, undefined, evidence.path);
+    assert.equal(proof.status, 'UNVERIFIED');
+    assert.equal(proof.releaseTag, null);
+    assert.equal(proof.sourceCommitIdentitySource, 'unverified');
+    assert.equal(proof.ci.status, 'PASS');
+    assert.equal(proof.ci.pipelineId, 2978538209);
+    assert.equal(proof.packageFingerprint.status, 'PUBLISHED');
+    assert.equal(proof.packageFingerprint.value, PACKAGE_SHA);
+    assert.equal(proof.productionAcceptance.status, 'PASS');
+    assert.equal(proof.gates.productionSessionTenantBoundary, 'PASS_PRODUCTION');
+    assert.equal(proof.gates.productionRecoveryBundle, 'PASS_PRODUCTION');
+    assert.equal(proof.gates.productionIsolationCertification, 'NOT_CERTIFIED');
+    assert.equal(proof.gates.mobileStoreArtifacts, 'REMAINING_BUYER');
+    assert.equal(proof.productionAcceptance.evidenceSha256, evidence.sha256);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });
 
-test('release proof accepts and binds a SHA-256 GitLab object ID', () => {
+test('release proof accepts a SHA-256 source commit but does not certify it without embedded build identity', () => {
   const proof = createPublicReleaseProof(deploymentEnv({
     VERCEL_GIT_COMMIT_SHA: SHA256_COMMIT,
     OPSC_RELEASE_CI_COMMIT: SHA256_COMMIT,
@@ -66,16 +123,16 @@ test('release proof accepts and binds a SHA-256 GitLab object ID', () => {
     OPSC_RELEASE_PACKAGE_SHA256: PACKAGE_SHA
   }), fixedNow);
   assert.equal(proof.sourceCommit, SHA256_COMMIT);
-  assert.equal(proof.status, 'PASS_WITH_BUYER_RESIDUALS');
+  assert.equal(proof.status, 'UNVERIFIED');
   assert.equal(proof.ci.status, 'PASS');
   assert.equal(proof.ci.pipelineId, 2984327380);
   assert.equal(proof.packageFingerprint.status, 'PUBLISHED');
   assert.equal(proof.packageFingerprint.sourceCommit, SHA256_COMMIT);
-  assert.equal(proof.sourceCommitIdentitySource, 'vercel-git-metadata');
+  assert.equal(proof.sourceCommitIdentitySource, 'unverified');
   assert.equal(proof.gates.productionIsolationCertification, 'NOT_CERTIFIED');
 });
 
-test('release proof labels CLI provenance honestly when stale Vercel Git metadata is present', () => {
+test('release proof does not trust environment-only CLI provenance without embedded build identity', () => {
   const proof = createPublicReleaseProof(deploymentEnv({
     OPSC_RELEASE_DEPLOYMENT_SOURCE: 'github-actions-cli',
     OPSC_RELEASE_CI_REF: 'main',
@@ -86,14 +143,46 @@ test('release proof labels CLI provenance honestly when stale Vercel Git metadat
     OPSC_RELEASE_PACKAGE_SHA256: PACKAGE_SHA
   }), fixedNow);
   assert.equal(proof.sourceCommit, SHA256_COMMIT);
-  assert.equal(proof.status, 'PASS_WITH_BUYER_RESIDUALS');
-  assert.equal(proof.sourceCommitIdentitySource, 'github-actions-cli-assertion');
+  assert.equal(proof.status, 'UNVERIFIED');
+  assert.equal(proof.sourceCommitIdentitySource, 'unverified');
   assert.equal(proof.deployment.ref, 'main');
 });
 
 test('release tag is shown only when an explicit tag value is supplied', () => {
   const proof = createPublicReleaseProof(deploymentEnv({ OPSC_RELEASE_TAG: 'v0.11.62-test' }), fixedNow);
   assert.equal(proof.releaseTag, 'v0.11.62-test');
+});
+
+test('release proof rejects a forged evidence digest and incomplete tenant coverage', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-production-acceptance-negative-'));
+  try {
+    const valid = productionAcceptanceEvidence(SHA, '2978538209');
+    const validFile = writeJsonEvidence(dir, 'valid.json', valid);
+    const forged = createPublicReleaseProof(deploymentEnv({
+      OPSC_RELEASE_CI_COMMIT: SHA,
+      OPSC_RELEASE_CI_PIPELINE_ID: '2978538209',
+      OPSC_RELEASE_PACKAGE_COMMIT: SHA,
+      OPSC_RELEASE_PACKAGE_SHA256: PACKAGE_SHA,
+      OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: 'f'.repeat(64)
+    }), fixedNow, undefined, validFile.path);
+    assert.equal(forged.productionAcceptance.status, 'NOT_VERIFIED');
+    assert.equal(forged.gates.productionSessionTenantBoundary, 'NOT_VERIFIED');
+
+    const incomplete = writeJsonEvidence(dir, 'incomplete.json', productionAcceptanceEvidence(SHA, '2978538209', {
+      tenantTableCoverage: { status: 'PASS', totalTables: 17, testedTables: 16 }
+    }));
+    const incompleteProof = createPublicReleaseProof(deploymentEnv({
+      OPSC_RELEASE_CI_COMMIT: SHA,
+      OPSC_RELEASE_CI_PIPELINE_ID: '2978538209',
+      OPSC_RELEASE_PACKAGE_COMMIT: SHA,
+      OPSC_RELEASE_PACKAGE_SHA256: PACKAGE_SHA,
+      OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: incomplete.sha256
+    }), fixedNow, undefined, incomplete.path);
+    assert.equal(incompleteProof.productionAcceptance.status, 'NOT_VERIFIED');
+    assert.equal(incompleteProof.gates.productionRecoveryBundle, 'NOT_VERIFIED');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });
 
 test('release proof does not grant PASS_PRODUCTION from timestamps alone without evidence SHA-256', () => {
@@ -179,38 +268,50 @@ test('public release proof does not reuse a historical PostgreSQL HTTP PASS for 
   }
 });
 
-test('embedded GitHub Actions build identity overrides stale CLI variables and gates production release', () => {
+test('embedded GitHub Actions identity gates production release only with signed same-run evidence', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-vercel-identity-'));
   const identityPath = path.join(dir, 'identity.json');
+  const pipelineId = '3014583826';
   const identity = {
     schemaVersion: 'opscore.vercel-release-identity.v1',
     deploymentSource: 'github-actions-cli',
     commitSha: SHA,
-    pipelineId: '3014583826',
+    pipelineId,
     runAttempt: 1,
     ref: 'main',
     repository: 'mosamiryamany-hub/opscore-platform',
-    runUrl: 'https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/3014583826'
+    runUrl: `https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/${pipelineId}`,
+    packageSha256: PACKAGE_SHA,
+    packageCommit: SHA
   };
+  const acceptance = writeJsonEvidence(dir, 'production-acceptance.json', productionAcceptanceEvidence(SHA, pipelineId));
+  const postgresHttp = writeJsonEvidence(dir, 'postgres-http-acceptance.json', postgresHttpEvidence(SHA, pipelineId));
   const staleEnv = deploymentEnv({
     OPSC_RELEASE_DEPLOYMENT_SOURCE: 'cli',
     OPSC_RELEASE_CI_COMMIT: '0'.repeat(40),
     OPSC_RELEASE_CI_PIPELINE_ID: '1',
-    OPSC_RELEASE_CI_REF: 'old-branch'
+    OPSC_RELEASE_CI_REF: 'old-branch',
+    OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: acceptance.sha256,
+    OPSC_PRODUCTION_ISOLATION_CERTIFICATION: 'CERTIFIED'
   });
   try {
     fs.writeFileSync(identityPath, JSON.stringify(identity));
-    const proof = createPublicReleaseProof(staleEnv, fixedNow, identityPath);
+    const proof = createPublicReleaseProof(staleEnv, fixedNow, identityPath, acceptance.path, postgresHttp.path);
     assert.equal(proof.sourceCommit, SHA);
     assert.equal(proof.sourceCommitIdentitySource, 'github-actions-cli-assertion');
     assert.equal(proof.deployment.ref, 'main');
     assert.equal(proof.ci.status, 'PASS');
     assert.equal(proof.ci.pipelineUrl, identity.runUrl);
     assert.equal(proof.ci.runAttempt, 1);
-    assert.equal(hasVerifiedProductionRelease(staleEnv, identityPath), true);
+    assert.equal(proof.packageFingerprint.status, 'PUBLISHED');
+    assert.equal(proof.status, 'PASS_WITH_BUYER_RESIDUALS');
+    assert.equal(proof.postgresHttpAcceptance.status, 'PASS');
+    assert.equal(proof.productionAcceptance.status, 'PASS');
+    assert.equal(proof.gates.productionIsolationCertification, 'CERTIFIED');
+    assert.equal(hasVerifiedProductionRelease(staleEnv, identityPath, acceptance.path, postgresHttp.path), true);
 
     fs.writeFileSync(identityPath, JSON.stringify({ ...identity, commitSha: 'invalid' }));
-    assert.equal(hasVerifiedProductionRelease(staleEnv, identityPath), false);
+    assert.equal(hasVerifiedProductionRelease(staleEnv, identityPath, acceptance.path, postgresHttp.path), false);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
