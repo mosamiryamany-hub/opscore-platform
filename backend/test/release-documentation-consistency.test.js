@@ -41,18 +41,17 @@ test('handover sources do not hard-code a superseded candidate ZIP digest', () =
   for (const doc of sourceDocs) assert.equal(doc.includes(oldDigest), false);
 });
 
-test('preview deployment requires manual opt-in and production deploy remains default-branch only', () => {
-  const ci = read('.gitlab-ci.yml');
-  const preview = ci.match(/deploy-preview:[\s\S]*?(?=\ndeploy-production:)/);
-  const production = ci.match(/deploy-production:[\s\S]*?(?=\n[a-zA-Z0-9_-]+:|$)/);
-
-  assert.ok(preview, 'deploy-preview job must exist');
-  assert.ok(production, 'deploy-production job must exist');
-  assert.match(preview[0], /CI_PIPELINE_SOURCE == "web"/);
-  assert.match(preview[0], /OPSC_RUN_PREVIEW_DEPLOY == "true"/);
-  assert.match(preview[0], /when: never/);
-  assert.match(production[0], /CI_PIPELINE_SOURCE == "push"/);
-  assert.match(production[0], /CI_COMMIT_BRANCH == \$CI_DEFAULT_BRANCH/);
+test('active release and deployment automation is GitHub Actions; legacy GitLab config is archived', () => {
+  const secureRelease = read('.github/workflows/opscore-secure-release.yml');
+  const vercelDeploy = read('.github/workflows/vercel-deploy.yml');
+  const historicalGitLab = read('docs/archive/legacy-gitlab-ci.yml');
+  assert.match(secureRelease, /workflow_dispatch/);
+  assert.match(secureRelease, /github\\.ref == 'refs\\/heads\\/main'/);
+  assert.match(secureRelease, /cancel-in-progress: false/);
+  assert.match(vercelDeploy, /GITHUB_SHA/);
+  assert.match(vercelDeploy, /vercel deploy --prebuilt --prod/);
+  assert.equal(fs.existsSync(path.join(root, '.gitlab-ci.yml')), false);
+  assert.match(historicalGitLab, /deploy-production:/);
 });
 
 test('buyer quickstart matches the pinned Node engine and direct PostgreSQL dependency', () => {
@@ -126,19 +125,18 @@ test('demo seed URL follows runtime port and never prints demo passwords', () =>
   assert.match(seed, /passwords are not printed/);
 });
 
-test('manual Vercel Preview requires and binds the isolated acceptance runtime database', () => {
-  const ci = read('.gitlab-ci.yml');
-  const previewStart = ci.indexOf('deploy-preview:');
-  const previewEnd = ci.indexOf('deploy-production:', previewStart);
-  assert.ok(previewStart >= 0 && previewEnd > previewStart, 'deploy-preview job must exist');
-  const preview = ci.slice(previewStart, previewEnd);
-  assert.ok(preview.includes('OPSC_PG_ACCEPTANCE_URL_REQUIRED_FOR_SAFE_PREVIEW'));
-  assert.ok(preview.includes('PREVIEW_DATABASE_RUNTIME_ROLE_MUST_BE_OPSCORE_APP'));
-  assert.ok(preview.includes('PREVIEW_DATABASE_DIRECT_CONNECTION_REQUIRED'));
-  assert.ok(preview.includes('OPSC_DATABASE_URL='));
-  assert.ok(preview.includes('DATABASE_URL='));
-  assert.ok(preview.includes('DATABASE_ENGINE=postgres'));
-  assert.ok(preview.includes('PREVIEW_RUNTIME_DATABASE_BOUND_TO_ISOLATED_ACCEPTANCE=PASS'));
+test('Vercel production deploy requires same-run disposable PostgreSQL HTTP acceptance', () => {
+  const workflow = read('.github/workflows/vercel-deploy.yml');
+  const targetValidator = read('backend/scripts/validate-postgres-acceptance-target.js');
+  const acceptanceTest = read('backend/test/postgres-commercial-acceptance-http.test.js');
+  assert.match(workflow, /OPSC_PG_ACCEPTANCE_URL/);
+  assert.match(workflow, /validate-postgres-acceptance-target\\.js/);
+  assert.match(workflow, /postgres-commercial-acceptance-http\\.test\\.js/);
+  assert.match(workflow, /acceptance_commit_mismatch/);
+  assert.match(workflow, /acceptance_pipeline_mismatch/);
+  assert.match(workflow, /productionCertification = false/);
+  assert.match(targetValidator, /OPSC_PG_ACCEPTANCE_URL_REQUIRED/);
+  assert.match(acceptanceTest, /OPSC_PG_ACCEPTANCE_URL/);
 });
 
 test('PostgreSQL buyer activation uses real-owner bootstrap and forbids SQLite demo seeding',()=>{
@@ -153,14 +151,13 @@ test('PostgreSQL buyer activation uses real-owner bootstrap and forbids SQLite d
   }
 });
 
-test('commercial acceptance CI job cannot be auto-cancelled while fixture cleanup is active', () => {
-  const ci = read('.gitlab-ci.yml');
-  const start = ci.indexOf('commercial-closure:');
-  const end = ci.indexOf('deploy-preview:', start);
-  assert.ok(start >= 0 && end > start, 'commercial-closure job must exist');
-  const closure = ci.slice(start, end);
-  assert.ok(closure.includes('interruptible: false'));
-  assert.ok(closure.includes('mandatory cleanup finally block'));
+test('release and production deploy workflows are not auto-cancelled during cleanup', () => {
+  const release = read('.github/workflows/opscore-secure-release.yml');
+  const deployment = read('.github/workflows/vercel-deploy.yml');
+  assert.match(release, /cancel-in-progress: false/);
+  assert.match(deployment, /cancel-in-progress: false/);
+  assert.match(deployment, /timeout-minutes: 30/);
+  assert.match(release, /timeout-minutes: 20/);
 });
 
 test('SQLite demo and PostgreSQL real-owner activation remain separate in buyer docs', () => {
