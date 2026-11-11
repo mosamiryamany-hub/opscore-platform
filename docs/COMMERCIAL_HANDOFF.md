@@ -38,7 +38,11 @@ Buyer-owned: cloud accounts, Neon/Vercel plans, OIDC/JWKS, email/SMS/WhatsApp/ca
 
 The current locale status is 114 selectable resources, 1 English source, 109 machine-assisted drafts, and 4 fallback locales; native-speaker review is 0/114 and production qualification is 0/114.
 
-## 5. License and commercial grant
+## 5. SBOM and provenance
+
+The tracked BOM is CycloneDX 1.6 with 491 components; 489 have component hashes and license entries. Two top-level application components still lack those entries. The release workflow creates GitHub attestations, but explicit verification of the archive provenance and CycloneDX SBOM predicate remains a closeout task. CISA's July 2026 SBOM minimum-elements guidance adds emphasis on component hashes, licenses, tool identity, and generation context; CycloneDX 1.7 is the current specification. Do not claim full SBOM conformance until the generator and verification gates are updated.
+
+## 6. License and commercial grant
 
 The bundled license is use-only. It does not grant resale, redistribution, publication, or sublicensing rights. Any broader rights require a separate written agreement signed by the rights holder. The transfer agreement must also cover source/history scope, modification, IP exclusions, third-party licenses, support, SLA, data processing, security responsibilities, warranties, liability, and termination.
 
