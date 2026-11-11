@@ -213,8 +213,16 @@ jobs:
             if (evidence.productionCertification === true) throw new Error("acceptance_must_not_claim_production_certification");
             console.log("DEPLOY_WORKSPACE_ACCEPTANCE_BIND=PASS");
           '
-      - name: Deploy to Vercel production
-        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Create staged production deployment without changing the live domain
+        id: staged_deploy
+        run: |
+          set -euo pipefail
+          output="$RUNNER_TEMP/vercel-staged-deployment-url.txt"
+          vercel deploy --prebuilt --prod --skip-domain --token=${{ secrets.VERCEL_TOKEN }} > "$output"
+          deployment_url="$(tr -d '\\r\\n' < "$output")"
+          test -n "$deployment_url"
+          echo "url=$deployment_url" >> "$GITHUB_OUTPUT"
+          echo "STAGED_PRODUCTION_DEPLOYMENT_CREATED"
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
@@ -226,3 +234,12 @@ jobs:
           OPSC_RELEASE_PACKAGE_SHA256: ${{ steps.package_fp.outputs.sha }}
           OPSC_RELEASE_PACKAGE_COMMIT: ${{ github.sha }}
           OPSC_PRODUCTION_ISOLATION_CERTIFICATION: NOT_CERTIFIED
+      - name: Verify staged production HTTP, database, security and release proofs
+        run: node scripts/production-deployment-smoke.js "${{ steps.staged_deploy.outputs.url }}" "$GITHUB_SHA"
+      - name: Promote only the verified staged deployment
+        run: vercel promote "${{ steps.staged_deploy.outputs.url }}" --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      - name: Verify production domain resolves to the exact promoted commit
+        run: node scripts/production-deployment-smoke.js "https://opscore-platform.vercel.app" "$GITHUB_SHA"
