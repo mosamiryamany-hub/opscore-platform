@@ -1,39 +1,57 @@
-# OpsCore Commercial Release Verification Snapshot
+# OpsCore Commercial Release Status — Audit Snapshot
 
-> Build-generated evidence index. This is not a security certification, warranty, or guarantee of defect-free operation.
+**Audit date:** 2026-11-11  
+**Current release decision:** BLOCKED — no current-head commercial archive is approved for delivery.  
+**Main repository:** https://github.com/mosamiryamany-hub/opscore-platform  
+**Main source commit:** `48ed78a825020986c53bd045e50c8ea852f53275`
 
-**Package version:** 0.11.62
-**CI closure:** PASS_WITH_BUYER_RESIDUALS
-**Mobile dependency audit:** {"total":12,"info":0,"low":2,"moderate":10,"high":0,"critical":0} (high/critical are release-blocking; moderate/low remain disclosed)
-**Root PostgreSQL runtime dependency audit:** {"total":0,"info":0,"low":0,"moderate":0,"high":0,"critical":0} (high/critical are release-blocking)
-**Source commit:** 5c60420f42330d7bd79623547b07eee96ef0ebd77214e9996cf53dd2d997a7e7
-**GitLab pipeline:** https://gitlab.com/mosamiryamany-hub1/opscore-commercial-final/-/pipelines/3017246123
+## Verified on Main
 
-## Evidence links
+- GitHub Actions CI run `43031885131`: 525 passed, 2 skipped, 0 failed, 0 unaccounted.
+- Production dependency audit in the run: 0 reported vulnerabilities in the audited production dependency scope. This is not a proof of zero vulnerabilities in all code or all dependency scopes.
+- Vercel deployment workflow run `43031885248` completed, but deployment readiness did not establish application health.
+- The deployed API endpoints returned HTTP 500 with `PRODUCTION_HOLD_ACTIVE`.
+- Production Vercel configuration does not contain `OPSC_PRODUCTION_HOLD`; the runtime intentionally treats the missing value as hold-active.
+- Neon Main branch `br-wispy-term-bcrqqj84`, database `opscore_acceptance`: migration ledger ends at `052_runtime_policy_function_grants.sql`; migration 053 is not applied.
+- Neon Main still lacks the required restrictive tenant guards on `feature_flags`, `safe_mode_states`, and `control_plane_runs`.
+- The `opscore_runtime` role itself is non-superuser and NOBYPASSRLS, but the actual Vercel connection role is not verified because the production connection secrets are not inspectable as plaintext.
+- Read-only catalog verification found 132 public ordinary/partitioned relations: 131 have RLS and FORCE RLS; the sole no-RLS exception is read-only PostGIS `spatial_ref_sys`. Non-PostGIS relations without RLS or FORCE RLS: 0. Migration ledger runtime privileges: 0.
+- The three control-plane tables still have only the old PERMISSIVE `opscore_tenant_boundary_guard` policy; migration 053's required restrictive policy pair is absent on Main.
+- The `opscore_runtime` role was directly checked: LOGIN=true, SUPERUSER=false, BYPASSRLS=false, CREATEROLE=false, CREATEDB=false, elevated memberships=0. This does not prove Vercel uses that role.
+- Neon project network settings remain open: public connections are not blocked, IP allowlist is empty, all six listed branches are unprotected, protected-branches-only is false, and history retention is 6 hours.
+- Vercel Firewall is enabled, but Bot Protection and active CRS rules (generic, RCE, SQLi, XSS) are LOG-only; no custom/IP rules are configured. No active attack anomalies were returned in the inspected window.
+- The live production API still returns HTTP 500 with `PRODUCTION_HOLD_ACTIVE`; Vercel reported 59 occurrences across 32 users in the last 24 hours.
 
-- GitLab repository: https://gitlab.com/mosamiryamany-hub1/opscore-commercial-final
-- Exact CI pipeline: https://gitlab.com/mosamiryamany-hub1/opscore-commercial-final/-/pipelines/3017246123
-- Vercel production health: https://opscore-commercial-final.vercel.app/api/health
-- Vercel deployment identity: https://opscore-commercial-final.vercel.app/api/verify/deployment
-- Vercel release proof: https://opscore-commercial-final.vercel.app/api/verify/release
-- Vercel database security catalog: https://opscore-commercial-final.vercel.app/api/verify/database-security
+## Separate change under review
 
-The Vercel endpoint URLs above are locations to check after deployment; this build job does not assert that those live responses passed.
+PR #22 adds staged Vercel deployment, authenticated protected-deployment smoke tests, production environment preflight, runtime-role attestation, and fail-closed production acceptance checks. Its latest CI run on the PR branch reported 553 passed, 2 skipped, 0 failed, and 0 unaccounted. The two skips are `postgres-commercial-acceptance-http.test.js` and `tenant-isolation-matrix.test.js`; both require a disposable PostgreSQL acceptance URL and remain UNVERIFIED. PR #22 is still a draft and is not part of Main.
 
-## Security and buyer boundaries
+## Commercial blockers
 
-- Production-wide tenant-isolation certification: NOT CERTIFIED.
-- Production post-deploy behavioral acceptance: NOT VERIFIED BY THIS BUILD.
-- PostgreSQL RLS results produced by this pipeline are test-scope evidence, not proof of every live application route.
-- Signed Android/iOS store artifacts, buyer-specific EAS/signing, physical-device acceptance and app-store publication remain buyer-owned.
-- External identity, messaging/carrier/call-center providers, payment, webhook, storage, KMS/HSM, maps/road-routing and cloud accounts/licenses/credentials/live tests remain buyer-owned.
-- Current mobile npm audit summary: {"total":12,"info":0,"low":2,"moderate":10,"high":0,"critical":0}; see mobile/mobile-dependency-audit.json for the complete report.
-- Root PostgreSQL runtime dependency audit summary: {"total":0,"info":0,"low":0,"moderate":0,"high":0,"critical":0}; see root-dependency-audit.json for the complete report.
-- The final ZIP SHA-256 and byte length are recorded in external dist/COMMERCIAL_RELEASE_STATEMENT.json; a ZIP cannot reliably contain its own final digest.
-- This snapshot proves only the stated facts. A successful CI status does not guarantee zero defects or instant setup in every buyer environment.
+1. Production API remains held and returns 500; do not remove the hold to make health checks green.
+2. Migration 053 must be preflighted, backed up, tested with full tenant A/B behavior, and separately approved before applying to Neon Main.
+3. The Vercel runtime must connect as `opscore_runtime`, not `opscore_app`.
+4. Production tenant-session isolation and production recovery evidence are not verified.
+5. Production-wide isolation certification remains NOT_CERTIFIED.
+6. No exact-head commercial archive and release statement have been generated for the current Main commit.
+7. Signed Android/iOS APK/AAB/IPA artifacts and physical-device acceptance are absent.
+8. Native-speaker translation review is 0/114; production-qualified locales are 0/114.
+9. External provider accounts, contracts, licenses, credentials, live acceptance, KMS/HSM, maps, telephony, payments, and webhooks remain environment/buyer responsibilities.
 
-## Buyer residuals (explicit)
+## Historical release artifacts — do not reuse
 
-- Mobile store signing and publication remain buyer-owned.
-- Human translation / locale review remains buyer-owned; machine translation is not a certified localization.
-- Licensed maps and external provider accounts remain buyer-owned.
+The tracked `docs/release/COMMERCIAL_RELEASE_STATEMENT.json` describes historical commit `5c60420f42330d7bd79623547b07eee96ef0ebd77214e9996cf53dd2d997a7e7` and GitLab pipeline `3017246123`. It is not the release statement for current Main. Preserve it as historical evidence; never copy its digest, pipeline ID, or URLs into a new release.
+
+## SBOM and supply-chain assurance
+
+- The tracked SBOM is CycloneDX 1.6 with 491 components; 489 components carry component hashes and license entries. The two top-level application components do not currently carry those component-level entries. The BOM metadata also lacks `metadata.timestamp` and `metadata.authors`.
+- Main currently creates GitHub artifact/SBOM attestations but does not yet run explicit verification commands. PR #23 adds provenance and CycloneDX predicate verification before publishing the buyer bundle; that change is not merged or executed in a current-head release run.
+- CISA's published Minimum Elements for a Software Bill of Materials guidance calls out SBOM Author, Component Hash, License, Tool Name, Timestamp, and Generation Context. CycloneDX 1.7 is the current specification. Update the generator, close component coverage, and verify the attestation before buyer delivery.
+
+## Licensing and resale
+
+The bundled proprietary license does not grant resale, redistribution, sublicensing, or multi-customer delivery rights. Any broader grant requires a separate written agreement signed by the rights holder. The commercial transfer checklist must be completed before a buyer receives broader rights.
+
+## Release rule
+
+A commercial archive may be issued only from a successful exact-head GitHub Actions secure-release workflow. Use the ZIP, release statement, SBOM, provenance attestation, SHA-256 manifest, JUnit, dependency audit reports, and buyer verification output from that same run. CI green alone is not production certification.
