@@ -15,7 +15,7 @@ function parseDeploymentUrl(raw) {
   let url;
   try { url = new URL(String(raw || '').trim()); }
   catch { throw new Error('DEPLOYMENT_URL_INVALID'); }
-  if (url.protocol !== 'https:' || !url.hostname.toLowerCase().endsWith('.vercel.app') ||
+  if (url.protocol !== 'https:' || !(url.hostname.toLowerCase() === 'opscore-platform.vercel.app' || (url.hostname.toLowerCase().startsWith('opscore-platform-') && url.hostname.toLowerCase().endsWith('.vercel.app'))) ||
       url.username || url.password || url.pathname !== '/' || url.search || url.hash) {
     throw new Error('DEPLOYMENT_URL_NOT_ALLOWED');
   }
@@ -66,7 +66,12 @@ function runVercelCurl(baseUrl, path) {
     maxBuffer: 2 * 1024 * 1024,
     env: process.env
   });
-  if (result.error || result.status !== 0) throw new Error('VERCEL_CURL_EXECUTION_FAILED');
+  if (result.error) {
+    const code = String(result.error.code || '');
+    if (['ETIMEDOUT', 'ECONNRESET', 'EPIPE'].includes(code)) throw new Error(`NETWORK_${code}`);
+    throw new Error('VERCEL_CURL_EXECUTION_FAILED');
+  }
+  if (result.status !== 0) throw new Error('VERCEL_CURL_EXECUTION_FAILED');
   return parseCurlResponse(result.stdout);
 }
 
