@@ -123,7 +123,7 @@ const lockDigest = crypto.createHash('sha256').update(
 const serial = `urn:uuid:${lockDigest.slice(0,8)}-${lockDigest.slice(8,12)}-4${lockDigest.slice(13,16)}-${((parseInt(lockDigest.slice(16,18),16)&0x3f)|0x80).toString(16).padStart(2,'0')}${lockDigest.slice(18,20)}-${lockDigest.slice(20,32)}`;
 const sourceCommit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
 const sourceHashes = {
-  repository: sourceArchiveHash('.'),
+  repository: sourceArchiveHash(),
   backend: sourceArchiveHash('backend'),
   mobile: sourceArchiveHash('mobile')
 };
