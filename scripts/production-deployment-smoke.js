@@ -57,7 +57,7 @@ function runVercelCurl(baseUrl, path) {
       'curl', targetUrl, '-sS', '-i',
       '--connect-timeout', '5',
       '--max-time', '10',
-      '-w', '\\n__OPSC_HTTP_STATUS__:%{http_code}',
+      '-w', '\n__OPSC_HTTP_STATUS__:%{http_code}',
       '--token', token,
       '--no-color'
     ];
