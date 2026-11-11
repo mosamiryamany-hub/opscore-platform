@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { parseDeploymentUrl, validateEndpoint } = require('../../scripts/production-deployment-smoke');
+const { parseDeploymentUrl, parseCurlResponse, validateEndpoint } = require('../../scripts/production-deployment-smoke');
 
 const commit = '48ed78a825020986c53bd045e50c8ea852f53275';
 
@@ -15,6 +15,14 @@ test('deployment URL accepts only HTTPS Vercel deployment hosts without paths or
     'https://opscore-platform-abc.vercel.app/path',
     'https://opscore-platform-abc.vercel.app/?token=x'
   ]) assert.throws(() => parseDeploymentUrl(value));
+});
+
+test('curl response parser extracts status, content type and body without exposing headers', () => {
+  const parsed = parseCurlResponse('HTTP/2 200\\r\\ncontent-type: application/json; charset=utf-8\\r\\ncache-control: no-store\\r\\n\\r\\n{"ok":true}\\n__OPSC_HTTP_STATUS__:200');
+  assert.equal(parsed.statusCode, 200);
+  assert.equal(parsed.contentType, 'application/json; charset=utf-8');
+  assert.deepEqual(JSON.parse(parsed.body), { ok: true });
+  assert.throws(() => parseCurlResponse('missing marker'), /CURL_STATUS_MARKER_MISSING/);
 });
 
 test('health proof requires healthy PostgreSQL service', () => {
