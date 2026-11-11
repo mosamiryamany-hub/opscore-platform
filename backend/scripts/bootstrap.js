@@ -10,6 +10,11 @@
  *   Interactive  : prompts on stdin (default)
  *   Non-interactive: supply OPSC_BOOTSTRAP_* environment variables
  *
+ * PostgreSQL connection:
+ *   OPSC_BOOTSTRAP_DATABASE_URL (separate one-time neondb_owner connection)
+ *   Never use OPSC_DATABASE_URL here and never store this URL in Vercel runtime.
+ *   After bootstrap, remove/rotate this credential.
+ *
  * Required (interactive or env):
  *   OPSC_BOOTSTRAP_ORG_NAME
  *   OPSC_BOOTSTRAP_CEO_EMAIL
@@ -29,6 +34,7 @@ const readline = require('node:readline');
 const { openDatabase } = require('../src/db-open');
 const { Store } = require('../src/store');
 const config = require('../src/config');
+const { resolveBootstrapConfig, assertBootstrapDatabaseRole } = require('../src/bootstrap-policy');
 
 function ask(question) {
   return new Promise((resolve) => {
@@ -157,7 +163,7 @@ function collectFromEnv() {
   };
 }
 
-(async () => {
+async function main() {
   try {
     assertNoDemoContamination();
 
@@ -176,10 +182,12 @@ function collectFromEnv() {
       throw new Error('CEO_PASSWORD_TOO_SHORT');
     }
 
-    const opened = openDatabase(config);
+    const bootstrapConfig = resolveBootstrapConfig(config, process.env);
+    const opened = openDatabase(bootstrapConfig);
     const db = opened.db;
     try {
-      const store = new Store(db, config);
+      assertBootstrapDatabaseRole(db, opened.engine);
+      const store = new Store(db, bootstrapConfig);
       store.pg = opened.engine === 'postgres' ? db : null;
       store.databaseEngineResolved = opened.engine;
       store.postgresRuntimeWired = opened.postgresRuntimeWired;
@@ -215,4 +223,8 @@ function collectFromEnv() {
     console.error('BOOTSTRAP_FAILED:', e.message || e);
     process.exitCode = 1;
   }
-})();
+}
+
+if (require.main === module) main();
+
+module.exports = { main, resolveBootstrapConfig, assertBootstrapDatabaseRole };
