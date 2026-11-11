@@ -232,7 +232,7 @@ ${e.stderr?.toString?.() || ''}`.trim() });
     generatedAt: new Date().toISOString(),
     nodeVersion: process.versions.node,
     declaredNodeEngine: String(pkg.engines?.node || 'UNDECLARED'),
-    tests: totalTests,
+    tests: report.totalTests,
     passed: report.passedTests,
     failed: report.failedTests,
     skipped: report.skippedTests,
