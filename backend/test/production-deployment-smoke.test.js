@@ -56,9 +56,9 @@ test('release proof must bind CI, package, HTTP acceptance, and deployment to th
   const valid = {
     status: 'PASS_WITH_BUYER_RESIDUALS',
     sourceCommit: commit,
-    ci: { status: 'PASS' },
+    ci: { status: 'PASS', commitSha: commit, pipelineId: 42949619029 },
     deployment: { status: 'identified', environment: 'production', ref: 'main' },
-    postgresHttpAcceptance: { status: 'PASS' },
+    postgresHttpAcceptance: { status: 'PASS', evidenceCommit: commit, evidencePipelineId: '42949619029' },
     packageFingerprint: { status: 'PUBLISHED', sourceCommit: commit }
   };
   assert.equal(validateEndpoint('/api/verify/release', 200, valid, commit), true);
