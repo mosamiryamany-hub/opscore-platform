@@ -40,7 +40,7 @@ The current locale status is 114 selectable resources, 1 English source, 109 mac
 
 ## 5. SBOM and provenance
 
-The tracked BOM is CycloneDX 1.6 with 491 components; 489 have component hashes and license entries. Two top-level application components still lack those entries, and the BOM metadata lacks `metadata.timestamp` and `metadata.authors`. The release workflow creates GitHub attestations, but explicit verification of the archive provenance and CycloneDX SBOM predicate remains a closeout task. CISA's published SBOM minimum-elements guidance adds emphasis on component hashes, licenses, tool identity, and generation context; CycloneDX 1.7 is the current specification. Do not claim full SBOM conformance until the generator and verification gates are updated.
+The tracked BOM is CycloneDX 1.6 with 491 components; 489 have component hashes and license entries. Two top-level application components still lack those entries, and the BOM metadata lacks `metadata.timestamp` and `metadata.authors`. Main's release workflow creates GitHub attestations but does not yet verify them. PR #23 adds provenance and CycloneDX predicate verification before publishing the buyer bundle; successful execution on the current approved head is still required. CISA's published SBOM minimum-elements guidance adds emphasis on component hashes, licenses, tool identity, and generation context; CycloneDX 1.7 is the current specification. Do not claim full SBOM conformance until the generator and verification gates are updated.
 
 ## 6. License and commercial grant
 
