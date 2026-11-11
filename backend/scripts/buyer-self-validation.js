@@ -22,7 +22,7 @@ for (const scenario of ['cascading-worker-failure','dependency-outage','worker-d
 }
 const documents = [
   'docs/commercial/BUYER_EVALUATION.md','docs/00-START-HERE/DEMO_SCRIPT.md','docs/commercial/BUYER_INSTALLATION_GUIDE.md','docs/00-START-HERE/VALUE_PROOF.md',
-  'docs/archive/BUYER_INSTALLATION_VERIFICATION.json','docs/security/SECURITY.md','docs/security/SECURITY_THREAT_MODEL.md'
+  'docs/BUYER_INSTALLATION_VERIFICATION.json','docs/security/SECURITY.md','docs/security/SECURITY_THREAT_MODEL.md'
 ];
 for (const rel of documents) add(`buyer-artifact:${rel}`, fs.existsSync(path.join(root, rel)) ? 'PASS' : 'FAIL', 'Buyer-facing evidence artifact presence.');
 const fail = results.filter(x => x.status === 'FAIL');
