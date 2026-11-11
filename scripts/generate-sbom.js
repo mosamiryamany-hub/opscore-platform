@@ -29,7 +29,7 @@ function integrityToHash(integrity) {
     const normalized = b64.replace(/-/g, '+').replace(/_/g, '/');
     const hex = Buffer.from(normalized, 'base64').toString('hex');
     if (!hex) return null;
-    return { algorithm: alg.toUpperCase(), hash: hex };
+    return { algorithm: alg.toLowerCase() === 'sha512' ? 'SHA-512' : 'SHA-256', hash: hex };
   } catch { return null; }
 }
 function licenseNames(value) {
