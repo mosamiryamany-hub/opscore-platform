@@ -29,6 +29,11 @@ function licenseNames(value) {
   }
   return [];
 }
+function packageNameFromNodeModulesPath(key) {
+  const parts = key.replace(/^node_modules\\//, '').split('/node_modules/').pop().split('/');
+  if (parts[0].startsWith('@')) return `${parts[0]}/${parts[1]}`;
+  return parts[0];
+}
 function sourceArchiveHash(prefix) {
   const args = ['archive', '--format=tar', 'HEAD'];
   if (prefix) args.push(prefix);
@@ -87,6 +92,7 @@ check('All component refs present', components.every(component => typeof compone
 
 const expectedRepoHash = { alg: 'SHA-256', content: sourceArchiveHash() };
 check('BOM root component source hash', componentHash(bom.metadata?.component || {}, expectedRepoHash));
+check('BOM root component license', componentLicenses(bom.metadata?.component || {}).includes('OpsCore Use-Only Source License'));
 const expectedAppHashes = {
   backend: { alg: 'SHA-256', content: sourceArchiveHash('backend') },
   mobile: { alg: 'SHA-256', content: sourceArchiveHash('mobile') }
@@ -105,7 +111,7 @@ for (let i = 0; i < packages.length; i++) {
   const lock = readJson(lockFiles[i]);
   for (const [key, entry] of Object.entries(lock.packages || {})) {
     if (!key.startsWith('node_modules/') || !entry.version) continue;
-    const name = entry.name || key.replace(/^node_modules\//, '').split('/node_modules/').pop().split('/').slice(0, key.replace(/^node_modules\//, '').split('/node_modules/').pop().startsWith('@') ? 2 : 1).join('/');
+    const name = entry.name || packageNameFromNodeModulesPath(key);
     const ref = purl(name, entry.version);
     const sbomComponent = componentByRef.get(ref);
     check(`locked component present: ${manifestName}/${name}@${entry.version}`, Boolean(sbomComponent));
