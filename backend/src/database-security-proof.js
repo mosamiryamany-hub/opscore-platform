@@ -121,8 +121,9 @@ WHERE n.nspname = 'public' AND c.relkind = 'r';
 `;
 
 function count(value) {
+  if (value === null || value === undefined || value === '') return null;
   const parsed = Number(value);
-  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : 0;
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null;
 }
 
 function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = process.env) {
