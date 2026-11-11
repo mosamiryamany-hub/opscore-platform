@@ -236,11 +236,11 @@ BEGIN
       );
     END IF;
 
-    match_clause := CASE fk.confmatchtype
-      WHEN 's' THEN ''
-      WHEN 'f' THEN ' MATCH FULL'
-      ELSE ''
-    END;
+    -- A one-column MATCH FULL FK and a one-column MATCH SIMPLE FK have
+    -- identical NULL behavior. Once organization_id is added, MATCH SIMPLE
+    -- is required so a nullable optional FK can remain NULL while tenant_id
+    -- stays NOT NULL.
+    match_clause := '';
 
     delete_clause := CASE fk.confdeltype
       WHEN 'a' THEN ''
