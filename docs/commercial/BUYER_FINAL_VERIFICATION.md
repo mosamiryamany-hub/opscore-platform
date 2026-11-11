@@ -26,6 +26,13 @@ The tracked SBOM is currently CycloneDX 1.6 with 491 components; 489 carry compo
 ## Current Main status at 2026-11-11
 
 Main commit: `48ed78a825020986c53bd045e50c8ea852f53275`. Main CI reported 525 passed, 2 skipped, 0 failed, 0 unaccounted. The Vercel API is currently held and returns HTTP 500; production isolation is NOT_CERTIFIED. No current-head archive is approved for delivery.
+Main commit: `48ed78a825020986c53bd045e50c8ea852f53275`. Main CI reported 525 passed, 2 skipped, 0 failed, 0 unaccounted. The Vercel API is currently held and returns HTTP 500 with `PRODUCTION_HOLD_ACTIVE`; production isolation is NOT_CERTIFIED. No current-head archive is approved for delivery.
+
+Live infrastructure caveats verified on 2026-11-11:
+- Neon Main: migration 053 is absent; control-plane tenant guards are still permissive. 132 public ordinary/partitioned relations were counted; 131 have RLS and FORCE RLS, with only read-only `spatial_ref_sys` excluded. The `opscore_runtime` role itself has no elevated attributes, but Vercel's actual database role is not verified.
+- Neon network settings: public connections are not blocked, IP allowlist is empty, all six listed branches are unprotected, and history retention is 6 hours.
+- Vercel Firewall is enabled, but active Bot Protection and CRS generic/RCE/SQLi/XSS rules are LOG-only; no custom/IP rules are configured. Do not represent this as active deny-mode protection.
+- Vercel runtime error aggregation reported 59 `PRODUCTION_HOLD_ACTIVE` occurrences across 32 users in the last 24 hours.
 
 ## Database role separation
 
