@@ -96,9 +96,9 @@ test('release proof accepts production acceptance only when the embedded JSON ha
       OPSC_RELEASE_PACKAGE_SHA256: PACKAGE_SHA,
       OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: evidence.sha256
     }), fixedNow, undefined, evidence.path);
-    assert.equal(proof.status, 'PASS_WITH_BUYER_RESIDUALS');
+    assert.equal(proof.status, 'UNVERIFIED');
     assert.equal(proof.releaseTag, null);
-    assert.equal(proof.sourceCommitIdentitySource, 'vercel-git-metadata');
+    assert.equal(proof.sourceCommitIdentitySource, 'unverified');
     assert.equal(proof.ci.status, 'PASS');
     assert.equal(proof.ci.pipelineId, 2978538209);
     assert.equal(proof.packageFingerprint.status, 'PUBLISHED');
@@ -114,7 +114,7 @@ test('release proof accepts production acceptance only when the embedded JSON ha
   }
 });
 
-test('release proof accepts and binds a SHA-256 GitLab object ID', () => {
+test('release proof accepts a SHA-256 source commit but does not certify it without embedded build identity', () => {
   const proof = createPublicReleaseProof(deploymentEnv({
     VERCEL_GIT_COMMIT_SHA: SHA256_COMMIT,
     OPSC_RELEASE_CI_COMMIT: SHA256_COMMIT,
@@ -123,16 +123,16 @@ test('release proof accepts and binds a SHA-256 GitLab object ID', () => {
     OPSC_RELEASE_PACKAGE_SHA256: PACKAGE_SHA
   }), fixedNow);
   assert.equal(proof.sourceCommit, SHA256_COMMIT);
-  assert.equal(proof.status, 'PASS_WITH_BUYER_RESIDUALS');
+  assert.equal(proof.status, 'UNVERIFIED');
   assert.equal(proof.ci.status, 'PASS');
   assert.equal(proof.ci.pipelineId, 2984327380);
   assert.equal(proof.packageFingerprint.status, 'PUBLISHED');
   assert.equal(proof.packageFingerprint.sourceCommit, SHA256_COMMIT);
-  assert.equal(proof.sourceCommitIdentitySource, 'vercel-git-metadata');
+  assert.equal(proof.sourceCommitIdentitySource, 'unverified');
   assert.equal(proof.gates.productionIsolationCertification, 'NOT_CERTIFIED');
 });
 
-test('release proof labels CLI provenance honestly when stale Vercel Git metadata is present', () => {
+test('release proof does not trust environment-only CLI provenance without embedded build identity', () => {
   const proof = createPublicReleaseProof(deploymentEnv({
     OPSC_RELEASE_DEPLOYMENT_SOURCE: 'github-actions-cli',
     OPSC_RELEASE_CI_REF: 'main',
@@ -143,8 +143,8 @@ test('release proof labels CLI provenance honestly when stale Vercel Git metadat
     OPSC_RELEASE_PACKAGE_SHA256: PACKAGE_SHA
   }), fixedNow);
   assert.equal(proof.sourceCommit, SHA256_COMMIT);
-  assert.equal(proof.status, 'PASS_WITH_BUYER_RESIDUALS');
-  assert.equal(proof.sourceCommitIdentitySource, 'github-actions-cli-assertion');
+  assert.equal(proof.status, 'UNVERIFIED');
+  assert.equal(proof.sourceCommitIdentitySource, 'unverified');
   assert.equal(proof.deployment.ref, 'main');
 });
 
