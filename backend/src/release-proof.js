@@ -186,6 +186,8 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
   );
   const acceptanceVerified = ciVerified && productionAcceptance.status === 'PASS';
   const releaseIdentityVerified = Boolean(
+    identity && identity.deploymentSource === 'github-actions-cli' && identity.packageSha256 &&
+    identity.packageCommit === sourceCommit &&
     ciVerified &&
     packageVerified &&
     deployment.status === 'identified' &&
@@ -198,7 +200,7 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
     product: 'OpsCore',
     version: '0.11.62',
     releaseTag,
-    sourceCommitIdentitySource: deployment.source.commitIdentitySource,
+    sourceCommitIdentitySource: identity ? 'github-actions-cli-assertion' : 'unverified',
     status: releaseIdentityVerified ? 'PASS_WITH_BUYER_RESIDUALS' : 'UNVERIFIED',
     sourceCommit,
     deployment: {
@@ -248,6 +250,8 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
 };
 
 function hasVerifiedProductionRelease(env = process.env, identityPath, productionAcceptanceEvidencePath, postgresHttpAcceptancePath) {
+  const identity = readEmbeddedBuildIdentity(identityPath);
+  if (!identity) return false;
   const proof = createPublicReleaseProof(env, () => new Date(), identityPath, productionAcceptanceEvidencePath, postgresHttpAcceptancePath);
   return proof.status === 'PASS_WITH_BUYER_RESIDUALS' &&
     proof.ci.status === 'PASS' &&
