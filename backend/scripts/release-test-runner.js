@@ -6,6 +6,16 @@ const os = require('node:os');
 const path = require('node:path');
 
 const root = path.resolve(__dirname, '..');
+
+function isSupportedNodeVersion(version) {
+  const match = /^v?(\\d+)\\.(\\d+)\\.(\\d+)(?:[-+].*)?$/.exec(String(version || '').trim());
+  if (!match) return false;
+  const [, majorText, minorText, patchText] = match;
+  const major = Number(majorText);
+  const minor = Number(minorText);
+  const patch = Number(patchText);
+  return major === 22 && (minor > 23 || (minor === 23 && patch >= 4));
+}
 const testDir = path.join(root, 'test');
 const perFileTimeoutMs = Number(process.env.OPSC_RELEASE_TEST_TIMEOUT_MS || 60000);
 const concurrency = Math.max(1, Math.min(16, Number(process.env.OPSC_RELEASE_TEST_CONCURRENCY || 4)));
@@ -223,8 +233,8 @@ ${e.stderr?.toString?.() || ''}`.trim() });
   const totalTests = results.reduce((n, x) => n + x.tests, 0);
   const failedTests = results.reduce((n, x) => n + x.fail + x.cancelled, 0);
   const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
-  const [major, minor, patch] = process.versions.node.split('.').map(Number);
-  const runtimeMinimumSatisfied = major === 22 && ((minor >= 16 && minor < 23) || (minor === 23 && patch >= 2));
+  const runtimeMinimumSatisfied = isSupportedNodeVersion(process.versions.node);
+  const runtimeGateFailure = runtimeMinimumSatisfied ? null : 'NODE_RUNTIME_OUTSIDE_DECLARED_ENGINE_RANGE';
   const report = {
     schemaVersion: 'opscore.release-test-runner.v2',
     release: pkg.version,
@@ -239,7 +249,8 @@ ${e.stderr?.toString?.() || ''}`.trim() });
     nodeVersion: process.versions.node,
     declaredNodeEngine: String(pkg.engines?.node || 'UNDECLARED'),
     runtimeMinimumSatisfied,
-    status: failedFiles === 0 ? 'PASS' : 'FAIL',
+    runtimeGateFailure,
+    status: failedFiles === 0 && runtimeMinimumSatisfied ? 'PASS' : 'FAIL',
     openHandleFiles: results.filter(x => x.completedWithOpenHandles).map(x => ({ file: x.file, tests: x.tests, pass: x.pass })),
     failedCases: results.filter(x => !x.ok).map(x => ({ file: x.file, tail: x.tail }))
   };
@@ -263,6 +274,9 @@ ${e.stderr?.toString?.() || ''}`.trim() });
     productionCertification: false
   }, null, 2) + '\n');
   console.log(JSON.stringify(report, null, 2));
-  process.exitCode = failedFiles === 0 ? 0 : 1;
+  process.exitCode = report.status === 'PASS' ? 0 : 1;
 }
-main().catch((e) => { console.error(e.stack || e); process.exitCode = 1; });
+
+if (require.main === module) main().catch((e) => { console.error(e.stack || e); process.exitCode = 1; });
+
+module.exports = { isSupportedNodeVersion };
