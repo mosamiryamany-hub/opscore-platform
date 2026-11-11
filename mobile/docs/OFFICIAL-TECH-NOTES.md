@@ -1,12 +1,25 @@
 # Official technology basis
 
-The project uses Expo SDK 57 / React Native 0.86. Expo's official SDK reference documents this pairing and the minimum Node.js version for SDK 57.
+## Current locked package baseline
 
-Expo's official documentation also documents `expo-secure-store` for small secrets such as tokens, `expo-sqlite` for persistent SQLite storage, `expo-location` for device geolocation, and `expo-image-picker` for camera/photo selection.
+This repository's current mobile source baseline is:
+- Expo SDK 58.0.23
+- React Native 0.88.1
+- React 19.3.0
+- React DOM 19.3.0
+- Node.js 22.23.4 (CI release runtime)
 
-URLs used during architecture selection:
-- https://docs.expo.dev/versions/latest/
-- https://docs.expo.dev/versions/v57.0.0/sdk/sqlite/
-- https://docs.expo.dev/versions/v54.0.0/sdk/securestore/
-- https://docs.expo.dev/versions/v57.0.0/sdk/location/
-- https://docs.expo.dev/versions/v57.0.0/sdk/imagepicker/
+The exact dependency versions are determined by `mobile/package-lock.json`; this note is a summary, not a replacement for the lockfile.
+
+## Official references
+
+Use version-specific Expo documentation matching the locked SDK, not the rolling `latest` documentation when evaluating installed APIs:
+- Expo SDK 58 reference: https://docs.expo.dev/versions/v58.0.0/
+- Expo SQLite: https://docs.expo.dev/versions/v58.0.0/sdk/sqlite/
+- Expo SecureStore: https://docs.expo.dev/versions/v58.0.0/sdk/securestore/
+- Expo Location: https://docs.expo.dev/versions/v58.0.0/sdk/location/
+- Expo ImagePicker: https://docs.expo.dev/versions/v58.0.0/sdk/imagepicker/
+- EAS Build: https://docs.expo.dev/build/introduction/
+- EAS Submit: https://docs.expo.dev/submit/introduction/
+
+The SDK compatibility matrix and package metadata must be rechecked whenever Expo or React Native is upgraded. A successful JavaScript export is not evidence of a signed native binary or physical-device acceptance.
