@@ -1,0 +1,95 @@
+name: Mobile SDK 58 dependency resolution
+
+on:
+  push:
+    branches:
+      - maintenance/mobile-sdk58-security-remediation-2026-11-11
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mobile-sdk58-resolution
+  cancel-in-progress: false
+
+jobs:
+  resolve-and-verify:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout maintenance branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22.23.4'
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Resolve SDK 58 dependency graph
+        working-directory: mobile
+        run: |
+          set -euo pipefail
+          npm install --no-audit --no-fund
+          npx expo install --fix
+          npm audit fix --no-fund
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+
+      - name: Verify lockfile reproducibility
+        working-directory: mobile
+        run: npm ci --ignore-scripts
+
+      - name: Verify Expo SDK dependency alignment
+        working-directory: mobile
+        run: |
+          node scripts/dependency-upgrade-gate.js
+          node scripts/release-preflight.js
+          npm run verify
+          npx expo-doctor@latest
+
+      - name: Bundle Android, iOS and web targets
+        working-directory: mobile
+        run: |
+          set -euo pipefail
+          npx expo export --platform android --output-dir "$RUNNER_TEMP/opscore-mobile-android"
+          npx expo export --platform ios --output-dir "$RUNNER_TEMP/opscore-mobile-ios"
+          npx expo export --platform web --output-dir "$RUNNER_TEMP/opscore-mobile-web"
+
+      - name: Generate and require a clean mobile audit
+        working-directory: mobile
+        run: |
+          set +e
+          npm audit --json > mobile-dependency-audit.json
+          audit_status=$?
+          set -e
+          if [ "$audit_status" -gt 1 ]; then
+            echo "MOBILE_AUDIT_EXECUTION_FAILED status=$audit_status"
+            exit "$audit_status"
+          fi
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const report = JSON.parse(fs.readFileSync('mobile-dependency-audit.json', 'utf8'));
+          const v = report.metadata?.vulnerabilities;
+          if (!v || typeof v.total !== 'number') throw new Error('MOBILE_AUDIT_REPORT_INCOMPLETE');
+          console.log('MOBILE_AUDIT_SUMMARY', JSON.stringify(v));
+          if (v.total !== 0) process.exit(1);
+          NODE
+
+      - name: Commit only validated dependency artifacts
+        run: |
+          set -euo pipefail
+          git diff --check
+          git add mobile/package.json mobile/package-lock.json mobile/mobile-dependency-audit.json
+          if git diff --cached --quiet; then
+            echo "NO_DEPENDENCY_CHANGES"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "fix(mobile): align SDK 58 dependencies and clear audit"
+          git push origin HEAD:maintenance/mobile-sdk58-security-remediation-2026-11-11
