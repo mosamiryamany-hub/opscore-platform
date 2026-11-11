@@ -71,7 +71,6 @@ test('release proof must bind CI, package, HTTP acceptance, and deployment to th
     status: 'PASS_WITH_BUYER_RESIDUALS',
     sourceCommit: commit,
     sourceCommitIdentitySource: 'github-actions-cli-assertion',
-    sourceCommitIdentitySource: 'github-actions-cli-assertion',
     ci: { status: 'PASS', commitSha: commit, pipelineId: 42949619029 },
     deployment: { status: 'identified', environment: 'production', ref: 'main' },
     postgresHttpAcceptance: { status: 'PASS', evidenceCommit: commit, evidencePipelineId: '42949619029' },
@@ -94,6 +93,7 @@ test('full staged smoke requires every endpoint to match the same release identi
   const release = {
     status: 'PASS_WITH_BUYER_RESIDUALS',
     sourceCommit: commit,
+    sourceCommitIdentitySource: 'github-actions-cli-assertion',
     ci: { status: 'PASS', commitSha: commit, pipelineId },
     deployment: { status: 'identified', environment: 'production', ref: 'main' },
     postgresHttpAcceptance: { status: 'PASS', evidenceCommit: commit, evidencePipelineId: String(pipelineId) },
