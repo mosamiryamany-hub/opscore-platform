@@ -122,6 +122,21 @@ test('demo seed URL follows runtime port and never prints demo passwords', () =>
   assert.match(seed, /passwords are not printed/);
 });
 
+test('secure release verifies signed provenance and CycloneDX SBOM before publishing the buyer evidence bundle', () => {
+  const secure = read('.github/workflows/opscore-secure-release.yml');
+  const attest = secure.indexOf('Generate release provenance attestation');
+  const verifyProvenance = secure.indexOf('Verify signed release provenance');
+  const verifySbom = secure.indexOf('Verify signed CycloneDX SBOM attestation');
+  const upload = secure.indexOf('Upload release and exact-run evidence');
+  assert.ok(attest >= 0 && verifyProvenance > attest && verifySbom > verifyProvenance && upload > verifySbom);
+  assert.match(secure, /gh attestation verify .*--signer-workflow/);
+  assert.match(secure, /--predicate-type https:\/\/cyclonedx\.org\/bom/);
+  assert.match(secure, /docs\/sbom\/opscore-v0\.11\.62\.cyclonedx\.json/);
+  assert.match(secure, /backend\/junit\.xml/);
+  assert.match(secure, /COMMERCIAL_CLOSURE_GATE_RESULT\.json/);
+  assert.match(secure, /BUYER_INSTALLATION_VERIFICATION\.json/);
+});
+
 test('Vercel production workflow binds deployment to the main project and production environment', () => {
   const deploy = read('.github/workflows/vercel-deploy.yml');
   assert.match(deploy, /branches:\s*\[main\]/);
