@@ -36,10 +36,11 @@ No Neon Main schema/data changes were made during this audit.
 ## 4. Restore Vercel service through a gated release
 
 - Resolve the missing production environment prerequisite without printing secret values.
-- Confirm `OPSC_RELEASE_VERIFIED=true`, `OPSC_PRODUCTION_HOLD=false`, `DATABASE_ENGINE=postgres`, and `OPSC_DATABASE_URL` is the restricted runtime connection.
+- Confirm `OPSC_RELEASE_VERIFIED=true`, `OPSC_PRODUCTION_HOLD=false`, `DATABASE_ENGINE=postgres`, and `OPSC_DATABASE_URL` resolves to the restricted `opscore_runtime` role. Environment flags alone are insufficient: the runtime release verifier must validate embedded GitHub Actions identity, package fingerprint, same-run PostgreSQL HTTP acceptance, and the hash-verified production acceptance JSON bound to the exact source commit and pipeline.
 - Run the staged deployment workflow: `--skip-domain`, authenticated protected-deployment HTTP smoke tests, database/security/release proofs, and production-domain verification.
 - Promote only after production tenant-session isolation, production recovery, and explicit certification evidence all pass.
-- PR #22 adds these gates but remains a draft; it must be reviewed and tested before merge.
+- The PostgreSQL HTTP acceptance and Tenant A/B matrix tests are not considered passed when skipped for a missing disposable database URL; obtain an approved disposable URL and run both before commercial closure.
+- PR #24 is the integrated candidate for runtime/bootstrap separation and staged release gating. It must pass fresh combined-head CI before merge. If production preflight fails, the workflow must record BLOCKED and skip build/stage/promote rather than changing the live domain or failing Main.
 
 ## 5. Complete production acceptance
 
