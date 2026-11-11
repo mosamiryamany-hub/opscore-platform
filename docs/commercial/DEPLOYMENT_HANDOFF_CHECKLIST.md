@@ -1,20 +1,24 @@
-# OpsCore v0.11.61 — Deployment Handoff Checklist
+# OpsCore v0.11.62 — Deployment Handoff Checklist
 
-Use this checklist to record buyer-side environment acceptance. Do not mark an item complete without actual evidence.
+Use this checklist to record target-environment acceptance. Do not mark an item complete without current evidence from the actual target.
 
-| Area | Required buyer evidence | Status |
+| Area | Required evidence | Current status |
 |---|---|---|
-| Application | Build/start succeeds in target environment | UNVERIFIED |
-| Database | PostgreSQL connection, migrations and isolation tests | UNVERIFIED |
-| Identity | OIDC/JWKS or selected authentication boundary tested | UNVERIFIED |
-| TLS | Valid certificates and secure ingress configuration | UNVERIFIED |
-| Secrets | Secret injection, rotation and log review | UNVERIFIED |
-| Network | Firewall/segmentation/allowlists reviewed | UNVERIFIED |
-| Rate limiting | Shared/distributed enforcement tested for deployment topology | UNVERIFIED |
-| Observability | Central logs, metrics and alerts verified | UNVERIFIED |
-| External services | Provider authentication, retries and failure handling tested | UNVERIFIED |
-| Backup | Restore performed in target environment | UNVERIFIED |
-| Mobile | Physical-device testing and signing completed | UNVERIFIED |
-| Release provenance | Hosted CI build/attestation verified if used | UNVERIFIED |
+| Exact source | GitHub Actions archive, commit, run ID, SHA-256, provenance verification | NOT_ISSUED |
+| Application | Extracted install, start, and route smoke tests | UNVERIFIED |
+| Database | PostgreSQL connection, migrations, and catalog verification | UNVERIFIED |
+| Runtime role | Actual connection is `opscore_runtime`, NOBYPASSRLS, no elevated membership | UNVERIFIED |
+| Tenant isolation | Tenant A/B session isolation across all tenant-owned tables and API routes | UNVERIFIED |
+| Identity | OIDC/JWKS, session lifecycle, password reset, and recovery | UNVERIFIED |
+| TLS | Valid origin certificates and secure ingress configuration | UNVERIFIED |
+| Secrets | Separate runtime/migration/bootstrap secrets, rotation, and log review | UNVERIFIED |
+| Network | Firewall rules, WAF block-mode policy, segmentation, and allowlists | UNVERIFIED |
+| Rate limiting | Shared/distributed enforcement across deployment topology | UNVERIFIED |
+| Observability | Central logs, metrics, alerts, and on-call ownership | UNVERIFIED |
+| External services | Provider authentication, retries, webhooks, and failure handling | UNVERIFIED |
+| Backup | Encrypted backup and restore drill with measured RPO/RTO | UNVERIFIED |
+| Mobile | Signed Android/iOS builds and physical-device testing | BUYER_OWNED |
+| Localization | Native-speaker/domain review and approval | BUYER_OWNED |
+| Commercial rights | Signed transfer/license, resale rights if applicable, support and SLA | NOT_SIGNED |
 
-**Rule:** `UNVERIFIED` means not tested in the buyer environment; it is not a claim of failure.
+**Rule:** UNVERIFIED means not tested in the target environment; it is not a claim of failure. Production certification remains NOT_ESTABLISHED until all seller-owned production gates have exact evidence.
