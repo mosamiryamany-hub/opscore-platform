@@ -135,17 +135,6 @@ async function main() {
     const userB = `user_b_${crypto.randomBytes(4).toString('hex')}`;
     await client.query('INSERT INTO organizations(id) VALUES ($1),($2)', [orgA, orgB]);
     await client.query('INSERT INTO users(id) VALUES ($1),($2)', [userA, userB]);
-    const flagA = `feature_flag_a_${crypto.randomBytes(4).toString('hex')}`;
-    const safeModeA = `safe_mode_a_${crypto.randomBytes(4).toString('hex')}`;
-    await client.query(
-      'INSERT INTO feature_flags(id,organization_id,flag_key,enabled,reason,updated_by,created_at,updated_at) VALUES ($1,$2,$3,1,$4,$5,$6,$6)',
-      [flagA, orgA, 'test-flag', 'isolated RLS fixture', userA, new Date().toISOString()]
-    );
-    await client.query(
-      'INSERT INTO safe_mode_states(organization_id,enabled,reason,updated_by,updated_at) VALUES ($1,1,$2,$3,$4)',
-      [orgA, 'isolated RLS fixture', userA, new Date().toISOString()]
-    );
-
 
     // Exercise the actual runtime login-role contract separately from opscore_app.
     const runtimeRole = (await client.query("SELECT rolsuper, rolbypassrls FROM pg_roles WHERE rolname='opscore_runtime'")).rows[0];
@@ -206,6 +195,18 @@ async function main() {
     });
     if (controlPolicyResults.some(row => row.status !== 'PASS')) throw new Error('CONTROL_PLANE_RESTRICTIVE_POLICY_CATALOG_INVALID');
     checks.push({ id: 'control-plane-policy-catalog', status: 'PASS', tables: controlPolicyResults });
+
+    const flagA = `feature_flag_a_${crypto.randomBytes(4).toString('hex')}`;
+    const safeModeA = `safe_mode_a_${crypto.randomBytes(4).toString('hex')}`;
+    await client.query(
+      'INSERT INTO feature_flags(id,organization_id,flag_key,enabled,reason,updated_by,created_at,updated_at) VALUES ($1,$2,$3,1,$4,$5,$6,$6)',
+      [flagA, orgA, 'test-flag', 'isolated RLS fixture', userA, new Date().toISOString()]
+    );
+    await client.query(
+      'INSERT INTO safe_mode_states(organization_id,enabled,reason,updated_by,updated_at) VALUES ($1,1,$2,$3,$4)',
+      [orgA, 'isolated RLS fixture', userA, new Date().toISOString()]
+    );
+
 
     await client.query('CREATE TABLE appointments (id text PRIMARY KEY, organization_id text NOT NULL, technician_id text NOT NULL)');
     await client.query('CREATE TABLE work_orders (id text PRIMARY KEY, organization_id text NOT NULL, assigned_to text, created_by text)');
