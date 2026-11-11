@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { parseDeploymentUrl, parseCurlResponse, validateEndpoint } = require('../../scripts/production-deployment-smoke');
+const { parseDeploymentUrl, parseCurlResponse, validateEndpoint, runSmoke } = require('../../scripts/production-deployment-smoke');
 
 const commit = '48ed78a825020986c53bd045e50c8ea852f53275';
 
@@ -74,6 +74,49 @@ test('release proof must bind CI, package, HTTP acceptance, and deployment to th
   assert.throws(() => validateEndpoint('/api/verify/release', 200, {
     ...valid, packageFingerprint: { status: 'PUBLISHED', sourceCommit: 'f'.repeat(40) }
   }, commit), /RELEASE_EVIDENCE_NOT_BOUND_TO_DEPLOYMENT/);
+});
+
+test('full staged smoke requires every endpoint to match the same release identity', async () => {
+  const requested = [];
+  const pipelineId = 42949619029;
+  const release = {
+    status: 'PASS_WITH_BUYER_RESIDUALS',
+    sourceCommit: commit,
+    ci: { status: 'PASS', commitSha: commit, pipelineId },
+    deployment: { status: 'identified', environment: 'production', ref: 'main' },
+    postgresHttpAcceptance: { status: 'PASS', evidenceCommit: commit, evidencePipelineId: String(pipelineId) },
+    packageFingerprint: { status: 'PUBLISHED', sourceCommit: commit }
+  };
+  const bodies = {
+    '/api/health': { ok: true, status: 'healthy', engine: 'postgres' },
+    '/api/verify/deployment': { status: 'identified', source: { commitSha: commit, ref: 'main' }, deployment: { environment: 'production', id: 'dpl_123abc' } },
+    '/api/verify/database': { ok: true, engine: 'postgres' },
+    '/api/verify/database-security': {
+      status: 'IDENTITY_PLANE_RLS_ENFORCED',
+      controlPlaneTenantBoundaryPolicies: { status: 'CATALOG_ENFORCED', validatedTableCount: 3 },
+      controlPlaneRuntimePrivileges: { status: 'LEAST_PRIVILEGE_PRESENT', privilegeGapCount: 0 }
+    },
+    '/api/verify/release': release
+  };
+  const result = await runSmoke('https://opscore-platform-abc.vercel.app', commit, async (_base, path) => {
+    requested.push(path);
+    return path === '/'
+      ? { statusCode: 200, contentType: 'text/html; charset=utf-8', body: '<html></html>' }
+      : { statusCode: 200, contentType: 'application/json', body: JSON.stringify(bodies[path]) };
+  });
+  assert.equal(result.passed, true);
+  assert.deepEqual(requested, ['/', '/api/health', '/api/verify/deployment', '/api/verify/database', '/api/verify/database-security', '/api/verify/release']);
+  assert.equal(result.checks.length, 6);
+});
+
+test('full staged smoke fails closed when one live proof endpoint is unavailable', async () => {
+  const result = await runSmoke('https://opscore-platform-abc.vercel.app', commit, async (_base, path) => ({
+    statusCode: path === '/api/verify/database-security' ? 503 : 200,
+    contentType: 'application/json',
+    body: JSON.stringify({ ok: true, status: 'healthy', engine: 'postgres' })
+  }));
+  assert.equal(result.passed, false);
+  assert.equal(result.checks.find(x => x.path === '/api/verify/database-security').status, 'FAIL');
 });
 
 test('root page must return HTML and unsupported paths fail closed', () => {
