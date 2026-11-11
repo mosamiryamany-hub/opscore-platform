@@ -1,6 +1,6 @@
 # OpsCore Commercial Closure Status — 2026-11-11
 
-**Current Main:** `48ed78a825020986c53bd045e50c8ea852f53275`  
+**Source commit on Main:** `48ed78a825020986c53bd045e50c8ea852f53275`  
 **Commercial release decision:** BLOCKED — no current-head buyer archive approved.  
 **Production certification:** NOT_ESTABLISHED.  
 **Production isolation certification:** NOT_CERTIFIED.
