@@ -183,7 +183,7 @@ jobs:
       - name: Generate release provenance attestation
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
-          subject-path: "$RUNNER_TEMP/OpsCore-release.zip"
+          subject-path: "${{ runner.temp }}/OpsCore-release.zip"
           sbom-path: docs/sbom/opscore-v0.11.62.cyclonedx.json
 
       - name: Upload release and exact-run evidence
