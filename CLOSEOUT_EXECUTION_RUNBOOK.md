@@ -1,6 +1,6 @@
 # OpsCore Commercial Closeout Execution Runbook — 2026-11-11
 
-**Main:** `48ed78a825020986c53bd045e50c8ea852f53275`  
+**Source commit on Main:** `48ed78a825020986c53bd045e50c8ea852f53275`  
 **Current decision:** BLOCKED — no current-head archive approved for buyer delivery.  
 **Production certification:** NOT_ESTABLISHED.  
 **Production isolation:** NOT_CERTIFIED.
@@ -68,6 +68,12 @@ Run the GitHub Actions `OpsCore secure release` workflow on the exact approved M
 - The bundled license currently prohibits resale and redistribution; do not advertise resale rights until the separate grant is signed.
 - Disclose mobile signing, native-speaker translation review, external providers, and buyer infrastructure responsibilities.
 
-## 8. Final acceptance rule
+## 8. Buyer-owned residuals
+
+- Android/iOS signing, native APK/AAB/IPA builds, physical-device QA, developer accounts, and app-store submission.
+- Native-speaker/domain review of all 114 locale resources; current native-speaker review is 0/114 and production qualification is 0/114.
+- External identity, telephony/carrier, messaging, payments, webhooks, object storage, KMS/HSM, maps/routing, cloud accounts, licenses, quotas, and live acceptance.
+
+## 9. Final acceptance rule
 
 Commercial closeout is complete only when the exact-head archive and its evidence are reproducible, production safety gates pass, buyer residuals are assigned and accepted, and commercial rights are signed. No absolute “zero vulnerabilities” or “zero defects” claim is supportable.
