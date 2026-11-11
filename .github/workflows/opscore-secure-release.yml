@@ -93,6 +93,10 @@ jobs:
         working-directory: backend
         run: npm run recovery:gate
 
+      - name: Buyer installation verification (produces real evidence artifact)
+        working-directory: backend
+        run: npm run verify:installation
+
       - name: Buyer self-validation
         working-directory: backend
         run: npm run buyer:self-validation

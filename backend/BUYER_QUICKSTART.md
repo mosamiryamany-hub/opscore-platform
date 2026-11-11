@@ -48,12 +48,12 @@ A PASS applies only to the checks that the command actually runs. It does not ce
 
 ## 3. PostgreSQL installation and first real owner
 
-Use a dedicated acceptance database first. The application runtime uses `opscore_app`; schema migrations use the separate owner account:
+Use a dedicated acceptance database first. The application runtime uses the least-privilege `opscore_runtime` role (no BYPASSRLS, no CREATEROLE, no CREATEDB); schema migrations use the separate owner account:
 
 ```bash
 cd backend
 export DATABASE_ENGINE=postgres
-export OPSC_DATABASE_URL='postgresql://opscore_app:REPLACE_LOCALLY@HOST/DATABASE?sslmode=require'
+export OPSC_DATABASE_URL='postgresql://opscore_runtime:REPLACE_LOCALLY@HOST/DATABASE?sslmode=require'
 export OPSC_MIGRATION_DATABASE_URL='postgresql://neondb_owner:REPLACE_LOCALLY@HOST/DATABASE?sslmode=require'
 export OPSC_MIGRATION_CONFIRM_DATABASE='DATABASE'
 
