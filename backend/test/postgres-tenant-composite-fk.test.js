@@ -18,10 +18,13 @@ test('tenant FK migration installs and validates a composite key before removing
   assert.match(migration, /TENANT_FK_UNPAIRED_REFERENCES_REMAIN/);
 });
 
-test('tenant FK migration preserves nullable optional references without nulling organization_id', () => {
+test('tenant FK migration preserves nullable SET NULL and fails closed on unverified actions', () => {
   assert.match(migration, /ON DELETE SET NULL \(%I\)/i);
-  assert.match(migration, /ON DELETE SET DEFAULT \(%I\)/i);
-  assert.match(migration, /ON UPDATE SET NULL\/DEFAULT/);
+  assert.match(migration, /IF fk\.confupdtype <> 'a'/);
+  assert.match(migration, /IF fk\.confmatchtype <> 's'/);
+  assert.match(migration, /IF fk\.condeferrable OR fk\.condeferred/);
+  assert.doesNotMatch(migration, /ON DELETE SET DEFAULT/);
+  assert.doesNotMatch(migration, /ON UPDATE (?:CASCADE|RESTRICT|SET NULL|SET DEFAULT)/i);
   assert.match(migration, /array_length\(fk\.conkey, 1\) = 2/);
 });
 
