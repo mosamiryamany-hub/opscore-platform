@@ -11,6 +11,7 @@ test('deployment URL accepts only HTTPS Vercel deployment hosts without paths or
   for (const value of [
     'http://opscore-platform-abc.vercel.app',
     'https://example.com',
+    'https://other-project-abc.vercel.app',
     'https://user:pass@opscore-platform-abc.vercel.app',
     'https://opscore-platform-abc.vercel.app/path',
     'https://opscore-platform-abc.vercel.app/?token=x'
