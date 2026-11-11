@@ -153,8 +153,26 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
     !runtimeRoleSuperuser && !runtimeRoleBypassRls && !runtimeRoleCreateRole &&
     !runtimeRoleCreateDatabase && runtimeRoleElevatedMembershipCount === 0;
 
+  const catalogCountsValid = [
+    publicTableCount,
+    rlsEnabledTableCount,
+    rlsForcedTableCount,
+    tablesWithoutRlsCount,
+    nonPostgisTablesWithoutRlsCount,
+    nonPostgisTablesWithoutForceRlsCount,
+    spatialRefSysRuntimeWriteAccessCount,
+    migrationLedgerTableCount,
+    migrationLedgerWithoutForceRlsCount,
+    migrationLedgerRuntimePrivilegesCount,
+    identityTablesWithoutRlsWithRuntimeAccessCount,
+    controlPlaneTableCount,
+    controlPlanePolicyValidTableCount,
+    controlPlaneRuntimePrivilegeGapCount,
+    runtimeRoleElevatedMembershipCount
+  ].every(Number.isSafeInteger);
   const identityPlaneHardened = identityTablesWithoutRlsWithRuntimeAccessCount === 0;
   const catalogAcceptable =
+    catalogCountsValid &&
     nonPostgisTablesWithoutRlsCount === 0 &&
     nonPostgisTablesWithoutForceRlsCount === 0 &&
     spatialRefSysRuntimeWriteAccessCount === 0 &&
