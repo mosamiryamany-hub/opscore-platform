@@ -70,9 +70,9 @@ test('installation verification enforces the exact supported Node 22 range', () 
   const verifier = read('backend/scripts/installation-verification.js');
   const preflight = read('backend/scripts/buyer-preflight.js');
   const engine = read('backend/scripts/node-engine.js');
-  assert.match(verifier, /satisfiesNodeEngine\\(process\\.version,\\s*backendPackage\\.engines\\?\\.node\\)/);
-  assert.match(engine, /maximumExclusive/);
-  assert.match(engine, /compareVersions\\(v,r\\.maximumExclusive\\)<0/);
+  assert.ok(verifier.includes('satisfiesNodeEngine(process.version, backendPackage.engines?.node)'));
+  assert.ok(engine.includes('maximumExclusive'));
+  assert.ok(engine.includes('compareVersions(v,r.maximumExclusive)<0'));
   assert.ok(verifier.includes('backendPackage.engines?.node ==='));
   assert.ok(preflight.includes('const hardFailures = checks.filter(x => !x.pass);'));
 });
