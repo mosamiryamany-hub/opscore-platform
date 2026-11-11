@@ -219,7 +219,7 @@ jobs:
           set -euo pipefail
           output="$RUNNER_TEMP/vercel-staged-deployment-url.txt"
           vercel deploy --prebuilt --prod --skip-domain --token=${{ secrets.VERCEL_TOKEN }} > "$output"
-          deployment_url="$(tr -d '\\r\\n' < "$output")"
+          deployment_url="$(cat "$output")"
           test -n "$deployment_url"
           echo "url=$deployment_url" >> "$GITHUB_OUTPUT"
           echo "STAGED_PRODUCTION_DEPLOYMENT_CREATED"
