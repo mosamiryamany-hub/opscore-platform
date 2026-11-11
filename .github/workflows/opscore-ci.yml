@@ -56,6 +56,12 @@ jobs:
       - name: Security dependency audit
         working-directory: backend
         run: npm audit --omit=dev --audit-level=high
+      - name: Install mobile
+        working-directory: mobile
+        run: npm ci --ignore-scripts
+      - name: Mobile source and contract verification
+        working-directory: mobile
+        run: npm run verify
       - name: Mobile dependency audit
         working-directory: mobile
         run: npm audit --omit=dev --audit-level=high
