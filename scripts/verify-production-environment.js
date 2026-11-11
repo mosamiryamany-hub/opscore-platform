@@ -5,6 +5,9 @@ function verifyProductionEnvironment(env = process.env) {
     { name: 'NODE_ENV', ok: String(env.NODE_ENV || '').trim().toLowerCase() === 'production' },
     { name: 'DATABASE_ENGINE', ok: String(env.DATABASE_ENGINE || '').trim().toLowerCase() === 'postgres' },
     { name: 'OPSC_DATABASE_URL', ok: typeof env.OPSC_DATABASE_URL === 'string' && env.OPSC_DATABASE_URL.trim().length > 0 },
+    { name: 'DATABASE_URL', ok: !env.DATABASE_URL || env.DATABASE_URL === env.OPSC_DATABASE_URL },
+    { name: 'OPSC_MIGRATION_DATABASE_URL', ok: !env.OPSC_MIGRATION_DATABASE_URL },
+    { name: 'OPSC_BOOTSTRAP_DATABASE_URL', ok: !env.OPSC_BOOTSTRAP_DATABASE_URL },
     { name: 'OPSC_PRODUCTION_HOLD', ok: String(env.OPSC_PRODUCTION_HOLD || '').trim().toLowerCase() === 'false' },
     { name: 'OPSC_RELEASE_VERIFIED', ok: String(env.OPSC_RELEASE_VERIFIED || '').trim().toLowerCase() === 'true' }
   ];
