@@ -56,6 +56,7 @@ test('unprotected non-PostGIS table is rejected even when total RLS gap count is
     spatial_ref_sys_runtime_write_access_count:0,migration_ledger_table_count:1,
     migration_ledger_without_force_rls_count:0,migration_ledger_runtime_privileges_count:0,
     identity_tables_without_rls_with_runtime_access_count:0,
+    ...SAFE_RUNTIME_ROLE,
     control_plane_table_count:3,control_plane_runtime_privilege_gap_count:0, control_plane_policy_valid_table_count: 3
   },fixedTime);
   assert.equal(proof.status,'REVIEW_REQUIRED');
