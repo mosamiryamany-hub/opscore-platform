@@ -5,12 +5,11 @@
 -- single-column FK whose source and target tables both carry organization_id:
 --   (child_fk, organization_id) -> (parent.id, parent.organization_id)
 --
--- It preserves delete/update actions, MATCH semantics, and deferrability.
--- For ON DELETE SET NULL / SET DEFAULT only the nullable FK column is changed;
--- organization_id is deliberately retained. New FKs are validated before the
--- old constraints are dropped, so there is no integrity gap during migration.
---
--- Unsupported or ambiguous catalog shapes fail closed. No row is rewritten.
+-- It preserves the observed ON DELETE CASCADE / RESTRICT / SET NULL actions.
+-- For SET NULL only the nullable FK column is changed; organization_id is
+-- deliberately retained. The inspected schema has MATCH SIMPLE, UPDATE NO
+-- ACTION and non-deferrable constraints; every other action/shape fails closed.
+-- New FKs are validated before old constraints are dropped. No row is rewritten.
 
 DO $migration$
 DECLARE
@@ -155,19 +154,20 @@ BEGIN
       RAISE EXCEPTION 'TENANT_FK_ENDPOINT_SHAPE_UNSUPPORTED:%', fk.conname;
     END IF;
 
-    IF fk.confdeltype NOT IN ('a', 'r', 'c', 'n', 'd') THEN
+    IF fk.confdeltype NOT IN ('r', 'c', 'n') THEN
       RAISE EXCEPTION 'TENANT_FK_DELETE_ACTION_UNSUPPORTED:%', fk.conname;
     END IF;
-    IF fk.confupdtype NOT IN ('a', 'r', 'c') THEN
-      -- PostgreSQL does not allow a column subset for ON UPDATE SET NULL/DEFAULT.
-      -- Applying those actions to the composite key would clear/change the tenant.
-      RAISE EXCEPTION 'TENANT_FK_UPDATE_ACTION_UNSAFE:%', fk.conname;
+    IF fk.confupdtype <> 'a' THEN
+      RAISE EXCEPTION 'TENANT_FK_UPDATE_ACTION_NOT_IN_VERIFIED_SCHEMA:%', fk.conname;
     END IF;
-    IF fk.confmatchtype NOT IN ('s', 'f') THEN
-      RAISE EXCEPTION 'TENANT_FK_MATCH_ACTION_UNSUPPORTED:%', fk.conname;
+    IF fk.confmatchtype <> 's' THEN
+      RAISE EXCEPTION 'TENANT_FK_MATCH_ACTION_NOT_IN_VERIFIED_SCHEMA:%', fk.conname;
     END IF;
-    IF fk.confdeltype IN ('n', 'd') AND source_fk.attnotnull THEN
-      RAISE EXCEPTION 'TENANT_FK_NULL_ACTION_ON_NOT_NULL_COLUMN:%', fk.conname;
+    IF fk.condeferrable OR fk.condeferred THEN
+      RAISE EXCEPTION 'TENANT_FK_DEFERRABILITY_NOT_IN_VERIFIED_SCHEMA:%', fk.conname;
+    END IF;
+    IF fk.confdeltype = 'n' AND source_fk.attnotnull THEN
+      RAISE EXCEPTION 'TENANT_FK_SET_NULL_ON_NOT_NULL_COLUMN:%', fk.conname;
     END IF;
 
     -- PostgreSQL requires an exact unique key on the referenced column pair.
@@ -244,27 +244,14 @@ BEGIN
     -- is required so a nullable optional FK can remain NULL while tenant_id
     -- stays NOT NULL.
     match_clause := '';
+    update_clause := '';
+    deferrability_clause := ' NOT DEFERRABLE';
 
     delete_clause := CASE fk.confdeltype
-      WHEN 'a' THEN ''
       WHEN 'r' THEN ' ON DELETE RESTRICT'
       WHEN 'c' THEN ' ON DELETE CASCADE'
       WHEN 'n' THEN format(' ON DELETE SET NULL (%I)', source_fk.attname)
-      WHEN 'd' THEN format(' ON DELETE SET DEFAULT (%I)', source_fk.attname)
       ELSE ''
-    END;
-
-    update_clause := CASE fk.confupdtype
-      WHEN 'a' THEN ''
-      WHEN 'r' THEN ' ON UPDATE RESTRICT'
-      WHEN 'c' THEN ' ON UPDATE CASCADE'
-      ELSE ''
-    END;
-
-    deferrability_clause := CASE
-      WHEN fk.condeferrable AND fk.condeferred THEN ' DEFERRABLE INITIALLY DEFERRED'
-      WHEN fk.condeferrable THEN ' DEFERRABLE INITIALLY IMMEDIATE'
-      ELSE ' NOT DEFERRABLE'
     END;
 
     temporary_constraint_name := 'opscore_tenant_ref_fk_' ||
