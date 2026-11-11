@@ -51,7 +51,7 @@ The Vercel deployment workflow is `.github/workflows/vercel-deploy.yml`. A READY
 
 ## PR verification boundary
 
-PR #22 adds staged production deployment, authenticated HTTP smoke checks, explicit production environment preflight, runtime-role attestation, and production tenant/recovery acceptance requirements. Its latest CI run on the PR branch reported 540 passed, 2 skipped, 0 failed, and 0 unaccounted; it is still a draft and not merged into Main.
+PR #22 adds staged production deployment, authenticated HTTP smoke checks, explicit production environment preflight, runtime-role attestation, and production tenant/recovery acceptance requirements. Its latest CI run on the PR branch reported 550 passed, 2 skipped, 0 failed, and 0 unaccounted. The two skips are `postgres-commercial-acceptance-http.test.js` and `tenant-isolation-matrix.test.js`; both require a disposable PostgreSQL acceptance URL and remain UNVERIFIED. PR #22 is still a draft and not merged into Main.
 
 ## SBOM and supply-chain verification
 
