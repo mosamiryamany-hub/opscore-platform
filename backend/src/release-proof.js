@@ -1,6 +1,7 @@
 'use strict';
 
 const { createDeploymentProof } = require('./deployment-proof');
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -29,8 +30,7 @@ function normalizedGithubRunUrl(value, repository, pipelineId) {
   return url.toString();
 }
 
-function readCurrentPostgresHttpAcceptance(env) {
-  const filePath = path.join(__dirname, '..', 'docs', 'verification', 'POSTGRES_HTTP_ACCEPTANCE_RESULT.json');
+function readCurrentPostgresHttpAcceptance(env, filePath = path.join(__dirname, '..', 'docs', 'verification', 'POSTGRES_HTTP_ACCEPTANCE_RESULT.json')) {
   let evidence;
   try {
     evidence = JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -67,6 +67,65 @@ function readCurrentPostgresHttpAcceptance(env) {
   };
 }
 
+function readProductionAcceptanceEvidence(env, expectedCommit, expectedPipelineId, evidencePath = path.join(__dirname, '..', 'docs', 'verification', 'PRODUCTION_ACCEPTANCE_RESULT.json'), now = () => new Date()) {
+  let raw;
+  let evidence;
+  try {
+    raw = fs.readFileSync(evidencePath, 'utf8');
+    evidence = JSON.parse(raw);
+  } catch {
+    return { status: 'NOT_VERIFIED', evidenceSha256: null, sourceCommit: null, pipelineId: null, testedAt: null };
+  }
+
+  const evidenceSha256 = crypto.createHash('sha256').update(raw, 'utf8').digest('hex');
+  const publishedSha = String(env.OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256 || '').trim().toLowerCase();
+  const sourceCommit = normalizedSha(evidence.sourceCommit);
+  const pipelineId = String(evidence.pipelineId || '').trim();
+  const testedAt = String(evidence.testedAt || '').trim();
+  const testedDate = testedAt ? new Date(testedAt) : null;
+  const checks = evidence.checks && typeof evidence.checks === 'object' ? evidence.checks : {};
+  const role = evidence.runtimeRole && typeof evidence.runtimeRole === 'object' ? evidence.runtimeRole : {};
+  const tableCoverage = evidence.tenantTableCoverage && typeof evidence.tenantTableCoverage === 'object' ? evidence.tenantTableCoverage : {};
+  const routeCoverage = evidence.apiRouteCoverage && typeof evidence.apiRouteCoverage === 'object' ? evidence.apiRouteCoverage : {};
+  const nowMs = now().getTime();
+  const testedMs = testedDate ? testedDate.getTime() : NaN;
+  const roleSafe = role.name === 'opscore_runtime' &&
+    role.login === true && role.superuser === false && role.bypassRls === false &&
+    role.createRole === false && role.createDatabase === false &&
+    role.elevatedMembershipCount === 0;
+  const coverageSafe = tableCoverage.status === 'PASS' &&
+    Number.isSafeInteger(tableCoverage.totalTables) && tableCoverage.totalTables > 0 &&
+    tableCoverage.testedTables === tableCoverage.totalTables &&
+    routeCoverage.status === 'PASS' &&
+    Number.isSafeInteger(routeCoverage.totalRoutes) && routeCoverage.totalRoutes > 0 &&
+    routeCoverage.testedRoutes === routeCoverage.totalRoutes;
+  const checksSafe = checks.migration053 === 'PASS' &&
+    checks.tenantSessionIsolation === 'PASS' &&
+    checks.crossTenantAccessDenied === 'PASS' &&
+    checks.recoveryRestore === 'PASS' &&
+    checks.backupIntegrity === 'PASS';
+  const exactMatch = Boolean(
+    evidence.schemaVersion === 'opscore.production-acceptance.v1' &&
+    evidence.status === 'PASS' &&
+    evidence.environment === 'production' &&
+    evidence.databaseEngine === 'postgres' &&
+    sourceCommit && sourceCommit === expectedCommit &&
+    PIPELINE_RE.test(String(expectedPipelineId || '')) &&
+    pipelineId === String(expectedPipelineId) &&
+    testedDate && !Number.isNaN(testedMs) && testedMs <= nowMs &&
+    checksSafe && coverageSafe && roleSafe &&
+    HASH_RE.test(publishedSha) && publishedSha === evidenceSha256
+  );
+
+  return {
+    status: exactMatch ? 'PASS' : 'NOT_VERIFIED',
+    evidenceSha256: exactMatch ? evidenceSha256 : null,
+    sourceCommit,
+    pipelineId: pipelineId || null,
+    testedAt: testedDate && !Number.isNaN(testedMs) ? testedDate.toISOString() : null
+  };
+}
+
 function readEmbeddedBuildIdentity(identityPath = path.join(__dirname, 'opscore-vercel-release-identity.json')) {
   let value;
   try { value = JSON.parse(fs.readFileSync(identityPath, 'utf8')); }
@@ -94,7 +153,7 @@ function readEmbeddedBuildIdentity(identityPath = path.join(__dirname, 'opscore-
   };
 }
 
-function createPublicReleaseProof(env = process.env, now = () => new Date(), identityPath) {
+function createPublicReleaseProof(env = process.env, now = () => new Date(), identityPath, productionAcceptanceEvidencePath, postgresHttpAcceptancePath) {
   const identity = readEmbeddedBuildIdentity(identityPath);
   const proofEnv = identity ? {
     ...env,
@@ -112,25 +171,34 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
   const ciCommit = normalizedSha(proofEnv.OPSC_RELEASE_CI_COMMIT);
   const pipelineId = String(proofEnv.OPSC_RELEASE_CI_PIPELINE_ID || '').trim();
   const ciVerified = Boolean(sourceCommit && ciCommit === sourceCommit && PIPELINE_RE.test(pipelineId));
-  const postgresHttpAcceptance = readCurrentPostgresHttpAcceptance({ ...proofEnv, OPSC_RELEASE_CI_COMMIT: ciCommit, OPSC_RELEASE_CI_PIPELINE_ID: pipelineId });
+  const postgresHttpAcceptance = readCurrentPostgresHttpAcceptance({ ...proofEnv, OPSC_RELEASE_CI_COMMIT: ciCommit, OPSC_RELEASE_CI_PIPELINE_ID: pipelineId }, postgresHttpAcceptancePath);
 
   const packageCommit = normalizedSha(proofEnv.OPSC_RELEASE_PACKAGE_COMMIT);
   const packageSha = String(proofEnv.OPSC_RELEASE_PACKAGE_SHA256 || '').trim().toLowerCase();
   const packageVerified = Boolean(sourceCommit && packageCommit === sourceCommit && HASH_RE.test(packageSha));
 
-  const acceptanceCommit = normalizedSha(proofEnv.OPSC_PRODUCTION_ACCEPTANCE_COMMIT);
-  const acceptanceAt = String(proofEnv.OPSC_PRODUCTION_ACCEPTANCE_AT || '').trim();
-  const acceptanceDate = acceptanceAt ? new Date(acceptanceAt) : null;
-  const acceptanceEvidenceSha = String(proofEnv.OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256 || '').trim().toLowerCase();
-  // PASS_PRODUCTION requires commit+time match AND a published SHA-256 of a production-acceptance evidence document.
-  // Env timestamps alone are not behavioral proof.
-  const acceptanceVerified = Boolean(
+  const productionAcceptance = readProductionAcceptanceEvidence(
+    proofEnv,
+    sourceCommit,
+    pipelineId,
+    productionAcceptanceEvidencePath,
+    now
+  );
+  const acceptanceVerified = ciVerified && productionAcceptance.status === 'PASS';
+  const productionIsolationCertified =
+    String(proofEnv.OPSC_PRODUCTION_ISOLATION_CERTIFICATION || '').trim().toUpperCase() === 'CERTIFIED' &&
+    acceptanceVerified;
+  const releaseVerified = Boolean(
+    identity && identity.deploymentSource === 'github-actions-cli' && identity.packageSha256 &&
+    identity.packageCommit === sourceCommit &&
     ciVerified &&
-    sourceCommit &&
-    acceptanceCommit === sourceCommit &&
-    acceptanceDate &&
-    !Number.isNaN(acceptanceDate.getTime()) &&
-    HASH_RE.test(acceptanceEvidenceSha)
+    packageVerified &&
+    deployment.status === 'identified' &&
+    deployment.deployment.environment === 'production' &&
+    deployment.source.ref === 'main' &&
+    postgresHttpAcceptance.status === 'PASS' &&
+    acceptanceVerified &&
+    productionIsolationCertified
   );
 
   return {
@@ -138,8 +206,8 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
     product: 'OpsCore',
     version: '0.11.62',
     releaseTag,
-    sourceCommitIdentitySource: deployment.source.commitIdentitySource,
-    status: ciVerified ? 'PASS_WITH_BUYER_RESIDUALS' : 'UNVERIFIED',
+    sourceCommitIdentitySource: identity ? 'github-actions-cli-assertion' : 'unverified',
+    status: releaseVerified ? 'PASS_WITH_BUYER_RESIDUALS' : 'UNVERIFIED',
     sourceCommit,
     deployment: {
       status: deployment.status,
@@ -157,11 +225,11 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
       evidenceScope: 'GitHub Actions CI commit-match is bound to the embedded build identity; use pipelineUrl to inspect the full gate report.'
     },
     gates: {
-      commercialClosure: ciVerified ? 'PASS_WITH_BUYER_RESIDUALS' : 'UNVERIFIED',
+      commercialClosure: releaseVerified ? 'PASS_WITH_BUYER_RESIDUALS' : 'UNVERIFIED',
       livePostgresRls: ciVerified ? 'PASS_TEST_SCOPE' : 'UNVERIFIED',
       productionSessionTenantBoundary: acceptanceVerified ? 'PASS_PRODUCTION' : 'NOT_VERIFIED',
       productionRecoveryBundle: acceptanceVerified ? 'PASS_PRODUCTION' : 'NOT_VERIFIED',
-      productionIsolationCertification: (String(proofEnv.OPSC_PRODUCTION_ISOLATION_CERTIFICATION || '').trim().toUpperCase() === 'CERTIFIED' && acceptanceVerified) ? 'CERTIFIED' : 'NOT_CERTIFIED',
+      productionIsolationCertification: productionIsolationCertified ? 'CERTIFIED' : 'NOT_CERTIFIED',
       mobileStoreArtifacts: 'REMAINING_BUYER',
       nativeTranslationReview: 'REMAINING_BUYER',
       licensedStreetMap: 'REMAINING_BUYER',
@@ -169,12 +237,11 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
     },
     productionAcceptance: {
       status: acceptanceVerified ? 'PASS' : 'NOT_VERIFIED',
-      commitSha: acceptanceVerified ? acceptanceCommit : null,
-      checkedAt: acceptanceVerified ? acceptanceDate.toISOString() : null,
-      evidenceSha256: acceptanceVerified ? acceptanceEvidenceSha : null,
-      evidenceNote: acceptanceVerified
-        ? 'SHA-256 of production-acceptance evidence document bound by operator; inspect the GitHub Actions verification path for the JSON body.'
-        : null
+      commitSha: acceptanceVerified ? productionAcceptance.sourceCommit : null,
+      pipelineId: acceptanceVerified ? productionAcceptance.pipelineId : null,
+      checkedAt: acceptanceVerified ? productionAcceptance.testedAt : null,
+      evidenceSha256: acceptanceVerified ? productionAcceptance.evidenceSha256 : null,
+      evidenceNote: acceptanceVerified ? 'SHA-256 was recomputed from the embedded production acceptance JSON and matched the published digest.' : null
     },
     postgresHttpAcceptance,
     packageFingerprint: {
@@ -184,18 +251,24 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
       sourceCommit: packageVerified ? packageCommit : null
     },
     checkedAt: now().toISOString(),
-    note: 'Release evidence is bound to the source commit reported by the running Vercel deployment. PostgreSQL RLS CI evidence is test-scoped and does not certify every production API route. PostgreSQL HTTP acceptance is PASS only when its evidence commit and pipeline exactly match the running release; historical HTTP acceptance remains NOT_VERIFIED for a newer candidate. Production session/recovery evidence is shown only when an acceptance record matches the deployed commit and OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256 publishes the SHA-256 of a behavioral evidence document (login/session/recovery isolation). productionIsolationCertification is CERTIFIED only when OPSC_PRODUCTION_ISOLATION_CERTIFICATION=CERTIFIED is explicitly set and production acceptance evidence is bound to the deployed commit; otherwise NOT_CERTIFIED. Signed mobile binaries, native-speaker localization review, and a licensed street-map provider remain buyer-owned.'
+    note: 'Release evidence is bound to the source commit reported by the running Vercel deployment. PostgreSQL RLS CI evidence is test-scoped and does not certify every production API route. PostgreSQL HTTP acceptance is PASS only when its evidence commit and pipeline exactly match the running release; historical HTTP acceptance remains NOT_VERIFIED for a newer candidate. Production session/recovery evidence is shown only when an acceptance record matches the deployed commit and OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256 publishes the SHA-256 of a behavioral evidence document (login/session/recovery isolation). productionIsolationCertification is CERTIFIED only when OPSC_PRODUCTION_ISOLATION_CERTIFICATION=CERTIFIED is explicitly set and the embedded production acceptance evidence file is schema-valid, hash-verified, and bound to the exact deployed commit and pipeline; otherwise NOT_CERTIFIED. Signed mobile binaries, native-speaker localization review, and a licensed street-map provider remain buyer-owned.'
   };
 };
 
-function hasVerifiedProductionRelease(env = process.env, identityPath) {
-  const proof = createPublicReleaseProof(env, () => new Date(), identityPath);
+function hasVerifiedProductionRelease(env = process.env, identityPath, productionAcceptanceEvidencePath, postgresHttpAcceptancePath) {
+  const identity = readEmbeddedBuildIdentity(identityPath);
+  if (!identity) return false;
+  const proof = createPublicReleaseProof(env, () => new Date(), identityPath, productionAcceptanceEvidencePath, postgresHttpAcceptancePath);
   return proof.status === 'PASS_WITH_BUYER_RESIDUALS' &&
     proof.ci.status === 'PASS' &&
+    proof.packageFingerprint.status === 'PUBLISHED' &&
     proof.deployment.status === 'identified' &&
     proof.deployment.environment === 'production' &&
     proof.deployment.ref === 'main' &&
-    proof.sourceCommitIdentitySource === 'github-actions-cli-assertion';
+    proof.sourceCommitIdentitySource === 'github-actions-cli-assertion' &&
+    proof.postgresHttpAcceptance.status === 'PASS' &&
+    proof.productionAcceptance.status === 'PASS' &&
+    proof.gates.productionIsolationCertification === 'CERTIFIED';
 }
 
-module.exports = { createPublicReleaseProof, hasVerifiedProductionRelease, readEmbeddedBuildIdentity };
+module.exports = { createPublicReleaseProof, hasVerifiedProductionRelease, readEmbeddedBuildIdentity, readProductionAcceptanceEvidence };
