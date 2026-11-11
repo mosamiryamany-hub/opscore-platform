@@ -6,6 +6,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+concurrency:
+  group: opscore-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
@@ -33,6 +37,17 @@ jobs:
           node --check backend/src/security.js
           node --check backend/src/store.js
           node --check backend/src/server.js
+          node --check backend/scripts/bootstrap.js
+          node --check backend/src/bootstrap-policy.js
+          node --check backend/src/firewall.js
+          node --check backend/src/release-proof.js
+          node --check backend/src/database-security-proof.js
+          node --check scripts/production-deployment-smoke.js
+          node --check scripts/verify-production-environment.js
+      - name: Production deployment smoke contract tests
+        run: node --test backend/test/production-deployment-smoke.test.js
+      - name: Production environment preflight contract tests
+        run: node --test backend/test/production-environment-preflight.test.js
       - name: Hardened metadata gate
         working-directory: backend
         run: npm run verify:hardened
