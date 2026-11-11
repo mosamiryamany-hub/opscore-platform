@@ -11,7 +11,10 @@ test('identity tables accessible without RLS remain not certified', () => {
     spatial_ref_sys_runtime_write_access_count:0, migration_ledger_table_count:1,
     migration_ledger_without_force_rls_count:1, migration_ledger_runtime_privileges_count:1,
     identity_tables_without_rls_with_runtime_access_count:5,
-    control_plane_table_count:3, control_plane_runtime_privilege_gap_count:0, control_plane_policy_valid_table_count: 3
+    co\n    runtime_role_name: 'opscore_runtime', runtime_role_login: true,
+    runtime_role_superuser: false, runtime_role_bypassrls: false,
+    runtime_role_createrole: false, runtime_role_createdb: false,
+    runtime_role_elevated_membership_count: 0,ntrol_plane_table_count:3, control_plane_runtime_privilege_gap_count:0, control_plane_policy_valid_table_count: 3
   }, fixedTime);
   assert.equal(proof.schemaVersion,'opscore.public-database-security-proof.v2');
   assert.equal(proof.status,'NOT_CERTIFIED');
@@ -28,7 +31,10 @@ test('only read-only spatial_ref_sys may remain outside FORCE RLS and migration 
     spatial_ref_sys_runtime_write_access_count:0, migration_ledger_table_count:1,
     migration_ledger_without_force_rls_count:0, migration_ledger_runtime_privileges_count:0,
     identity_tables_without_rls_with_runtime_access_count:0,
-    control_plane_table_count:3, control_plane_runtime_privilege_gap_count:0, control_plane_policy_valid_table_count: 3
+    co\n    runtime_role_name: 'opscore_runtime', runtime_role_login: true,
+    runtime_role_superuser: false, runtime_role_bypassrls: false,
+    runtime_role_createrole: false, runtime_role_createdb: false,
+    runtime_role_elevated_membership_count: 0,ntrol_plane_table_count:3, control_plane_runtime_privilege_gap_count:0, control_plane_policy_valid_table_count: 3
   }, fixedTime);
   assert.equal(proof.status,'IDENTITY_PLANE_RLS_ENFORCED');
   assert.equal(proof.productionIsolationCertification,'NOT_CERTIFIED');
@@ -43,13 +49,19 @@ test('unprotected non-PostGIS table is rejected even when total RLS gap count is
     spatial_ref_sys_runtime_write_access_count:0,migration_ledger_table_count:1,
     migration_ledger_without_force_rls_count:0,migration_ledger_runtime_privileges_count:0,
     identity_tables_without_rls_with_runtime_access_count:0,
-    control_plane_table_count:3,control_plane_runtime_privilege_gap_count:0, control_plane_policy_valid_table_count: 3
+    co\n    runtime_role_name: 'opscore_runtime', runtime_role_login: true,
+    runtime_role_superuser: false, runtime_role_bypassrls: false,
+    runtime_role_createrole: false, runtime_role_createdb: false,
+    runtime_role_elevated_membership_count: 0,ntrol_plane_table_count:3,control_plane_runtime_privilege_gap_count:0, control_plane_policy_valid_table_count: 3
   },fixedTime);
   assert.equal(proof.status,'REVIEW_REQUIRED');
 });
 
 test('PostGIS write access or application access to migration ledger is rejected', () => {
-  const base={public_table_count:132,rls_enabled_table_count:131,rls_forced_table_count:131,tables_without_rls_count:1,non_postgis_tables_without_rls_count:0,spatial_ref_sys_runtime_write_access_count:0,migration_ledger_table_count:1,migration_ledger_without_force_rls_count:0,migration_ledger_runtime_privileges_count:0,identity_tables_without_rls_with_runtime_access_count:0,control_plane_table_count:3,control_plane_runtime_privilege_gap_count:0, control_plane_policy_valid_table_count: 3};
+  const base={public_table_count:132,rls_enabled_table_count:131,rls_forced_table_count:131,tables_without_rls_count:1,non_postgis_tables_without_rls_count:0,spatial_ref_sys_runtime_write_access_count:0,migration_ledger_table_count:1,migration_ledger_without_force_rls_count:0,migration_ledger_runtime_privileges_count:0,identity_tables_without_rls_with_runtime_access_count:0,co\n    runtime_role_name: 'opscore_runtime', runtime_role_login: true,
+    runtime_role_superuser: false, runtime_role_bypassrls: false,
+    runtime_role_createrole: false, runtime_role_createdb: false,
+    runtime_role_elevated_membership_count: 0,ntrol_plane_table_count:3,control_plane_runtime_privilege_gap_count:0, control_plane_policy_valid_table_count: 3};
   assert.equal(buildDatabaseSecurityProof({...base,spatial_ref_sys_runtime_write_access_count:1},fixedTime).status,'REVIEW_REQUIRED');
   assert.equal(buildDatabaseSecurityProof({...base,migration_ledger_runtime_privileges_count:1},fixedTime).status,'REVIEW_REQUIRED');
 });
@@ -60,7 +72,7 @@ test('runtime catalog query is read-only and inspects identity, PostGIS and migr
   assert.match(DATABASE_SECURITY_SQL,/'password_reset_tokens'/);
   assert.match(DATABASE_SECURITY_SQL,/'spatial_ref_sys'/);
   assert.match(DATABASE_SECURITY_SQL,/'schema_migrations'/);
-  assert.match(DATABASE_SECURITY_SQL,/LEFT JOIN pg_policy p/);
+  assert.match(DATABASE_SECURITY_SQL,/LEFT JOIN pg_policy p/);\n  assert.match(DATABASE_SECURITY_SQL,/runtime_role_bypassrls/);\n  assert.match(DATABASE_SECURITY_SQL,/runtime_role_elevated_membership_count/);
   assert.match(DATABASE_SECURITY_SQL,/polpermissive/);
   assert.match(DATABASE_SECURITY_SQL,/opscore_tenant_permissive/);
   assert.match(DATABASE_SECURITY_SQL,/opscore_tenant_boundary_guard/);
@@ -82,7 +94,10 @@ test('database security proof performs one catalog query', () => {
     spatial_ref_sys_runtime_write_access_count:0,migration_ledger_table_count:1,
     migration_ledger_without_force_rls_count:0,migration_ledger_runtime_privileges_count:0,
     identity_tables_without_rls_with_runtime_access_count:0,
-    control_plane_table_count:3,control_plane_runtime_privilege_gap_count:0, control_plane_policy_valid_table_count: 3
+    co\n    runtime_role_name: 'opscore_runtime', runtime_role_login: true,
+    runtime_role_superuser: false, runtime_role_bypassrls: false,
+    runtime_role_createrole: false, runtime_role_createdb: false,
+    runtime_role_elevated_membership_count: 0,ntrol_plane_table_count:3,control_plane_runtime_privilege_gap_count:0, control_plane_policy_valid_table_count: 3
   };}};}};
   const proof=readDatabaseSecurityProof(db,fixedTime);
   assert.equal(calls,1); assert.equal(used,DATABASE_SECURITY_SQL);
@@ -96,7 +111,10 @@ test('control-plane runtime grants are explicit and deny unnecessary writes', ()
     spatial_ref_sys_runtime_write_access_count: 0, migration_ledger_table_count: 1,
     migration_ledger_without_force_rls_count: 0, migration_ledger_runtime_privileges_count: 0,
     identity_tables_without_rls_with_runtime_access_count: 0,
-    control_plane_table_count: 3, control_plane_runtime_privilege_gap_count: 0, control_plane_policy_valid_table_count: 3
+    co\n    runtime_role_name: 'opscore_runtime', runtime_role_login: true,
+    runtime_role_superuser: false, runtime_role_bypassrls: false,
+    runtime_role_createrole: false, runtime_role_createdb: false,
+    runtime_role_elevated_membership_count: 0,ntrol_plane_table_count: 3, control_plane_runtime_privilege_gap_count: 0, control_plane_policy_valid_table_count: 3
   };
   const good = buildDatabaseSecurityProof(base, fixedTime);
   assert.equal(good.status, 'IDENTITY_PLANE_RLS_ENFORCED');
@@ -105,7 +123,33 @@ test('control-plane runtime grants are explicit and deny unnecessary writes', ()
   assert.equal(buildDatabaseSecurityProof({...base, control_plane_table_count: 2}, fixedTime).status, 'REVIEW_REQUIRED');
 });
 
-test('database security proof fails closed when adapter is absent', () => {
+
+test('live database connection must use the dedicated least-privilege runtime role', () => {
+  const base = {
+    public_table_count: 132, rls_enabled_table_count: 131, rls_forced_table_count: 131,
+    tables_without_rls_count: 1, non_postgis_tables_without_rls_count: 0,
+    spatial_ref_sys_runtime_write_access_count: 0, migration_ledger_table_count: 1,
+    migration_ledger_without_force_rls_count: 0, migration_ledger_runtime_privileges_count: 0,
+    identity_tables_without_rls_with_runtime_access_count: 0,
+    control_plane_table_count: 3, control_plane_policy_valid_table_count: 3,
+    control_plane_runtime_privilege_gap_count: 0,
+    runtime_role_name: 'opscore_runtime', runtime_role_login: true,
+    runtime_role_superuser: false, runtime_role_bypassrls: false,
+    runtime_role_createrole: false, runtime_role_createdb: false,
+    runtime_role_elevated_membership_count: 0
+  };
+  const safe = buildDatabaseSecurityProof(base, fixedTime);
+  assert.equal(safe.runtimeRole.status, 'LEAST_PRIVILEGE_PRESENT');
+  assert.equal(safe.status, 'IDENTITY_PLANE_RLS_ENFORCED');
+  assert.equal(buildDatabaseSecurityProof({...base, runtime_role_bypassrls: true}, fixedTime).status, 'REVIEW_REQUIRED');
+  assert.equal(buildDatabaseSecurityProof({...base, runtime_role_superuser: true}, fixedTime).status, 'REVIEW_REQUIRED');
+  assert.equal(buildDatabaseSecurityProof({...base, runtime_role_createrole: true}, fixedTime).status, 'REVIEW_REQUIRED');
+  assert.equal(buildDatabaseSecurityProof({...base, runtime_role_createdb: true}, fixedTime).status, 'REVIEW_REQUIRED');
+  assert.equal(buildDatabaseSecurityProof({...base, runtime_role_name: 'opscore_app'}, fixedTime).status, 'REVIEW_REQUIRED');
+  assert.equal(buildDatabaseSecurityProof({...base, runtime_role_elevated_membership_count: 1}, fixedTime).status, 'REVIEW_REQUIRED');
+  assert.equal(buildDatabaseSecurityProof({...base, runtime_role_login: false}, fixedTime).status, 'REVIEW_REQUIRED');
+});
+\ntest('database security proof fails closed when adapter is absent', () => {
   assert.throws(()=>readDatabaseSecurityProof(null,fixedTime),/DATABASE_SECURITY_CATALOG_UNAVAILABLE/);
 });
 
@@ -121,7 +165,10 @@ test('database security proof requires restrictive tenant-boundary policy catalo
     migration_ledger_without_force_rls_count: 0,
     migration_ledger_runtime_privileges_count: 0,
     identity_tables_without_rls_with_runtime_access_count: 0,
-    control_plane_table_count: 3,
+    co\n    runtime_role_name: 'opscore_runtime', runtime_role_login: true,
+    runtime_role_superuser: false, runtime_role_bypassrls: false,
+    runtime_role_createrole: false, runtime_role_createdb: false,
+    runtime_role_elevated_membership_count: 0,ntrol_plane_table_count: 3,
     control_plane_policy_valid_table_count: 3,
     control_plane_runtime_privilege_gap_count: 0
   };
