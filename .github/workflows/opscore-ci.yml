@@ -31,6 +31,10 @@ jobs:
       - name: Install backend
         working-directory: backend
         run: npm ci --ignore-scripts
+      - name: Generate and verify CycloneDX 1.7 SBOM
+        run: |
+          node scripts/generate-sbom.js
+          node scripts/verify-sbom.js
       - name: Syntax check
         run: |
           node --check backend/src/config.js
@@ -44,6 +48,8 @@ jobs:
           node --check backend/src/database-security-proof.js
           node --check scripts/production-deployment-smoke.js
           node --check scripts/verify-production-environment.js
+          node --check scripts/generate-sbom.js
+          node --check scripts/verify-sbom.js
       - name: Production deployment smoke contract tests
         run: node --test backend/test/production-deployment-smoke.test.js
       - name: Production environment preflight contract tests
