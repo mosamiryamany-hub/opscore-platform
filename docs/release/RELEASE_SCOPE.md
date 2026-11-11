@@ -60,7 +60,7 @@ PR #22 adds staged production deployment, authenticated HTTP smoke checks, expli
 
 ## SBOM and supply-chain verification
 
-The tracked SBOM is CycloneDX 1.6 with 491 components; 489 carry component hashes and license entries. Two top-level application components lack those entries, and the BOM metadata lacks `metadata.timestamp` and `metadata.authors`. Main's secure-release workflow creates GitHub attestations but does not yet verify them. PR #23 adds both verification gates before artifact upload; a successful current-head release run remains required. Upgrade the generator to CycloneDX 1.7, close component coverage without substituting manifest hashes for artifact hashes, and verify the attestations before buyer delivery.
+The committed SBOM snapshot remains CycloneDX 1.6 with 491 components; 489 carry component hashes and license entries. PR #24 implements a CycloneDX 1.7 generator with timestamp, release-engineering author, tool identity, build lifecycle, exact source commit/lockfile context, SHA-256 source archives for both top-level application components, and explicit proprietary-license entries. Its verifier checks every lockfile component hash/license and source-tree digest. This is pending combined-head CI; the old tracked 1.6 snapshot must not be delivered. PR #23's secure-release workflow adds provenance and CycloneDX attestation verification, but a successful current-head secure-release run remains required.
 
 ## PostgreSQL HTTP acceptance — exact-head evidence
 
