@@ -66,8 +66,9 @@ Do not reuse the historical GitLab pipeline statement or old Vercel URLs.
 
 ## 7. Close SBOM and supply-chain verification
 
-- Upgrade the SBOM generator from CycloneDX 1.6 to the current 1.7 specification after schema/tool compatibility tests.
-- Close the two top-level application component hash/license gaps without substituting hashes of manifests for hashes of actual artifacts.
+- PR #24 implements a CycloneDX 1.7 generator with timestamp, release-engineering author, tool identity, build lifecycle, source commit/lockfile context, SHA-256 source archives for both top-level application components, and explicit proprietary-license entries.
+- Its verifier checks every lockfile component hash/license and both application source hashes. The combined-head CI run must pass this generator/verifier before the change is considered verified.
+- The committed SBOM snapshot remains 1.6 until the secure-release workflow generates the new 1.7 output; do not ship the tracked 1.6 snapshot.
 - Verify the archive provenance attestation and SBOM attestation with GitHub CLI using the expected repository and CycloneDX predicate type.
 - Bind the SBOM, archive digest, source commit, workflow run ID, and release statement to the same build.
 
