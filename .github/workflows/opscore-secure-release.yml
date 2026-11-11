@@ -207,6 +207,7 @@ jobs:
             root-dependency-audit.json
             backend/junit.xml
             docs/sbom/opscore-v0.11.62.cyclonedx.json
+            docs/sbom/SBOM_GENERATION_RESULT.json
             backend/docs/verification/COMMERCIAL_CLOSURE_GATE_RESULT.json
             backend/docs/verification/COMMERCIAL_CLOSURE_GATE_RESULT.sha256
             backend/docs/verification/DEPLOYMENT_QUALIFICATION_RESULT.json
