@@ -1,4 +1,4 @@
-name: Digital Twin PostgreSQL Live RLS
+name: Digital Twin PostgreSQL 18 Isolated RLS
 
 on:
   push:
@@ -8,14 +8,18 @@ on:
       - '.github/workflows/digital-twin-postgres-live.yml'
       - 'backend/src/adapters/postgres.js'
       - 'backend/scripts/postgres-live-rls-gate.js'
+      - 'backend/scripts/apply-postgres-migrations.js'
       - 'backend/sql/postgres/031_digital_twin_chain_hardening.sql'
       - 'backend/sql/postgres/052_runtime_policy_function_grants.sql'
+      - 'backend/sql/postgres/053_control_plane_restrictive_tenant_guards.sql'
       - 'backend/package.json'
       - 'backend/package-lock.json'
       - 'package.json'
       - 'package-lock.json'
       - 'backend/test/postgres_rls_context_contract.test.js'
       - 'backend/test/postgres_rls_static_hardening.test.js'
+      - 'backend/test/postgres-runtime-policy-grants.test.js'
+      - 'backend/test/postgres-control-plane-rls.test.js'
   workflow_dispatch:
 
 permissions:
@@ -23,6 +27,7 @@ permissions:
 
 jobs:
   live-rls:
+    name: isolated-postgres-rls
     runs-on: ubuntu-24.04
     timeout-minutes: 12
     services:
@@ -60,13 +65,14 @@ jobs:
             backend/package-lock.json
       - name: Create application and runtime roles without BYPASSRLS
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq postgresql-client
-          for i in 1 2 3 4 5 6 7 8 9 10; do
-            pg_isready -h 127.0.0.1 -p 5432 -U postgres -d opscore_test && break
-            sleep 2
-          done
-          PGPASSWORD=postgres psql -h 127.0.0.1 -p 5432 -U postgres -d opscore_test -v ON_ERROR_STOP=1 <<'SQL'
+          # Prefer the service container client to avoid apt mirror flakes (exit 100).
+          # Fallback path installs postgresql-client only if docker exec is unavailable.
+          set -euo pipefail
+          cid="$(docker ps --filter 'ancestor=postgres:18' --format '{{.ID}}' | head -n1)"
+          if [ -z "${cid}" ]; then
+            cid="$(docker ps --format '{{.ID}} {{.Image}}' | awk '/postgres/ {print $1; exit}')"
+          fi
+          sql=$(cat <<'SQL'
           DROP ROLE IF EXISTS opscore_app;
           DROP ROLE IF EXISTS opscore_runtime;
           CREATE ROLE opscore_app LOGIN PASSWORD 'app_test_pw'
@@ -80,8 +86,25 @@ jobs:
           ALTER DEFAULT PRIVILEGES IN SCHEMA public
             GRANT USAGE, SELECT ON SEQUENCES TO opscore_app;
           SQL
-          PGPASSWORD=postgres psql -h 127.0.0.1 -p 5432 -U postgres -d opscore_test -Atc \
-            "SELECT rolname||' super='||rolsuper||' bypass='||rolbypassrls FROM pg_roles WHERE rolname IN ('opscore_app','opscore_runtime') ORDER BY rolname"
+          )
+          if [ -n "${cid}" ]; then
+            echo "$sql" | docker exec -i -e PGPASSWORD=postgres "$cid" \
+              psql -U postgres -d opscore_test -v ON_ERROR_STOP=1
+            docker exec -e PGPASSWORD=postgres "$cid" \
+              psql -U postgres -d opscore_test -Atc \
+              "SELECT rolname||' super='||rolsuper||' bypass='||rolbypassrls FROM pg_roles WHERE rolname IN ('opscore_app','opscore_runtime') ORDER BY rolname"
+          else
+            echo "WARN: postgres container id not found; falling back to host postgresql-client"
+            sudo apt-get update -qq || true
+            sudo apt-get install -y -qq postgresql-client
+            for i in 1 2 3 4 5 6 7 8 9 10; do
+              pg_isready -h 127.0.0.1 -p 5432 -U postgres -d opscore_test && break
+              sleep 2
+            done
+            echo "$sql" | PGPASSWORD=postgres psql -h 127.0.0.1 -p 5432 -U postgres -d opscore_test -v ON_ERROR_STOP=1
+            PGPASSWORD=postgres psql -h 127.0.0.1 -p 5432 -U postgres -d opscore_test -Atc \
+              "SELECT rolname||' super='||rolsuper||' bypass='||rolbypassrls FROM pg_roles WHERE rolname IN ('opscore_app','opscore_runtime') ORDER BY rolname"
+          fi
       - name: Install root-pinned PostgreSQL runtime dependency
         run: npm ci --ignore-scripts
       - name: Install backend package
@@ -90,7 +113,8 @@ jobs:
       - name: Check live gate syntax
         run: |
           node --check backend/scripts/postgres-live-rls-gate.js
+          node --check backend/scripts/apply-postgres-migrations.js
           node --check backend/src/adapters/postgres.js
-      - name: Run real PostgreSQL 18 tenant-isolation gate
+      - name: Run isolated PostgreSQL 18 tenant-isolation gate
         working-directory: backend
         run: npm run db:postgres-live-rls

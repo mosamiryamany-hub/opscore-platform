@@ -41,6 +41,11 @@ jobs:
       - name: Backend release regression suite
         working-directory: backend
         run: OPSC_RELEASE_TEST_CONCURRENCY=4 node scripts/release-test-runner.js
+      - name: Verify recorded release evidence and provenance
+        working-directory: backend
+        env:
+          OPSC_VERIFY_RECORDED_TEST_EVIDENCE: 'true'
+        run: npm run verify
       - name: Security dependency audit
         working-directory: backend
         run: npm audit --omit=dev --audit-level=high
@@ -136,7 +141,28 @@ jobs:
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      - name: Validate production environment without printing secrets
+        id: production_preflight
+        run: |
+          set +e
+          vercel env run -e production --token=${{ secrets.VERCEL_TOKEN }} -- node scripts/verify-production-environment.js > "$RUNNER_TEMP/production-preflight.log" 2>&1
+          status=$?
+          if [ "$status" -eq 0 ]; then
+            cat "$RUNNER_TEMP/production-preflight.log"
+            echo "allowed=true" >> "$GITHUB_OUTPUT"
+            echo "### Production preflight: PASS" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "allowed=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Production preflight blocked; no production build, deployment, or promotion will run."
+            echo "### Production preflight: BLOCKED — deployment skipped" >> "$GITHUB_STEP_SUMMARY"
+            echo "Preflight exit code: $status. No Vercel build, staged deployment, promotion, or live-domain change was executed." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit 0
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
       - name: Compute package fingerprint for this commit
+        if: steps.production_preflight.outputs.allowed == 'true'
         id: package_fp
         run: |
           set -euo pipefail
@@ -146,11 +172,13 @@ jobs:
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
           echo "PACKAGE_SHA256=$sha"
       - name: Embed current GitHub Actions release identity
+        if: steps.production_preflight.outputs.allowed == 'true'
         run: node scripts/write-vercel-release-identity.js
         env:
           OPSC_RELEASE_PACKAGE_SHA256: ${{ steps.package_fp.outputs.sha }}
           OPSC_RELEASE_PACKAGE_COMMIT: ${{ github.sha }}
       - name: Build Vercel output
+        if: steps.production_preflight.outputs.allowed == 'true'
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -165,6 +193,7 @@ jobs:
           OPSC_RELEASE_PACKAGE_COMMIT: ${{ github.sha }}
           OPSC_PRODUCTION_ISOLATION_CERTIFICATION: NOT_CERTIFIED
       - name: Verify Vercel output contains the current release identity
+        if: steps.production_preflight.outputs.allowed == 'true'
         run: |
           set -euo pipefail
           identity_file="$(find .vercel/output -type f -name 'opscore-vercel-release-identity.json' 2>/dev/null | head -n 1 || true)"
@@ -191,6 +220,7 @@ jobs:
             console.log("VERCEL_RELEASE_IDENTITY_VERIFY=PASS");
           '
       - name: Verify deploy-workspace acceptance evidence matches release identity
+        if: steps.production_preflight.outputs.allowed == 'true'
         run: |
           set -euo pipefail
           node -e '
@@ -208,8 +238,17 @@ jobs:
             if (evidence.productionCertification === true) throw new Error("acceptance_must_not_claim_production_certification");
             console.log("DEPLOY_WORKSPACE_ACCEPTANCE_BIND=PASS");
           '
-      - name: Deploy to Vercel production
-        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+      - name: Create staged production deployment without changing the live domain
+        if: steps.production_preflight.outputs.allowed == 'true'
+        id: staged_deploy
+        run: |
+          set -euo pipefail
+          output="$RUNNER_TEMP/vercel-staged-deployment-url.txt"
+          vercel deploy --prebuilt --prod --skip-domain --token=${{ secrets.VERCEL_TOKEN }} > "$output"
+          deployment_url="$(cat "$output")"
+          test -n "$deployment_url"
+          echo "url=$deployment_url" >> "$GITHUB_OUTPUT"
+          echo "STAGED_PRODUCTION_DEPLOYMENT_CREATED"
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
@@ -221,3 +260,23 @@ jobs:
           OPSC_RELEASE_PACKAGE_SHA256: ${{ steps.package_fp.outputs.sha }}
           OPSC_RELEASE_PACKAGE_COMMIT: ${{ github.sha }}
           OPSC_PRODUCTION_ISOLATION_CERTIFICATION: NOT_CERTIFIED
+      - name: Verify staged production HTTP, database, security and release proofs
+        if: steps.production_preflight.outputs.allowed == 'true'
+        run: node scripts/production-deployment-smoke.js "${{ steps.staged_deploy.outputs.url }}" "$GITHUB_SHA"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      - name: Promote only the verified staged deployment
+        if: steps.production_preflight.outputs.allowed == 'true'
+        run: vercel promote "${{ steps.staged_deploy.outputs.url }}" --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      - name: Verify production domain resolves to the exact promoted commit
+        if: steps.production_preflight.outputs.allowed == 'true'
+        run: node scripts/production-deployment-smoke.js "https://opscore-platform.vercel.app" "$GITHUB_SHA"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}

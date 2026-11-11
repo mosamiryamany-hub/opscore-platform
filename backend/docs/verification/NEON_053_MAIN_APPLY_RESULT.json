@@ -1,0 +1,95 @@
+{
+  "executedAt": "2026-11-11T17:06:22.850Z",
+  "scope": "MAIN opscore_acceptance migration 053",
+  "mainBranchId": "br-wispy-term-bcrqqj84",
+  "host": "ep-mute-sun-bcahhoei.c-16.us-east-1.aws.neon.tech",
+  "database": "opscore_acceptance",
+  "applied": true,
+  "recordedSha256": "238863ead435124fc0975a353aeb2c135382f8e5bfc464e14dd7e22f427041ed",
+  "policyContractPass": true,
+  "prePolicies": [
+    {
+      "relname": "control_plane_runs",
+      "polname": "opscore_tenant_boundary_guard",
+      "mode": "PERMISSIVE"
+    },
+    {
+      "relname": "feature_flags",
+      "polname": "opscore_tenant_boundary_guard",
+      "mode": "PERMISSIVE"
+    },
+    {
+      "relname": "safe_mode_states",
+      "polname": "opscore_tenant_boundary_guard",
+      "mode": "PERMISSIVE"
+    }
+  ],
+  "postPolicies": [
+    {
+      "relname": "control_plane_runs",
+      "polname": "opscore_tenant_boundary_guard",
+      "mode": "RESTRICTIVE",
+      "rls": true,
+      "force": true
+    },
+    {
+      "relname": "control_plane_runs",
+      "polname": "opscore_tenant_permissive",
+      "mode": "PERMISSIVE",
+      "rls": true,
+      "force": true
+    },
+    {
+      "relname": "feature_flags",
+      "polname": "opscore_tenant_boundary_guard",
+      "mode": "RESTRICTIVE",
+      "rls": true,
+      "force": true
+    },
+    {
+      "relname": "feature_flags",
+      "polname": "opscore_tenant_permissive",
+      "mode": "PERMISSIVE",
+      "rls": true,
+      "force": true
+    },
+    {
+      "relname": "safe_mode_states",
+      "polname": "opscore_tenant_boundary_guard",
+      "mode": "RESTRICTIVE",
+      "rls": true,
+      "force": true
+    },
+    {
+      "relname": "safe_mode_states",
+      "polname": "opscore_tenant_permissive",
+      "mode": "PERMISSIVE",
+      "rls": true,
+      "force": true
+    }
+  ],
+  "roles": [
+    {
+      "rolname": "opscore_accept_runtime",
+      "rolbypassrls": false
+    },
+    {
+      "rolname": "opscore_app",
+      "rolbypassrls": true
+    },
+    {
+      "rolname": "opscore_runtime",
+      "rolbypassrls": false
+    }
+  ],
+  "runtimeRoleTest": {
+    "session": {
+      "u": "opscore_runtime",
+      "bypass": false
+    },
+    "writeNoTenant": "RLS_REJECTED"
+  },
+  "productionHold": "NOT_LIFTED",
+  "githubActions": "NOT_TRIGGERED",
+  "status": "PASS"
+}

@@ -27,8 +27,8 @@ test('restricted OPSC_DATABASE_URL takes precedence over DATABASE_URL', () => {
   );
 });
 
-test('DATABASE_URL remains fallback when OPSC_DATABASE_URL is unset', () => {
-  const env = { ...process.env, DATABASE_URL: 'postgres://integration-default.example/neondb' };
+test('DATABASE_URL remains a development fallback when OPSC_DATABASE_URL is unset', () => {
+  const env = { ...process.env, NODE_ENV: 'development', DATABASE_URL: 'postgres://integration-default.example/neondb' };
   delete env.OPSC_DATABASE_URL;
   delete env.NODE_OPTIONS;
   const result = spawnSync(
@@ -38,4 +38,28 @@ test('DATABASE_URL remains fallback when OPSC_DATABASE_URL is unset', () => {
   );
   assert.equal(result.status, 0, result.stderr || 'config process failed');
   assert.equal(result.stdout, 'postgres://integration-default.example/neondb');
+});
+
+test('production refuses DATABASE_URL fallback when OPSC_DATABASE_URL is absent', () => {
+  const env = { ...process.env, NODE_ENV: 'production', DATABASE_URL: 'postgres://privileged.example/neondb' };
+  delete env.OPSC_DATABASE_URL;
+  delete env.NODE_OPTIONS;
+  const result = spawnSync(
+    process.execPath,
+    ['-e', "process.stdout.write(require('./src/config').databaseUrl || '')"],
+    { cwd: backendRoot, env, encoding: 'utf8' }
+  );
+  assert.equal(result.status, 0, result.stderr || 'config process failed');
+  assert.equal(result.stdout, '');
+});
+
+test('production uses only the explicit OPSC_DATABASE_URL runtime connection', () => {
+  assert.equal(
+    loadDatabaseUrl({
+      NODE_ENV: 'production',
+      OPSC_DATABASE_URL: 'postgres://opscore-runtime.example/neondb',
+      DATABASE_URL: 'postgres://privileged.example/neondb'
+    }),
+    'postgres://opscore-runtime.example/neondb'
+  );
 });

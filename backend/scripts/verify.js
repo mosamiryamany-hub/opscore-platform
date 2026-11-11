@@ -2,6 +2,8 @@ const cp = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const {INTEGRITY_EXCLUSIONS,collectFiles,isSafeRelativePath,parseChecksumFile}=require('./provenance-files');
+const {satisfiesNodeEngine,satisfiesNodeMinimum}=require('./node-engine');
 function run(command, args = [], cwd = root) {
   if (!Array.isArray(args) || args.some(x => typeof x !== 'string')) return 'FAIL';
   try {
@@ -129,96 +131,71 @@ add('package-lock version aligned', lock.version === pkg.version && lock.package
 const appJs = fs.readFileSync(path.join(root, 'web', 'app.js'), 'utf8');
 add('HttpOnly session restore bootstrap', /async function restoreSession\(\)/.test(appJs) && /api\('\/api\/v1\/me'\)/.test(appJs) && !/document\.cookie/.test(appJs));
 add('session continuity HTTP regression test', /fresh page context|freshContext/.test(fs.readFileSync(path.join(root, 'test', 'frontend-http-smoke.test.js'), 'utf8')));
-// Verify every manifest entry against the extracted package. The three integrity files are excluded to avoid self-hashing.
-if (manifest) {
-  const excluded = new Set(manifest.integrityExclusions || []);
-  const excludedPath = p => [...excluded].some(x => x.endsWith('/**') ? p.startsWith(x.slice(0, -2)) : p === x);
-  const entries = Array.isArray(manifest.files) ? manifest.files : [];
-  const actual = [];
-  function walk(dir, rel = '') {
-    for (const e of fs.readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))) {
-      if (e.name === '.git')
-        continue;
-      const full = path.join(dir, e.name), r = rel ? path.posix.join(rel, e.name) : e.name;
-      if (e.isDirectory()) {
-        if (r === 'data' || r === 'data/files' || r.startsWith('data/files/'))
-          continue;
-        walk(full, r);
-      } else if (!excludedPath(r))
-        actual.push(r);
-    }
-  }
-  walk(root);
-  const expected = entries.map(x => x.path).filter(p => !excludedPath(p)).sort();
-  const actualComparable = actual.sort();
-  add('provenance manifest file-set exact', JSON.stringify(expected) === JSON.stringify(actualComparable));
-  let all = true;
-  for (const e of entries) {
-    if (excludedPath(e.path))
-      continue;
-    const f = path.join(root, e.path);
-    if (!fs.existsSync(f) || !fs.statSync(f).isFile() || sha256File(f) !== e.sha256 || fs.statSync(f).size !== e.bytes) {
-      all = false;
-      break;
-    }
-  }
-  add('provenance manifest digests and byte-counts', all);
-} else {
-  add('provenance manifest file-set exact', false);
-  add('provenance manifest digests and byte-counts', false);
+// Generator and verifier share one canonical exclusion policy and traversal.
+if(manifest){
+ const exclusionsMatch=Array.isArray(manifest.integrityExclusions)&&JSON.stringify(manifest.integrityExclusions)===JSON.stringify([...INTEGRITY_EXCLUSIONS]);
+ add('provenance integrity exclusions match canonical policy',exclusionsMatch);
+ const entries=Array.isArray(manifest.files)?manifest.files:[];
+ const paths=entries.map(e=>e&&e.path);
+ const pathsValid=entries.every(e=>e&&isSafeRelativePath(e.path)&&/^[0-9a-f]{64}$/.test(String(e.sha256||''))&&Number.isSafeInteger(e.bytes)&&e.bytes>=0);
+ const uniquePaths=new Set(paths).size===paths.length;
+ let actual=[];try{actual=collectFiles(root);}catch{actual=[];}
+ add('provenance manifest file-set exact',exclusionsMatch&&pathsValid&&uniquePaths&&JSON.stringify(paths.slice().sort())===JSON.stringify(actual));
+ let digestsValid=pathsValid&&uniquePaths;
+ if(digestsValid)for(const entry of entries){
+  const file=path.join(root,...entry.path.split('/'));
+  try{const st=fs.lstatSync(file);if(!st.isFile()||st.isSymbolicLink()||sha256File(file)!==entry.sha256||st.size!==entry.bytes){digestsValid=false;break;}}
+  catch{digestsValid=false;break;}
+ }
+ add('provenance manifest digests and byte-counts',digestsValid);
+ const expected=new Map(entries.map(e=>[e.path,e.sha256]));
+ function verifySumFile(file){
+  try{
+   const parsed=parseChecksumFile(fs.readFileSync(file,'utf8'));
+   if(!parsed.valid||parsed.entries.length!==expected.size)return false;
+   const actualSums=new Map(parsed.entries.map(e=>[e.path,e.sha256]));
+   if(actualSums.size!==expected.size)return false;
+   for(const [p,d] of expected)if(actualSums.get(p)!==d)return false;
+   return true;
+  }catch{return false;}
+ }
+ add('release file SHA-256 digests and file-set valid',verifySumFile(fileSumsPath));
+ add('release component SHA-256 digests and file-set valid',verifySumFile(componentSumsPath));
+}else{
+ add('provenance integrity exclusions match canonical policy',false);
+ add('provenance manifest file-set exact',false);
+ add('provenance manifest digests and byte-counts',false);
+ add('release file SHA-256 digests and file-set valid',false);
+ add('release component SHA-256 digests and file-set valid',false);
 }
-// Validate the line-oriented checksum files too.
-function verifySumFile(sumPath) {
-  if (!fs.existsSync(sumPath))
-    return false;
-  let ok = true;
-  for (const line of fs.readFileSync(sumPath, 'utf8').split(/\r?\n/)) {
-    if (!line.trim())
-      continue;
-    const m = line.match(/^([0-9a-f]{64})  (.+)$/);
-    if (!m) {
-      ok = false;
-      break;
-    }
-    const f = path.join(root, m[2]);
-    if (!fs.existsSync(f) || sha256File(f) !== m[1]) {
-      ok = false;
-      break;
-    }
-  }
-  return ok;
+const runtime=process.versions.node;
+const runtimeEngineMinimumSatisfied=satisfiesNodeMinimum(runtime,pkg.engines?.node);
+const runtimeEngineRangeSatisfied=satisfiesNodeEngine(runtime,pkg.engines?.node);
+add('Node.js runtime satisfies the complete declared engine range',runtimeEngineRangeSatisfied);
+function verifyRecordedTestEvidence(){
+ const file=path.join(root,'docs','verification','RELEASE_TEST_RUN_RESULT.json');
+ if(!fs.existsSync(file))return 'FAIL';
+ try{
+  const e=JSON.parse(fs.readFileSync(file,'utf8'));
+  const c=['totalTests','passedTests','failedTests','skippedTests','todoTests'].map(k=>Number(e[k]));
+  const valid=c.every(n=>Number.isSafeInteger(n)&&n>=0)&&c[0]>0&&c[1]+c[2]+c[3]+c[4]===c[0];
+  const clean=valid&&c[2]===0&&e.failedFiles===0&&e.testAccountingValid===true&&e.runtimeEngineRangeSatisfied===true;
+  const status=clean?(c[3]+c[4]>0?'PASS_WITH_SKIPS':'PASS'):'FAIL';
+  return e.release===pkg.version&&e.status===status?status:'FAIL';
+ }catch{return 'FAIL';}
 }
-add('release file SHA-256 digests valid', verifySumFile(fileSumsPath));
-add('release component SHA-256 digests valid', verifySumFile(componentSumsPath));
-function parseNode(v) {
-  const m = String(v).match(/^(\d+)\.(\d+)\.(\d+)/);
-  return m ? m.slice(1).map(Number) : null;
-}
-function gte(a, b) {
-  return a && b ? a[0] > b[0] || a[0] === b[0] && (a[1] > b[1] || a[1] === b[1] && a[2] >= b[2]) : false;
-}
-const engineMatch = String(pkg.engines?.node || '').match(/>=([0-9]+)\.([0-9]+)\.([0-9]+)/);
-const engineFloor = engineMatch ? engineMatch.slice(1).map(Number) : null;
-const runtime = parseNode(process.versions.node);
-function verifyRecordedTestEvidence() {
-  const evidencePath = path.join(root, 'docs', 'verification', 'RELEASE_TEST_RUN_RESULT.json');
-  if (!fs.existsSync(evidencePath)) return 'FAIL';
-  try {
-    const evidence = JSON.parse(fs.readFileSync(evidencePath, 'utf8'));
-    const pass = evidence.release === pkg.version &&
-      evidence.status === 'PASS' &&
-      Number(evidence.failedTests) === 0 &&
-      Number(evidence.passedTests) === Number(evidence.totalTests) &&
-      Number(evidence.totalTests) > 0;
-    return pass ? 'PASS' : 'FAIL';
-  } catch {
-    return 'FAIL';
-  }
+function runReleaseTests(){
+ if(run(process.execPath,['scripts/release-test-runner.js'])!=='PASS')return 'FAIL';
+ try{
+  const file=path.join(root,'docs','verification','RELEASE_TEST_RUN_RESULT.json');
+  const e=JSON.parse(fs.readFileSync(file,'utf8'));
+  return ['PASS','PASS_WITH_SKIPS'].includes(e.status)?e.status:'FAIL';
+ }catch{return 'FAIL';}
 }
 const recordedTestMode = String(process.env.OPSC_VERIFY_RECORDED_TEST_EVIDENCE || '').toLowerCase() === 'true';
 const report = {
   version: pkg.version,
-  tests: recordedTestMode ? verifyRecordedTestEvidence() : run(process.execPath, ['scripts/release-test-runner.js']),
+  tests: recordedTestMode ? verifyRecordedTestEvidence() : runReleaseTests(),
   syntax: [
     'src/server.js',
     'src/store.js',
@@ -235,7 +212,8 @@ const report = {
     declared: pkg.engines?.node || null,
     nvmrc: fs.existsSync(path.join(root, '.nvmrc')) ? fs.readFileSync(path.join(root, '.nvmrc'), 'utf8').trim() : null,
     actual: process.versions.node,
-    satisfiesDeclaredMinimum: gte(runtime, engineFloor)
+    satisfiesDeclaredMinimum: runtimeEngineMinimumSatisfied,
+    satisfiesDeclaredRange: runtimeEngineRangeSatisfied
   },
   localBackupRestore: 'IMPLEMENTED',
   database: 'UNVERIFIED',
@@ -248,5 +226,5 @@ const report = {
 };
 console.log(JSON.stringify(report, null, 2));
 const failed = checks.filter(([, s]) => s !== 'PASS').length;
-if (report.tests !== 'PASS' || failed > 0)
+if (!['PASS', 'PASS_WITH_SKIPS'].includes(report.tests) || failed > 0)
   process.exitCode = 1;

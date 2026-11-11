@@ -9,6 +9,15 @@ const LEGACY_CHECKSUM_RECONCILIATIONS = Object.freeze({
     ledgerSha256: 'cb62032f4764956822ea25cd412c29f8b9528a15f92ea03fa1b5e97417508d84',
     sourceSha256: '8b1dd407326d51aa1a01c9ebe09bd083b31e324203a7a48b00b141115c0f62d9',
     verifier: 'control_plane_catalog_equivalence_v1'
+  }),
+  // Preview 2026-11-11 records this historical 053 digest. The committed source
+  // digest differs, so skip is permitted only after the runner proves exact
+  // control-plane policy/RLS catalog equivalence on the target database.
+  '053_control_plane_restrictive_tenant_guards.sql': Object.freeze({
+    ledgerFilename: '053_control_plane_restrictive_tenant_guards.sql',
+    ledgerSha256: '238863ebd435124fc0975a353aeb2c135382f8e5bfc464e14dd7e22f427041ed',
+    sourceSha256: '238863ead435124fc0975a353aeb2c135382f8e5bfc464e14dd7e22f427041ed',
+    verifier: 'control_plane_053_catalog_equivalence_v1'
   })
 });
 function parseMigrationFilename(filename) {
