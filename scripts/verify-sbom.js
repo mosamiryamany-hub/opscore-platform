@@ -17,7 +17,7 @@ function integrityToHash(integrity) {
   if (!encoded) return null;
   const normalized = encoded.replace(/-/g, '+').replace(/_/g, '/');
   const content = Buffer.from(normalized, 'base64').toString('hex');
-  return content ? { alg: algorithm.toUpperCase(), content } : null;
+  return content ? { alg: algorithm.toLowerCase() === 'sha512' ? 'SHA-512' : 'SHA-256', content } : null;
 }
 function licenseNames(value) {
   if (typeof value === 'string' && value.trim()) return [value.trim()];
