@@ -84,7 +84,13 @@ const sourceCommit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, enc
 check('SBOM source commit bound', metadataProperties.get('opscore:source-commit') === sourceCommit);
 const lockDigest = crypto.createHash('sha256').update(lockFiles.map(file => fs.readFileSync(file)).join('\n')).digest('hex');
 check('SBOM lockfile digest bound', metadataProperties.get('opscore:lockfiles-sha256') === lockDigest);
-check('SBOM generation context recorded', metadataProperties.get('opscore:generation-context') === 'GitHub Actions exact-head secure-release workflow');
+const generationContext = metadataProperties.get('opscore:generation-context');
+check('SBOM generation context recorded', typeof generationContext === 'string' && generationContext.trim().length > 0);
+if (process.env.GITHUB_ACTIONS === 'true') {
+  check('SBOM workflow context matches runner', generationContext === `GitHub Actions workflow: ${process.env.GITHUB_WORKFLOW}`);
+  check('SBOM workflow run ID matches runner', metadataProperties.get('opscore:workflow-run-id') === String(process.env.GITHUB_RUN_ID));
+  check('SBOM workflow ref matches runner', metadataProperties.get('opscore:workflow-ref') === String(process.env.GITHUB_REF));
+}
 check('SBOM source archive scope recorded', metadataProperties.get('opscore:source-archive-scope') === 'git archive HEAD excluding generated docs/sbom outputs');
 
 const components = bom.components || [];
