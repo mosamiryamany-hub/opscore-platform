@@ -110,7 +110,7 @@ SELECT
   (
     SELECT COUNT(*)::int
     FROM pg_roles elevated
-    WHERE elevated.oid <> (SELECT current_role.oid FROM pg_roles current_role WHERE current_role.rolname = current_user)
+    WHERE elevated.oid <> (SELECT runtime_role.oid FROM pg_roles runtime_role WHERE runtime_role.rolname = current_user)
       AND (elevated.rolsuper OR elevated.rolbypassrls OR elevated.rolcreaterole OR elevated.rolcreatedb)
       AND pg_has_role(current_user, elevated.oid, 'MEMBER')
   ) AS runtime_role_elevated_membership_count
