@@ -180,20 +180,46 @@ async function main() {
     const controlPlaneMigration = fs.readFileSync(controlPlanePolicyMigrationPath, 'utf8');
     await client.query(controlPlaneMigration);
     const controlPolicyRows = (await client.query(
-      `SELECT c.relname AS table_name,p.polname AS policy_name,p.polpermissive AS permissive
-       FROM pg_policy p
-       JOIN pg_class c ON c.oid=p.polrelid
-       JOIN pg_namespace n ON n.oid=c.relnamespace
-       WHERE n.nspname=$1 AND c.relname=ANY($2::text[])`,
+      "SELECT c.relname AS table_name,p.polname AS policy_name, " +
+      "p.polpermissive AS permissive,p.polcmd AS command,p.polroles::text AS policy_roles, " +
+      "pg_get_expr(p.polqual,p.polrelid) AS using_expr, " +
+      "pg_get_expr(p.polwithcheck,p.polrelid) AS check_expr " +
+      "FROM pg_policy p JOIN pg_class c ON c.oid=p.polrelid " +
+      "JOIN pg_namespace n ON n.oid=c.relnamespace " +
+      "WHERE n.nspname=$1 AND c.relname=ANY($2::text[])",
       [schemaName, ['feature_flags', 'safe_mode_states', 'control_plane_runs']]
     )).rows;
+    const normalizePolicyExpression = value => String(value || '')
+      .replace(/\s+/g, '')
+      .replace(/::text/g, '')
+      .toLowerCase();
+    const expectedControlPlanePredicate = "(organization_id=nullif(current_setting('app.tenant_id',true),''))";
+    const isExactTenantPolicy = row => row.command === '*' &&
+      row.policy_roles === '{0}' &&
+      normalizePolicyExpression(row.using_expr) === expectedControlPlanePredicate &&
+      normalizePolicyExpression(row.check_expr) === expectedControlPlanePredicate;
     const controlPolicyResults = ['feature_flags', 'safe_mode_states', 'control_plane_runs'].map(table => {
       const rows = controlPolicyRows.filter(row => row.table_name === table);
-      const permissive = rows.filter(row => row.policy_name === 'opscore_tenant_permissive' && row.permissive === true).length;
-      const restrictive = rows.filter(row => row.policy_name === 'opscore_tenant_boundary_guard' && row.permissive === false).length;
-      return { table, permissive, restrictive, status: permissive === 1 && restrictive === 1 ? 'PASS' : 'FAIL' };
+      const permissive = rows.filter(row =>
+        row.policy_name === 'opscore_tenant_permissive' && row.permissive === true);
+      const restrictive = rows.filter(row =>
+        row.policy_name === 'opscore_tenant_boundary_guard' && row.permissive === false);
+      const exactPermissive = permissive.filter(isExactTenantPolicy).length;
+      const exactRestrictive = restrictive.filter(isExactTenantPolicy).length;
+      const unexpectedPolicies = rows.filter(row =>
+        !['opscore_tenant_permissive', 'opscore_tenant_boundary_guard'].includes(row.policy_name)
+      ).map(row => row.policy_name);
+      const valid = rows.length === 2 && permissive.length === 1 && restrictive.length === 1 &&
+        exactPermissive === 1 && exactRestrictive === 1 && unexpectedPolicies.length === 0;
+      return {
+        table, policyCount: rows.length, permissive: permissive.length, restrictive: restrictive.length,
+        exactPermissive, exactRestrictive, unexpectedPolicies,
+        status: valid ? 'PASS' : 'FAIL'
+      };
     });
-    if (controlPolicyResults.some(row => row.status !== 'PASS')) throw new Error('CONTROL_PLANE_RESTRICTIVE_POLICY_CATALOG_INVALID');
+    if (controlPolicyResults.some(row => row.status !== 'PASS')) {
+      throw new Error('CONTROL_PLANE_RESTRICTIVE_POLICY_CATALOG_INVALID');
+    }
     checks.push({ id: 'control-plane-policy-catalog', status: 'PASS', tables: controlPolicyResults });
 
     const flagA = `feature_flag_a_${crypto.randomBytes(4).toString('hex')}`;

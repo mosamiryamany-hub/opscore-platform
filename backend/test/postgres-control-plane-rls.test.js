@@ -38,6 +38,10 @@ test('live PostgreSQL RLS gate tests feature flags, safe mode state and control-
   assert.match(gate, /control-plane-tenant-self-read/);
   assert.match(gate, /control-plane-cross-tenant-read-denied/);
   assert.match(gate, /control-plane-cross-tenant-insert-denied/);
+  assert.ok(gate.includes("row.policy_roles === '{0}'"));
+  assert.ok(gate.includes('rows.length === 2'));
+  assert.ok(gate.includes('exactPermissive'));
+  assert.ok(gate.includes('exactRestrictive'));
   const workflow = fs.readFileSync(path.resolve(root, '..', '.github/workflows/digital-twin-postgres-live.yml'), 'utf8');
   assert.match(workflow, /backend\/sql\/postgres\/053_control_plane_restrictive_tenant_guards\.sql/);
 });

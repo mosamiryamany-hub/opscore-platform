@@ -52,31 +52,35 @@ SELECT
       GROUP BY c.oid, c.relrowsecurity, c.relforcerowsecurity
       HAVING c.relrowsecurity
         AND c.relforcerowsecurity
+        -- Exactly two policies are permitted: one tenant access and one boundary guard.
+        AND COUNT(p.oid) = 2
         AND COUNT(p.oid) FILTER (
           WHERE p.polname = 'opscore_tenant_permissive'
             AND p.polpermissive IS TRUE
             AND p.polcmd = '*'
-            AND COALESCE(pg_get_expr(p.polqual,p.polrelid),'') LIKE '%organization_id%'
-            AND COALESCE(pg_get_expr(p.polqual,p.polrelid),'') LIKE '%current_setting%'
-            AND COALESCE(pg_get_expr(p.polqual,p.polrelid),'') LIKE '%app.tenant_id%'
-            AND COALESCE(pg_get_expr(p.polqual,p.polrelid),'') LIKE '%nullif%'
-            AND COALESCE(pg_get_expr(p.polwithcheck,p.polrelid),'') LIKE '%organization_id%'
-            AND COALESCE(pg_get_expr(p.polwithcheck,p.polrelid),'') LIKE '%current_setting%'
-            AND COALESCE(pg_get_expr(p.polwithcheck,p.polrelid),'') LIKE '%app.tenant_id%'
-            AND COALESCE(pg_get_expr(p.polwithcheck,p.polrelid),'') LIKE '%nullif%'
+            AND p.polroles::text = '{0}'
+            AND lower(regexp_replace(
+              regexp_replace(COALESCE(pg_get_expr(p.polqual,p.polrelid),''),'[[:space:]]+','','g'),
+              '::text','','g'
+            )) = '(organization_id=nullif(current_setting(''app.tenant_id'',true),''''))'
+            AND lower(regexp_replace(
+              regexp_replace(COALESCE(pg_get_expr(p.polwithcheck,p.polrelid),''),'[[:space:]]+','','g'),
+              '::text','','g'
+            )) = '(organization_id=nullif(current_setting(''app.tenant_id'',true),''''))'
         ) = 1
         AND COUNT(p.oid) FILTER (
           WHERE p.polname = 'opscore_tenant_boundary_guard'
             AND p.polpermissive IS FALSE
             AND p.polcmd = '*'
-            AND COALESCE(pg_get_expr(p.polqual,p.polrelid),'') LIKE '%organization_id%'
-            AND COALESCE(pg_get_expr(p.polqual,p.polrelid),'') LIKE '%current_setting%'
-            AND COALESCE(pg_get_expr(p.polqual,p.polrelid),'') LIKE '%app.tenant_id%'
-            AND COALESCE(pg_get_expr(p.polqual,p.polrelid),'') LIKE '%nullif%'
-            AND COALESCE(pg_get_expr(p.polwithcheck,p.polrelid),'') LIKE '%organization_id%'
-            AND COALESCE(pg_get_expr(p.polwithcheck,p.polrelid),'') LIKE '%current_setting%'
-            AND COALESCE(pg_get_expr(p.polwithcheck,p.polrelid),'') LIKE '%app.tenant_id%'
-            AND COALESCE(pg_get_expr(p.polwithcheck,p.polrelid),'') LIKE '%nullif%'
+            AND p.polroles::text = '{0}'
+            AND lower(regexp_replace(
+              regexp_replace(COALESCE(pg_get_expr(p.polqual,p.polrelid),''),'[[:space:]]+','','g'),
+              '::text','','g'
+            )) = '(organization_id=nullif(current_setting(''app.tenant_id'',true),''''))'
+            AND lower(regexp_replace(
+              regexp_replace(COALESCE(pg_get_expr(p.polwithcheck,p.polrelid),''),'[[:space:]]+','','g'),
+              '::text','','g'
+            )) = '(organization_id=nullif(current_setting(''app.tenant_id'',true),''''))'
         ) = 1
     ) AS valid_control_plane_policy_tables
   ) AS control_plane_policy_valid_table_count,
