@@ -23,6 +23,13 @@ The tracked `docs/release/COMMERCIAL_RELEASE_STATEMENT.json` is a historical Git
 - Isolated migration 053 verification exists, but it is not Main production evidence.
 - The dedicated `opscore_runtime` role is least-privilege in the catalog; the actual Vercel connection identity remains unverified.
 - Production tenant-session acceptance, production recovery, and formal isolation certification remain NOT_VERIFIED / NOT_CERTIFIED.
+- Live catalog: 132 public ordinary/partitioned relations; 131 have RLS and FORCE RLS, with only read-only PostGIS `spatial_ref_sys` outside RLS. Non-PostGIS RLS/FORCE-RLS gaps: 0. Migration ledger runtime privileges: 0.
+- Main control-plane tables still have only the old PERMISSIVE `opscore_tenant_boundary_guard`; migration 053's restrictive policy pair is absent.
+- The `opscore_runtime` role attributes were directly checked and are least-privilege, but Vercel's actual runtime connection role remains unverified.
+- Neon public connections are not blocked, IP allowlist is empty, all six listed branches are unprotected, protected-branches-only is false, and history retention is 6 hours.
+- Vercel Firewall is enabled, but Bot Protection and active CRS generic/RCE/SQLi/XSS rules are LOG-only; no custom/IP rules are configured. No active attack anomalies were returned in the inspected window.
+- The live production API returned HTTP 500 with `PRODUCTION_HOLD_ACTIVE`; runtime aggregation showed 59 occurrences across 32 users in the last 24 hours.
+- PR #22 latest PR-branch CI run: 550 passed, 2 skipped, 0 failed, 0 unaccounted. The two skipped tests require a disposable PostgreSQL acceptance URL and remain unverified. PR #22 is Draft and not merged.
 
 ## 3. Runtime and setup roles
 
