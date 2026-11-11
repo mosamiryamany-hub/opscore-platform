@@ -10,6 +10,11 @@
  *   Interactive  : prompts on stdin (default)
  *   Non-interactive: supply OPSC_BOOTSTRAP_* environment variables
  *
+ * PostgreSQL connection:
+ *   OPSC_BOOTSTRAP_DATABASE_URL (separate one-time neondb_owner connection)
+ *   Never use OPSC_DATABASE_URL here and never store this URL in Vercel runtime.
+ *   After bootstrap, remove/rotate this credential.
+ *
  * Required (interactive or env):
  *   OPSC_BOOTSTRAP_ORG_NAME
  *   OPSC_BOOTSTRAP_CEO_EMAIL
