@@ -30,7 +30,7 @@ function licenseNames(value) {
   return [];
 }
 function packageNameFromNodeModulesPath(key) {
-  const parts = key.replace(/^node_modules\\//, '').split('/node_modules/').pop().split('/');
+  const parts = key.replace(/^node_modules\//, '').split('/node_modules/').pop().split('/');
   if (parts[0].startsWith('@')) return `${parts[0]}/${parts[1]}`;
   return parts[0];
 }
