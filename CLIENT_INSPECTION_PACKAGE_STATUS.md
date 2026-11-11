@@ -10,7 +10,7 @@
 
 Main GitHub Actions CI run `43031885131`: 525 passed, 2 skipped, 0 failed, 0 unaccounted. This verifies the committed test scope only. The run's own report marks database, PostGIS, OIDC, backup/restore, and production certification as UNVERIFIED / NOT_ESTABLISHED.
 
-PR #22 contains additional staged deployment and production role-gate changes. Its latest branch CI reported 540 passed, 2 skipped, 0 failed, and 0 unaccounted. PR #22 is still a draft and is not merged into Main.
+PR #24 is the integrated candidate combining the runtime/bootstrap separation, staged deployment gates, PostgreSQL catalog hardening, and current buyer documentation. Its combined-head CI is running and must finish green before merge. The source branches were separately green (PR #22: 553 passed, 2 skipped; PR #23: 532 passed, 2 skipped), but those results are not additive and do not replace combined-head CI. Both skips are `postgres-commercial-acceptance-http.test.js` and `tenant-isolation-matrix.test.js`; they require a disposable PostgreSQL acceptance URL and remain UNVERIFIED.
 
 ## Current infrastructure status
 
