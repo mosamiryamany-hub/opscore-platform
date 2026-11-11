@@ -159,7 +159,8 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
     migrationLedgerRuntimePrivilegesCount === 0 &&
     controlPlaneTableCount === 3 &&
     controlPlanePolicyValidTableCount === 3 &&
-    controlPlaneRuntimePrivilegeGapCount === 0 &&\n    runtimeRoleSafe;
+    controlPlaneRuntimePrivilegeGapCount === 0 &&
+    runtimeRoleSafe;
 
   let status = 'NOT_CERTIFIED';
   let note = 'Catalog metadata is not a full behavioral certification of every application path.';
