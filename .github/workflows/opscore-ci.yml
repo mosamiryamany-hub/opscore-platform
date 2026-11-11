@@ -33,6 +33,8 @@ jobs:
           node --check backend/src/security.js
           node --check backend/src/store.js
           node --check backend/src/server.js
+          node --check backend/scripts/bootstrap.js
+          node --check backend/src/bootstrap-policy.js
       - name: Hardened metadata gate
         working-directory: backend
         run: npm run verify:hardened
