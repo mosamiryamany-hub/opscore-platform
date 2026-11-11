@@ -30,7 +30,7 @@ The SDK 58 changes were merged through PR #15. Secure Release run #6 then rebuil
 - App-store review and publication are not included.
 - Buyer-specific EAS project, signing identities, store credentials and device matrix remain target/account-specific.
 - The Web SQLite cross-origin isolation headers (COEP/COOP) must be independently verified if the deployed mobile web target uses the SQLite WASM path.
-- Native-speaker review of the Contact Center language resources remains 0/114; language production qualification remains 0/114.
+- Native-speaker translation review of the Contact Center language resources remains 0/114; language production qualification remains 0/114. Translation outputs remain machine-assisted drafts/fallbacks and are not production-qualified.
 
 ## Security follow-up
 
