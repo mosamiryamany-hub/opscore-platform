@@ -125,6 +125,9 @@ const lockDigest = crypto.createHash('sha256').update(
 ).digest('hex');
 const serial = `urn:uuid:${lockDigest.slice(0,8)}-${lockDigest.slice(8,12)}-4${lockDigest.slice(13,16)}-${((parseInt(lockDigest.slice(16,18),16)&0x3f)|0x80).toString(16).padStart(2,'0')}${lockDigest.slice(18,20)}-${lockDigest.slice(20,32)}`;
 const sourceCommit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim();
+const workflowName = process.env.GITHUB_WORKFLOW || 'local execution';
+const workflowRunId = process.env.GITHUB_RUN_ID || 'not-provided';
+const workflowRef = process.env.GITHUB_REF || 'not-provided';
 const sourceHashes = {
   repository: sourceArchiveHash(),
   backend: sourceArchiveHash('backend'),
@@ -178,7 +181,9 @@ const bom = {
       licenses: [{ license: { name: proprietaryLicenseName } }]
     },
     properties: [
-      { name: 'opscore:generation-context', value: 'GitHub Actions exact-head secure-release workflow' },
+      { name: 'opscore:generation-context', value: process.env.GITHUB_ACTIONS === 'true' ? `GitHub Actions workflow: ${workflowName}` : 'local execution' },
+      { name: 'opscore:workflow-run-id', value: workflowRunId },
+      { name: 'opscore:workflow-ref', value: workflowRef },
       { name: 'opscore:source-archive-scope', value: 'git archive HEAD excluding generated docs/sbom outputs' },
       { name: 'opscore:source-commit', value: sourceCommit },
       { name: 'opscore:lockfiles-sha256', value: lockDigest },
