@@ -32,6 +32,25 @@ test('unverified release, non-PostgreSQL engine, or missing primary database URL
   assert.equal(verifyProductionEnvironment({ ...valid, OPSC_DATABASE_URL: '' }).passed, false);
 });
 
+test('production runtime rejects migration/bootstrap owner credentials and conflicting DATABASE_URL', () => {
+  assert.equal(verifyProductionEnvironment({
+    ...valid,
+    DATABASE_URL: valid.OPSC_DATABASE_URL
+  }).passed, true);
+  assert.equal(verifyProductionEnvironment({
+    ...valid,
+    DATABASE_URL: 'postgres://different-role.invalid/db'
+  }).passed, false);
+  assert.equal(verifyProductionEnvironment({
+    ...valid,
+    OPSC_MIGRATION_DATABASE_URL: 'postgres://owner.invalid/db'
+  }).passed, false);
+  assert.equal(verifyProductionEnvironment({
+    ...valid,
+    OPSC_BOOTSTRAP_DATABASE_URL: 'postgres://owner.invalid/db'
+  }).passed, false);
+});
+
 test('preflight output contains no environment values or connection secrets', () => {
   const result = verifyProductionEnvironment(valid);
   const serialized = JSON.stringify(result);
