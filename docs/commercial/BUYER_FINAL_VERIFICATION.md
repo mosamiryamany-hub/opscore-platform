@@ -21,7 +21,7 @@ gh attestation verify OPSCORE.zip -R mosamiryamany-hub/opscore-platform
 gh attestation verify OPSCORE.zip -R mosamiryamany-hub/opscore-platform --predicate-type https://cyclonedx.org/bom
 ```
 
-The tracked SBOM is currently CycloneDX 1.6 with 491 components; 489 carry component hashes and license entries. Two top-level application components lack those entries. This is a known SBOM completeness gap; do not describe the current SBOM as fully conformant to the July 2026 CISA minimum-elements guidance.
+The tracked SBOM is currently CycloneDX 1.6 with 491 components; 489 carry component hashes and license entries. Two top-level application components lack those entries. This is a known SBOM completeness gap; do not describe the current SBOM as fully conformant to the CISA's published Minimum Elements for a Software Bill of Materials guidance.
 
 ## Current Main status at 2026-11-11
 
