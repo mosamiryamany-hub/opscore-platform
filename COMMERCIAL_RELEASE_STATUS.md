@@ -18,7 +18,7 @@
 
 ## Separate change under review
 
-PR #22 adds staged Vercel deployment, authenticated protected-deployment smoke tests, production environment preflight, runtime-role attestation, and fail-closed production acceptance checks. Its latest CI run on the PR branch reported 540 passed, 2 skipped, 0 failed, and 0 unaccounted. It is still a draft and is not part of Main.
+PR #22 adds staged Vercel deployment, authenticated protected-deployment smoke tests, production environment preflight, runtime-role attestation, and fail-closed production acceptance checks. Its latest CI run on the PR branch reported 550 passed, 2 skipped, 0 failed, and 0 unaccounted. The two skips are `postgres-commercial-acceptance-http.test.js` and `tenant-isolation-matrix.test.js`; both require a disposable PostgreSQL acceptance URL and remain UNVERIFIED. PR #22 is still a draft and is not part of Main.
 
 ## Commercial blockers
 
