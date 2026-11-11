@@ -27,6 +27,8 @@ Production isolation certification is NOT_CERTIFIED. The seller reference API cu
 
 ## Buyer responsibilities after a valid source handover
 
+Buyer-owned external integrations include provider accounts, licenses, credentials, quotas, billing, maps/routing, telephony, messaging, payment, webhooks, storage, KMS/HSM, and live acceptance. Native-speaker translation review is required before language-quality claims.
+
 - Configure buyer-controlled Neon/PostgreSQL and Vercel projects.
 - Use `OPSC_DATABASE_URL` only for the least-privilege `opscore_runtime` role.
 - Use `OPSC_MIGRATION_DATABASE_URL` only for explicitly approved schema migrations.
