@@ -25,7 +25,7 @@ Current verified source candidate: OpsCore v0.11.62, GitHub main at commit `f3f3
 - Artifact Attestation is separate from a signed Git commit and separate from production acceptance.
 - Vercel's latest deployment is READY; `/api/health` was observed healthy. Authenticated readiness and production tenant-isolation acceptance remain separate tests.
 - Vercel production deploys are currently driven by GitHub Actions + Vercel CLI. `vercel.json` sets `git.deploymentEnabled=false`, intentionally suppressing automatic Git deployments to avoid competing deployment paths.
-- A GitHub App installation is visible for the Vercel namespace, but project-level Git binding was not reflected in the API at last verification. Confirm the repository connection in Vercel Project Settings → Git.
+- The project owner reports that GitHub ↔ Vercel setup is now complete. The last API snapshot still showed `source=cli` and an empty `linkedProjects` collection; the namespace App installation and project-level Git repository binding are distinct. Current production deploys are verified through GitHub Actions + Vercel CLI. Keep `git.deploymentEnabled=false` unless the owner deliberately chooses native Git deployments as the sole deploy path and disables the competing CI deploy.
 
 ## Role model
 
