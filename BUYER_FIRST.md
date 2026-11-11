@@ -48,10 +48,10 @@ npm run verify
 ```
 
 ## Live reference deployment (seller-operated demo)
-- Site: https://opscore-commercial-final.vercel.app/
-- Health: https://opscore-commercial-final.vercel.app/api/health
-- Release proof: https://opscore-commercial-final.vercel.app/api/verify/release
-- Database security proof: https://opscore-commercial-final.vercel.app/api/verify/database-security
+- Site: https://opscore-platform.vercel.app/
+- Health: https://opscore-platform.vercel.app/api/health
+- Release proof: https://opscore-platform.vercel.app/api/verify/release
+- Database security proof: https://opscore-platform.vercel.app/api/verify/database-security
 
 Treat live proofs as **operator evidence for that deployment**, not as certification of *your* production until you reproduce the checks.
 
