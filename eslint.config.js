@@ -18,7 +18,8 @@ const browserGlobals = {
   setInterval: 'readonly', clearInterval: 'readonly', Promise: 'readonly', crypto: 'readonly',
   caches: 'readonly', self: 'readonly', clients: 'readonly', skipWaiting: 'readonly', addEventListener: 'readonly',
   indexedDB: 'readonly', Notification: 'readonly', Headers: 'readonly', Request: 'readonly', Response: 'readonly',
-  Image: 'readonly', OpsGeo: 'readonly', module: 'writable'
+  Image: 'readonly', OpsGeo: 'readonly', module: 'writable',
+  performance: 'readonly', RTCPeerConnection: 'readonly'
 };
 const mobileGlobals = { ...nodeGlobals, __DEV__: 'readonly', fetch: 'readonly' };
 module.exports = [

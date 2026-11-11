@@ -3,6 +3,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const {Store} = require('./store');
+const { resolveMapTileOrigin } = require('./map-tile-security');
 const config = require('./config');
 const {assertRuntimeConfiguration} = require('./runtime-contract');
 const {openDatabase} = require('./db-open');
