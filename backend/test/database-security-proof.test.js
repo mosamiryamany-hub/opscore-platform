@@ -92,6 +92,7 @@ test('PostGIS write access or application access to migration ledger is rejected
 
 test('runtime catalog query is read-only and inspects identity, PostGIS and migration ledger', () => {
   assert.match(DATABASE_SECURITY_SQL,/FROM pg_class c/);
+  assert.match(DATABASE_SECURITY_SQL,/relkind IN \('r','p'\)/);
   assert.match(DATABASE_SECURITY_SQL,/'users'/);
   assert.match(DATABASE_SECURITY_SQL,/'password_reset_tokens'/);
   assert.match(DATABASE_SECURITY_SQL,/'spatial_ref_sys'/);
