@@ -33,6 +33,8 @@ jobs:
           node --check backend/src/security.js
           node --check backend/src/store.js
           node --check backend/src/server.js
+          node --check backend/src/database-security-proof.js
+          node --check scripts/production-deployment-smoke.js
       - name: Production deployment smoke contract tests
         run: node --test backend/test/production-deployment-smoke.test.js
       - name: Hardened metadata gate
