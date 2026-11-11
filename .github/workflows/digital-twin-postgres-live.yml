@@ -12,6 +12,8 @@ on:
       - 'backend/sql/postgres/031_digital_twin_chain_hardening.sql'
       - 'backend/sql/postgres/052_runtime_policy_function_grants.sql'
       - 'backend/sql/postgres/053_control_plane_restrictive_tenant_guards.sql'
+      - 'backend/sql/postgres/054_tenant_composite_foreign_keys.sql'
+      - 'backend/scripts/postgres-tenant-composite-fk-gate.js'
       - 'backend/package.json'
       - 'backend/package-lock.json'
       - 'package.json'
@@ -118,3 +120,6 @@ jobs:
       - name: Run isolated PostgreSQL 18 tenant-isolation gate
         working-directory: backend
         run: npm run db:postgres-live-rls
+      - name: Run tenant composite foreign-key integrity gate
+        working-directory: backend
+        run: node scripts/postgres-tenant-composite-fk-gate.js
