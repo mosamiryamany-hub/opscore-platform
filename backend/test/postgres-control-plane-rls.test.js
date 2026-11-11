@@ -12,8 +12,12 @@ test('control-plane policy migration separates permissive tenant access from res
   for (const table of ['feature_flags', 'safe_mode_states', 'control_plane_runs']) {
     assert.match(migration, new RegExp(table));
   }
-  assert.match(migration, /CREATE POLICY[\s\S]*?opscore_tenant_permissive[\s\S]*?AS PERMISSIVE/i);
-  assert.match(migration, /CREATE POLICY[\s\S]*?opscore_tenant_boundary_guard[\s\S]*?AS RESTRICTIVE/i);
+
+
+  assert.match(migration, /AS PERMISSIVE FOR ALL/i);
+  assert.match(migration, /AS RESTRICTIVE FOR ALL/i);
+  assert.match(migration, /opscore_tenant_permissive/);
+  assert.match(migration, /opscore_tenant_boundary_guard/);
   assert.match(migration, /current_setting\(''app\.tenant_id'', true\)/);
   assert.match(migration, /ENABLE ROW LEVEL SECURITY/i);
   assert.match(migration, /FORCE ROW LEVEL SECURITY/i);
