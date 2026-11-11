@@ -59,28 +59,20 @@ SELECT
             AND p.polpermissive IS TRUE
             AND p.polcmd = '*'
             AND p.polroles::text = '{0}'
-            AND lower(regexp_replace(
-              regexp_replace(COALESCE(pg_get_expr(p.polqual,p.polrelid),''),'[[:space:]]+','','g'),
-              '::text','','g'
-            )) = '(organization_id=nullif(current_setting(''app.tenant_id'',true),''''))'
-            AND lower(regexp_replace(
-              regexp_replace(COALESCE(pg_get_expr(p.polwithcheck,p.polrelid),''),'[[:space:]]+','','g'),
-              '::text','','g'
-            )) = '(organization_id=nullif(current_setting(''app.tenant_id'',true),''''))'
+            AND COALESCE(pg_get_expr(p.polqual,p.polrelid),'') =
+              '(organization_id = NULLIF(current_setting(''app.tenant_id''::text, true), ''''::text))'
+            AND COALESCE(pg_get_expr(p.polwithcheck,p.polrelid),'') =
+              '(organization_id = NULLIF(current_setting(''app.tenant_id''::text, true), ''''::text))'
         ) = 1
         AND COUNT(p.oid) FILTER (
           WHERE p.polname = 'opscore_tenant_boundary_guard'
             AND p.polpermissive IS FALSE
             AND p.polcmd = '*'
             AND p.polroles::text = '{0}'
-            AND lower(regexp_replace(
-              regexp_replace(COALESCE(pg_get_expr(p.polqual,p.polrelid),''),'[[:space:]]+','','g'),
-              '::text','','g'
-            )) = '(organization_id=nullif(current_setting(''app.tenant_id'',true),''''))'
-            AND lower(regexp_replace(
-              regexp_replace(COALESCE(pg_get_expr(p.polwithcheck,p.polrelid),''),'[[:space:]]+','','g'),
-              '::text','','g'
-            )) = '(organization_id=nullif(current_setting(''app.tenant_id'',true),''''))'
+            AND COALESCE(pg_get_expr(p.polqual,p.polrelid),'') =
+              '(organization_id = NULLIF(current_setting(''app.tenant_id''::text, true), ''''::text))'
+            AND COALESCE(pg_get_expr(p.polwithcheck,p.polrelid),'') =
+              '(organization_id = NULLIF(current_setting(''app.tenant_id''::text, true), ''''::text))'
         ) = 1
     ) AS valid_control_plane_policy_tables
   ) AS control_plane_policy_valid_table_count,

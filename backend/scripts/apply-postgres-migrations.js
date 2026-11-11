@@ -48,15 +48,14 @@ async function verifyControlPlane053Catalog(client){
   "SELECT c.relname AS table_name,p.polname AS policy_name,p.polpermissive AS permissive,p.polcmd AS command,p.polroles::text AS policy_roles,pg_get_expr(p.polqual,p.polrelid) AS using_expr,pg_get_expr(p.polwithcheck,p.polrelid) AS check_expr FROM pg_policy p JOIN pg_class c ON c.oid=p.polrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname=ANY($1::text[])",
   [names]
  )).rows;
- const normalize=value=>String(value||'').replace(/\s+/g,'').toLowerCase();
+ // Compare pg_get_expr's canonical representation verbatim; quoted literal whitespace is significant.
  const expectedExpr="(organization_id = NULLIF(current_setting('app.tenant_id'::text, true), ''::text))";
- const expectedNormalized=normalize(expectedExpr);
  const results=names.map(tableName=>{
   const tableRows=tables.filter(x=>x.relname===tableName);
   const rows=policies.filter(x=>x.table_name===tableName);
   const permissive=rows.filter(x=>x.policy_name==='opscore_tenant_permissive'&&x.permissive===true);
   const restrictive=rows.filter(x=>x.policy_name==='opscore_tenant_boundary_guard'&&x.permissive===false);
-  const expressionExact=row=>normalize(row.using_expr)===expectedNormalized&&normalize(row.check_expr)===expectedNormalized;
+   const expressionExact=row=>row.using_expr===expectedExpr&&row.check_expr===expectedExpr;
   const valid=tableRows.length===1&&tableRows[0].relrowsecurity===true&&tableRows[0].relforcerowsecurity===true&&
    rows.length===2&&permissive.length===1&&restrictive.length===1&&
    [permissive[0],restrictive[0]].every(row=>row.command==='*'&&row.policy_roles==='{0}'&&expressionExact(row));

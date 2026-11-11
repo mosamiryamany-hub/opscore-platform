@@ -29,6 +29,8 @@ test('migration runner enforces the restrictive control-plane policy postconditi
   assert.match(runner, /control_plane_restrictive_policy_gap_count/);
   assert.match(runner, /opscore_tenant_boundary_guard/);
   assert.match(runner, /polpermissive/);
+  assert.ok(runner.includes('row.using_expr===expectedExpr&&row.check_expr===expectedExpr'));
+  assert.doesNotMatch(runner, /const normalize=value=>/);
   assert.match(runner, /control_plane_restrictive_policy_gap_count/);
 });
 
@@ -40,8 +42,10 @@ test('live PostgreSQL RLS gate tests feature flags, safe mode state and control-
   assert.match(gate, /control-plane-cross-tenant-insert-denied/);
   assert.ok(gate.includes("row.policy_roles === '{0}'"));
   assert.ok(gate.includes('rows.length === 2'));
-  assert.ok(gate.includes('exactPermissive'));
-  assert.ok(gate.includes('exactRestrictive'));
+  assert.ok(gate.includes("row.using_expr === expectedControlPlanePredicate"));
+  assert.ok(gate.includes("row.check_expr === expectedControlPlanePredicate"));
+  assert.ok(gate.includes('whitespaceLiteralProofCount'));
+  assert.ok(gate.includes('DATABASE_SECURITY_PROOF_ACCEPTED_WHITESPACE_ALTERED_LITERAL'));
   assert.ok(gate.includes("require('../src/database-security-proof')"));
   assert.ok(gate.includes('controlPlaneCatalogProofSql'));
   assert.ok(gate.includes('CONTROL_PLANE_DATABASE_SECURITY_PROOF_DID_NOT_VALIDATE_ALL_TABLES'));

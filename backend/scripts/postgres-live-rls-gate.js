@@ -200,15 +200,13 @@ async function main() {
       "WHERE n.nspname=$1 AND c.relname=ANY($2::text[])",
       [schemaName, ['feature_flags', 'safe_mode_states', 'control_plane_runs']]
     )).rows;
-    const normalizePolicyExpression = value => String(value || '')
-      .replace(/\s+/g, '')
-      .replace(/::text/g, '')
-      .toLowerCase();
-    const expectedControlPlanePredicate = "(organization_id=nullif(current_setting('app.tenant_id',true),''))";
+    // Compare PostgreSQL's canonical pg_get_expr representation verbatim.
+    // Whitespace inside quoted literals is semantically significant.
+    const expectedControlPlanePredicate = "(organization_id = NULLIF(current_setting('app.tenant_id'::text, true), ''::text))";
     const isExactTenantPolicy = row => row.command === '*' &&
       row.policy_roles === '{0}' &&
-      normalizePolicyExpression(row.using_expr) === expectedControlPlanePredicate &&
-      normalizePolicyExpression(row.check_expr) === expectedControlPlanePredicate;
+      row.using_expr === expectedControlPlanePredicate &&
+      row.check_expr === expectedControlPlanePredicate;
     const controlPolicyResults = ['feature_flags', 'safe_mode_states', 'control_plane_runs'].map(table => {
       const rows = controlPolicyRows.filter(row => row.table_name === table);
       const permissive = rows.filter(row =>
@@ -258,7 +256,18 @@ async function main() {
     }
     await client.query(`ALTER POLICY opscore_tenant_permissive ON ${quotedSchema}.feature_flags TO PUBLIC`);
 
-    // Negative control: a tautological tenant predicate must fail proof.
+    // Whitespace inside a quoted literal changes the predicate and must be rejected.
+    await client.query(
+      `ALTER POLICY opscore_tenant_boundary_guard ON ${quotedSchema}.feature_flags
+       USING (organization_id = NULLIF(current_setting('app.tenant_id', true), ' '))
+       WITH CHECK (organization_id = NULLIF(current_setting('app.tenant_id', true), ' '))`
+    );
+    const whitespaceLiteralProofCount = await readControlPlaneProofCount();
+    if (whitespaceLiteralProofCount !== 2) {
+      throw new Error('DATABASE_SECURITY_PROOF_ACCEPTED_WHITESPACE_ALTERED_LITERAL');
+    }
+
+    // A tautological tenant predicate must fail proof as well.
     await client.query(`ALTER POLICY opscore_tenant_boundary_guard ON ${quotedSchema}.feature_flags USING (true) WITH CHECK (true)`);
     const weakPredicateProofCount = await readControlPlaneProofCount();
     if (weakPredicateProofCount !== 2) {
@@ -277,6 +286,7 @@ async function main() {
       id: 'control-plane-database-security-proof-negative-controls',
       status: 'PASS',
       wrongRoleRejected: wrongRoleProofCount === 2,
+      whitespaceLiteralRejected: whitespaceLiteralProofCount === 2,
       weakPredicateRejected: weakPredicateProofCount === 2,
       restoredValidatedTableCount: restoredProofCount
     });
