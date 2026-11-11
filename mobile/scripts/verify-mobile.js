@@ -18,6 +18,7 @@ check('safety acknowledgement is manual',app.includes('safetyAnswers')&&app.incl
 check('device navigation wired to external maps',app.includes('Linking.openURL')&&app.includes('site_latitude'));
 check('mobile safety API wired',api.includes('/api/v1/safety-checklists')&&api.includes('/api/v1/safety-acknowledgements'));
 const pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));check(`version ${pkg.version}`,pkg.version==='0.1.16');
+check('mobile package is private and cannot be published accidentally',pkg.private===true);
 const cfg=JSON.parse(fs.readFileSync(path.join(root,'app.json'),'utf8'));check('app version matches package',cfg.expo.version===pkg.version);check('field check-in contract documented',fs.existsSync(path.join(root,'docs/FIELD_CHECKIN_CONTRACT.md')));
 
 check('server-bound signoff API helpers wired',api.includes('/signoff-assurance/challenge')&&api.includes('/signoff-assurance/complete')&&app.includes('api.signoffChallenge')&&app.includes('api.signoffAssuranceComplete'));
