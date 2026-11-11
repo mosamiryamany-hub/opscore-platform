@@ -25,6 +25,8 @@
   },
   "overrides": {
     "node-forge": "1.4.3",
+    "glob": "14.0.4",
+    "minimatch": "11.0.5",
     "zod": "4.6.7"
   }
 }
