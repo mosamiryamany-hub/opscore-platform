@@ -13,6 +13,12 @@
 - Neon Main migration ledger ends at 052; migration 053 restrictive tenant guards are not applied.
 - The isolated Neon verification branch has migration 053 applied, matching SQL/ledger SHA-256, and read-only Tenant A/B checks on feature flags and safe-mode states returned 1 own-tenant row and 0 foreign rows for each tenant. This is limited evidence, not full production certification.
 - The `opscore_runtime` role is least-privilege at the role catalog level; the actual Vercel runtime connection identity remains unverified.
+- PR #24 is the integrated candidate combining PR #22 and PR #23; its combined-head CI is still pending. The source branches were separately green (553 passed / 2 skipped and 532 passed / 2 skipped), but those runs are not combined evidence.
+- Both skipped acceptance tests require a disposable PostgreSQL URL: `postgres-commercial-acceptance-http.test.js` and `tenant-isolation-matrix.test.js`. They remain UNVERIFIED.
+- Live PostgreSQL catalog: 132 public ordinary/partitioned relations, 131 with RLS and FORCE RLS; only read-only `spatial_ref_sys` is outside RLS. Main's control-plane restrictive guards are still absent.
+- Neon network settings: public connections allowed, IP allowlist empty, six branches unprotected, protected-branches-only disabled, history retention 6 hours.
+- Vercel Firewall is enabled, but active Bot Protection and CRS generic/RCE/SQLi/XSS rules are LOG-only; no custom/IP rules are configured.
+- Vercel's last-24-hour runtime aggregation showed 59 `PRODUCTION_HOLD_ACTIVE` errors across 32 users.
 
 ## Release blockers
 
