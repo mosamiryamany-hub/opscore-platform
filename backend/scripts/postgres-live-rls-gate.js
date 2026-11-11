@@ -4,6 +4,17 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const { DATABASE_SECURITY_SQL } = require('../src/database-security-proof');
+
+function controlPlaneCatalogProofSql() {
+  const namespaceFilter = "n.nspname = 'public'";
+  const occurrences = DATABASE_SECURITY_SQL.split(namespaceFilter).length - 1;
+  if (occurrences !== 2) {
+    throw new Error('DATABASE_SECURITY_PROOF_NAMESPACE_FILTER_COUNT_INVALID');
+  }
+  return DATABASE_SECURITY_SQL.replaceAll(namespaceFilter, 'n.nspname = $1');
+}
+
 
 const backendRoot = path.resolve(__dirname, '..');
 const migrationPath = path.join(backendRoot, 'sql', 'postgres', '031_digital_twin_chain_hardening.sql');
@@ -221,6 +232,54 @@ async function main() {
       throw new Error('CONTROL_PLANE_RESTRICTIVE_POLICY_CATALOG_INVALID');
     }
     checks.push({ id: 'control-plane-policy-catalog', status: 'PASS', tables: controlPolicyResults });
+
+    // Run the same read-only catalog proof used by /api/verify/database-security
+    // against this disposable schema. Only its schema filter is parameterized.
+    const proofSql = controlPlaneCatalogProofSql();
+    const readControlPlaneProofCount = async () => {
+      const result = await client.query(proofSql, [schemaName]);
+      return Number(result.rows?.[0]?.control_plane_policy_valid_table_count ?? 0);
+    };
+    const initialProofCount = await readControlPlaneProofCount();
+    if (initialProofCount !== 3) {
+      throw new Error('CONTROL_PLANE_DATABASE_SECURITY_PROOF_DID_NOT_VALIDATE_ALL_TABLES');
+    }
+    checks.push({
+      id: 'control-plane-database-security-proof',
+      status: 'PASS',
+      validatedTableCount: initialProofCount
+    });
+
+    // Negative control: changing the policy role away from PUBLIC must fail proof.
+    await client.query(`ALTER POLICY opscore_tenant_permissive ON ${quotedSchema}.feature_flags TO opscore_runtime`);
+    const wrongRoleProofCount = await readControlPlaneProofCount();
+    if (wrongRoleProofCount !== 2) {
+      throw new Error('DATABASE_SECURITY_PROOF_ACCEPTED_WRONG_POLICY_ROLE');
+    }
+    await client.query(`ALTER POLICY opscore_tenant_permissive ON ${quotedSchema}.feature_flags TO PUBLIC`);
+
+    // Negative control: a tautological tenant predicate must fail proof.
+    await client.query(`ALTER POLICY opscore_tenant_boundary_guard ON ${quotedSchema}.feature_flags USING (true) WITH CHECK (true)`);
+    const weakPredicateProofCount = await readControlPlaneProofCount();
+    if (weakPredicateProofCount !== 2) {
+      throw new Error('DATABASE_SECURITY_PROOF_ACCEPTED_WEAK_TENANT_PREDICATE');
+    }
+    await client.query(
+      `ALTER POLICY opscore_tenant_boundary_guard ON ${quotedSchema}.feature_flags
+       USING (organization_id = NULLIF(current_setting('app.tenant_id', true), ''))
+       WITH CHECK (organization_id = NULLIF(current_setting('app.tenant_id', true), ''))`
+    );
+    const restoredProofCount = await readControlPlaneProofCount();
+    if (restoredProofCount !== 3) {
+      throw new Error('DATABASE_SECURITY_PROOF_DID_NOT_RECOVER_AFTER_NEGATIVE_CONTROLS');
+    }
+    checks.push({
+      id: 'control-plane-database-security-proof-negative-controls',
+      status: 'PASS',
+      wrongRoleRejected: wrongRoleProofCount === 2,
+      weakPredicateRejected: weakPredicateProofCount === 2,
+      restoredValidatedTableCount: restoredProofCount
+    });
 
     const flagA = `feature_flag_a_${crypto.randomBytes(4).toString('hex')}`;
     const safeModeA = `safe_mode_a_${crypto.randomBytes(4).toString('hex')}`;
