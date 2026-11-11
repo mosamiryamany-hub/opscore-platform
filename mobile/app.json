@@ -13,6 +13,13 @@
         "NSLocationWhenInUseUsageDescription": "OpsCore uses your location to support technician check-in and field operations.",
         "NSCameraUsageDescription": "OpsCore uses the camera to capture work-order evidence.",
         "NSPhotoLibraryUsageDescription": "OpsCore uses photo access to attach field evidence to work orders."
+      },
+      "buildNumber": "1",
+      "privacyManifests": {
+        "NSPrivacyTracking": false,
+        "NSPrivacyTrackingDomains": [],
+        "NSPrivacyCollectedDataTypes": [],
+        "NSPrivacyAccessedAPITypes": []
       }
     },
     "android": {
@@ -22,7 +29,8 @@
         "ACCESS_FINE_LOCATION",
         "CAMERA",
         "READ_MEDIA_IMAGES"
-      ]
+      ],
+      "versionCode": 1
     },
     "plugins": [
       [

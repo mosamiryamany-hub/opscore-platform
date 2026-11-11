@@ -8,8 +8,11 @@
  * For a licensed external provider, explicitly configure all four:
  *   tileUrl, attribution, providerConfigured: true, licenseAcknowledged: true,
  *   allowedTileOrigins: ['https://exact-provider.example'].
- * The allowedTileOrigins entry must be the exact HTTPS origin (scheme + host + port),
- * and the deployment CSP img-src must separately allow only that origin. Do not put
+ * The allowedTileOrigins entry must be the exact HTTPS origin (scheme + host + port).
+ * IMPORTANT: this file alone cannot enable an external provider. vercel.json ships
+ * Content-Security-Policy img-src 'self' data: blob: - no external origin is allowed,
+ * so an external tileUrl is rejected by the browser until that CSP directive is edited
+ * to add the exact provider origin. Same-origin proxy mode needs no CSP change. Do not put
  * API secrets in this public browser configuration. Prefer a same-origin proxy for
  * providers that require secret keys. Never use public community tile servers for
  * heavy/commercial use unless their published policy explicitly permits it.

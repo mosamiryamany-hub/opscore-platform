@@ -125,3 +125,27 @@ test('map tile template rejects protocol-relative URLs and incomplete path templ
     }).tileUrl, '');
   }
 });
+
+test('map config default is CSP-compatible and external tiles stay disabled until the buyer opts in', () => {
+  const fs = require('node:fs'), path = require('node:path');
+  const webRoot = path.join(__dirname, '..', 'web');
+  const mapConfigSource = fs.readFileSync(path.join(webRoot, 'map-config.js'), 'utf8');
+  const vercelJson = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'vercel.json'), 'utf8'));
+  const cspHeader = vercelJson.headers.flatMap(h => h.headers).find(h => h.key === 'Content-Security-Policy').value;
+  const imgSrc = cspHeader.split(';').map(d => d.trim()).find(d => d.startsWith('img-src'));
+  assert.ok(imgSrc.includes("'self'"), 'CSP img-src must keep same-origin proxy mode working');
+  assert.ok(!/https:\/\//.test(mapConfigSource.split('window.OPSCORE_MAP_CONFIG')[1] || ''), 'map-config defaults must not embed an external https origin');
+  assert.match(mapConfigSource, /tileUrl: ''/, 'tileUrl default empty');
+  assert.match(mapConfigSource, /providerConfigured: false/, 'providerConfigured default false');
+  assert.match(mapConfigSource, /licenseAcknowledged: false/, 'licenseAcknowledged default false');
+  assert.match(mapConfigSource, /allowedTileOrigins: \[\]/, 'allowedTileOrigins default empty');
+  assert.match(mapConfigSource, /'\/tiles\/\{z\}\/\{x\}\/\{y\}\.png'/, 'same-origin proxy pattern documented');
+  // Execute the browser file exactly as the browser would, against a stub window,
+  // instead of JSON.parse (the object literal has unquoted keys, not valid JSON).
+  const stubWindow = {};
+  new Function('window', mapConfigSource)(stubWindow);
+  const mapDefaults = stubWindow.OPSCORE_MAP_CONFIG;
+  assert.equal(G.validateMapTileConfig(mapDefaults).externalTilesEnabled, false, 'defaults must not enable external tiles');
+  const proxyPath = G.validateMapTileConfig({ tileUrl: '/tiles/{z}/{x}/{y}.png' });
+  assert.equal(proxyPath.externalTilesEnabled, false, 'relative proxy path needs no CSP change and stays internal');
+});

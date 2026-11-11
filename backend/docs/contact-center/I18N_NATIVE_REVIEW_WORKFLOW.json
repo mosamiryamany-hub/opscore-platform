@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "opscore.i18n-native-review-workflow.v1",
+  "scope": "layer-A",
+  "locales": [
+    "en",
+    "ar"
+  ],
+  "mqm": {
+    "framework": "MQM 2024 (multidimensional quality metrics)",
+    "threshold": {
+      "maxMajorErrorsPer1000Words": 0,
+      "maxMinorErrorsPer1000Words": 2,
+      "passRequires": "zero major errors and at most 2 minor errors per 1000 words across the full key set, verified by a native-speaker reviewer"
+    },
+    "source": "https://www.themqm.org/"
+  },
+  "keyCount": 89,
+  "reviewers": [],
+  "entries": [
+    {
+      "locale": "en",
+      "role": "source",
+      "reviewerId": null,
+      "reviewedAt": null,
+      "mqmScore": null,
+      "status": "source"
+    },
+    {
+      "locale": "ar",
+      "role": "target",
+      "reviewerId": null,
+      "reviewedAt": null,
+      "mqmScore": null,
+      "status": "pending_native_review"
+    }
+  ],
+  "note": "A locale flips to reviewed/production-qualified ONLY after a named native-speaker reviewer signs the entry above with reviewerId + reviewedAt + mqmScore meeting the threshold. Until then the completion register keeps nativeReviewStatus=not_native_reviewed. Nothing in this file is auto-marked."
+}
