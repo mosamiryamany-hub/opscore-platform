@@ -2,7 +2,7 @@
 
 **Delivery decision:** NOT ISSUED for current Main.  
 **Repository:** https://github.com/mosamiryamany-hub/opscore-platform  
-**Main commit at audit:** `48ed78a825020986c53bd045e50c8ea852f53275`  
+**Source commit at audit:** `48ed78a825020986c53bd045e50c8ea852f53275`  
 **Product version:** 0.11.62
 
 No current-head `OPSCORE.zip` has been approved for delivery. The tracked release statement in `docs/release/COMMERCIAL_RELEASE_STATEMENT.json` is historical and must not be used as the identity of this source commit.
