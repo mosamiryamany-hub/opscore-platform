@@ -54,7 +54,7 @@ Then open `http://127.0.0.1:3000` (or the port configured by `PORT`).
 
 The demo seed is **SQLite-only** and refuses to run when `DATABASE_ENGINE=postgres` or a database URL is configured. Do not use it for PostgreSQL or real customer activation. Do not run `seed:demo` when `DATABASE_ENGINE=postgres`; use the real-owner `npm run bootstrap` flow instead.
 
-For PostgreSQL, apply migrations using the separate `OPSC_MIGRATION_DATABASE_URL` owner connection, keep `OPSC_DATABASE_URL` on the restricted `opscore_app` runtime role, and run `npm run bootstrap` with `OPSC_BOOTSTRAP_ORG_NAME`, `OPSC_BOOTSTRAP_CEO_EMAIL` and a privately supplied `OPSC_BOOTSTRAP_CEO_PASSWORD`. This creates the real initial organization and owner without demo fixtures.
+For PostgreSQL, apply migrations using the separate `OPSC_MIGRATION_DATABASE_URL` owner connection. Keep `OPSC_DATABASE_URL` on the dedicated least-privilege `opscore_runtime` login role (`NOSUPERUSER`, `NOBYPASSRLS`, no `CREATEROLE`/`CREATEDB`, and no elevated role memberships); do not substitute the elevated `opscore_app` role. Verify the actual target role and grants before activation. Run `npm run bootstrap` with `OPSC_BOOTSTRAP_ORG_NAME`, `OPSC_BOOTSTRAP_CEO_EMAIL` and a privately supplied `OPSC_BOOTSTRAP_CEO_PASSWORD`. This creates the real initial organization and owner without demo fixtures.
 
 ### Demo accounts
 
@@ -82,7 +82,7 @@ These commands verify SQLite integrity; production backup/restore remains a buye
 
 ## Production handoff
 
-The application has a PostgreSQL runtime path, but a buyer-specific production deployment still requires exact-commit deployment provenance, proof that Vercel connects as the least-privilege `opscore_app` role, live session/tenant-isolation acceptance, recovery drills, TLS/ingress, secret management, distributed rate limiting, and buyer-owned identity, notifications, object storage, maps and telephony provider setup. CI success alone does not certify production.
+The application has a PostgreSQL runtime path, but a buyer-specific production deployment still requires exact-commit deployment provenance, proof that Vercel connects as the least-privilege `opscore_runtime` role and that the live catalog confirms its role attributes, grants and memberships, live session/tenant-isolation acceptance, recovery drills, TLS/ingress, secret management, distributed rate limiting, and buyer-owned identity, notifications, object storage, maps and telephony provider setup. CI success alone does not certify production. The currently inspected Vercel secret values were not readable during the engineering audit, so the deployed connection role remains unverified until an authenticated runtime proof is recorded.
 
 ## v0.11.61 additions
 - Added an executable recovery drill: backup, integrity/FK verification, isolated restore and application-table/count comparison.
