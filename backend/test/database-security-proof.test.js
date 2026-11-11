@@ -60,6 +60,10 @@ test('runtime catalog query is read-only and inspects identity, PostGIS and migr
   assert.match(DATABASE_SECURITY_SQL,/'password_reset_tokens'/);
   assert.match(DATABASE_SECURITY_SQL,/'spatial_ref_sys'/);
   assert.match(DATABASE_SECURITY_SQL,/'schema_migrations'/);
+  assert.match(DATABASE_SECURITY_SQL,/FROM pg_policy p/);
+  assert.match(DATABASE_SECURITY_SQL,/polpermissive/);
+  assert.match(DATABASE_SECURITY_SQL,/opscore_tenant_permissive/);
+  assert.match(DATABASE_SECURITY_SQL,/opscore_tenant_boundary_guard/);
   assert.doesNotMatch(DATABASE_SECURITY_SQL,/(?:^|\n)\s*(?:ALTER|UPDATE|DELETE|DROP|GRANT|REVOKE)\s+/i);
 });
 
@@ -96,4 +100,43 @@ test('control-plane runtime grants are explicit and deny unnecessary writes', ()
 
 test('database security proof fails closed when adapter is absent', () => {
   assert.throws(()=>readDatabaseSecurityProof(null,fixedTime),/DATABASE_SECURITY_CATALOG_UNAVAILABLE/);
+});
+
+test('database security proof requires restrictive tenant-boundary policy catalog on all control-plane tables', () => {
+  const base = {
+    public_table_count: 132,
+    rls_enabled_table_count: 131,
+    rls_forced_table_count: 131,
+    tables_without_rls_count: 1,
+    non_postgis_tables_without_rls_count: 0,
+    spatial_ref_sys_runtime_write_access_count: 0,
+    migration_ledger_table_count: 1,
+    migration_ledger_without_force_rls_count: 0,
+    migration_ledger_runtime_privileges_count: 0,
+    identity_tables_without_rls_with_runtime_access_count: 0,
+    control_plane_table_count: 3,
+    control_plane_policy_valid_table_count: 3,
+    control_plane_runtime_privilege_gap_count: 0
+  };
+
+  const enforced = buildDatabaseSecurityProof(base, fixedTime);
+  assert.equal(enforced.controlPlaneTenantBoundaryPolicies.validatedTableCount, 3);
+  assert.equal(enforced.controlPlaneTenantBoundaryPolicies.status, 'CATALOG_ENFORCED');
+  assert.equal(enforced.status, 'IDENTITY_PLANE_RLS_ENFORCED');
+
+  const partial = buildDatabaseSecurityProof({
+    ...base,
+    control_plane_policy_valid_table_count: 2
+  }, fixedTime);
+  assert.equal(partial.controlPlaneTenantBoundaryPolicies.status, 'REVIEW_REQUIRED');
+  assert.equal(partial.status, 'REVIEW_REQUIRED');
+  assert.equal(partial.productionIsolationCertification, 'NOT_CERTIFIED');
+
+  const missing = buildDatabaseSecurityProof({
+    ...base,
+    control_plane_policy_valid_table_count: 0
+  }, fixedTime);
+  assert.equal(missing.controlPlaneTenantBoundaryPolicies.validatedTableCount, 0);
+  assert.equal(missing.controlPlaneTenantBoundaryPolicies.status, 'REVIEW_REQUIRED');
+  assert.equal(missing.status, 'REVIEW_REQUIRED');
 });
