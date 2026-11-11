@@ -55,7 +55,14 @@ No Neon Main schema/data changes were made during this audit.
 
 Run the GitHub Actions `OpsCore secure release` workflow on the exact approved Main commit. Use only that run's ZIP, release statement, SHA-256 manifest, JUnit, root/mobile dependency reports, SBOM, provenance attestation, and localization report. Verify the attestation and archive hashes independently. Do not reuse the historical GitLab pipeline statement or old Vercel URLs.
 
-## 7. Close commercial and legal terms
+## 7. Close SBOM and supply-chain verification
+
+- Upgrade the SBOM generator from CycloneDX 1.6 to the current 1.7 specification after schema/tool compatibility tests.
+- Close the two top-level application component hash/license gaps without substituting hashes of manifests for hashes of actual artifacts.
+- Verify the archive provenance attestation and SBOM attestation with GitHub CLI using the expected repository and CycloneDX predicate type.
+- Bind the SBOM, archive digest, source commit, workflow run ID, and release statement to the same build.
+
+## 8. Close commercial and legal terms
 
 - Sign a commercial transfer/license addendum that states permitted users, customer count, deployment rights, resale/redistribution/sublicensing, modification, IP exclusions, third-party dependencies, support term, SLA, warranty limits, liability, data processing, security responsibilities, and termination.
 - The bundled license currently prohibits resale and redistribution; do not advertise resale rights until the separate grant is signed.
