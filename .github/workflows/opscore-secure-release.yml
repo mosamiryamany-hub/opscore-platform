@@ -186,6 +186,16 @@ jobs:
           subject-path: "${{ runner.temp }}/OpsCore-release.zip"
           sbom-path: docs/sbom/opscore-v0.11.62.cyclonedx.json
 
+      - name: Verify signed release provenance
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh attestation verify "$RUNNER_TEMP/OpsCore-release.zip" -R "$GITHUB_REPOSITORY" --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/opscore-secure-release.yml"
+
+      - name: Verify signed CycloneDX SBOM attestation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh attestation verify "$RUNNER_TEMP/OpsCore-release.zip" -R "$GITHUB_REPOSITORY" --predicate-type https://cyclonedx.org/bom --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/opscore-secure-release.yml"
+
       - name: Upload release and exact-run evidence
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -195,7 +205,31 @@ jobs:
             ${{ runner.temp }}/COMMERCIAL_RELEASE_STATEMENT.json
             mobile/mobile-dependency-audit.json
             root-dependency-audit.json
+            backend/junit.xml
+            docs/sbom/opscore-v0.11.62.cyclonedx.json
+            backend/docs/verification/COMMERCIAL_CLOSURE_GATE_RESULT.json
+            backend/docs/verification/COMMERCIAL_CLOSURE_GATE_RESULT.sha256
+            backend/docs/verification/DEPLOYMENT_QUALIFICATION_RESULT.json
+            backend/docs/verification/DEPLOYMENT_QUALIFICATION_RESULT.sha256
             backend/docs/verification/I18N_FORENSIC_AUDIT_RESULT.json
             backend/docs/verification/I18N_FORENSIC_AUDIT_RESULT.sha256
+            backend/docs/verification/POSTGRES_HTTP_ACCEPTANCE_RESULT.json
+            backend/docs/verification/POSTGRES_HTTP_ACCEPTANCE_RESULT.sha256
+            backend/docs/verification/POSTGRES_LIVE_RLS_RESULT.json
+            backend/docs/verification/POSTGRES_LIVE_RLS_RESULT.sha256
+            backend/docs/verification/RECOVERY_GATE_RESULT.json
+            backend/docs/verification/RECOVERY_GATE_RESULT.sha256
+            backend/docs/verification/RELEASE_TEST_RUN_RESULT.json
+            backend/docs/verification/RELEASE_TEST_RUN_RESULT.sha256
+            backend/docs/verification/TENANT_ISOLATION_MATRIX.json
+            backend/docs/verification/TENANT_ISOLATION_MATRIX.sha256
+            docs/verification/BUYER_PREFLIGHT_RESULT.json
+            docs/verification/BUYER_SELF_VALIDATION_RESULT.json
+            docs/verification/CONSOLE_COVERAGE_RESULT.json
+            docs/verification/PRODUCTION_READINESS_RESULT.json
+            docs/verification/RELEASE_CANDIDATE_GATE_RESULT.json
+            docs/verification/RESILIENCE_GATE_RESULT.json
+            docs/verification/SECTOR_NEUTRALITY_RESULT.json
+            docs/BUYER_INSTALLATION_VERIFICATION.json
           if-no-files-found: error
           retention-days: 14
