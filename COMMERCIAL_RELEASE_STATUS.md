@@ -1,39 +1,36 @@
-# OpsCore Commercial Release Verification Snapshot
+# OpsCore Commercial Release Status
 
-> Build-generated evidence index. This is not a security certification, warranty, or guarantee of defect-free operation.
+<badge>HOLD — NOT A CURRENT RELEASE</badge>
 
-**Package version:** 0.11.62
-**CI closure:** PASS_WITH_BUYER_RESIDUALS
-**Mobile dependency audit:** {"total":12,"info":0,"low":2,"moderate":10,"high":0,"critical":0} (high/critical are release-blocking; moderate/low remain disclosed)
-**Root PostgreSQL runtime dependency audit:** {"total":0,"info":0,"low":0,"moderate":0,"high":0,"critical":0} (high/critical are release-blocking)
-**Source commit:** 5c60420f42330d7bd79623547b07eee96ef0ebd77214e9996cf53dd2d997a7e7
-**GitLab pipeline:** https://gitlab.com/mosamiryamany-hub1/opscore-commercial-final/-/pipelines/3017246123
+This file supersedes the stale GitLab-era status snapshot. It is a truthful status boundary, not a security certification, warranty, or assertion that the software is defect-free.
 
-## Evidence links
+## Current release identity
 
-- GitLab repository: https://gitlab.com/mosamiryamany-hub1/opscore-commercial-final
-- Exact CI pipeline: https://gitlab.com/mosamiryamany-hub1/opscore-commercial-final/-/pipelines/3017246123
-- Vercel production health: https://opscore-commercial-final.vercel.app/api/health
-- Vercel deployment identity: https://opscore-commercial-final.vercel.app/api/verify/deployment
-- Vercel release proof: https://opscore-commercial-final.vercel.app/api/verify/release
-- Vercel database security catalog: https://opscore-commercial-final.vercel.app/api/verify/database-security
+- Source repository: https://github.com/mosamiryamany-hub/opscore-platform
+- Release tag: no current buyer release tag verified.
+- Archive: no current archive-producing run bound to the exact current main commit verified.
+- SBOM and provenance: must be regenerated and attested for the exact final source commit.
+- Production deployment: NOT VERIFIED against current main.
+- Production certification: NOT_ESTABLISHED.
+- Production isolation certification: NOT_CERTIFIED.
 
-The Vercel endpoint URLs above are locations to check after deployment; this build job does not assert that those live responses passed.
+The previously committed `docs/release/COMMERCIAL_RELEASE_STATEMENT.json` identifies an older GitLab repository, source commit and pipeline. It is historical evidence only and must not be presented as the current release statement.
 
-## Security and buyer boundaries
+## Live platform observations
 
-- Production-wide tenant-isolation certification: NOT CERTIFIED.
-- Production post-deploy behavioral acceptance: NOT VERIFIED BY THIS BUILD.
-- PostgreSQL RLS results produced by this pipeline are test-scope evidence, not proof of every live application route.
-- Signed Android/iOS store artifacts, buyer-specific EAS/signing, physical-device acceptance and app-store publication remain buyer-owned.
-- External identity, messaging/carrier/call-center providers, payment, webhook, storage, KMS/HSM, maps/road-routing and cloud accounts/licenses/credentials/live tests remain buyer-owned.
-- Current mobile npm audit summary: {"total":12,"info":0,"low":2,"moderate":10,"high":0,"critical":0}; see mobile/mobile-dependency-audit.json for the complete report.
-- Root PostgreSQL runtime dependency audit summary: {"total":0,"info":0,"low":0,"moderate":0,"high":0,"critical":0}; see root-dependency-audit.json for the complete report.
-- The final ZIP SHA-256 and byte length are recorded in external dist/COMMERCIAL_RELEASE_STATEMENT.json; a ZIP cannot reliably contain its own final digest.
-- This snapshot proves only the stated facts. A successful CI status does not guarantee zero defects or instant setup in every buyer environment.
+- The latest inspected Vercel production deployment points to an older source commit, not the current GitHub main head.
+- The Vercel production deployment workflow's preflight blocked the build and promotion path. Its workflow can finish green while the deployment steps are skipped; inspect the job summary and deployment SHA, not only the overall workflow conclusion.
+- The production preflight requires an explicit `OPSC_PRODUCTION_HOLD=false` and `OPSC_RELEASE_VERIFIED=true`. The hold must not be lifted simply to force deployment.
+- Neon PostgreSQL 18.6 acceptance schema inspection found the RLS and cross-tenant FK items described in `COMMERCIAL_CLOSURE_STATUS.md`. The default branch remains unprotected under the current plan quota.
 
-## Buyer residuals (explicit)
+## Required before buyer delivery
 
-- Mobile store signing and publication remain buyer-owned.
-- Human translation / locale review remains buyer-owned; machine translation is not a certified localization.
-- Licensed maps and external provider accounts remain buyer-owned.
+- Close GitHub issues #30, #31, #32 and #33 with evidence tied to the exact release candidate.
+- Complete full dependency and security scanning; disclose any non-blocking findings.
+- Verify the iOS privacy manifest against actual app and SDK data flows and inspect the generated native artifact.
+- Verify least-privilege production DB identity and production tenant isolation using populated, independent tenant fixtures.
+- Generate the final archive, SHA-256 manifest, SBOM, provenance and signed artifact attestation from one exact source commit and pipeline.
+- Deploy and verify that exact candidate; promote only after all production smoke and recovery gates pass.
+- Clearly scope external integrations, signed mobile binaries, human translation review and licensed maps.
+
+A prior PASS_WITH_BUYER_RESIDUALS label is historical and is not a release approval for the current source tree.
