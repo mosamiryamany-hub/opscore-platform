@@ -47,6 +47,11 @@ The Vercel deployment workflow is `.github/workflows/vercel-deploy.yml`. A READY
 - Main still needs the restrictive tenant guards from migration 053 on `feature_flags`, `safe_mode_states`, and `control_plane_runs`.
 - The `opscore_runtime` role itself is LOGIN, non-superuser, NOBYPASSRLS, non-CREATEROLE, and non-CREATEDB. The actual Vercel runtime connection role is NOT_VERIFIED.
 - `opscore_app` has BYPASSRLS and elevated role/database privileges; do not use it as the application runtime role.
+- A read-only catalog check found 132 public ordinary/partitioned relations: 131 have RLS and FORCE RLS; the sole no-RLS exception is read-only PostGIS `spatial_ref_sys`. Non-PostGIS relations without RLS or FORCE RLS: 0; migration-ledger runtime privileges: 0.
+- Main's three control-plane tables still expose only the old PERMISSIVE `opscore_tenant_boundary_guard` policy. Migration 053's restrictive policy pair remains unapplied.
+- Neon network posture is not production-hardened: `block_public_connections=false`, empty IP allowlist, `protected_branches_only=false`, all six listed branches unprotected, and 6-hour history retention.
+- Vercel Firewall is enabled but Bot Protection and active CRS rules (generic, RCE, SQLi, XSS) are LOG-only; no custom/IP rules are present. No active attack anomalies were returned in the inspected window.
+- Runtime error aggregation for the last 24 hours reported 59 `PRODUCTION_HOLD_ACTIVE` occurrences across 32 users.
 - Production tenant-session A/B behavior, backup/restore, OIDC, KMS/HSM, external webhooks, and full production certification remain NOT_VERIFIED / NOT_ESTABLISHED.
 
 ## PR verification boundary
