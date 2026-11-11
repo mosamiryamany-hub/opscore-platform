@@ -27,10 +27,10 @@ BEGIN
 
     IF NOT EXISTS (
       SELECT 1
-      FROM information_schema.columns
-      WHERE table_schema = target_schema
-        AND information_schema.columns.table_name = table_name
-        AND column_name = 'organization_id'
+      FROM information_schema.columns AS cols
+      WHERE cols.table_schema = target_schema
+        AND cols.table_name = table_name
+        AND cols.column_name = 'organization_id'
     ) THEN
       RAISE EXCEPTION 'CONTROL_PLANE_TENANT_KEY_MISSING:%', table_name;
     END IF;
