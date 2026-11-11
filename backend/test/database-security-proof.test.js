@@ -13,7 +13,7 @@ const SAFE_RUNTIME_ROLE = {
   runtime_role_elevated_membership_count: 0
 };
 function buildDatabaseSecurityProof(row, ...args) {
-  return buildDatabaseSecurityProofInternal({ ...SAFE_RUNTIME_ROLE, ...row }, ...args);
+  return buildDatabaseSecurityProofInternal({ non_postgis_tables_without_force_rls_count: 0, ...SAFE_RUNTIME_ROLE, ...row }, ...args);
 }
 
 test('identity tables accessible without RLS remain not certified', () => {
@@ -62,6 +62,28 @@ test('unprotected non-PostGIS table is rejected even when total RLS gap count is
   assert.equal(proof.status,'REVIEW_REQUIRED');
 });
 
+test('an application table with RLS enabled but without FORCE RLS is rejected', () => {
+  const proof = buildDatabaseSecurityProof({
+    public_table_count: 132,
+    rls_enabled_table_count: 132,
+    rls_forced_table_count: 130,
+    tables_without_rls_count: 0,
+    non_postgis_tables_without_rls_count: 0,
+    non_postgis_tables_without_force_rls_count: 1,
+    spatial_ref_sys_runtime_write_access_count: 0,
+    migration_ledger_table_count: 1,
+    migration_ledger_without_force_rls_count: 0,
+    migration_ledger_runtime_privileges_count: 0,
+    identity_tables_without_rls_with_runtime_access_count: 0,
+    control_plane_table_count: 3,
+    control_plane_runtime_privilege_gap_count: 0,
+    control_plane_policy_valid_table_count: 3
+  }, fixedTime);
+  assert.equal(proof.publicSchema.nonPostgisTablesWithoutForceRlsCount, 1);
+  assert.equal(proof.status, 'REVIEW_REQUIRED');
+  assert.equal(proof.productionIsolationCertification, 'NOT_CERTIFIED');
+});
+
 test('PostGIS write access or application access to migration ledger is rejected', () => {
   const base={public_table_count:132,rls_enabled_table_count:131,rls_forced_table_count:131,tables_without_rls_count:1,non_postgis_tables_without_rls_count:0,spatial_ref_sys_runtime_write_access_count:0,migration_ledger_table_count:1,migration_ledger_without_force_rls_count:0,migration_ledger_runtime_privileges_count:0,identity_tables_without_rls_with_runtime_access_count:0,control_plane_table_count:3,control_plane_runtime_privilege_gap_count:0, control_plane_policy_valid_table_count: 3};
   assert.equal(buildDatabaseSecurityProof({...base,spatial_ref_sys_runtime_write_access_count:1},fixedTime).status,'REVIEW_REQUIRED');
@@ -75,6 +97,7 @@ test('runtime catalog query is read-only and inspects identity, PostGIS and migr
   assert.match(DATABASE_SECURITY_SQL,/'spatial_ref_sys'/);
   assert.match(DATABASE_SECURITY_SQL,/'schema_migrations'/);
   assert.match(DATABASE_SECURITY_SQL,/LEFT JOIN pg_policy p/);
+  assert.match(DATABASE_SECURITY_SQL,/non_postgis_tables_without_force_rls_count/);
   assert.match(DATABASE_SECURITY_SQL,/runtime_role_bypassrls/);
   assert.match(DATABASE_SECURITY_SQL,/runtime_role_elevated_membership_count/);
   assert.match(DATABASE_SECURITY_SQL,/polpermissive/);
