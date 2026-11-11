@@ -6,10 +6,17 @@ const root = path.resolve(__dirname, '..');
 const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
 const lock = JSON.parse(fs.readFileSync(path.join(root, 'package-lock.json'), 'utf8'));
 const installed = name => lock.packages?.[`node_modules/${name}`]?.version || null;
+const allVersions = name => Object.entries(lock.packages || {})
+  .filter(([p]) => p === `node_modules/${name}` || p.endsWith(`/node_modules/${name}`))
+  .map(([, v]) => v.version);
+const everyVersionIs = (name, expected) => {
+  const versions = allVersions(name);
+  return versions.length > 0 && versions.every(version => version === expected);
+};
 const major = value => Number(String(value || '').split('.')[0]);
 const minor = value => Number(String(value || '').split('.')[1]);
 const checks = [
-  ['Expo SDK 58 requested', /^\^?~?58\.0\.0$/.test(pkg.dependencies.expo) || /^\^?~?58\./.test(pkg.dependencies.expo)],
+  ['Expo SDK 58 requested', /^\^?~?58\./.test(pkg.dependencies.expo)],
   ['lockfile resolves Expo SDK 58', major(installed('expo')) === 58],
   ['React Native 0.88 line', major(installed('react-native')) === 0 && minor(installed('react-native')) === 88],
   ['React 19.3 line', major(installed('react')) === 19 && minor(installed('react')) === 3],
@@ -19,10 +26,12 @@ const checks = [
   ['Expo Network SDK 58 line', major(installed('expo-network')) === 58],
   ['Expo SecureStore SDK 58 line', major(installed('expo-secure-store')) === 58],
   ['Expo SQLite SDK 58 line', major(installed('expo-sqlite')) === 58],
-  ['node-forge patched version pinned', pkg.overrides?.['node-forge'] === '1.4.3' && installed('node-forge') === '1.4.3']
+  ['node-forge patched version pinned', pkg.overrides?.['node-forge'] === '1.4.3' && everyVersionIs('node-forge', '1.4.3')],
+  ['glob fixed line pinned everywhere', pkg.overrides?.glob === '14.0.4' && everyVersionIs('glob', '14.0.4')],
+  ['minimatch fixed line pinned everywhere', pkg.overrides?.minimatch === '11.0.5' && everyVersionIs('minimatch', '11.0.5')]
 ];
 const result = {
-  schemaVersion: 'opscore.mobile-dependency-gate.v2',
+  schemaVersion: 'opscore.mobile-dependency-gate.v3',
   status: checks.every(([, ok]) => ok) ? 'PASS' : 'FAIL',
   releaseVersion: pkg.version,
   current: {
@@ -35,7 +44,9 @@ const result = {
     expoNetwork: installed('expo-network'),
     expoSecureStore: installed('expo-secure-store'),
     expoSqlite: installed('expo-sqlite'),
-    nodeForge: installed('node-forge')
+    nodeForge: allVersions('node-forge'),
+    glob: allVersions('glob'),
+    minimatch: allVersions('minimatch')
   },
   checks: checks.map(([name, ok]) => ({ name, status: ok ? 'PASS' : 'FAIL' })),
   truthBoundary: 'Dependency alignment only; signed native binaries and physical-device validation are separate acceptance gates.'
