@@ -22,7 +22,7 @@ BEGIN
 
   FOREACH target_table_name IN ARRAY required_tables LOOP
     IF to_regclass(format('%I.%I', target_schema, target_table_name)) IS NULL THEN
-      RAISE EXCEPTION 'CONTROL_PLANE_TABLE_MISSING:%', table_name;
+      RAISE EXCEPTION 'CONTROL_PLANE_TABLE_MISSING:%', target_table_name;
     END IF;
 
     IF NOT EXISTS (
@@ -32,7 +32,7 @@ BEGIN
         AND cols.table_name = target_table_name
         AND cols.column_name = 'organization_id'
     ) THEN
-      RAISE EXCEPTION 'CONTROL_PLANE_TENANT_KEY_MISSING:%', table_name;
+      RAISE EXCEPTION 'CONTROL_PLANE_TENANT_KEY_MISSING:%', target_table_name;
     END IF;
 
     EXECUTE format('ALTER TABLE %I.%I ENABLE ROW LEVEL SECURITY', target_schema, target_table_name);
@@ -40,21 +40,21 @@ BEGIN
 
     -- Remove both policy names first so a partial/manual prior attempt is
     -- normalized to exactly one explicit permissive policy + one restrictive guard.
-    EXECUTE format('DROP POLICY IF EXISTS opscore_tenant_permissive ON %I.%I', target_schema, table_name);
-    EXECUTE format('DROP POLICY IF EXISTS opscore_tenant_boundary_guard ON %I.%I', target_schema, table_name);
+    EXECUTE format('DROP POLICY IF EXISTS opscore_tenant_permissive ON %I.%I', target_schema, target_table_name);
+    EXECUTE format('DROP POLICY IF EXISTS opscore_tenant_boundary_guard ON %I.%I', target_schema, target_table_name);
 
     EXECUTE format(
       'CREATE POLICY %I ON %I.%I AS PERMISSIVE FOR ALL
        USING (organization_id = NULLIF(current_setting(''app.tenant_id'', true), ''''))
        WITH CHECK (organization_id = NULLIF(current_setting(''app.tenant_id'', true), ''''))',
-      'opscore_tenant_permissive', target_schema, table_name
+      'opscore_tenant_permissive', target_schema, target_table_name
     );
 
     EXECUTE format(
       'CREATE POLICY %I ON %I.%I AS RESTRICTIVE FOR ALL
        USING (organization_id = NULLIF(current_setting(''app.tenant_id'', true), ''''))
        WITH CHECK (organization_id = NULLIF(current_setting(''app.tenant_id'', true), ''''))',
-      'opscore_tenant_boundary_guard', target_schema, table_name
+      'opscore_tenant_boundary_guard', target_schema, target_table_name
     );
   END LOOP;
 END
