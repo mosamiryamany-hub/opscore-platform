@@ -51,6 +51,7 @@ function purl(name, version) {
 function sourceArchiveHash(prefix) {
   const args = ['archive', '--format=tar', 'HEAD'];
   if (prefix) args.push(prefix);
+  else args.push('.', ':(exclude)docs/sbom/**');
   const archive = execFileSync('git', args, {
     cwd: root,
     maxBuffer: 128 * 1024 * 1024
@@ -178,6 +179,7 @@ const bom = {
     },
     properties: [
       { name: 'opscore:generation-context', value: 'GitHub Actions exact-head secure-release workflow' },
+      { name: 'opscore:source-archive-scope', value: 'git archive HEAD excluding generated docs/sbom outputs' },
       { name: 'opscore:source-commit', value: sourceCommit },
       { name: 'opscore:lockfiles-sha256', value: lockDigest },
       ...rootMetadata.flatMap(item => [
