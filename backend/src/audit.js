@@ -18,36 +18,30 @@ function canonical(x) {
 /**
  * Immutable sequential audit ledger (real audit_log columns only).
  * event_hash = sha256(previous_hash + canonical(event)).
- * Chain order is defined by previous_hash links, never by timestamps or random IDs.
+ * Chain verification follows previous_hash links; append timestamps are made
+ * strictly increasing so the indexed (organization_id, created_at) lookup
+ * identifies the last append without relying on random UUID ordering.
  * Dual-linked to signature-chain appendChain for governance evidence.
  */
-function auditHead(db, organizationId) {
-  const rows = organizationId
-    ? db.prepare(`SELECT a.id,a.event_hash FROM audit_log a
-        WHERE a.organization_id = ?
-          AND NOT EXISTS (
-            SELECT 1 FROM audit_log child
-            WHERE child.organization_id = a.organization_id
-              AND child.previous_hash = a.event_hash
-          )`).all(organizationId)
-    : db.prepare(`SELECT a.id,a.event_hash FROM audit_log a
-        WHERE a.organization_id IS NULL
-          AND NOT EXISTS (
-            SELECT 1 FROM audit_log child
-            WHERE child.organization_id IS NULL
-              AND child.previous_hash = a.event_hash
-          )`).all();
-  if (rows.length > 1) {
-    const err = new Error('AUDIT_CHAIN_FORKED');
-    err.details = { tailIds: rows.map(row => row.id) };
-    throw err;
-  }
-  return rows[0]?.event_hash || '';
+function latestAuditRow(db, organizationId) {
+  return organizationId
+    ? db.prepare('SELECT id,event_hash,created_at FROM audit_log WHERE organization_id = ? ORDER BY created_at DESC, id DESC LIMIT 1').get(organizationId)
+    : db.prepare('SELECT id,event_hash,created_at FROM audit_log WHERE organization_id IS NULL ORDER BY created_at DESC, id DESC LIMIT 1').get();
+}
+
+function nextAuditTimestamp(previousAt) {
+  const current = Date.parse(now());
+  if (!Number.isFinite(current)) throw new Error('AUDIT_TIMESTAMP_INVALID');
+  if (!previousAt) return new Date(current).toISOString();
+  const previous = Date.parse(previousAt);
+  if (!Number.isFinite(previous)) throw new Error('AUDIT_TIMESTAMP_INVALID');
+  return new Date(Math.max(current, previous + 1)).toISOString();
 }
 
 function audit(db, {organizationId, actorUserId, action, resourceType, resourceId, metadata = {}}) {
-  const createdAt = now();
-  const prev = auditHead(db, organizationId);
+  const prevRow = latestAuditRow(db, organizationId);
+  const prev = (prevRow && prevRow.event_hash) || '';
+  const createdAt = nextAuditTimestamp(prevRow?.created_at);
   // Strip reserved chain keys from caller metadata so hash remains stable.
   const safeMeta = { ...metadata };
   delete safeMeta.chainHash;
