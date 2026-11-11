@@ -17,8 +17,11 @@ PR #24 is the integrated candidate combining the runtime/bootstrap separation, s
 - Vercel Main deployment job completed, but the API endpoints returned HTTP 500 with `PRODUCTION_HOLD_ACTIVE`.
 - Production Vercel environment lacks `OPSC_PRODUCTION_HOLD`; the safety gate correctly remains active.
 - Neon Main is PostgreSQL 18.6 / PostGIS 3.6.4. Migration 053 is not applied; control-plane tenant policies still require restrictive guards.
-- The `opscore_runtime` role itself is non-superuser and NOBYPASSRLS, but the actual Vercel connection role is NOT_VERIFIED.
-- Production backup/restore and full tenant A/B behavioral acceptance are NOT_VERIFIED.
+- The `opscore_runtime` role itself is LOGIN, non-superuser, NOBYPASSRLS, non-CREATEROLE, non-CREATEDB, and has no elevated memberships; the actual Vercel connection role is NOT_VERIFIED.
+- Live catalog: 132 public ordinary/partitioned relations; 131 have RLS and FORCE RLS, with only read-only `spatial_ref_sys` outside RLS. Migration 053 remains unapplied, and the three control-plane tables still have only the old PERMISSIVE guard.
+- Neon public connections are not blocked, the IP allowlist is empty, all six branches are unprotected, and history retention is 6 hours.
+- Vercel Firewall is enabled but Bot Protection and active CRS generic/RCE/SQLi/XSS rules are LOG-only; no custom/IP rules are configured.
+- Runtime error aggregation showed 59 `PRODUCTION_HOLD_ACTIVE` occurrences across 32 users in the last 24 hours. Production backup/restore and full tenant A/B behavioral acceptance are NOT_VERIFIED.
 
 ## Release evidence rule
 
