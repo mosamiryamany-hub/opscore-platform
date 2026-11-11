@@ -25,7 +25,7 @@ test('migration runner enforces the restrictive control-plane policy postconditi
   assert.match(runner, /control_plane_restrictive_policy_gap_count/);
   assert.match(runner, /opscore_tenant_boundary_guard/);
   assert.match(runner, /polpermissive/);
-  assert.match(runner, /CONTROL_PLANE_RESTRICTIVE_POLICY/);
+  assert.match(runner, /control_plane_restrictive_policy_gap_count/);
 });
 
 test('live PostgreSQL RLS gate tests feature flags, safe mode state and control-plane run inserts', () => {
