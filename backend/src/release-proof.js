@@ -90,7 +90,7 @@ function readProductionAcceptanceEvidence(env, expectedCommit, expectedPipelineI
   const nowMs = now().getTime();
   const testedMs = testedDate ? testedDate.getTime() : NaN;
   const roleSafe = role.name === 'opscore_runtime' &&
-    role.superuser === false && role.bypassRls === false &&
+    role.login === true && role.superuser === false && role.bypassRls === false &&
     role.createRole === false && role.createDatabase === false &&
     role.elevatedMembershipCount === 0;
   const coverageSafe = tableCoverage.status === 'PASS' &&
