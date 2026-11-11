@@ -2,6 +2,10 @@
 
 This operational checklist does not replace legal advice. The parties must sign a written transfer/assignment covering source-code rights, modification/distribution rights, repository/history scope, brand/domains if included, third-party dependencies/licenses, excluded assets, support, and responsibility allocation. The bundled license file is not a substitute for a negotiated commercial grant.
 
+## Repository visibility and source confidentiality
+
+The GitHub repository was confirmed **public** during the 2026-11-11 closeout inspection. The source is therefore publicly retrievable; the proprietary internal-use license does not provide technical confidentiality or access control. Before a controlled/confidential commercial handoff, the rights holder must explicitly choose and record one of these positions: (a) intentionally distribute the source publicly under a clearly documented public-source business model and compatible license, or (b) make the repository private and verify that collaborator access, branch protection/rulesets, GitHub Actions, Vercel's controlled deployment path and buyer artifact delivery continue to work. Repository visibility has not been changed by this checklist. Do not represent the repository as confidential while it remains public.
+
 ## Three scope items to record explicitly
 
 | Area | Included by this source package | Buyer/customer responsibility |
