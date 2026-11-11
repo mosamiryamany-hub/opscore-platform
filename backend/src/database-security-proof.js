@@ -196,7 +196,7 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
     note = 'Every public application table except the read-only PostGIS spatial_ref_sys catalog has FORCE RLS. The schema_migrations ledger is owner-only. Control-plane tables have explicit least-privilege runtime grants independent of provider default ACLs. Authenticated path-by-path and cross-tenant behavioral tests are still required before production isolation certification.';
   } else if (identityPlaneHardened) {
     status = 'REVIEW_REQUIRED';
-    note = 'Identity-plane RLS is present, but a non-PostGIS relation without RLS or FORCE RLS, migration-ledger boundary, PostGIS write privilege, or control-plane tenant-boundary policy still requires review.';
+    note = 'Identity-plane RLS checks passed, but catalog evidence is incomplete or a non-PostGIS relation without RLS or FORCE RLS, migration-ledger boundary, PostGIS write privilege, runtime-role privilege, or control-plane tenant-boundary policy still requires review.';
   } else {
     note = 'Critical identity tables remain accessible to the runtime role without RLS.';
   }
