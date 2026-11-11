@@ -34,6 +34,18 @@ function parseTapCases(output, file) {
   }
   return cases;
 }
+function tapFailureDiagnostics(output) {
+  const lines = output.split(/\r?\n/);
+  const ranges = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (!/^\s*not ok\s+\d+\s+-/.test(lines[i])) continue;
+    const start = Math.max(0, i - 2);
+    const end = Math.min(lines.length, i + 42);
+    ranges.push(lines.slice(start, end).join('\n'));
+  }
+  return ranges.join('\n--- TAP FAILURE ---\n');
+}
+
 function xmlEscape(value) {
   return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
@@ -134,8 +146,9 @@ function runFile(file) {
         (!timedOut && code === 0) || completedWithOpenHandles
       );
       const tail = output.split(/\r?\n/).filter(Boolean).slice(-30).join('\n');
+      const diagnostics = tapFailureDiagnostics(output);
       try { fs.rmSync(releaseRepo, { recursive: true, force: true }); } catch {}
-      resolve({ file, ok, timedOut, completedWithOpenHandles, code, signal, ...summary, cases, junitContent, tail });
+      resolve({ file, ok, timedOut, completedWithOpenHandles, code, signal, ...summary, cases, junitContent, tail, diagnostics });
     };
     child.stdout.on('data', (chunk) => { stdout += chunk.toString(); });
     child.stderr.on('data', (chunk) => { stderr += chunk.toString(); });
@@ -176,7 +189,7 @@ async function main() {
       const result = await runFile(file);
       results.push(result);
       console.log(`${result.ok ? 'PASS' : 'FAIL'} ${result.file} tests=${result.tests} pass=${result.pass} fail=${result.fail} cancelled=${result.cancelled}${result.completedWithOpenHandles ? ' open-handles' : (result.timedOut ? ' timeout' : '')}`);
-      if (!result.ok) console.log(result.tail);
+      if (!result.ok) console.log(result.diagnostics || result.tail);
     }
   }
   await Promise.all(Array.from({ length: Math.min(concurrency, parallelFiles.length) }, worker));
