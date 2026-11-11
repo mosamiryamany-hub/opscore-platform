@@ -183,7 +183,7 @@ test('release test runner enforces the exact declared Node 22 engine and fails c
   assert.equal(isSupportedNodeVersion('23.0.0'), false);
   assert.equal(isSupportedNodeVersion('not-a-version'), false);
 
-  const runner = read('scripts/release-test-runner.js');
+  const runner = read('backend/scripts/release-test-runner.js');
   assert.match(runner, /status: failedFiles === 0 && runtimeMinimumSatisfied \? 'PASS' : 'FAIL'/);
   assert.match(runner, /process\.exitCode = report\.status === 'PASS' \? 0 : 1/);
 });
