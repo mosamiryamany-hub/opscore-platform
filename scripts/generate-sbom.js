@@ -49,7 +49,9 @@ function purl(name, version) {
   return `pkg:npm/${encodePurlName(name)}@${encodeURIComponent(version)}`;
 }
 function sourceArchiveHash(prefix) {
-  const archive = execFileSync('git', ['archive', '--format=tar', 'HEAD', prefix], {
+  const args = ['archive', '--format=tar', 'HEAD'];
+  if (prefix) args.push(prefix);
+  const archive = execFileSync('git', args, {
     cwd: root,
     maxBuffer: 128 * 1024 * 1024
   });
