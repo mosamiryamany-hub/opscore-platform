@@ -134,7 +134,7 @@ test('Vercel production deploy requires same-run disposable PostgreSQL HTTP acce
   assert.ok(workflow.includes('postgres-commercial-acceptance-http.test.js'));
   assert.match(workflow, /acceptance_commit_mismatch/);
   assert.match(workflow, /acceptance_pipeline_mismatch/);
-  assert.ok(workflow.includes("data['productionCertification'] = false"));
+  assert.ok(workflow.includes("data['productionCertification'] = False"));
   assert.match(targetValidator, /OPSC_PG_ACCEPTANCE_URL_REQUIRED/);
   assert.match(acceptanceTest, /OPSC_PG_ACCEPTANCE_URL/);
 });
