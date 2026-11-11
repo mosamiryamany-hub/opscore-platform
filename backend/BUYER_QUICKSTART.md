@@ -60,6 +60,7 @@ export OPSC_MIGRATION_CONFIRM_DATABASE='DATABASE'
 
 # Apply schema through the owner-only migration connection.
 node scripts/apply-postgres-migrations.js --apply
+unset OPSC_MIGRATION_DATABASE_URL
 
 # Remove local demo flags before real-data bootstrap.
 unset OPSC_DEMO_PASSWORD_ADMIN OPSC_DEMO_PASSWORD_DISPATCHER
