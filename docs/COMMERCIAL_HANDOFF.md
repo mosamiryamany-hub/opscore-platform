@@ -29,7 +29,7 @@ The tracked `docs/release/COMMERCIAL_RELEASE_STATEMENT.json` is a historical Git
 - Neon public connections are not blocked, IP allowlist is empty, all six listed branches are unprotected, protected-branches-only is false, and history retention is 6 hours.
 - Vercel Firewall is enabled, but Bot Protection and active CRS generic/RCE/SQLi/XSS rules are LOG-only; no custom/IP rules are configured. No active attack anomalies were returned in the inspected window.
 - The live production API returned HTTP 500 with `PRODUCTION_HOLD_ACTIVE`; runtime aggregation showed 59 occurrences across 32 users in the last 24 hours.
-- PR #22 latest PR-branch CI run: 550 passed, 2 skipped, 0 failed, 0 unaccounted. The two skipped tests require a disposable PostgreSQL acceptance URL and remain unverified. PR #22 is Draft and not merged.
+- PR #22 latest PR-branch CI run: 553 passed, 2 skipped, 0 failed, 0 unaccounted. The two skipped tests require a disposable PostgreSQL acceptance URL and remain unverified. PR #22 is Draft and not merged.
 
 ## 3. Runtime and setup roles
 
