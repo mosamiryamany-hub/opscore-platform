@@ -141,6 +141,7 @@ function validateEndpoint(path, statusCode, payload, expectedCommit, contentType
   }
   if (path === '/api/verify/database-security') {
     if (body.status !== 'IDENTITY_PLANE_RLS_ENFORCED' ||
+        body.productionIsolationCertification !== 'CERTIFIED' ||
         body.controlPlaneTenantBoundaryPolicies?.status !== 'CATALOG_ENFORCED' ||
         body.controlPlaneTenantBoundaryPolicies?.validatedTableCount !== 3 ||
         body.controlPlaneRuntimePrivileges?.status !== 'LEAST_PRIVILEGE_PRESENT' ||
@@ -168,6 +169,12 @@ function validateEndpoint(path, statusCode, payload, expectedCommit, contentType
         body.postgresHttpAcceptance?.status !== 'PASS' ||
         body.postgresHttpAcceptance?.evidenceCommit !== expectedCommit ||
         String(body.postgresHttpAcceptance?.evidencePipelineId || '') !== String(body.ci?.pipelineId || '') ||
+        body.productionAcceptance?.status !== 'PASS' ||
+        body.productionAcceptance?.commitSha !== expectedCommit ||
+        !/^[a-f0-9]{64}$/.test(String(body.productionAcceptance?.evidenceSha256 || '')) ||
+        body.gates?.productionSessionTenantBoundary !== 'PASS_PRODUCTION' ||
+        body.gates?.productionRecoveryBundle !== 'PASS_PRODUCTION' ||
+        body.gates?.productionIsolationCertification !== 'CERTIFIED' ||
         body.packageFingerprint?.status !== 'PUBLISHED' ||
         body.packageFingerprint?.sourceCommit !== expectedCommit) {
       throw new Error('RELEASE_EVIDENCE_NOT_BOUND_TO_DEPLOYMENT');
