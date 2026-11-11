@@ -1,7 +1,7 @@
 {
   "product": "OpsCore Operational SaaS Starter Kit",
   "version": "0.11.62",
-  "generatedAt": "2026-11-09T16:25:03.658Z",
+  "generatedAt": "2026-11-11T20:25:39.134Z",
   "integrityExclusions": [
     "RELEASE_COMPONENT_SHA256SUMS.txt",
     "RELEASE_FILE_SHA256SUMS.txt",
@@ -493,6 +493,11 @@
       "bytes": 2379
     },
     {
+      "path": "scripts/postgres-tenant-composite-fk-gate.js",
+      "sha256": "879ca38e6428161ea90287bec8c07aa30011664024eb20abcd5470fcc30c6efd",
+      "bytes": 17815
+    },
+    {
       "path": "scripts/pre-infrastructure-final-evidence-gate.js",
       "sha256": "ac5d2cda6e02c28752508aef15e610400162232436512d85ada8f81252145b5a",
       "bytes": 6864
@@ -861,6 +866,11 @@
       "path": "sql/postgres/051_revoke_runtime_role_ddl_privileges.sql",
       "sha256": "b1057ee7c46e81322cf9e3e5a4feae72322bed5f56f9501d08d164b134ddc2b5",
       "bytes": 448
+    },
+    {
+      "path": "sql/postgres/054_tenant_composite_foreign_keys.sql",
+      "sha256": "f15bdbf31e6564001cb2d886fb5b99e082084c06e964096302922408ce6ff782",
+      "bytes": 13315
     },
     {
       "path": "src/2026-intelligence-core.js",
@@ -1576,6 +1586,11 @@
       "path": "test/postgres-release-hardening.test.js",
       "sha256": "55f9cdac25110236198efee0296c560866362fb344ab3b06c04ceaa73abf1cc1",
       "bytes": 7431
+    },
+    {
+      "path": "test/postgres-tenant-composite-fk.test.js",
+      "sha256": "8f81144459b3858b7c114ce7ce8ccc3c73c41333fa25a29b9adf0abb8b5687aa",
+      "bytes": 2043
     },
     {
       "path": "test/postgres_optional_peer_contract.test.js",
