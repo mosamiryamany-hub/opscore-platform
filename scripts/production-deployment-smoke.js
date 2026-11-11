@@ -161,6 +161,7 @@ function validateEndpoint(path, statusCode, payload, expectedCommit, contentType
   if (path === '/api/verify/release') {
     if (body.status !== 'PASS_WITH_BUYER_RESIDUALS' ||
         body.sourceCommit !== expectedCommit ||
+        body.sourceCommitIdentitySource !== 'github-actions-cli-assertion' ||
         body.ci?.status !== 'PASS' ||
         body.ci?.commitSha !== expectedCommit ||
         body.deployment?.status !== 'identified' ||
