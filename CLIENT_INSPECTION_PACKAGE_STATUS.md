@@ -10,7 +10,7 @@
 
 Main GitHub Actions CI run `43031885131`: 525 passed, 2 skipped, 0 failed, 0 unaccounted. This verifies the committed test scope only. The run's own report marks database, PostGIS, OIDC, backup/restore, and production certification as UNVERIFIED / NOT_ESTABLISHED.
 
-PR #24 is the integrated candidate combining the runtime/bootstrap separation, staged deployment gates, PostgreSQL catalog hardening, and current buyer documentation. Its combined-head CI is running and must finish green before merge. The source branches were separately green (PR #22: 553 passed, 2 skipped; PR #23: 532 passed, 2 skipped), but those results are not additive and do not replace combined-head CI. Both skips are `postgres-commercial-acceptance-http.test.js` and `tenant-isolation-matrix.test.js`; they require a disposable PostgreSQL acceptance URL and remain UNVERIFIED.
+PR #24 is the integrated candidate combining runtime/bootstrap separation, staged deployment gates, PostgreSQL catalog hardening, and buyer documentation. An initial combined run (`43048381305`) passed 560 tests with 2 skipped, 0 failed, and 0 unaccounted, but it predates the CycloneDX 1.7 generation gate. The first run with that gate generated a 496-component BOM then failed on a verifier JavaScript syntax error; the syntax was corrected and a contract test added, but the latest head has no fresh CI result yet. Do not merge until the updated combined head passes. Source-branch runs (PR #22: 553 passed / 2 skipped; PR #23: 532 passed / 2 skipped) are not substitutes. Both skips are `postgres-commercial-acceptance-http.test.js` and `tenant-isolation-matrix.test.js`; they require a disposable PostgreSQL acceptance URL and remain UNVERIFIED.
 
 ## Current infrastructure status
 
