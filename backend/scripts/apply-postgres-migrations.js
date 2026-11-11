@@ -34,8 +34,9 @@ async function verifyLegacy042Catalog(client){
  const required=['feature_flags_pkey','feature_flags_organization_id_flag_key_key','feature_flags_enabled_check','feature_flags_organization_id_fkey','feature_flags_updated_by_fkey','safe_mode_states_pkey','safe_mode_states_enabled_check','safe_mode_states_organization_id_fkey','safe_mode_states_updated_by_fkey','control_plane_runs_pkey','control_plane_runs_organization_id_fkey','control_plane_runs_created_by_fkey'];
  const missingConstraints=required.filter(x=>!constraintNames.has(x));
  const hasUniqueIndex=(await client.query("SELECT 1 FROM pg_indexes WHERE schemaname='public' AND indexname='feature_flags_organization_id_flag_key_key'")).rowCount===1;
- const verified=actual.size===EXPECTED_042_COLUMNS.length&&!missingColumns.length&&!missingRlsTables.length&&!missingPolicies.length&&!missingConstraints.length&&hasUniqueIndex;
- return {verified,verifier:'control_plane_catalog_equivalence_v1',expectedColumns:EXPECTED_042_COLUMNS.length,actualColumns:actual.size,missingColumns,missingRlsTables,missingPolicies,missingConstraints,uniqueIndexPresent:hasUniqueIndex,note:'This validates the historical 042 catalog before migration 053 normalizes its default-PERMISSIVE tenant policy into a separate PERMISSIVE access policy and RESTRICTIVE boundary guard.'};
+ const legacy042PolicyWasPermissive=policies.length===3&&policies.every(x=>x.permissive===true);
+ const verified=actual.size===EXPECTED_042_COLUMNS.length&&!missingColumns.length&&!missingRlsTables.length&&!missingPolicies.length&&!missingConstraints.length&&hasUniqueIndex&&legacy042PolicyWasPermissive;
+ return {verified,verifier:'control_plane_catalog_equivalence_v1',expectedColumns:EXPECTED_042_COLUMNS.length,actualColumns:actual.size,missingColumns,missingRlsTables,missingPolicies,missingConstraints,uniqueIndexPresent:hasUniqueIndex,legacy042PolicyWasPermissive,note:'This validates the historical 042 catalog before migration 053 normalizes its default-PERMISSIVE tenant policy into a separate PERMISSIVE access policy and RESTRICTIVE boundary guard.'};
 }
 async function main(){
  const raw=String(process.env.OPSC_MIGRATION_DATABASE_URL||'').trim();if(!raw)throw new Error('OPSC_MIGRATION_DATABASE_URL_REQUIRED');
