@@ -144,7 +144,15 @@ function validateEndpoint(path, statusCode, payload, expectedCommit, contentType
         body.controlPlaneTenantBoundaryPolicies?.status !== 'CATALOG_ENFORCED' ||
         body.controlPlaneTenantBoundaryPolicies?.validatedTableCount !== 3 ||
         body.controlPlaneRuntimePrivileges?.status !== 'LEAST_PRIVILEGE_PRESENT' ||
-        body.controlPlaneRuntimePrivileges?.privilegeGapCount !== 0) {
+        body.controlPlaneRuntimePrivileges?.privilegeGapCount !== 0 ||
+        body.runtimeRole?.name !== 'opscore_runtime' ||
+        body.runtimeRole?.status !== 'LEAST_PRIVILEGE_PRESENT' ||
+        body.runtimeRole?.login !== true ||
+        body.runtimeRole?.superuser !== false ||
+        body.runtimeRole?.bypassRls !== false ||
+        body.runtimeRole?.createRole !== false ||
+        body.runtimeRole?.createDatabase !== false ||
+        body.runtimeRole?.elevatedMembershipCount !== 0) {
       throw new Error('DATABASE_SECURITY_CATALOG_NOT_ACCEPTABLE');
     }
     return true;
