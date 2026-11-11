@@ -122,6 +122,9 @@ BEGIN
          OR fk.confkey[2] <> target_org.attnum THEN
         RAISE EXCEPTION 'TENANT_FK_COMPOSITE_SHAPE_UNSUPPORTED:%', fk.conname;
       END IF;
+      IF NOT fk.convalidated THEN
+        RAISE EXCEPTION 'TENANT_FK_COMPOSITE_NOT_VALIDATED:%', fk.conname;
+      END IF;
 
       already_composite_count := already_composite_count + 1;
       CONTINUE;
@@ -340,7 +343,8 @@ BEGIN
       WHERE a.attrelid = c.confrelid AND a.attname = 'organization_id' AND NOT a.attisdropped
     )
     AND NOT (
-      array_length(c.conkey, 1) = 2
+      c.convalidated
+      AND array_length(c.conkey, 1) = 2
       AND array_length(c.confkey, 1) = 2
       AND EXISTS (
         SELECT 1 FROM pg_attribute AS source_fk
