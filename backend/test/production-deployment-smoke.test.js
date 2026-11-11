@@ -52,6 +52,7 @@ test('database proof requires a successful PostgreSQL connectivity check', () =>
 test('database security proof rejects missing restrictive policy catalog evidence', () => {
   const valid = {
     status: 'IDENTITY_PLANE_RLS_ENFORCED',
+    productionIsolationCertification: 'CERTIFIED',
     controlPlaneTenantBoundaryPolicies: { status: 'CATALOG_ENFORCED', validatedTableCount: 3 },
     controlPlaneRuntimePrivileges: { status: 'LEAST_PRIVILEGE_PRESENT', privilegeGapCount: 0 },
     runtimeRole: { name: 'opscore_runtime', status: 'LEAST_PRIVILEGE_PRESENT', login: true, superuser: false, bypassRls: false, createRole: false, createDatabase: false, elevatedMembershipCount: 0 }
@@ -59,6 +60,9 @@ test('database security proof rejects missing restrictive policy catalog evidenc
   assert.equal(validateEndpoint('/api/verify/database-security', 200, valid, commit), true);
   assert.throws(() => validateEndpoint('/api/verify/database-security', 200, {
     ...valid, controlPlaneTenantBoundaryPolicies: { status: 'REVIEW_REQUIRED', validatedTableCount: 0 }
+  }, commit), /DATABASE_SECURITY_CATALOG_NOT_ACCEPTABLE/);
+  assert.throws(() => validateEndpoint('/api/verify/database-security', 200, {
+    ...valid, productionIsolationCertification: 'NOT_CERTIFIED'
   }, commit), /DATABASE_SECURITY_CATALOG_NOT_ACCEPTABLE/);
 });
 
@@ -69,11 +73,16 @@ test('release proof must bind CI, package, HTTP acceptance, and deployment to th
     ci: { status: 'PASS', commitSha: commit, pipelineId: 42949619029 },
     deployment: { status: 'identified', environment: 'production', ref: 'main' },
     postgresHttpAcceptance: { status: 'PASS', evidenceCommit: commit, evidencePipelineId: '42949619029' },
+    productionAcceptance: { status: 'PASS', commitSha: commit, evidenceSha256: 'a'.repeat(64) },
+    gates: { productionSessionTenantBoundary: 'PASS_PRODUCTION', productionRecoveryBundle: 'PASS_PRODUCTION', productionIsolationCertification: 'CERTIFIED' },
     packageFingerprint: { status: 'PUBLISHED', sourceCommit: commit }
   };
   assert.equal(validateEndpoint('/api/verify/release', 200, valid, commit), true);
   assert.throws(() => validateEndpoint('/api/verify/release', 200, {
     ...valid, packageFingerprint: { status: 'PUBLISHED', sourceCommit: 'f'.repeat(40) }
+  }, commit), /RELEASE_EVIDENCE_NOT_BOUND_TO_DEPLOYMENT/);
+  assert.throws(() => validateEndpoint('/api/verify/release', 200, {
+    ...valid, productionAcceptance: { status: 'NOT_VERIFIED', commitSha: null, evidenceSha256: null }
   }, commit), /RELEASE_EVIDENCE_NOT_BOUND_TO_DEPLOYMENT/);
 });
 
@@ -86,6 +95,8 @@ test('full staged smoke requires every endpoint to match the same release identi
     ci: { status: 'PASS', commitSha: commit, pipelineId },
     deployment: { status: 'identified', environment: 'production', ref: 'main' },
     postgresHttpAcceptance: { status: 'PASS', evidenceCommit: commit, evidencePipelineId: String(pipelineId) },
+    productionAcceptance: { status: 'PASS', commitSha: commit, evidenceSha256: 'b'.repeat(64) },
+    gates: { productionSessionTenantBoundary: 'PASS_PRODUCTION', productionRecoveryBundle: 'PASS_PRODUCTION', productionIsolationCertification: 'CERTIFIED' },
     packageFingerprint: { status: 'PUBLISHED', sourceCommit: commit }
   };
   const bodies = {
