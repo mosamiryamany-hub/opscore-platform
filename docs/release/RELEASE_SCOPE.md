@@ -42,7 +42,7 @@ PostgreSQL HTTP acceptance is PASS only when the evidence's source commit and pi
 
 ## Production boundary
 
-Neon Production catalog read-only snapshot (2026-11-01): PostgreSQL 18.6, 131 public base tables, 130 RLS+FORCE, 266 public policies, zero non-PostGIS application tables without RLS. The actual Vercel runtime DB role remains unverified. The inspected Production database lacked public.schema_migrations and its password-reset definer lacked row_security=off. Production opscore_gate can SET ROLE neon_superuser; do not use it as the application role.
+Historical Neon catalog snapshot (2026-11-01; prior environment, not current-project evidence): PostgreSQL 18.6, 131 public base tables, 130 RLS+FORCE, 266 public policies, no non-PostGIS application table without RLS. That snapshot also reported no `public.schema_migrations`, a password-reset definer without `row_security=off`, and `opscore_gate` able to SET ROLE `neon_superuser`; those findings must not be carried forward as current facts. On the current Neon project `opscore-production` (database `opscore_acceptance`, main branch), a 2026-11-11 read-only catalog check found `public.schema_migrations` present, `opscore_create_password_reset_token(text,text,text,timestamptz)` SECURITY DEFINER with `row_security=off`, and no `opscore_gate` role. The actual Vercel runtime DB login role remains unverified because the deployed connection identity was not independently queried. This catalog inspection does not prove production-wide tenant isolation or authenticated behavior.
 
 Seller reference production is operator-identified to main commits via release proofs. Formal productionIsolationCertification remains NOT_CERTIFIED. Buyer production requires independent acceptance.
 
