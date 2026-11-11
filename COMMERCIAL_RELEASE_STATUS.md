@@ -36,6 +36,12 @@ PR #22 adds staged Vercel deployment, authenticated protected-deployment smoke t
 
 The tracked `docs/release/COMMERCIAL_RELEASE_STATEMENT.json` describes historical commit `5c60420f42330d7bd79623547b07eee96ef0ebd77214e9996cf53dd2d997a7e7` and GitLab pipeline `3017246123`. It is not the release statement for current Main. Preserve it as historical evidence; never copy its digest, pipeline ID, or URLs into a new release.
 
+## SBOM and supply-chain assurance
+
+- The tracked SBOM is CycloneDX 1.6 with 491 components; 489 components carry component hashes and license entries. The two top-level application components do not currently carry those component-level entries.
+- The secure-release workflow is configured to create GitHub artifact/SBOM attestations, but an explicit verification gate for both the archive provenance and CycloneDX SBOM predicate is still required.
+- The July 2026 CISA minimum-elements guidance calls out Component Hash, License, SBOM Tool Name, and SBOM Generation Context. CycloneDX 1.7 is the current specification. Update the generator, close component coverage, and verify the attestation before buyer delivery.
+
 ## Licensing and resale
 
 The bundled proprietary license does not grant resale, redistribution, sublicensing, or multi-customer delivery rights. Any broader grant requires a separate written agreement signed by the rights holder. The commercial transfer checklist must be completed before a buyer receives broader rights.
