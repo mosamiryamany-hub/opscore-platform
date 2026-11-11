@@ -100,7 +100,20 @@ SELECT
         OR has_table_privilege(current_user,c.oid,'TRUNCATE')
       ))
     )
-  )::int AS control_plane_runtime_privilege_gap_count
+  )::int AS control_plane_runtime_privilege_gap_count,
+  current_user::text AS runtime_role_name,
+  COALESCE((SELECT r.rolcanlogin FROM pg_roles r WHERE r.rolname = current_user), false) AS runtime_role_login,
+  COALESCE((SELECT r.rolsuper FROM pg_roles r WHERE r.rolname = current_user), true) AS runtime_role_superuser,
+  COALESCE((SELECT r.rolbypassrls FROM pg_roles r WHERE r.rolname = current_user), true) AS runtime_role_bypassrls,
+  COALESCE((SELECT r.rolcreaterole FROM pg_roles r WHERE r.rolname = current_user), true) AS runtime_role_createrole,
+  COALESCE((SELECT r.rolcreatedb FROM pg_roles r WHERE r.rolname = current_user), true) AS runtime_role_createdb,
+  (
+    SELECT COUNT(*)::int
+    FROM pg_roles elevated
+    WHERE elevated.oid <> (SELECT current_role.oid FROM pg_roles current_role WHERE current_role.rolname = current_user)
+      AND (elevated.rolsuper OR elevated.rolbypassrls OR elevated.rolcreaterole OR elevated.rolcreatedb)
+      AND pg_has_role(current_user, elevated.oid, 'MEMBER')
+  ) AS runtime_role_elevated_membership_count
 FROM pg_class c
 JOIN pg_namespace n ON n.oid = c.relnamespace
 WHERE n.nspname = 'public' AND c.relkind = 'r';
@@ -126,6 +139,16 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
   const controlPlaneTableCount = count(row.control_plane_table_count);
   const controlPlanePolicyValidTableCount = count(row.control_plane_policy_valid_table_count);
   const controlPlaneRuntimePrivilegeGapCount = count(row.control_plane_runtime_privilege_gap_count);
+  const runtimeRoleName = String(row.runtime_role_name || '').trim();
+  const runtimeRoleLogin = row.runtime_role_login === true;
+  const runtimeRoleSuperuser = row.runtime_role_superuser === true;
+  const runtimeRoleBypassRls = row.runtime_role_bypassrls === true;
+  const runtimeRoleCreateRole = row.runtime_role_createrole === true;
+  const runtimeRoleCreateDatabase = row.runtime_role_createdb === true;
+  const runtimeRoleElevatedMembershipCount = count(row.runtime_role_elevated_membership_count);
+  const runtimeRoleSafe = runtimeRoleName === 'opscore_runtime' && runtimeRoleLogin &&
+    !runtimeRoleSuperuser && !runtimeRoleBypassRls && !runtimeRoleCreateRole &&
+    !runtimeRoleCreateDatabase && runtimeRoleElevatedMembershipCount === 0;
 
   const identityPlaneHardened = identityTablesWithoutRlsWithRuntimeAccessCount === 0;
   const catalogAcceptable =
@@ -136,7 +159,7 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
     migrationLedgerRuntimePrivilegesCount === 0 &&
     controlPlaneTableCount === 3 &&
     controlPlanePolicyValidTableCount === 3 &&
-    controlPlaneRuntimePrivilegeGapCount === 0;
+    controlPlaneRuntimePrivilegeGapCount === 0 &&\n    runtimeRoleSafe;
 
   let status = 'NOT_CERTIFIED';
   let note = 'Catalog metadata is not a full behavioral certification of every application path.';
@@ -181,6 +204,16 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
       tableCount: controlPlaneTableCount,
       privilegeGapCount: controlPlaneRuntimePrivilegeGapCount,
       status: controlPlaneTableCount === 3 && controlPlaneRuntimePrivilegeGapCount === 0 ? 'LEAST_PRIVILEGE_PRESENT' : 'REVIEW_REQUIRED'
+    },
+    runtimeRole: {
+      name: runtimeRoleName || null,
+      login: runtimeRoleLogin,
+      superuser: runtimeRoleSuperuser,
+      bypassRls: runtimeRoleBypassRls,
+      createRole: runtimeRoleCreateRole,
+      createDatabase: runtimeRoleCreateDatabase,
+      elevatedMembershipCount: runtimeRoleElevatedMembershipCount,
+      status: runtimeRoleSafe ? 'LEAST_PRIVILEGE_PRESENT' : 'REVIEW_REQUIRED'
     },
     controlPlaneTenantBoundaryPolicies: {
       tableCount: controlPlaneTableCount,
