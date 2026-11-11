@@ -15,6 +15,12 @@
 - Neon Main branch `br-wispy-term-bcrqqj84`, database `opscore_acceptance`: migration ledger ends at `052_runtime_policy_function_grants.sql`; migration 053 is not applied.
 - Neon Main still lacks the required restrictive tenant guards on `feature_flags`, `safe_mode_states`, and `control_plane_runs`.
 - The `opscore_runtime` role itself is non-superuser and NOBYPASSRLS, but the actual Vercel connection role is not verified because the production connection secrets are not inspectable as plaintext.
+- Read-only catalog verification found 132 public ordinary/partitioned relations: 131 have RLS and FORCE RLS; the sole no-RLS exception is read-only PostGIS `spatial_ref_sys`. Non-PostGIS relations without RLS or FORCE RLS: 0. Migration ledger runtime privileges: 0.
+- The three control-plane tables still have only the old PERMISSIVE `opscore_tenant_boundary_guard` policy; migration 053's required restrictive policy pair is absent on Main.
+- The `opscore_runtime` role was directly checked: LOGIN=true, SUPERUSER=false, BYPASSRLS=false, CREATEROLE=false, CREATEDB=false, elevated memberships=0. This does not prove Vercel uses that role.
+- Neon project network settings remain open: public connections are not blocked, IP allowlist is empty, all six listed branches are unprotected, protected-branches-only is false, and history retention is 6 hours.
+- Vercel Firewall is enabled, but Bot Protection and active CRS rules (generic, RCE, SQLi, XSS) are LOG-only; no custom/IP rules are configured. No active attack anomalies were returned in the inspected window.
+- The live production API still returns HTTP 500 with `PRODUCTION_HOLD_ACTIVE`; Vercel reported 59 occurrences across 32 users in the last 24 hours.
 
 ## Separate change under review
 
