@@ -9,7 +9,7 @@
 DO $migration$
 DECLARE
   target_schema text := current_schema();
-  table_name text;
+  target_table_name text;
   required_tables text[] := ARRAY[
     'feature_flags',
     'safe_mode_states',
@@ -20,8 +20,8 @@ BEGIN
     RAISE EXCEPTION 'CONTROL_PLANE_POLICY_SCHEMA_UNRESOLVED';
   END IF;
 
-  FOREACH table_name IN ARRAY required_tables LOOP
-    IF to_regclass(format('%I.%I', target_schema, table_name)) IS NULL THEN
+  FOREACH target_table_name IN ARRAY required_tables LOOP
+    IF to_regclass(format('%I.%I', target_schema, target_table_name)) IS NULL THEN
       RAISE EXCEPTION 'CONTROL_PLANE_TABLE_MISSING:%', table_name;
     END IF;
 
@@ -29,14 +29,14 @@ BEGIN
       SELECT 1
       FROM information_schema.columns AS cols
       WHERE cols.table_schema = target_schema
-        AND cols.table_name = table_name
+        AND cols.table_name = target_table_name
         AND cols.column_name = 'organization_id'
     ) THEN
       RAISE EXCEPTION 'CONTROL_PLANE_TENANT_KEY_MISSING:%', table_name;
     END IF;
 
-    EXECUTE format('ALTER TABLE %I.%I ENABLE ROW LEVEL SECURITY', target_schema, table_name);
-    EXECUTE format('ALTER TABLE %I.%I FORCE ROW LEVEL SECURITY', target_schema, table_name);
+    EXECUTE format('ALTER TABLE %I.%I ENABLE ROW LEVEL SECURITY', target_schema, target_table_name);
+    EXECUTE format('ALTER TABLE %I.%I FORCE ROW LEVEL SECURITY', target_schema, target_table_name);
 
     -- Remove both policy names first so a partial/manual prior attempt is
     -- normalized to exactly one explicit permissive policy + one restrictive guard.
