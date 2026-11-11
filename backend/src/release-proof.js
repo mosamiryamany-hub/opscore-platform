@@ -185,14 +185,20 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
     now
   );
   const acceptanceVerified = ciVerified && productionAcceptance.status === 'PASS';
-  const releaseIdentityVerified = Boolean(
+  const productionIsolationCertified =
+    String(proofEnv.OPSC_PRODUCTION_ISOLATION_CERTIFICATION || '').trim().toUpperCase() === 'CERTIFIED' &&
+    acceptanceVerified;
+  const releaseVerified = Boolean(
     identity && identity.deploymentSource === 'github-actions-cli' && identity.packageSha256 &&
     identity.packageCommit === sourceCommit &&
     ciVerified &&
     packageVerified &&
     deployment.status === 'identified' &&
     deployment.deployment.environment === 'production' &&
-    deployment.source.ref === 'main'
+    deployment.source.ref === 'main' &&
+    postgresHttpAcceptance.status === 'PASS' &&
+    acceptanceVerified &&
+    productionIsolationCertified
   );
 
   return {
@@ -201,7 +207,7 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
     version: '0.11.62',
     releaseTag,
     sourceCommitIdentitySource: identity ? 'github-actions-cli-assertion' : 'unverified',
-    status: releaseIdentityVerified ? 'PASS_WITH_BUYER_RESIDUALS' : 'UNVERIFIED',
+    status: releaseVerified ? 'PASS_WITH_BUYER_RESIDUALS' : 'UNVERIFIED',
     sourceCommit,
     deployment: {
       status: deployment.status,
@@ -219,11 +225,11 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
       evidenceScope: 'GitHub Actions CI commit-match is bound to the embedded build identity; use pipelineUrl to inspect the full gate report.'
     },
     gates: {
-      commercialClosure: ciVerified ? 'PASS_WITH_BUYER_RESIDUALS' : 'UNVERIFIED',
+      commercialClosure: releaseVerified ? 'PASS_WITH_BUYER_RESIDUALS' : 'UNVERIFIED',
       livePostgresRls: ciVerified ? 'PASS_TEST_SCOPE' : 'UNVERIFIED',
       productionSessionTenantBoundary: acceptanceVerified ? 'PASS_PRODUCTION' : 'NOT_VERIFIED',
       productionRecoveryBundle: acceptanceVerified ? 'PASS_PRODUCTION' : 'NOT_VERIFIED',
-      productionIsolationCertification: (String(proofEnv.OPSC_PRODUCTION_ISOLATION_CERTIFICATION || '').trim().toUpperCase() === 'CERTIFIED' && acceptanceVerified) ? 'CERTIFIED' : 'NOT_CERTIFIED',
+      productionIsolationCertification: productionIsolationCertified ? 'CERTIFIED' : 'NOT_CERTIFIED',
       mobileStoreArtifacts: 'REMAINING_BUYER',
       nativeTranslationReview: 'REMAINING_BUYER',
       licensedStreetMap: 'REMAINING_BUYER',
