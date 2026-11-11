@@ -21,7 +21,7 @@ gh attestation verify OPSCORE.zip -R mosamiryamany-hub/opscore-platform --signer
 gh attestation verify OPSCORE.zip -R mosamiryamany-hub/opscore-platform --predicate-type https://cyclonedx.org/bom --signer-workflow mosamiryamany-hub/opscore-platform/.github/workflows/opscore-secure-release.yml
 ```
 
-The tracked SBOM is currently CycloneDX 1.6 with 491 components; 489 carry component hashes and license entries. Two top-level application components lack those entries, and the BOM metadata lacks `metadata.timestamp` and `metadata.authors`. This is a known SBOM completeness gap; do not describe the current SBOM as fully conformant to the CISA's published Minimum Elements for a Software Bill of Materials guidance.
+The committed SBOM snapshot remains CycloneDX 1.6 with 491 components; 489 carry component hashes and license entries. PR #24 implements generation and verification of a CycloneDX 1.7 SBOM with timestamp, author, tool, generation context, application source hashes, and proprietary-license metadata. This implementation is pending combined-head CI and a current-head secure-release run. Do not deliver the tracked 1.6 snapshot or claim full SBOM conformance until that run succeeds and the generated 1.7 SBOM is independently verified.
 
 ## Current Main status at 2026-11-11
 
