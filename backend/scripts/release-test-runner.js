@@ -8,7 +8,7 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 
 function isSupportedNodeVersion(version) {
-  const match = /^v?(\\d+)\\.(\\d+)\\.(\\d+)(?:[-+].*)?$/.exec(String(version || '').trim());
+  const match = /^v?(\d+)\.(\d+)\.(\d+)$/.exec(String(version || '').trim());
   if (!match) return false;
   const [, majorText, minorText, patchText] = match;
   const major = Number(majorText);
