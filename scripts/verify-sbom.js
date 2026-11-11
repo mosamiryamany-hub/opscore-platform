@@ -37,6 +37,7 @@ function packageNameFromNodeModulesPath(key) {
 function sourceArchiveHash(prefix) {
   const args = ['archive', '--format=tar', 'HEAD'];
   if (prefix) args.push(prefix);
+  else args.push('.', ':(exclude)docs/sbom/**');
   const archive = execFileSync('git', args, { cwd: root, maxBuffer: 128 * 1024 * 1024 });
   return crypto.createHash('sha256').update(archive).digest('hex');
 }
@@ -84,6 +85,7 @@ check('SBOM source commit bound', metadataProperties.get('opscore:source-commit'
 const lockDigest = crypto.createHash('sha256').update(lockFiles.map(file => fs.readFileSync(file)).join('\n')).digest('hex');
 check('SBOM lockfile digest bound', metadataProperties.get('opscore:lockfiles-sha256') === lockDigest);
 check('SBOM generation context recorded', metadataProperties.get('opscore:generation-context') === 'GitHub Actions exact-head secure-release workflow');
+check('SBOM source archive scope recorded', metadataProperties.get('opscore:source-archive-scope') === 'git archive HEAD excluding generated docs/sbom outputs');
 
 const components = bom.components || [];
 const componentByRef = new Map(components.map(component => [component['bom-ref'], component]));
