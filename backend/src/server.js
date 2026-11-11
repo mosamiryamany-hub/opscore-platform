@@ -11,6 +11,7 @@ const {runWithRequest} = require('./pg-database-sync');
 const { createDeploymentProof } = require('./deployment-proof');
 const { createPublicReleaseProof, readEmbeddedBuildIdentity } = require('./release-proof');
 const { readDatabaseSecurityProof } = require('./database-security-proof');
+const { isHttpBootstrapAllowed } = require('./bootstrap-policy');
 
 // Commercial runtime: single engine. DATABASE_ENGINE=postgres → Store runs on Neon via sync helper.
 const opened = openDatabase(config);
@@ -1145,7 +1146,10 @@ function route(req, res) {
   if (req.method === 'POST' && url.pathname === '/api/v1/ai/knowledge/search') {
     const c=requireCtx(req,res); if(!c)return; try{requireScope(c,'read');}catch(e){return fail(res,e);} return body(req).then(async b=>{const {getPool}=require('./postgres-runtime');const {search}=require('./postgres-knowledge');return json(res,200,await search(getPool(config),{organizationId:c.organizationId,query:b.query,limit:b.limit}));}).catch(e=>fail(res,e));
   }
-  if (req.method === 'POST' && url.pathname === '/api/v1/auth/bootstrap')
+  if (req.method === 'POST' && url.pathname === '/api/v1/auth/bootstrap') {
+    if (!isHttpBootstrapAllowed(config.nodeEnv)) {
+      return json(res, 404, { error: { code: 'BOOTSTRAP_CLI_REQUIRED' } }, { 'cache-control': 'no-store' });
+    }
     return body(req).then(b => runWithRequest(() => {
       if (store.db && typeof store.db.setSession === 'function') store.db.setSession({ tenantId: '', userId: '', accessMode: 'auth' });
       try {
@@ -1161,6 +1165,7 @@ function route(req, res) {
         ), { causeCode: root.slice(0, 80) });
       }
     }, req, res, { forceNew: true })).catch(e => fail(res, e));
+  }
   if (req.method === 'POST' && url.pathname === '/api/v1/auth/oidc/exchange') {
     return body(req).then(async b => {
       if (authProviderGate() !== 'oidc') throw new Error('AUTH_MODE_OIDC_REQUIRED');
