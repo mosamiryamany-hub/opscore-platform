@@ -113,11 +113,32 @@ test('runtime catalog query is read-only and inspects identity, PostGIS and migr
   assert.doesNotMatch(DATABASE_SECURITY_SQL,/(?:^|\n)\s*(?:ALTER|UPDATE|DELETE|DROP|GRANT|REVOKE)\s+/i);
 });
 
+test('missing FORCE RLS catalog evidence cannot be interpreted as a safe zero', () => {
+  const proof = buildDatabaseSecurityProofInternal({
+    public_table_count: 132,
+    rls_enabled_table_count: 131,
+    rls_forced_table_count: 131,
+    tables_without_rls_count: 1,
+    non_postgis_tables_without_rls_count: 0,
+    spatial_ref_sys_runtime_write_access_count: 0,
+    migration_ledger_table_count: 1,
+    migration_ledger_without_force_rls_count: 0,
+    migration_ledger_runtime_privileges_count: 0,
+    identity_tables_without_rls_with_runtime_access_count: 0,
+    control_plane_table_count: 3,
+    control_plane_policy_valid_table_count: 3,
+    control_plane_runtime_privilege_gap_count: 0,
+    ...SAFE_RUNTIME_ROLE
+  }, fixedTime);
+  assert.equal(proof.publicSchema.nonPostgisTablesWithoutForceRlsCount, null);
+  assert.equal(proof.productionIsolationCertification, 'NOT_CERTIFIED');
+});
+
 test('database security proof performs one catalog query', () => {
   let calls=0,used='';
   const db={prepare(sql){calls++;used=sql;return{get(){return{
     public_table_count:132,rls_enabled_table_count:131,rls_forced_table_count:131,
-    tables_without_rls_count:1,non_postgis_tables_without_rls_count:0,
+    tables_without_rls_count:1,non_postgis_tables_without_rls_count:0,non_postgis_tables_without_force_rls_count:0,
     spatial_ref_sys_runtime_write_access_count:0,migration_ledger_table_count:1,
     migration_ledger_without_force_rls_count:0,migration_ledger_runtime_privileges_count:0,
     identity_tables_without_rls_with_runtime_access_count:0,
