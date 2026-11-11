@@ -6,6 +6,7 @@ SELECT
   COUNT(*) FILTER (WHERE c.relkind = 'r' AND c.relforcerowsecurity)::int AS rls_forced_table_count,
   COUNT(*) FILTER (WHERE c.relkind = 'r' AND NOT c.relrowsecurity)::int AS tables_without_rls_count,
   COUNT(*) FILTER (WHERE c.relkind = 'r' AND c.relname <> 'spatial_ref_sys' AND NOT c.relrowsecurity)::int AS non_postgis_tables_without_rls_count,
+  COUNT(*) FILTER (WHERE c.relkind = 'r' AND c.relname <> 'spatial_ref_sys' AND NOT c.relforcerowsecurity)::int AS non_postgis_tables_without_force_rls_count,
   COUNT(*) FILTER (
     WHERE c.relkind = 'r' AND c.relname = 'spatial_ref_sys'
       AND (has_table_privilege(current_user,c.oid,'INSERT')
@@ -130,6 +131,7 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
   const rlsForcedTableCount = count(row.rls_forced_table_count);
   const tablesWithoutRlsCount = count(row.tables_without_rls_count);
   const nonPostgisTablesWithoutRlsCount = count(row.non_postgis_tables_without_rls_count);
+  const nonPostgisTablesWithoutForceRlsCount = count(row.non_postgis_tables_without_force_rls_count);
   const spatialRefSysRuntimeWriteAccessCount = count(row.spatial_ref_sys_runtime_write_access_count);
   const migrationLedgerTableCount = count(row.migration_ledger_table_count);
   const migrationLedgerWithoutForceRlsCount = count(row.migration_ledger_without_force_rls_count);
@@ -153,6 +155,7 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
   const identityPlaneHardened = identityTablesWithoutRlsWithRuntimeAccessCount === 0;
   const catalogAcceptable =
     nonPostgisTablesWithoutRlsCount === 0 &&
+    nonPostgisTablesWithoutForceRlsCount === 0 &&
     spatialRefSysRuntimeWriteAccessCount === 0 &&
     migrationLedgerTableCount === 1 &&
     migrationLedgerWithoutForceRlsCount === 0 &&
@@ -174,7 +177,7 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
     note = 'Every public application table except the read-only PostGIS spatial_ref_sys catalog has FORCE RLS. The schema_migrations ledger is owner-only. Control-plane tables have explicit least-privilege runtime grants independent of provider default ACLs. Authenticated path-by-path and cross-tenant behavioral tests are still required before production isolation certification.';
   } else if (identityPlaneHardened) {
     status = 'REVIEW_REQUIRED';
-    note = 'Identity-plane RLS is present, but a non-PostGIS relation, migration-ledger boundary, PostGIS write privilege, or control-plane tenant-boundary policy still requires review.';
+    note = 'Identity-plane RLS is present, but a non-PostGIS relation without RLS or FORCE RLS, migration-ledger boundary, PostGIS write privilege, or control-plane tenant-boundary policy still requires review.';
   } else {
     note = 'Critical identity tables remain accessible to the runtime role without RLS.';
   }
@@ -190,6 +193,7 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
       rlsForcedTableCount,
       tablesWithoutRlsCount,
       nonPostgisTablesWithoutRlsCount,
+      nonPostgisTablesWithoutForceRlsCount,
       postgisSpatialRefSys: {
         allowedNoRlsCatalog: true,
         runtimeWriteAccessCount: spatialRefSysRuntimeWriteAccessCount
