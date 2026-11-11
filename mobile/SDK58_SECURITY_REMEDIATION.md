@@ -1,6 +1,6 @@
 # Mobile SDK 58 Security Remediation
 
-Status: dependency graph regeneration pending CI execution.
+Status: second isolated CI resolution attempt queued after the initial audit-fix command refused a breaking downgrade. Explicit patched transitive versions are now pinned; the lockfile must be regenerated and validated by CI.
 
 ## Current requested target
 - Expo SDK: 58
@@ -8,6 +8,8 @@ Status: dependency graph regeneration pending CI execution.
 - React: 19.3
 - Expo modules: SDK 58-compatible versions pinned in `package.json`
 - `node-forge`: 1.4.3
+- `glob`: 14.0.4 (security fix for the 14.0.1-and-earlier affected range)
+- `minimatch`: 11.0.5 (security fix for the 11.0.0-and-earlier affected range)
 - Zod: 4.6.7
 
 ## Required evidence before promotion
