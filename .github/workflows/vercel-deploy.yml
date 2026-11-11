@@ -141,6 +141,11 @@ jobs:
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      - name: Validate production environment without printing secrets
+        run: vercel env run -e production --token=${{ secrets.VERCEL_TOKEN }} -- node scripts/verify-production-environment.js
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
       - name: Compute package fingerprint for this commit
         id: package_fp
         run: |
