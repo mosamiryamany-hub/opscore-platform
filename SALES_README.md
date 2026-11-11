@@ -8,7 +8,7 @@ Backend API, web operations console, workflows, auth/session/tenant controls, Po
 
 ## Evidence and release identity
 
-This is a source-code package, not a hosted SaaS subscription. Use only the same successful exact-head GitLab pipeline's OPSCORE.zip, release statement, checksum manifest, JUnit, full root/mobile dependency reports, i18n forensic report and candidate Preview proofs. The generated release statement is authoritative for source commit, pipeline ID, archive size and SHA-256. A PostgreSQL HTTP acceptance PASS must match that exact commit and pipeline; otherwise it remains NOT_VERIFIED and seller-owned before handover.
+This is a source-code package, not a hosted SaaS subscription. Use only the successful exact-head GitHub Actions `OpsCore secure release` run's archive, external release statement, JUnit/step results, root/mobile dependency reports, i18n forensic report and attestation. The release statement binds source commit, pipeline ID, archive size and SHA-256. PostgreSQL HTTP acceptance is current only when it matches the same commit and run; otherwise it remains NOT_VERIFIED and seller-owned before handover.
 
 ## Buyer-owned
 
