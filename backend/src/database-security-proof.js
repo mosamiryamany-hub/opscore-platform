@@ -1,11 +1,12 @@
 'use strict';
 const DATABASE_SECURITY_SQL = `
 SELECT
-  COUNT(*) FILTER (WHERE c.relkind = 'r')::int AS public_table_count,
-  COUNT(*) FILTER (WHERE c.relkind = 'r' AND c.relrowsecurity)::int AS rls_enabled_table_count,
-  COUNT(*) FILTER (WHERE c.relkind = 'r' AND c.relforcerowsecurity)::int AS rls_forced_table_count,
-  COUNT(*) FILTER (WHERE c.relkind = 'r' AND NOT c.relrowsecurity)::int AS tables_without_rls_count,
-  COUNT(*) FILTER (WHERE c.relkind = 'r' AND c.relname <> 'spatial_ref_sys' AND NOT c.relrowsecurity)::int AS non_postgis_tables_without_rls_count,
+  COUNT(*) FILTER (WHERE c.relkind IN ('r','p'))::int AS public_table_count,
+  COUNT(*) FILTER (WHERE c.relkind IN ('r','p') AND c.relrowsecurity)::int AS rls_enabled_table_count,
+  COUNT(*) FILTER (WHERE c.relkind IN ('r','p') AND c.relforcerowsecurity)::int AS rls_forced_table_count,
+  COUNT(*) FILTER (WHERE c.relkind IN ('r','p') AND NOT c.relrowsecurity)::int AS tables_without_rls_count,
+  COUNT(*) FILTER (WHERE c.relkind IN ('r','p') AND c.relname <> 'spatial_ref_sys' AND NOT c.relrowsecurity)::int AS non_postgis_tables_without_rls_count,
+  COUNT(*) FILTER (WHERE c.relkind IN ('r','p') AND c.relname <> 'spatial_ref_sys' AND NOT c.relforcerowsecurity)::int AS non_postgis_tables_without_force_rls_count,
   COUNT(*) FILTER (
     WHERE c.relkind = 'r' AND c.relname = 'spatial_ref_sys'
       AND (has_table_privilege(current_user,c.oid,'INSERT')
@@ -100,15 +101,29 @@ SELECT
         OR has_table_privilege(current_user,c.oid,'TRUNCATE')
       ))
     )
-  )::int AS control_plane_runtime_privilege_gap_count
+  )::int AS control_plane_runtime_privilege_gap_count,
+  current_user::text AS runtime_role_name,
+  COALESCE((SELECT r.rolcanlogin FROM pg_roles r WHERE r.rolname = current_user), false) AS runtime_role_login,
+  COALESCE((SELECT r.rolsuper FROM pg_roles r WHERE r.rolname = current_user), true) AS runtime_role_superuser,
+  COALESCE((SELECT r.rolbypassrls FROM pg_roles r WHERE r.rolname = current_user), true) AS runtime_role_bypassrls,
+  COALESCE((SELECT r.rolcreaterole FROM pg_roles r WHERE r.rolname = current_user), true) AS runtime_role_createrole,
+  COALESCE((SELECT r.rolcreatedb FROM pg_roles r WHERE r.rolname = current_user), true) AS runtime_role_createdb,
+  (
+    SELECT COUNT(*)::int
+    FROM pg_roles elevated
+    WHERE elevated.oid <> (SELECT runtime_role.oid FROM pg_roles runtime_role WHERE runtime_role.rolname = current_user)
+      AND (elevated.rolsuper OR elevated.rolbypassrls OR elevated.rolcreaterole OR elevated.rolcreatedb)
+      AND pg_has_role(current_user, elevated.oid, 'MEMBER')
+  ) AS runtime_role_elevated_membership_count
 FROM pg_class c
 JOIN pg_namespace n ON n.oid = c.relnamespace
-WHERE n.nspname = 'public' AND c.relkind = 'r';
+WHERE n.nspname = 'public' AND c.relkind IN ('r','p');
 `;
 
 function count(value) {
+  if (value === null || value === undefined || value === '') return null;
   const parsed = Number(value);
-  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : 0;
+  return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : null;
 }
 
 function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = process.env) {
@@ -117,6 +132,7 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
   const rlsForcedTableCount = count(row.rls_forced_table_count);
   const tablesWithoutRlsCount = count(row.tables_without_rls_count);
   const nonPostgisTablesWithoutRlsCount = count(row.non_postgis_tables_without_rls_count);
+  const nonPostgisTablesWithoutForceRlsCount = count(row.non_postgis_tables_without_force_rls_count);
   const spatialRefSysRuntimeWriteAccessCount = count(row.spatial_ref_sys_runtime_write_access_count);
   const migrationLedgerTableCount = count(row.migration_ledger_table_count);
   const migrationLedgerWithoutForceRlsCount = count(row.migration_ledger_without_force_rls_count);
@@ -126,17 +142,47 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
   const controlPlaneTableCount = count(row.control_plane_table_count);
   const controlPlanePolicyValidTableCount = count(row.control_plane_policy_valid_table_count);
   const controlPlaneRuntimePrivilegeGapCount = count(row.control_plane_runtime_privilege_gap_count);
+  const runtimeRoleName = String(row.runtime_role_name || '').trim();
+  const runtimeRoleLogin = row.runtime_role_login === true;
+  const runtimeRoleSuperuser = row.runtime_role_superuser === true;
+  const runtimeRoleBypassRls = row.runtime_role_bypassrls === true;
+  const runtimeRoleCreateRole = row.runtime_role_createrole === true;
+  const runtimeRoleCreateDatabase = row.runtime_role_createdb === true;
+  const runtimeRoleElevatedMembershipCount = count(row.runtime_role_elevated_membership_count);
+  const runtimeRoleSafe = runtimeRoleName === 'opscore_runtime' && runtimeRoleLogin &&
+    !runtimeRoleSuperuser && !runtimeRoleBypassRls && !runtimeRoleCreateRole &&
+    !runtimeRoleCreateDatabase && runtimeRoleElevatedMembershipCount === 0;
 
+  const catalogCountsValid = [
+    publicTableCount,
+    rlsEnabledTableCount,
+    rlsForcedTableCount,
+    tablesWithoutRlsCount,
+    nonPostgisTablesWithoutRlsCount,
+    nonPostgisTablesWithoutForceRlsCount,
+    spatialRefSysRuntimeWriteAccessCount,
+    migrationLedgerTableCount,
+    migrationLedgerWithoutForceRlsCount,
+    migrationLedgerRuntimePrivilegesCount,
+    identityTablesWithoutRlsWithRuntimeAccessCount,
+    controlPlaneTableCount,
+    controlPlanePolicyValidTableCount,
+    controlPlaneRuntimePrivilegeGapCount,
+    runtimeRoleElevatedMembershipCount
+  ].every(Number.isSafeInteger);
   const identityPlaneHardened = identityTablesWithoutRlsWithRuntimeAccessCount === 0;
   const catalogAcceptable =
+    catalogCountsValid &&
     nonPostgisTablesWithoutRlsCount === 0 &&
+    nonPostgisTablesWithoutForceRlsCount === 0 &&
     spatialRefSysRuntimeWriteAccessCount === 0 &&
     migrationLedgerTableCount === 1 &&
     migrationLedgerWithoutForceRlsCount === 0 &&
     migrationLedgerRuntimePrivilegesCount === 0 &&
     controlPlaneTableCount === 3 &&
     controlPlanePolicyValidTableCount === 3 &&
-    controlPlaneRuntimePrivilegeGapCount === 0;
+    controlPlaneRuntimePrivilegeGapCount === 0 &&
+    runtimeRoleSafe;
 
   let status = 'NOT_CERTIFIED';
   let note = 'Catalog metadata is not a full behavioral certification of every application path.';
@@ -150,7 +196,7 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
     note = 'Every public application table except the read-only PostGIS spatial_ref_sys catalog has FORCE RLS. The schema_migrations ledger is owner-only. Control-plane tables have explicit least-privilege runtime grants independent of provider default ACLs. Authenticated path-by-path and cross-tenant behavioral tests are still required before production isolation certification.';
   } else if (identityPlaneHardened) {
     status = 'REVIEW_REQUIRED';
-    note = 'Identity-plane RLS is present, but a non-PostGIS relation, migration-ledger boundary, PostGIS write privilege, or control-plane tenant-boundary policy still requires review.';
+    note = 'Identity-plane RLS checks passed, but catalog evidence is incomplete or a non-PostGIS relation without RLS or FORCE RLS, migration-ledger boundary, PostGIS write privilege, runtime-role privilege, or control-plane tenant-boundary policy still requires review.';
   } else {
     note = 'Critical identity tables remain accessible to the runtime role without RLS.';
   }
@@ -166,6 +212,7 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
       rlsForcedTableCount,
       tablesWithoutRlsCount,
       nonPostgisTablesWithoutRlsCount,
+      nonPostgisTablesWithoutForceRlsCount,
       postgisSpatialRefSys: {
         allowedNoRlsCatalog: true,
         runtimeWriteAccessCount: spatialRefSysRuntimeWriteAccessCount
@@ -181,6 +228,16 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
       tableCount: controlPlaneTableCount,
       privilegeGapCount: controlPlaneRuntimePrivilegeGapCount,
       status: controlPlaneTableCount === 3 && controlPlaneRuntimePrivilegeGapCount === 0 ? 'LEAST_PRIVILEGE_PRESENT' : 'REVIEW_REQUIRED'
+    },
+    runtimeRole: {
+      name: runtimeRoleName || null,
+      login: runtimeRoleLogin,
+      superuser: runtimeRoleSuperuser,
+      bypassRls: runtimeRoleBypassRls,
+      createRole: runtimeRoleCreateRole,
+      createDatabase: runtimeRoleCreateDatabase,
+      elevatedMembershipCount: runtimeRoleElevatedMembershipCount,
+      status: runtimeRoleSafe ? 'LEAST_PRIVILEGE_PRESENT' : 'REVIEW_REQUIRED'
     },
     controlPlaneTenantBoundaryPolicies: {
       tableCount: controlPlaneTableCount,
