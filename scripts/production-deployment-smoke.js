@@ -192,7 +192,7 @@ async function checkWithRetry(baseUrl, path, expectedCommit, curlRunner, attempt
     } catch (error) {
       lastError = error;
       const message = String(error?.message || error);
-      const transient = /^(?:HTTP_(?:408|425|429|5\d\d)|NETWORK_(?:ETIMEDOUT|ECONNRESET|EPIPE))/i.test(message);
+      const transient = /^(?:HTTP_(?:408|425|429|5\d\d)|NETWORK_(?:TIMEOUT|CONNECTION_FAILED|ETIMEDOUT|ECONNRESET|EPIPE))/i.test(message);
       if (!transient || attempt === attempts) break;
       await delay(1500 * attempt);
     }
