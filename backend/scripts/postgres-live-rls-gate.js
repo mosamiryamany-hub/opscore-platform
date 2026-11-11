@@ -16,7 +16,7 @@ function emit(status, details = {}, exitCode = 0) {
     schemaVersion: 'opscore.postgres-live-rls-gate.v1',
     generatedAt: new Date().toISOString(),
     status,
-    target: 'rollback-only temporary schema; migrations 031, 052 and 053; tenant RLS for twin, work, appointment and control-plane tables',
+    target: 'GitHub Actions disposable PostgreSQL 18 service; rollback-only temporary schema; migrations 031, 052 and 053; tenant RLS for twin, work, appointment and control-plane tables',
     productionCertification: false,
     ...details
   };
@@ -351,7 +351,7 @@ async function main() {
     await client.query('RESET ROLE');
     await client.query('ROLLBACK');
     inTransaction = false;
-    emit('PASS', { database: info.database, serverVersion: info.server_version, executedChecks: checks, checkCount: checks.length, note: 'This gate tests migrations 031, 052 and 053 plus tenant policy execution for twin, appointment, work-order and control-plane tables under the actual opscore_runtime role in a rollback-only isolated schema. It does not certify all production data or production isolation.' });
+    emit('PASS', { database: info.database, serverVersion: info.server_version, executedChecks: checks, checkCount: checks.length, note: 'This gate runs on the disposable PostgreSQL 18 service created by GitHub Actions. It tests migrations 031, 052 and 053 plus tenant policy execution for twin, appointment, work-order and control-plane tables under the opscore_runtime role in a rollback-only isolated schema. It does not connect to Neon and does not certify all production data or production isolation.' });
   } catch (error) {
     if (inTransaction) {
       try { await client.query('ROLLBACK'); } catch (rollbackError) {
