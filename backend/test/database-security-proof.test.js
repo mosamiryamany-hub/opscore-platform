@@ -60,7 +60,7 @@ test('runtime catalog query is read-only and inspects identity, PostGIS and migr
   assert.match(DATABASE_SECURITY_SQL,/'password_reset_tokens'/);
   assert.match(DATABASE_SECURITY_SQL,/'spatial_ref_sys'/);
   assert.match(DATABASE_SECURITY_SQL,/'schema_migrations'/);
-  assert.match(DATABASE_SECURITY_SQL,/FROM pg_policy p/);
+  assert.match(DATABASE_SECURITY_SQL,/LEFT JOIN pg_policy p/);
   assert.match(DATABASE_SECURITY_SQL,/polpermissive/);
   assert.match(DATABASE_SECURITY_SQL,/opscore_tenant_permissive/);
   assert.match(DATABASE_SECURITY_SQL,/opscore_tenant_boundary_guard/);
