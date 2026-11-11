@@ -36,7 +36,7 @@ Current verified source candidate: OpsCore v0.11.62, GitHub main at commit `f3f3
 ## Database protection status
 
 - 131 of 132 ordinary public tables have RLS enabled and FORCE RLS; `spatial_ref_sys` is the read-only PostGIS metadata exception.
-- 267 policies cover 131 tables. Three control-plane boundary policies were found PERMISSIVE instead of RESTRICTIVE. PR #18 adds correctly typed restrictive guards and live behavior tests; it has passing CI and PostgreSQL 18 checks but remains unmerged pending required review.
+- 267 policies cover 131 tables. Three control-plane boundary policies were found PERMISSIVE instead of RESTRICTIVE. PR #18 adds correctly typed restrictive guards and PostgreSQL 18 behavior tests. The migration was also applied and verified on isolated Neon branch `br-delicate-water-bc2e7lk5` under `opscore_runtime`: tenant A self-read succeeded, tenant B cross-read/update returned zero rows, own-tenant control-plane insert succeeded, cross-tenant insert was rejected with SQLSTATE 42501; all fixture rows were then removed. Production Neon `main` remains on the prior PERMISSIVE catalog until PR approval and a separately authorized production migration.
 - Neon automatic backup schedule was empty, history retention was six hours, and no automatic snapshot schedule was found at last inspection.
 
 ## Commercial constraints
