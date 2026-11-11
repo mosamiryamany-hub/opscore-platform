@@ -5,6 +5,7 @@ const net = require('node:net');
 const dns = require('node:dns').promises;
 const netUtil = require('node:net');
 const {isPrivateAddress}=require('./security');
+const {hasVerifiedProductionRelease}=require('./release-proof');
 
 const MAX_MEMORY_BUCKETS = 10000;
 const suspicious = [
@@ -68,10 +69,12 @@ function inspectRequest(req, config){
   if(cl!==undefined && (!/^\d+$/.test(String(cl)) || Number(cl)>config.maxBodyBytes)) throw new Error('FIREWALL_BODY_BLOCKED');
   return {clientKey:clientKey(req,config),method,path:target};
 }
-function productionSafetyGate(config){
-  if(config.nodeEnv!=='production') return {allowed:true,mode:'development'};
-  if(String(process.env.OPSC_PRODUCTION_HOLD||'true').toLowerCase()!=='false') throw new Error('PRODUCTION_HOLD_ACTIVE');
-  if(String(process.env.OPSC_RELEASE_VERIFIED||'').toLowerCase()!=='true') throw new Error('PRODUCTION_RELEASE_NOT_VERIFIED');
+function productionSafetyGate(config, env = process.env, releaseVerifier = hasVerifiedProductionRelease){
+  const nodeEnv=String(config?.nodeEnv||env.NODE_ENV||'development').trim().toLowerCase();
+  if(nodeEnv!=='production') return {allowed:true,mode:'development'};
+  if(String(env.OPSC_PRODUCTION_HOLD||'true').toLowerCase()!=='false') throw new Error('PRODUCTION_HOLD_ACTIVE');
+  if(String(env.OPSC_RELEASE_VERIFIED||'').toLowerCase()!=='true') throw new Error('PRODUCTION_RELEASE_NOT_VERIFIED');
+  if(typeof releaseVerifier!=='function' || !releaseVerifier(env)) throw new Error('PRODUCTION_RELEASE_EVIDENCE_NOT_VERIFIED');
   return {allowed:true,mode:'production'};
 }
 function validateOsrmBaseUrl(raw, {production=false}={}){
