@@ -45,7 +45,9 @@ All source defects, broken routes, authorization defects, migration defects, tes
 
 ## 6. Production findings — read-only and NOT certified
 
-Neon Production was inspected read-only. The actual Vercel production DB role remains NOT_VERIFIED. The production catalog did not contain public.schema_migrations at inspection, and the production password-reset create function did not publish row_security=off. Production role opscore_gate is able to SET ROLE neon_superuser; no active session was observed and no application-source reference was found. Do not use it as the application runtime. No production permission change was made.
+Historical observation from an earlier environment (2026-11-01): that snapshot reported no `public.schema_migrations`, a password-reset definer without `row_security=off`, and an `opscore_gate` role able to SET ROLE `neon_superuser`. Do not carry those findings forward as facts about the current Neon project.
+
+Current read-only catalog check (2026-11-11) on Neon project `opscore-production`, database `opscore_acceptance`, branch `main` found `public.schema_migrations` present; `opscore_create_password_reset_token(text,text,text,timestamptz)` is SECURITY DEFINER with function settings `search_path=public, pg_temp` and `row_security=off`; role `opscore_gate` was absent. This inspection used Neon management access as `neondb_owner`, not the exact connection identity consumed by Vercel. The actual Vercel production DB login role remains NOT_VERIFIED. This catalog snapshot does not certify authenticated application behavior, tenant isolation, or recovery. No role or permission change was made.
 
 Seller reference production is deployment-identified against main. Session/tenant and recovery production gates may report PASS_PRODUCTION when operator acceptance evidence is commit-bound. Formal productionIsolationCertification remains NOT_CERTIFIED. Buyer environments require independent verification.
 
