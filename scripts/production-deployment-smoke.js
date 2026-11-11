@@ -99,6 +99,10 @@ async function requestOnce(baseUrl, path, fetchImpl, expectedCommit) {
     signal: AbortSignal.timeout(10000)
   });
   const contentType = response.headers.get('content-type') || '';
+  if (response.status !== 200) {
+    await response.body?.cancel();
+    throw new Error(`HTTP_${response.status}`);
+  }
   if (path === '/') {
     await response.body?.cancel();
     validateEndpoint(path, response.status, null, null, contentType);
@@ -122,7 +126,7 @@ async function checkWithRetry(baseUrl, path, fetchImpl, expectedCommit, attempts
     } catch (error) {
       lastError = error;
       const message = String(error?.message || error);
-      const transient = /^(?:HTTP_(?:408|425|429|5\d\d)|fetch failed|The operation was aborted|ECONNRESET|ETIMEDOUT)/.test(message);
+      const transient = /^(?:HTTP_(?:408|425|429|5\d\d)|fetch failed|The operation was aborted|TimeoutError|ECONNRESET|ETIMEDOUT)/i.test(message);
       if (!transient || attempt === attempts) break;
       await delay(1500 * attempt);
     }
