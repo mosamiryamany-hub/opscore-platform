@@ -53,7 +53,15 @@ No Neon Main schema/data changes were made during this audit.
 
 ## 6. Produce the current buyer package
 
-Run the GitHub Actions `OpsCore secure release` workflow on the exact approved Main commit. Use only that run's ZIP, release statement, SHA-256 manifest, JUnit, root/mobile dependency reports, SBOM, provenance attestation, and localization report. Verify the attestation and archive hashes independently. Do not reuse the historical GitLab pipeline statement or old Vercel URLs.
+Run the GitHub Actions `OpsCore secure release` workflow on the exact approved Main commit. Use only that run's ZIP, release statement, SHA-256 manifest, JUnit, root/mobile dependency reports, SBOM, provenance attestation, and localization report. The workflow must verify both provenance and CycloneDX SBOM attestations before upload. Independently verify the downloaded archive against the expected repository and signer workflow:
+
+```bash
+gh attestation verify OPSCORE.zip -R mosamiryamany-hub/opscore-platform --signer-workflow mosamiryamany-hub/opscore-platform/.github/workflows/opscore-secure-release.yml
+gh attestation verify OPSCORE.zip -R mosamiryamany-hub/opscore-platform --predicate-type https://cyclonedx.org/bom --signer-workflow mosamiryamany-hub/opscore-platform/.github/workflows/opscore-secure-release.yml
+sha256sum --check SHA256SUMS.txt
+```
+
+Do not reuse the historical GitLab pipeline statement or old Vercel URLs.
 
 ## 7. Close SBOM and supply-chain verification
 
