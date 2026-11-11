@@ -29,7 +29,7 @@ test('external release attestation binds the exact completed archive digest and 
         CI_COMMIT_SHA: sourceCommit,
         CI_PIPELINE_ID: pipelineId,
         CI_PIPELINE_URL: 'https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/2978621516',
-        CI_PROJECT_PATH: 'mosamiryamany-hub1/opscore-commercial-final',
+        CI_PROJECT_PATH: 'mosamiryamany-hub/opscore-platform',
         OPSC_PRODUCTION_ACCEPTANCE_COMMIT: '',
         OPSC_PRODUCTION_ACCEPTANCE_AT: '',
         OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: ''
@@ -70,7 +70,7 @@ test('external release attestation only carries production acceptance when it ma
         CI_JOB_NAME: 'commercial-closure',
         CI_COMMIT_SHA: sourceCommit,
         CI_PIPELINE_ID: '2978621517',
-        CI_PROJECT_PATH: 'mosamiryamany-hub1/opscore-commercial-final',
+        CI_PROJECT_PATH: 'mosamiryamany-hub/opscore-platform',
         OPSC_PRODUCTION_ACCEPTANCE_COMMIT: sourceCommit,
         OPSC_PRODUCTION_ACCEPTANCE_AT: '2026-10-23T10:00:00.000Z',
         OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: evidenceSha
