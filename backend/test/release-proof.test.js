@@ -304,6 +304,7 @@ test('embedded GitHub Actions identity gates production release only with signed
     assert.equal(proof.ci.pipelineUrl, identity.runUrl);
     assert.equal(proof.ci.runAttempt, 1);
     assert.equal(proof.packageFingerprint.status, 'PUBLISHED');
+    assert.equal(proof.status, 'PASS_WITH_BUYER_RESIDUALS');
     assert.equal(proof.postgresHttpAcceptance.status, 'PASS');
     assert.equal(proof.productionAcceptance.status, 'PASS');
     assert.equal(proof.gates.productionIsolationCertification, 'CERTIFIED');
