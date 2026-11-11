@@ -15,7 +15,9 @@ const everyVersionIs = (name, expected) => {
 };
 const major = value => Number(String(value || '').split('.')[0]);
 const minor = value => Number(String(value || '').split('.')[1]);
+const appConfig = JSON.parse(fs.readFileSync(path.join(root, 'app.json'), 'utf8'));
 const checks = [
+  ['legacy newArchEnabled flag removed for SDK 58 schema', !Object.prototype.hasOwnProperty.call(appConfig.expo || {}, 'newArchEnabled')],
   ['Expo SDK 58 requested', /^\^?~?58\./.test(pkg.dependencies.expo)],
   ['lockfile resolves Expo SDK 58', major(installed('expo')) === 58],
   ['React Native 0.88 line', major(installed('react-native')) === 0 && minor(installed('react-native')) === 88],
