@@ -17,15 +17,37 @@ function canonical(x) {
 
 /**
  * Immutable sequential audit ledger (real audit_log columns only).
- * event_hash = sha256(previous_hash + canonical(event))
+ * event_hash = sha256(previous_hash + canonical(event)).
+ * Chain order is defined by previous_hash links, never by timestamps or random IDs.
  * Dual-linked to signature-chain appendChain for governance evidence.
  */
+function auditHead(db, organizationId) {
+  const rows = organizationId
+    ? db.prepare(`SELECT a.id,a.event_hash FROM audit_log a
+        WHERE a.organization_id = ?
+          AND NOT EXISTS (
+            SELECT 1 FROM audit_log child
+            WHERE child.organization_id = a.organization_id
+              AND child.previous_hash = a.event_hash
+          )`).all(organizationId)
+    : db.prepare(`SELECT a.id,a.event_hash FROM audit_log a
+        WHERE a.organization_id IS NULL
+          AND NOT EXISTS (
+            SELECT 1 FROM audit_log child
+            WHERE child.organization_id IS NULL
+              AND child.previous_hash = a.event_hash
+          )`).all();
+  if (rows.length > 1) {
+    const err = new Error('AUDIT_CHAIN_FORKED');
+    err.details = { tailIds: rows.map(row => row.id) };
+    throw err;
+  }
+  return rows[0]?.event_hash || '';
+}
+
 function audit(db, {organizationId, actorUserId, action, resourceType, resourceId, metadata = {}}) {
   const createdAt = now();
-  const prevRow = organizationId
-    ? db.prepare('SELECT event_hash FROM audit_log WHERE organization_id = ? ORDER BY created_at DESC, id DESC LIMIT 1').get(organizationId)
-    : db.prepare('SELECT event_hash FROM audit_log WHERE organization_id IS NULL ORDER BY created_at DESC, id DESC LIMIT 1').get();
-  const prev = (prevRow && prevRow.event_hash) || '';
+  const prev = auditHead(db, organizationId);
   // Strip reserved chain keys from caller metadata so hash remains stable.
   const safeMeta = { ...metadata };
   delete safeMeta.chainHash;
@@ -90,26 +112,56 @@ function audit(db, {organizationId, actorUserId, action, resourceType, resourceI
 }
 
 function verifyAuditChain(db, organizationId) {
-  const rows = (organizationId ? db.prepare('SELECT * FROM audit_log WHERE organization_id = ? ORDER BY created_at ASC, id ASC').all(organizationId) : db.prepare('SELECT * FROM audit_log WHERE organization_id IS NULL ORDER BY created_at ASC, id ASC').all());
-  let prev = '';
-  for (let i = 0; i < rows.length; i++) {
-    const r = rows[i];
-    const event = {
-      organizationId: r.organization_id,
-      actorUserId: r.actor_user_id,
-      action: r.action,
-      resourceType: r.resource_type,
-      resourceId: r.resource_id,
-      metadata: JSON.parse(r.metadata_json || '{}'),
-      createdAt: r.created_at
-    };
-    const expected = crypto.createHash('sha256').update(prev + canonical(event)).digest('hex');
-    if (r.previous_hash !== prev || r.event_hash !== expected) {
-      return { valid: false, brokenAt: r.id, checked: i + 1 };
+  const rows = organizationId
+    ? db.prepare('SELECT * FROM audit_log WHERE organization_id = ?').all(organizationId)
+    : db.prepare('SELECT * FROM audit_log WHERE organization_id IS NULL').all();
+  if (rows.length === 0) return { valid: true, checked: 0 };
+
+  const nextByPrevious = new Map();
+  const hashes = new Set();
+  for (const row of rows) {
+    const previous = row.previous_hash || '';
+    if (nextByPrevious.has(previous)) {
+      return { valid: false, brokenAt: row.id, checked: 0, reason: 'AUDIT_CHAIN_FORKED' };
     }
-    prev = r.event_hash;
+    if (!row.event_hash || hashes.has(row.event_hash)) {
+      return { valid: false, brokenAt: row.id, checked: 0, reason: 'AUDIT_CHAIN_DUPLICATE_HASH' };
+    }
+    nextByPrevious.set(previous, row);
+    hashes.add(row.event_hash);
   }
-  return { valid: true, checked: rows.length };
+
+  let previous = '';
+  let checked = 0;
+  const visited = new Set();
+  while (nextByPrevious.has(previous)) {
+    const row = nextByPrevious.get(previous);
+    const event = {
+      organizationId: row.organization_id,
+      actorUserId: row.actor_user_id,
+      action: row.action,
+      resourceType: row.resource_type,
+      resourceId: row.resource_id,
+      metadata: JSON.parse(row.metadata_json || '{}'),
+      createdAt: row.created_at
+    };
+    const expected = crypto.createHash('sha256').update(previous + canonical(event)).digest('hex');
+    if (row.previous_hash !== previous || row.event_hash !== expected) {
+      return { valid: false, brokenAt: row.id, checked: checked + 1, reason: 'AUDIT_CHAIN_HASH_MISMATCH' };
+    }
+    if (visited.has(row.id)) {
+      return { valid: false, brokenAt: row.id, checked, reason: 'AUDIT_CHAIN_CYCLE' };
+    }
+    visited.add(row.id);
+    previous = row.event_hash;
+    checked++;
+  }
+
+  if (checked !== rows.length) {
+    const orphan = rows.find(row => !visited.has(row.id));
+    return { valid: false, brokenAt: orphan?.id || null, checked, reason: 'AUDIT_CHAIN_DISCONNECTED' };
+  }
+  return { valid: true, checked };
 }
 
 function assertAuditChainIntact(db, organizationId) {
