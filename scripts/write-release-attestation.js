@@ -61,7 +61,7 @@ function main() {
       evidenceSha256: productionAcceptanceVerified ? acceptanceEvidenceSha : null,
       scope: productionAcceptanceVerified ? 'commit-bound production evidence supplied to this CI run' : 'production acceptance is evaluated after deployment; this build-time statement does not assert live acceptance'
     },
-    officialRepo: String(process.env.CI_PROJECT_PATH || 'mosamiryamany-hub1/opscore-commercial-final'),
+    officialRepo: String(process.env.CI_PROJECT_PATH || process.env.GITHUB_REPOSITORY || 'mosamiryamany-hub/opscore-platform'),
     generatedAt: new Date().toISOString(),
     note: 'The archive digest is calculated from the completed ZIP and stored externally to avoid a self-referential checksum. NOT_VERIFIED_AT_BUILD means the build did not receive matching commit-bound production acceptance inputs; it is not a claim about later live endpoint state. productionCertification remains false until separate formal isolation certification is recorded.'
   };
