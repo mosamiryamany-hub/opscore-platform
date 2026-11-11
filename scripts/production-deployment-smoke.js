@@ -1,6 +1,6 @@
 'use strict';
 
-const { spawnSync } = require('node:child_process');
+const { spawn } = require('node:child_process');
 const { setTimeout: delay } = require('node:timers/promises');
 
 const REQUIRED_JSON_PATHS = [
@@ -49,32 +49,65 @@ function parseCurlResponse(output) {
 }
 
 function runVercelCurl(baseUrl, path) {
-  const token = String(process.env.VERCEL_TOKEN || '').trim();
-  if (!token) throw new Error('VERCEL_TOKEN_REQUIRED');
-  const targetUrl = new URL(path, baseUrl).toString();
-  const args = [
-    'curl', targetUrl, '-sS', '-i',
-    '--connect-timeout', '5',
-    '--max-time', '10',
-    '-w', '\n__OPSC_HTTP_STATUS__:%{http_code}',
-    '--token', token,
-    '--no-color'
-  ];
-  const result = spawnSync('vercel', args, {
-    encoding: 'utf8',
-    timeout: 15000,
-    maxBuffer: 2 * 1024 * 1024,
-    env: process.env
+  return new Promise((resolve, reject) => {
+    const token = String(process.env.VERCEL_TOKEN || '').trim();
+    if (!token) return reject(new Error('VERCEL_TOKEN_REQUIRED'));
+    const targetUrl = new URL(path, baseUrl).toString();
+    const args = [
+      'curl', targetUrl, '-sS', '-i',
+      '--connect-timeout', '5',
+      '--max-time', '10',
+      '-w', '\\n__OPSC_HTTP_STATUS__:%{http_code}',
+      '--token', token,
+      '--no-color'
+    ];
+    let child;
+    let settled = false;
+    let stdout = '';
+    const finish = (error, value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeout);
+      if (error) reject(error);
+      else resolve(value);
+    };
+    const timeout = setTimeout(() => {
+      child?.kill('SIGKILL');
+      finish(new Error('NETWORK_TIMEOUT'));
+    }, 30000);
+    try {
+      child = spawn('vercel', args, {
+        stdio: ['ignore', 'pipe', 'ignore'],
+        env: process.env
+      });
+    } catch {
+      finish(new Error('VERCEL_CLI_START_FAILED'));
+      return;
+    }
+    child.stdout.on('data', chunk => {
+      stdout += chunk.toString('utf8');
+      if (Buffer.byteLength(stdout, 'utf8') > 2 * 1024 * 1024) {
+        child.kill('SIGKILL');
+        finish(new Error('RESPONSE_TOO_LARGE'));
+      }
+    });
+    child.on('error', error => {
+      const code = String(error?.code || '');
+      finish(new Error(code === 'ETIMEDOUT' ? 'NETWORK_TIMEOUT' : 'VERCEL_CLI_START_FAILED'));
+    });
+    child.on('close', code => {
+      if (settled) return;
+      if (code !== 0) {
+        if (code === 28) finish(new Error('NETWORK_TIMEOUT'));
+        else if ([7, 55, 56].includes(code)) finish(new Error('NETWORK_CONNECTION_FAILED'));
+        else finish(new Error('VERCEL_CURL_EXECUTION_FAILED'));
+        return;
+      }
+      try { finish(null, parseCurlResponse(stdout)); }
+      catch (error) { finish(error); }
+    });
   });
-  if (result.error) {
-    const code = String(result.error.code || '');
-    if (['ETIMEDOUT', 'ECONNRESET', 'EPIPE'].includes(code)) throw new Error(`NETWORK_${code}`);
-    throw new Error('VERCEL_CURL_EXECUTION_FAILED');
-  }
-  if (result.status !== 0) throw new Error('VERCEL_CURL_EXECUTION_FAILED');
-  return parseCurlResponse(result.stdout);
 }
-
 function requireObject(value, code) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(code);
   return value;
@@ -150,7 +183,7 @@ async function requestOnce(baseUrl, path, expectedCommit, curlRunner) {
   return { path, status: 'PASS', httpStatus: response.statusCode };
 }
 
-async function checkWithRetry(baseUrl, path, expectedCommit, curlRunner, attempts = 4) {
+async function checkWithRetry(baseUrl, path, expectedCommit, curlRunner, attempts = 3) {
   let lastError;
   for (let attempt = 1; attempt <= attempts; attempt++) {
     try {
@@ -173,7 +206,8 @@ async function runSmoke(baseUrlRaw, expectedCommit, curlRunner = runVercelCurl) 
   if (!/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(commit)) throw new Error('EXPECTED_COMMIT_INVALID');
   if (typeof curlRunner !== 'function') throw new Error('CURL_RUNNER_UNAVAILABLE');
   const paths = ['/', ...REQUIRED_JSON_PATHS];
-  const results = await Promise.all(paths.map(path => checkWithRetry(baseUrl, path, commit, curlRunner)));
+  const results = [];
+  for (const path of paths) results.push(await checkWithRetry(baseUrl, path, commit, curlRunner));
   const passed = results.every(result => result.status === 'PASS');
   return {
     schemaVersion: 'opscore.production-deployment-smoke.v1',
