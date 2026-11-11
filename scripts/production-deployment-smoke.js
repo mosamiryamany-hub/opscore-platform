@@ -74,10 +74,13 @@ function validateEndpoint(path, statusCode, payload, expectedCommit, contentType
     if (body.status !== 'PASS_WITH_BUYER_RESIDUALS' ||
         body.sourceCommit !== expectedCommit ||
         body.ci?.status !== 'PASS' ||
+        body.ci?.commitSha !== expectedCommit ||
         body.deployment?.status !== 'identified' ||
         body.deployment?.environment !== 'production' ||
         body.deployment?.ref !== 'main' ||
         body.postgresHttpAcceptance?.status !== 'PASS' ||
+        body.postgresHttpAcceptance?.evidenceCommit !== expectedCommit ||
+        String(body.postgresHttpAcceptance?.evidencePipelineId || '') !== String(body.ci?.pipelineId || '') ||
         body.packageFingerprint?.status !== 'PUBLISHED' ||
         body.packageFingerprint?.sourceCommit !== expectedCommit) {
       throw new Error('RELEASE_EVIDENCE_NOT_BOUND_TO_DEPLOYMENT');
@@ -88,7 +91,7 @@ function validateEndpoint(path, statusCode, payload, expectedCommit, contentType
   throw new Error('SMOKE_PATH_NOT_ALLOWED');
 }
 
-async function requestOnce(baseUrl, path, fetchImpl) {
+async function requestOnce(baseUrl, path, fetchImpl, expectedCommit) {
   const response = await fetchImpl(new URL(path, baseUrl), {
     method: 'GET',
     headers: { accept: path === '/' ? 'text/html' : 'application/json' },
@@ -106,15 +109,15 @@ async function requestOnce(baseUrl, path, fetchImpl) {
   let payload;
   try { payload = JSON.parse(raw); }
   catch { throw new Error('JSON_RESPONSE_INVALID'); }
-  validateEndpoint(path, response.status, payload, process.env.OPSC_EXPECTED_COMMIT);
+  validateEndpoint(path, response.status, payload, expectedCommit);
   return { path, status: 'PASS', httpStatus: response.status };
 }
 
-async function checkWithRetry(baseUrl, path, fetchImpl, attempts = 4) {
+async function checkWithRetry(baseUrl, path, fetchImpl, expectedCommit, attempts = 4) {
   let lastError;
   for (let attempt = 1; attempt <= attempts; attempt++) {
     try {
-      const result = await requestOnce(baseUrl, path, fetchImpl);
+      const result = await requestOnce(baseUrl, path, fetchImpl, expectedCommit);
       return { ...result, attempts: attempt };
     } catch (error) {
       lastError = error;
@@ -133,9 +136,8 @@ async function runSmoke(baseUrlRaw, expectedCommit, fetchImpl = globalThis.fetch
   if (!/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(commit)) throw new Error('EXPECTED_COMMIT_INVALID');
   if (typeof fetchImpl !== 'function') throw new Error('FETCH_UNAVAILABLE');
 
-  process.env.OPSC_EXPECTED_COMMIT = commit;
   const paths = ['/', ...REQUIRED_JSON_PATHS];
-  const results = await Promise.all(paths.map(path => checkWithRetry(baseUrl, path, fetchImpl)));
+  const results = await Promise.all(paths.map(path => checkWithRetry(baseUrl, path, fetchImpl, commit)));
   const passed = results.every(result => result.status === 'PASS');
   return {
     schemaVersion: 'opscore.production-deployment-smoke.v1',
