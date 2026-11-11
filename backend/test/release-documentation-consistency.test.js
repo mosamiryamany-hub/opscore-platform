@@ -69,9 +69,10 @@ test('buyer quickstart matches the pinned Node engine and direct PostgreSQL depe
 test('installation verification enforces the exact supported Node 22 range', () => {
   const verifier = read('backend/scripts/installation-verification.js');
   const preflight = read('backend/scripts/buyer-preflight.js');
-  assert.match(verifier, /major === 22/);
-  assert.match(verifier, /minor > 23/);
-  assert.match(verifier, /patch >= 4/);
+  const engine = read('backend/scripts/node-engine.js');
+  assert.ok(verifier.includes('satisfiesNodeEngine(process.version, backendPackage.engines?.node)'));
+  assert.ok(engine.includes('maximumExclusive'));
+  assert.ok(engine.includes('compareVersions(v,r.maximumExclusive)<0'));
   assert.ok(verifier.includes('backendPackage.engines?.node ==='));
   assert.ok(preflight.includes('const hardFailures = checks.filter(x => !x.pass);'));
 });
@@ -174,5 +175,24 @@ test('SQLite demo and PostgreSQL real-owner activation remain separate in buyer 
     assert.ok(doc.includes('OPSC_BOOTSTRAP_CEO_EMAIL'));
     assert.ok(doc.includes('OPSC_BOOTSTRAP_CEO_PASSWORD'));
     assert.ok(doc.includes('seed:demo') && doc.includes('DATABASE_ENGINE=postgres'));
+  }
+});
+ 
+test('GitHub verification and production pre-deploy jobs validate recorded release evidence', () => {
+  const workflows = [
+    read('.github/workflows/opscore-ci.yml'),
+    read('.github/workflows/vercel-deploy.yml')
+  ];
+  const verifyStep = `- name: Verify recorded release evidence and provenance
+        working-directory: backend
+        env:
+          OPSC_VERIFY_RECORDED_TEST_EVIDENCE: 'true'
+        run: npm run verify`;
+  for (const workflow of workflows) {
+    const runner = workflow.indexOf('node scripts/release-test-runner.js');
+    const verifier = workflow.indexOf(verifyStep);
+    const audit = workflow.indexOf('npm audit --omit=dev --audit-level=high');
+    assert.ok(runner >= 0 && verifier > runner && audit > verifier,
+      'recorded evidence verification must run after tests and before dependency audits/deploy');
   }
 });
