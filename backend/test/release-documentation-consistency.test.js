@@ -177,3 +177,22 @@ test('SQLite demo and PostgreSQL real-owner activation remain separate in buyer 
     assert.ok(doc.includes('seed:demo') && doc.includes('DATABASE_ENGINE=postgres'));
   }
 });
+ 
+test('GitHub verification and production pre-deploy jobs validate recorded release evidence', () => {
+  const workflows = [
+    read('.github/workflows/opscore-ci.yml'),
+    read('.github/workflows/vercel-deploy.yml')
+  ];
+  const verifyStep = `- name: Verify recorded release evidence and provenance
+        working-directory: backend
+        env:
+          OPSC_VERIFY_RECORDED_TEST_EVIDENCE: 'true'
+        run: npm run verify`;
+  for (const workflow of workflows) {
+    const runner = workflow.indexOf('node scripts/release-test-runner.js');
+    const verifier = workflow.indexOf(verifyStep);
+    const audit = workflow.indexOf('npm audit --omit=dev --audit-level=high');
+    assert.ok(runner >= 0 && verifier > runner && audit > verifier,
+      'recorded evidence verification must run after tests and before dependency audits/deploy');
+  }
+});
