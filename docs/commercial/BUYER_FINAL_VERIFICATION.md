@@ -2,10 +2,10 @@
 
 ## Exact-artifact rule
 
-Verify the exact ZIP generated for delivery. From the same GitLab pipeline download and review:
+Verify the exact ZIP generated for delivery. From the same GitHub Actions Secure Release run download and review its artifact. For the verified candidate, use run 42949619029: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/42949619029. Download artifact `opscore-release-42949619029` and review:
 1. `dist/COMMERCIAL_RELEASE_STATEMENT.json` — commit, pipeline, archive byte count and SHA-256.
 2. `dist/SHA256SUMS.txt` and run `sha256sum --check SHA256SUMS.txt`.
-3. JUnit / GitLab test report for `commercial-closure`.
+3. GitHub Actions job/step results and the release workflow's test report for that exact run.
 4. `backend/docs/verification/I18N_FORENSIC_AUDIT_RESULT.json` — must say PASS and 4/4 rounds for the delivered commit.
 5. `mobile/mobile-dependency-audit.json` from `mobile-dependency-audit`, plus `root-dependency-audit.json` from `root-dependency-audit`. The CI gates block High/Critical findings; Moderate/Low findings remain disclosed in the full reports.
 
@@ -23,7 +23,7 @@ The buyer configures, licenses, secures and tests any required identity provider
 
 The package includes Expo mobile source only; it does not include signed native binaries or certify app-store readiness. The buyer owns EAS/project accounts, Android/iOS signing, native build, GPS/camera/offline/device testing, environment configuration, app-store accounts/submission, distribution, and ongoing updates.
 
-The current locked Expo SDK 57.0.31 / React Native 0.86.3 baseline reports 0 high, 0 critical, 10 moderate and 2 low findings. CI blocks high/critical findings and retains the full same-pipeline audit JSON. Moderate/low findings remain disclosed.
+The current locked Expo SDK 58.0.23 / React Native 0.88.1 / React 19.3.0 baseline in run 42949619029 reports zero findings across all severities. The exact same-run mobile audit JSON is authoritative. This is a point-in-time npm audit, not a guarantee against future advisories.
 
 ## Production and operational limits
 

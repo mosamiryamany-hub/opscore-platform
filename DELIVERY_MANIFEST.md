@@ -1,25 +1,31 @@
 # Delivery Manifest — OpsCore v0.11.62
 
-- Candidate branch: `commercial/buyer-installation-hardening-2026-11-01`.
-- Target archive filename: `OPSCORE.zip`.
+- Verified candidate branch: `main`.
+- Verified source commit: `f3f33865618f0c9da304fe47ab2538b310d7d453`.
+- Secure Release run: [42949619029](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/42949619029).
+- Outer GitHub artifact: `opscore-release-42949619029`.
+- Nested archive: `OpsCore-release.zip`.
+- Archive bytes: `1,881,299`.
+- Archive SHA-256: `20aace624d0afe6dbdc0b07e8a8d3ee3a8604b7116a9eaca6cf0c8108d02adeb`.
 - Delivery type: commercial source-code package (backend/API, web source, PostgreSQL migrations/RLS assets and Expo mobile source).
-- Commercial class: `PASS_WITH_BUYER_RESIDUALS` only when the exact archive-producing Pipeline is successful and its same-run release statement reports that class.
-- Exact source commit, Pipeline ID, archive byte length and SHA-256 must be read from the `docs/release/COMMERCIAL_RELEASE_STATEMENT.json` inside the archive and the matching external `dist/COMMERCIAL_RELEASE_STATEMENT.json` / `dist/SHA256SUMS.txt` from that same Pipeline.
-- Never reuse test counts, database evidence, audit reports, Preview URLs or digests from a different commit or Pipeline.
-- `productionCertification`: `false`; `productionIsolationCertification`: `NOT_CERTIFIED`.
+- Commercial class: `PASS_WITH_BUYER_RESIDUALS` for this exact candidate only.
+- `productionCertification`: `false`; `productionAcceptance`: `NOT_VERIFIED_AT_BUILD`; `productionIsolationCertification`: `NOT_CERTIFIED`.
 - Signed Android/iOS store binaries are not included. The archive contains mobile source and lockfiles.
-- Translation native-speaker review is 0/114 in the latest recorded forensic audit; the AI/machine-translation notice must remain visible.
-- Mobile dependency findings must be disclosed from the exact Pipeline's full audit JSON. Do not claim vulnerability-free status.
-- Seller-owned scope: all fixable source, migrations, security, packaging, test and pre-handover dependency defects.
-- Buyer-owned scope: external provider accounts/licenses/credentials and live acceptance, licensed maps, native mobile builds/signing/store publication, and native-speaker linguistic review.
+- Mobile locked-tree npm audit in run #6: zero findings at all severities. This is a point-in-time result; run a fresh audit for each new release.
+- Translation native-speaker review is 0/114; machine-assisted translation must remain disclosed and is not production-qualified.
+- Seller-owned scope: fixable source, migration, security, packaging, test and pre-handover dependency defects.
+- Buyer-owned scope: external provider accounts/licenses/credentials and live acceptance, licensed maps, native mobile builds/signing/store publication, native-speaker linguistic review and target-environment acceptance.
 
 ## Mandatory handover checks
 
-1. The archive-producing exact-head Pipeline is successful.
-2. The matching PostgreSQL HTTP acceptance report is `PASS` and its commit plus Pipeline ID exactly match the archive release statement.
-3. The clean extracted-archive installation smoke test passes for backend and mobile lockfiles.
-4. A matching Vercel Preview is `READY` and points to the same source commit; its manual deploy job must inject the protected `OPSC_PG_ACCEPTANCE_URL` as the runtime `OPSC_DATABASE_URL` / `DATABASE_URL` using role `opscore_app`, direct host and SSL. Verify health, deployment identity, release proof, database and database-security endpoints. A manual/skipped Preview job is not a Preview pass.
-5. The Preview database is isolated from production. Query runtime grants and RLS as `opscore_app`, not as the database owner.
-6. The archive's SBOM, integrated manifest, SHA-256 sums and external release statement match the same build.
+1. Use only the exact-head GitHub Secure Release artifact and verify the nested ZIP SHA-256 against its external release statement.
+2. Verify the same-run SBOM, artifact Attestation, regression report, forensic i18n evidence and dependency audit JSONs.
+3. Run clean extracted-archive installation and buyer preflight using the archive's lockfiles.
+4. Production Vercel deployment for the verified source commit: `dpl_JD2jLc2ifxtMezaoAovgFALmapjH`, state READY. `/api/health` returned 200. Protected readiness/release/database endpoints require authorized acceptance credentials; a bare 401 is not a successful acceptance result.
+5. Buyer must test RLS using an isolated acceptance database under the intended least-privilege runtime role. Do not test or bootstrap production using `opscore_app`.
+6. Verify backup/restore, recovery, TLS/WAF, observability, external integrations and native mobile binaries in the actual target environment.
+7. Record acceptance against the exact archive SHA, source commit, run ID, tests and formally accepted residuals.
 
-Production Vercel, Production Neon and `main` remain outside this workflow unless separately authorized. A successful isolated acceptance Pipeline is not formal production certification.
+Production Vercel, Production Neon and `main` remain outside buyer bootstrap/migration steps unless separately authorized. A successful isolated acceptance run is not formal production certification.
+
+Historical GitLab and Vercel Preview instructions are retained under `docs/archive/` for traceability only; they are not the active release/deployment process.

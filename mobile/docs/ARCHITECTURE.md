@@ -4,9 +4,11 @@
 
 A native Android/iOS field companion for OpsCore that keeps office dispatch, technicians, work-order execution and customer-facing evidence on the same operational model.
 
-## Implemented in this source package
+## Current source baseline
 
-- Native Android/iOS app source using Expo SDK 57 / React Native 0.86.
+- Expo SDK 58.0.23.
+- React Native 0.88.1.
+- React / React DOM 19.3.0.
 - Secure bearer-token storage through `expo-secure-store`.
 - Work-order list/detail using the existing OpsCore REST API.
 - Status transitions through the existing lifecycle endpoint.
@@ -21,17 +23,23 @@ A native Android/iOS field companion for OpsCore that keeps office dispatch, tec
 
 The current web login intentionally returns the session token only through an HttpOnly cookie. The mobile source therefore includes `backend-patch/server.mobile-login.diff` which adds a native login endpoint that returns the same server-created token for SecureStore storage.
 
-Until that patch is applied to the backend, the mobile application is **not connected for login**. This is deliberate and documented; there is no fake local authentication.
+The buyer must verify the patch is present in the target backend and exercise the mobile login contract against that exact backend before enabling a mobile release. Do not infer login connectivity from the presence of the diff alone.
 
-## Not claimed yet
+## Validation status
+
+The exact-source Secure Release run #6 (commit `f3f33865618f0c9da304fe47ab2538b310d7d453`) packages SDK 58 source. The SDK 58 resolver previously passed dependency alignment, Expo Doctor (20/20), project-specific verification, Android/iOS/web JavaScript exports, and a fresh npm audit with zero findings at all severities.
+
+Those checks do not create signed APK/AAB/IPA binaries and do not substitute for physical-device QA or app-store review.
+
+## Not claimed by this source package
 
 - Background GPS tracking.
 - Native push notifications.
 - Road routing/traffic ETA.
 - Full attachment download/viewer.
 - Customer digital signature UI.
-- App-store signed binaries.
+- Signed app-store binaries or store acceptance.
 - Production certification.
-- PostgreSQL-specific mobile contract testing.
+- Buyer-environment PostgreSQL/mobile contract acceptance.
 
-Those should be added only after real requirements and tests exist.
+These functions must only be added or claimed after implementation, live acceptance tests and evidence exist.

@@ -7,6 +7,16 @@ const path = require('node:path');
 const {satisfiesNodeEngine,satisfiesNodeMinimum}=require('./node-engine');
 
 const root = path.resolve(__dirname, '..');
+
+function isSupportedNodeVersion(version) {
+  const match = /^v?(\d+)\.(\d+)\.(\d+)$/.exec(String(version || '').trim());
+  if (!match) return false;
+  const [, majorText, minorText, patchText] = match;
+  const major = Number(majorText);
+  const minor = Number(minorText);
+  const patch = Number(patchText);
+  return major === 22 && (minor > 23 || (minor === 23 && patch >= 4));
+}
 const testDir = path.join(root, 'test');
 const perFileTimeoutMs = Number(process.env.OPSC_RELEASE_TEST_TIMEOUT_MS || 60000);
 const concurrency = Math.max(1, Math.min(16, Number(process.env.OPSC_RELEASE_TEST_CONCURRENCY || 4)));
@@ -37,6 +47,18 @@ function parseTapCases(output, file) {
   }
   return cases;
 }
+function tapFailureDiagnostics(output) {
+  const lines = output.split(/\r?\n/);
+  const ranges = [];
+  for (let i = 0; i < lines.length; i++) {
+    if (!/^\s*not ok\s+\d+\s+-/.test(lines[i])) continue;
+    const start = Math.max(0, i - 2);
+    const end = Math.min(lines.length, i + 42);
+    ranges.push(lines.slice(start, end).join('\n'));
+  }
+  return ranges.join('\n--- TAP FAILURE ---\n');
+}
+
 function xmlEscape(value) {
   return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
@@ -142,8 +164,9 @@ function runFile(file) {
         (!timedOut && code === 0) || completedWithOpenHandles
       );
       const tail = output.split(/\r?\n/).filter(Boolean).slice(-30).join('\n');
+      const diagnostics = tapFailureDiagnostics(output);
       try { fs.rmSync(releaseRepo, { recursive: true, force: true }); } catch {}
-      resolve({ file, ok, timedOut, completedWithOpenHandles, code, signal, ...summary, cases, junitContent, tail });
+      resolve({ file, ok, timedOut, completedWithOpenHandles, code, signal, ...summary, cases, junitContent, tail, diagnostics });
     };
     child.stdout.on('data', (chunk) => { stdout += chunk.toString(); });
     child.stderr.on('data', (chunk) => { stderr += chunk.toString(); });
@@ -184,7 +207,7 @@ async function main() {
       const result = await runFile(file);
       results.push(result);
       console.log(`${result.ok ? 'PASS' : 'FAIL'} ${result.file} tests=${result.tests} pass=${result.pass} fail=${result.fail} skipped=${result.skipped} todo=${result.todo} cancelled=${result.cancelled}${result.completedWithOpenHandles ? ' open-handles' : (result.timedOut ? ' timeout' : '')}`);
-      if (!result.ok) console.log(result.tail);
+      if (!result.ok) console.log(result.diagnostics || result.tail);
     }
   }
   await Promise.all(Array.from({ length: Math.min(concurrency, parallelFiles.length) }, worker));
@@ -221,6 +244,7 @@ ${e.stderr?.toString?.() || ''}`.trim() });
     declaredNodeEngine:String(pkg.engines?.node||'UNDECLARED'),
     openHandleFiles:results.filter(x=>x.completedWithOpenHandles).map(x=>({file:x.file,tests:x.tests,pass:x.pass,skipped:x.skipped,todo:x.todo})),
     failedCases:results.filter(x=>!x.ok).map(x=>({file:x.file,tail:x.tail}))
+
   };
   const verificationDir = path.join(root, 'docs', 'verification');
   fs.mkdirSync(verificationDir, { recursive: true });
@@ -267,3 +291,4 @@ function summarizeResults(results,nodeVersion,declaredNodeEngine){
 }
 if(require.main===module)main().catch(e=>{console.error(e.stack||e);process.exitCode=1;});
 module.exports={junitXml,normalizeTestcaseIdentity,parseSummary,parseTapCases,summarizeResults};
+

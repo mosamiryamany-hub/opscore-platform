@@ -1,3 +1,5 @@
+<!-- Historical archive: Preserve dated historical packaging note; not current release evidence. -->
+
 # OpsCore packaging reissue — 0.11.62.5
 
 Date: 2026-11-09 (UTC)

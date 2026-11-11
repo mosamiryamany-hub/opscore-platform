@@ -1,3 +1,5 @@
+<!-- Historical archive: Preserve dated historical evidence reconciliation; not current release evidence. -->
+
 # Commercial evidence reconciliation — 2026-10-26
 
 ## Scope

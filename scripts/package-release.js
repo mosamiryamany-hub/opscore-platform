@@ -4,6 +4,7 @@ const cp = require('node:child_process');
 const crypto = require('node:crypto');
 const os = require('node:os');
 const COMMIT_SHA_RE = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
+const { summarizeAuditStatus, describeAuditResidual } = require('./release-audit-status');
 const root = path.resolve(__dirname, '..');
 const backend = path.join(root, 'backend');
 const version = JSON.parse(fs.readFileSync(path.join(backend, 'package.json'), 'utf8')).version;
@@ -181,18 +182,18 @@ const releaseStatement = {
   pipelineUrl,
   commercialClosure: isCommercialCi ? 'PASS_WITH_BUYER_RESIDUALS' : 'NOT_ATTESTED',
   productionCertification: false,
-  mobileDependencyAudit: { status: 'PASS_NO_HIGH_OR_CRITICAL', sourceArtifact: 'mobile/mobile-dependency-audit.json', summary: mobileAuditSummary, findings: mobileAdvisories },
-  rootRuntimeDependencyAudit: { status: 'PASS_NO_HIGH_OR_CRITICAL', sourceArtifact: 'root-dependency-audit.json', summary: rootAuditSummary, findings: rootAdvisories },
+  mobileDependencyAudit: { status: summarizeAuditStatus(mobileAuditSummary), sourceArtifact: 'mobile/mobile-dependency-audit.json', summary: mobileAuditSummary, findings: mobileAdvisories },
+  rootRuntimeDependencyAudit: { status: summarizeAuditStatus(rootAuditSummary), sourceArtifact: 'root-dependency-audit.json', summary: rootAuditSummary, findings: rootAdvisories },
   productionAcceptance: { status: 'NOT_VERIFIED_AT_BUILD', commit: null, checkedAt: null, evidenceSha256: null, scope: 'Production acceptance must be evaluated after deployment against the exact deployed commit; this in-archive record is build-time evidence only.' },
   packageSha256: null,
   packageSha256Authority: 'dist/COMMERCIAL_RELEASE_STATEMENT.json, generated after ZIP creation; the ZIP cannot contain its own final digest without a self-referential hash.',
-  officialRepo: String(process.env.CI_PROJECT_PATH || 'mosamiryamany-hub1/opscore-commercial-final'),
+  officialRepo: String(process.env.CI_PROJECT_PATH || process.env.GITHUB_REPOSITORY || 'mosamiryamany-hub/opscore-platform'),
   generatedAt: new Date().toISOString(),
   residuals: [
     'Production session, tenant-boundary and recovery acceptance is evaluated after deployment against this exact source commit; NOT_VERIFIED_AT_BUILD is not a claim about the later live endpoint.',
     'Production isolation is not certified merely by isolated-schema RLS tests.',
-    'Mobile dependency audit: ' + mobileAuditSummary.total + ' total; ' + mobileAuditSummary.high + ' high; ' + mobileAuditSummary.critical + ' critical; ' + mobileAuditSummary.moderate + ' moderate; ' + mobileAuditSummary.low + ' low. Moderate/low findings remain disclosed.',
-    'Root PostgreSQL runtime dependency audit: ' + rootAuditSummary.total + ' total; ' + rootAuditSummary.high + ' high; ' + rootAuditSummary.critical + ' critical; ' + rootAuditSummary.moderate + ' moderate; ' + rootAuditSummary.low + ' low.',
+    describeAuditResidual('Mobile', mobileAuditSummary),
+    describeAuditResidual('Root PostgreSQL runtime', rootAuditSummary),
     'Signed Android/iOS store artifacts, buyer-specific EAS accounts, physical-device acceptance and app-store publication remain buyer-owned.',
     'External provider accounts, licenses, credentials and live acceptance for identity, messaging/carrier/call-center services, payments, webhooks, storage, KMS/HSM, maps/road-routing and cloud remain buyer-owned.',
     'Production session/tenant/recovery acceptance and production-wide isolation certification are not established by this build.'
@@ -207,8 +208,8 @@ const statusSnapshot = [
   '',
   '**Package version:** ' + version,
   '**CI closure:** ' + releaseStatement.commercialClosure,
-  '**Mobile dependency audit:** ' + JSON.stringify(mobileAuditSummary) + ' (high/critical are release-blocking; moderate/low remain disclosed)',
-  '**Root PostgreSQL runtime dependency audit:** ' + JSON.stringify(rootAuditSummary) + ' (high/critical are release-blocking)',
+  '**Mobile dependency audit:** ' + summarizeAuditStatus(mobileAuditSummary) + ' — ' + JSON.stringify(mobileAuditSummary),
+  '**Root PostgreSQL runtime dependency audit:** ' + summarizeAuditStatus(rootAuditSummary) + ' — ' + JSON.stringify(rootAuditSummary),
   '**Source commit:** ' + (sourceCommit || 'UNVERIFIED'),
   '**CI pipeline:** ' + (pipelineUrl || 'UNVERIFIED'),
   '',
@@ -216,10 +217,10 @@ const statusSnapshot = [
   '',
   '- CI repository: https://github.com/mosamiryamany-hub/opscore-platform',
   '- Exact CI pipeline: ' + (pipelineUrl || 'UNVERIFIED'),
-  '- Vercel production health: https://opscore-commercial-final.vercel.app/api/health',
-  '- Vercel deployment identity: https://opscore-commercial-final.vercel.app/api/verify/deployment',
-  '- Vercel release proof: https://opscore-commercial-final.vercel.app/api/verify/release',
-  '- Vercel database security catalog: https://opscore-commercial-final.vercel.app/api/verify/database-security',
+  '- Vercel production health: https://opscore-platform.vercel.app/api/health',
+  '- Vercel deployment identity: https://opscore-platform.vercel.app/api/verify/deployment',
+  '- Vercel release proof: https://opscore-platform.vercel.app/api/verify/release',
+  '- Vercel database security catalog: https://opscore-platform.vercel.app/api/verify/database-security',
   '',
   'The Vercel endpoint URLs above are locations to check after deployment; this build job does not assert that those live responses passed.',
   '',

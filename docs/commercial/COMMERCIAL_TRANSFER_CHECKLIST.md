@@ -2,6 +2,10 @@
 
 This operational checklist does not replace legal advice. The parties must sign a written transfer/assignment covering source-code rights, modification/distribution rights, repository/history scope, brand/domains if included, third-party dependencies/licenses, excluded assets, support, and responsibility allocation. The bundled license file is not a substitute for a negotiated commercial grant.
 
+## Repository visibility and source confidentiality
+
+The GitHub repository was confirmed **public** during the 2026-11-11 closeout inspection. The source is therefore publicly retrievable; the proprietary internal-use license does not provide technical confidentiality or access control. Before a controlled/confidential commercial handoff, the rights holder must explicitly choose and record one of these positions: (a) intentionally distribute the source publicly under a clearly documented public-source business model and compatible license, or (b) make the repository private and verify that collaborator access, branch protection/rulesets, GitHub Actions, Vercel's controlled deployment path and buyer artifact delivery continue to work. Repository visibility has not been changed by this checklist. Do not represent the repository as confidential while it remains public.
+
 ## Three scope items to record explicitly
 
 | Area | Included by this source package | Buyer/customer responsibility |
@@ -12,7 +16,7 @@ This operational checklist does not replace legal advice. The parties must sign 
 
 ## Mobile dependency warning
 
-The current Expo SDK 57.0.31 / React Native 0.86.3 locked-tree audit baseline reported 12 findings: 0 critical, 0 high, 10 moderate and 2 low. CI blocks high/critical findings; the exact archive pipeline preserves the complete JSON report. Moderate/low findings remain disclosed.
+The verified current source candidate uses Expo SDK 58.0.23 / React Native 0.88.1 / React 19.3.0. GitHub Secure Release run 42949619029 reported zero findings across all npm audit severities in its same-run mobile audit JSON. This is a point-in-time locked-tree result, not a guarantee against future advisories. Signed native binaries and physical-device acceptance remain buyer-side gates.
 
 ## Other production boundaries
 
@@ -20,4 +24,4 @@ The buyer/hosting owner must separately accept PostgreSQL/PostGIS schema and run
 
 ## Handover evidence
 
-Use the same pipeline's archive, `COMMERCIAL_RELEASE_STATEMENT.json`, JUnit, `I18N_FORENSIC_AUDIT_RESULT.json`, mobile dependency audit JSON, root PostgreSQL runtime dependency audit JSON, and SHA-256 sums. Older artifacts are historical only. Neither a green backend closure gate nor a source archive implies production certification.
+Use the same GitHub Actions Secure Release run's outer artifact, nested `OpsCore-release.zip`, external `COMMERCIAL_RELEASE_STATEMENT.json`, JUnit/step results, `I18N_FORENSIC_AUDIT_RESULT.json`, mobile dependency audit JSON, root PostgreSQL runtime dependency audit JSON and SHA-256 evidence. For the current verified candidate, run ID is 42949619029 and its artifact is `opscore-release-42949619029`. Older artifacts are historical only. Neither a green backend closure gate nor a source archive implies production certification.

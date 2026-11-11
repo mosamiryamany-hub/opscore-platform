@@ -1,3 +1,5 @@
+<!-- Historical archive: Preserve historical GitLab-to-Vercel CLI deployment notes; current production deploy is GitHub Actions. -->
+
 # Vercel production deploy without Git OAuth (no Pro required for reconnect)
 
 ## Problem

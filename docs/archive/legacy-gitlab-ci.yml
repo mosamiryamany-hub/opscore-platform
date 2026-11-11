@@ -1,3 +1,5 @@
+<!-- Historical archive: Preserve legacy GitLab pipeline as internal history; current automation is GitHub Actions. -->
+
 stages:
   - verify
   - sign
