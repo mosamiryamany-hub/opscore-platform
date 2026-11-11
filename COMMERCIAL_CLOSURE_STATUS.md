@@ -26,6 +26,8 @@
 
 ## Buyer-owned residuals
 
+Mobile signing, native Android/iOS builds, physical-device QA, and store submission remain buyer-owned. Native-speaker translation/domain review of all 114 locale resources is not complete (0/114 reviewed; 0/114 production-qualified).
+
 - Android/iOS signing, native builds, physical-device QA, and app-store release.
 - Native-speaker/domain review of all 114 locale resources; current production qualification is 0/114.
 - External provider accounts, licenses, credentials, quotas, maps/road routing, telephony/carrier, payments, webhooks, storage, KMS/HSM, and cloud services.
