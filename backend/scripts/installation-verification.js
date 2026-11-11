@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
+const {satisfiesNodeEngine}=require('./node-engine');
 
 const root = path.resolve(__dirname, '..', '..');
 const backend = path.join(root, 'backend');
@@ -16,10 +17,9 @@ function check(name, fn) {
 const checks = [];
 const backendPackage = require(path.join(backend, 'package.json'));
 const backendLock = require(path.join(backend, 'package-lock.json'));
-checks.push(check('Node.js version satisfies the exact release engine range', () => {
-  const [major, minor, patch] = process.versions.node.split('.').map(Number);
-  return major === 22 && (minor > 23 || (minor === 23 && patch >= 4));
-}));
+checks.push(check('Node.js version satisfies the complete declared release engine range', () =>
+  satisfiesNodeEngine(process.version, backendPackage.engines?.node)
+));
 checks.push(check('Backend package declares the exact supported Node range', () =>
   backendPackage.engines?.node === '>=22.23.4 <23'
 ));

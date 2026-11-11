@@ -4,6 +4,7 @@ const cp = require('node:child_process');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
+const {satisfiesNodeEngine,satisfiesNodeMinimum}=require('./node-engine');
 
 const root = path.resolve(__dirname, '..');
 const testDir = path.join(root, 'test');
@@ -20,7 +21,9 @@ function parseSummary(output) {
     tests: Number(m('tests') || 0),
     pass: Number(m('pass') || 0),
     fail: Number(m('fail') || 0),
-    cancelled: Number(m('cancelled') || 0)
+    cancelled: Number(m('cancelled') || 0),
+    skipped: Number(m('skipped') || 0),
+    todo: Number(m('todo') || 0)
   };
 }
 
@@ -38,17 +41,20 @@ function xmlEscape(value) {
   return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 }
-function normalizeTestcaseIdentity(testcaseXml, file, ordinal) {
-  const normalizedClass = xmlEscape(file);
-  const prefix = String(ordinal).padStart(4, '0') + ' - ';
-  let normalized = testcaseXml;
-  if (/\bclassname="[^"]*"/.test(normalized)) {
-    normalized = normalized.replace(/\bclassname="[^"]*"/, 'classname="' + normalizedClass + '"');
-  } else {
-    normalized = normalized.replace(/<testcase\b/, '<testcase classname="' + normalizedClass + '"');
-  }
-  return normalized.replace(/\bname="([^"]*)"/, (_match, name) => 'name="' + prefix + name + '"');
+function normalizeTestcaseIdentity(testcaseXml,file,ordinal){
+ const normalizedClass=xmlEscape(file),prefix=String(ordinal).padStart(4,'0')+' - ';
+ let normalized=testcaseXml;
+ if(/\bclassname="[^"]*"/.test(normalized))normalized=normalized.replace(/\bclassname="[^"]*"/,'classname="'+normalizedClass+'"');
+ else normalized=normalized.replace(/<testcase\b/,'<testcase classname="'+normalizedClass+'"');
+ normalized=normalized.replace(/\bname="([^"]*)"/,(_m,name)=>'name="'+prefix+name+'"');
+ // Node JUnit emits both skipped and failure markers for TODO. TODO is not a failure.
+ if(/<skipped\b[^>]*\btype="todo"/i.test(normalized)){
+  normalized=normalized.replace(/\s+failure="[^"]*"/i,'');
+  normalized=normalized.replace(/\s*<failure\b[^>]*>[\s\S]*?<\/failure>/i,'');
+ }
+ return normalized;
 }
+
 function junitXml(results) {
   const caseXml = [];
   const expectedTests = results.reduce((total, result) => total + (result.tests || 0), 0);
@@ -89,6 +95,8 @@ function junitXml(results) {
   const failures = caseXml.filter(item => /<failure\b/.test(item)).length;
   const errors = caseXml.filter(item => /<error\b/.test(item)).length;
   const skipped = caseXml.filter(item => /<skipped\b/.test(item)).length;
+  const expectedSkipped = results.reduce((n,r)=>n+(r.skipped||0)+(r.todo||0),0);
+  if(skipped!==expectedSkipped)throw new Error('JUNIT_SKIPPED_COUNT_MISMATCH: expected '+expectedSkipped+', found '+skipped);
   if (caseXml.length !== expectedTests) {
     throw new Error('JUNIT_TEST_COUNT_MISMATCH: expected ' + expectedTests + ' test cases from Node summaries, found ' + caseXml.length + '; per-file=' + JSON.stringify(perFileCounts));
   }
@@ -128,7 +136,7 @@ function runFile(file) {
       const cases = parseTapCases(output, file);
       let junitContent = '';
       try { junitContent = fs.readFileSync(junitPath, 'utf8'); } catch {}
-      const summaryComplete = summary.tests > 0 && summary.pass === summary.tests && !summary.fail && !summary.cancelled;
+      const summaryComplete = summary.tests > 0 && summary.pass + summary.skipped + summary.todo === summary.tests && !summary.fail && !summary.cancelled;
       const completedWithOpenHandles = timedOut && summaryComplete;
       const ok = !summary.fail && !summary.cancelled && (
         (!timedOut && code === 0) || completedWithOpenHandles
@@ -175,7 +183,7 @@ async function main() {
       if (!file) return;
       const result = await runFile(file);
       results.push(result);
-      console.log(`${result.ok ? 'PASS' : 'FAIL'} ${result.file} tests=${result.tests} pass=${result.pass} fail=${result.fail} cancelled=${result.cancelled}${result.completedWithOpenHandles ? ' open-handles' : (result.timedOut ? ' timeout' : '')}`);
+      console.log(`${result.ok ? 'PASS' : 'FAIL'} ${result.file} tests=${result.tests} pass=${result.pass} fail=${result.fail} skipped=${result.skipped} todo=${result.todo} cancelled=${result.cancelled}${result.completedWithOpenHandles ? ' open-handles' : (result.timedOut ? ' timeout' : '')}`);
       if (!result.ok) console.log(result.tail);
     }
   }
@@ -188,7 +196,7 @@ async function main() {
     if (!serialFiles.has(file) || !files.includes(file)) continue;
     const result = await runFile(file);
     results.push(result);
-    console.log(`${result.ok ? 'PASS' : 'FAIL'} ${result.file} tests=${result.tests} pass=${result.pass} fail=${result.fail} cancelled=${result.cancelled}${result.completedWithOpenHandles ? ' open-handles' : (result.timedOut ? ' timeout' : '')}`);
+    console.log(`${result.ok ? 'PASS' : 'FAIL'} ${result.file} tests=${result.tests} pass=${result.pass} fail=${result.fail} skipped=${result.skipped} todo=${result.todo} cancelled=${result.cancelled}${result.completedWithOpenHandles ? ' open-handles' : (result.timedOut ? ' timeout' : '')}`);
     if (!result.ok) console.log(result.tail);
   }
   if (files.includes('provenance_generation.test.js')) {
@@ -201,34 +209,18 @@ ${e.stderr?.toString?.() || ''}`.trim() });
     }
     const result = await runFile('provenance_generation.test.js');
     results.push(result);
-    console.log(`${result.ok ? 'PASS' : 'FAIL'} ${result.file} tests=${result.tests} pass=${result.pass} fail=${result.fail} cancelled=${result.cancelled}${result.completedWithOpenHandles ? ' open-handles' : (result.timedOut ? ' timeout' : '')}`);
+    console.log(`${result.ok ? 'PASS' : 'FAIL'} ${result.file} tests=${result.tests} pass=${result.pass} fail=${result.fail} skipped=${result.skipped} todo=${result.todo} cancelled=${result.cancelled}${result.completedWithOpenHandles ? ' open-handles' : (result.timedOut ? ' timeout' : '')}`);
     if (!result.ok) console.log(result.tail);
   }
   results.sort((a, b) => a.file.localeCompare(b.file));
-  const passedFiles = results.filter(x => x.ok).length;
-  const failedFiles = results.length - passedFiles;
-  const totalTests = results.reduce((n, x) => n + x.tests, 0);
-  const failedTests = results.reduce((n, x) => n + x.fail + x.cancelled, 0);
-  const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
-  const [major, minor, patch] = process.versions.node.split('.').map(Number);
-  const runtimeMinimumSatisfied = major === 22 && ((minor >= 16 && minor < 23) || (minor === 23 && patch >= 2));
-  const report = {
-    schemaVersion: 'opscore.release-test-runner.v2',
-    release: pkg.version,
-    files: files.length,
-    passedFiles,
-    failedFiles,
-    totalTests,
-    failedTests,
-    passedTests: totalTests - failedTests,
-    perFileTimeoutMs,
-    concurrency,
-    nodeVersion: process.versions.node,
-    declaredNodeEngine: String(pkg.engines?.node || 'UNDECLARED'),
-    runtimeMinimumSatisfied,
-    status: failedFiles === 0 ? 'PASS' : 'FAIL',
-    openHandleFiles: results.filter(x => x.completedWithOpenHandles).map(x => ({ file: x.file, tests: x.tests, pass: x.pass })),
-    failedCases: results.filter(x => !x.ok).map(x => ({ file: x.file, tail: x.tail }))
+  const pkg=JSON.parse(fs.readFileSync(path.join(root,'package.json'),'utf8'));
+  const totals=summarizeResults(results,process.versions.node,String(pkg.engines?.node||''));
+  const report={
+    schemaVersion:'opscore.release-test-runner.v2',release:pkg.version,files:files.length,...totals,
+    perFileTimeoutMs,concurrency,nodeVersion:process.versions.node,
+    declaredNodeEngine:String(pkg.engines?.node||'UNDECLARED'),
+    openHandleFiles:results.filter(x=>x.completedWithOpenHandles).map(x=>({file:x.file,tests:x.tests,pass:x.pass,skipped:x.skipped,todo:x.todo})),
+    failedCases:results.filter(x=>!x.ok).map(x=>({file:x.file,tail:x.tail}))
   };
   const verificationDir = path.join(root, 'docs', 'verification');
   fs.mkdirSync(verificationDir, { recursive: true });
@@ -240,16 +232,38 @@ ${e.stderr?.toString?.() || ''}`.trim() });
     generatedAt: new Date().toISOString(),
     nodeVersion: process.versions.node,
     declaredNodeEngine: String(pkg.engines?.node || 'UNDECLARED'),
-    tests: totalTests,
-    passed: totalTests - failedTests,
-    failed: failedTests,
-    skipped: 0,
+    tests: report.totalTests,
+    passed: report.passedTests,
+    failed: report.failedTests,
+    skipped: report.skippedTests,
+    todo: report.todoTests,
+    unaccounted: report.unaccountedTests,
+    testAccountingValid: report.testAccountingValid,
     status: report.status,
     runtimeMinimumSatisfied: report.runtimeMinimumSatisfied,
-    evidenceSource: 'Completed isolated parallel release-test-runner execution with per-file runtime isolation.',
+    runtimeEngineRangeSatisfied: report.runtimeEngineRangeSatisfied,
+    evidenceSource: 'Node TAP/JUnit summaries reconciled per test case; skipped and TODO cases are reported separately and never counted as passed.',
     productionCertification: false
   }, null, 2) + '\n');
   console.log(JSON.stringify(report, null, 2));
-  process.exitCode = failedFiles === 0 ? 0 : 1;
+  process.exitCode = report.status === 'FAIL' ? 1 : 0;
 }
-main().catch((e) => { console.error(e.stack || e); process.exitCode = 1; });
+function summarizeResults(results,nodeVersion,declaredNodeEngine){
+ const passedFiles=results.filter(r=>r.ok).length,failedFiles=results.length-passedFiles;
+ const totalTests=results.reduce((n,r)=>n+(r.tests||0),0);
+ const passedTests=results.reduce((n,r)=>n+(r.pass||0),0);
+ const failedTests=results.reduce((n,r)=>n+(r.fail||0)+(r.cancelled||0),0);
+ const skippedTests=results.reduce((n,r)=>n+(r.skipped||0),0);
+ const todoTests=results.reduce((n,r)=>n+(r.todo||0),0);
+ const accounted=passedTests+failedTests+skippedTests+todoTests;
+ const unaccountedTests=totalTests-accounted,testAccountingValid=unaccountedTests===0&&accounted===totalTests;
+ const runtimeMinimumSatisfied=satisfiesNodeMinimum(nodeVersion,declaredNodeEngine);
+ const runtimeEngineRangeSatisfied=satisfiesNodeEngine(nodeVersion,declaredNodeEngine);
+ const status=failedFiles!==0||failedTests!==0||!testAccountingValid||!runtimeEngineRangeSatisfied
+  ? 'FAIL' : (skippedTests>0||todoTests>0?'PASS_WITH_SKIPS':'PASS');
+ return {passedFiles,failedFiles,totalTests,passedTests,failedTests,skippedTests,todoTests,unaccountedTests,testAccountingValid,
+  skippedFiles:results.filter(r=>r.skipped>0).length,todoFiles:results.filter(r=>r.todo>0).length,
+  runtimeMinimumSatisfied,runtimeEngineRangeSatisfied,status};
+}
+if(require.main===module)main().catch(e=>{console.error(e.stack||e);process.exitCode=1;});
+module.exports={junitXml,normalizeTestcaseIdentity,parseSummary,parseTapCases,summarizeResults};
