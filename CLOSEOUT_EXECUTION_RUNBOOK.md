@@ -10,7 +10,7 @@ Production isolation certification: NOT_CERTIFIED.
 
 Every source change invalidates the previous candidate's package identity. The final handover must be built by a successful exact-head pipeline. Collect OPSCORE.zip, dist/COMMERCIAL_RELEASE_STATEMENT.json, dist/SHA256SUMS.txt, JUnit, root dependency audit JSON, mobile dependency audit JSON, i18n forensic report and all release gates from that same pipeline only.
 
-Previous complete candidate: commit 30bf29aa1a995a476f40a37600e869772c086ece9f3148da5e9140766806bbf6, pipeline 3014428936. Its JUnit was 468 total, 467 pass, zero fail, one skipped; mobile audit had 0 high/critical, 10 moderate, 2 low; package digest was 720c667d3f79da9c6f2d07ddc75c100986645a3278b0c300661054e03680083e. This is historical for that candidate and must not identify the next archive.
+Historical candidate references are retained only in `docs/archive/` and must not identify the verified run 42949619029 artifact.
 
 ## Current-candidate evidence rule
 
