@@ -7,6 +7,7 @@ const crypto = require('node:crypto');
 
 const backendRoot = path.resolve(__dirname, '..');
 const migrationPath = path.join(backendRoot, 'sql', 'postgres', '031_digital_twin_chain_hardening.sql');
+const runtimeGrantMigrationPath = path.join(backendRoot, 'sql', 'postgres', '052_runtime_policy_function_grants.sql');
 const reportPath = path.join(backendRoot, 'docs', 'verification', 'POSTGRES_LIVE_RLS_RESULT.json');
 
 function emit(status, details = {}, exitCode = 0) {
@@ -134,6 +135,49 @@ async function main() {
     await client.query('INSERT INTO organizations(id) VALUES ($1),($2)', [orgA, orgB]);
     await client.query('INSERT INTO users(id) VALUES ($1),($2)', [userA, userB]);
 
+    // Exercise the actual runtime login-role contract separately from opscore_app.
+    const runtimeRole = (await client.query("SELECT rolsuper, rolbypassrls FROM pg_roles WHERE rolname='opscore_runtime'")).rows[0];
+    if (!runtimeRole || runtimeRole.rolsuper || runtimeRole.rolbypassrls) throw new Error('RUNTIME_ROLE_MISSING_OR_CAN_BYPASS_RLS');
+    await client.query(`CREATE OR REPLACE FUNCTION public.opscore_current_user()
+      RETURNS text LANGUAGE sql STABLE
+      AS $fn$ SELECT NULLIF(current_setting('app.user_id', true), '') $fn$`);
+    await client.query(`CREATE OR REPLACE FUNCTION public.opscore_is_privileged()
+      RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER
+      SET search_path TO pg_catalog, public, pg_temp
+      AS $fn$ SELECT false $fn$`);
+    await client.query('REVOKE ALL ON FUNCTION public.opscore_current_user() FROM PUBLIC');
+    await client.query('REVOKE ALL ON FUNCTION public.opscore_is_privileged() FROM PUBLIC');
+    await client.query('GRANT EXECUTE ON FUNCTION public.opscore_current_user() TO opscore_runtime');
+
+    await client.query('CREATE TABLE appointments (id text PRIMARY KEY, organization_id text NOT NULL, technician_id text NOT NULL)');
+    await client.query('CREATE TABLE work_orders (id text PRIMARY KEY, organization_id text NOT NULL, assigned_to text, created_by text)');
+    await client.query('ALTER TABLE appointments ENABLE ROW LEVEL SECURITY');
+    await client.query('ALTER TABLE appointments FORCE ROW LEVEL SECURITY');
+    await client.query('ALTER TABLE work_orders ENABLE ROW LEVEL SECURITY');
+    await client.query('ALTER TABLE work_orders FORCE ROW LEVEL SECURITY');
+    await client.query(`CREATE POLICY opscore_appointment_context ON appointments
+      USING (organization_id = current_setting('app.tenant_id', true)
+        AND (public.opscore_is_privileged() OR technician_id = public.opscore_current_user()))
+      WITH CHECK (organization_id = current_setting('app.tenant_id', true))`);
+    await client.query(`CREATE POLICY opscore_work_order_context ON work_orders
+      USING (organization_id = current_setting('app.tenant_id', true)
+        AND (public.opscore_is_privileged() OR assigned_to = public.opscore_current_user() OR created_by = public.opscore_current_user()))
+      WITH CHECK (organization_id = current_setting('app.tenant_id', true))`);
+    await client.query(`GRANT USAGE ON SCHEMA ${quotedSchema} TO opscore_runtime`);
+    await client.query('GRANT SELECT ON appointments, work_orders TO opscore_runtime');
+    const runtimeGrantMigration = fs.readFileSync(runtimeGrantMigrationPath, 'utf8');
+    await client.query(runtimeGrantMigration);
+    const runtimeFunctionGrant = (await client.query("SELECT has_function_privilege('opscore_runtime','public.opscore_is_privileged()','EXECUTE') AS can_execute")).rows[0];
+    if (!runtimeFunctionGrant.can_execute) throw new Error('RUNTIME_POLICY_FUNCTION_EXECUTE_GRANT_MISSING');
+    checks.push({ id: 'runtime-policy-function-execute-grant', status: 'PASS', role: 'opscore_runtime', helper: 'public.opscore_is_privileged()' });
+
+    const appointmentA = `appointment_a_${crypto.randomBytes(4).toString('hex')}`;
+    const appointmentB = `appointment_b_${crypto.randomBytes(4).toString('hex')}`;
+    const workOrderA = `work_order_a_${crypto.randomBytes(4).toString('hex')}`;
+    const workOrderB = `work_order_b_${crypto.randomBytes(4).toString('hex')}`;
+    await client.query('INSERT INTO appointments(id,organization_id,technician_id) VALUES ($1,$2,$3),($4,$5,$6)', [appointmentA, orgA, userA, appointmentB, orgB, userB]);
+    await client.query('INSERT INTO work_orders(id,organization_id,assigned_to,created_by) VALUES ($1,$2,$3,$3),($4,$5,$6,$6)', [workOrderA, orgA, userA, workOrderB, orgB, userB]);
+
     // Prefer explicit runtime role when DDL used the migration owner connection (post-051).
     if (usingAdminDdl) {
       await client.query('SET LOCAL ROLE opscore_app');
@@ -181,9 +225,31 @@ async function main() {
     const noContext = await client.query('SELECT id FROM operational_twin_chain_events');
     if (noContext.rowCount !== 0) throw new Error('MISSING_TENANT_CONTEXT_DID_NOT_FAIL_CLOSED');
     checks.push({ id: 'missing-tenant-context-fails-closed', status: 'PASS' });
+
+    // Validate the exact role used by the Vercel runtime, not only opscore_app.
+    await client.query('RESET ROLE');
+    await client.query('SET LOCAL ROLE opscore_runtime');
+    await client.query(`SET LOCAL search_path TO ${quotedSchema}, public`);
+    const runtimeCheck = (await client.query("SELECT current_user AS role_name, r.rolsuper, r.rolbypassrls, has_function_privilege(current_user,'public.opscore_is_privileged()','EXECUTE') AS helper_execute FROM pg_roles r WHERE r.rolname=current_user")).rows[0];
+    if (!runtimeCheck || runtimeCheck.rolsuper || runtimeCheck.rolbypassrls || !runtimeCheck.helper_execute) throw new Error('RUNTIME_ROLE_POLICY_HELPER_POSTCONDITION_FAILED');
+    await client.query("SELECT set_config('app.tenant_id',$1,true), set_config('app.user_id',$2,true), set_config('app.access_mode','field',true)", [orgA, userA]);
+    const ownAppointments = await client.query('SELECT id FROM appointments');
+    const ownWorkOrders = await client.query('SELECT id FROM work_orders');
+    if (ownAppointments.rowCount !== 1 || ownAppointments.rows[0].id !== appointmentA) throw new Error('RUNTIME_APPOINTMENT_TENANT_READ_FAILED');
+    if (ownWorkOrders.rowCount !== 1 || ownWorkOrders.rows[0].id !== workOrderA) throw new Error('RUNTIME_WORK_ORDER_TENANT_READ_FAILED');
+    checks.push({ id: 'runtime-role-tenant-self-read', status: 'PASS', role: runtimeCheck.role_name });
+
+    await client.query("SELECT set_config('app.tenant_id',$1,true), set_config('app.user_id',$2,true)", [orgA, userB]);
+    const crossAppointments = await client.query('SELECT id FROM appointments');
+    const crossWorkOrders = await client.query('SELECT id FROM work_orders');
+    if (crossAppointments.rowCount !== 0) throw new Error('RUNTIME_APPOINTMENT_CROSS_TENANT_READ_BREACH');
+    if (crossWorkOrders.rowCount !== 0) throw new Error('RUNTIME_WORK_ORDER_CROSS_TENANT_READ_BREACH');
+    checks.push({ id: 'runtime-role-cross-tenant-read-denied', status: 'PASS', appointmentsRows: crossAppointments.rowCount, workOrdersRows: crossWorkOrders.rowCount });
+
+    await client.query('RESET ROLE');
     await client.query('ROLLBACK');
     inTransaction = false;
-    emit('PASS', { database: info.database, serverVersion: info.server_version, executedChecks: checks, checkCount: checks.length, note: 'This gate tests migration 031 and RLS behavior in a rollback-only isolated schema. It does not certify all production migrations, grants, or application-level PostgreSQL parity.' });
+    emit('PASS', { database: info.database, serverVersion: info.server_version, executedChecks: checks, checkCount: checks.length, note: 'This gate tests migrations 031 and 052 plus tenant policy execution under the actual opscore_runtime role in a rollback-only isolated schema. It does not certify all production data or production isolation.' });
   } catch (error) {
     if (inTransaction) {
       try { await client.query('ROLLBACK'); } catch (rollbackError) {

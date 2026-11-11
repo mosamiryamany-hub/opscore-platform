@@ -12,7 +12,7 @@
     "connectedRole": "opscore_accept_runtime",
     "roleIsSuperuser": false,
     "roleBypassesRls": false,
-    "target": "postgresql://opscore_accept_runtime:***@ep-mute-sun-bcahhoei.c-16.us-east-1.aws.neon.tech/opscore_http_acceptance"
+    "target": "postgresql://opscore_accept_runtime:***@REDACTED_NEON_HOST/opscore_http_acceptance"
   },
   "commit": "c299bad66c996dddd5ba260fce07e86fe5b5f760",
   "pipelineId": 42907688117,
