@@ -74,6 +74,18 @@ function migrationSourceDigest() {
   return sha256(fs.readFileSync(MIGRATION_PATH));
 }
 
+function buildEnvironmentChecks(env = process.env, selectedConnection = selectDatabaseConnection(env)) {
+  const opscUrl = String(env.OPSC_DATABASE_URL || '').trim();
+  const databaseUrl = String(env.DATABASE_URL || '').trim();
+  return {
+    opscDatabaseUrlPresent: Boolean(opscUrl),
+    selectedConnectionStringPresent: Boolean(selectedConnection.connectionString),
+    databaseUrlPresent: Boolean(databaseUrl),
+    databaseUrlUnpooledPresent: Boolean(String(env.DATABASE_URL_UNPOOLED || '').trim()),
+    databaseUrlMatchesOpscDatabaseUrl: !databaseUrl || (Boolean(opscUrl) && databaseUrl === opscUrl)
+  };
+}
+
 function selectDatabaseConnection(env = process.env) {
   const opscUrl = String(env.OPSC_DATABASE_URL || '').trim();
   if (opscUrl) return { connectionString: opscUrl, source: 'OPSC_DATABASE_URL', applicationBinding: true };
@@ -124,13 +136,7 @@ async function inspectDatabase(env = process.env) {
     identityScope: selectedConnection.applicationBinding ? 'APPLICATION_DATABASE' : 'INTEGRATION_CANDIDATE_ONLY',
     applicationDatabaseBinding: selectedConnection.applicationBinding ? 'PRESENT' : 'UNVERIFIED',
     target: null,
-    environmentChecks: {
-      opscDatabaseUrlPresent: Boolean(String(env.OPSC_DATABASE_URL || '').trim()),
-      selectedConnectionStringPresent: rawUrl.length > 0,
-      databaseUrlPresent: Boolean(String(env.DATABASE_URL || '').trim()),
-      databaseUrlUnpooledPresent: Boolean(String(env.DATABASE_URL_UNPOOLED || '').trim()),
-      databaseUrlMatchesOpscDatabaseUrl: !env.DATABASE_URL || (Boolean(String(env.OPSC_DATABASE_URL || '').trim()) && env.DATABASE_URL === String(env.OPSC_DATABASE_URL).trim())
-    },
+    environmentChecks: buildEnvironmentChecks(env, selectedConnection),
     identity: null,
     roles: null,
     authFunctionGrants: null,
@@ -432,5 +438,6 @@ module.exports = {
   parseDatabaseTarget,
   safeErrorCode,
   selectDatabaseConnection,
+  buildEnvironmentChecks,
   inspectDatabase
 };
