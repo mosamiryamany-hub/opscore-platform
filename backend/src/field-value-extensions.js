@@ -20,6 +20,8 @@ function haversineM(aLat,aLon,bLat,bLon) {
   return 2*R*Math.asin(Math.sqrt(Math.min(1,Math.max(0,x))));
 }
 function ensureSchema(db) {
+  // PostgreSQL schema is migration-owned; runtime must never attempt DDL.
+  if (db.engine === 'postgres') return;
   db.exec(`
     CREATE TABLE IF NOT EXISTS dynamic_geofence_events(
       id TEXT PRIMARY KEY,
@@ -156,7 +158,10 @@ function attach(Store) {
   p.consumeFieldSignoffChallenge = function(ctx, d = {}) {
     requireRole(ctx.role, 'write'); this._fieldValueEnsure();
     const workOrderId=clean(d.workOrderId), challenge=clean(d.challenge), documentSha256=clean(d.documentSha256), mode=clean(d.assuranceMode||'none');
-    if(!workOrderId || !challenge || !/^[a-f0-9]{64}$/i.test(documentSha256)) throw new Error('SIGNOFF_CHALLENGE_INVALID');
+    if(!workOrderId) throw new Error('SIGNOFF_CHALLENGE_INVALID');
+    const wo=this.db.prepare('SELECT id FROM work_orders WHERE id=? AND organization_id=?').get(workOrderId, ctx.organizationId);
+    if(!wo) throw new Error('NOT_FOUND');
+    if(!challenge || !/^[a-f0-9]{64}$/i.test(documentSha256)) throw new Error('SIGNOFF_CHALLENGE_INVALID');
     if(!['os_local_biometric_gate','device_pin_gate'].includes(mode)) throw new Error('SIGNOFF_ASSURANCE_INVALID');
     const hash=crypto.createHash('sha256').update(challenge).digest('hex');
     const row=this.db.prepare('SELECT * FROM field_signoff_challenges WHERE organization_id=? AND work_order_id=? AND challenge_hash=? AND consumed_at IS NULL ORDER BY created_at DESC LIMIT 1').get(ctx.organizationId,workOrderId,hash);

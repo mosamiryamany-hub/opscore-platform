@@ -52,5 +52,5 @@ test('live PostgreSQL RLS gate tests feature flags, safe mode state and control-
   assert.ok(gate.includes('DATABASE_SECURITY_PROOF_ACCEPTED_WRONG_POLICY_ROLE'));
   assert.ok(gate.includes('DATABASE_SECURITY_PROOF_ACCEPTED_WEAK_TENANT_PREDICATE'));
   const workflow = fs.readFileSync(path.resolve(root, '..', '.github/workflows/digital-twin-postgres-live.yml'), 'utf8');
-  assert.match(workflow, /backend\/sql\/postgres\/053_control_plane_restrictive_tenant_guards\.sql/);
+  assert.match(workflow, /backend\/sql\/postgres\/\*\*/);
 });

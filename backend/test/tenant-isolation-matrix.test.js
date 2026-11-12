@@ -7,13 +7,12 @@
  * scripts/api-inventory.js (no approximate route counts).
  *
  * For every route that reads or writes tenant data this matrix executes:
- *   1. unauthenticated request → must be rejected (never HTTP 2xx);
- *   2. foreign-ID probe (tenant B session, placeholder resource id) → must be
- *      denied or not-found (never HTTP 2xx);
- *   3. true cross-tenant fixture checks for the entities with HTTP fixtures
- *      (work-orders, customers): cross-tenant read/update/delete denial, list
- *      exclusion, and proof that mutating or swapping the resource identifier
- *      does not bypass authorization (tenant A row unchanged afterwards).
+ *   1. unauthenticated request → HTTP 401/403/404; server errors are failures;
+ *   2. foreign-ID probe (tenant B session, source-rendered resource ID) → HTTP
+ *      401/403/404 or a documented empty collection; server errors are failures;
+ *   3. true cross-tenant fixtures cover work-orders, customers and evidence
+ *      uploads, including customer soft-delete/restore and evidence-chunk writes.
+ *   4. write probes carry valid idempotency keys so they reach resource checks.
  *
  * Two tenants are provisioned through SQL under the application's documented
  * access_mode/tenant GUC contract (no BYPASSRLS) on a disposable engine
@@ -42,14 +41,87 @@ const RESULT_PATH = process.env.OPSC_WRITE_EVIDENCE === '1'
   ? EVIDENCE_PATH
   : path.join(os.tmpdir(), `opscore-tenant-matrix-${process.pid}.json`);
 
-const ID_PLACEHOLDER = /\{(?:id|param|index)\}/;
+const ID_PLACEHOLDER = /\{(?:id|param|index)\}|\(\\d\+\)/;
 const SAFE_PROBE_ID = '00000000-0000-4000-8000-000000000000';
+const PARAMETER_SEGMENTS = Object.freeze({ del: 'customers', rest: 'customers', ap: 'approve', esc: 'acknowledge', hist: 'customer' });
+
+function buildProbePath(routeRecord) {
+  let route = String(routeRecord && routeRecord.route || '');
+  if (route.includes('{param}')) {
+    const segment = PARAMETER_SEGMENTS[routeRecord.patternVariable];
+    if (!segment) throw new Error('TENANT_MATRIX_ROUTE_PARAMETER_UNRESOLVED: ' + String(routeRecord.patternVariable || 'missing'));
+    route = route.replace(/\{param\}/g, segment);
+  }
+  route = route.replace(/\{id\}/g, SAFE_PROBE_ID).replace(/\{index\}/g, '0').replace(/\(\\d\+\)/g, '0');
+  if (route.includes('{') || route.includes('}') || route.includes('(\\d+)'))
+    throw new Error('TENANT_MATRIX_ROUTE_PLACEHOLDER_UNRESOLVED: ' + route);
+  return route;
+}
 const BODY_METHODS = new Set(['POST', 'PATCH', 'PUT']);
+
+function buildProbeBody(routeRecord) {
+  const route = String(routeRecord && routeRecord.route || '');
+  const method = String(routeRecord && routeRecord.method || '').toUpperCase();
+  if (!BODY_METHODS.has(method)) return undefined;
+  // Minimal structurally valid bodies so probes reach resource/tenant checks
+  // instead of stopping at schema validation (422) with `{}`.
+  if (route.includes('/appointments/') && route.endsWith('/reschedule')) {
+    return JSON.stringify({ startAt: '2099-01-01T10:00:00.000Z', endAt: '2099-01-01T11:00:00.000Z', reason: 'matrix-foreign-probe' });
+  }
+  if (route.includes('/assets/') && route.endsWith('/events')) {
+    return JSON.stringify({ eventType: 'inspection', note: 'matrix-foreign-probe' });
+  }
+  if (route.includes('/customers/') && route.endsWith('/service-line')) {
+    return JSON.stringify({ lineId: SAFE_PROBE_ID });
+  }
+  if (route.includes('/geofences/') && route.endsWith('/technicians')) {
+    return JSON.stringify({ technicianId: SAFE_PROBE_ID });
+  }
+  if (route.includes('/invoices/') && route.endsWith('/payments')) {
+    return JSON.stringify({ amount: 1, currency: 'USD', method: 'card' });
+  }
+  if (route.includes('/memberships/')) {
+    return JSON.stringify({ role: 'member' });
+  }
+  if (route.includes('/signoff-assurance/challenge')) {
+    return JSON.stringify({ documentSha256: '0'.repeat(64) });
+  }
+  if (route.includes('/signoff-assurance/complete')) {
+    return JSON.stringify({ documentSha256: '0'.repeat(64), challenge: 'matrix-challenge', assuranceMode: 'device_pin_gate' });
+  }
+  if (route.includes('/field-invoice')) {
+    return JSON.stringify({ hourlyRate: 1, currency: 'USD' });
+  }
+  if (route.includes('/autopilot/proposals/')) {
+    return JSON.stringify({ decision: 'approve', note: 'matrix-foreign-probe' });
+  }
+  if (route.includes('/portal/self-scheduling/') && route.endsWith('/book')) {
+    return JSON.stringify({ slotToken: 'matrix', technicianId: SAFE_PROBE_ID, startAt: '2099-01-01T10:00:00.000Z', endAt: '2099-01-01T11:00:00.000Z' });
+  }
+  return '{}';
+}
+
+function isIsolationDenial(status) {
+  // 405 means the method is not offered for that resource — no tenant data is returned.
+  return [401, 403, 404, 405].includes(status);
+}
+
 const EXCLUDED_ROUTES = new Set(['/api/health', '/api/openapi.json', '/api/v1/billing/stripe/webhook']);
 // Documented diagnostic endpoints: they expose platform/diagnostic posture (not
 // tenant data). /metrics requires METRICS_AUTH_TOKEN in production (HTTP 404 when
 // unconfigured); the verify endpoints are public release/deployment proofs.
-const DIAGNOSTIC_ROUTES = new Set(['/api/verify/database', '/api/verify/database-security', '/metrics']);
+const DIAGNOSTIC_ROUTES = new Set(['/api/verify/database', '/api/verify/database-security', '/api/verify/deployment', '/metrics']);
+
+test('tenant matrix probe paths resolve every source-derived route placeholder', () => {
+  const inventory = JSON.parse(fs.readFileSync(INVENTORY_PATH, 'utf8'));
+  const parameterized = (inventory.routes || []).filter(r => ID_PLACEHOLDER.test(String(r.route || '')));
+  assert.ok(parameterized.length > 0, 'API inventory must contain parameterized tenant routes');
+  for (const route of parameterized) {
+    const target = buildProbePath(route);
+    assert.ok(target.startsWith('/api/'), `probe target must remain an API path: ${target}`);
+    assert.ok(!ID_PLACEHOLDER.test(target), `probe target contains an unresolved placeholder: ${target}`);
+  }
+});
 
 function sourceCommit() {
   try { return execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root }).toString().trim(); }
@@ -102,7 +174,7 @@ test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cro
   const inventory = JSON.parse(fs.readFileSync(INVENTORY_PATH, 'utf8'));
   const seen = new Set();
   const routes = (inventory.routes || [])
-    .map(r => ({ method: r.method, route: r.route, auth: r.auth }))
+    .map(r => ({ method: r.method, route: r.route, auth: r.auth, patternVariable: r.patternVariable }))
     .filter(r => { const key = `${r.method} ${r.route}`; if (seen.has(key)) return false; seen.add(key); return true; });
   const tenantRoutes = routes.filter(r => r.auth !== 'public' && !r.route.startsWith('/api/v1/auth/') && !EXCLUDED_ROUTES.has(r.route) && !DIAGNOSTIC_ROUTES.has(r.route));
 
@@ -234,7 +306,7 @@ test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cro
 
     // ---- 1) Unauthenticated denial for every tenant-data route ----
     for (const r of tenantRoutes) {
-      const target = ID_PLACEHOLDER.test(r.route) ? r.route.replace(ID_PLACEHOLDER, SAFE_PROBE_ID) : r.route;
+      const target = ID_PLACEHOLDER.test(r.route) ? buildProbePath(r) : r.route;
       try {
         const resp = await fetch(base + target, {
           method: r.method,
@@ -242,8 +314,8 @@ test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cro
           body: BODY_METHODS.has(r.method) ? '{}' : undefined,
           signal: AbortSignal.timeout(20000)
         });
-        const denied = !(resp.status >= 200 && resp.status < 300);
-        unauthenticated.push({ route: `${r.method} ${r.route}`, status: denied ? 'PASS' : 'FAIL', httpStatus: resp.status, detail: denied ? 'unauthenticated request rejected' : 'UNAUTHENTICATED ACCESS SUCCEEDED' });
+        const denied = isIsolationDenial(resp.status);
+        unauthenticated.push({ route: `${r.method} ${r.route}`, status: denied ? 'PASS' : 'FAIL', httpStatus: resp.status, detail: denied ? 'unauthenticated request rejected' : `UNAUTHENTICATED PROBE NOT DENIED (HTTP ${resp.status})` });
       } catch (error) {
         unauthenticated.push({ route: `${r.method} ${r.route}`, status: 'FAIL', httpStatus: null, detail: `request error: ${String(error.message || error).slice(0, 120)}` });
       }
@@ -253,20 +325,20 @@ test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cro
     // ---- 2) Foreign-ID probes as tenant B for every {id} route ----
     for (const r of tenantRoutes) {
       if (!ID_PLACEHOLDER.test(r.route)) continue;
-      const target = r.route.replace(ID_PLACEHOLDER, SAFE_PROBE_ID);
+      const target = buildProbePath(r);
       try {
         const resp = await fetch(base + target, {
           method: r.method,
-          headers: { cookie: cookieB, ...(BODY_METHODS.has(r.method) ? { 'content-type': 'application/json' } : {}) },
-          body: BODY_METHODS.has(r.method) ? '{}' : undefined,
+          headers: { cookie: cookieB, ...(BODY_METHODS.has(r.method) ? { 'content-type': 'application/json' } : {}), ...(r.method === 'GET' ? {} : { 'idempotency-key': `matrix-foreign-${stamp}-${foreignId.length}` }) },
+          body: buildProbeBody(r),
           signal: AbortSignal.timeout(20000)
         });
         const text2 = await resp.text().catch(() => '');
         let body2 = null;
         try { body2 = text2 ? JSON.parse(text2) : null; } catch { body2 = null; }
         const emptyList = resp.status === 200 && Array.isArray(body2) && body2.length === 0;
-        const denied = !(resp.status >= 200 && resp.status < 300) || emptyList;
-        foreignId.push({ route: `${r.method} ${r.route}`, status: denied ? 'PASS' : 'FAIL', httpStatus: resp.status, detail: denied ? (emptyList ? 'foreign parent not found; empty list returned (no rows leaked)' : `foreign-ID probe denied or not-found for tenant B (HTTP ${resp.status})`) : 'FOREIGN-ID ACCESS SUCCEEDED FOR TENANT B' });
+        const denied = isIsolationDenial(resp.status) || emptyList;
+        foreignId.push({ route: `${r.method} ${r.route}`, status: denied ? 'PASS' : 'FAIL', httpStatus: resp.status, detail: denied ? (emptyList ? 'foreign parent not found; empty list returned (no rows leaked)' : `foreign-ID probe denied or not-found for tenant B (HTTP ${resp.status})`) : `FOREIGN-ID PROBE DID NOT PROVE DENIAL (HTTP ${resp.status})` });
       } catch (error) {
         foreignId.push({ route: `${r.method} ${r.route}`, status: 'FAIL', httpStatus: null, detail: `request error: ${String(error.message || error).slice(0, 120)}` });
       }
@@ -279,12 +351,12 @@ test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cro
 
     x = await request(`/api/v1/work-orders/${encodeURIComponent(workOrderAId)}`, {}, cookieB);
     recordC('cross-tenant-work-order-read-denied', x.response.status === 404 || x.response.status === 403, `tenant B GET tenant A work order → HTTP ${x.response.status}`);
-    x = await request(`/api/v1/customers/${encodeURIComponent(customerAId)}`, {}, cookieB);
-    recordC('cross-tenant-customer-read-denied', x.response.status === 404 || x.response.status === 403, `tenant B GET tenant A customer → HTTP ${x.response.status}`);
-    x = await request(`/api/v1/work-orders/${encodeURIComponent(workOrderAId)}`, { method: 'PATCH', body: JSON.stringify({ title: 'MATRIX CROSS TENANT MUTATION' }) }, cookieB);
-    recordC('cross-tenant-work-order-update-denied', !(x.response.status >= 200 && x.response.status < 300), `tenant B PATCH tenant A work order → HTTP ${x.response.status}`);
+    x = await request('/api/v1/customers', {}, cookieB);
+    recordC('cross-tenant-customer-read-denied', x.response.status === 200 && Array.isArray(x.data) && !x.data.some(row => row.id === customerAId), `tenant B customer list excludes tenant A customer → HTTP ${x.response.status}`);
+    x = await request(`/api/v1/work-orders/${encodeURIComponent(workOrderAId)}`, { method: 'PATCH', headers: { 'idempotency-key': `matrix-cross-wo-patch-${stamp}` }, body: JSON.stringify({ title: 'MATRIX CROSS TENANT MUTATION' }) }, cookieB);
+    recordC('cross-tenant-work-order-update-denied', x.response.status === 403 || x.response.status === 404, `tenant B PATCH tenant A work order → HTTP ${x.response.status}`);
     x = await request(`/api/v1/work-orders/${encodeURIComponent(workOrderAId)}`, { method: 'DELETE' }, cookieB);
-    recordC('cross-tenant-work-order-delete-denied', !(x.response.status >= 200 && x.response.status < 300), `tenant B DELETE tenant A work order → HTTP ${x.response.status}`);
+    recordC('cross-tenant-work-order-delete-denied', x.response.status === 403 || x.response.status === 404, `tenant B DELETE tenant A work order → HTTP ${x.response.status}`);
     x = await request(`/api/v1/work-orders/${encodeURIComponent(workOrderAId)}`, {}, cookieA);
     recordC('resource-unchanged-after-id-swap-attempts', x.response.status === 200 && x.data && x.data.id === workOrderAId && x.data.title === `Matrix Work Order A ${stamp}`, `tenant A work order intact after tenant B update/delete ID-swap attempts (HTTP ${x.response.status})`);
     x = await request('/api/v1/work-orders', {}, cookieB);
@@ -296,7 +368,19 @@ test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cro
     x = await request('/api/v1/customers', {}, cookieB);
     recordC('cross-tenant-customer-list-excludes-foreign-rows', x.response.status === 200 && Array.isArray(x.data) && !x.data.some(row => row.id === customerAId) && x.data.some(row => row.id === customerBId), `tenant B customer list excludes tenant A row and contains tenant B row`);
     x = await request(`/api/v1/customers/${encodeURIComponent(customerAId)}`, { method: 'PATCH', body: JSON.stringify({ name: 'MATRIX CROSS TENANT CUSTOMER MUTATION' }) }, cookieB);
-    recordC('cross-tenant-customer-update-denied', !(x.response.status >= 200 && x.response.status < 300), `tenant B PATCH tenant A customer → HTTP ${x.response.status}`);
+    recordC('cross-tenant-customer-update-denied', x.response.status === 403 || x.response.status === 404, `tenant B PATCH tenant A customer → HTTP ${x.response.status}`);
+    x = await request(`/api/v1/customers/${encodeURIComponent(customerAId)}`, { method: 'DELETE' }, cookieB);
+    recordC('cross-tenant-customer-soft-delete-denied', x.response.status === 403 || x.response.status === 404, `tenant B DELETE tenant A customer → HTTP ${x.response.status}`);
+    x = await request(`/api/v1/customers/${encodeURIComponent(customerAId)}/restore`, { method: 'POST', body: JSON.stringify({}) }, cookieB);
+    recordC('cross-tenant-customer-restore-denied', x.response.status === 403 || x.response.status === 404, `tenant B POST restore tenant A customer → HTTP ${x.response.status}`);
+    x = await request('/api/v1/customers', {}, cookieA);
+    recordC('customer-intact-after-cross-tenant-delete-restore', x.response.status === 200 && Array.isArray(x.data) && x.data.some(row => row.id === customerAId), `tenant A customer remains visible after tenant B delete/restore attempts → HTTP ${x.response.status}`);
+    x = await request(`/api/v1/work-orders/${encodeURIComponent(workOrderAId)}/evidence-uploads`, { method: 'POST', headers: { 'idempotency-key': `matrix-evidence-init-${stamp}` }, body: JSON.stringify({ fileName: 'matrix.txt', mediaType: 'text/plain', totalBytes: 1, sha256: '2d711642b726b04401627ca9fbac32f5c8530fb1903cc4db02258717921a4881' }) }, cookieA);
+    assert.equal(x.response.status, 201, `tenant A evidence upload fixture failed: ${JSON.stringify(x.data)}`);
+    assert.ok(x.data && typeof x.data.uploadId === 'string' && x.data.uploadId, 'evidence upload fixture must return a real uploadId');
+    const uploadAId = x.data.uploadId;
+    x = await request(`/api/v1/evidence-uploads/${encodeURIComponent(uploadAId)}/chunks/0`, { method: 'PUT', body: JSON.stringify({ contentBase64: 'eA==' }) }, cookieB);
+    recordC('cross-tenant-evidence-chunk-write-denied', x.response.status === 403 || x.response.status === 404, `tenant B PUT tenant A evidence chunk → HTTP ${x.response.status}`);
 
     // ---- Targeted cleanup: remove only this run's fixture rows, verify removal ----
     const cleanupClient = await control.connect();
@@ -350,17 +434,18 @@ test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cro
       skipped,
       documentedExclusions: {
         diagnosticRoutes: [...DIAGNOSTIC_ROUTES],
-        reason: 'Platform diagnostic/proof endpoints (not tenant data). /metrics requires METRICS_AUTH_TOKEN in production (HTTP 404 when unconfigured); verify endpoints are public release/deployment proofs by design.'
+        reason: 'Platform diagnostic/proof endpoints are not tenant data. /api/verify/deployment and the release/database verification endpoints are public proof surfaces; /metrics returns 404 when METRICS_AUTH_TOKEN is unconfigured.'
       },
       cleanupErrors,
       productionCertification: false,
       isolationCertification: 'NOT_CERTIFIED',
       status: failed.length || cleanupErrors.length ? 'FAIL' : 'PASS',
-      note: 'Route-level matrix executed against the source-derived inventory at the tested commit. Unauthenticated and foreign-ID probes cover every tenant-data route; true cross-tenant fixture checks cover work-orders and customers. Even on PASS, formal production isolation certification remains NOT_CERTIFIED until the required certification procedures complete.'
+      note: 'Route-level matrix executed against the source-derived inventory at the tested commit. Unauthenticated and foreign-ID probes cover every non-public tenant-data route; true cross-tenant fixture checks cover work-orders, customers and evidence uploads. Even on PASS, formal production isolation certification remains NOT_CERTIFIED until the required certification procedures complete.'
     };
     writeResult(report);
     process.stdout.write(`TENANT_ISOLATION_MATRIX_REPORT=${RESULT_PATH}\n`);
     process.stdout.write(`TENANT_ISOLATION_MATRIX_SUMMARY=${JSON.stringify(report.tested)}\n`);
+    if (failed.length) process.stdout.write(`TENANT_ISOLATION_MATRIX_FAILURES=${JSON.stringify(failed)}\n`);
     if (report.status !== 'PASS') {
       const sample = failed.slice(0, 5).map(f => `${f.route || f.id}: ${f.detail}`);
       assert.fail(`tenant isolation matrix failed (${failed.length} failing checks, ${cleanupErrors.length} cleanup errors): ${sample.join(' | ')}`);

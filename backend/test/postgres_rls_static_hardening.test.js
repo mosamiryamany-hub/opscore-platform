@@ -74,7 +74,8 @@ test('GitHub Actions: CI/release workflows use immutable full-SHA action referen
 test('GitHub Actions: a real PostgreSQL 18 service runs the live digital-twin RLS gate', () => {
   const workflowPath = path.join(ROOT, '..', '.github', 'workflows', 'digital-twin-postgres-live.yml');
   const workflow = fs.readFileSync(workflowPath, 'utf8');
-  assert.match(workflow, /image:\s*postgres:18/);
+  assert.match(workflow, /image:\s*postgis\/postgis:18-3\.7/);
+  assert.match(workflow, /postgresql-18-pgvector/);
   assert.match(workflow, /POSTGRES_DB:\s*opscore_test/);
   assert.match(workflow, /OPSC_PG_TEST_URL:\s*postgresql:\/\/postgres:postgres@127\.0\.0\.1:5432\/opscore_test/);
   assert.match(workflow, /- name: Install root-pinned PostgreSQL runtime dependency\s+run: npm ci --ignore-scripts/);

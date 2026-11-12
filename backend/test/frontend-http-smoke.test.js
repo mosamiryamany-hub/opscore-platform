@@ -20,6 +20,14 @@ test('frontend console API smoke covers every static UI GET route over HTTP',asy
   // Simulate a fresh page context: JS cannot read the HttpOnly cookie, so session restoration must use the authenticated API.
   const freshContext=await req('/api/v1/me',{headers:{cookie:c}});assert.equal(freshContext.status,200);const me=await freshContext.json();assert.equal(me.user.email,'owner@example.com');
   for(const p of GET_ROUTES){const rr=await req(p,{headers:{cookie:c}});assert.ok(rr.status<400,`${p} returned ${rr.status}`);}
+  for(const method of ['GET','POST','PUT','PATCH','DELETE']){
+   const options={method,headers:{cookie:c}};
+   if(['POST','PUT','PATCH'].includes(method))options.body='{}';
+   const unknown=await req('/api/v1/__unmatched-http-smoke__',options);
+   assert.equal(unknown.status,404,`${method} unknown API route must return HTTP 404`);
+   assert.ok((unknown.headers.get('content-type')||'').includes('application/json'),`${method} unknown API route must return JSON`);
+   assert.deepEqual(await unknown.json(),{error:{code:'NOT_FOUND'}},`${method} unknown API route response contract`);
+  }
   r=await req('/api/v1/work-orders',{method:'POST',headers:{cookie:c},body:JSON.stringify({title:'UI smoke work order',description:'smoke'})});assert.equal(r.status,201);const wo=await r.json();
   r=await req(`/api/v1/work-orders/${encodeURIComponent(wo.id)}`,{headers:{cookie:c}});assert.equal(r.status,200);
   r=await req(`/api/v1/work-orders/${encodeURIComponent(wo.id)}/comments`,{method:'POST',headers:{cookie:c,'idempotency-key':'ui-smoke-comment-1'},body:JSON.stringify({body:'smoke comment'})});assert.equal(r.status,201);

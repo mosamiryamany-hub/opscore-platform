@@ -8,6 +8,8 @@ const {audit}=require('./audit');
 function clean(v){return String(v??'').trim();}
 function sha(v){return crypto.createHash('sha256').update(typeof v==='string'?v:JSON.stringify(v)).digest('hex');}
 function ensure(db){
+ // PostgreSQL schema is migration-owned; runtime must never attempt DDL.
+ if (db.engine === 'postgres') return;
  db.exec(`CREATE TABLE IF NOT EXISTS asset_health_snapshots (id TEXT PRIMARY KEY, organization_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE, asset_id TEXT NOT NULL REFERENCES assets(id) ON DELETE CASCADE, risk_level TEXT NOT NULL CHECK(risk_level IN ('low','medium','high','critical')), risk_score INTEGER NOT NULL CHECK(risk_score BETWEEN 0 AND 100), factors_json TEXT NOT NULL, assessment_sha256 TEXT NOT NULL, assessed_at TEXT NOT NULL, assessed_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT, UNIQUE(organization_id,asset_id,assessed_at));
  CREATE INDEX IF NOT EXISTS idx_asset_health_org_asset_time ON asset_health_snapshots(organization_id,asset_id,assessed_at);
  CREATE TABLE IF NOT EXISTS self_schedule_links (id TEXT PRIMARY KEY, organization_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE, work_order_id TEXT NOT NULL REFERENCES work_orders(id) ON DELETE CASCADE, token_hash TEXT NOT NULL UNIQUE, expires_at TEXT NOT NULL, revoked_at TEXT, created_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT, created_at TEXT NOT NULL, last_used_at TEXT);

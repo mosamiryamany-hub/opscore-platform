@@ -2609,7 +2609,9 @@ class Store {
       'note'
     ];
     const asset = this.db.prepare('SELECT id FROM assets WHERE id=? AND organization_id=?').get(d.assetId, ctx.organizationId);
-    if (!asset || !allowed.includes(d.eventType))
+    if (!asset)
+      throw new Error('NOT_FOUND');
+    if (!allowed.includes(d.eventType))
       throw new Error('INVALID_ASSET_EVENT');
     if (d.workOrderId && !this.db.prepare('SELECT id FROM work_orders WHERE id=? AND organization_id=? AND asset_id=?').get(d.workOrderId, ctx.organizationId, d.assetId))
       throw new Error('INVALID_WORK_ORDER');
