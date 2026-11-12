@@ -72,7 +72,7 @@ function buildProbeBody(routeRecord) {
     return JSON.stringify({ eventType: 'inspection', note: 'matrix-foreign-probe' });
   }
   if (route.includes('/customers/') && route.endsWith('/service-line')) {
-    return JSON.stringify({ serviceLineId: SAFE_PROBE_ID });
+    return JSON.stringify({ lineId: SAFE_PROBE_ID });
   }
   if (route.includes('/geofences/') && route.endsWith('/technicians')) {
     return JSON.stringify({ technicianId: SAFE_PROBE_ID });
@@ -87,10 +87,10 @@ function buildProbeBody(routeRecord) {
     return JSON.stringify({ documentSha256: '0'.repeat(64) });
   }
   if (route.includes('/signoff-assurance/complete')) {
-    return JSON.stringify({ documentSha256: '0'.repeat(64), code: '000000' });
+    return JSON.stringify({ documentSha256: '0'.repeat(64), challenge: 'matrix-challenge', assuranceMode: 'device_pin_gate' });
   }
   if (route.includes('/field-invoice')) {
-    return JSON.stringify({ lineItems: [{ description: 'matrix', quantity: 1, unitAmount: 1 }] });
+    return JSON.stringify({ hourlyRate: 1, currency: 'USD' });
   }
   if (route.includes('/autopilot/proposals/')) {
     return JSON.stringify({ decision: 'approve', note: 'matrix-foreign-probe' });
