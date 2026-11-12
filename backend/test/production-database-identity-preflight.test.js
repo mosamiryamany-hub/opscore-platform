@@ -20,6 +20,8 @@ test('Neon pooled URLs expose only a non-secret endpoint identifier and region',
   assert.equal(JSON.stringify(target).includes('do-not-print-this'), false);
   assert.equal(JSON.stringify(target).includes('ep-prod-abc123-pooler.us-east-2.aws.neon.tech'), false);
   assert.match(target.hostnameSha256, /^[a-f0-9]{64}$/);
+  assert.equal(target.clientSslMode, 'require');
+  assert.equal(target.channelBinding, 'require');
 });
 
 test('non-Neon PostgreSQL endpoints are identified without disclosing host or credentials', () => {
