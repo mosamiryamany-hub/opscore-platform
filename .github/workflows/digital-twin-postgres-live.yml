@@ -164,6 +164,9 @@ jobs:
       - name: Install backend package
         working-directory: backend
         run: npm ci --ignore-scripts --omit=peer
+      - name: Verify runtime-only migration ledger attestation
+        working-directory: backend
+        run: node scripts/test-runtime-migration-ledger-attestation.js
       - name: Apply full migrations to disposable acceptance databases
         working-directory: backend
         run: |
