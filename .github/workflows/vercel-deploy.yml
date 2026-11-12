@@ -164,6 +164,8 @@ jobs:
           lines = [
               '### Production database identity — read-only',
               "Inspection: " + str(report.get('status', 'UNVERIFIED')) + " (exit code " + exit_code + ")",
+              "Identity scope / connection source: " + str(report.get('identityScope', 'unknown')) + " / " + str(report.get('connectionSource', 'unknown')),
+              "Application database binding: " + str(report.get('applicationDatabaseBinding', 'UNVERIFIED')) + "; reason: " + str(report.get('reasonCode') or 'none'),
               "Source commit: " + str(report.get('sourceCommit') or 'not-bound'),
               "Provider / endpoint: " + str(target.get('provider', 'unknown')) + " / " + str(target.get('endpointId') or 'not-resolved'),
               "Region: " + str(target.get('region') or 'not-resolved'),

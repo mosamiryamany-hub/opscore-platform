@@ -5,7 +5,8 @@ const assert = require('node:assert/strict');
 const {
   migrationSourceDigest,
   parseDatabaseTarget,
-  safeErrorCode
+  safeErrorCode,
+  selectDatabaseConnection
 } = require('../scripts/production-database-identity-preflight');
 
 test('Neon pooled URLs expose only a non-secret endpoint identifier and region', () => {
@@ -58,4 +59,31 @@ test('canonical Neon compute host extracts region after the proxy label', () => 
   assert.equal(target.endpointId, 'ep-snowy-cloud-bc3hbfjy-dyh');
   assert.equal(target.region, 'us-east-1');
   assert.equal(JSON.stringify(target).includes('c-16.us-east-1.aws.neon.tech'), false);
+});
+
+test('application database URL takes precedence over Neon integration candidate', () => {
+  const selected = selectDatabaseConnection({
+    OPSC_DATABASE_URL: 'postgresql://app:secret@ep-app.us-east-1.aws.neon.tech/app',
+    DATABASE_URL_UNPOOLED: 'postgresql://integration:secret@ep-candidate.us-east-1.aws.neon.tech/candidate'
+  });
+  assert.equal(selected.source, 'OPSC_DATABASE_URL');
+  assert.equal(selected.applicationBinding, true);
+  assert.match(selected.connectionString, /ep-app/);
+});
+
+test('Neon integration URL is explicitly marked as candidate when application URL is unavailable', () => {
+  const selected = selectDatabaseConnection({
+    DATABASE_URL_UNPOOLED: 'postgresql://integration:secret@ep-candidate.us-east-1.aws.neon.tech/candidate'
+  });
+  assert.equal(selected.source, 'DATABASE_URL_UNPOOLED');
+  assert.equal(selected.applicationBinding, false);
+  assert.match(selected.connectionString, /ep-candidate/);
+});
+
+test('no available database URL fails closed', () => {
+  assert.deepEqual(selectDatabaseConnection({}), {
+    connectionString: '',
+    source: 'NONE',
+    applicationBinding: false
+  });
 });
