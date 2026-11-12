@@ -16,7 +16,7 @@ Translation catalog: 114 locale codes, 1 English source, 109 machine-assisted dr
 
 ## Dependency status
 
-Previous candidate mobile audit: 0 critical, 0 high, 10 moderate, 2 low. Root dependency audit: 0 findings. The current exact-head pipeline must rerun both JSON reports. Do not say "vulnerability-free"; moderate and low mobile advisories remain disclosed.
+Latest verified candidate (Secure Release run 43267374864) mobile audit: 0 critical, 0 high, 0 moderate, 0 low. Root dependency audit: 0 findings. The current exact-head pipeline must rerun both JSON reports. Do not say "vulnerability-free"; moderate and low mobile advisories remain disclosed.
 
 ## Buyer-owned scope
 

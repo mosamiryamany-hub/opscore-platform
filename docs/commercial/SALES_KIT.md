@@ -21,7 +21,7 @@ The Contact Center locale runtime is integrated. Its catalog has 109 machine-ass
 
 **Mobile release:** buyer owns EAS project/account setup, Android/iOS signing, native builds, physical-device QA, developer accounts, store submission/distribution and post-handover dependency maintenance. No signed APK/AAB/IPA is included; the delivered item is mobile source plus source-level verification.
 
-**Mobile security:** Current locked Expo SDK 57.0.31 / React Native 0.86.3 baseline: 0 critical, 0 high, 10 moderate, 2 low. CI blocks high/critical findings; the complete audit JSON from the exact archive-producing pipeline is authoritative. Moderate/low findings remain disclosed.
+**Mobile security:** Current locked Expo SDK 58.0.23 / React Native 0.88.1 / React 19.3.0 baseline: 0 critical, 0 high, 0 moderate, 0 low. CI blocks high/critical findings; the complete audit JSON from the exact archive-producing pipeline is authoritative. Moderate/low findings remain disclosed.
 
 **Production:** the buyer validates production PostgreSQL/RLS, backup/restore, KMS, TLS/WAF, observability, operations and tenant isolation. Production certification is NOT_ESTABLISHED.
 
