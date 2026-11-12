@@ -74,6 +74,23 @@ function migrationSourceDigest() {
   return sha256(fs.readFileSync(MIGRATION_PATH));
 }
 
+function selectDatabaseConnection(env = process.env) {
+  const opscUrl = String(env.OPSC_DATABASE_URL || '').trim();
+  if (opscUrl) return { connectionString: opscUrl, source: 'OPSC_DATABASE_URL', applicationBinding: true };
+
+  const unpooledUrl = String(env.DATABASE_URL_UNPOOLED || '').trim();
+  if (unpooledUrl) {
+    return {
+      connectionString: unpooledUrl,
+      source: 'DATABASE_URL_UNPOOLED',
+      applicationBinding: false
+    };
+  }
+
+  return { connectionString: '', source: 'NONE', applicationBinding: false };
+}
+
+
 async function safeRead(client, sql, params = []) {
   await client.query('SAVEPOINT identity_preflight_read');
   try {
@@ -92,7 +109,8 @@ async function safeRead(client, sql, params = []) {
 }
 
 async function inspectDatabase(env = process.env) {
-  const rawUrl = String(env.OPSC_DATABASE_URL || '').trim();
+  const selectedConnection = selectDatabaseConnection(env);
+  const rawUrl = selectedConnection.connectionString;
   const report = {
     schemaVersion: 'opscore.production-database-identity-preflight.v1',
     checkedAt: new Date().toISOString(),
@@ -102,11 +120,15 @@ async function inspectDatabase(env = process.env) {
     productionCertification: false,
     writeOperations: 0,
     transactionMode: 'READ ONLY',
+    connectionSource: selectedConnection.source,
+    identityScope: selectedConnection.applicationBinding ? 'APPLICATION_DATABASE' : 'INTEGRATION_CANDIDATE_ONLY',
+    applicationDatabaseBinding: selectedConnection.applicationBinding ? 'PRESENT' : 'UNVERIFIED',
     target: null,
     environmentChecks: {
       opscDatabaseUrlPresent: rawUrl.length > 0,
       databaseUrlPresent: Boolean(String(env.DATABASE_URL || '').trim()),
-      databaseUrlMatchesOpscDatabaseUrl: !env.DATABASE_URL || env.DATABASE_URL === rawUrl
+      databaseUrlUnpooledPresent: Boolean(String(env.DATABASE_URL_UNPOOLED || '').trim()),
+      databaseUrlMatchesOpscDatabaseUrl: !env.DATABASE_URL || (Boolean(String(env.OPSC_DATABASE_URL || '').trim()) && env.DATABASE_URL === String(env.OPSC_DATABASE_URL).trim())
     },
     identity: null,
     roles: null,
@@ -343,8 +365,8 @@ async function inspectDatabase(env = process.env) {
       }
     }
 
-    report.status = 'IDENTITY_RESOLVED';
-    report.reasonCode = null;
+    report.status = selectedConnection.applicationBinding ? 'IDENTITY_RESOLVED' : 'IDENTITY_RESOLVED_CANDIDATE';
+    report.reasonCode = selectedConnection.applicationBinding ? null : 'OPSC_DATABASE_URL_NOT_EXPOSED_TO_DIAGNOSTIC_PROCESS';
   } catch (error) {
     report.status = 'UNVERIFIED';
     report.reasonCode = safeErrorCode(error);
@@ -408,5 +430,6 @@ module.exports = {
   migrationSourceDigest,
   parseDatabaseTarget,
   safeErrorCode,
+  selectDatabaseConnection,
   inspectDatabase
 };
