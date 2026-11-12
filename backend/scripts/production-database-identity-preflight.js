@@ -272,6 +272,7 @@ async function inspectDatabase(env = process.env) {
             SELECT 1
             FROM unnest(COALESCE(p.proconfig, ARRAY[]::text[])) AS settings(setting_value)
             WHERE settings.setting_value ILIKE 'search_path=%'
+              AND settings.setting_value ILIKE '%pg_catalog%'
               AND settings.setting_value ILIKE '%public%'
               AND settings.setting_value ILIKE '%pg_temp%'
           )
