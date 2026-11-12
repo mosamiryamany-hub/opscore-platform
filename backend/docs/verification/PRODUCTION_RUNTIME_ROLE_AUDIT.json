@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "opscore.production-runtime-role-audit.v1",
+  "auditedAt": "2026-11-12T09:20:51Z",
+  "neonProject": "summer-leaf-18448271",
+  "branch": "br-wispy-term-bcrqqj84",
+  "database": "opscore_acceptance",
+  "roles": {
+    "opscore_runtime": {
+      "rolbypassrls": false,
+      "connect": "PASS",
+      "writeWithoutTenant": "RLS_REJECTED"
+    },
+    "opscore_app": {
+      "rolbypassrls": true,
+      "note": "Must not be used as sole production tenant boundary"
+    }
+  },
+  "vercel": {
+    "action": "OPSC_DATABASE_URL and DATABASE_URL production updated to opscore_runtime URI",
+    "database": "opscore_acceptance",
+    "role": "opscore_runtime",
+    "deploymentAfterChange": "dpl_89ekMcjwbMruhrookZrb5qmxJrBd",
+    "deploymentState": "READY"
+  },
+  "productionHold": {
+    "lifted": false,
+    "reason": "hasVerifiedProductionRelease requires bound package fingerprint, CI identity, postgres HTTP acceptance PASS, and production isolation certification evidence. Setting OPSC_PRODUCTION_HOLD=false without those proofs would be a false commercial claim."
+  }
+}
