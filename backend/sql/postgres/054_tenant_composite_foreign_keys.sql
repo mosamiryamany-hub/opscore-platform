@@ -334,11 +334,11 @@ BEGIN
       AND array_length(c.conkey, 1) = 2
       AND array_length(c.confkey, 1) = 2
       AND EXISTS (
-        SELECT 1 FROM pg_attribute AS source_fk
-        WHERE source_fk.attrelid = c.conrelid
-          AND source_fk.attnum = c.conkey[1]
-          AND source_fk.attname <> 'organization_id'
-          AND NOT source_fk.attisdropped
+        SELECT 1 FROM pg_attribute AS source_fk_attr
+        WHERE source_fk_attr.attrelid = c.conrelid
+          AND source_fk_attr.attnum = c.conkey[1]
+          AND source_fk_attr.attname <> 'organization_id'
+          AND NOT source_fk_attr.attisdropped
       )
       AND EXISTS (
         SELECT 1 FROM pg_attribute AS source_org_key
