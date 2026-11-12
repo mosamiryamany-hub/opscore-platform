@@ -48,15 +48,6 @@ function safeVersion(value) {
   return match ? match[1] : null;
 }
 
-function pick(source, keys) {
-  if (!source || typeof source !== 'object' || Array.isArray(source)) return null;
-  const result = {};
-  for (const key of keys) {
-    if (Object.prototype.hasOwnProperty.call(source, key)) result[key] = source[key];
-  }
-  return result;
-}
-
 function sanitizeIdentityReport(report) {
   const value = report && typeof report === 'object' ? report : {};
   const target = value.target || {};
