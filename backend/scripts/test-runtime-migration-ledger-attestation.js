@@ -88,9 +88,9 @@ async function main() {
         EXISTS (
           SELECT 1 FROM unnest(COALESCE(p.proconfig, ARRAY[]::text[])) setting
           WHERE setting ILIKE 'search_path=%'
-            AND setting ILIKE '%pg_catalog%'
-            AND setting ILIKE '%public%'
-            AND setting ILIKE '%pg_temp%'
+            AND settings.setting_value ILIKE '%pg_catalog%'
+            AND settings.setting_value ILIKE '%public%'
+            AND settings.setting_value ILIKE '%pg_temp%'
         ) AS search_path_pinned,
         EXISTS (
           SELECT 1 FROM unnest(COALESCE(p.proconfig, ARRAY[]::text[])) setting
