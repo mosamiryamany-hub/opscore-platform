@@ -53,3 +53,15 @@ test('migration 057 exposes only a runtime-bound read-only migration 056 attesta
   assert.doesNotMatch(migration, /GRANT\s+SELECT\s+ON\s+(?:TABLE\s+)?public\.schema_migrations/i);
   assert.match(migration, /function_owner <> 'neondb_owner'/);
 });
+
+
+test('migration 058 pins every public SECURITY DEFINER routine to a catalog-first search path', () => {
+  const migration = read('sql/postgres/058_security_definer_search_path_hardening.sql');
+  assert.match(migration, /required_signatures text\[\]/);
+  assert.match(migration, /opscore_attest_migration_056\(text\)/);
+  assert.match(migration, /ALTER FUNCTION %s SET search_path TO pg_catalog, public, pg_temp/);
+  assert.match(migration, /owner_superuser IS NOT FALSE/);
+  assert.match(migration, /OPSC_SECURITY_DEFINER_SEARCH_PATH_HARDENING_FAILED/);
+  assert.doesNotMatch(migration, /GRANT\s+EXECUTE\s+ON\s+FUNCTION[^;]*TO\s+PUBLIC/i);
+  assert.doesNotMatch(migration, /GRANT\s+SELECT\s+ON\s+(?:TABLE\s+)?public\.schema_migrations/i);
+});
