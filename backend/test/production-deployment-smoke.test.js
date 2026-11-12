@@ -27,7 +27,8 @@ test('Vercel CLI stderr is mapped to safe error classes without leaking its cont
     ['Unknown option --unknown', 1, 'VERCEL_CLI_ARGUMENT_ERROR'],
     ['connect ETIMEDOUT', 1, 'NETWORK_TIMEOUT'],
     ['connect ECONNRESET', 1, 'NETWORK_CONNECTION_FAILED'],
-    ['argument parser returned usage error', 2, 'VERCEL_CLI_USAGE_ERROR']
+    ['argument parser returned usage error', 2, 'CLI_EXIT_2_UNCLASSIFIED'],
+    ['curl: (2) no URL specified', 2, 'CURL_EXIT_2']
   ];
   for (const [stderr, exitCode, expected] of cases) {
     const result = classifyVercelCurlFailure(stderr, exitCode);
