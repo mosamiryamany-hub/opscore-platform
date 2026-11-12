@@ -74,6 +74,12 @@ function sanitizeIdentityReport(report) {
     ? { status: safeCode(value.roles.status), reasonCode: safeCode(value.roles.reasonCode) }
     : null;
 
+  const envChecks = value.environmentChecks || {};
+  const grants = value.authFunctionGrants || {};
+  const rls = value.rowLevelSecurity || {};
+  const ledger = value.migrationLedger || {};
+  const count = candidate => Number.isSafeInteger(candidate) && candidate >= 0 ? candidate : null;
+
   return {
     schemaVersion: safeString(value.schemaVersion, 96),
     checkedAt: safeString(value.checkedAt, 48),
@@ -93,13 +99,13 @@ function sanitizeIdentityReport(report) {
       clientSslMode: safeCode(String(target.clientSslMode || '').toUpperCase().replace(/-/g, '_')),
       channelBinding: safeCode(String(target.channelBinding || '').toUpperCase().replace(/-/g, '_'))
     },
-    environmentChecks: pick(value.environmentChecks, [
-      'opscDatabaseUrlPresent',
-      'selectedConnectionStringPresent',
-      'databaseUrlPresent',
-      'databaseUrlUnpooledPresent',
-      'databaseUrlMatchesOpscDatabaseUrl'
-    ]),
+    environmentChecks: {
+      opscDatabaseUrlPresent: envChecks.opscDatabaseUrlPresent === true,
+      selectedConnectionStringPresent: envChecks.selectedConnectionStringPresent === true,
+      databaseUrlPresent: envChecks.databaseUrlPresent === true,
+      databaseUrlUnpooledPresent: envChecks.databaseUrlUnpooledPresent === true,
+      databaseUrlMatchesOpscDatabaseUrl: envChecks.databaseUrlMatchesOpscDatabaseUrl === true
+    },
     identity: {
       database_name: safeString(identity.database_name, 64),
       session_user: safeString(identity.session_user, 64),
@@ -109,18 +115,33 @@ function sanitizeIdentityReport(report) {
       tls_enabled: identity.tls_enabled === true
     },
     roles,
-    authFunctionGrants: pick(value.authFunctionGrants, [
-      'required', 'present', 'securityDefiner', 'runtimeExecute', 'publicExecuteAbsent',
-      'ownerBypassesRls', 'searchPathPinned', 'missingFunctions',
-      'missingRuntimeExecute', 'publicExecutePresent', 'status', 'reasonCode'
-    ]),
-    rowLevelSecurity: pick(value.rowLevelSecurity, [
-      'public_application_tables', 'rls_enabled_tables', 'force_rls_tables', 'status', 'reasonCode'
-    ]),
-    migrationLedger: pick(value.migrationLedger, [
-      'status', 'migration056Recorded', 'migration056SourceHashMatches',
-      'latestFilename', 'migrationCount', 'sourceSha256', 'reasonCode'
-    ])
+    authFunctionGrants: {
+      status: safeCode(grants.status),
+      reasonCode: safeCode(grants.reasonCode),
+      required: count(grants.required),
+      present: count(grants.present),
+      securityDefiner: count(grants.securityDefiner),
+      runtimeExecute: count(grants.runtimeExecute),
+      publicExecuteAbsent: count(grants.publicExecuteAbsent),
+      ownerBypassesRls: count(grants.ownerBypassesRls),
+      searchPathPinned: count(grants.searchPathPinned)
+    },
+    rowLevelSecurity: {
+      status: safeCode(rls.status),
+      reasonCode: safeCode(rls.reasonCode),
+      public_application_tables: count(rls.public_application_tables),
+      rls_enabled_tables: count(rls.rls_enabled_tables),
+      force_rls_tables: count(rls.force_rls_tables)
+    },
+    migrationLedger: {
+      status: safeCode(ledger.status),
+      reasonCode: safeCode(ledger.reasonCode),
+      migration056Recorded: ledger.migration056Recorded === true,
+      migration056SourceHashMatches: ledger.migration056SourceHashMatches === true,
+      latestFilename: safeString(ledger.latestFilename, 128),
+      migrationCount: count(ledger.migrationCount),
+      sourceSha256: /^[a-f0-9]{64}$/.test(String(ledger.sourceSha256 || '')) ? ledger.sourceSha256 : null
+    }
   };
 }
 
