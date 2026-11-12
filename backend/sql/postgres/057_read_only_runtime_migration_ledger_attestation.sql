@@ -90,6 +90,7 @@ BEGIN
 END
 $function$;
 
+ALTER FUNCTION public.opscore_attest_migration_056(text) OWNER TO neondb_owner;
 REVOKE ALL ON FUNCTION public.opscore_attest_migration_056(text) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.opscore_attest_migration_056(text) TO opscore_runtime;
 
@@ -120,8 +121,8 @@ BEGIN
         AND settings.setting_value ILIKE '%pg_temp%'
     ),
     EXISTS (
-      SELECT 1 FROM unnest(COALESCE(p.proconfig, ARRAY[]::text[])) setting
-      WHERE setting = 'row_security=off'
+      SELECT 1 FROM unnest(COALESCE(p.proconfig, ARRAY[]::text[])) AS settings(setting_value)
+      WHERE settings.setting_value = 'row_security=off'
     )
   INTO function_owner, owner_bypass, runtime_execute, public_execute,
        search_path_pinned, row_security_disabled
