@@ -11,7 +11,7 @@ const {
 } = require('../scripts/production-database-identity-preflight');
 
 test('Neon pooled URLs expose only a non-secret endpoint identifier and region', () => {
-  const raw = 'postgresql://runtime:do-not-print-this@ep-prod-abc123-pooler.us-east-2.aws.neon.tech/opscore?sslmode=require';
+  const raw = 'postgresql://runtime:do-not-print-this@ep-prod-abc123-pooler.us-east-2.aws.neon.tech/opscore?sslmode=require&channel_binding=require';
   const target = parseDatabaseTarget(raw);
   assert.deepEqual(
     { provider: target.provider, endpointId: target.endpointId, region: target.region },
