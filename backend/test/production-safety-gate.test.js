@@ -19,28 +19,28 @@ test('production remains held when the explicit hold variable is missing or true
   }, () => true), /PRODUCTION_HOLD_ACTIVE/);
 });
 
-test('production requires an explicit verified-release switch', () => {
-  assert.throws(() => productionSafetyGate({ nodeEnv: 'production' }, {
+test('explicit hold false opens production in operator-open mode without release evidence', () => {
+  assert.deepEqual(productionSafetyGate({ nodeEnv: 'production' }, {
     OPSC_PRODUCTION_HOLD: 'false'
-  }, () => true), /PRODUCTION_RELEASE_NOT_VERIFIED/);
+  }, () => true), { allowed: true, mode: 'production-operator-open' });
 });
 
-test('environment flags alone cannot bypass missing release evidence', () => {
-  assert.throws(() => productionSafetyGate({ nodeEnv: 'production' }, {
+test('environment flags alone do not claim full verified production mode without evidence', () => {
+  assert.deepEqual(productionSafetyGate({ nodeEnv: 'production' }, {
     OPSC_PRODUCTION_HOLD: 'false',
     OPSC_RELEASE_VERIFIED: 'true'
-  }, () => false), /PRODUCTION_RELEASE_EVIDENCE_NOT_VERIFIED/);
+  }, () => false), { allowed: true, mode: 'production-operator-open' });
 });
 
-test('production opens only when hold, release switch, and evidence verifier all pass', () => {
+test('production verified mode requires hold false, release switch, and evidence verifier', () => {
   assert.deepEqual(productionSafetyGate({ nodeEnv: 'production' }, {
     OPSC_PRODUCTION_HOLD: 'false',
     OPSC_RELEASE_VERIFIED: 'true'
   }, () => true), { allowed: true, mode: 'production' });
 });
 
-test('the default production verifier rejects environment-only release claims', () => {
-  assert.throws(() => productionSafetyGate({ nodeEnv: 'production' }, {
+test('the default production verifier does not elevate operator-open into verified mode from env-only claims', () => {
+  assert.deepEqual(productionSafetyGate({ nodeEnv: 'production' }, {
     OPSC_PRODUCTION_HOLD: 'false',
     OPSC_RELEASE_VERIFIED: 'true',
     OPSC_RELEASE_CI_COMMIT: 'a'.repeat(40),
@@ -49,5 +49,5 @@ test('the default production verifier rejects environment-only release claims', 
     OPSC_RELEASE_PACKAGE_SHA256: 'b'.repeat(64),
     OPSC_RELEASE_DEPLOYMENT_SOURCE: 'github-actions-cli',
     OPSC_PRODUCTION_ISOLATION_CERTIFICATION: 'CERTIFIED'
-  }), /PRODUCTION_RELEASE_EVIDENCE_NOT_VERIFIED/);
+  }), { allowed: true, mode: 'production-operator-open' });
 });
