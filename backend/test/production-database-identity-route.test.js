@@ -156,6 +156,8 @@ test('production database diagnostic returns sanitized identity without secrets 
   assert.equal(res.headers['cache-control'], 'no-store, private, max-age=0');
   assert.equal(res.headers['x-robots-tag'], 'noindex, nofollow');
   const body = JSON.parse(res.body);
+  assert.equal(body.deployment.environment, 'production');
+  assert.equal(body.environment.vercelEnvironment, 'production');
   assert.equal(body.deployment.commitSha, 'a'.repeat(40));
   assert.equal(body.deployment.ref, 'main');
   assert.equal(body.database.applicationDatabaseBinding, 'PRESENT');
