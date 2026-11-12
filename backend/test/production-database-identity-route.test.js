@@ -163,6 +163,7 @@ test('production database diagnostic returns sanitized identity without secrets 
   assert.equal(body.database.applicationDatabaseBinding, 'PRESENT');
   assert.equal(body.database.identity.current_user, 'opscore_runtime');
   assert.equal(body.database.identity.server_version, '18.6');
+  assert.equal(Object.prototype.hasOwnProperty.call(body.database.identity, 'tls_enabled'), false);
   assert.equal(body.database.transactionMode, 'READ_ONLY');
   assert.equal(body.environment.productionHoldConfiguredFalse, false);
   assert.equal(body.environment.releaseProofVerified, false);
