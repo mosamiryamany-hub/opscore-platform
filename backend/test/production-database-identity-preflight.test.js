@@ -6,11 +6,12 @@ const {
   migrationSourceDigest,
   parseDatabaseTarget,
   safeErrorCode,
-  selectDatabaseConnection
+  selectDatabaseConnection,
+  buildEnvironmentChecks
 } = require('../scripts/production-database-identity-preflight');
 
 test('Neon pooled URLs expose only a non-secret endpoint identifier and region', () => {
-  const raw = 'postgresql://runtime:do-not-print-this@ep-prod-abc123-pooler.us-east-2.aws.neon.tech/opscore?sslmode=require';
+  const raw = 'postgresql://runtime:do-not-print-this@ep-prod-abc123-pooler.us-east-2.aws.neon.tech/opscore?sslmode=require&channel_binding=require';
   const target = parseDatabaseTarget(raw);
   assert.deepEqual(
     { provider: target.provider, endpointId: target.endpointId, region: target.region },
@@ -19,6 +20,8 @@ test('Neon pooled URLs expose only a non-secret endpoint identifier and region',
   assert.equal(JSON.stringify(target).includes('do-not-print-this'), false);
   assert.equal(JSON.stringify(target).includes('ep-prod-abc123-pooler.us-east-2.aws.neon.tech'), false);
   assert.match(target.hostnameSha256, /^[a-f0-9]{64}$/);
+  assert.equal(target.clientSslMode, 'require');
+  assert.equal(target.channelBinding, 'require');
 });
 
 test('non-Neon PostgreSQL endpoints are identified without disclosing host or credentials', () => {
@@ -86,4 +89,25 @@ test('no available database URL fails closed', () => {
     source: 'NONE',
     applicationBinding: false
   });
+});
+
+test('candidate-only connection never reports authoritative OPSC database URL as present', () => {
+  const env = { DATABASE_URL_UNPOOLED: 'postgresql://integration:secret@ep-candidate.us-east-1.aws.neon.tech/candidate' };
+  const selected = selectDatabaseConnection(env);
+  const checks = buildEnvironmentChecks(env, selected);
+  assert.equal(checks.opscDatabaseUrlPresent, false);
+  assert.equal(checks.selectedConnectionStringPresent, true);
+  assert.equal(checks.databaseUrlUnpooledPresent, true);
+  assert.equal(checks.databaseUrlMatchesOpscDatabaseUrl, true);
+});
+
+test('application URL presence and equality are measured independently', () => {
+  const env = {
+    OPSC_DATABASE_URL: 'postgresql://app:secret@ep-app.us-east-1.aws.neon.tech/app',
+    DATABASE_URL: 'postgresql://app:secret@ep-app.us-east-1.aws.neon.tech/app'
+  };
+  const checks = buildEnvironmentChecks(env);
+  assert.equal(checks.opscDatabaseUrlPresent, true);
+  assert.equal(checks.databaseUrlPresent, true);
+  assert.equal(checks.databaseUrlMatchesOpscDatabaseUrl, true);
 });

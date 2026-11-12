@@ -56,7 +56,9 @@ function parseDatabaseTarget(rawUrl) {
     provider: isNeon ? 'neon' : 'postgresql',
     endpointId,
     region: isNeon && labels.includes('aws') && labels.indexOf('aws') > 0 ? labels[labels.indexOf('aws') - 1] : null,
-    hostnameSha256: sha256(hostname)
+    hostnameSha256: sha256(hostname),
+    clientSslMode: parsed.searchParams.get('sslmode') || 'not-specified',
+    channelBinding: parsed.searchParams.get('channel_binding') || 'not-specified'
   };
 }
 
@@ -72,6 +74,18 @@ function sourceCommit(env = process.env) {
 
 function migrationSourceDigest() {
   return sha256(fs.readFileSync(MIGRATION_PATH));
+}
+
+function buildEnvironmentChecks(env = process.env, selectedConnection = selectDatabaseConnection(env)) {
+  const opscUrl = String(env.OPSC_DATABASE_URL || '').trim();
+  const databaseUrl = String(env.DATABASE_URL || '').trim();
+  return {
+    opscDatabaseUrlPresent: Boolean(opscUrl),
+    selectedConnectionStringPresent: Boolean(selectedConnection.connectionString),
+    databaseUrlPresent: Boolean(databaseUrl),
+    databaseUrlUnpooledPresent: Boolean(String(env.DATABASE_URL_UNPOOLED || '').trim()),
+    databaseUrlMatchesOpscDatabaseUrl: !databaseUrl || (Boolean(opscUrl) && databaseUrl === opscUrl)
+  };
 }
 
 function selectDatabaseConnection(env = process.env) {
@@ -124,12 +138,7 @@ async function inspectDatabase(env = process.env) {
     identityScope: selectedConnection.applicationBinding ? 'APPLICATION_DATABASE' : 'INTEGRATION_CANDIDATE_ONLY',
     applicationDatabaseBinding: selectedConnection.applicationBinding ? 'PRESENT' : 'UNVERIFIED',
     target: null,
-    environmentChecks: {
-      opscDatabaseUrlPresent: rawUrl.length > 0,
-      databaseUrlPresent: Boolean(String(env.DATABASE_URL || '').trim()),
-      databaseUrlUnpooledPresent: Boolean(String(env.DATABASE_URL_UNPOOLED || '').trim()),
-      databaseUrlMatchesOpscDatabaseUrl: !env.DATABASE_URL || (Boolean(String(env.OPSC_DATABASE_URL || '').trim()) && env.DATABASE_URL === String(env.OPSC_DATABASE_URL).trim())
-    },
+    environmentChecks: buildEnvironmentChecks(env, selectedConnection),
     identity: null,
     roles: null,
     authFunctionGrants: null,
@@ -431,5 +440,6 @@ module.exports = {
   parseDatabaseTarget,
   safeErrorCode,
   selectDatabaseConnection,
+  buildEnvironmentChecks,
   inspectDatabase
 };
