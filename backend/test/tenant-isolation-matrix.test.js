@@ -12,6 +12,7 @@
  *      401/403/404 or a documented empty collection; server errors are failures;
  *   3. true cross-tenant fixtures cover work-orders, customers and evidence
  *      uploads, including customer soft-delete/restore and evidence-chunk writes.
+ *   4. write probes carry valid idempotency keys so they reach resource checks.
  *
  * Two tenants are provisioned through SQL under the application's documented
  * access_mode/tenant GUC contract (no BYPASSRLS) on a disposable engine
@@ -61,7 +62,7 @@ const EXCLUDED_ROUTES = new Set(['/api/health', '/api/openapi.json', '/api/v1/bi
 // Documented diagnostic endpoints: they expose platform/diagnostic posture (not
 // tenant data). /metrics requires METRICS_AUTH_TOKEN in production (HTTP 404 when
 // unconfigured); the verify endpoints are public release/deployment proofs.
-const DIAGNOSTIC_ROUTES = new Set(['/api/verify/database', '/api/verify/database-security', '/metrics']);
+const DIAGNOSTIC_ROUTES = new Set(['/api/verify/database', '/api/verify/database-security', '/api/verify/deployment', '/metrics']);
 
 test('tenant matrix probe paths resolve every source-derived route placeholder', () => {
   const inventory = JSON.parse(fs.readFileSync(INVENTORY_PATH, 'utf8'));
@@ -266,7 +267,7 @@ test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cro
           signal: AbortSignal.timeout(20000)
         });
         const denied = [401, 403, 404].includes(resp.status);
-        unauthenticated.push({ route: `${r.method} ${r.route}`, status: denied ? 'PASS' : 'FAIL', httpStatus: resp.status, detail: denied ? 'unauthenticated request rejected' : 'UNAUTHENTICATED ACCESS SUCCEEDED' });
+        unauthenticated.push({ route: `${r.method} ${r.route}`, status: denied ? 'PASS' : 'FAIL', httpStatus: resp.status, detail: denied ? 'unauthenticated request rejected' : `UNAUTHENTICATED PROBE NOT DENIED (HTTP ${resp.status})` });
       } catch (error) {
         unauthenticated.push({ route: `${r.method} ${r.route}`, status: 'FAIL', httpStatus: null, detail: `request error: ${String(error.message || error).slice(0, 120)}` });
       }
@@ -280,7 +281,7 @@ test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cro
       try {
         const resp = await fetch(base + target, {
           method: r.method,
-          headers: { cookie: cookieB, ...(BODY_METHODS.has(r.method) ? { 'content-type': 'application/json' } : {}) },
+          headers: { cookie: cookieB, ...(BODY_METHODS.has(r.method) ? { 'content-type': 'application/json' } : {}), ...(r.method === 'GET' ? {} : { 'idempotency-key': `matrix-foreign-${stamp}-${foreignId.length}` }) },
           body: BODY_METHODS.has(r.method) ? '{}' : undefined,
           signal: AbortSignal.timeout(20000)
         });
@@ -289,7 +290,7 @@ test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cro
         try { body2 = text2 ? JSON.parse(text2) : null; } catch { body2 = null; }
         const emptyList = resp.status === 200 && Array.isArray(body2) && body2.length === 0;
         const denied = [401, 403, 404].includes(resp.status) || emptyList;
-        foreignId.push({ route: `${r.method} ${r.route}`, status: denied ? 'PASS' : 'FAIL', httpStatus: resp.status, detail: denied ? (emptyList ? 'foreign parent not found; empty list returned (no rows leaked)' : `foreign-ID probe denied or not-found for tenant B (HTTP ${resp.status})`) : 'FOREIGN-ID ACCESS SUCCEEDED FOR TENANT B' });
+        foreignId.push({ route: `${r.method} ${r.route}`, status: denied ? 'PASS' : 'FAIL', httpStatus: resp.status, detail: denied ? (emptyList ? 'foreign parent not found; empty list returned (no rows leaked)' : `foreign-ID probe denied or not-found for tenant B (HTTP ${resp.status})`) : `FOREIGN-ID PROBE DID NOT PROVE DENIAL (HTTP ${resp.status})` });
       } catch (error) {
         foreignId.push({ route: `${r.method} ${r.route}`, status: 'FAIL', httpStatus: null, detail: `request error: ${String(error.message || error).slice(0, 120)}` });
       }
@@ -385,17 +386,18 @@ test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cro
       skipped,
       documentedExclusions: {
         diagnosticRoutes: [...DIAGNOSTIC_ROUTES],
-        reason: 'Platform diagnostic/proof endpoints (not tenant data). /metrics requires METRICS_AUTH_TOKEN in production (HTTP 404 when unconfigured); verify endpoints are public release/deployment proofs by design.'
+        reason: 'Platform diagnostic/proof endpoints are not tenant data. /api/verify/deployment and the release/database verification endpoints are public proof surfaces; /metrics returns 404 when METRICS_AUTH_TOKEN is unconfigured.'
       },
       cleanupErrors,
       productionCertification: false,
       isolationCertification: 'NOT_CERTIFIED',
       status: failed.length || cleanupErrors.length ? 'FAIL' : 'PASS',
-      note: 'Route-level matrix executed against the source-derived inventory at the tested commit. Unauthenticated and foreign-ID probes cover every tenant-data route; true cross-tenant fixture checks cover work-orders and customers. Even on PASS, formal production isolation certification remains NOT_CERTIFIED until the required certification procedures complete.'
+      note: 'Route-level matrix executed against the source-derived inventory at the tested commit. Unauthenticated and foreign-ID probes cover every non-public tenant-data route; true cross-tenant fixture checks cover work-orders, customers and evidence uploads. Even on PASS, formal production isolation certification remains NOT_CERTIFIED until the required certification procedures complete.'
     };
     writeResult(report);
     process.stdout.write(`TENANT_ISOLATION_MATRIX_REPORT=${RESULT_PATH}\n`);
     process.stdout.write(`TENANT_ISOLATION_MATRIX_SUMMARY=${JSON.stringify(report.tested)}\n`);
+    if (failed.length) process.stdout.write(`TENANT_ISOLATION_MATRIX_FAILURES=${JSON.stringify(failed)}\n`);
     if (report.status !== 'PASS') {
       const sample = failed.slice(0, 5).map(f => `${f.route || f.id}: ${f.detail}`);
       assert.fail(`tenant isolation matrix failed (${failed.length} failing checks, ${cleanupErrors.length} cleanup errors): ${sample.join(' | ')}`);
