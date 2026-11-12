@@ -252,8 +252,10 @@ for (const rel of forbidden) {
   if (fs.existsSync(path.join(releaseDir, rel)))
     throw new Error(`FORBIDDEN_RELEASE_PATH_PRESENT:${ rel }`);
 }
-run('regenerate backend provenance', 'require(\'./scripts/generate-provenance.js\')', path.join(releaseDir, 'backend'));
-run('verify staged backend provenance', 'require(\'./scripts/verify.js\')', path.join(releaseDir, 'backend'), { OPSC_VERIFY_RECORDED_TEST_EVIDENCE: 'true' });
+// Redact connection metadata before hashing. The backend provenance manifests
+// must describe the exact sanitized files that ship in the archive.
+run('regenerate backend provenance after evidence redaction', 'require(\'./scripts/generate-provenance.js\')', path.join(releaseDir, 'backend'));
+run('verify staged backend provenance after evidence redaction', 'require(\'./scripts/verify.js\')', path.join(releaseDir, 'backend'), { OPSC_VERIFY_RECORDED_TEST_EVIDENCE: 'true' });
 // Verification exercises real SQLite/attachment paths. Remove those generated runtime
 // artifacts before the staged release gate, so the gate validates the exact tree that
 // is about to be shipped rather than the test side effects.
