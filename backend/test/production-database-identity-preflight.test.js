@@ -120,4 +120,5 @@ test('runtime migration ledger inspection never selects the protected ledger tab
   assert.match(source, /FROM public\.opscore_attest_migration_056\(\$1\)/);
   assert.doesNotMatch(source, /SELECT[\s\S]{0,240}FROM public\.schema_migrations/i);
   assert.match(source, /metadata\.function_owner === 'neondb_owner'/);
+  assert.match(source, /settings\.setting_value ILIKE '%pg_catalog%'/);
 });
