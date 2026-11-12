@@ -6,7 +6,8 @@ const {
   migrationSourceDigest,
   parseDatabaseTarget,
   safeErrorCode,
-  selectDatabaseConnection
+  selectDatabaseConnection,
+  buildEnvironmentChecks
 } = require('../scripts/production-database-identity-preflight');
 
 test('Neon pooled URLs expose only a non-secret endpoint identifier and region', () => {
@@ -86,4 +87,25 @@ test('no available database URL fails closed', () => {
     source: 'NONE',
     applicationBinding: false
   });
+});
+
+test('candidate-only connection never reports authoritative OPSC database URL as present', () => {
+  const env = { DATABASE_URL_UNPOOLED: 'postgresql://integration:secret@ep-candidate.us-east-1.aws.neon.tech/candidate' };
+  const selected = selectDatabaseConnection(env);
+  const checks = buildEnvironmentChecks(env, selected);
+  assert.equal(checks.opscDatabaseUrlPresent, false);
+  assert.equal(checks.selectedConnectionStringPresent, true);
+  assert.equal(checks.databaseUrlUnpooledPresent, true);
+  assert.equal(checks.databaseUrlMatchesOpscDatabaseUrl, true);
+});
+
+test('application URL presence and equality are measured independently', () => {
+  const env = {
+    OPSC_DATABASE_URL: 'postgresql://app:secret@ep-app.us-east-1.aws.neon.tech/app',
+    DATABASE_URL: 'postgresql://app:secret@ep-app.us-east-1.aws.neon.tech/app'
+  };
+  const checks = buildEnvironmentChecks(env);
+  assert.equal(checks.opscDatabaseUrlPresent, true);
+  assert.equal(checks.databaseUrlPresent, true);
+  assert.equal(checks.databaseUrlMatchesOpscDatabaseUrl, true);
 });
