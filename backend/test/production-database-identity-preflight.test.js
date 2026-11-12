@@ -50,3 +50,12 @@ test('database errors are reduced to SQLSTATE or a fixed safe code', () => {
   assert.equal(safeErrorCode({ code: '28P01', message: 'password leaked in this message' }), '28P01');
   assert.equal(safeErrorCode({ message: 'postgres://secret@host' }), 'DATABASE_IDENTITY_QUERY_FAILED');
 });
+
+test('canonical Neon compute host extracts region after the proxy label', () => {
+  const target = parseDatabaseTarget(
+    'postgresql://runtime:secret@ep-snowy-cloud-bc3hbfjy-dyh.c-16.us-east-1.aws.neon.tech/opscore'
+  );
+  assert.equal(target.endpointId, 'ep-snowy-cloud-bc3hbfjy-dyh');
+  assert.equal(target.region, 'us-east-1');
+  assert.equal(JSON.stringify(target).includes('c-16.us-east-1.aws.neon.tech'), false);
+});
