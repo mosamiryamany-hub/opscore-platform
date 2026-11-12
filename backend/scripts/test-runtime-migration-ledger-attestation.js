@@ -86,15 +86,15 @@ async function main() {
           WHERE acl.grantee = 0 AND acl.privilege_type = 'EXECUTE'
         ) AS public_can_execute,
         EXISTS (
-          SELECT 1 FROM unnest(COALESCE(p.proconfig, ARRAY[]::text[])) setting
-          WHERE setting ILIKE 'search_path=%'
+          SELECT 1 FROM unnest(COALESCE(p.proconfig, ARRAY[]::text[])) AS settings(setting_value)
+          WHERE settings.setting_value ILIKE 'search_path=%'
             AND settings.setting_value ILIKE '%pg_catalog%'
             AND settings.setting_value ILIKE '%public%'
             AND settings.setting_value ILIKE '%pg_temp%'
         ) AS search_path_pinned,
         EXISTS (
-          SELECT 1 FROM unnest(COALESCE(p.proconfig, ARRAY[]::text[])) setting
-          WHERE setting = 'row_security=off'
+          SELECT 1 FROM unnest(COALESCE(p.proconfig, ARRAY[]::text[])) AS settings(setting_value)
+          WHERE settings.setting_value = 'row_security=off'
         ) AS row_security_disabled
       FROM pg_class c
       JOIN pg_namespace n ON n.oid = c.relnamespace
