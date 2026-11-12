@@ -115,7 +115,7 @@ function writeGateOutput(result, env = process.env) {
 async function runDiagnostic(deploymentUrl, expectedCommit, expectedPipelineId, options = {}) {
   const parsed = parseDeploymentUrl(deploymentUrl);
   const curlRunner = options.curlRunner || runVercelCurl;
-  const response = await curlRunner(parsed, DIAGNOSTIC_PATH);
+  const response = await curlRunner(parsed, DIAGNOSTIC_PATH, { connectTimeoutSeconds: 5, maxTimeSeconds: 45, processTimeoutMs: 60000 });
   let payload = {};
   try { payload = JSON.parse(response.body); } catch {}
   return evaluateRuntimeDiagnostic(payload, response.statusCode, expectedCommit, expectedPipelineId);
