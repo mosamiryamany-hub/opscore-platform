@@ -71,7 +71,7 @@ function buildVercelCurlArgs(deploymentUrl, requestPath, connectTimeoutSeconds, 
   }
   return [
     '--no-color', '--scope', scope, 'curl', pathValue,
-    '--deployment', deployment.toString(), '-sS', '-i',
+    '--deployment', deployment.origin, '-sS', '-i',
     '--connect-timeout', String(connectTimeoutSeconds),
     '--max-time', String(maxTimeSeconds)
   ];
