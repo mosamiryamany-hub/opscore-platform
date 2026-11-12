@@ -6,7 +6,8 @@ const path = require('node:path');
 const { Client } = require('pg');
 
 const MIGRATION_056 = path.resolve(__dirname, '..', 'sql', 'postgres', '056_runtime_auth_definer_function_grants.sql');
-const SIGNATURE = 'public.opscore_attest_migration_056(text)';
+const FUNCTION_NAME = 'public.opscore_attest_migration_056';
+const FUNCTION_SIGNATURE = 'public.opscore_attest_migration_056(text)';
 
 function sha256File(filePath) {
   return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
@@ -40,7 +41,7 @@ async function main() {
     schemaVersion: 'opscore.runtime-migration-ledger-attestation-test.v1',
     status: 'FAIL',
     writeOperations: 0,
-    databaseName: decodeURIComponent(parsed.pathname.replace(/^\\/+/, '')) || null,
+    databaseName: decodeURIComponent(parsed.pathname.replace(/^\/+/, '')) || null,
     runtimeRole: null,
     checks: []
   };
@@ -69,7 +70,7 @@ async function main() {
       identity.current_user === 'opscore_runtime' &&
       identity.session_user === 'opscore_runtime' &&
       identity.transaction_read_only === 'on' &&
-      /^18\\./.test(identity.server_version));
+      /^18\./.test(identity.server_version));
 
     const catalog = (await client.query(`
       SELECT
@@ -100,7 +101,7 @@ async function main() {
       JOIN pg_proc p ON p.oid = to_regprocedure($1)
       JOIN pg_roles owner_role ON owner_role.oid = p.proowner
       WHERE n.nspname = 'public' AND c.relname = 'schema_migrations'
-    `, [SIGNATURE])).rows[0];
+    `, [FUNCTION_SIGNATURE])).rows[0];
 
     add('ledger_remains_forced_rls',
       catalog && catalog.ledger_rls_enabled === true && catalog.ledger_force_rls === true);
@@ -119,7 +120,7 @@ async function main() {
     const expectedDigest = sha256File(MIGRATION_056);
     const attestation = (await client.query(
       `SELECT migration_056_recorded, migration_056_hash_matches, latest_filename, migration_count
-         FROM ${SIGNATURE}($1)`,
+         FROM ${FUNCTION_NAME}($1)`,
       [expectedDigest]
     )).rows[0];
 
@@ -150,7 +151,7 @@ async function main() {
     }
   }
 
-  process.stdout.write(JSON.stringify(report, null, 2) + '\\n');
+  process.stdout.write(JSON.stringify(report, null, 2) + '\n');
   if (report.status !== 'PASS') process.exitCode = 1;
 }
 
@@ -160,6 +161,6 @@ main().catch(() => {
     status: 'FAIL',
     writeOperations: 0,
     reasonCode: 'MIGRATION_LEDGER_ATTESTATION_TEST_FAILED'
-  }, null, 2) + '\\n');
+  }, null, 2) + '\n');
   process.exitCode = 1;
 });
