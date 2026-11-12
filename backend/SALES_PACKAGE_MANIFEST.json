@@ -1,7 +1,7 @@
 {
   "product": "OpsCore Operational SaaS Starter Kit",
   "version": "0.11.62",
-  "generatedAt": "2026-11-12T02:38:53.331Z",
+  "generatedAt": "2026-11-12T02:48:54.391Z",
   "integrityExclusions": [
     "RELEASE_COMPONENT_SHA256SUMS.txt",
     "RELEASE_FILE_SHA256SUMS.txt",
@@ -1589,8 +1589,8 @@
     },
     {
       "path": "test/postgres-tenant-composite-fk.test.js",
-      "sha256": "e3e9908011111dce828b68f27378853522cb90c505c21f3c487b6cd0c4a2e0f9",
-      "bytes": 2371
+      "sha256": "7b206626ef7e066ffe8d561ef3a701d1a3451dd695e126ff420d2b28d93e354a",
+      "bytes": 2983
     },
     {
       "path": "test/postgres_optional_peer_contract.test.js",
