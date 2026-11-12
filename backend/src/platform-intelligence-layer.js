@@ -8,7 +8,9 @@ function parse(v,fallback){try{return JSON.parse(v)}catch{return fallback}}
 function positiveInt(v,fallback=0){const n=Number(v);return Number.isInteger(n)&&n>=0?n:fallback;}
 function safeText(v,max=120){return String(v??'').trim().slice(0,max);}
 function assertIsoDate(d){if(!/^\d{4}-\d{2}-\d{2}$/.test(String(d||'')))throw new Error('INVALID_SCENARIO_DATE');const x=new Date(`${d}T00:00:00Z`);if(Number.isNaN(x.getTime()))throw new Error('INVALID_SCENARIO_DATE');return d;}
-function ensureSchema(db){db.exec(`
+function ensureSchema(db){
+if(db.engine==='postgres')return; // PostgreSQL schema is migration-owned.
+db.exec(`
 CREATE TABLE IF NOT EXISTS operational_twin_snapshots(id TEXT PRIMARY KEY,organization_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,snapshot_kind TEXT NOT NULL CHECK(snapshot_kind IN ('on_demand','scenario')),state_json TEXT NOT NULL,state_sha256 TEXT NOT NULL,source_counts_json TEXT NOT NULL,created_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,created_at TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS idx_twin_org_created ON operational_twin_snapshots(organization_id,created_at);
 CREATE TABLE IF NOT EXISTS operational_twin_chain_events(id TEXT PRIMARY KEY,organization_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,sequence_no INTEGER NOT NULL,event_type TEXT NOT NULL,snapshot_id TEXT NOT NULL,previous_hash TEXT NOT NULL,event_json TEXT NOT NULL,event_hash TEXT NOT NULL,created_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,created_at TEXT NOT NULL,UNIQUE(organization_id,sequence_no),UNIQUE(organization_id,snapshot_id));

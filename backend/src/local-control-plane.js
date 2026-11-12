@@ -14,6 +14,8 @@ function sha(value) {
 function text(v, max = 200) { return String(v ?? '').trim().slice(0, max); }
 
 function ensureSchema(db) {
+  // PostgreSQL control-plane tables are provisioned by migrations, not runtime DDL.
+  if (db.engine === 'postgres') return;
   db.exec(`
     CREATE TABLE IF NOT EXISTS feature_flags (
       id TEXT PRIMARY KEY,

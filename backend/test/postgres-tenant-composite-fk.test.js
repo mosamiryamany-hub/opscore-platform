@@ -10,6 +10,29 @@ const migration = fs.readFileSync(path.join(root, 'sql/postgres/054_tenant_compo
 const gate = fs.readFileSync(path.join(root, 'scripts/postgres-tenant-composite-fk-gate.js'), 'utf8');
 const workflow = fs.readFileSync(path.resolve(root, '..', '.github/workflows/digital-twin-postgres-live.yml'), 'utf8');
 
+const versionMigration = fs.readFileSync(path.join(root, 'sql/postgres/055_completion_policy_version.sql'), 'utf8');
+const localControlPlane = fs.readFileSync(path.join(root, 'src/local-control-plane.js'), 'utf8');
+const platformIntelligence = fs.readFileSync(path.join(root, 'src/platform-intelligence-layer.js'), 'utf8');
+const enterpriseAdditions = fs.readFileSync(path.join(root, 'src/enterprise-2026-additions.js'), 'utf8');
+const fieldValueExtensions = fs.readFileSync(path.join(root, 'src/field-value-extensions.js'), 'utf8');
+const geofencing = fs.readFileSync(path.join(root, 'src/geofencing.js'), 'utf8');
+
+test('completion policy version migration backfills existing rows and enforces a positive version', () => {
+  assert.match(versionMigration, /ADD COLUMN IF NOT EXISTS version INTEGER/i);
+  assert.match(versionMigration, /UPDATE public\.completion_policies[\s\S]*SET version = 1[\s\S]*WHERE version IS NULL/i);
+  assert.match(versionMigration, /ALTER COLUMN version SET DEFAULT 1/i);
+  assert.match(versionMigration, /ALTER COLUMN version SET NOT NULL/i);
+  assert.match(versionMigration, /CHECK \(version >= 1\)/i);
+  assert.match(versionMigration, /VALIDATE CONSTRAINT completion_policies_version_positive/i);
+});
+
+test('PostgreSQL runtime skips DDL for migration-owned control-plane and twin tables', () => {
+  for (const source of [localControlPlane, platformIntelligence, enterpriseAdditions, fieldValueExtensions]) {
+    assert.match(source, /db\.engine\s*===\s*['"]postgres['"]/);
+  }
+  assert.equal((geofencing.match(/enabled=TRUE/g) || []).length, 3);
+});
+
 test('tenant FK migration installs and validates a composite key before removing the old FK', () => {
   assert.match(migration, /FOREIGN KEY \(%I, %I\) REFERENCES %I\.%I \(%I, %I\)/i);
   assert.ok(migration.indexOf('VALIDATE CONSTRAINT') < migration.indexOf('DROP CONSTRAINT'));
