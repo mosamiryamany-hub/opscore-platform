@@ -102,8 +102,7 @@ function sanitizeIdentityReport(report) {
       session_user: safeString(identity.session_user, 64),
       current_user: safeString(identity.current_user, 64),
       server_version: safeVersion(identity.server_version),
-      transaction_read_only: safeString(identity.transaction_read_only, 8),
-      tls_enabled: identity.tls_enabled === true
+      transaction_read_only: safeString(identity.transaction_read_only, 8)
     },
     roles,
     authFunctionGrants: {
