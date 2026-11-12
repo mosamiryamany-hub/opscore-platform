@@ -1,4 +1,5 @@
 'use strict';
+const startupEnvironment = { ...process.env };
 const path = require('node:path');
 const http = require('node:http');
 process.env.HOST = process.env.HOST || '0.0.0.0';
@@ -7,6 +8,12 @@ process.env.PORT = process.env.PORT || '3000';
 // explicit operator-provided 'true' may open service, and only when the immutable
 // identity file embedded by the main-branch CI build matches this Vercel deployment.
 const { hasVerifiedProductionRelease } = require(path.join(__dirname, '..', 'backend', 'src', 'release-proof'));
+const {
+  ROUTE_PATH: PRODUCTION_DB_IDENTITY_PATH,
+  requestPath: productionDbIdentityRequestPath,
+  createProductionDatabaseIdentityHandler
+} = require(path.join(__dirname, '..', 'backend', 'src', 'production-database-identity-route'));
+const productionDbIdentityHandler = createProductionDatabaseIdentityHandler();
 const requestedReleaseVerified = String(process.env.OPSC_RELEASE_VERIFIED || '').toLowerCase();
 const opscReleaseVerified = requestedReleaseVerified === 'true' && hasVerifiedProductionRelease(process.env);
 process.env.OPSC_RELEASE_VERIFIED = opscReleaseVerified ? 'true' : 'false';
@@ -21,7 +28,6 @@ process.env.OPSC_EXPECTED_INSTANCES = process.env.OPSC_EXPECTED_INSTANCES || '1'
 // overridden. Set FIREWALL_RATE_STATE=database with a shared store (or enforce
 // the limit at the Vercel edge/WAF) for multi-instance correctness.
 if (process.env.FIREWALL_RATE_STATE === undefined) process.env.FIREWALL_RATE_STATE = 'memory';
-if (!process.env.OPSC_DATABASE_URL && !process.env.DATABASE_URL) throw new Error('DATABASE_URL_REQUIRED');
 // Prefer restricted OpsCore role URL when present (commercial security boundary).
 if (process.env.OPSC_DATABASE_URL) process.env.DATABASE_URL = process.env.OPSC_DATABASE_URL;
 process.env.DATABASE_ENGINE = 'postgres';
@@ -31,6 +37,7 @@ process.env.OPSC_PG_SSL_REJECT_UNAUTHORIZED = process.env.OPSC_PG_SSL_REJECT_UNA
 let cachedHandler = null, initError = null;
 function loadHandler() {
   if (cachedHandler) return cachedHandler;
+  if (!process.env.OPSC_DATABASE_URL && !process.env.DATABASE_URL) throw new Error('DATABASE_URL_REQUIRED');
   if (initError) throw initError;
   let requestHandler = null;
   const originalCreateServer = http.createServer;
@@ -49,6 +56,9 @@ function loadHandler() {
   cachedHandler = requestHandler; return cachedHandler;
 }
 module.exports = function (req, res) {
+  if (productionDbIdentityRequestPath(req) === PRODUCTION_DB_IDENTITY_PATH) {
+    return productionDbIdentityHandler(req, res, startupEnvironment, process.env);
+  }
   try { return loadHandler()(req, res); }
   catch (err) {
     console.error(err);
