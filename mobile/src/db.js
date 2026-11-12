@@ -1,4 +1,5 @@
 import * as SQLite from 'expo-sqlite';
+import * as SecureStore from 'expo-secure-store';
 import {
   decryptLocalEvidence,
   decryptLocalText,
@@ -19,8 +20,47 @@ export function getLocalScope() {
   return activeScope;
 }
 
+const DB_KEY_SERVICE = 'opscore-mobile-db-key.v1';
+let dbKeyPromise = null;
+
+async function ensureDatabaseKeyHex() {
+  if (!dbKeyPromise) {
+    dbKeyPromise = (async () => {
+      let raw = await SecureStore.getItemAsync(DB_KEY_SERVICE, {
+        keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY
+      });
+      if (!raw) {
+        const bytes = new Uint8Array(32);
+        globalThis.crypto.getRandomValues(bytes);
+        raw = Array.from(bytes).map(byte => byte.toString(16).padStart(2, '0')).join('');
+        await SecureStore.setItemAsync(DB_KEY_SERVICE, raw, {
+          keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY
+        });
+      }
+      if (!/^[0-9a-f]{64}$/.test(raw)) throw new Error('LOCAL_DATABASE_KEY_FORMAT_INVALID');
+      return raw;
+    })().catch(error => { dbKeyPromise = null; throw error; });
+  }
+  return dbKeyPromise;
+}
+
+async function openKeyedDatabase() {
+  const db = await SQLite.openDatabaseAsync('opscore-mobile.db');
+  // SQLCipher (selected at native build time by the expo-sqlite useSQLCipher
+  // plugin): the key MUST be applied before any other statement and its effect
+  // is verified immediately. Fail closed when the native build lacks SQLCipher -
+  // silently continuing would leave the local database plaintext.
+  const keyHex = await ensureDatabaseKeyHex();
+  await db.execAsync(`PRAGMA key = "x'${keyHex}'"`);
+  const cipher = await db.getFirstAsync('PRAGMA cipher_version');
+  if (!cipher || !cipher.cipher_version) {
+    throw new Error('LOCAL_DATABASE_SQLCIPHER_UNAVAILABLE');
+  }
+  return db;
+}
+
 export function getDb() {
-  if (!dbPromise) dbPromise = SQLite.openDatabaseAsync('opscore-mobile.db');
+  if (!dbPromise) dbPromise = openKeyedDatabase();
   return dbPromise;
 }
 

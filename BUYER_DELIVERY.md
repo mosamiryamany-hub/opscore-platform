@@ -9,19 +9,19 @@ Production-wide tenant-isolation certification: **NOT_CERTIFIED**.
 
 - GitHub repository: https://github.com/mosamiryamany-hub/opscore-platform
 - Source branch: `main`
-- Source commit: `ad0cd0828815f5a213103bcfd8b312a32c01cc4d`
-- Secure Release workflow run: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/43267374864
-- GitHub artifact name: `opscore-release-43267374864`
+- Source commit: `d940152d1428d82d9bb0c57695d929099a648ac3`
+- Secure Release workflow run: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/43308699094
+- GitHub artifact name: `opscore-release-43308699094`
 - GitHub artifact ID: `13824023354`
 - Nested release archive: `OpsCore-release.zip`
 - Archive bytes: `1,881,299`
-- Archive SHA-256: `41809d7859138b7009e88b30af0e0acb336237d6616bf57b0563c99cc918b8dc`
+- Archive SHA-256: `5a5b731b17f1c8dcc1c102ea5c79fa3e4d01bb2750d91b6d941e6a02a068de9c`
 
 The ZIP passed archive integrity testing. The nested source package contains 687 files (734 ZIP entries including directory entries). Use the archive and statement from this exact run only. Any later source/documentation change requires a new archive and digest.
 
 ## Release evidence
 
-Run 43267374864 completed successfully with all 29 workflow steps successful, including buyer installation/self-validation, SBOM generation and verification, external release statement, Attestation and artifact upload.
+Run 43308699094 completed successfully with all 29 workflow steps successful, including buyer installation/self-validation, SBOM generation and verification, external release statement, Attestation and artifact upload.
 
 The artifact statement intentionally records:
 - `commercialClosure: PASS_WITH_BUYER_RESIDUALS`
@@ -32,7 +32,7 @@ The ZIP SHA-256 above was independently recalculated and matches the release sta
 
 ## Mobile source boundary
 
-The archive contains Expo source, not signed Android AAB/APK or iOS IPA binaries. The exact locked dependency audit in run #6 reported zero findings across info, low, moderate, high and critical severities. SDK baseline: Expo 58.0.23 / React Native 0.88.1 / React 19.3.0. This point-in-time npm audit does not replace future advisory monitoring, signed native builds or physical-device tests.
+The archive contains Expo source, not signed Android AAB/APK or iOS IPA binaries. The exact locked dependency audit in the current verified candidate run reported zero findings across info, low, moderate, high and critical severities. SDK baseline: Expo 58.0.23 / React Native 0.88.1 / React 19.3.0. This point-in-time npm audit does not replace future advisory monitoring, signed native builds or physical-device tests.
 
 ## Buyer-owned / environment-specific residuals
 

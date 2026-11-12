@@ -21,7 +21,7 @@ Buyer provisions/licenses/configures/tests required OIDC/JWKS, email/SMS/WhatsAp
 
 ## Buyer responsibility — Android/iOS native release
 
-Buyer owns EAS project/account linkage, Android/iOS signing credentials, native builds, physical-device tests, Apple/Google developer accounts, store submission/distribution and post-handover maintenance. The package includes Expo source only; no signed APK/AAB/IPA is included. The exact archive-producing GitHub Secure Release run 42949619029 reported zero npm audit findings across all severities for the SDK 58 / React Native 0.88.1 locked tree. The full JSON from that run is authoritative and point-in-time. No signed native binary or physical-device acceptance is included.
+Buyer owns EAS project/account linkage, Android/iOS signing credentials, native builds, physical-device tests, Apple/Google developer accounts, store submission/distribution and post-handover maintenance. The package includes Expo source only; no signed APK/AAB/IPA is included. The exact archive-producing GitHub Secure Release run 43308699094 reported zero npm audit findings across all severities for the SDK 58 / React Native 0.88.1 locked tree. The full JSON from that run is authoritative and point-in-time. No signed native binary or physical-device acceptance is included.
 
 ## Production boundary
 

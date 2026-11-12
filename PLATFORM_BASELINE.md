@@ -1,13 +1,13 @@
 # Platform baseline — GitHub / Neon / Vercel
 
-Current verified source candidate: OpsCore v0.11.62, GitHub main at commit `f3f33865618f0c9da304fe47ab2538b310d7d453`.
+Current verified source candidate: OpsCore v0.11.62, GitHub main at commit `d940152d1428d82d9bb0c57695d929099a648ac3`.
 
 | Item | Current verified value |
 |------|------------------------|
 | GitHub repository | `mosamiryamany-hub/opscore-platform` |
-| Main commit | `f3f33865618f0c9da304fe47ab2538b310d7d453` |
-| Secure Release run | [42949619029](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/42949619029) |
-| GitHub release artifact | `opscore-release-42949619029` |
+| Main commit | `d940152d1428d82d9bb0c57695d929099a648ac3` |
+| Secure Release run | [43308699094](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/43308699094) |
+| GitHub release artifact | `opscore-release-43308699094` |
 | Nested archive | `OpsCore-release.zip` |
 | Archive bytes | `1,881,299` |
 | Archive SHA-256 | `20aace624d0afe6dbdc0b07e8a8d3ee3a8604b7116a9eaca6cf0c8108d02adeb` |
@@ -19,7 +19,7 @@ Current verified source candidate: OpsCore v0.11.62, GitHub main at commit `f3f3
 
 ## Release truth boundary
 
-- Secure Release run 42949619029 passed all 29 workflow steps, including SBOM, archive and Attestation.
+- Secure Release run 43308699094 passed all 29 workflow steps, including SBOM, archive and Attestation.
 - The external statement reports `PASS_WITH_BUYER_RESIDUALS`, `productionCertification=false`, and `productionAcceptance=NOT_VERIFIED_AT_BUILD`.
 - Mobile locked-tree audit in that run reported zero findings at all severity levels; signed native builds and physical-device acceptance are not included.
 - Artifact Attestation is separate from a signed Git commit and separate from production acceptance.

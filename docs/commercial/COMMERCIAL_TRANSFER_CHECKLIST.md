@@ -16,7 +16,7 @@ The GitHub repository was confirmed **public** during the 2026-11-11 closeout in
 
 ## Mobile dependency warning
 
-The verified current source candidate uses Expo SDK 58.0.23 / React Native 0.88.1 / React 19.3.0. GitHub Secure Release run 42949619029 reported zero findings across all npm audit severities in its same-run mobile audit JSON. This is a point-in-time locked-tree result, not a guarantee against future advisories. Signed native binaries and physical-device acceptance remain buyer-side gates.
+The verified current source candidate uses Expo SDK 58.0.23 / React Native 0.88.1 / React 19.3.0. GitHub Secure Release run 43308699094 reported zero findings across all npm audit severities in its same-run mobile audit JSON. This is a point-in-time locked-tree result, not a guarantee against future advisories. Signed native binaries and physical-device acceptance remain buyer-side gates.
 
 ## Other production boundaries
 
@@ -24,4 +24,4 @@ The buyer/hosting owner must separately accept PostgreSQL/PostGIS schema and run
 
 ## Handover evidence
 
-Use the same GitHub Actions Secure Release run's outer artifact, nested `OpsCore-release.zip`, external `COMMERCIAL_RELEASE_STATEMENT.json`, JUnit/step results, `I18N_FORENSIC_AUDIT_RESULT.json`, mobile dependency audit JSON, root PostgreSQL runtime dependency audit JSON and SHA-256 evidence. For the current verified candidate, run ID is 42949619029 and its artifact is `opscore-release-42949619029`. Older artifacts are historical only. Neither a green backend closure gate nor a source archive implies production certification.
+Use the same GitHub Actions Secure Release run's outer artifact, nested `OpsCore-release.zip`, external `COMMERCIAL_RELEASE_STATEMENT.json`, JUnit/step results, `I18N_FORENSIC_AUDIT_RESULT.json`, mobile dependency audit JSON, root PostgreSQL runtime dependency audit JSON and SHA-256 evidence. For the current verified candidate, run ID is 43308699094 and its artifact is `opscore-release-43308699094`. Older artifacts are historical only. Neither a green backend closure gate nor a source archive implies production certification.

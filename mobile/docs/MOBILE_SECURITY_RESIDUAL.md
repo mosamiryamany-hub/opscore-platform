@@ -2,8 +2,8 @@
 
 ## Exact candidate evidence
 
-- Source commit: `f3f33865618f0c9da304fe47ab2538b310d7d453`
-- GitHub Actions Secure Release: [run 42949619029](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/42949619029)
+- Source commit: `d940152d1428d82d9bb0c57695d929099a648ac3`
+- GitHub Actions Secure Release: [run 43308699094](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/43308699094)
 - Locked package baseline: Expo SDK 58.0.23, React Native 0.88.1, React / React DOM 19.3.0.
 - Node.js CI runtime: 22.23.4.
 - The run's actual `mobile-dependency-audit.json` recorded 0 info, 0 low, 0 moderate, 0 high and 0 critical findings. The root PostgreSQL runtime dependency audit also recorded zero findings at all severities.
@@ -20,7 +20,7 @@ The isolated SDK 58 maintenance workflow previously passed:
 - Expo JavaScript exports for Android, iOS and web;
 - fresh npm audit with zero findings at every severity.
 
-The SDK 58 changes were merged through PR #15. Secure Release run #6 then rebuilt the exact archive from the current source commit and included its current audit evidence.
+The SDK 58 changes were merged through PR #15. Secure Release the current verified candidate run then rebuilt the exact archive from the current source commit and included its current audit evidence.
 
 ## Remaining mobile release gates
 
@@ -42,3 +42,8 @@ Run fresh `npm audit` on every release candidate. Keep npm lockfile updates repr
 - No claim of physical-device QA, App Store / Google Play approval or publication.
 - No claim that future dependency advisories are impossible.
 - No production certification or production-wide tenant-isolation certification.
+
+## Update - 2026-11-12
+
+- `mobile/src/db.js` opens the local database with SQLCipher keying: a 32-byte key is generated once and stored via `expo-secure-store` (WHEN_UNLOCKED_THIS_DEVICE_ONLY), applied with `PRAGMA key` before any other statement, and verified with `PRAGMA cipher_version`; the open fails closed with LOCAL_DATABASE_SQLCIPHER_UNAVAILABLE when the native build lacks SQLCipher.
+- `mobile/PrivacyInfo.xcprivacy` declares the Apple required-reason API categories; its presence and content are asserted by `mobile/scripts/verify-mobile.js`, which runs in CI on every pull request and main push.

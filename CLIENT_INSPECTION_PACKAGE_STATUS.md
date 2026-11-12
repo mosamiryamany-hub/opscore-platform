@@ -9,17 +9,17 @@ Production isolation certification: `NOT_CERTIFIED`.
 
 - Repository: https://github.com/mosamiryamany-hub/opscore-platform
 - Branch: `main`
-- Commit: `f3f33865618f0c9da304fe47ab2538b310d7d453`
-- Secure Release run: [42949619029](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/42949619029)
-- GitHub artifact: `opscore-release-42949619029` (artifact ID `13824023354`)
-- Nested archive: `OpsCore-release.zip` — 1,881,299 bytes
-- SHA-256: `20aace624d0afe6dbdc0b07e8a8d3ee3a8604b7116a9eaca6cf0c8108d02adeb`
+- Commit: `d940152d1428d82d9bb0c57695d929099a648ac3`
+- Secure Release run: [43308699094](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/43308699094)
+- GitHub artifact: `opscore-release-43308699094` (artifact ID `13824023354`)
+- Nested archive: `OpsCore-release.zip` — 1,966,630 bytes
+- SHA-256: `5a5b731b17f1c8dcc1c102ea5c79fa3e4d01bb2750d91b6d941e6a02a068de9c`
 
 All values above identify only this source candidate and its artifact. Any later source, release-tooling or package change requires a new Secure Release and new archive digest.
 
 ## Release evidence
 
-Run 42949619029 completed successfully with all 29 workflow steps successful. The run produced SBOM generation/verification, buyer installation/self-validation, archive, external release statement, artifact Attestation and uploaded artifact.
+Run 43308699094 completed successfully with all 29 workflow steps successful. The run produced SBOM generation/verification, buyer installation/self-validation, archive, external release statement, artifact Attestation and uploaded artifact.
 
 The archive statement records:
 - `commercialClosure: PASS_WITH_BUYER_RESIDUALS`
