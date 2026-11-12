@@ -185,7 +185,7 @@ async function inspectDatabase(env = process.env) {
     const roleResult = await safeRead(client, `
       SELECT
         requested.role_name,
-        (r.oid IS NOT NULL) AS exists,
+        (r.oid IS NOT NULL) AS role_exists,
         COALESCE(r.rolcanlogin, false) AS can_login,
         COALESCE(r.rolsuper, false) AS superuser,
         COALESCE(r.rolbypassrls, false) AS bypass_rls,
