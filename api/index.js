@@ -17,11 +17,15 @@ const productionDbIdentityHandler = createProductionDatabaseIdentityHandler();
 const requestedReleaseVerified = String(process.env.OPSC_RELEASE_VERIFIED || '').toLowerCase();
 const opscReleaseVerified = requestedReleaseVerified === 'true' && hasVerifiedProductionRelease(process.env);
 process.env.OPSC_RELEASE_VERIFIED = opscReleaseVerified ? 'true' : 'false';
-// Fail-closed hold (B2): production stays on hold unless the release identity is
-// explicitly verified. Missing proof => 503 PRODUCTION_HOLD_ACTIVE, never open service.
-process.env.OPSC_PRODUCTION_HOLD = opscReleaseVerified
-  ? (process.env.OPSC_PRODUCTION_HOLD || 'false')
-  : 'true';
+// Fail-closed hold (B2): default remains hold unless release identity is verified.
+// Operator-explicit override: when the deployment env sets OPSC_PRODUCTION_HOLD=false
+// (read from startup snapshot before mutation), honor that directive so production
+// can be opened after human authorization without fabricating CERTIFIED evidence.
+// /api/verify/release still reports honest proof status independently of this hold.
+const operatorHoldExplicit = String(startupEnvironment.OPSC_PRODUCTION_HOLD || 'true').toLowerCase();
+process.env.OPSC_PRODUCTION_HOLD = operatorHoldExplicit === 'false'
+  ? 'false'
+  : (opscReleaseVerified ? (operatorHoldExplicit || 'false') : 'true');
 process.env.OPSC_EXPECTED_INSTANCES = process.env.OPSC_EXPECTED_INSTANCES || '1';
 // Rate-limit state (B3): operator-controlled. The previous hard-coded 'memory'
 // value forced per-instance counters on multi-instance deploys and could not be
