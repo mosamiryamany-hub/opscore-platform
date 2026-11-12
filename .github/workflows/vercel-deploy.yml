@@ -175,7 +175,7 @@ jobs:
           ]
           for role in roles:
               lines.append(
-                  "Role " + str(role.get('role_name')) + ": exists=" + str(role.get('exists')) + ", login=" + str(role.get('can_login')) + ", superuser=" + str(role.get('superuser')) + ", BYPASSRLS=" + str(role.get('bypass_rls')) + ", elevated-membership=" + str(role.get('elevated_role_membership'))
+                  "Role " + str(role.get('role_name')) + ": exists=" + str(role.get('role_exists')) + ", login=" + str(role.get('can_login')) + ", superuser=" + str(role.get('superuser')) + ", BYPASSRLS=" + str(role.get('bypass_rls')) + ", CREATEROLE=" + str(role.get('create_role')) + ", CREATEDB=" + str(role.get('create_db')) + ", elevated-membership=" + str(role.get('elevated_role_membership'))
               )
           if grants:
               lines.append(
