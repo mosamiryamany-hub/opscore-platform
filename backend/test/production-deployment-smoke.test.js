@@ -7,9 +7,9 @@ const { parseDeploymentUrl, parseCurlResponse, buildVercelCurlArgs, classifyVerc
 const commit = '48ed78a825020986c53bd045e50c8ea852f53275';
 
 test('Vercel curl command is explicitly scoped and never places its token in argv', () => {
-  const env = { VERCEL_ORG_ID: 'team_example', VERCEL_TOKEN: 'do-not-expose-this-token' };
+  const env = { VERCEL_SCOPE: 'mosamiryamany-1692', VERCEL_ORG_ID: 'team_example', VERCEL_TOKEN: 'do-not-expose-this-token' };
   const args = buildVercelCurlArgs('https://opscore-platform-abc.vercel.app/api/health', 5, 45, env);
-  assert.deepEqual(args.slice(0, 4), ['--no-color', '--scope', 'team_example', 'curl']);
+  assert.deepEqual(args.slice(0, 4), ['--no-color', '--scope', 'mosamiryamany-1692', 'curl']);
   assert.equal(args.includes(env.VERCEL_TOKEN), false);
   assert.throws(() => buildVercelCurlArgs('https://opscore-platform-abc.vercel.app', 5, 45, {}), /VERCEL_SCOPE_REQUIRED/);
 });
@@ -23,7 +23,8 @@ test('Vercel CLI stderr is mapped to safe error classes without leaking its cont
     ['Deployment not found', 1, 'VERCEL_DEPLOYMENT_NOT_FOUND'],
     ['Unknown option --unknown', 1, 'VERCEL_CLI_ARGUMENT_ERROR'],
     ['connect ETIMEDOUT', 1, 'NETWORK_TIMEOUT'],
-    ['connect ECONNRESET', 1, 'NETWORK_CONNECTION_FAILED']
+    ['connect ECONNRESET', 1, 'NETWORK_CONNECTION_FAILED'],
+    ['argument parser returned usage error', 2, 'VERCEL_CLI_USAGE_ERROR']
   ];
   for (const [stderr, exitCode, expected] of cases) {
     const result = classifyVercelCurlFailure(stderr, exitCode);

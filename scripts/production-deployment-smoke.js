@@ -49,7 +49,7 @@ function parseCurlResponse(output) {
 }
 
 function buildVercelCurlArgs(targetUrl, connectTimeoutSeconds, maxTimeSeconds, env = process.env) {
-  const scope = String(env.VERCEL_ORG_ID || '').trim();
+  const scope = String(env.VERCEL_SCOPE || env.VERCEL_ORG_SLUG || env.VERCEL_ORG_ID || '').trim();
   if (!scope || !/^[A-Za-z0-9_-]{1,128}$/.test(scope)) throw new Error('VERCEL_SCOPE_REQUIRED');
   return [
     '--no-color', '--scope', scope, 'curl', targetUrl, '-sS', '-i',
@@ -69,6 +69,7 @@ function classifyVercelCurlFailure(stderr, exitCode) {
   if (/timed out|timeout|etimedout/.test(diagnostic)) return 'NETWORK_TIMEOUT';
   if (/enotfound|econnreset|econnrefused|epipe|network connection/.test(diagnostic)) return 'NETWORK_CONNECTION_FAILED';
   const code = Number(exitCode);
+  if (code === 2) return 'VERCEL_CLI_USAGE_ERROR';
   return Number.isInteger(code) && code > 0 && code < 256 ? `VERCEL_CLI_EXIT_${code}` : 'VERCEL_CURL_EXECUTION_FAILED';
 }
 
