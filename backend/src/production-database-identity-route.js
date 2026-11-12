@@ -83,7 +83,7 @@ function sanitizeIdentityReport(report) {
     identityScope: safeCode(value.identityScope),
     applicationDatabaseBinding: safeCode(value.applicationDatabaseBinding),
     target: {
-      provider: safeCode(target.provider),
+      provider: safeString(target.provider, 32),
       endpointId: safeString(target.endpointId, 96),
       region: safeString(target.region, 64),
       hostnameSha256: /^[a-f0-9]{64}$/.test(String(target.hostnameSha256 || '')) ? target.hostnameSha256 : null,
@@ -147,7 +147,7 @@ function environmentSnapshot(configuredEnv, effectiveEnv, releaseProofVerified) 
   const releaseEffective = String(effective.OPSC_RELEASE_VERIFIED || '').trim().toLowerCase();
 
   return {
-    vercelEnvironment: safeCode(effective.VERCEL_ENV),
+    vercelEnvironment: safeString(effective.VERCEL_ENV, 32),
     nodeEnvironmentProduction: String(effective.NODE_ENV || '').toLowerCase() === 'production',
     databaseEnginePostgres: String(effective.DATABASE_ENGINE || '').toLowerCase() === 'postgres',
     opscDatabaseUrlPresent: Boolean(opscUrl),
@@ -207,7 +207,7 @@ function createProductionDatabaseIdentityHandler(dependencies = {}) {
         schemaVersion: 'opscore.production-runtime-database-diagnostic.v1',
         generatedAt: new Date().toISOString(),
         deployment: {
-          environment: safeCode(effective.VERCEL_ENV),
+          environment: safeString(effective.VERCEL_ENV, 32),
           expectedDeploymentHostMatched: true,
           commitSha: embedded && /^[a-f0-9]{40}$/.test(String(embedded.commitSha || '').toLowerCase())
             ? String(embedded.commitSha).toLowerCase() : null,
