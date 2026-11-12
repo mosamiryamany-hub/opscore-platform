@@ -20,6 +20,8 @@ function haversineM(aLat,aLon,bLat,bLon) {
   return 2*R*Math.asin(Math.sqrt(Math.min(1,Math.max(0,x))));
 }
 function ensureSchema(db) {
+  // PostgreSQL schema is migration-owned; runtime must never attempt DDL.
+  if (db.engine === 'postgres') return;
   db.exec(`
     CREATE TABLE IF NOT EXISTS dynamic_geofence_events(
       id TEXT PRIMARY KEY,

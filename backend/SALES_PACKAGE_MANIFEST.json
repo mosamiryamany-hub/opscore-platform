@@ -1,7 +1,7 @@
 {
   "product": "OpsCore Operational SaaS Starter Kit",
   "version": "0.11.62",
-  "generatedAt": "2026-11-12T03:32:46.266Z",
+  "generatedAt": "2026-11-12T03:42:51.888Z",
   "integrityExclusions": [
     "RELEASE_COMPONENT_SHA256SUMS.txt",
     "RELEASE_FILE_SHA256SUMS.txt",
@@ -1004,8 +1004,8 @@
     },
     {
       "path": "src/enterprise-2026-additions.js",
-      "sha256": "939817e78e926f9b6bb753b61c173888bd8a328e45c3a36ebe3659dfd89005e2",
-      "bytes": 14756
+      "sha256": "b98c7c7efc139f889848f1750786b7648e21e8617631dcbd35cc063c36cad70d",
+      "bytes": 14869
     },
     {
       "path": "src/enterprise-extensions.js",
@@ -1024,8 +1024,8 @@
     },
     {
       "path": "src/field-value-extensions.js",
-      "sha256": "668559d9cbee760b638675366986da8817822f3544132d43e859f7e11a311b1f",
-      "bytes": 18287
+      "sha256": "65e61c6720a25a19130ccd0e7bace9887fdbe0fa0cde47b216c9238d6c1cc471",
+      "bytes": 18402
     },
     {
       "path": "src/firewall.js",
@@ -1044,8 +1044,8 @@
     },
     {
       "path": "src/geofencing.js",
-      "sha256": "4257de523230ec16f3fab2e0a8da40536a6f78dc36930014f5fb9371d8a8337a",
-      "bytes": 17738
+      "sha256": "bf671960d1462e1f0a123bd9cad06d370439e634b83083daa322b838323f1cc4",
+      "bytes": 17747
     },
     {
       "path": "src/integrity-graph.js",
