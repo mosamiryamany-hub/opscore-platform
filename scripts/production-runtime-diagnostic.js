@@ -45,7 +45,7 @@ function evaluateRuntimeDiagnostic(payload, httpStatus, expectedCommit, expected
     check('postgres_runtime_identity', identity.current_user === 'opscore_runtime' &&
       identity.session_user === 'opscore_runtime' &&
       /^18\./.test(String(identity.server_version || '')) &&
-      identity.transaction_read_only === 'on' && database.transactionMode === 'READ ONLY'),
+      identity.transaction_read_only === 'on' && database.transactionMode === 'READ_ONLY'),
     check('runtime_role_least_privilege', runtimeRole &&
       runtimeRole.role_exists === true && runtimeRole.can_login === true &&
       runtimeRole.superuser === false && runtimeRole.bypass_rls === false &&
