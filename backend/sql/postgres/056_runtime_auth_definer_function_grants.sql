@@ -76,10 +76,10 @@ BEGIN
     END IF;
     IF NOT EXISTS (
       SELECT 1
-      FROM unnest(function_config) AS setting
-      WHERE setting LIKE 'search_path=%'
-        AND setting ILIKE '%public%'
-        AND setting ILIKE '%pg_temp%'
+      FROM unnest(function_config) AS config(setting)
+      WHERE config.setting LIKE 'search_path=%'
+        AND config.setting ILIKE '%public%'
+        AND config.setting ILIKE '%pg_temp%'
     ) THEN
       RAISE EXCEPTION 'OPSC_AUTH_FUNCTION_SEARCH_PATH_NOT_PINNED: %', signature;
     END IF;
