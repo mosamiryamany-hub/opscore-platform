@@ -272,8 +272,8 @@ async function inspectDatabase(env = process.env) {
             SELECT 1
             FROM unnest(COALESCE(p.proconfig, ARRAY[]::text[])) AS setting
             WHERE setting ILIKE 'search_path=%'
-              AND setting ILIKE '%public%'
-              AND setting ILIKE '%pg_temp%'
+              AND settings.setting_value ILIKE '%public%'
+              AND settings.setting_value ILIKE '%pg_temp%'
           )
           ELSE false
         END AS search_path_pinned
@@ -363,9 +363,9 @@ async function inspectDatabase(env = process.env) {
             CASE WHEN p.oid IS NOT NULL THEN EXISTS (
               SELECT 1 FROM unnest(COALESCE(p.proconfig, ARRAY[]::text[])) setting
               WHERE setting ILIKE 'search_path=%'
-                AND setting ILIKE '%pg_catalog%'
-                AND setting ILIKE '%public%'
-                AND setting ILIKE '%pg_temp%'
+                AND settings.setting_value ILIKE '%pg_catalog%'
+                AND settings.setting_value ILIKE '%public%'
+                AND settings.setting_value ILIKE '%pg_temp%'
             ) ELSE false END AS search_path_pinned,
             CASE WHEN p.oid IS NOT NULL THEN EXISTS (
               SELECT 1 FROM unnest(COALESCE(p.proconfig, ARRAY[]::text[])) setting
