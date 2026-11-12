@@ -40,3 +40,16 @@ test('live PostgreSQL gate tests the runtime role and tenant policies', () => {
   assert.match(workflow, /backend\/sql\/postgres\/\*\*/);
   assert.match(workflow, /CREATE ROLE opscore_runtime NOLOGIN/);
 });
+
+test('migration 057 exposes only a runtime-bound read-only migration 056 attestation function', () => {
+  const migration = read('sql/postgres/057_read_only_runtime_migration_ledger_attestation.sql');
+  assert.match(migration, /CREATE OR REPLACE FUNCTION public\.opscore_attest_migration_056\(p_expected_sha256 text\)/);
+  assert.match(migration, /STABLE\s+SECURITY DEFINER/);
+  assert.match(migration, /SET search_path TO pg_catalog, public, pg_temp/);
+  assert.match(migration, /SET row_security = off/);
+  assert.match(migration, /session_user <> 'opscore_runtime'/);
+  assert.match(migration, /REVOKE ALL ON FUNCTION public\.opscore_attest_migration_056\(text\) FROM PUBLIC/);
+  assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.opscore_attest_migration_056\(text\) TO opscore_runtime/);
+  assert.doesNotMatch(migration, /GRANT\s+SELECT\s+ON\s+(?:TABLE\s+)?public\.schema_migrations/i);
+  assert.match(migration, /function_owner <> 'neondb_owner'/);
+});
