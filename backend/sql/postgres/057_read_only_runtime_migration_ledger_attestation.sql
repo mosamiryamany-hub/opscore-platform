@@ -113,11 +113,11 @@ BEGIN
       WHERE acl.grantee = 0 AND acl.privilege_type = 'EXECUTE'
     ),
     EXISTS (
-      SELECT 1 FROM unnest(COALESCE(p.proconfig, ARRAY[]::text[])) setting
-      WHERE setting ILIKE 'search_path=%'
-        AND setting ILIKE '%pg_catalog%'
-        AND setting ILIKE '%public%'
-        AND setting ILIKE '%pg_temp%'
+      SELECT 1 FROM unnest(COALESCE(p.proconfig, ARRAY[]::text[])) AS settings(setting_value)
+      WHERE settings.setting_value ILIKE 'search_path=%'
+        AND settings.setting_value ILIKE '%pg_catalog%'
+        AND settings.setting_value ILIKE '%public%'
+        AND settings.setting_value ILIKE '%pg_temp%'
     ),
     EXISTS (
       SELECT 1 FROM unnest(COALESCE(p.proconfig, ARRAY[]::text[])) setting
