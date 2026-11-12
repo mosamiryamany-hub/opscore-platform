@@ -48,15 +48,21 @@ function parseCurlResponse(output) {
   };
 }
 
-function runVercelCurl(baseUrl, path) {
+function runVercelCurl(baseUrl, path, options = {}) {
   return new Promise((resolve, reject) => {
     const token = String(process.env.VERCEL_TOKEN || '').trim();
     if (!token) return reject(new Error('VERCEL_TOKEN_REQUIRED'));
     const targetUrl = new URL(path, baseUrl).toString();
+    const connectTimeoutSeconds = Number.isSafeInteger(options.connectTimeoutSeconds) && options.connectTimeoutSeconds > 0
+      ? options.connectTimeoutSeconds : 5;
+    const maxTimeSeconds = Number.isSafeInteger(options.maxTimeSeconds) && options.maxTimeSeconds > 0
+      ? options.maxTimeSeconds : 10;
+    const processTimeoutMs = Number.isSafeInteger(options.processTimeoutMs) && options.processTimeoutMs > 0
+      ? options.processTimeoutMs : 30000;
     const args = [
       'curl', targetUrl, '-sS', '-i',
-      '--connect-timeout', '5',
-      '--max-time', '10',
+      '--connect-timeout', String(connectTimeoutSeconds),
+      '--max-time', String(maxTimeSeconds),
       '-w', '\n__OPSC_HTTP_STATUS__:%{http_code}',
       '--token', token,
       '--no-color'
@@ -74,7 +80,7 @@ function runVercelCurl(baseUrl, path) {
     const timeout = setTimeout(() => {
       child?.kill('SIGKILL');
       finish(new Error('NETWORK_TIMEOUT'));
-    }, 30000);
+    }, processTimeoutMs);
     try {
       child = spawn('vercel', args, {
         stdio: ['ignore', 'pipe', 'ignore'],
@@ -252,4 +258,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { parseDeploymentUrl, parseCurlResponse, validateEndpoint, runSmoke };
+module.exports = { parseDeploymentUrl, parseCurlResponse, runVercelCurl, validateEndpoint, runSmoke };

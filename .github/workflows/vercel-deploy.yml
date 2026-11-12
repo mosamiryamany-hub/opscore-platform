@@ -2,6 +2,8 @@ name: vercel-deploy
 on:
   push:
     branches: [main]
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: read
@@ -12,7 +14,7 @@ concurrency:
 
 jobs:
   verify:
-    if: github.ref == 'refs/heads/main'
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -35,6 +37,10 @@ jobs:
           node --check backend/src/security.js
           node --check backend/src/store.js
           node --check backend/src/server.js
+          node --check backend/src/production-database-identity-route.js
+          node --check scripts/production-runtime-diagnostic.js
+      - name: Production runtime diagnostic contract tests
+        run: node --test backend/test/production-database-identity-route.test.js scripts/production-runtime-diagnostic.test.js
       - name: Hardened metadata gate
         working-directory: backend
         run: npm run verify:hardened
@@ -55,7 +61,7 @@ jobs:
 
   deploy:
     needs: [verify]
-    if: github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     environment:
       name: production
@@ -141,96 +147,7 @@ jobs:
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-      - name: Resolve production database identity (read-only)
-        id: production_db_identity
-        continue-on-error: true
-        run: |
-          set +e
-          report="$RUNNER_TEMP/production-db-identity.json"
-          vercel env run -e production --token=${{ secrets.VERCEL_TOKEN }} -- sh -c 'OPSC_DB_IDENTITY_REPORT_PATH="$1" exec node backend/scripts/production-database-identity-preflight.js' identity-preflight "$report" > "$RUNNER_TEMP/production-db-identity-cli.log" 2>&1
-          status=$?
-          if [ -f "$report" ]; then
-            python3 - "$report" "$GITHUB_STEP_SUMMARY" "$status" <<'PY'
-          import json, pathlib, sys
-          report = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding='utf-8'))
-          summary = pathlib.Path(sys.argv[2])
-          exit_code = sys.argv[3]
-          target = report.get('target') or {}
-          identity = report.get('identity') or {}
-          roles = report.get('roles') if isinstance(report.get('roles'), list) else []
-          grants = report.get('authFunctionGrants') or {}
-          rls = report.get('rowLevelSecurity') or {}
-          ledger = report.get('migrationLedger') or {}
-          lines = [
-              '### Production database identity — read-only',
-              "Inspection: " + str(report.get('status', 'UNVERIFIED')) + " (exit code " + exit_code + ")",
-              "Identity scope / connection source: " + str(report.get('identityScope', 'unknown')) + " / " + str(report.get('connectionSource', 'unknown')),
-              "Application database binding: " + str(report.get('applicationDatabaseBinding', 'UNVERIFIED')) + "; reason: " + str(report.get('reasonCode') or 'none'),
-              "Source commit: " + str(report.get('sourceCommit') or 'not-bound'),
-              "Provider / endpoint: " + str(target.get('provider', 'unknown')) + " / " + str(target.get('endpointId') or 'not-resolved'),
-              "Region: " + str(target.get('region') or 'not-resolved'),
-              "Database / session role: " + str(identity.get('database_name', 'unavailable')) + " / " + str(identity.get('session_user', 'unavailable')),
-              "Current role / PostgreSQL: " + str(identity.get('current_user', 'unavailable')) + " / " + str(identity.get('server_version', 'unavailable')),
-              "Client URL SSL mode / channel binding: " + str(target.get('clientSslMode', 'not-reported')) + " / " + str(target.get('channelBinding', 'not-reported')),
-              "Neon backend pg_stat_ssl: " + str(identity.get('tls_enabled', 'unavailable')) + "; read-only transaction: " + str(identity.get('transaction_read_only', 'unavailable')),
-              "OPSC_DATABASE_URL present: " + str((report.get('environmentChecks') or {}).get('opscDatabaseUrlPresent', False)) + "; DATABASE_URL matches: " + str((report.get('environmentChecks') or {}).get('databaseUrlMatchesOpscDatabaseUrl', False)),
-          ]
-          for role in roles:
-              lines.append(
-                  "Role " + str(role.get('role_name')) + ": exists=" + str(role.get('role_exists')) + ", login=" + str(role.get('can_login')) + ", superuser=" + str(role.get('superuser')) + ", BYPASSRLS=" + str(role.get('bypass_rls')) + ", CREATEROLE=" + str(role.get('create_role')) + ", CREATEDB=" + str(role.get('create_db')) + ", elevated-membership=" + str(role.get('elevated_role_membership'))
-              )
-          if grants:
-              lines.append(
-                  "Auth functions: present " + str(grants.get('present', 'unknown')) + "/" + str(grants.get('required', 'unknown')) + ", runtime EXECUTE " + str(grants.get('runtimeExecute', 'unknown')) + ", PUBLIC EXECUTE absent " + str(grants.get('publicExecuteAbsent', 'unknown'))
-              )
-          lines.append(
-              "Public-table RLS: " + str(rls.get('rls_enabled_tables', 'unknown')) + "/" + str(rls.get('public_application_tables', 'unknown')) + " enabled; FORCE RLS " + str(rls.get('force_rls_tables', 'unknown'))
-          )
-          lines.append(
-              "Migration 056 ledger: " + str(ledger.get('status', 'unknown')) + "; latest " + str(ledger.get('latestFilename') or 'unknown')
-          )
-          lines.extend([
-              "Writes performed: 0.",
-              "This diagnostic does not certify production or authorize deployment.",
-              ""
-          ])
-          with summary.open('a', encoding='utf-8') as stream:
-              stream.write('\n'.join(lines))
-          print('\n'.join(lines))
-          PY
-            echo "--- Sanitized production database identity JSON ---"
-            cat "$report"
-            echo "--- End sanitized production database identity JSON ---"
-          else
-            message="Production database identity: UNVERIFIED. Sanitized report file was not created (Vercel env-run exit code: $status). No database write was attempted."
-            printf '### %s\n' "$message" | tee -a "$GITHUB_STEP_SUMMARY"
-          fi
-          exit 0
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-      - name: Validate production environment without printing secrets
-        id: production_preflight
-        run: |
-          set +e
-          vercel env run -e production --token=${{ secrets.VERCEL_TOKEN }} -- node scripts/verify-production-environment.js > "$RUNNER_TEMP/production-preflight.log" 2>&1
-          status=$?
-          if [ "$status" -eq 0 ]; then
-            cat "$RUNNER_TEMP/production-preflight.log"
-            echo "allowed=true" >> "$GITHUB_OUTPUT"
-            echo "### Production preflight: PASS" >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "allowed=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Production preflight blocked; no production build, deployment, or promotion will run."
-            echo "### Production preflight: BLOCKED — deployment skipped" >> "$GITHUB_STEP_SUMMARY"
-            echo "Preflight exit code: $status. No Vercel build, staged deployment, promotion, or live-domain change was executed." >> "$GITHUB_STEP_SUMMARY"
-          fi
-          exit 0
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
       - name: Compute package fingerprint for this commit
-        if: steps.production_preflight.outputs.allowed == 'true'
         id: package_fp
         run: |
           set -euo pipefail
@@ -240,13 +157,11 @@ jobs:
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
           echo "PACKAGE_SHA256=$sha"
       - name: Embed current GitHub Actions release identity
-        if: steps.production_preflight.outputs.allowed == 'true'
         run: node scripts/write-vercel-release-identity.js
         env:
           OPSC_RELEASE_PACKAGE_SHA256: ${{ steps.package_fp.outputs.sha }}
           OPSC_RELEASE_PACKAGE_COMMIT: ${{ github.sha }}
       - name: Build Vercel output
-        if: steps.production_preflight.outputs.allowed == 'true'
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -261,7 +176,6 @@ jobs:
           OPSC_RELEASE_PACKAGE_COMMIT: ${{ github.sha }}
           OPSC_PRODUCTION_ISOLATION_CERTIFICATION: NOT_CERTIFIED
       - name: Verify Vercel output contains the current release identity
-        if: steps.production_preflight.outputs.allowed == 'true'
         run: |
           set -euo pipefail
           identity_file="$(find .vercel/output -type f -name 'opscore-vercel-release-identity.json' 2>/dev/null | head -n 1 || true)"
@@ -288,7 +202,6 @@ jobs:
             console.log("VERCEL_RELEASE_IDENTITY_VERIFY=PASS");
           '
       - name: Verify deploy-workspace acceptance evidence matches release identity
-        if: steps.production_preflight.outputs.allowed == 'true'
         run: |
           set -euo pipefail
           node -e '
@@ -307,7 +220,6 @@ jobs:
             console.log("DEPLOY_WORKSPACE_ACCEPTANCE_BIND=PASS");
           '
       - name: Create staged production deployment without changing the live domain
-        if: steps.production_preflight.outputs.allowed == 'true'
         id: staged_deploy
         run: |
           set -euo pipefail
@@ -328,21 +240,28 @@ jobs:
           OPSC_RELEASE_PACKAGE_SHA256: ${{ steps.package_fp.outputs.sha }}
           OPSC_RELEASE_PACKAGE_COMMIT: ${{ github.sha }}
           OPSC_PRODUCTION_ISOLATION_CERTIFICATION: NOT_CERTIFIED
+      - name: Verify staged production runtime identity and all release gates
+        id: production_runtime
+        run: node scripts/production-runtime-diagnostic.js "${{ steps.staged_deploy.outputs.url }}" "$GITHUB_SHA" "$GITHUB_RUN_ID"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
       - name: Verify staged production HTTP, database, security and release proofs
-        if: steps.production_preflight.outputs.allowed == 'true'
+        if: steps.production_runtime.outputs.allowed == 'true'
         run: node scripts/production-deployment-smoke.js "${{ steps.staged_deploy.outputs.url }}" "$GITHUB_SHA"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
       - name: Promote only the verified staged deployment
-        if: steps.production_preflight.outputs.allowed == 'true'
+        if: steps.production_runtime.outputs.allowed == 'true'
         run: vercel promote "${{ steps.staged_deploy.outputs.url }}" --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
       - name: Verify production domain resolves to the exact promoted commit
-        if: steps.production_preflight.outputs.allowed == 'true'
+        if: steps.production_runtime.outputs.allowed == 'true'
         run: node scripts/production-deployment-smoke.js "https://opscore-platform.vercel.app" "$GITHUB_SHA"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
