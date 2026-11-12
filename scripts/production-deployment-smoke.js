@@ -83,7 +83,7 @@ function classifyVercelCurlFailure(stderr, exitCode) {
   if (/invalid token|token (?:is )?(?:invalid|expired)|unauthorized|401 unauthorized|authentication failed/.test(diagnostic)) return 'VERCEL_AUTH_FAILED';
   if (/project.{0,40}(?:not found|does not exist)|not linked to a project|team.{0,40}not found/.test(diagnostic)) return 'VERCEL_PROJECT_SCOPE_FAILED';
   if (/deployment.{0,40}(?:not found|does not exist)|could not find.{0,40}deployment/.test(diagnostic)) return 'VERCEL_DEPLOYMENT_NOT_FOUND';
-  const curlExit = diagnostic.match(/curl:\\s*\\((\\d{1,3})\\)/i);
+  const curlExit = diagnostic.match(/curl:\s*\((\d{1,3})\)/i);
   if (curlExit) return `CURL_EXIT_${Number(curlExit[1])}`;
   if (/unknown command.{0,40}curl|command.{0,40}curl.{0,40}not found/.test(diagnostic)) return 'VERCEL_CURL_COMMAND_UNAVAILABLE';
   if (/unknown option|unknown argument|unexpected argument|invalid option/.test(diagnostic)) return 'VERCEL_CLI_ARGUMENT_ERROR';
