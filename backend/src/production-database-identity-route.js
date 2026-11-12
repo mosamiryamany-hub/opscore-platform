@@ -130,7 +130,16 @@ function sanitizeIdentityReport(report) {
       migration056SourceHashMatches: ledger.migration056SourceHashMatches === true,
       latestFilename: safeString(ledger.latestFilename, 128),
       migrationCount: count(ledger.migrationCount),
-      sourceSha256: /^[a-f0-9]{64}$/.test(String(ledger.sourceSha256 || '')) ? ledger.sourceSha256 : null
+      sourceSha256: /^[a-f0-9]{64}$/.test(String(ledger.sourceSha256 || '')) ? ledger.sourceSha256 : null,
+      attestationFunctionPresent: ledger.attestationFunctionPresent === true,
+      attestationSecurityDefiner: ledger.attestationSecurityDefiner === true,
+      attestationOwner: safeString(ledger.attestationOwner, 64),
+      attestationOwnerBypassesRls: ledger.attestationOwnerBypassesRls === true,
+      attestationOwnerSuperuser: ledger.attestationOwnerSuperuser === true,
+      attestationRuntimeExecute: ledger.attestationRuntimeExecute === true,
+      attestationPublicExecuteAbsent: ledger.attestationPublicExecuteAbsent === true,
+      attestationSearchPathPinned: ledger.attestationSearchPathPinned === true,
+      attestationRowSecurityDisabled: ledger.attestationRowSecurityDisabled === true
     }
   };
 }

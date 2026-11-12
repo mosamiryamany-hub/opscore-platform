@@ -2,9 +2,37 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { parseDeploymentUrl, parseCurlResponse, validateEndpoint, runSmoke } = require('../../scripts/production-deployment-smoke');
+const { parseDeploymentUrl, parseCurlResponse, buildVercelCurlArgs, classifyVercelCurlFailure, validateEndpoint, runSmoke } = require('../../scripts/production-deployment-smoke');
 
 const commit = '48ed78a825020986c53bd045e50c8ea852f53275';
+
+test('Vercel curl command is explicitly scoped and never places its token in argv', () => {
+  const env = { VERCEL_ORG_ID: 'team_example', VERCEL_TOKEN: 'do-not-expose-this-token' };
+  const args = buildVercelCurlArgs('https://opscore-platform-abc.vercel.app/api/health', 5, 45, env);
+  assert.deepEqual(args.slice(0, 4), ['--no-color', '--scope', 'team_example', 'curl']);
+  assert.equal(args.includes(env.VERCEL_TOKEN), false);
+  assert.throws(() => buildVercelCurlArgs('https://opscore-platform-abc.vercel.app', 5, 45, {}), /VERCEL_SCOPE_REQUIRED/);
+});
+
+test('Vercel CLI stderr is mapped to safe error classes without leaking its contents', () => {
+  const secret = 'super-secret-token-value';
+  const cases = [
+    ['Deployment Protection requires authentication', 1, 'VERCEL_PROTECTION_AUTH_FAILED'],
+    [`Error: Invalid token ${secret}`, 1, 'VERCEL_AUTH_FAILED'],
+    ['Project not found in requested scope', 1, 'VERCEL_PROJECT_SCOPE_FAILED'],
+    ['Deployment not found', 1, 'VERCEL_DEPLOYMENT_NOT_FOUND'],
+    ['Unknown option --unknown', 1, 'VERCEL_CLI_ARGUMENT_ERROR'],
+    ['connect ETIMEDOUT', 1, 'NETWORK_TIMEOUT'],
+    ['connect ECONNRESET', 1, 'NETWORK_CONNECTION_FAILED']
+  ];
+  for (const [stderr, exitCode, expected] of cases) {
+    const result = classifyVercelCurlFailure(stderr, exitCode);
+    assert.equal(result, expected);
+    assert.equal(result.includes(secret), false);
+    assert.match(result, /^[A-Z0-9_]+$/);
+  }
+});
+
 
 test('deployment URL accepts only HTTPS Vercel deployment hosts without paths or credentials', () => {
   assert.equal(parseDeploymentUrl('https://opscore-platform-abc.vercel.app').hostname, 'opscore-platform-abc.vercel.app');

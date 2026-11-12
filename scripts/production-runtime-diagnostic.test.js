@@ -69,6 +69,15 @@ function validPayload() {
         force_rls_tables: 131
       },
       migrationLedger: {
+        attestationFunctionPresent: true,
+        attestationSecurityDefiner: true,
+        attestationOwner: 'neondb_owner',
+        attestationOwnerBypassesRls: true,
+        attestationOwnerSuperuser: false,
+        attestationRuntimeExecute: true,
+        attestationPublicExecuteAbsent: true,
+        attestationSearchPathPinned: true,
+        attestationRowSecurityDisabled: true,
         status: 'MIGRATION_056_HASH_MATCH',
         migration056Recorded: true,
         migration056SourceHashMatches: true,
@@ -128,6 +137,7 @@ test('runtime diagnostic rejects mismatched build identity and migration hash', 
   const payload = validPayload();
   payload.deployment.commitSha = 'c'.repeat(40);
   payload.database.migrationLedger.status = 'LEDGER_UNREADABLE';
+  payload.database.migrationLedger.attestationFunctionPresent = false;
   const result = evaluateRuntimeDiagnostic(payload, 200, 'a'.repeat(40), '123456789');
   assert.equal(result.promotionAllowed, false);
   assert.ok(result.checks.some(item => item.name === 'deployment_commit_binding' && item.status === 'BLOCKED'));

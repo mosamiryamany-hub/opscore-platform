@@ -40,3 +40,28 @@ test('live PostgreSQL gate tests the runtime role and tenant policies', () => {
   assert.match(workflow, /backend\/sql\/postgres\/\*\*/);
   assert.match(workflow, /CREATE ROLE opscore_runtime NOLOGIN/);
 });
+
+test('migration 057 exposes only a runtime-bound read-only migration 056 attestation function', () => {
+  const migration = read('sql/postgres/057_read_only_runtime_migration_ledger_attestation.sql');
+  assert.match(migration, /CREATE OR REPLACE FUNCTION public\.opscore_attest_migration_056\(p_expected_sha256 text\)/);
+  assert.match(migration, /STABLE\s+SECURITY DEFINER/);
+  assert.match(migration, /SET search_path TO pg_catalog, public, pg_temp/);
+  assert.match(migration, /SET row_security = off/);
+  assert.match(migration, /session_user <> 'opscore_runtime'/);
+  assert.match(migration, /REVOKE ALL ON FUNCTION public\.opscore_attest_migration_056\(text\) FROM PUBLIC/);
+  assert.match(migration, /GRANT EXECUTE ON FUNCTION public\.opscore_attest_migration_056\(text\) TO opscore_runtime/);
+  assert.doesNotMatch(migration, /GRANT\s+SELECT\s+ON\s+(?:TABLE\s+)?public\.schema_migrations/i);
+  assert.match(migration, /function_owner <> 'neondb_owner'/);
+});
+
+
+test('migration 058 pins every public SECURITY DEFINER routine to a catalog-first search path', () => {
+  const migration = read('sql/postgres/058_security_definer_search_path_hardening.sql');
+  assert.match(migration, /required_signatures text\[\]/);
+  assert.match(migration, /opscore_attest_migration_056\(text\)/);
+  assert.match(migration, /ALTER FUNCTION %s SET search_path TO pg_catalog, public, pg_temp/);
+  assert.match(migration, /owner_superuser IS NOT FALSE/);
+  assert.match(migration, /OPSC_SECURITY_DEFINER_SEARCH_PATH_HARDENING_FAILED/);
+  assert.doesNotMatch(migration, /GRANT\s+EXECUTE\s+ON\s+FUNCTION[^;]*TO\s+PUBLIC/i);
+  assert.doesNotMatch(migration, /GRANT\s+SELECT\s+ON\s+(?:TABLE\s+)?public\.schema_migrations/i);
+});

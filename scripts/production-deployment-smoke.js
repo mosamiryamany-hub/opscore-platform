@@ -48,6 +48,30 @@ function parseCurlResponse(output) {
   };
 }
 
+function buildVercelCurlArgs(targetUrl, connectTimeoutSeconds, maxTimeSeconds, env = process.env) {
+  const scope = String(env.VERCEL_ORG_ID || '').trim();
+  if (!scope || !/^[A-Za-z0-9_-]{1,128}$/.test(scope)) throw new Error('VERCEL_SCOPE_REQUIRED');
+  return [
+    '--no-color', '--scope', scope, 'curl', targetUrl, '-sS', '-i',
+    '--connect-timeout', String(connectTimeoutSeconds),
+    '--max-time', String(maxTimeSeconds),
+    '-w', '\\n__OPSC_HTTP_STATUS__:%{http_code}'
+  ];
+}
+
+function classifyVercelCurlFailure(stderr, exitCode) {
+  const diagnostic = String(stderr || '').slice(0, 8192).toLowerCase();
+  if (/deployment protection|protection bypass|bypass token|sso|authentication required/.test(diagnostic)) return 'VERCEL_PROTECTION_AUTH_FAILED';
+  if (/invalid token|token (?:is )?(?:invalid|expired)|unauthorized|401 unauthorized|authentication failed/.test(diagnostic)) return 'VERCEL_AUTH_FAILED';
+  if (/project.{0,40}(?:not found|does not exist)|not linked to a project|team.{0,40}not found/.test(diagnostic)) return 'VERCEL_PROJECT_SCOPE_FAILED';
+  if (/deployment.{0,40}(?:not found|does not exist)|could not find.{0,40}deployment/.test(diagnostic)) return 'VERCEL_DEPLOYMENT_NOT_FOUND';
+  if (/unknown option|unknown argument|unexpected argument|invalid option/.test(diagnostic)) return 'VERCEL_CLI_ARGUMENT_ERROR';
+  if (/timed out|timeout|etimedout/.test(diagnostic)) return 'NETWORK_TIMEOUT';
+  if (/enotfound|econnreset|econnrefused|epipe|network connection/.test(diagnostic)) return 'NETWORK_CONNECTION_FAILED';
+  const code = Number(exitCode);
+  return Number.isInteger(code) && code > 0 && code < 256 ? `VERCEL_CLI_EXIT_${code}` : 'VERCEL_CURL_EXECUTION_FAILED';
+}
+
 function runVercelCurl(baseUrl, path, options = {}) {
   return new Promise((resolve, reject) => {
     const token = String(process.env.VERCEL_TOKEN || '').trim();
@@ -59,17 +83,13 @@ function runVercelCurl(baseUrl, path, options = {}) {
       ? options.maxTimeSeconds : 10;
     const processTimeoutMs = Number.isSafeInteger(options.processTimeoutMs) && options.processTimeoutMs > 0
       ? options.processTimeoutMs : 30000;
-    const args = [
-      'curl', targetUrl, '-sS', '-i',
-      '--connect-timeout', String(connectTimeoutSeconds),
-      '--max-time', String(maxTimeSeconds),
-      '-w', '\n__OPSC_HTTP_STATUS__:%{http_code}',
-      '--token', token,
-      '--no-color'
-    ];
+    let args;
+    try { args = buildVercelCurlArgs(targetUrl, connectTimeoutSeconds, maxTimeSeconds, process.env); }
+    catch (error) { return reject(error); }
     let child;
     let settled = false;
     let stdout = '';
+    let stderr = '';
     const finish = (error, value) => {
       if (settled) return;
       settled = true;
@@ -83,7 +103,7 @@ function runVercelCurl(baseUrl, path, options = {}) {
     }, processTimeoutMs);
     try {
       child = spawn('vercel', args, {
-        stdio: ['ignore', 'pipe', 'ignore'],
+        stdio: ['ignore', 'pipe', 'pipe'],
         env: process.env
       });
     } catch {
@@ -97,6 +117,10 @@ function runVercelCurl(baseUrl, path, options = {}) {
         finish(new Error('RESPONSE_TOO_LARGE'));
       }
     });
+    child.stderr.on('data', chunk => {
+      const remaining = 8192 - Buffer.byteLength(stderr, 'utf8');
+      if (remaining > 0) stderr += chunk.toString('utf8').slice(0, remaining);
+    });
     child.on('error', error => {
       const code = String(error?.code || '');
       finish(new Error(code === 'ETIMEDOUT' ? 'NETWORK_TIMEOUT' : 'VERCEL_CLI_START_FAILED'));
@@ -106,7 +130,7 @@ function runVercelCurl(baseUrl, path, options = {}) {
       if (code !== 0) {
         if (code === 28) finish(new Error('NETWORK_TIMEOUT'));
         else if ([7, 55, 56].includes(code)) finish(new Error('NETWORK_CONNECTION_FAILED'));
-        else finish(new Error('VERCEL_CURL_EXECUTION_FAILED'));
+        else finish(new Error(classifyVercelCurlFailure(stderr, code)));
         return;
       }
       try { finish(null, parseCurlResponse(stdout)); }
@@ -258,4 +282,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { parseDeploymentUrl, parseCurlResponse, runVercelCurl, validateEndpoint, runSmoke };
+module.exports = { parseDeploymentUrl, parseCurlResponse, buildVercelCurlArgs, classifyVercelCurlFailure, runVercelCurl, validateEndpoint, runSmoke };
