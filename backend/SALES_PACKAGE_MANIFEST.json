@@ -1,7 +1,7 @@
 {
   "product": "OpsCore Operational SaaS Starter Kit",
   "version": "0.11.62",
-  "generatedAt": "2026-11-11T20:28:00.000Z",
+  "generatedAt": "2026-11-12T02:20:33.643Z",
   "integrityExclusions": [
     "RELEASE_COMPONENT_SHA256SUMS.txt",
     "RELEASE_FILE_SHA256SUMS.txt",
@@ -869,8 +869,8 @@
     },
     {
       "path": "sql/postgres/054_tenant_composite_foreign_keys.sql",
-      "sha256": "205dcd08dd98d8419b7f74110b562dea6ba14350386c03fac2a443e72ee22679",
-      "bytes": 12848
+      "sha256": "acce8245849f74b25c774881d580d0d1b14577c422e9566e80d6b15df31734a0",
+      "bytes": 12873
     },
     {
       "path": "src/2026-intelligence-core.js",
