@@ -2,6 +2,8 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
 const {
   migrationSourceDigest,
   parseDatabaseTarget,
@@ -110,4 +112,12 @@ test('application URL presence and equality are measured independently', () => {
   assert.equal(checks.opscDatabaseUrlPresent, true);
   assert.equal(checks.databaseUrlPresent, true);
   assert.equal(checks.databaseUrlMatchesOpscDatabaseUrl, true);
+});
+
+test('runtime migration ledger inspection never selects the protected ledger table directly', () => {
+  const source = fs.readFileSync(path.resolve(__dirname, '../scripts/production-database-identity-preflight.js'), 'utf8');
+  assert.match(source, /to_regprocedure\('public\.opscore_attest_migration_056\(text\)'\)/);
+  assert.match(source, /FROM public\.opscore_attest_migration_056\(\$1\)/);
+  assert.doesNotMatch(source, /SELECT[\s\S]{0,240}FROM public\.schema_migrations/i);
+  assert.match(source, /metadata\.function_owner === 'neondb_owner'/);
 });
