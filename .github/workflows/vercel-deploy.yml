@@ -141,6 +141,68 @@ jobs:
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      - name: Resolve production database identity (read-only)
+        id: production_db_identity
+        continue-on-error: true
+        run: |
+          set +e
+          report="$RUNNER_TEMP/production-db-identity.json"
+          export OPSC_DB_IDENTITY_REPORT_PATH="$report"
+          vercel env run -e production --token=${{ secrets.VERCEL_TOKEN }} -- node backend/scripts/production-database-identity-preflight.js > "$RUNNER_TEMP/production-db-identity-cli.log" 2>&1
+          status=$?
+          if [ -f "$report" ]; then
+            python3 - "$report" "$GITHUB_STEP_SUMMARY" "$status" <<'PY'
+          import json, pathlib, sys
+          report = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding='utf-8'))
+          summary = pathlib.Path(sys.argv[2])
+          exit_code = sys.argv[3]
+          target = report.get('target') or {}
+          identity = report.get('identity') or {}
+          roles = report.get('roles') if isinstance(report.get('roles'), list) else []
+          grants = report.get('authFunctionGrants') or {}
+          rls = report.get('rowLevelSecurity') or {}
+          ledger = report.get('migrationLedger') or {}
+          lines = [
+              '### Production database identity — read-only',
+              "Inspection: " + str(report.get('status', 'UNVERIFIED')) + " (exit code " + exit_code + ")",
+              "Source commit: " + str(report.get('sourceCommit') or 'not-bound'),
+              "Provider / endpoint: " + str(target.get('provider', 'unknown')) + " / " + str(target.get('endpointId') or 'not-resolved'),
+              "Region: " + str(target.get('region') or 'not-resolved'),
+              "Database / session role: " + str(identity.get('database_name', 'unavailable')) + " / " + str(identity.get('session_user', 'unavailable')),
+              "Current role / PostgreSQL: " + str(identity.get('current_user', 'unavailable')) + " / " + str(identity.get('server_version', 'unavailable')),
+              "TLS: " + str(identity.get('tls_enabled', 'unavailable')) + "; read-only transaction: " + str(identity.get('transaction_read_only', 'unavailable')),
+              "OPSC_DATABASE_URL present: " + str((report.get('environmentChecks') or {}).get('opscDatabaseUrlPresent', False)) + "; DATABASE_URL matches: " + str((report.get('environmentChecks') or {}).get('databaseUrlMatchesOpscDatabaseUrl', False)),
+          ]
+          for role in roles:
+              lines.append(
+                  "Role " + str(role.get('role_name')) + ": exists=" + str(role.get('exists')) + ", login=" + str(role.get('can_login')) + ", superuser=" + str(role.get('superuser')) + ", BYPASSRLS=" + str(role.get('bypass_rls')) + ", elevated-membership=" + str(role.get('elevated_role_membership'))
+              )
+          if grants:
+              lines.append(
+                  "Auth functions: present " + str(grants.get('present', 'unknown')) + "/" + str(grants.get('required', 'unknown')) + ", runtime EXECUTE " + str(grants.get('runtimeExecute', 'unknown')) + ", PUBLIC EXECUTE absent " + str(grants.get('publicExecuteAbsent', 'unknown'))
+              )
+          lines.append(
+              "Public-table RLS: " + str(rls.get('rls_enabled_tables', 'unknown')) + "/" + str(rls.get('public_application_tables', 'unknown')) + " enabled; FORCE RLS " + str(rls.get('force_rls_tables', 'unknown'))
+          )
+          lines.append(
+              "Migration 056 ledger: " + str(ledger.get('status', 'unknown')) + "; latest " + str(ledger.get('latestFilename') or 'unknown')
+          )
+          lines.extend([
+              "Writes performed: 0.",
+              "This diagnostic does not certify production or authorize deployment.",
+              ""
+          ])
+          with summary.open('a', encoding='utf-8') as stream:
+              stream.write('\n'.join(lines))
+          PY
+          else
+            echo "### Production database identity — UNVERIFIED" >> "$GITHUB_STEP_SUMMARY"
+            echo "The read-only diagnostic report was not produced (Vercel env-run exit code: $status). No database write was attempted." >> "$GITHUB_STEP_SUMMARY"
+          fi
+          exit 0
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
       - name: Validate production environment without printing secrets
         id: production_preflight
         run: |
