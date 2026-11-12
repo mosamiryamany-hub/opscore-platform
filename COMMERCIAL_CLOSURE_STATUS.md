@@ -8,14 +8,15 @@
 ## Verified in seller CI / package gates
 - Commercial-closure gate on exact-head pipeline
 - Automated tests bundled with the release runner
-- Migration preflight through `051_*`
+- Migration preflight through `058_*`
 - Mobile dependency audit policy (High/Critical blocked; residuals disclosed)
+- Mobile local-database SQLCipher keying (PRAGMA key + cipher_version verification, fail-closed) and iOS privacy manifest asserted by `mobile/scripts/verify-mobile.js` in CI
 - Archive integrity + SHA-256 attestation files
 
 ## Seller reference production (informative — not buyer certification)
 - Health: healthy / postgres / 0.11.62
 - `/api/verify/database-security`: IDENTITY_PLANE_RLS_ENFORCED
-- `/api/verify/release`: PASS_WITH_BUYER_RESIDUALS
+- `/api/verify/release` (verified candidate): CI PASS / package fingerprint PUBLISHED / PostgreSQL HTTP acceptance PASS; overall status stays UNVERIFIED until the production promotion gate passes
 - Session/tenant + recovery production gates: PASS_PRODUCTION when acceptance evidence SHA is bound to the deployed commit
 - Formal productionIsolationCertification: still NOT_CERTIFIED
 

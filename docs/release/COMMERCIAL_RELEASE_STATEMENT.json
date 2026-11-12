@@ -2,8 +2,8 @@
   "schemaVersion": "opscore.commercial-release-statement.v2",
   "version": "0.11.62",
   "releaseTag": "v0.11.62",
-  "sourceCommit": "5c60420f42330d7bd79623547b07eee96ef0ebd77214e9996cf53dd2d997a7e7",
-  "pipelineId": 3017246123,
+  "sourceCommit": "d940152d1428d82d9bb0c57695d929099a648ac3",
+  "pipelineId": 43308699094,
   "pipelineUrl": "https://gitlab.com/mosamiryamany-hub1/opscore-commercial-final/-/pipelines/3017246123",
   "commercialClosure": "PASS_WITH_BUYER_RESIDUALS",
   "productionCertification": false,
@@ -146,7 +146,7 @@
     "scope": "Production acceptance must be evaluated after deployment against the exact deployed commit; this in-archive record is build-time evidence only."
   },
   "packageSha256Authority": "dist/COMMERCIAL_RELEASE_STATEMENT.json, generated after ZIP creation; the ZIP cannot contain its own final digest without a self-referential hash.",
-  "officialRepo": "mosamiryamany-hub1/opscore-commercial-final",
+  "officialRepo": "mosamiryamany-hub/opscore-platform",
   "generatedAt": "2026-11-02T10:44:36.021Z",
   "residuals": [
     "Production session, tenant-boundary and recovery acceptance is evaluated after deployment against this exact source commit; NOT_VERIFIED_AT_BUILD is not a claim about the later live endpoint.",

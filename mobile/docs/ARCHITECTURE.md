@@ -27,7 +27,7 @@ The buyer must verify the patch is present in the target backend and exercise th
 
 ## Validation status
 
-The exact-source Secure Release run #6 (commit `f3f33865618f0c9da304fe47ab2538b310d7d453`) packages SDK 58 source. The SDK 58 resolver previously passed dependency alignment, Expo Doctor (20/20), project-specific verification, Android/iOS/web JavaScript exports, and a fresh npm audit with zero findings at all severities.
+The exact-source Secure Release the current verified candidate run (commit `d940152d1428d82d9bb0c57695d929099a648ac3`) packages SDK 58 source. The SDK 58 resolver previously passed dependency alignment, Expo Doctor (20/20), project-specific verification, Android/iOS/web JavaScript exports, and a fresh npm audit with zero findings at all severities.
 
 Those checks do not create signed APK/AAB/IPA binaries and do not substitute for physical-device QA or app-store review.
 

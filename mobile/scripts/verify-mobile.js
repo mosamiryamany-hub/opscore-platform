@@ -46,5 +46,10 @@ check('sync center displays backoff queue entries and reports full count',dbSour
 
 
 
+check('local database keys SQLCipher before first statement and fails closed without it',dbSource.includes('PRAGMA key')&&dbSource.includes('PRAGMA cipher_version')&&dbSource.includes('LOCAL_DATABASE_SQLCIPHER_UNAVAILABLE')&&!dbSource.includes("dbPromise = SQLite.openDatabaseAsync('opscore-mobile.db')"));
+check('iOS privacy manifest present with declared API access',fs.existsSync(path.join(root,'PrivacyInfo.xcprivacy'))&&fs.readFileSync(path.join(root,'PrivacyInfo.xcprivacy'),'utf8').includes('NSPrivacyAccessedAPIType'));
+
+
+
 // Evaluate the final status only after every security and reliability assertion above has run.
 process.exitCode = fail ? 1 : 0;

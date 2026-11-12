@@ -2,7 +2,7 @@
 
 ## Exact-artifact rule
 
-Verify the exact ZIP generated for delivery. From the same GitHub Actions Secure Release run download and review its artifact. For the verified candidate, use run 42949619029: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/42949619029. Download artifact `opscore-release-42949619029` and review:
+Verify the exact ZIP generated for delivery. From the same GitHub Actions Secure Release run download and review its artifact. For the verified candidate, use run 43308699094: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/43308699094. Download artifact `opscore-release-43308699094` and review:
 1. `dist/COMMERCIAL_RELEASE_STATEMENT.json` — commit, pipeline, archive byte count and SHA-256.
 2. `dist/SHA256SUMS.txt` and run `sha256sum --check SHA256SUMS.txt`.
 3. GitHub Actions job/step results and the release workflow's test report for that exact run.
@@ -23,7 +23,7 @@ The buyer configures, licenses, secures and tests any required identity provider
 
 The package includes Expo mobile source only; it does not include signed native binaries or certify app-store readiness. The buyer owns EAS/project accounts, Android/iOS signing, native build, GPS/camera/offline/device testing, environment configuration, app-store accounts/submission, distribution, and ongoing updates.
 
-The current locked Expo SDK 58.0.23 / React Native 0.88.1 / React 19.3.0 baseline in run 42949619029 reports zero findings across all severities. The exact same-run mobile audit JSON is authoritative. This is a point-in-time npm audit, not a guarantee against future advisories.
+The current locked Expo SDK 58.0.23 / React Native 0.88.1 / React 19.3.0 baseline in run 43308699094 reports zero findings across all severities. The exact same-run mobile audit JSON is authoritative. This is a point-in-time npm audit, not a guarantee against future advisories.
 
 ## Production and operational limits
 
