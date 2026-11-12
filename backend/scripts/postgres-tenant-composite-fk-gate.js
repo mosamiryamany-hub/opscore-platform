@@ -268,7 +268,7 @@ async function main() {
     await expectTenantSqlState(
       orgA,
       () => client.query('DELETE FROM tenant_parents WHERE id=$1', [parentRestrict]),
-      '23503',
+      '23001',
       'on-delete-restrict'
     );
     await runtimeTenant(orgA, async () => {
