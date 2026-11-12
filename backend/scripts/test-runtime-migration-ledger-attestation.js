@@ -128,8 +128,21 @@ async function main() {
       attestation &&
       attestation.migration_056_recorded === true &&
       attestation.migration_056_hash_matches === true &&
-      attestation.latest_filename === '057_read_only_runtime_migration_ledger_attestation.sql' &&
+      attestation.latest_filename === '058_security_definer_search_path_hardening.sql' &&
       Number(attestation.migration_count) >= 57);
+
+    const definerPaths = (await client.query(
+      `SELECT count(*)::integer AS total,
+              count(*) FILTER (WHERE EXISTS (
+                SELECT 1 FROM unnest(COALESCE(p.proconfig, ARRAY[]::text[])) AS settings(setting_value)
+                WHERE settings.setting_value = 'search_path=pg_catalog, public, pg_temp'
+              ))::integer AS pinned
+         FROM pg_proc p
+         JOIN pg_namespace n ON n.oid = p.pronamespace
+        WHERE n.nspname = 'public' AND p.prosecdef`
+    )).rows[0];
+    add('all_public_security_definer_paths_pinned',
+      definerPaths.total === 11 && definerPaths.pinned === 11);
 
     const otherCaller = (await client.query(
       "SELECT pg_has_role(current_user, 'neondb_owner', 'MEMBER') AS runtime_is_neondb_owner_member"
