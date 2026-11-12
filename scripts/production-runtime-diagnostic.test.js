@@ -34,7 +34,9 @@ function validPayload() {
       applicationDatabaseBinding: 'PRESENT',
       identityScope: 'APPLICATION_DATABASE',
       connectionSource: 'OPSC_DATABASE_URL',
-      transactionMode: 'READ ONLY',
+      productionCertification: false,
+      writeOperations: 0,
+      transactionMode: 'READ_ONLY',
       target: { clientSslMode: 'REQUIRE', channelBinding: 'REQUIRE' },
       environmentChecks: {
         opscDatabaseUrlPresent: true,
