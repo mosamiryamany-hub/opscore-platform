@@ -2975,7 +2975,7 @@ if(req.method==='POST'&&url.pathname==='/api/v1/reconciliation/run'){try{require
     });
     return res.end(store.exportWorkOrders(c, config.maxExportRows));
   }
-  if (req.method === 'GET' && url.pathname.startsWith('/api/'))
+  if (url.pathname.startsWith('/api/'))
     return json(res, 404, { error: { code: 'NOT_FOUND' } });
   const safe = path.normalize(url.pathname || '/').replace(/^([.][.][/\\])+/, '');
   let file = path.join(webRoot, safe === '/' ? 'index.html' : safe);

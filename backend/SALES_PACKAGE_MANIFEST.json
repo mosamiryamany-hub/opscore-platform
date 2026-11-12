@@ -1,7 +1,7 @@
 {
   "product": "OpsCore Operational SaaS Starter Kit",
   "version": "0.11.62",
-  "generatedAt": "2026-11-12T02:48:54.391Z",
+  "generatedAt": "2026-11-12T03:25:54.397Z",
   "integrityExclusions": [
     "RELEASE_COMPONENT_SHA256SUMS.txt",
     "RELEASE_FILE_SHA256SUMS.txt",
@@ -1179,8 +1179,8 @@
     },
     {
       "path": "src/server.js",
-      "sha256": "bdfbcdeafc25b59f3057f14eb572f91b3811defc4d4b0e7d93ec0305439b2e5c",
-      "bytes": 154099
+      "sha256": "8f9afd2ad2bf62c8fa74cb22a82ccd59a6a75e0783fb643e1be134b36d349c25",
+      "bytes": 154800
     },
     {
       "path": "src/signature-chain.js",
@@ -1419,8 +1419,8 @@
     },
     {
       "path": "test/frontend-http-smoke.test.js",
-      "sha256": "98246181e40249cd69f262688e59261e53171b59213e5dbada1c5436d4e346d6",
-      "bytes": 4413
+      "sha256": "ccfafcd7445c0dfd625c180f44a45fbbe8548ac8d9696ea9097a0d3cf6142944",
+      "bytes": 5001
     },
     {
       "path": "test/general_control_1150.test.js",
@@ -1589,8 +1589,8 @@
     },
     {
       "path": "test/postgres-tenant-composite-fk.test.js",
-      "sha256": "7b206626ef7e066ffe8d561ef3a701d1a3451dd695e126ff420d2b28d93e354a",
-      "bytes": 2983
+      "sha256": "1b199a6336fb805e7d2ac7db103e4a7eaba3adad09bd48d2d6272424e501f350",
+      "bytes": 2949
     },
     {
       "path": "test/postgres_optional_peer_contract.test.js",
@@ -1604,8 +1604,8 @@
     },
     {
       "path": "test/postgres_rls_static_hardening.test.js",
-      "sha256": "a384f8ee2ee9e3ce1316690c88ca1c4c1714eaa9b5c06795de545cff8a6ac223",
-      "bytes": 11055
+      "sha256": "897a9747e456d6b3e9515c054805e6fa1b6464b60033bfdc14b10619c5775e1f",
+      "bytes": 11120
     },
     {
       "path": "test/postgres_rowid_compat.test.js",
@@ -1759,8 +1759,8 @@
     },
     {
       "path": "test/tenant-isolation-matrix.test.js",
-      "sha256": "95230f0ed4db69a4add648ee8f9d8aaf5bec5fc02c3b61b2461cd6cda7972100",
-      "bytes": 22044
+      "sha256": "7629823b8c3ab89751abe3913b0c628a41e9af46ef37d1185e78de2114f7d68b",
+      "bytes": 25322
     },
     {
       "path": "test/tenant_governance.test.js",

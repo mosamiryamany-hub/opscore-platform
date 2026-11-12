@@ -42,7 +42,7 @@ test('PostgreSQL 18 gate verifies two-tenant writes and delete actions under the
   }
   assert.match(gate, /assert\.equal\(runtime\.rolsuper, false,/);
   assert.match(gate, /assert\.equal\(runtime\.rolbypassrls, false,/);
-  assert.match(workflow, /backend\/sql\/postgres\/054_tenant_composite_foreign_keys\.sql/);
+  assert.match(workflow, /backend\/sql\/postgres\/\*\*/);
   assert.match(workflow, /scripts\/postgres-tenant-composite-fk-gate\.js/);
   assert.match(workflow, /image: postgis\/postgis:18-3\.7/);
   assert.match(workflow, /postgresql-18-pgvector/);
