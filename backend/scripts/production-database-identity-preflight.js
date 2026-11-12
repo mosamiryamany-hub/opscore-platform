@@ -56,7 +56,9 @@ function parseDatabaseTarget(rawUrl) {
     provider: isNeon ? 'neon' : 'postgresql',
     endpointId,
     region: isNeon && labels.includes('aws') && labels.indexOf('aws') > 0 ? labels[labels.indexOf('aws') - 1] : null,
-    hostnameSha256: sha256(hostname)
+    hostnameSha256: sha256(hostname),
+    clientSslMode: parsed.searchParams.get('sslmode') || 'not-specified',
+    channelBinding: parsed.searchParams.get('channel_binding') || 'not-specified'
   };
 }
 
