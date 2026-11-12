@@ -1,7 +1,7 @@
 {
   "product": "OpsCore Operational SaaS Starter Kit",
   "version": "0.11.62",
-  "generatedAt": "2026-11-12T09:53:47.696Z",
+  "generatedAt": "2026-11-12T10:38:13.305Z",
   "integrityExclusions": [
     "RELEASE_COMPONENT_SHA256SUMS.txt",
     "RELEASE_FILE_SHA256SUMS.txt",
@@ -311,6 +311,11 @@
       "path": "docs/verification/RELEASE_TEST_RUN_RESULT.sha256",
       "sha256": "cad977c1d7f04a47b16c268ce6ddc3fba6d39234310613b0ac4e2c61f6f353bc",
       "bytes": 95
+    },
+    {
+      "path": "docs/verification/RUNTIME_ROLE_AUDIT_BOUND_2026-11-12.json",
+      "sha256": "d7fa8cea37d84d1a1383399e43448d95ff926cad66c612bb9bf4349db2d384d2",
+      "bytes": 4417
     },
     {
       "path": "docs/verification/TENANT_ISOLATION_MATRIX.json",

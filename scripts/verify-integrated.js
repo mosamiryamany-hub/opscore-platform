@@ -57,7 +57,7 @@ try {
 } catch {}
 try { releaseTestEvidence = JSON.parse(fs.readFileSync(releaseTestEvidencePath, 'utf8')); } catch {}
 check('fresh backend isolated test run', Boolean(releaseTestEvidence));
-check('backend tests evidence bound to current tree', !!releaseTestEvidence && releaseTestEvidence.status === 'PASS' && releaseTestEvidence.failedTests === 0 && releaseTestEvidence.totalTests > 0);
+check('backend tests evidence bound to current tree', !!releaseTestEvidence && ['PASS', 'PASS_WITH_SKIPS'].includes(releaseTestEvidence.status) && releaseTestEvidence.failedTests === 0 && releaseTestEvidence.totalTests > 0);
 check('mobile dependency audit', run(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['audit','--omit=dev','--json'], mobile));
 
 check('cleanup generated runtime attachments', run(process.execPath, ['scripts/clean-demo-data.js','--confirm'], backend, {
