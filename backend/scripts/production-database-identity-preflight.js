@@ -125,7 +125,8 @@ async function inspectDatabase(env = process.env) {
     applicationDatabaseBinding: selectedConnection.applicationBinding ? 'PRESENT' : 'UNVERIFIED',
     target: null,
     environmentChecks: {
-      opscDatabaseUrlPresent: rawUrl.length > 0,
+      opscDatabaseUrlPresent: Boolean(String(env.OPSC_DATABASE_URL || '').trim()),
+      selectedConnectionStringPresent: rawUrl.length > 0,
       databaseUrlPresent: Boolean(String(env.DATABASE_URL || '').trim()),
       databaseUrlUnpooledPresent: Boolean(String(env.DATABASE_URL_UNPOOLED || '').trim()),
       databaseUrlMatchesOpscDatabaseUrl: !env.DATABASE_URL || (Boolean(String(env.OPSC_DATABASE_URL || '').trim()) && env.DATABASE_URL === String(env.OPSC_DATABASE_URL).trim())
