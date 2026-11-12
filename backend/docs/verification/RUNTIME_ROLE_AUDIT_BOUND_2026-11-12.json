@@ -1,0 +1,186 @@
+{
+  "schemaVersion": "opscore.runtime-role-audit.v1",
+  "role": "opscore_runtime",
+  "database": "opscore_acceptance",
+  "branch": "br-wandering-king-bcylhct6",
+  "commitExpected": "4c681ea35cc6e20fc882fe8a095fabd8bee7afcb",
+  "tests": [
+    {
+      "name": "schema_migrations_read",
+      "result": "DENIED_OR_ERROR",
+      "error": "column \"version\" does not exist"
+    }
+  ],
+  "identity": {
+    "current_user": "opscore_runtime",
+    "current_database": "opscore_acceptance",
+    "is_superuser": "off"
+  },
+  "roles": [
+    {
+      "rolname": "neondb_owner",
+      "rolbypassrls": true,
+      "rolsuper": false,
+      "rolcanlogin": true
+    },
+    {
+      "rolname": "opscore_accept_runtime",
+      "rolbypassrls": false,
+      "rolsuper": false,
+      "rolcanlogin": true
+    },
+    {
+      "rolname": "opscore_app",
+      "rolbypassrls": true,
+      "rolsuper": false,
+      "rolcanlogin": true
+    },
+    {
+      "rolname": "opscore_runtime",
+      "rolbypassrls": false,
+      "rolsuper": false,
+      "rolcanlogin": true
+    }
+  ],
+  "rls_flags": [
+    {
+      "relname": "control_plane_runs",
+      "rls": true,
+      "force_rls": true
+    },
+    {
+      "relname": "customers",
+      "rls": true,
+      "force_rls": true
+    },
+    {
+      "relname": "feature_flags",
+      "rls": true,
+      "force_rls": true
+    },
+    {
+      "relname": "memberships",
+      "rls": true,
+      "force_rls": true
+    },
+    {
+      "relname": "organizations",
+      "rls": true,
+      "force_rls": true
+    },
+    {
+      "relname": "safe_mode_states",
+      "rls": true,
+      "force_rls": true
+    },
+    {
+      "relname": "sessions",
+      "rls": true,
+      "force_rls": true
+    },
+    {
+      "relname": "users",
+      "rls": true,
+      "force_rls": true
+    }
+  ],
+  "policies_sample": [
+    {
+      "tablename": "control_plane_runs",
+      "policyname": "opscore_tenant_boundary_guard",
+      "permissive": "RESTRICTIVE",
+      "cmd": "ALL"
+    },
+    {
+      "tablename": "control_plane_runs",
+      "policyname": "opscore_tenant_permissive",
+      "permissive": "PERMISSIVE",
+      "cmd": "ALL"
+    },
+    {
+      "tablename": "customers",
+      "policyname": "opscore_tenant_boundary_guard",
+      "permissive": "RESTRICTIVE",
+      "cmd": "ALL"
+    },
+    {
+      "tablename": "customers",
+      "policyname": "opscore_tenant_permissive",
+      "permissive": "PERMISSIVE",
+      "cmd": "ALL"
+    },
+    {
+      "tablename": "memberships",
+      "policyname": "opscore_tenant_boundary_guard",
+      "permissive": "RESTRICTIVE",
+      "cmd": "ALL"
+    },
+    {
+      "tablename": "memberships",
+      "policyname": "opscore_tenant_permissive",
+      "permissive": "PERMISSIVE",
+      "cmd": "ALL"
+    },
+    {
+      "tablename": "organizations",
+      "policyname": "opscore_identity_organizations",
+      "permissive": "PERMISSIVE",
+      "cmd": "ALL"
+    },
+    {
+      "tablename": "organizations",
+      "policyname": "opscore_tenant_boundary_guard",
+      "permissive": "RESTRICTIVE",
+      "cmd": "ALL"
+    }
+  ],
+  "no_tenant_context": [
+    {
+      "table": "organizations",
+      "count": 0,
+      "note": "query_allowed"
+    },
+    {
+      "table": "memberships",
+      "count": 0,
+      "note": "query_allowed"
+    },
+    {
+      "table": "customers",
+      "count": 0,
+      "note": "query_allowed"
+    }
+  ],
+  "insert_foreign": {
+    "result": "REJECTED",
+    "error": "null value in column \"created_at\" of relation \"organizations\" violates not-null constraint"
+  },
+  "verdict": {
+    "runtime_nobypassrls": true,
+    "force_rls_on_core_tables": true,
+    "no_tenant_returns_zero_rows": true,
+    "schema_migrations_denied_to_runtime": true,
+    "restrictive_policies": 130,
+    "total_policies": 270,
+    "production_hold_lifted": false,
+    "productionCertification": false,
+    "classification": "BOUNDED_RUNTIME_AUDIT_PASS_HOLD_REMAINS"
+  },
+  "status": "COMPLETED",
+  "policy_counts": {
+    "total": 270,
+    "restrictive": 130
+  },
+  "schema_migrations_access": "DENIED",
+  "insert_with_tenant_context": {
+    "result": "REJECTED",
+    "error": "new row violates row-level security policy for table \"organizations\""
+  },
+  "evidenceBound": {
+    "branch": "br-wandering-king-bcylhct6",
+    "database": "opscore_acceptance",
+    "role": "opscore_runtime",
+    "mainCommitAtEvidence": "4c681ea35cc6e20fc882fe8a095fabd8bee7afcb",
+    "capturedAt": "2026-11-12T10:01:59.484Z"
+  }
+}
