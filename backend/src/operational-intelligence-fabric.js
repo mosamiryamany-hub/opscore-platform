@@ -67,6 +67,7 @@ const SCENARIOS = Object.freeze({
 });
 
 function ensureSchema(db) {
+  if (db.engine === 'postgres') return;
   db.exec(`
     CREATE TABLE IF NOT EXISTS operational_guardrail_policies(
       id TEXT PRIMARY KEY,

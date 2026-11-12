@@ -218,6 +218,13 @@ function fail(res, err) {
     AUTOPILOT_RECOVERY_TIME_INVALID: [422, 'AUTOPILOT_RECOVERY_TIME_INVALID'],
     SIMULATION_ACTOR_INVALID: [422, 'SIMULATION_ACTOR_INVALID'],
 
+    SELF_SCHEDULE_TOKEN_INVALID: [401, 'SELF_SCHEDULE_TOKEN_INVALID'],
+    SELF_SCHEDULE_SLOT_INVALID: [422, 'SELF_SCHEDULE_SLOT_INVALID'],
+    INVALID_SELF_SCHEDULE_SLOT: [422, 'INVALID_SELF_SCHEDULE_SLOT'],
+    TWIN_SNAPSHOT_NOT_FOUND: [404, 'TWIN_SNAPSHOT_NOT_FOUND'],
+    GEOFENCE_NOT_FOUND: [404, 'GEOFENCE_NOT_FOUND'],
+    GEOFENCE_TECHNICIAN_INVALID: [422, 'GEOFENCE_TECHNICIAN_INVALID'],
+    METHOD_NOT_ALLOWED: [405, 'METHOD_NOT_ALLOWED'],
     URI_TOO_LONG: [
       414,
       'URI_TOO_LONG'
@@ -1240,7 +1247,17 @@ function route(req, res) {
     }).catch(e => fail(res, e));
   }
   const psc=url.pathname.match(/^\/api\/v1\/portal\/self-scheduling\/([^/]+)\/candidates$/); if(psc&&req.method==='GET'){try{return json(res,200,store.selfScheduleCandidates(portalToken,psc[1]));}catch(e){return fail(res,e);}}
-  const psb=url.pathname.match(/^\/api\/v1\/portal\/self-scheduling\/([^/]+)\/book$/); if(psb&&req.method==='POST'){const k=idempotencyKey(req);if(!k)return fail(res,Object.assign(new Error('IDEMPOTENCY_KEY_REQUIRED'),{status:400}));return body(req).then(b=>json(res,201,store.bookSelfSchedule(portalToken,psb[1],b,k))).catch(e=>fail(res,e));}
+  const psb=url.pathname.match(/^\/api\/v1\/portal\/self-scheduling\/([^/]+)\/book$/); if(psb&&req.method==='POST'){
+    // Token/link authentication is evaluated before write-protocol requirements so
+    // unauthenticated portal callers receive 401 instead of IDEMPOTENCY_KEY_REQUIRED.
+    try { store.selfScheduleCandidates(portalToken, psb[1]); } catch (tokenErr) {
+      // FORBIDDEN on work-order mismatch still proves the token was valid; only
+      // invalid/missing tokens should stop here before idempotency checks.
+      if (String(tokenErr && tokenErr.message || tokenErr) === 'SELF_SCHEDULE_TOKEN_INVALID') return fail(res, tokenErr);
+    }
+    const k=idempotencyKey(req);if(!k)return fail(res,Object.assign(new Error('IDEMPOTENCY_KEY_REQUIRED'),{status:400,code:'IDEMPOTENCY_KEY_REQUIRED'}));
+    return body(req).then(b=>json(res,201,store.bookSelfSchedule(portalToken,psb[1],b,k))).catch(e=>fail(res,e));
+  }
   if (req.method === 'GET' && url.pathname === '/api/v1/portal/overview') {
     try {
       return json(res, 200, store.portalOverview(portalToken));

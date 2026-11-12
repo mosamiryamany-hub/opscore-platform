@@ -58,6 +58,54 @@ function buildProbePath(routeRecord) {
   return route;
 }
 const BODY_METHODS = new Set(['POST', 'PATCH', 'PUT']);
+
+function buildProbeBody(routeRecord) {
+  const route = String(routeRecord && routeRecord.route || '');
+  const method = String(routeRecord && routeRecord.method || '').toUpperCase();
+  if (!BODY_METHODS.has(method)) return undefined;
+  // Minimal structurally valid bodies so probes reach resource/tenant checks
+  // instead of stopping at schema validation (422) with `{}`.
+  if (route.includes('/appointments/') && route.endsWith('/reschedule')) {
+    return JSON.stringify({ startAt: '2099-01-01T10:00:00.000Z', endAt: '2099-01-01T11:00:00.000Z', reason: 'matrix-foreign-probe' });
+  }
+  if (route.includes('/assets/') && route.endsWith('/events')) {
+    return JSON.stringify({ eventType: 'inspection', note: 'matrix-foreign-probe' });
+  }
+  if (route.includes('/customers/') && route.endsWith('/service-line')) {
+    return JSON.stringify({ serviceLineId: SAFE_PROBE_ID });
+  }
+  if (route.includes('/geofences/') && route.endsWith('/technicians')) {
+    return JSON.stringify({ technicianId: SAFE_PROBE_ID });
+  }
+  if (route.includes('/invoices/') && route.endsWith('/payments')) {
+    return JSON.stringify({ amount: 1, currency: 'USD', method: 'card' });
+  }
+  if (route.includes('/memberships/')) {
+    return JSON.stringify({ role: 'member' });
+  }
+  if (route.includes('/signoff-assurance/challenge')) {
+    return JSON.stringify({ documentSha256: '0'.repeat(64) });
+  }
+  if (route.includes('/signoff-assurance/complete')) {
+    return JSON.stringify({ documentSha256: '0'.repeat(64), code: '000000' });
+  }
+  if (route.includes('/field-invoice')) {
+    return JSON.stringify({ lineItems: [{ description: 'matrix', quantity: 1, unitAmount: 1 }] });
+  }
+  if (route.includes('/autopilot/proposals/')) {
+    return JSON.stringify({ decision: 'approve', note: 'matrix-foreign-probe' });
+  }
+  if (route.includes('/portal/self-scheduling/') && route.endsWith('/book')) {
+    return JSON.stringify({ slotToken: 'matrix', technicianId: SAFE_PROBE_ID, startAt: '2099-01-01T10:00:00.000Z', endAt: '2099-01-01T11:00:00.000Z' });
+  }
+  return '{}';
+}
+
+function isIsolationDenial(status) {
+  // 405 means the method is not offered for that resource — no tenant data is returned.
+  return [401, 403, 404, 405].includes(status);
+}
+
 const EXCLUDED_ROUTES = new Set(['/api/health', '/api/openapi.json', '/api/v1/billing/stripe/webhook']);
 // Documented diagnostic endpoints: they expose platform/diagnostic posture (not
 // tenant data). /metrics requires METRICS_AUTH_TOKEN in production (HTTP 404 when
@@ -266,7 +314,7 @@ test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cro
           body: BODY_METHODS.has(r.method) ? '{}' : undefined,
           signal: AbortSignal.timeout(20000)
         });
-        const denied = [401, 403, 404].includes(resp.status);
+        const denied = isIsolationDenial(resp.status);
         unauthenticated.push({ route: `${r.method} ${r.route}`, status: denied ? 'PASS' : 'FAIL', httpStatus: resp.status, detail: denied ? 'unauthenticated request rejected' : `UNAUTHENTICATED PROBE NOT DENIED (HTTP ${resp.status})` });
       } catch (error) {
         unauthenticated.push({ route: `${r.method} ${r.route}`, status: 'FAIL', httpStatus: null, detail: `request error: ${String(error.message || error).slice(0, 120)}` });
@@ -282,14 +330,14 @@ test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cro
         const resp = await fetch(base + target, {
           method: r.method,
           headers: { cookie: cookieB, ...(BODY_METHODS.has(r.method) ? { 'content-type': 'application/json' } : {}), ...(r.method === 'GET' ? {} : { 'idempotency-key': `matrix-foreign-${stamp}-${foreignId.length}` }) },
-          body: BODY_METHODS.has(r.method) ? '{}' : undefined,
+          body: buildProbeBody(r),
           signal: AbortSignal.timeout(20000)
         });
         const text2 = await resp.text().catch(() => '');
         let body2 = null;
         try { body2 = text2 ? JSON.parse(text2) : null; } catch { body2 = null; }
         const emptyList = resp.status === 200 && Array.isArray(body2) && body2.length === 0;
-        const denied = [401, 403, 404].includes(resp.status) || emptyList;
+        const denied = isIsolationDenial(resp.status) || emptyList;
         foreignId.push({ route: `${r.method} ${r.route}`, status: denied ? 'PASS' : 'FAIL', httpStatus: resp.status, detail: denied ? (emptyList ? 'foreign parent not found; empty list returned (no rows leaked)' : `foreign-ID probe denied or not-found for tenant B (HTTP ${resp.status})`) : `FOREIGN-ID PROBE DID NOT PROVE DENIAL (HTTP ${resp.status})` });
       } catch (error) {
         foreignId.push({ route: `${r.method} ${r.route}`, status: 'FAIL', httpStatus: null, detail: `request error: ${String(error.message || error).slice(0, 120)}` });
@@ -305,7 +353,7 @@ test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cro
     recordC('cross-tenant-work-order-read-denied', x.response.status === 404 || x.response.status === 403, `tenant B GET tenant A work order → HTTP ${x.response.status}`);
     x = await request('/api/v1/customers', {}, cookieB);
     recordC('cross-tenant-customer-read-denied', x.response.status === 200 && Array.isArray(x.data) && !x.data.some(row => row.id === customerAId), `tenant B customer list excludes tenant A customer → HTTP ${x.response.status}`);
-    x = await request(`/api/v1/work-orders/${encodeURIComponent(workOrderAId)}`, { method: 'PATCH', body: JSON.stringify({ title: 'MATRIX CROSS TENANT MUTATION' }) }, cookieB);
+    x = await request(`/api/v1/work-orders/${encodeURIComponent(workOrderAId)}`, { method: 'PATCH', headers: { 'idempotency-key': `matrix-cross-wo-patch-${stamp}` }, body: JSON.stringify({ title: 'MATRIX CROSS TENANT MUTATION' }) }, cookieB);
     recordC('cross-tenant-work-order-update-denied', x.response.status === 403 || x.response.status === 404, `tenant B PATCH tenant A work order → HTTP ${x.response.status}`);
     x = await request(`/api/v1/work-orders/${encodeURIComponent(workOrderAId)}`, { method: 'DELETE' }, cookieB);
     recordC('cross-tenant-work-order-delete-denied', x.response.status === 403 || x.response.status === 404, `tenant B DELETE tenant A work order → HTTP ${x.response.status}`);

@@ -16,6 +16,7 @@ p.listTechnicianGeofences=function(ctx,technicianId){requireRole(ctx.role,'read'
 p.checkTechnicianWithinGeofence=function(ctx,d={}){requireRole(ctx.role,'read');const technicianId=clean(d.technicianId||ctx.userId);const lng=Number(d.longitude),lat=Number(d.latitude);if(!Number.isFinite(lng)||!Number.isFinite(lat))throw new Error('GEOFENCE_POINT_INVALID');const rows=this.listTechnicianGeofences(ctx,technicianId);const matches=rows.filter(g=>coversPoint(g.geometry,[lng,lat])).map(g=>({id:g.id,name:g.name,inside:true}));return {schemaVersion:'opscore.technician-geofence.v1',organizationId:ctx.organizationId,technicianId,point:{longitude:lng,latitude:lat},matches,insideAny:matches.length>0}};
 /** Technician breadcrumb trail — org-scoped GPS points for field path (multi-sector). */
 function ensureTrailTable(db){
+  if (db.engine === 'postgres') return;
   db.exec(`CREATE TABLE IF NOT EXISTS technician_location_trail (
     id TEXT PRIMARY KEY,
     organization_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,

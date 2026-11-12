@@ -7,7 +7,7 @@ function stable(v){if(v===null||typeof v!=='object')return v;if(Array.isArray(v)
 function sha(v){return crypto.createHash('sha256').update(JSON.stringify(stable(v))).digest('hex');}
 function text(v,max=160){return String(v??'').trim().slice(0,max);}
 function int(v,d=50){const n=Number(v);return Number.isInteger(n)&&n>=0?Math.min(n,500):d;}
-function ensureSchema(db){db.exec(`
+function ensureSchema(db){if(db.engine==='postgres')return;db.exec(`
 CREATE TABLE IF NOT EXISTS incident_replays(
  id TEXT PRIMARY KEY,organization_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
  incident_ref TEXT NOT NULL,from_at TEXT NOT NULL,to_at TEXT NOT NULL,timeline_json TEXT NOT NULL,
