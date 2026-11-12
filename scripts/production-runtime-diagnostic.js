@@ -42,6 +42,7 @@ function evaluateRuntimeDiagnostic(payload, httpStatus, expectedCommit, expected
       environment.databaseEnginePostgres === true),
     check('migration_and_bootstrap_urls_absent', environment.migrationDatabaseUrlAbsent === true &&
       environment.bootstrapDatabaseUrlAbsent === true),
+    check('read_only_execution', database.transactionMode === 'READ_ONLY' && database.writeOperations === 0 && database.productionCertification === false),
     check('postgres_runtime_identity', identity.current_user === 'opscore_runtime' &&
       identity.session_user === 'opscore_runtime' &&
       /^18\./.test(String(identity.server_version || '')) &&
