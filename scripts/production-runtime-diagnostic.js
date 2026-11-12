@@ -64,6 +64,15 @@ function evaluateRuntimeDiagnostic(payload, httpStatus, expectedCommit, expected
       grants.searchPathPinned === 10 &&
       (!Array.isArray(grants.missingFunctions) || grants.missingFunctions.length === 0) &&
       (!Array.isArray(grants.publicExecutePresent) || grants.publicExecutePresent.length === 0)),
+    check('migration_056_attestation_security', ledger.attestationFunctionPresent === true &&
+      ledger.attestationSecurityDefiner === true &&
+      ledger.attestationOwner === 'neondb_owner' &&
+      ledger.attestationOwnerBypassesRls === true &&
+      ledger.attestationOwnerSuperuser === false &&
+      ledger.attestationRuntimeExecute === true &&
+      ledger.attestationPublicExecuteAbsent === true &&
+      ledger.attestationSearchPathPinned === true &&
+      ledger.attestationRowSecurityDisabled === true),
     check('migration_056_hash', ledger.status === 'MIGRATION_056_HASH_MATCH' &&
       ledger.migration056Recorded === true && ledger.migration056SourceHashMatches === true &&
       /^[a-f0-9]{64}$/.test(String(ledger.sourceSha256 || ''))),
