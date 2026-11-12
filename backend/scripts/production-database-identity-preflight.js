@@ -327,12 +327,12 @@ async function inspectDatabase(env = process.env) {
     const ledgerInfo = await safeRead(client, `
       SELECT
         to_regclass('public.schema_migrations')::text AS ledger_name,
-        count(*) FILTER (WHERE attribute.attname = 'filename')::integer AS has_filename_column,
-        count(*) FILTER (WHERE attribute.attname = 'sha256')::integer AS has_sha256_column
-      FROM pg_attribute attribute
-      WHERE attribute.attrelid = to_regclass('public.schema_migrations')
-        AND attribute.attnum > 0
-        AND NOT attribute.attisdropped
+        count(*) FILTER (WHERE a.attname = 'filename')::integer AS has_filename_column,
+        count(*) FILTER (WHERE a.attname = 'sha256')::integer AS has_sha256_column
+      FROM pg_attribute a
+      WHERE a.attrelid = to_regclass('public.schema_migrations')
+        AND a.attnum > 0
+        AND NOT a.attisdropped
     `);
 
     if (!ledgerInfo.result) {
