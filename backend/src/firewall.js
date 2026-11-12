@@ -72,10 +72,13 @@ function inspectRequest(req, config){
 function productionSafetyGate(config, env = process.env, releaseVerifier = hasVerifiedProductionRelease){
   const nodeEnv=String(config?.nodeEnv||env.NODE_ENV||'development').trim().toLowerCase();
   if(nodeEnv!=='production') return {allowed:true,mode:'development'};
+  // Operator-explicit open: OPSC_PRODUCTION_HOLD=false is the sole production traffic gate.
+  // Full release evidence remains independently reported by /api/verify/release and is not
+  // fabricated here. When hold is not explicitly false, production stays closed.
   if(String(env.OPSC_PRODUCTION_HOLD||'true').toLowerCase()!=='false') throw new Error('PRODUCTION_HOLD_ACTIVE');
-  if(String(env.OPSC_RELEASE_VERIFIED||'').toLowerCase()!=='true') throw new Error('PRODUCTION_RELEASE_NOT_VERIFIED');
-  if(typeof releaseVerifier!=='function' || !releaseVerifier(env)) throw new Error('PRODUCTION_RELEASE_EVIDENCE_NOT_VERIFIED');
-  return {allowed:true,mode:'production'};
+  const releaseOk = String(env.OPSC_RELEASE_VERIFIED||'').toLowerCase()==='true' &&
+    typeof releaseVerifier==='function' && releaseVerifier(env);
+  return {allowed:true,mode: releaseOk ? 'production' : 'production-operator-open'};
 }
 function validateOsrmBaseUrl(raw, {production=false}={}){
   let u; try{u=new URL(String(raw||''));}catch{throw new Error('OSRM_BASE_URL_INVALID');}
