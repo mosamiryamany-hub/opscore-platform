@@ -21,6 +21,7 @@ DECLARE
   signature text;
   function_oid oid;
   function_owner text;
+  function_is_definer boolean;
   owner_bypass boolean;
   owner_superuser boolean;
   definer_count integer;
@@ -51,7 +52,7 @@ BEGIN
            COALESCE(owner_role.rolbypassrls, false),
            COALESCE(owner_role.rolsuper, false),
            p.prosecdef
-      INTO function_owner, owner_bypass, owner_superuser, definer_count
+      INTO function_owner, owner_bypass, owner_superuser, function_is_definer
     FROM pg_proc p
     JOIN pg_roles owner_role ON owner_role.oid = p.proowner
     WHERE p.oid = function_oid;
@@ -59,7 +60,7 @@ BEGIN
     IF function_owner <> 'neondb_owner'
        OR owner_bypass IS NOT TRUE
        OR owner_superuser IS NOT FALSE
-       OR definer_count IS DISTINCT FROM true THEN
+       OR function_is_definer IS DISTINCT FROM true THEN
       RAISE EXCEPTION 'OPSC_SECURITY_DEFINER_OWNER_CONTRACT_FAILED: %', signature;
     END IF;
 
