@@ -76,6 +76,6 @@ test('Runtime diagnostic requires explicit read-only zero-write and full product
   assert.match(runner, /database\.writeOperations === 0/);
   assert.match(runner, /database\.productionCertification === false/);
   assert.match(runner, /productionHoldConfiguredFalse/);
-  assert.match(runner, /productionIsolationCertification/);
+  assert.match(runner, /isolationCertification/);
   assert.match(runner, /migration_056_hash/);
 });
