@@ -147,8 +147,7 @@ jobs:
         run: |
           set +e
           report="$RUNNER_TEMP/production-db-identity.json"
-          export OPSC_DB_IDENTITY_REPORT_PATH="$report"
-          vercel env run -e production --token=${{ secrets.VERCEL_TOKEN }} -- node backend/scripts/production-database-identity-preflight.js > "$RUNNER_TEMP/production-db-identity-cli.log" 2>&1
+          vercel env run -e production --token=${{ secrets.VERCEL_TOKEN }} -- sh -c 'OPSC_DB_IDENTITY_REPORT_PATH="$1" exec node backend/scripts/production-database-identity-preflight.js' identity-preflight "$report" > "$RUNNER_TEMP/production-db-identity-cli.log" 2>&1
           status=$?
           if [ -f "$report" ]; then
             python3 - "$report" "$GITHUB_STEP_SUMMARY" "$status" <<'PY'
@@ -194,11 +193,14 @@ jobs:
           ])
           with summary.open('a', encoding='utf-8') as stream:
               stream.write('\n'.join(lines))
-          print('\n'.join(lines))
+          print('\\n'.join(lines))
           PY
+            echo "--- Sanitized production database identity JSON ---"
+            cat "$report"
+            echo "--- End sanitized production database identity JSON ---"
           else
-            echo "### Production database identity — UNVERIFIED" >> "$GITHUB_STEP_SUMMARY"
-            echo "The read-only diagnostic report was not produced (Vercel env-run exit code: $status). No database write was attempted." >> "$GITHUB_STEP_SUMMARY"
+            message="Production database identity: UNVERIFIED. Sanitized report file was not created (Vercel env-run exit code: $status). No database write was attempted."
+            printf '### %s\\n' "$message" | tee -a "$GITHUB_STEP_SUMMARY"
           fi
           exit 0
         env:
