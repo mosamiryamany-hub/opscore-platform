@@ -344,34 +344,116 @@ async function inspectDatabase(env = process.env) {
       } else if (!ledger.has_filename_column || !ledger.has_sha256_column) {
         report.migrationLedger = { status: 'LEDGER_SCHEMA_UNSUPPORTED' };
       } else {
-        const migrationRow = await safeRead(client, `
+        const attestationMetadata = await safeRead(client, `
           SELECT
-            (SELECT lower(sha256) FROM public.schema_migrations
-             WHERE filename = $1 LIMIT 1) AS migration_056_sha256,
-            (SELECT max(filename) FROM public.schema_migrations) AS latest_filename,
-            (SELECT count(*)::integer FROM public.schema_migrations) AS migration_count
-        `, ['056_runtime_auth_definer_function_grants.sql']);
+            p.oid IS NOT NULL AS function_present,
+            COALESCE(p.prosecdef, false) AS security_definer,
+            owner_role.rolname AS function_owner,
+            COALESCE(owner_role.rolbypassrls, false) AS owner_bypasses_rls,
+            COALESCE(owner_role.rolsuper, false) AS owner_superuser,
+            CASE WHEN p.oid IS NOT NULL
+              THEN has_function_privilege(current_user, p.oid, 'EXECUTE')
+              ELSE false
+            END AS runtime_execute,
+            CASE WHEN p.oid IS NOT NULL THEN EXISTS (
+              SELECT 1
+              FROM aclexplode(COALESCE(p.proacl, acldefault('f', p.proowner))) acl
+              WHERE acl.grantee = 0 AND acl.privilege_type = 'EXECUTE'
+            ) ELSE false END AS public_execute,
+            CASE WHEN p.oid IS NOT NULL THEN EXISTS (
+              SELECT 1 FROM unnest(COALESCE(p.proconfig, ARRAY[]::text[])) setting
+              WHERE setting ILIKE 'search_path=%'
+                AND setting ILIKE '%pg_catalog%'
+                AND setting ILIKE '%public%'
+                AND setting ILIKE '%pg_temp%'
+            ) ELSE false END AS search_path_pinned,
+            CASE WHEN p.oid IS NOT NULL THEN EXISTS (
+              SELECT 1 FROM unnest(COALESCE(p.proconfig, ARRAY[]::text[])) setting
+              WHERE setting = 'row_security=off'
+            ) ELSE false END AS row_security_disabled
+          FROM (SELECT to_regprocedure('public.opscore_attest_migration_056(text)') AS function_oid) requested
+          LEFT JOIN pg_proc p ON p.oid = requested.function_oid
+          LEFT JOIN pg_roles owner_role ON owner_role.oid = p.proowner
+        `);
 
-        if (!migrationRow.result) {
+        if (!attestationMetadata.result) {
           report.migrationLedger = {
-            status: 'LEDGER_UNREADABLE',
-            reasonCode: migrationRow.errorCode
+            status: 'LEDGER_ATTESTATION_METADATA_UNREADABLE',
+            reasonCode: attestationMetadata.errorCode
           };
         } else {
-          const row = migrationRow.result.rows[0];
-          const recorded = String(row.migration_056_sha256 || '').toLowerCase();
-          report.migrationLedger = {
-            status: !recorded
-              ? 'MIGRATION_056_NOT_RECORDED'
-              : recorded === migrationSha256
-                ? 'MIGRATION_056_HASH_MATCH'
-                : 'MIGRATION_056_HASH_MISMATCH',
-            migration056Recorded: Boolean(recorded),
-            migration056SourceHashMatches: Boolean(recorded && recorded === migrationSha256),
-            latestFilename: row.latest_filename,
-            migrationCount: row.migration_count,
-            sourceSha256: migrationSha256
-          };
+          const metadata = attestationMetadata.result.rows[0];
+          const secure = metadata.function_present === true &&
+            metadata.security_definer === true &&
+            metadata.function_owner === 'neondb_owner' &&
+            metadata.owner_bypasses_rls === true &&
+            metadata.owner_superuser === false &&
+            metadata.runtime_execute === true &&
+            metadata.public_execute === false &&
+            metadata.search_path_pinned === true &&
+            metadata.row_security_disabled === true;
+
+          if (!secure) {
+            report.migrationLedger = {
+              status: metadata.function_present ? 'LEDGER_ATTESTATION_FUNCTION_UNSAFE' : 'LEDGER_ATTESTATION_FUNCTION_MISSING',
+              attestationFunctionPresent: metadata.function_present === true,
+              attestationSecurityDefiner: metadata.security_definer === true,
+              attestationOwner: metadata.function_owner || null,
+              attestationOwnerBypassesRls: metadata.owner_bypasses_rls === true,
+              attestationOwnerSuperuser: metadata.owner_superuser === true,
+              attestationRuntimeExecute: metadata.runtime_execute === true,
+              attestationPublicExecuteAbsent: metadata.public_execute === false,
+              attestationSearchPathPinned: metadata.search_path_pinned === true,
+              attestationRowSecurityDisabled: metadata.row_security_disabled === true
+            };
+          } else {
+            const migrationRow = await safeRead(client, `
+              SELECT migration_056_recorded,
+                     migration_056_hash_matches,
+                     latest_filename,
+                     migration_count
+              FROM public.opscore_attest_migration_056($1)
+            `, [migrationSha256]);
+
+            if (!migrationRow.result) {
+              report.migrationLedger = {
+                status: 'LEDGER_ATTESTATION_QUERY_FAILED',
+                reasonCode: migrationRow.errorCode,
+                attestationFunctionPresent: true,
+                attestationSecurityDefiner: true,
+                attestationOwner: 'neondb_owner',
+                attestationOwnerBypassesRls: true,
+                attestationOwnerSuperuser: false,
+                attestationRuntimeExecute: true,
+                attestationPublicExecuteAbsent: true,
+                attestationSearchPathPinned: true,
+                attestationRowSecurityDisabled: true
+              };
+            } else {
+              const row = migrationRow.result.rows[0];
+              report.migrationLedger = {
+                status: row.migration_056_recorded !== true
+                  ? 'MIGRATION_056_NOT_RECORDED'
+                  : row.migration_056_hash_matches === true
+                    ? 'MIGRATION_056_HASH_MATCH'
+                    : 'MIGRATION_056_HASH_MISMATCH',
+                migration056Recorded: row.migration_056_recorded === true,
+                migration056SourceHashMatches: row.migration_056_hash_matches === true,
+                latestFilename: row.latest_filename,
+                migrationCount: row.migration_count,
+                sourceSha256: migrationSha256,
+                attestationFunctionPresent: true,
+                attestationSecurityDefiner: true,
+                attestationOwner: 'neondb_owner',
+                attestationOwnerBypassesRls: true,
+                attestationOwnerSuperuser: false,
+                attestationRuntimeExecute: true,
+                attestationPublicExecuteAbsent: true,
+                attestationSearchPathPinned: true,
+                attestationRowSecurityDisabled: true
+              };
+            }
+          }
         }
       }
     }
