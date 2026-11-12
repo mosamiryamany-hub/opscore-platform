@@ -40,9 +40,9 @@ test('PostgreSQL 18 gate verifies two-tenant writes and delete actions under the
   ]) {
     assert.ok(gate.includes(token), 'gate must contain ' + token);
   }
-  assert.match(gate, /runtime\\.rolsuper/);
-  assert.match(gate, /runtime\\.rolbypassrls/);
-  assert.match(gate, /!runtime\\.rolbypassrls/);
+  assert.ok(gate.includes('runtime.rolsuper'));
+  assert.ok(gate.includes('runtime.rolbypassrls'));
+  assert.ok(gate.includes('!runtime.rolbypassrls'));
   assert.match(workflow, /backend\/sql\/postgres\/054_tenant_composite_foreign_keys\.sql/);
   assert.match(workflow, /scripts\/postgres-tenant-composite-fk-gate\.js/);
 });
