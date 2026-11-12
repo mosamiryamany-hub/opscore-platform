@@ -43,6 +43,11 @@ function safeCode(value) {
   return SAFE_TOKEN.test(code) ? code : null;
 }
 
+function safeVersion(value) {
+  const match = String(value || '').match(/^(\d{1,2}\.\d{1,2}(?:\.\d{1,3})?)/);
+  return match ? match[1] : null;
+}
+
 function pick(source, keys) {
   if (!source || typeof source !== 'object' || Array.isArray(source)) return null;
   const result = {};
@@ -76,7 +81,7 @@ function sanitizeIdentityReport(report) {
     reasonCode: safeCode(value.reasonCode),
     productionCertification: value.productionCertification === true,
     writeOperations: Number.isSafeInteger(value.writeOperations) ? value.writeOperations : null,
-    transactionMode: safeString(value.transactionMode, 32),
+    transactionMode: value.transactionMode === 'READ ONLY' ? 'READ_ONLY' : safeCode(value.transactionMode),
     connectionSource: safeCode(value.connectionSource),
     identityScope: safeCode(value.identityScope),
     applicationDatabaseBinding: safeCode(value.applicationDatabaseBinding),
@@ -99,7 +104,7 @@ function sanitizeIdentityReport(report) {
       database_name: safeString(identity.database_name, 64),
       session_user: safeString(identity.session_user, 64),
       current_user: safeString(identity.current_user, 64),
-      server_version: safeString(identity.server_version, 96),
+      server_version: safeVersion(identity.server_version),
       transaction_read_only: safeString(identity.transaction_read_only, 8),
       tls_enabled: identity.tls_enabled === true
     },
