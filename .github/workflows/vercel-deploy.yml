@@ -171,7 +171,8 @@ jobs:
               "Region: " + str(target.get('region') or 'not-resolved'),
               "Database / session role: " + str(identity.get('database_name', 'unavailable')) + " / " + str(identity.get('session_user', 'unavailable')),
               "Current role / PostgreSQL: " + str(identity.get('current_user', 'unavailable')) + " / " + str(identity.get('server_version', 'unavailable')),
-              "TLS: " + str(identity.get('tls_enabled', 'unavailable')) + "; read-only transaction: " + str(identity.get('transaction_read_only', 'unavailable')),
+              "Client URL SSL mode / channel binding: " + str(target.get('clientSslMode', 'not-reported')) + " / " + str(target.get('channelBinding', 'not-reported')),
+              "Neon backend pg_stat_ssl: " + str(identity.get('tls_enabled', 'unavailable')) + "; read-only transaction: " + str(identity.get('transaction_read_only', 'unavailable')),
               "OPSC_DATABASE_URL present: " + str((report.get('environmentChecks') or {}).get('opscDatabaseUrlPresent', False)) + "; DATABASE_URL matches: " + str((report.get('environmentChecks') or {}).get('databaseUrlMatchesOpscDatabaseUrl', False)),
           ]
           for role in roles:
