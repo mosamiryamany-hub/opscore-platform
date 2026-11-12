@@ -4,7 +4,7 @@ This candidate is a source-code commercial handoff, not production certification
 
 ## 1. Exact build evidence
 
-For the verified candidate, open run 42949619029 on commit f3f33865618f0c9da304fe47ab2538b310d7d453. It produced artifact `opscore-release-42949619029`, including `OpsCore-release.zip`, external release statement, test evidence, forensic i18n report, mobile/root audit JSONs and SHA-256 evidence. The ZIP digest is `20aace624d0afe6dbdc0b07e8a8d3ee3a8604b7116a9eaca6cf0c8108d02adeb`. This is not reusable after new source changes.
+For the verified candidate, open run 43267374864 on commit ad0cd0828815f5a213103bcfd8b312a32c01cc4d. It produced artifact `opscore-release-43267374864`, including `OpsCore-release.zip`, external release statement, test evidence, forensic i18n report, mobile/root audit JSONs and SHA-256 evidence. The ZIP digest is `41809d7859138b7009e88b30af0e0acb336237d6616bf57b0563c99cc918b8dc`. This is not reusable after new source changes.
 
 The previous candidate pipeline 3014428936 passed on commit 30bf29aa with 468 JUnit cases (467 passed, zero failed, one skipped). Its archive SHA-256 was 720c667d3f79da9c6f2d07ddc75c100986645a3278b0c300661054e03680083e. This is a previous-candidate reference only; it must not identify the next package.
 
@@ -24,7 +24,7 @@ Run Contact Center locale structure checks, forensic checks and their node:test 
 
 Buyer provisions, licenses, configures and live-tests external identity, messaging/carrier, external call-center/telephony, payment, webhooks, storage, KMS, maps and cloud providers. Buyer owns EAS project/account linkage, Android/iOS signing, native builds, physical-device QA, Apple/Google developer accounts, store submission/distribution and post-handover mobile dependency maintenance. No signed APK/AAB/IPA is included.
 
-Seller remains responsible for supplied source defects, internal adapters, authorization, migration correctness and pre-delivery High/Critical dependency remediation. Secure Release run 42949619029 on commit f3f33865618f0c9da304fe47ab2538b310d7d453 recorded zero npm audit findings at all severity levels for the exact SDK 58 lockfile. The full JSON from the exact archive-producing run is authoritative; re-run it for every new candidate. Signed native builds and device QA remain unverified.
+Seller remains responsible for supplied source defects, internal adapters, authorization, migration correctness and pre-delivery High/Critical dependency remediation. Secure Release run 43267374864 on commit ad0cd0828815f5a213103bcfd8b312a32c01cc4d recorded zero npm audit findings at all severity levels for the exact SDK 58 lockfile. The full JSON from the exact archive-producing run is authoritative; re-run it for every new candidate. Signed native builds and device QA remain unverified.
 
 ## 4. Infrastructure gates not certified
 

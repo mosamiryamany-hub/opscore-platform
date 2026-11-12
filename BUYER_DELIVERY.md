@@ -9,19 +9,19 @@ Production-wide tenant-isolation certification: **NOT_CERTIFIED**.
 
 - GitHub repository: https://github.com/mosamiryamany-hub/opscore-platform
 - Source branch: `main`
-- Source commit: `f3f33865618f0c9da304fe47ab2538b310d7d453`
-- Secure Release workflow run: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/42949619029
-- GitHub artifact name: `opscore-release-42949619029`
+- Source commit: `ad0cd0828815f5a213103bcfd8b312a32c01cc4d`
+- Secure Release workflow run: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/43267374864
+- GitHub artifact name: `opscore-release-43267374864`
 - GitHub artifact ID: `13824023354`
 - Nested release archive: `OpsCore-release.zip`
 - Archive bytes: `1,881,299`
-- Archive SHA-256: `20aace624d0afe6dbdc0b07e8a8d3ee3a8604b7116a9eaca6cf0c8108d02adeb`
+- Archive SHA-256: `41809d7859138b7009e88b30af0e0acb336237d6616bf57b0563c99cc918b8dc`
 
 The ZIP passed archive integrity testing. The nested source package contains 687 files (734 ZIP entries including directory entries). Use the archive and statement from this exact run only. Any later source/documentation change requires a new archive and digest.
 
 ## Release evidence
 
-Run 42949619029 completed successfully with all 29 workflow steps successful, including buyer installation/self-validation, SBOM generation and verification, external release statement, Attestation and artifact upload.
+Run 43267374864 completed successfully with all 29 workflow steps successful, including buyer installation/self-validation, SBOM generation and verification, external release statement, Attestation and artifact upload.
 
 The artifact statement intentionally records:
 - `commercialClosure: PASS_WITH_BUYER_RESIDUALS`
