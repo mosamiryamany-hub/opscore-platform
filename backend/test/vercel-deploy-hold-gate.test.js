@@ -31,7 +31,7 @@ test('pull requests run the verification job without invoking the production dep
 test('deploy workflow does not attempt to expose Vercel Sensitive environment values to CI', () => {
   assert.doesNotMatch(deploy, /vercel env run/);
   assert.match(deploy, /vercel pull --yes --environment=production/);
-  assert.match(deploy, /Resolve production database identity/ === false ? /$^/ : /$^/);
+  assert.doesNotMatch(deploy, /Resolve production database identity \(read-only\)/);
 });
 
 test('staged deployment is immutable to the live domain until Runtime identity and release proof pass', () => {
