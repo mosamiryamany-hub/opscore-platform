@@ -212,7 +212,8 @@ async function main() {
       '23503',
       'runtime-cross-tenant-insert'
     );
-    assert.match(String(runtimeCrossInsert.detail || ''), /organization_id/i);
+    assert.equal(runtimeCrossInsert.constraint, 'fk_nullable_parent');
+    assert.equal(runtimeCrossInsert.table, 'tenant_nullable_children');
     checks.push({ id: 'runtime-cross-tenant-insert-denied', status: 'PASS' });
 
     await runtimeTenant(orgA, async () => {
