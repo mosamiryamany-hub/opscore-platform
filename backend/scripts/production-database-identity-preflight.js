@@ -270,8 +270,8 @@ async function inspectDatabase(env = process.env) {
         CASE
           WHEN p.oid IS NOT NULL THEN EXISTS (
             SELECT 1
-            FROM unnest(COALESCE(p.proconfig, ARRAY[]::text[])) AS setting
-            WHERE setting ILIKE 'search_path=%'
+            FROM unnest(COALESCE(p.proconfig, ARRAY[]::text[])) AS settings(setting_value)
+            WHERE settings.setting_value ILIKE 'search_path=%'
               AND settings.setting_value ILIKE '%public%'
               AND settings.setting_value ILIKE '%pg_temp%'
           )
@@ -361,15 +361,15 @@ async function inspectDatabase(env = process.env) {
               WHERE acl.grantee = 0 AND acl.privilege_type = 'EXECUTE'
             ) ELSE false END AS public_execute,
             CASE WHEN p.oid IS NOT NULL THEN EXISTS (
-              SELECT 1 FROM unnest(COALESCE(p.proconfig, ARRAY[]::text[])) setting
-              WHERE setting ILIKE 'search_path=%'
+              SELECT 1 FROM unnest(COALESCE(p.proconfig, ARRAY[]::text[])) AS settings(setting_value)
+              WHERE settings.setting_value ILIKE 'search_path=%'
                 AND settings.setting_value ILIKE '%pg_catalog%'
                 AND settings.setting_value ILIKE '%public%'
                 AND settings.setting_value ILIKE '%pg_temp%'
             ) ELSE false END AS search_path_pinned,
             CASE WHEN p.oid IS NOT NULL THEN EXISTS (
-              SELECT 1 FROM unnest(COALESCE(p.proconfig, ARRAY[]::text[])) setting
-              WHERE setting = 'row_security=off'
+              SELECT 1 FROM unnest(COALESCE(p.proconfig, ARRAY[]::text[])) AS settings(setting_value)
+              WHERE settings.setting_value = 'row_security=off'
             ) ELSE false END AS row_security_disabled
           FROM (SELECT to_regprocedure('public.opscore_attest_migration_056(text)') AS function_oid) requested
           LEFT JOIN pg_proc p ON p.oid = requested.function_oid
