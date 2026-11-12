@@ -119,5 +119,5 @@ test('runtime migration ledger inspection never selects the protected ledger tab
   assert.match(source, /to_regprocedure\('public\.opscore_attest_migration_056\(text\)'\)/);
   assert.match(source, /FROM public\.opscore_attest_migration_056\(\$1\)/);
   assert.doesNotMatch(source, /SELECT[\s\S]{0,240}FROM public\.schema_migrations/i);
-  assert.match(source, /attestationOwner === 'neondb_owner'/);
+  assert.match(source, /metadata\.function_owner === 'neondb_owner'/);
 });
