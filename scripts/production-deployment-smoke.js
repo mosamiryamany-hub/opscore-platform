@@ -58,6 +58,8 @@ function parseCurlResponse(output) {
 function buildVercelCurlArgs(deploymentUrl, requestPath, connectTimeoutSeconds, maxTimeSeconds, env = process.env) {
   const scope = String(env.VERCEL_SCOPE || env.VERCEL_ORG_SLUG || env.VERCEL_ORG_ID || '').trim();
   if (!scope || !/^[A-Za-z0-9_-]{1,128}$/.test(scope)) throw new Error('VERCEL_SCOPE_REQUIRED');
+  const token = String(env.VERCEL_TOKEN || '').trim();
+  if (!token) throw new Error('VERCEL_TOKEN_REQUIRED');
   let deployment;
   try { deployment = new URL(String(deploymentUrl || '')); }
   catch { throw new Error('VERCEL_DEPLOYMENT_URL_INVALID'); }
@@ -70,7 +72,7 @@ function buildVercelCurlArgs(deploymentUrl, requestPath, connectTimeoutSeconds, 
     throw new Error('VERCEL_REQUEST_PATH_INVALID');
   }
   return [
-    '--no-color', '--scope', scope, 'curl', pathValue,
+    '--no-color', '--scope', scope, '--token', token, 'curl', pathValue,
     '--deployment', deployment.origin, '-sS', '-i',
     '--connect-timeout', String(connectTimeoutSeconds),
     '--max-time', String(maxTimeSeconds)
