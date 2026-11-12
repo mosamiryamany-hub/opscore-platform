@@ -66,8 +66,8 @@ test('acceptance database validation requires one exact allowlisted host and dat
 
 test('production Vercel deploy is main-only, waits on the mobile high-severity audit, and embeds run identity', () => {
   const workflow = read('.github/workflows/vercel-deploy.yml');
-  assert.match(workflow, /verify:\s*\n\s+if: github\.ref == 'refs\/heads\/main'/);
-  assert.match(workflow, /deploy:\s*\n\s+needs: \[verify\]\s*\n\s+if: github\.ref == 'refs\/heads\/main'/);
+  assert.match(workflow, /verify:\s*\n\s+if: github\.event_name == 'pull_request' \|\| github\.ref == 'refs\/heads\/main'/);
+  assert.match(workflow, /deploy:\s*\n\s+needs: \[verify\]\s*\n\s+if: github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'/);
   assert.doesNotMatch(workflow, /workflow_dispatch:/);
   assert.match(workflow, /working-directory: mobile\s+run: npm audit --omit=dev --audit-level=high/);
   assert.match(workflow, /node scripts\/write-vercel-release-identity\.js/);
