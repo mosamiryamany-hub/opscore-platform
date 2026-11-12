@@ -252,4 +252,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { parseDeploymentUrl, parseCurlResponse, validateEndpoint, runSmoke };
+module.exports = { parseDeploymentUrl, parseCurlResponse, runVercelCurl, validateEndpoint, runSmoke };
