@@ -26,10 +26,17 @@ function parseCurlResponse(output) {
   const raw = String(output || '');
   const marker = '__OPSC_HTTP_STATUS__:';
   const markerIndex = raw.lastIndexOf(marker);
-  if (markerIndex < 0) throw new Error('CURL_STATUS_MARKER_MISSING');
-  const statusText = raw.slice(markerIndex + marker.length).trim();
-  if (!/^\d{3}$/.test(statusText)) throw new Error('CURL_STATUS_INVALID');
-  const response = raw.slice(0, markerIndex);
+  let statusText = null;
+  let response = raw;
+  if (markerIndex >= 0) {
+    statusText = raw.slice(markerIndex + marker.length).trim();
+    response = raw.slice(0, markerIndex);
+  } else {
+    const statusLines = [...raw.matchAll(/^HTTP\/(?:1\.[01]|2|3)\s+(\d{3})(?:\s+[^\r\n]*)?$/gim)];
+    if (!statusLines.length) throw new Error('CURL_STATUS_MISSING');
+    statusText = statusLines[statusLines.length - 1][1];
+  }
+  if (!/^\d{3}$/.test(String(statusText || ''))) throw new Error('CURL_STATUS_INVALID');
   let separator = response.lastIndexOf('\r\n\r\n');
   let separatorLength = 4;
   if (separator < 0) {
@@ -48,14 +55,25 @@ function parseCurlResponse(output) {
   };
 }
 
-function buildVercelCurlArgs(targetUrl, connectTimeoutSeconds, maxTimeSeconds, env = process.env) {
+function buildVercelCurlArgs(deploymentUrl, requestPath, connectTimeoutSeconds, maxTimeSeconds, env = process.env) {
   const scope = String(env.VERCEL_SCOPE || env.VERCEL_ORG_SLUG || env.VERCEL_ORG_ID || '').trim();
   if (!scope || !/^[A-Za-z0-9_-]{1,128}$/.test(scope)) throw new Error('VERCEL_SCOPE_REQUIRED');
+  let deployment;
+  try { deployment = new URL(String(deploymentUrl || '')); }
+  catch { throw new Error('VERCEL_DEPLOYMENT_URL_INVALID'); }
+  if (deployment.protocol !== 'https:' || !deployment.hostname.toLowerCase().endsWith('.vercel.app') ||
+      deployment.username || deployment.password || deployment.search || deployment.hash || deployment.pathname !== '/') {
+    throw new Error('VERCEL_DEPLOYMENT_URL_INVALID');
+  }
+  const pathValue = String(requestPath || '');
+  if (!pathValue.startsWith('/') || pathValue.includes('\r') || pathValue.includes('\n')) {
+    throw new Error('VERCEL_REQUEST_PATH_INVALID');
+  }
   return [
-    '--no-color', '--scope', scope, 'curl', targetUrl, '-sS', '-i',
+    '--no-color', '--scope', scope, 'curl', pathValue,
+    '--deployment', deployment.origin, '-sS', '-i',
     '--connect-timeout', String(connectTimeoutSeconds),
-    '--max-time', String(maxTimeSeconds),
-    '-w', '\\n__OPSC_HTTP_STATUS__:%{http_code}'
+    '--max-time', String(maxTimeSeconds)
   ];
 }
 
@@ -85,7 +103,7 @@ function runVercelCurl(baseUrl, path, options = {}) {
     const processTimeoutMs = Number.isSafeInteger(options.processTimeoutMs) && options.processTimeoutMs > 0
       ? options.processTimeoutMs : 30000;
     let args;
-    try { args = buildVercelCurlArgs(targetUrl, connectTimeoutSeconds, maxTimeSeconds, process.env); }
+    try { args = buildVercelCurlArgs(baseUrl.toString(), path, connectTimeoutSeconds, maxTimeSeconds, process.env); }
     catch (error) { return reject(error); }
     let child;
     let settled = false;

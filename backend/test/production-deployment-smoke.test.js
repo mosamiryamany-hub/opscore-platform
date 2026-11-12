@@ -8,10 +8,12 @@ const commit = '48ed78a825020986c53bd045e50c8ea852f53275';
 
 test('Vercel curl command is explicitly scoped and never places its token in argv', () => {
   const env = { VERCEL_SCOPE: 'mosamiryamany-1692', VERCEL_ORG_ID: 'team_example', VERCEL_TOKEN: 'do-not-expose-this-token' };
-  const args = buildVercelCurlArgs('https://opscore-platform-abc.vercel.app/api/health', 5, 45, env);
-  assert.deepEqual(args.slice(0, 4), ['--no-color', '--scope', 'mosamiryamany-1692', 'curl']);
+  const args = buildVercelCurlArgs('https://opscore-platform-abc.vercel.app', '/api/health', 5, 45, env);
+  assert.deepEqual(args.slice(0, 7), ['--no-color', '--scope', 'mosamiryamany-1692', 'curl', '/api/health', '--deployment', 'https://opscore-platform-abc.vercel.app']);
   assert.equal(args.includes(env.VERCEL_TOKEN), false);
-  assert.throws(() => buildVercelCurlArgs('https://opscore-platform-abc.vercel.app', 5, 45, {}), /VERCEL_SCOPE_REQUIRED/);
+  assert.throws(() => buildVercelCurlArgs('https://opscore-platform-abc.vercel.app', '/api/health', 5, 45, {}), /VERCEL_SCOPE_REQUIRED/);
+  assert.throws(() => buildVercelCurlArgs('https://example.com', '/api/health', 5, 45, env), /VERCEL_DEPLOYMENT_URL_INVALID/);
+  assert.throws(() => buildVercelCurlArgs('https://opscore-platform-abc.vercel.app', 'https://evil.example/path', 5, 45, env), /VERCEL_REQUEST_PATH_INVALID/);
 });
 
 test('Vercel CLI stderr is mapped to safe error classes without leaking its contents', () => {
@@ -52,7 +54,10 @@ test('curl response parser extracts status, content type and body without exposi
   assert.equal(parsed.statusCode, 200);
   assert.equal(parsed.contentType, 'application/json; charset=utf-8');
   assert.deepEqual(JSON.parse(parsed.body), { ok: true });
-  assert.throws(() => parseCurlResponse('missing marker'), /CURL_STATUS_MARKER_MISSING/);
+  assert.throws(() => parseCurlResponse('missing response status'), /CURL_STATUS_MISSING/);
+  const native = parseCurlResponse(['HTTP/2 204 No Content', 'content-type: application/json', '', ''].join(String.fromCharCode(13, 10)));
+  assert.equal(native.statusCode, 204);
+  assert.equal(native.body, '');
 });
 
 test('health proof requires healthy PostgreSQL service', () => {
