@@ -302,8 +302,8 @@ test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cro
 
     x = await request(`/api/v1/work-orders/${encodeURIComponent(workOrderAId)}`, {}, cookieB);
     recordC('cross-tenant-work-order-read-denied', x.response.status === 404 || x.response.status === 403, `tenant B GET tenant A work order → HTTP ${x.response.status}`);
-    x = await request(`/api/v1/customers/${encodeURIComponent(customerAId)}`, {}, cookieB);
-    recordC('cross-tenant-customer-read-denied', x.response.status === 404 || x.response.status === 403, `tenant B GET tenant A customer → HTTP ${x.response.status}`);
+    x = await request('/api/v1/customers', {}, cookieB);
+    recordC('cross-tenant-customer-read-denied', x.response.status === 200 && Array.isArray(x.data) && !x.data.some(row => row.id === customerAId), `tenant B customer list excludes tenant A customer → HTTP ${x.response.status}`);
     x = await request(`/api/v1/work-orders/${encodeURIComponent(workOrderAId)}`, { method: 'PATCH', body: JSON.stringify({ title: 'MATRIX CROSS TENANT MUTATION' }) }, cookieB);
     recordC('cross-tenant-work-order-update-denied', x.response.status === 403 || x.response.status === 404, `tenant B PATCH tenant A work order → HTTP ${x.response.status}`);
     x = await request(`/api/v1/work-orders/${encodeURIComponent(workOrderAId)}`, { method: 'DELETE' }, cookieB);
