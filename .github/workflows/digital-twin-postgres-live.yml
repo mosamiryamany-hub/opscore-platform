@@ -371,6 +371,7 @@ jobs:
           const foreign = m.foreignIdProbe || {};
           const cross = m.crossTenantFixture || {};
           const tenantRouteCount = Number(matrix.discovered && matrix.discovered.tenantDataRoutes);
+          const foreignIdRouteCount = Number(matrix.discovered && matrix.discovered.foreignIdRoutes);
           if (matrix.schemaVersion !== 'opscore.tenant-isolation-matrix.v1' ||
               matrix.status !== 'PASS' ||
               String(matrix.sourceCommit || '').toLowerCase() !== commit ||
@@ -378,7 +379,7 @@ jobs:
               matrix.isolationCertification !== 'NOT_CERTIFIED' ||
               !Number.isSafeInteger(tenantRouteCount) || tenantRouteCount < 1 ||
               Number(ua.checks) !== tenantRouteCount || Number(ua.pass) !== tenantRouteCount || Number(ua.fail) !== 0 ||
-              Number(foreign.checks) !== tenantRouteCount || Number(foreign.pass) !== tenantRouteCount || Number(foreign.fail) !== 0 ||
+              (!Number.isSafeInteger(foreignIdRouteCount) || foreignIdRouteCount < 0) || Number(foreign.checks) !== foreignIdRouteCount || Number(foreign.pass) !== foreignIdRouteCount || Number(foreign.fail) !== 0 ||
               Number(cross.checks) < 1 || Number(cross.pass) !== Number(cross.checks) || Number(cross.fail) !== 0 ||
               (matrix.skipped || []).length !== 0 || (matrix.cleanupErrors || []).length !== 0) {
             throw new Error('TENANT_MATRIX_EVIDENCE_INCOMPLETE_OR_NOT_CLEAN');

@@ -67,12 +67,14 @@ function validateTenantMatrixEnvelope(envelope, expectedCommit, expectedPipeline
   const foreignId = tested.foreignIdProbe || {};
   const crossTenant = tested.crossTenantFixture || {};
   const totalRoutes = Number(discovered.tenantDataRoutes);
+  const foreignIdRoutes = Number(discovered.foreignIdRoutes);
   const validSummary = Number.isSafeInteger(totalRoutes) && totalRoutes > 0 &&
+    Number.isSafeInteger(foreignIdRoutes) && foreignIdRoutes >= 0 &&
     Number(unauthenticated.checks) === totalRoutes &&
     Number(unauthenticated.pass) === totalRoutes &&
     Number(unauthenticated.fail) === 0 &&
-    Number(foreignId.checks) === totalRoutes &&
-    Number(foreignId.pass) === totalRoutes &&
+    Number(foreignId.checks) === foreignIdRoutes &&
+    Number(foreignId.pass) === foreignIdRoutes &&
     Number(foreignId.fail) === 0 &&
     Number(crossTenant.checks) > 0 &&
     Number(crossTenant.pass) === Number(crossTenant.checks) &&

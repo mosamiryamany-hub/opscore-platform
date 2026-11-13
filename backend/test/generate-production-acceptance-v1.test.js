@@ -22,7 +22,7 @@ function tenantMatrixEnvelope(overrides = {}) {
     productionCertification: false,
     isolationCertification: 'NOT_CERTIFIED',
     fullEvidenceSha256: 'b'.repeat(64),
-    discovered: { totalRoutes: 30, tenantDataRoutes: 3 },
+    discovered: { totalRoutes: 30, tenantDataRoutes: 3, foreignIdRoutes: 3 },
     tested: {
       unauthenticated: { checks: 3, pass: 3, fail: 0 },
       foreignIdProbe: { checks: 3, pass: 3, fail: 0 },
@@ -101,6 +101,11 @@ test('tenant matrix requires every tenant route, both authorization probes and v
     tenantMatrixEnvelope({ skippedCount: 1 }), commit, pipelineId
   );
   assert.equal(incomplete.ok, false);
+  const incompleteForeignId = validateTenantMatrixEnvelope(
+    tenantMatrixEnvelope({ discovered: { totalRoutes: 30, tenantDataRoutes: 3, foreignIdRoutes: 2 } }),
+    commit, pipelineId
+  );
+  assert.equal(incompleteForeignId.ok, false);
 
   const stale = validateTenantMatrixEnvelope(
     { ...tenantMatrixEnvelope(), binding: { ...tenantMatrixEnvelope().binding, pipelineId: '1' } },

@@ -421,6 +421,7 @@ test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cro
       discovered: {
         totalRoutes: routes.length,
         tenantDataRoutes: tenantRoutes.length,
+        foreignIdRoutes: tenantRoutes.filter(r => ID_PLACEHOLDER.test(r.route)).length,
         inventorySource: 'docs/API_INVENTORY.json (source-derived via scripts/api-inventory.js)'
       },
       tested: {
@@ -440,7 +441,7 @@ test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cro
       productionCertification: false,
       isolationCertification: 'NOT_CERTIFIED',
       status: failed.length || cleanupErrors.length ? 'FAIL' : 'PASS',
-      note: 'Route-level matrix executed against the source-derived inventory at the tested commit. Unauthenticated and foreign-ID probes cover every non-public tenant-data route; true cross-tenant fixture checks cover work-orders, customers and evidence uploads. Even on PASS, formal production isolation certification remains NOT_CERTIFIED until the required certification procedures complete.'
+      note: 'Route-level matrix executed against the source-derived inventory at the tested commit. Unauthenticated probes cover every non-public tenant-data route; foreign-ID probes cover every tenant-data route with an ID placeholder; true cross-tenant fixture checks cover work-orders, customers and evidence uploads. Even on PASS, formal production isolation certification remains NOT_CERTIFIED until the required certification procedures complete.'
     };
     writeResult(report);
     process.stdout.write(`TENANT_ISOLATION_MATRIX_REPORT=${RESULT_PATH}\n`);
