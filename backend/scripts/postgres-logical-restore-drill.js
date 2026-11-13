@@ -49,24 +49,29 @@ function buildPgPassLine(url) {
 
 function filterExtensionToc(tocText, extensions = REQUIRED_EXTENSIONS) {
   const allowed = new Set(extensions);
-  const lines = String(tocText || '').split(/\r?\n/);
+  const createCounts = new Map([...allowed].map(name => [name, 0]));
+  const lines = String(tocText || '').split(/\\r?\\n/);
   let removedCreate = 0;
   let removedComments = 0;
   const retained = lines.filter(line => {
-    const create = line.match(/^\s*\d+;\s+\d+\s+\d+\s+EXTENSION\s+-\s+([a-z0-9_]+)\b/i);
+    const create = line.match(/^\\s*\\d+;\\s+\\d+\\s+\\d+\\s+EXTENSION\\s+-\\s+([a-z0-9_]+)\\b/i);
     if (create && allowed.has(create[1].toLowerCase())) {
+      const name = create[1].toLowerCase();
+      createCounts.set(name, createCounts.get(name) + 1);
       removedCreate += 1;
       return false;
     }
-    const comment = line.match(/^\s*\d+;\s+\d+\s+\d+\s+COMMENT\s+-\s+EXTENSION\s+([a-z0-9_]+)\b/i);
+    const comment = line.match(/^\\s*\\d+;\\s+\\d+\\s+\\d+\\s+COMMENT\\s+-\\s+EXTENSION\\s+([a-z0-9_]+)\\b/i);
     if (comment && allowed.has(comment[1].toLowerCase())) {
       removedComments += 1;
       return false;
     }
     return true;
   });
-  if (removedCreate !== allowed.size) throw new Error('RESTORE_TOC_EXTENSION_FILTER_INCOMPLETE');
-  return { text: retained.join('\n') + '\n', removedCreate, removedComments };
+  if (removedCreate !== allowed.size || [...createCounts.values()].some(count => count !== 1)) {
+    throw new Error('RESTORE_TOC_EXTENSION_FILTER_INCOMPLETE');
+  }
+  return { text: retained.join('\\n') + '\\n', removedCreate, removedComments };
 }
 
 function runProcess(command, args, options = {}) {
@@ -345,6 +350,13 @@ async function main() {
     }
     if (stableJson(sourceExtensions) !== stableJson(targetExtensions)) throw new Error('RESTORE_EXTENSION_VERSION_MISMATCH');
     record('required_extensions_match', 'PASS', sourceExtensions.map(item => item.extname + '=' + item.extversion).join(','));
+
+    const targetPreflight = await databaseCatalog(targetPool);
+    if (Number(targetPreflight.summary.table_count) !== 0 || targetPreflight.policies.length !== 0 ||
+        targetPreflight.constraints.length !== 0 || targetPreflight.indexes.length !== 0) {
+      throw new Error('RESTORE_TARGET_DATABASE_NOT_EMPTY');
+    }
+    record('restore_target_is_empty', 'PASS', 'Target contains only the pre-provisioned PostgreSQL extensions and no application tables, policies, constraints, or indexes.');
 
     sourceFixtureCreated = true;
     await createFixture(sourcePool, fixtureSchema);
