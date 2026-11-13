@@ -402,10 +402,39 @@ async function main() {
     const afterExtensions = (await targetPool.query('SELECT extname,extversion FROM pg_extension ORDER BY extname')).rows;
     if (stableJson(sourceExtensions) !== stableJson(afterExtensions)) throw new Error('RESTORE_EXTENSION_VERSION_MISMATCH_AFTER_RESTORE');
     const afterCatalog = await databaseCatalog(targetPool);
+    const catalogFields = ['summary', 'extensions', 'policies', 'constraints', 'indexes'];
+    const catalogMismatch = catalogFields.find(field =>
+      stableJson(beforeCatalog[field]) !== stableJson(afterCatalog[field])
+    );
+    if (catalogMismatch) {
+      const expected = beforeCatalog[catalogMismatch];
+      const actual = afterCatalog[catalogMismatch];
+      const detail = {
+        field: catalogMismatch,
+        expectedCount: Array.isArray(expected) ? expected.length : null,
+        actualCount: Array.isArray(actual) ? actual.length : null,
+        expectedSummary: !Array.isArray(expected) ? expected : undefined,
+        actualSummary: !Array.isArray(actual) ? actual : undefined
+      };
+      record('database_catalog_match', 'FAIL', JSON.stringify(detail));
+      throw new Error('RESTORE_DATABASE_CATALOG_MISMATCH_' + catalogMismatch.toUpperCase());
+    }
+    record('database_catalog_match', 'PASS', 'Catalog summary, extensions, RLS policies, constraints, and indexes match.');
+
     const afterTables = await tableInventory(targetPool);
-    if (stableJson(beforeCatalog) !== stableJson(afterCatalog)) throw new Error('RESTORE_DATABASE_CATALOG_MISMATCH');
-    if (stableJson(beforeTables) !== stableJson(afterTables)) throw new Error('RESTORE_TABLE_DATA_FINGERPRINT_MISMATCH');
-    record('database_catalog_and_table_data_match', 'PASS', 'Application tables, row counts and content hashes, indexes, constraints, RLS policies, and extension versions match.');
+    if (stableJson(beforeTables) !== stableJson(afterTables)) {
+      const expectedByName = new Map(beforeTables.map(item => [item.schema + '.' + item.table, item]));
+      const actualByName = new Map(afterTables.map(item => [item.schema + '.' + item.table, item]));
+      const allNames = [...new Set([...expectedByName.keys(), ...actualByName.keys()])].sort();
+      const mismatch = allNames.find(name => stableJson(expectedByName.get(name) || null) !== stableJson(actualByName.get(name) || null));
+      record('table_data_fingerprint_match', 'FAIL', JSON.stringify({
+        firstMismatch: mismatch || null,
+        expected: mismatch ? expectedByName.get(mismatch) || null : null,
+        actual: mismatch ? actualByName.get(mismatch) || null : null
+      }));
+      throw new Error('RESTORE_TABLE_DATA_FINGERPRINT_MISMATCH');
+    }
+    record('table_data_fingerprint_match', 'PASS', 'Application table counts and canonical row-content hashes match.');
 
     const sourceFixture = await verifyFixture(sourcePool, fixtureSchema);
     const restoredFixture = await verifyFixture(targetPool, fixtureSchema);
