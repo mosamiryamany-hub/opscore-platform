@@ -251,11 +251,13 @@ jobs:
           '
       - name: Generate production acceptance v1 evidence (fail-closed)
         id: generate_acceptance
-        if: ${{ secrets.NEON_API_KEY != '' && (secrets.OPSC_PG_ACCEPTANCE_URL != '' || secrets.OPSC_DATABASE_URL != '') && (secrets.OPSC_OWNER_DATABASE_URL != '' || secrets.DATABASE_URL != '') }}
+        if: ${{ secrets.NEON_API_KEY != '' && secrets.OPSC_DATABASE_URL != '' && secrets.DATABASE_URL != '' }}
         working-directory: backend
         env:
-          OPSC_PG_ACCEPTANCE_URL: ${{ secrets.OPSC_PG_ACCEPTANCE_URL || secrets.OPSC_DATABASE_URL }}
-          OPSC_OWNER_DATABASE_URL: ${{ secrets.OPSC_OWNER_DATABASE_URL || secrets.DATABASE_URL }}
+          # Runtime/owner URLs from deploy secrets. The secret name OPSC_PG_ACCEPTANCE_URL is
+          # intentionally unused as a GitHub secret binding in this workflow (enforced by release-documentation-consistency).
+          OPSC_PG_ACCEPTANCE_URL: ${{ secrets.OPSC_DATABASE_URL }}
+          OPSC_OWNER_DATABASE_URL: ${{ secrets.DATABASE_URL }}
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
           NEON_PROJECT_ID: summer-leaf-18448271
           NEON_BRANCH_ID: br-wispy-term-bcrqqj84
@@ -275,6 +277,7 @@ jobs:
         if: ${{ steps.generate_acceptance.outputs.evidence_sha != '' }}
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           EVIDENCE_SHA: ${{ steps.generate_acceptance.outputs.evidence_sha }}
         run: |
           set -euo pipefail
