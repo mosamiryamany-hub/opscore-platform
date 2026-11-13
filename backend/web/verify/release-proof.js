@@ -30,8 +30,14 @@
         pipeline.textContent = 'UNVERIFIED';
       }
     }
+    const identitySource = proof.sourceCommitIdentitySource || 'unverified';
+    set('identitySource', identitySource, identitySource === 'github-actions-cli-assertion' ? 'ok' : 'bad');
+    const ciStatus = proof.ci && proof.ci.status || 'UNVERIFIED';
+    set('ciGate', ciStatus, ciStatus === 'PASS' ? 'ok' : 'bad');
     const gates = proof.gates || {};
     set('commercialGate', gates.commercialClosure, gates.commercialClosure === 'PASS_WITH_BUYER_RESIDUALS' ? 'warn' : 'bad');
+    const acceptanceStatus = proof.productionAcceptance && proof.productionAcceptance.status || 'NOT_VERIFIED';
+    set('acceptanceGate', acceptanceStatus, acceptanceStatus === 'PASS' ? 'ok' : 'warn');
     set('rlsGate', gates.livePostgresRls, gates.livePostgresRls === 'PASS_TEST_SCOPE' ? 'ok' : 'bad');
     set('sessionGate', gates.productionSessionTenantBoundary, gates.productionSessionTenantBoundary === 'PASS_PRODUCTION' ? 'ok' : 'warn');
     set('recoveryGate', gates.productionRecoveryBundle, gates.productionRecoveryBundle === 'PASS_PRODUCTION' ? 'ok' : 'warn');
