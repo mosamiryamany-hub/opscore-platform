@@ -291,6 +291,70 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
     if (!created.organizations.includes(orgAId)) created.organizations.push(orgAId);
     record('identity-membership-resolved', `/api/v1/me returned user ${x.data.user.id} in organization ${orgAId} over PostgreSQL`);
 
+    // Prove governed Operational Autopilot persistence on PostgreSQL, not only SQLite.
+    x = await request('/api/v1/platform/decisions', {
+      method: 'POST',
+      body: JSON.stringify({
+        decisionType: 'acceptance.autopilot.memory',
+        input: { marker: `opscore-pg-autopilot-${stamp}` },
+        rules: [],
+        outcome: { approved: true, result: 'success', reason: `opscore-pg-autopilot-${stamp}` }
+      })
+    }, ownerACookie);
+    assert.equal(x.response.status, 201, JSON.stringify(x.data));
+    const autopilotDecisionId = x.data.id;
+    assert.ok(autopilotDecisionId);
+
+    x = await request('/api/v1/autopilot/decision-memory/build', {
+      method: 'POST',
+      body: JSON.stringify({ limit: 100, learningKey: 'acceptance.autopilot.memory' })
+    }, ownerACookie);
+    assert.equal(x.response.status, 200, JSON.stringify(x.data));
+    assert.equal(x.data.created, 1);
+    x = await request('/api/v1/autopilot/decision-memory?q=' + encodeURIComponent(`opscore-pg-autopilot-${stamp}`), {}, ownerACookie);
+    assert.equal(x.response.status, 200, JSON.stringify(x.data));
+    assert.equal(x.data.items.length, 1);
+    assert.equal(x.data.items[0].decision_id, autopilotDecisionId);
+    record('postgres-autopilot-decision-memory-persisted', 'decision replay -> decision memory is written and read by PostgreSQL runtime');
+
+    const replayStart = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    x = await request('/api/v1/autopilot/incidents/replay', {
+      method: 'POST',
+      body: JSON.stringify({ incidentRef: `acceptance-${stamp}`, fromAt: replayStart, toAt: new Date().toISOString(), limit: 100 })
+    }, ownerACookie);
+    assert.equal(x.response.status, 201, JSON.stringify(x.data));
+    const incidentReplayId = x.data.id;
+    assert.equal(x.data.schemaVersion, 'opscore.incident-replay.v1');
+    assert.match(x.data.timelineSha256, /^[0-9a-f]{64}$/);
+    x = await request('/api/v1/autopilot/incidents/replay', {}, ownerACookie);
+    assert.equal(x.response.status, 200, JSON.stringify(x.data));
+    assert.equal(x.data.items.some(item => item.id === incidentReplayId), true);
+    record('postgres-autopilot-incident-replay-persisted', 'incident replay and SHA-256 digest persist through PostgreSQL runtime');
+
+    x = await request('/api/v1/control-plane/safe-mode', {
+      method: 'POST',
+      body: JSON.stringify({ enabled: true, reason: 'autopilot-postgres-acceptance' })
+    }, ownerACookie);
+    assert.equal(x.response.status, 200, JSON.stringify(x.data));
+    x = await request('/api/v1/autopilot/proposals/generate', {
+      method: 'POST',
+      body: JSON.stringify({ incidentRef: `acceptance-${stamp}` })
+    }, ownerACookie);
+    assert.equal(x.response.status, 201, JSON.stringify(x.data));
+    const safeModeProposal = (x.data.proposals || []).find(item => item.actionType === 'keep_safe_mode');
+    assert.ok(safeModeProposal, JSON.stringify(x.data));
+    assert.equal(safeModeProposal.status, 'pending');
+    x = await request('/api/v1/autopilot/proposals', {}, ownerACookie);
+    assert.equal(x.response.status, 200, JSON.stringify(x.data));
+    assert.equal(x.data.items.some(item => item.id === safeModeProposal.id), true);
+    record('postgres-autopilot-proposal-governed-persistence', 'pending proposal generated and read from PostgreSQL');
+
+    x = await request('/api/v1/control-plane/safe-mode', {
+      method: 'POST',
+      body: JSON.stringify({ enabled: false, reason: 'autopilot-postgres-acceptance-cleanup' })
+    }, ownerACookie);
+    assert.equal(x.response.status, 200, JSON.stringify(x.data));
+
     x = await request('/api/v1/control-plane', {}, ownerACookie);
     assert.equal(x.response.status, 200, JSON.stringify(x.data));
     assert.equal(x.data.schemaVersion, 'opscore.control-plane.v1');
@@ -519,6 +583,17 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
       assert.equal(x.data.export.organizationId, orgBId);
       assert.equal(x.data.export.tables.customers.rows.some(row => row.name === `Tenant A Private Customer ${stamp}`), false);
       record('recovery-bundle-tenant-scoped', 'tenant B bundle contains only tenant B rows');
+
+      x = await request('/api/v1/autopilot/incidents/replay', {}, ownerBCookie);
+      assert.equal(x.response.status, 200, JSON.stringify(x.data));
+      assert.equal(x.data.items.some(item => item.id === incidentReplayId), false);
+      x = await request('/api/v1/autopilot/decision-memory?q=' + encodeURIComponent(`opscore-pg-autopilot-${stamp}`), {}, ownerBCookie);
+      assert.equal(x.response.status, 200, JSON.stringify(x.data));
+      assert.equal(x.data.items.length, 0);
+      x = await request('/api/v1/autopilot/proposals', {}, ownerBCookie);
+      assert.equal(x.response.status, 200, JSON.stringify(x.data));
+      assert.equal(x.data.items.some(item => item.id === safeModeProposal.id), false);
+      record('postgres-autopilot-cross-tenant-isolation', 'tenant B cannot read tenant A incident replay, memory or proposal rows');
 
       // Logout revokes the server-side session.
       x = await request('/api/v1/auth/logout', { method: 'POST' }, ownerACookie);
