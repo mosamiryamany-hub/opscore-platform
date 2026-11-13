@@ -16,7 +16,7 @@ const fixedNow = () => new Date('2026-10-23T00:00:00.000Z');
 
 function productionAcceptanceEvidence(commit = SHA, pipelineId = '2978538209', overrides = {}) {
   return {
-    schemaVersion: 'opscore.production-acceptance.v1',
+    schemaVersion: 'opscore.production-acceptance.v2',
     status: 'PASS',
     environment: 'production',
     databaseEngine: 'postgres',
@@ -24,14 +24,37 @@ function productionAcceptanceEvidence(commit = SHA, pipelineId = '2978538209', o
     pipelineId,
     testedAt: '2026-10-23T00:00:00.000Z',
     checks: {
-      migration053: 'PASS',
-      tenantSessionIsolation: 'PASS',
-      crossTenantAccessDenied: 'PASS',
-      recoveryRestore: 'PASS',
-      backupIntegrity: 'PASS'
+      migrationLedgerParity: 'PASS',
+      tenantSessionIsolation: 'PASS_TEST_SCOPE',
+      crossTenantAccessDenied: 'PASS_TEST_SCOPE',
+      recoveryRestore: 'PASS_TEST_SCOPE',
+      backupIntegrity: 'PASS_TEST_SCOPE',
+      productionNeonPitr: 'NOT_VERIFIED'
     },
+    evidenceScopes: {
+      productionDatabase: 'LIVE_READ_ONLY',
+      tenantIsolation: 'DISPOSABLE_POSTGRESQL_18_CI',
+      apiRouteCoverage: 'DISPOSABLE_POSTGRESQL_18_CI',
+      recoveryRestore: 'DISPOSABLE_POSTGRESQL_18_LOGICAL_RESTORE_CI',
+      productionNeonPitr: 'NOT_VERIFIED'
+    },
+    productionIsolationCertification: false,
+    productionRecovery: {
+      logicalRestoreTestScope: 'PASS_TEST_SCOPE',
+      neonPointInTimeRestore: 'NOT_VERIFIED'
+    },
+    migrationLedger: {
+      status: 'PASS',
+      sourceMigrationCount: 60,
+      ledgerRowCount: 60,
+      matchedCount: 60,
+      pendingCount: 0,
+      blockerCount: 0
+    },
+    tenantMatrixEvidenceSha256: 'c'.repeat(64),
+    recoveryDrillEvidenceSha256: 'd'.repeat(64),
     tenantTableCoverage: { status: 'PASS', totalTables: 17, testedTables: 17 },
-    apiRouteCoverage: { status: 'PASS', totalRoutes: 12, testedRoutes: 12 },
+    apiRouteCoverage: { status: 'PASS_TEST_SCOPE', totalRoutes: 12, testedRoutes: 12 },
     runtimeRole: {
       name: 'opscore_runtime',
       login: true,
@@ -104,8 +127,8 @@ test('release proof accepts production acceptance only when the embedded JSON ha
     assert.equal(proof.packageFingerprint.status, 'PUBLISHED');
     assert.equal(proof.packageFingerprint.value, PACKAGE_SHA);
     assert.equal(proof.productionAcceptance.status, 'PASS');
-    assert.equal(proof.gates.productionSessionTenantBoundary, 'PASS_PRODUCTION');
-    assert.equal(proof.gates.productionRecoveryBundle, 'PASS_PRODUCTION');
+    assert.equal(proof.gates.productionSessionTenantBoundary, 'PASS_TEST_SCOPE');
+    assert.equal(proof.gates.productionRecoveryBundle, 'PASS_TEST_SCOPE');
     assert.equal(proof.gates.productionIsolationCertification, 'NOT_CERTIFIED');
     assert.equal(proof.gates.mobileStoreArtifacts, 'REMAINING_BUYER');
     assert.equal(proof.productionAcceptance.evidenceSha256, evidence.sha256);
@@ -307,7 +330,8 @@ test('embedded GitHub Actions identity gates production release only with signed
     assert.equal(proof.status, 'PASS_WITH_BUYER_RESIDUALS');
     assert.equal(proof.postgresHttpAcceptance.status, 'PASS');
     assert.equal(proof.productionAcceptance.status, 'PASS');
-    assert.equal(proof.gates.productionIsolationCertification, 'CERTIFIED');
+    assert.equal(proof.gates.productionIsolationCertification, 'NOT_CERTIFIED');
+    assert.equal(proof.gates.neonPointInTimeRecovery, 'NOT_VERIFIED');
     assert.equal(hasVerifiedProductionRelease(staleEnv, identityPath, acceptance.path, postgresHttp.path), true);
 
     fs.writeFileSync(identityPath, JSON.stringify({ ...identity, commitSha: 'invalid' }));

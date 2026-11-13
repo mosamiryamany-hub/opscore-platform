@@ -84,6 +84,10 @@ jobs:
           persist-credentials: false
       - name: Assert production ref
         run: test "$GITHUB_REF" = "refs/heads/main"
+      - name: Set up Node.js 22.23.4 for deployment and acceptance tooling
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22.23.4'
 
       # The reusable PostgreSQL 18 workflow ran against a disposable local database.
       # Import only its validated, caller-run-bound evidence; never connect deploy to a shared Neon test database.
@@ -170,6 +174,38 @@ jobs:
           print('promoted_pipeline', expected_pipeline)
           PY
 
+      - name: Materialize caller-bound tenant and logical restore evidence
+        env:
+          TENANT_MATRIX_EVIDENCE_B64: \${{ needs.postgres-acceptance.outputs.tenant_matrix_evidence_b64 }}
+          RESTORE_DRILL_EVIDENCE_B64: \${{ needs.postgres-acceptance.outputs.restore_drill_evidence_b64 }}
+        run: |
+          set -euo pipefail
+          test -n "\${TENANT_MATRIX_EVIDENCE_B64:-}" || { echo "TENANT_MATRIX_EVIDENCE_MISSING" >&2; exit 1; }
+          test -n "\${RESTORE_DRILL_EVIDENCE_B64:-}" || { echo "RESTORE_DRILL_EVIDENCE_MISSING" >&2; exit 1; }
+          mkdir -p backend/docs/verification
+          printf '%s' "$TENANT_MATRIX_EVIDENCE_B64" | base64 --decode > backend/docs/verification/TENANT_ISOLATION_MATRIX_BOUND.json
+          printf '%s' "$RESTORE_DRILL_EVIDENCE_B64" | base64 --decode > backend/docs/verification/POSTGRES_LOGICAL_RESTORE_DRILL_BOUND.json
+          node <<'NODE'
+          const fs = require('node:fs');
+          const commit = process.env.GITHUB_SHA.toLowerCase();
+          const pipelineId = String(process.env.GITHUB_RUN_ID);
+          const files = [
+            ['backend/docs/verification/TENANT_ISOLATION_MATRIX_BOUND.json', 'tenant-matrix', 'DISPOSABLE_POSTGRESQL_18_CI'],
+            ['backend/docs/verification/POSTGRES_LOGICAL_RESTORE_DRILL_BOUND.json', 'postgres-logical-restore', 'DISPOSABLE_POSTGRESQL_18_LOGICAL_RESTORE_CI']
+          ];
+          for (const [file, type, scope] of files) {
+            const item = JSON.parse(fs.readFileSync(file, 'utf8'));
+            if (item.schemaVersion !== 'opscore.caller-bound-ci-evidence.v1' ||
+                item.evidenceType !== type ||
+                item.binding?.commit !== commit ||
+                String(item.binding?.pipelineId) !== pipelineId ||
+                item.binding?.scope !== scope) {
+              throw new Error('CALLER_BOUND_CI_EVIDENCE_IDENTITY_MISMATCH:' + type);
+            }
+          }
+          console.log('DEPLOY_BOUND_TENANT_AND_RESTORE_EVIDENCE=PASS');
+          NODE
+
       - name: Install Vercel CLI
         run: npm install -g vercel@65.14.0
       - name: Pull Vercel env
@@ -191,28 +227,24 @@ jobs:
         env:
           OPSC_RELEASE_PACKAGE_SHA256: ${{ steps.package_fp.outputs.sha }}
           OPSC_RELEASE_PACKAGE_COMMIT: ${{ github.sha }}
-      - name: Generate production acceptance v1 evidence (fail-closed)
+      - name: Generate scoped production acceptance v2 evidence (read-only live DB + bound CI proofs)
         id: generate_acceptance
         working-directory: backend
         env:
-          # Runtime/owner URLs from deploy secrets. The secret name OPSC_PG_ACCEPTANCE_URL is
-          # intentionally unused as a GitHub secret binding in this workflow (enforced by release-documentation-consistency).
-          OPSC_PG_ACCEPTANCE_URL: ${{ secrets.OPSC_DATABASE_URL }}
-          OPSC_OWNER_DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
-          NEON_PROJECT_ID: summer-leaf-18448271
-          NEON_BRANCH_ID: br-wispy-term-bcrqqj84
-          OPSC_HTTP_BASE: https://opscore-platform.vercel.app
+          OPSC_PRODUCTION_RUNTIME_URL: \${{ secrets.OPSC_DATABASE_URL }}
+          OPSC_OWNER_DATABASE_URL: \${{ secrets.DATABASE_URL }}
+          OPSC_TENANT_MATRIX_EVIDENCE_PATH: docs/verification/TENANT_ISOLATION_MATRIX_BOUND.json
+          OPSC_RESTORE_DRILL_EVIDENCE_PATH: docs/verification/POSTGRES_LOGICAL_RESTORE_DRILL_BOUND.json
           OPSC_ACCEPTANCE_ENVIRONMENT: production
-          GITHUB_SHA: ${{ github.sha }}
-          GITHUB_RUN_ID: ${{ github.run_id }}
+          OPSC_WRITE_EVIDENCE: '1'
+          GITHUB_SHA: \${{ github.sha }}
+          GITHUB_RUN_ID: \${{ github.run_id }}
         run: |
           set -euo pipefail
-          if [ -z "${NEON_API_KEY:-}" ] || [ -z "${OPSC_PG_ACCEPTANCE_URL:-}" ] || [ -z "${OPSC_OWNER_DATABASE_URL:-}" ]; then
-            echo "PRODUCTION_ACCEPTANCE_GENERATOR_SKIPPED_MISSING_SECRETS"
-            echo "evidence_sha=" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
+          test -n "\${OPSC_PRODUCTION_RUNTIME_URL:-}" || { echo "PRODUCTION_RUNTIME_DATABASE_URL_REQUIRED" >&2; exit 1; }
+          test -n "\${OPSC_OWNER_DATABASE_URL:-}" || { echo "PRODUCTION_OWNER_DATABASE_URL_REQUIRED" >&2; exit 1; }
+          test -s "$OPSC_TENANT_MATRIX_EVIDENCE_PATH" || { echo "CALLER_BOUND_TENANT_MATRIX_REQUIRED" >&2; exit 1; }
+          test -s "$OPSC_RESTORE_DRILL_EVIDENCE_PATH" || { echo "CALLER_BOUND_LOGICAL_RESTORE_REQUIRED" >&2; exit 1; }
           if [ ! -d node_modules/pg ]; then
             npm ci --ignore-scripts
           fi
@@ -260,7 +292,7 @@ jobs:
             const envs = await req('GET', '/v9/projects/' + projectId + '/env');
             const want = {
               OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: hash,
-              OPSC_PRODUCTION_ISOLATION_CERTIFICATION: 'CERTIFIED',
+              OPSC_PRODUCTION_ISOLATION_CERTIFICATION: 'NOT_CERTIFIED',
               OPSC_RELEASE_VERIFIED: 'true'
             };
             for (const [key, value] of Object.entries(want)) {
@@ -285,7 +317,7 @@ jobs:
           OPSC_RELEASE_CI_REF: ${{ github.ref_name }}
           OPSC_RELEASE_PACKAGE_SHA256: ${{ steps.package_fp.outputs.sha }}
           OPSC_RELEASE_PACKAGE_COMMIT: ${{ github.sha }}
-          OPSC_PRODUCTION_ISOLATION_CERTIFICATION: ${{ steps.generate_acceptance.outputs.evidence_sha != '' && 'CERTIFIED' || 'NOT_CERTIFIED' }}
+          OPSC_PRODUCTION_ISOLATION_CERTIFICATION: 'NOT_CERTIFIED'
           OPSC_RELEASE_VERIFIED: ${{ steps.generate_acceptance.outputs.evidence_sha != '' && 'true' || 'false' }}
           OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: ${{ steps.generate_acceptance.outputs.evidence_sha }}
       - name: Verify Vercel output contains the current release identity
@@ -352,7 +384,7 @@ jobs:
           OPSC_RELEASE_CI_REF: ${{ github.ref_name }}
           OPSC_RELEASE_PACKAGE_SHA256: ${{ steps.package_fp.outputs.sha }}
           OPSC_RELEASE_PACKAGE_COMMIT: ${{ github.sha }}
-          OPSC_PRODUCTION_ISOLATION_CERTIFICATION: ${{ steps.generate_acceptance.outputs.evidence_sha != '' && 'CERTIFIED' || 'NOT_CERTIFIED' }}
+          OPSC_PRODUCTION_ISOLATION_CERTIFICATION: 'NOT_CERTIFIED'
           OPSC_RELEASE_VERIFIED: ${{ steps.generate_acceptance.outputs.evidence_sha != '' && 'true' || 'false' }}
           OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: ${{ steps.generate_acceptance.outputs.evidence_sha }}
       - name: Request scoped GitHub Actions OIDC identity for Vercel Trusted Sources
