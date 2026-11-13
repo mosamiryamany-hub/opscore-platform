@@ -85,3 +85,18 @@ test('untrusted forwarding headers cannot select the rate-limit identity',()=>{
   assert.equal(limiter(a).remaining,0);
   assert.throws(()=>limiter(b),/FIREWALL_RATE_LIMITED/);
 });
+test('shared rate bucket housekeeping removes expired IP rows',()=>{
+  const db=makeDb();
+  const originalNow=Date.now;
+  Date.now=()=>120000;
+  try{
+    db.prepare('INSERT INTO firewall_rate_buckets(bucket_key,window_start,requests,updated_at) VALUES(?,?,?,?)')
+      .run('expired-ip',0,7,'1970-01-01T00:00:59.000Z');
+    const enforce=createRateLimiter(config(),db);
+    enforce(request('198.51.100.11'));
+    assert.equal(db.prepare('SELECT bucket_key FROM firewall_rate_buckets WHERE bucket_key=?').get('expired-ip'),undefined);
+  }finally{
+    Date.now=originalNow;
+    db.close();
+  }
+});
