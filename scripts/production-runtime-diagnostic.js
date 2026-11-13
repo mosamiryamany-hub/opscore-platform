@@ -9,6 +9,18 @@ function check(name, ok, detail = null) {
   return { name, status: ok ? 'PASS' : 'BLOCKED', detail: detail == null ? null : String(detail).slice(0, 120) };
 }
 
+function failClosedExitCode(result) {
+  const valid = Boolean(
+    result &&
+    result.status === 'PASS' &&
+    result.promotionAllowed === true &&
+    Array.isArray(result.checks) &&
+    result.checks.length > 0 &&
+    result.checks.every(item => item && item.status === 'PASS')
+  );
+  return valid ? 0 : 1;
+}
+
 function evaluateRuntimeDiagnostic(payload, httpStatus, expectedCommit, expectedPipelineId) {
   const value = payload && typeof payload === 'object' ? payload : {};
   const deployment = value.deployment || {};
@@ -150,6 +162,7 @@ async function main() {
   }
   process.stdout.write(JSON.stringify(result, null, 2) + '\n');
   writeGateOutput(result);
+  process.exitCode = failClosedExitCode(result);
 }
 
 if (require.main === module) {
@@ -163,7 +176,8 @@ if (require.main === module) {
     };
     process.stdout.write(JSON.stringify(result, null, 2) + '\n');
     writeGateOutput(result);
+    process.exitCode = 1;
   });
 }
 
-module.exports = { DIAGNOSTIC_PATH, evaluateRuntimeDiagnostic, runDiagnostic, writeGateOutput };
+module.exports = { DIAGNOSTIC_PATH, evaluateRuntimeDiagnostic, runDiagnostic, writeGateOutput, failClosedExitCode };
