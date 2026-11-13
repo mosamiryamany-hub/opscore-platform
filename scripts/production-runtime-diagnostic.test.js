@@ -42,7 +42,15 @@ function validPayload() {
         opscDatabaseUrlPresent: true,
         databaseUrlMatchesOpscDatabaseUrl: true
       },
+      target: {
+        provider: 'neon',
+        region: 'us-east-1',
+        hostnameSha256: 'c'.repeat(64),
+        clientSslMode: 'REQUIRE',
+        channelBinding: 'REQUIRE'
+      },
       identity: {
+        database_name: 'opscore_acceptance',
         current_user: 'opscore_runtime',
         session_user: 'opscore_runtime',
         server_version: '18.6',
@@ -96,6 +104,14 @@ test('runtime diagnostic blocks only if every production identity and release ga
   assert.equal(result.status, 'PASS');
   assert.equal(result.promotionAllowed, true);
   assert.ok(result.checks.every(item => item.status === 'PASS'));
+  assert.deepEqual(result.runtimeDatabase, {
+    name: 'opscore_acceptance',
+    provider: 'neon',
+    region: 'us-east-1',
+    hostnameSha256: 'c'.repeat(64),
+    runtimeRole: 'opscore_runtime',
+    serverVersion: '18.6'
+  });
 });
 
 test('candidate connection or absent OPSC_DATABASE_URL cannot authorize promotion', () => {
@@ -188,4 +204,23 @@ test('runtime diagnostic exit code rejects incomplete, forged, duplicated, reord
   assert.equal(failClosedExitCode({ status: 'PASS', promotionAllowed: true, checks: passingChecks.map((item, index) => index === 0 ? { name: 'unrecognized_check', status: 'PASS' } : item) }), 1);
   assert.equal(failClosedExitCode({ status: 'PASS', promotionAllowed: true, checks: [...passingChecks].reverse() }), 1);
   assert.equal(failClosedExitCode({ status: 'PASS', promotionAllowed: true, checks: passingChecks }), 0);
+});
+
+test('runtime database diagnostic exposes only validated non-secret identity metadata', () => {
+  const payload = validPayload();
+  payload.database.identity.database_name = 'customer db;DROP TABLE users';
+  payload.database.identity.current_user = 'opscore_runtime;secret';
+  payload.database.target.hostnameSha256 = 'not-a-sha256';
+  payload.database.target.region = 'us-east-1\nsecret';
+  const result = evaluateRuntimeDiagnostic(payload, 200, 'a'.repeat(40), '123456789');
+  assert.deepEqual(result.runtimeDatabase, {
+    name: null,
+    provider: 'neon',
+    region: null,
+    hostnameSha256: null,
+    runtimeRole: null,
+    serverVersion: '18.6'
+  });
+  assert.equal(JSON.stringify(result).includes('customer db;DROP TABLE users'), false);
+  assert.equal(JSON.stringify(result).includes('opscore_runtime;secret'), false);
 });
