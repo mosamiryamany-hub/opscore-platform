@@ -12,6 +12,8 @@ const EXPECTED_WORKFLOW_REF = 'mosamiryamany-hub/opscore-platform/.github/workfl
 const EXPECTED_SUBJECT_LEGACY = 'repo:mosamiryamany-hub/opscore-platform:environment:production';
 const EXPECTED_SUBJECT_IMMUTABLE = 'repo:mosamiryamany-hub@331081173/opscore-platform@1452803785:environment:production';
 const EXPECTED_SUBJECTS = new Set([EXPECTED_SUBJECT_LEGACY, EXPECTED_SUBJECT_IMMUTABLE]);
+// Test/fixture alias (legacy form). Validation accepts both forms via EXPECTED_SUBJECTS.
+const EXPECTED_SUBJECT = EXPECTED_SUBJECT_LEGACY;
 
 function decodeJwtClaims(token) {
   const parts = String(token || '').split('.');
@@ -130,6 +132,7 @@ module.exports = {
   EXPECTED_SUBJECT_LEGACY,
   EXPECTED_SUBJECT_IMMUTABLE,
   EXPECTED_SUBJECTS,
+  EXPECTED_SUBJECT,
   decodeJwtClaims,
   validateGithubOidcClaims,
   validateRequestUrl,
