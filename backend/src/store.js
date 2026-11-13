@@ -14,9 +14,10 @@ const {signPdfBuffer, verifyPdfSignature} = require('./pdf-signing');
 const {warn} = require('./observability');
 
 function isMissingPostgresFunction(error, functionName) {
-  if (error?.code === '42883') return true;
   const message = String(error?.message || error).toLowerCase();
-  return message.includes(String(functionName).toLowerCase()) && message.includes('does not exist');
+  return error?.code === '42883' &&
+    message.includes(String(functionName).toLowerCase()) &&
+    message.includes('does not exist');
 }
 const ROLES = [
   'owner',
@@ -552,7 +553,7 @@ class Store {
       try {
         existing = Number(this.db.prepare('SELECT opscore_count_users() AS c').get()?.c || 0);
       } catch (error) {
-        const functionMissing = error?.code === '42883' || /opscore_count_users[^\n]*does not exist/i.test(String(error?.message || error));
+        const functionMissing = isMissingPostgresFunction(error, 'opscore_count_users');
         if (!functionMissing) throw error;
         existing = Number(this.db.prepare('SELECT COUNT(*) AS c FROM users').get()?.c || 0);
       }
@@ -730,7 +731,7 @@ class Store {
         const row = this.db.prepare('SELECT id, email, status, password_hash FROM opscore_resolve_login_candidate(?)').get(normalizedEmail);
         return row || null;
       } catch (error) {
-        const functionMissing = error?.code === '42883' || /opscore_resolve_login_candidate[^\\n]*does not exist/i.test(String(error?.message || error));
+        const functionMissing = isMissingPostgresFunction(error, 'opscore_resolve_login_candidate');
         if (!functionMissing) throw error;
         // Compatibility only for a schema that has not yet applied migration 035.
       }
@@ -819,7 +820,7 @@ class Store {
       try {
         linked=this.db.prepare('SELECT user_id, email_at_link, email, status FROM opscore_resolve_oidc_identity(?,?)').get(issuer,subject);
       } catch (error) {
-        const functionMissing = error?.code === '42883' || /opscore_resolve_oidc_identity[^\n]*does not exist/i.test(String(error?.message || error));
+        const functionMissing = isMissingPostgresFunction(error, 'opscore_resolve_oidc_identity');
         const oldFunctionShape = error?.code === '42703' && /\b(email|status)\b/i.test(String(error?.message || error));
         if (!functionMissing && !oldFunctionShape) throw error;
         // Compatibility only until migration 036 is applied.
@@ -1588,7 +1589,8 @@ class Store {
         if (result?.reset !== true && result?.reset !== 1 && result?.reset !== 't') throw new Error('RESET_TOKEN_INVALID');
         return { reset: true };
       } catch (error) {
-        const functionMissing = error?.code === '42883' || /opscore_(validate|consume)_password_reset_token[^\n]*does not exist/i.test(String(error?.message || error));
+        const functionMissing = isMissingPostgresFunction(error, 'opscore_validate_password_reset_token') ||
+          isMissingPostgresFunction(error, 'opscore_consume_password_reset_token');
         if (!functionMissing) throw error;
         // Transitional compatibility before migration 036. A present helper rejection never falls back.
       }
