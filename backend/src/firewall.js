@@ -124,6 +124,7 @@ function createRateLimiter(config, db){
   assertRateLimiterDeployment(config,db);
   const shared=String(config?.firewallRateState||'memory').toLowerCase()==='database';
   const buckets=new Map();
+  let lastSharedCleanupAt=0;
   return function enforce(req){
     const key=clientKey(req,config);
     const now=Date.now(), windowMs=config.firewallRateWindowMs, limit=config.firewallRateLimit;
@@ -148,6 +149,14 @@ function createRateLimiter(config, db){
       `).get(key,windowStart,new Date(now).toISOString());
       const requests=Number(row?.requests);
       if(!Number.isSafeInteger(requests)||requests<1) throw new Error('FIREWALL_RATE_STATE_INVALID');
+      if(now-lastSharedCleanupAt>=60000){
+        lastSharedCleanupAt=now;
+        try{purgeExpiredRateBuckets(db,now,windowMs);}
+        catch(error){
+          lastSharedCleanupAt=0;
+          warn('firewall_rate_bucket_cleanup_failed',{error});
+        }
+      }
       if(requests>limit) throw new Error('FIREWALL_RATE_LIMITED');
       return {remaining:Math.max(0,limit-requests),resetAt:windowStart+windowMs};
     }
