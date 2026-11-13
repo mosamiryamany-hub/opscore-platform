@@ -14,6 +14,28 @@ SELECT
         OR has_table_privilege(current_user,c.oid,'DELETE')
         OR has_table_privilege(current_user,c.oid,'TRUNCATE'))
   )::int AS spatial_ref_sys_runtime_write_access_count,
+  (
+    SELECT COUNT(*)::int
+    FROM pg_class pmv
+    WHERE pmv.relnamespace = to_regnamespace('public')
+      AND pmv.relkind = 'v'
+      AND pmv.relname = ANY (ARRAY['geometry_columns','geography_columns']::text[])
+  ) AS postgis_metadata_view_count,
+  (
+    SELECT COUNT(*)::int
+    FROM pg_class pmv
+    WHERE pmv.relnamespace = to_regnamespace('public')
+      AND pmv.relkind = 'v'
+      AND pmv.relname = ANY (ARRAY['geometry_columns','geography_columns']::text[])
+      AND (
+        has_table_privilege(current_user,pmv.oid,'INSERT')
+        OR has_table_privilege(current_user,pmv.oid,'UPDATE')
+        OR has_table_privilege(current_user,pmv.oid,'DELETE')
+        OR has_table_privilege(current_user,pmv.oid,'TRUNCATE')
+        OR has_table_privilege(current_user,pmv.oid,'REFERENCES')
+        OR has_table_privilege(current_user,pmv.oid,'TRIGGER')
+      )
+  ) AS postgis_metadata_view_runtime_write_access_count,
   COUNT(*) FILTER (WHERE c.relkind = 'r' AND c.relname = 'schema_migrations')::int AS migration_ledger_table_count,
   COUNT(*) FILTER (
     WHERE c.relkind = 'r' AND c.relname = 'schema_migrations'
@@ -188,6 +210,8 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
   const nonPostgisTablesWithoutRlsCount = count(row.non_postgis_tables_without_rls_count);
   const nonPostgisTablesWithoutForceRlsCount = count(row.non_postgis_tables_without_force_rls_count);
   const spatialRefSysRuntimeWriteAccessCount = count(row.spatial_ref_sys_runtime_write_access_count);
+  const postgisMetadataViewCount = count(row.postgis_metadata_view_count);
+  const postgisMetadataViewRuntimeWriteAccessCount = count(row.postgis_metadata_view_runtime_write_access_count);
   const migrationLedgerTableCount = count(row.migration_ledger_table_count);
   const migrationLedgerWithoutForceRlsCount = count(row.migration_ledger_without_force_rls_count);
   const migrationLedgerRuntimePrivilegesCount = count(row.migration_ledger_runtime_privileges_count);
@@ -219,6 +243,8 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
     nonPostgisTablesWithoutRlsCount,
     nonPostgisTablesWithoutForceRlsCount,
     spatialRefSysRuntimeWriteAccessCount,
+    postgisMetadataViewCount,
+    postgisMetadataViewRuntimeWriteAccessCount,
     migrationLedgerTableCount,
     migrationLedgerWithoutForceRlsCount,
     migrationLedgerRuntimePrivilegesCount,
@@ -237,6 +263,8 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
     nonPostgisTablesWithoutRlsCount === 0 &&
     nonPostgisTablesWithoutForceRlsCount === 0 &&
     spatialRefSysRuntimeWriteAccessCount === 0 &&
+    postgisMetadataViewCount === 2 &&
+    postgisMetadataViewRuntimeWriteAccessCount === 0 &&
     migrationLedgerTableCount === 1 &&
     migrationLedgerWithoutForceRlsCount === 0 &&
     migrationLedgerRuntimePrivilegesCount === 0 &&
@@ -280,6 +308,11 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
       postgisSpatialRefSys: {
         allowedNoRlsCatalog: true,
         runtimeWriteAccessCount: spatialRefSysRuntimeWriteAccessCount
+      },
+      postgisMetadataViews: {
+        viewCount: postgisMetadataViewCount,
+        runtimeWriteAccessCount: postgisMetadataViewRuntimeWriteAccessCount,
+        status: postgisMetadataViewCount === 2 && postgisMetadataViewRuntimeWriteAccessCount === 0 ? 'READ_ONLY' : 'REVIEW_REQUIRED'
       }
     },
     migrationLedger: {
