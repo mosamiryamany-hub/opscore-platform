@@ -75,6 +75,6 @@ test('PostgreSQL 18 gate verifies two-tenant writes and delete actions under the
   assert.match(workflow, /db:migrate:postgres -- --apply/);
   assert.match(workflow, /postgres-commercial-acceptance-http\.test\.js/);
   assert.match(workflow, /tenant-isolation-matrix\.test\.js/);
-  assert.match(workflow, /GRANT opscore_app TO opscore_runtime/);
+  assert.ok(!workflow.includes('GRANT opscore_app TO opscore_runtime'));
   assert.match(workflow, /ALTER ROLE opscore_runtime WITH LOGIN/);
 });
