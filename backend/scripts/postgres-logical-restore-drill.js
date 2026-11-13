@@ -18,7 +18,7 @@ function quoteIdentifier(value) {
   return '"' + text + '"';
 }
 
-function parseLocalDatabaseUrl(raw, expectedDatabase) {
+function parseLocalDatabaseUrl(raw, expectedDatabase, expectedRole = 'neondb_owner') {
   let url;
   try { url = new URL(String(raw || '').trim()); }
   catch { throw new Error('RESTORE_DATABASE_URL_INVALID'); }
@@ -26,7 +26,7 @@ function parseLocalDatabaseUrl(raw, expectedDatabase) {
       !['127.0.0.1', 'localhost'].includes(url.hostname.toLowerCase()) ||
       (url.port && url.port !== '5432') ||
       decodeURIComponent(url.pathname.replace(/^\/+/, '')) !== expectedDatabase ||
-      decodeURIComponent(url.username) !== 'neondb_owner' ||
+      decodeURIComponent(url.username) !== expectedRole ||
       !url.password) {
     throw new Error('RESTORE_DATABASE_TARGET_NOT_ALLOWED');
   }
@@ -283,8 +283,7 @@ async function verifyFixture(pool, schemaName) {
 
 async function main() {
   const sourceUrl = parseLocalDatabaseUrl(process.env.OPSC_RESTORE_DRILL_SOURCE_URL, SOURCE_DATABASE);
-  const targetUrl = parseLocalDatabaseUrl(process.env.OPSC_RESTORE_DRILL_TARGET_URL, TARGET_DATABASE);
-  if (sourceUrl.username !== targetUrl.username || sourceUrl.password !== targetUrl.password) throw new Error('RESTORE_DATABASE_ROLE_MISMATCH');
+  const targetUrl = parseLocalDatabaseUrl(process.env.OPSC_RESTORE_DRILL_TARGET_URL, TARGET_DATABASE, 'postgres');
   const containerId = String(process.env.OPSC_RESTORE_DRILL_DOCKER_CONTAINER || '').trim();
   if (!/^[a-f0-9]{12,64}$/i.test(containerId)) throw new Error('RESTORE_DOCKER_CONTAINER_REQUIRED');
 
@@ -331,23 +330,29 @@ async function main() {
     const targetIdentity = (await targetPool.query(
       "SELECT current_database() AS database,current_user AS role,current_setting('server_version') AS server_version,r.rolsuper AS superuser,r.rolbypassrls AS bypass_rls FROM pg_roles r WHERE r.rolname=current_user"
     )).rows[0];
-    if (!sourceIdentity || !targetIdentity || !/^18\./.test(sourceIdentity.server_version) ||
-        !/^18\./.test(targetIdentity.server_version) || sourceIdentity.role !== 'neondb_owner' ||
-        targetIdentity.role !== 'neondb_owner' || sourceIdentity.superuser || targetIdentity.superuser ||
-        !sourceIdentity.bypass_rls || !targetIdentity.bypass_rls) throw new Error('RESTORE_DATABASE_IDENTITY_INVALID');
-    record('postgresql_18_source_and_target_identity', 'PASS', 'Both isolated databases use PostgreSQL 18 and the dedicated migration owner.');
+    if (!sourceIdentity || !targetIdentity || !/^18\\./.test(sourceIdentity.server_version) ||
+        !/^18\\./.test(targetIdentity.server_version) ||
+        sourceIdentity.role !== 'neondb_owner' || sourceIdentity.superuser ||
+        !sourceIdentity.bypass_rls || targetIdentity.role !== 'postgres' ||
+        !targetIdentity.superuser) throw new Error('RESTORE_DATABASE_IDENTITY_INVALID');
+    record('postgresql_18_source_and_target_identity', 'PASS', 'Source uses the isolated migration owner; the target uses the temporary CI container administrator only for restoration.');
 
     const sourceExtensions = (await sourcePool.query('SELECT extname,extversion FROM pg_extension ORDER BY extname')).rows;
-    const targetExtensions = (await targetPool.query('SELECT extname,extversion FROM pg_extension ORDER BY extname')).rows;
+    const targetExtensionsBefore = (await targetPool.query('SELECT extname,extversion FROM pg_extension ORDER BY extname')).rows;
     for (const name of REQUIRED_EXTENSIONS) {
-      if (!sourceExtensions.some(item => item.extname === name) || !targetExtensions.some(item => item.extname === name)) throw new Error('RESTORE_REQUIRED_EXTENSION_MISSING:' + name);
+      if (!sourceExtensions.some(item => item.extname === name)) throw new Error('RESTORE_REQUIRED_EXTENSION_MISSING:' + name);
     }
-    if (stableJson(sourceExtensions) !== stableJson(targetExtensions)) throw new Error('RESTORE_EXTENSION_VERSION_MISMATCH');
-    record('required_extensions_match', 'PASS', sourceExtensions.map(item => item.extname + '=' + item.extversion).join(','));
+    if (targetExtensionsBefore.some(item => !sourceExtensions.some(source => source.extname === item.extname))) {
+      throw new Error('RESTORE_TARGET_HAS_UNEXPECTED_EXTENSION');
+    }
+    record('source_extensions_verified', 'PASS', sourceExtensions.map(item => item.extname + '=' + item.extversion).join(','));
+    record('target_default_extensions_captured', 'PASS', targetExtensionsBefore.map(item => item.extname).join(',') || 'none');
 
     const targetPreflight = await databaseCatalog(targetPool);
-    if (Number(targetPreflight.summary.table_count) !== 0 || targetPreflight.policies.length !== 0 ||
-        targetPreflight.constraints.length !== 0 || targetPreflight.indexes.length !== 0) {
+    if (Number(targetPreflight.summary.table_count) !== 0 || Number(targetPreflight.summary.view_count) !== 0 ||
+        Number(targetPreflight.summary.materialized_view_count) !== 0 ||
+        targetPreflight.policies.length !== 0 || targetPreflight.constraints.length !== 0 ||
+        targetPreflight.indexes.length !== 0) {
       throw new Error('RESTORE_TARGET_DATABASE_NOT_EMPTY');
     }
     record('restore_target_is_empty', 'PASS', 'Target contains only the pre-provisioned PostgreSQL extensions and no application tables, policies, constraints, or indexes.');
@@ -374,7 +379,8 @@ async function main() {
     const listResult = await runProcess('docker', dockerPassArgs(
       containerId, containerPassPath, 'pg_restore', '--list'
     ), { stdinFile: archiveFile, timeoutMs: 2 * 60 * 1000 });
-    const filteredToc = filterExtensionToc(listResult.stdout);
+    const filteredToc = filterExtensionToc(listResult.stdout, targetExtensionsBefore.map(item => item.extname));
+    if (filteredToc.removedCreate !== targetExtensionsBefore.length) throw new Error('RESTORE_TARGET_EXTENSION_TOC_MISMATCH');
     fs.writeFileSync(tocFile, filteredToc.text, { encoding: 'utf8', mode: 0o600 });
     await runProcess('docker', ['cp', tocFile, containerId + ':' + containerTocPath]);
     tocCopied = true;
@@ -390,10 +396,12 @@ async function main() {
       containerId, containerPassPath,
       'pg_restore', '--exit-on-error', '--single-transaction', '--no-owner', '--no-acl',
       '--use-list', containerTocPath, '--host=127.0.0.1', '--port=5432',
-      '--username=neondb_owner', '--dbname=' + TARGET_DATABASE, containerArchivePath
+      '--username=postgres', '--dbname=' + TARGET_DATABASE, containerArchivePath
     ), { timeoutMs: 10 * 60 * 1000 });
-    record('pg_restore_completed', 'PASS', 'pg_restore restored the archive into a separate blank database; extension DDL was excluded because matching extensions were provisioned first.');
+    record('pg_restore_completed', 'PASS', 'pg_restore restored the full custom archive into a separate blank database; only extensions already present in the pristine target were excluded.');
 
+    const afterExtensions = (await targetPool.query('SELECT extname,extversion FROM pg_extension ORDER BY extname')).rows;
+    if (stableJson(sourceExtensions) !== stableJson(afterExtensions)) throw new Error('RESTORE_EXTENSION_VERSION_MISMATCH_AFTER_RESTORE');
     const afterCatalog = await databaseCatalog(targetPool);
     const afterTables = await tableInventory(targetPool);
     if (stableJson(beforeCatalog) !== stableJson(afterCatalog)) throw new Error('RESTORE_DATABASE_CATALOG_MISMATCH');
