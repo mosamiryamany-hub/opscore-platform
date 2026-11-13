@@ -269,44 +269,104 @@ function validateEndpoint(path, statusCode, payload, expectedCommit, contentType
     return true;
   }
   if (path === '/api/verify/database-security') {
-    if (body.status !== 'IDENTITY_PLANE_RLS_ENFORCED' ||
-        body.productionIsolationCertification !== 'CERTIFIED' ||
-        body.controlPlaneTenantBoundaryPolicies?.status !== 'CATALOG_ENFORCED' ||
-        body.controlPlaneTenantBoundaryPolicies?.validatedTableCount !== 3 ||
-        body.controlPlaneRuntimePrivileges?.status !== 'LEAST_PRIVILEGE_PRESENT' ||
-        body.controlPlaneRuntimePrivileges?.privilegeGapCount !== 0 ||
-        body.runtimeRole?.name !== 'opscore_runtime' ||
-        body.runtimeRole?.status !== 'LEAST_PRIVILEGE_PRESENT' ||
-        body.runtimeRole?.login !== true ||
-        body.runtimeRole?.superuser !== false ||
-        body.runtimeRole?.bypassRls !== false ||
-        body.runtimeRole?.createRole !== false ||
-        body.runtimeRole?.createDatabase !== false ||
-        body.runtimeRole?.elevatedMembershipCount !== 0) {
+    const catalog = body.publicSchema && typeof body.publicSchema === 'object' ? body.publicSchema : {};
+    const spatial = catalog.postgisSpatialRefSys && typeof catalog.postgisSpatialRefSys === 'object'
+      ? catalog.postgisSpatialRefSys : {};
+    const metadataViews = catalog.postgisMetadataViews && typeof catalog.postgisMetadataViews === 'object'
+      ? catalog.postgisMetadataViews : {};
+    const ledger = body.migrationLedger && typeof body.migrationLedger === 'object' ? body.migrationLedger : {};
+    const controlPlane = body.controlPlaneTenantBoundaryPolicies && typeof body.controlPlaneTenantBoundaryPolicies === 'object'
+      ? body.controlPlaneTenantBoundaryPolicies : {};
+    const controlPrivileges = body.controlPlaneRuntimePrivileges && typeof body.controlPlaneRuntimePrivileges === 'object'
+      ? body.controlPlaneRuntimePrivileges : {};
+    const systemOperational = body.systemOperationalTables && typeof body.systemOperationalTables === 'object'
+      ? body.systemOperationalTables : {};
+    const identityPlane = body.identityPlane && typeof body.identityPlane === 'object' ? body.identityPlane : {};
+    const runtime = body.runtimeRole && typeof body.runtimeRole === 'object' ? body.runtimeRole : {};
+    const ordinaryTables = Number(catalog.ordinaryTableCount);
+    const rlsEnabled = Number(catalog.rlsEnabledTableCount);
+    const rlsForced = Number(catalog.rlsForcedTableCount);
+    const tablesWithoutRls = Number(catalog.tablesWithoutRlsCount);
+    const validInteger = value => Number.isSafeInteger(value) && value >= 0;
+    const catalogCoverageSafe =
+      validInteger(ordinaryTables) && ordinaryTables > 0 &&
+      validInteger(rlsEnabled) && rlsEnabled === ordinaryTables - 1 &&
+      validInteger(rlsForced) && rlsForced === ordinaryTables - 1 &&
+      validInteger(tablesWithoutRls) && tablesWithoutRls === 1 &&
+      catalog.nonPostgisTablesWithoutRlsCount === 0 &&
+      catalog.nonPostgisTablesWithoutForceRlsCount === 0 &&
+      spatial.allowedNoRlsCatalog === true &&
+      spatial.runtimeWriteAccessCount === 0 &&
+      metadataViews.status === 'READ_ONLY' &&
+      validInteger(Number(metadataViews.viewCount)) &&
+      metadataViews.runtimeWriteAccessCount === 0;
+    const ledgerSafe = ledger.tableCount === 1 && ledger.forceRls === true &&
+      ledger.runtimePrivilegesCount === 0 && ledger.status === 'OWNER_ONLY';
+    const controlPlaneSafe = controlPlane.status === 'CATALOG_ENFORCED' &&
+      controlPlane.tableCount === 3 && controlPlane.validatedTableCount === 3 &&
+      controlPrivileges.status === 'LEAST_PRIVILEGE_PRESENT' &&
+      controlPrivileges.tableCount === 3 && controlPrivileges.privilegeGapCount === 0;
+    const systemOperationalSafe = systemOperational.tableCount === 3 &&
+      systemOperational.policyValidTableCount === 3 &&
+      systemOperational.runtimePrivilegeGapCount === 0 &&
+      systemOperational.status === 'LEAST_PRIVILEGE_PRESENT';
+    const runtimeRoleSafe = runtime.name === 'opscore_runtime' &&
+      runtime.status === 'LEAST_PRIVILEGE_PRESENT' &&
+      runtime.login === true && runtime.superuser === false &&
+      runtime.bypassRls === false && runtime.createRole === false &&
+      runtime.createDatabase === false && runtime.appRoleMembership === false &&
+      runtime.elevatedMembershipCount === 0;
+    const identityPlaneSafe = identityPlane.criticalTablesWithoutRlsButAccessibleToRuntimeRole === 0 &&
+      identityPlane.status === 'RLS_ENFORCED';
+    if (body.schemaVersion !== 'opscore.public-database-security-proof.v2' ||
+        body.status !== 'IDENTITY_PLANE_RLS_ENFORCED' ||
+        body.productionIsolationCertification !== 'NOT_CERTIFIED' ||
+        !catalogCoverageSafe || !ledgerSafe || !controlPlaneSafe ||
+        !systemOperationalSafe || !runtimeRoleSafe || !identityPlaneSafe) {
       throw new Error('DATABASE_SECURITY_CATALOG_NOT_ACCEPTABLE');
     }
     return true;
   }
   if (path === '/api/verify/release') {
-    if (body.status !== 'PASS_WITH_BUYER_RESIDUALS' ||
-        body.sourceCommit !== expectedCommit ||
-        body.sourceCommitIdentitySource !== 'github-actions-cli-assertion' ||
-        body.ci?.status !== 'PASS' ||
-        body.ci?.commitSha !== expectedCommit ||
-        body.deployment?.status !== 'identified' ||
-        body.deployment?.environment !== 'production' ||
-        body.deployment?.ref !== 'main' ||
-        body.postgresHttpAcceptance?.status !== 'PASS' ||
-        body.postgresHttpAcceptance?.evidenceCommit !== expectedCommit ||
-        String(body.postgresHttpAcceptance?.evidencePipelineId || '') !== String(body.ci?.pipelineId || '') ||
-        body.productionAcceptance?.status !== 'PASS' ||
-        body.productionAcceptance?.commitSha !== expectedCommit ||
-        !/^[a-f0-9]{64}$/.test(String(body.productionAcceptance?.evidenceSha256 || '')) ||
-        body.gates?.productionSessionTenantBoundary !== 'PASS_PRODUCTION' ||
-        body.gates?.productionRecoveryBundle !== 'PASS_PRODUCTION' ||
-        body.gates?.productionIsolationCertification !== 'CERTIFIED' ||
-        body.packageFingerprint?.status !== 'PUBLISHED' ||
-        body.packageFingerprint?.sourceCommit !== expectedCommit) {
+    const ci = body.ci && typeof body.ci === 'object' ? body.ci : {};
+    const deployment = body.deployment && typeof body.deployment === 'object' ? body.deployment : {};
+    const httpAcceptance = body.postgresHttpAcceptance && typeof body.postgresHttpAcceptance === 'object'
+      ? body.postgresHttpAcceptance : {};
+    const acceptance = body.productionAcceptance && typeof body.productionAcceptance === 'object'
+      ? body.productionAcceptance : {};
+    const gates = body.gates && typeof body.gates === 'object' ? body.gates : {};
+    const packageFingerprint = body.packageFingerprint && typeof body.packageFingerprint === 'object'
+      ? body.packageFingerprint : {};
+    const pipelineId = Number(ci.pipelineId);
+    const acceptancePipelineId = String(acceptance.pipelineId || '');
+    const httpPipelineId = String(httpAcceptance.evidencePipelineId || '');
+    const identityBound = body.schemaVersion === 'opscore.public-release-proof.v2' &&
+      body.status === 'PASS_WITH_BUYER_RESIDUALS' &&
+      body.sourceCommit === expectedCommit &&
+      body.sourceCommitIdentitySource === 'github-actions-cli-assertion' &&
+      ci.status === 'PASS' && ci.commitSha === expectedCommit &&
+      Number.isSafeInteger(pipelineId) && pipelineId > 0 &&
+      deployment.status === 'identified' &&
+      deployment.environment === 'production' && deployment.ref === 'main' &&
+      /^dpl_[A-Za-z0-9]+$/.test(String(deployment.id || ''));
+    const acceptanceBound = httpAcceptance.status === 'PASS' &&
+      httpAcceptance.currentCandidateMatch === true &&
+      httpAcceptance.evidenceCommit === expectedCommit &&
+      httpPipelineId === String(pipelineId) &&
+      acceptance.status === 'PASS' &&
+      acceptance.commitSha === expectedCommit &&
+      acceptancePipelineId === String(pipelineId) &&
+      /^[a-f0-9]{64}$/.test(String(acceptance.evidenceSha256 || ''));
+    const gatesHonest = gates.productionSessionTenantBoundary === 'PASS_TEST_SCOPE' &&
+      gates.productionRecoveryBundle === 'PASS_TEST_SCOPE' &&
+      gates.tenantRouteSecurityCoverage === 'PASS_TEST_SCOPE' &&
+      gates.functionalApiRouteAcceptance === 'NOT_VERIFIED' &&
+      gates.neonPointInTimeRecovery === 'NOT_VERIFIED' &&
+      gates.productionIsolationCertification === 'NOT_CERTIFIED';
+    const packageBound = packageFingerprint.status === 'PUBLISHED' &&
+      packageFingerprint.sourceCommit === expectedCommit &&
+      /^[a-f0-9]{64}$/.test(String(packageFingerprint.value || ''));
+    if (!identityBound || !acceptanceBound || !gatesHonest || !packageBound) {
       throw new Error('RELEASE_EVIDENCE_NOT_BOUND_TO_DEPLOYMENT');
     }
     return true;

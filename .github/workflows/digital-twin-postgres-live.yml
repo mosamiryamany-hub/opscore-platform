@@ -44,6 +44,8 @@ on:
       - 'backend/test/postgres-commercial-acceptance-http.test.js'
       - 'backend/test/release-proof.test.js'
       - 'backend/scripts/generate-production-acceptance-v1.js'
+      - 'scripts/production-deployment-smoke.js'
+      - 'backend/test/production-deployment-smoke.test.js'
       - 'backend/test/release-proof-ui.test.js'
       - 'backend/web/verify/release.html'
       - 'backend/web/verify/release-proof.js'
