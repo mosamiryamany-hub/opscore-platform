@@ -128,8 +128,8 @@ async function main() {
       attestation &&
       attestation.migration_056_recorded === true &&
       attestation.migration_056_hash_matches === true &&
-      attestation.latest_filename === '058_security_definer_search_path_hardening.sql' &&
-      Number(attestation.migration_count) >= 57);
+      attestation.latest_filename === '059_runtime_system_table_policy_and_privilege_alignment.sql' &&
+      Number(attestation.migration_count) >= 58);
 
     const definerPaths = (await client.query(
       `SELECT count(*)::integer AS total,

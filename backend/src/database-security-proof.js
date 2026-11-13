@@ -14,6 +14,28 @@ SELECT
         OR has_table_privilege(current_user,c.oid,'DELETE')
         OR has_table_privilege(current_user,c.oid,'TRUNCATE'))
   )::int AS spatial_ref_sys_runtime_write_access_count,
+  (
+    SELECT COUNT(*)::int
+    FROM pg_class pmv
+    WHERE pmv.relnamespace = to_regnamespace('public')
+      AND pmv.relkind = 'v'
+      AND pmv.relname = ANY (ARRAY['geometry_columns','geography_columns']::text[])
+  ) AS postgis_metadata_view_count,
+  (
+    SELECT COUNT(*)::int
+    FROM pg_class pmv
+    WHERE pmv.relnamespace = to_regnamespace('public')
+      AND pmv.relkind = 'v'
+      AND pmv.relname = ANY (ARRAY['geometry_columns','geography_columns']::text[])
+      AND (
+        has_table_privilege(current_user,pmv.oid,'INSERT')
+        OR has_table_privilege(current_user,pmv.oid,'UPDATE')
+        OR has_table_privilege(current_user,pmv.oid,'DELETE')
+        OR has_table_privilege(current_user,pmv.oid,'TRUNCATE')
+        OR has_table_privilege(current_user,pmv.oid,'REFERENCES')
+        OR has_table_privilege(current_user,pmv.oid,'TRIGGER')
+      )
+  ) AS postgis_metadata_view_runtime_write_access_count,
   COUNT(*) FILTER (WHERE c.relkind = 'r' AND c.relname = 'schema_migrations')::int AS migration_ledger_table_count,
   COUNT(*) FILTER (
     WHERE c.relkind = 'r' AND c.relname = 'schema_migrations'
@@ -102,12 +124,66 @@ SELECT
       ))
     )
   )::int AS control_plane_runtime_privilege_gap_count,
+  COUNT(*) FILTER (
+    WHERE c.relkind = 'r'
+      AND c.relname = ANY (ARRAY['login_throttle','firewall_rate_buckets','worker_guard_system_events']::text[])
+  )::int AS system_operational_table_count,
+  (
+    SELECT COUNT(*)::int
+    FROM (
+      SELECT sc.oid
+      FROM pg_class sc
+      JOIN pg_namespace sn ON sn.oid = sc.relnamespace
+      LEFT JOIN pg_policy sp ON sp.polrelid = sc.oid
+      WHERE sn.nspname = 'public'
+        AND sc.relkind = 'r'
+        AND sc.relname = ANY (ARRAY['login_throttle','firewall_rate_buckets','worker_guard_system_events']::text[])
+      GROUP BY sc.oid, sc.relrowsecurity, sc.relforcerowsecurity
+      HAVING sc.relrowsecurity AND sc.relforcerowsecurity
+        AND COUNT(sp.oid) = 1
+        AND COUNT(sp.oid) FILTER (
+          WHERE sp.polname = 'opscore_system_table_guard'
+            AND sp.polpermissive IS TRUE
+            AND sp.polcmd = '*'
+            AND sp.polroles = ARRAY[(SELECT oid FROM pg_roles WHERE rolname = 'opscore_runtime')]::oid[]
+            AND COALESCE(pg_get_expr(sp.polqual,sp.polrelid),'') = 'true'
+            AND COALESCE(pg_get_expr(sp.polwithcheck,sp.polrelid),'') = 'true'
+        ) = 1
+    ) AS valid_system_operational_policy_tables
+  ) AS system_operational_policy_valid_table_count,
+  COUNT(*) FILTER (
+    WHERE c.relkind = 'r' AND (
+      (c.relname IN ('login_throttle','firewall_rate_buckets') AND (
+        NOT has_table_privilege(current_user,c.oid,'SELECT')
+        OR NOT has_table_privilege(current_user,c.oid,'INSERT')
+        OR NOT has_table_privilege(current_user,c.oid,'UPDATE')
+        OR NOT has_table_privilege(current_user,c.oid,'DELETE')
+        OR has_table_privilege(current_user,c.oid,'TRUNCATE')
+        OR has_table_privilege(current_user,c.oid,'REFERENCES')
+        OR has_table_privilege(current_user,c.oid,'TRIGGER')
+      ))
+      OR (c.relname = 'worker_guard_system_events' AND (
+        NOT has_table_privilege(current_user,c.oid,'INSERT')
+        OR has_table_privilege(current_user,c.oid,'SELECT')
+        OR has_table_privilege(current_user,c.oid,'UPDATE')
+        OR has_table_privilege(current_user,c.oid,'DELETE')
+        OR has_table_privilege(current_user,c.oid,'TRUNCATE')
+        OR has_table_privilege(current_user,c.oid,'REFERENCES')
+        OR has_table_privilege(current_user,c.oid,'TRIGGER')
+      ))
+    )
+  )::int AS system_operational_runtime_privilege_gap_count,
   current_user::text AS runtime_role_name,
   COALESCE((SELECT r.rolcanlogin FROM pg_roles r WHERE r.rolname = current_user), false) AS runtime_role_login,
   COALESCE((SELECT r.rolsuper FROM pg_roles r WHERE r.rolname = current_user), true) AS runtime_role_superuser,
   COALESCE((SELECT r.rolbypassrls FROM pg_roles r WHERE r.rolname = current_user), true) AS runtime_role_bypassrls,
   COALESCE((SELECT r.rolcreaterole FROM pg_roles r WHERE r.rolname = current_user), true) AS runtime_role_createrole,
   COALESCE((SELECT r.rolcreatedb FROM pg_roles r WHERE r.rolname = current_user), true) AS runtime_role_createdb,
+  COALESCE((
+    SELECT pg_has_role(current_user, app_role.oid, 'MEMBER')
+    FROM pg_roles app_role
+    WHERE app_role.rolname = 'opscore_app'
+  ), false) AS runtime_role_app_membership,
   (
     SELECT COUNT(*)::int
     FROM pg_roles elevated
@@ -134,6 +210,8 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
   const nonPostgisTablesWithoutRlsCount = count(row.non_postgis_tables_without_rls_count);
   const nonPostgisTablesWithoutForceRlsCount = count(row.non_postgis_tables_without_force_rls_count);
   const spatialRefSysRuntimeWriteAccessCount = count(row.spatial_ref_sys_runtime_write_access_count);
+  const postgisMetadataViewCount = count(row.postgis_metadata_view_count);
+  const postgisMetadataViewRuntimeWriteAccessCount = count(row.postgis_metadata_view_runtime_write_access_count);
   const migrationLedgerTableCount = count(row.migration_ledger_table_count);
   const migrationLedgerWithoutForceRlsCount = count(row.migration_ledger_without_force_rls_count);
   const migrationLedgerRuntimePrivilegesCount = count(row.migration_ledger_runtime_privileges_count);
@@ -142,16 +220,20 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
   const controlPlaneTableCount = count(row.control_plane_table_count);
   const controlPlanePolicyValidTableCount = count(row.control_plane_policy_valid_table_count);
   const controlPlaneRuntimePrivilegeGapCount = count(row.control_plane_runtime_privilege_gap_count);
+  const systemOperationalTableCount = count(row.system_operational_table_count);
+  const systemOperationalPolicyValidTableCount = count(row.system_operational_policy_valid_table_count);
+  const systemOperationalRuntimePrivilegeGapCount = count(row.system_operational_runtime_privilege_gap_count);
   const runtimeRoleName = String(row.runtime_role_name || '').trim();
   const runtimeRoleLogin = row.runtime_role_login === true;
   const runtimeRoleSuperuser = row.runtime_role_superuser === true;
   const runtimeRoleBypassRls = row.runtime_role_bypassrls === true;
   const runtimeRoleCreateRole = row.runtime_role_createrole === true;
   const runtimeRoleCreateDatabase = row.runtime_role_createdb === true;
+  const runtimeRoleAppMembership = row.runtime_role_app_membership !== false;
   const runtimeRoleElevatedMembershipCount = count(row.runtime_role_elevated_membership_count);
   const runtimeRoleSafe = runtimeRoleName === 'opscore_runtime' && runtimeRoleLogin &&
     !runtimeRoleSuperuser && !runtimeRoleBypassRls && !runtimeRoleCreateRole &&
-    !runtimeRoleCreateDatabase && runtimeRoleElevatedMembershipCount === 0;
+    !runtimeRoleCreateDatabase && !runtimeRoleAppMembership && runtimeRoleElevatedMembershipCount === 0;
 
   const catalogCountsValid = [
     publicTableCount,
@@ -161,6 +243,8 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
     nonPostgisTablesWithoutRlsCount,
     nonPostgisTablesWithoutForceRlsCount,
     spatialRefSysRuntimeWriteAccessCount,
+    postgisMetadataViewCount,
+    postgisMetadataViewRuntimeWriteAccessCount,
     migrationLedgerTableCount,
     migrationLedgerWithoutForceRlsCount,
     migrationLedgerRuntimePrivilegesCount,
@@ -168,6 +252,9 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
     controlPlaneTableCount,
     controlPlanePolicyValidTableCount,
     controlPlaneRuntimePrivilegeGapCount,
+    systemOperationalTableCount,
+    systemOperationalPolicyValidTableCount,
+    systemOperationalRuntimePrivilegeGapCount,
     runtimeRoleElevatedMembershipCount
   ].every(Number.isSafeInteger);
   const identityPlaneHardened = identityTablesWithoutRlsWithRuntimeAccessCount === 0;
@@ -176,12 +263,17 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
     nonPostgisTablesWithoutRlsCount === 0 &&
     nonPostgisTablesWithoutForceRlsCount === 0 &&
     spatialRefSysRuntimeWriteAccessCount === 0 &&
+    postgisMetadataViewCount === 2 &&
+    postgisMetadataViewRuntimeWriteAccessCount === 0 &&
     migrationLedgerTableCount === 1 &&
     migrationLedgerWithoutForceRlsCount === 0 &&
     migrationLedgerRuntimePrivilegesCount === 0 &&
     controlPlaneTableCount === 3 &&
     controlPlanePolicyValidTableCount === 3 &&
     controlPlaneRuntimePrivilegeGapCount === 0 &&
+    systemOperationalTableCount === 3 &&
+    systemOperationalPolicyValidTableCount === 3 &&
+    systemOperationalRuntimePrivilegeGapCount === 0 &&
     runtimeRoleSafe;
 
   let status = 'NOT_CERTIFIED';
@@ -196,7 +288,7 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
     note = 'Every public application table except the read-only PostGIS spatial_ref_sys catalog has FORCE RLS. The schema_migrations ledger is owner-only. Control-plane tables have explicit least-privilege runtime grants independent of provider default ACLs. Authenticated path-by-path and cross-tenant behavioral tests are still required before production isolation certification.';
   } else if (identityPlaneHardened) {
     status = 'REVIEW_REQUIRED';
-    note = 'Identity-plane RLS checks passed, but catalog evidence is incomplete or a non-PostGIS relation without RLS or FORCE RLS, migration-ledger boundary, PostGIS write privilege, runtime-role privilege, or control-plane tenant-boundary policy still requires review.';
+    note = 'Identity-plane RLS checks passed, but catalog evidence is incomplete or a non-PostGIS relation without RLS or FORCE RLS, migration-ledger boundary, PostGIS write privilege, runtime-role privilege, control-plane tenant-boundary policy, or runtime system-table policy/grant still requires review.';
   } else {
     note = 'Critical identity tables remain accessible to the runtime role without RLS.';
   }
@@ -216,6 +308,11 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
       postgisSpatialRefSys: {
         allowedNoRlsCatalog: true,
         runtimeWriteAccessCount: spatialRefSysRuntimeWriteAccessCount
+      },
+      postgisMetadataViews: {
+        viewCount: postgisMetadataViewCount,
+        runtimeWriteAccessCount: postgisMetadataViewRuntimeWriteAccessCount,
+        status: postgisMetadataViewCount === 2 && postgisMetadataViewRuntimeWriteAccessCount === 0 ? 'READ_ONLY' : 'REVIEW_REQUIRED'
       }
     },
     migrationLedger: {
@@ -229,6 +326,13 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
       privilegeGapCount: controlPlaneRuntimePrivilegeGapCount,
       status: controlPlaneTableCount === 3 && controlPlaneRuntimePrivilegeGapCount === 0 ? 'LEAST_PRIVILEGE_PRESENT' : 'REVIEW_REQUIRED'
     },
+    systemOperationalTables: {
+      tableCount: systemOperationalTableCount,
+      policyValidTableCount: systemOperationalPolicyValidTableCount,
+      runtimePrivilegeGapCount: systemOperationalRuntimePrivilegeGapCount,
+      status: systemOperationalTableCount === 3 && systemOperationalPolicyValidTableCount === 3 &&
+        systemOperationalRuntimePrivilegeGapCount === 0 ? 'LEAST_PRIVILEGE_PRESENT' : 'REVIEW_REQUIRED'
+    },
     runtimeRole: {
       name: runtimeRoleName || null,
       login: runtimeRoleLogin,
@@ -236,6 +340,7 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
       bypassRls: runtimeRoleBypassRls,
       createRole: runtimeRoleCreateRole,
       createDatabase: runtimeRoleCreateDatabase,
+      appRoleMembership: runtimeRoleAppMembership,
       elevatedMembershipCount: runtimeRoleElevatedMembershipCount,
       status: runtimeRoleSafe ? 'LEAST_PRIVILEGE_PRESENT' : 'REVIEW_REQUIRED'
     },

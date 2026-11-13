@@ -27,18 +27,49 @@ test('migration runner verifies runtime role RLS helper privileges without grant
   assert.match(runner, /runtime_database_create/);
   assert.match(runner, /runtime_schema_create/);
   assert.match(runner, /runtime_neon_superuser_set/);
+  assert.match(runner, /runtime_app_role_member/);
   assert.match(runner, /!post\.runtime_role_exists/);
 });
 
 test('live PostgreSQL gate tests the runtime role and tenant policies', () => {
   const gate = read('scripts/postgres-live-rls-gate.js');
-  assert.match(gate, /052_runtime_policy_function_grants\.sql/);
+  assert.ok(gate.includes('052_runtime_policy_function_grants.sql'));
   assert.match(gate, /SET LOCAL ROLE opscore_runtime/);
   assert.match(gate, /runtime-role-tenant-self-read/);
   assert.match(gate, /runtime-role-cross-tenant-read-denied/);
+  assert.match(gate, /legacy_app_member/);
+  assert.match(gate, /runtime-role-system-table-rls-and-least-privilege/);
+  assert.match(gate, /runtime-role-postgis-metadata-read-only/);
+  assert.match(gate, /RUNTIME_POSTGIS_METADATA_VIEWS_NOT_READ_ONLY/);
+  assert.ok(gate.includes("matches.length !== 3"));
+  assert.ok(gate.includes("aliasCounts.n !== 2 || aliasCounts.sn !== 1"));
+  assert.ok(gate.includes(String.raw`const pattern = /\b(n|sn)\.nspname = 'public'/g;`));
   const workflow = fs.readFileSync(path.resolve(root, '..', '.github/workflows/digital-twin-postgres-live.yml'), 'utf8');
-  assert.match(workflow, /backend\/sql\/postgres\/\*\*/);
-  assert.match(workflow, /CREATE ROLE opscore_runtime NOLOGIN/);
+  assert.ok(workflow.includes('backend/sql/postgres/**'));
+  assert.ok(workflow.includes('CREATE ROLE opscore_runtime NOLOGIN'));
+  assert.ok(!workflow.includes('GRANT opscore_app TO opscore_runtime'));
+});
+
+test('migration 059 grants direct runtime privileges and transfers unscoped system-table RLS policies', () => {
+  const migration = read('sql/postgres/059_runtime_system_table_policy_and_privilege_alignment.sql');
+  const normalizedMigration = migration.replace(/\s+/g, ' ');
+  for (const expected of [
+    'GRANT USAGE ON SCHEMA public TO opscore_runtime',
+    'GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO opscore_runtime',
+    'ALTER DEFAULT PRIVILEGES FOR ROLE neondb_owner IN SCHEMA public',
+    'GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.login_throttle, public.firewall_rate_buckets TO opscore_runtime',
+    'GRANT INSERT ON TABLE public.worker_guard_system_events TO opscore_runtime',
+    'REVOKE ALL PRIVILEGES ON TABLE public.schema_migrations FROM opscore_runtime',
+    'GRANT SELECT ON TABLE public.spatial_ref_sys TO opscore_runtime',
+    'REVOKE ALL PRIVILEGES ON TABLE public.geometry_columns, public.geography_columns FROM opscore_runtime',
+    'GRANT SELECT ON TABLE public.geometry_columns, public.geography_columns TO opscore_runtime'
+  ]) assert.ok(normalizedMigration.includes(expected), 'missing migration clause: ' + expected);
+  for (const table of ['login_throttle', 'firewall_rate_buckets', 'worker_guard_system_events']) {
+    assert.ok(migration.includes('ALTER POLICY opscore_system_table_guard ON public.' + table + ' TO opscore_runtime'));
+  }
+  assert.ok(!normalizedMigration.includes('GRANT opscore_app TO opscore_runtime'));
+  assert.ok(!normalizedMigration.includes('TO PUBLIC'));
+  assert.ok(!/BYPASSRLS|CREATEROLE|CREATEDB/i.test(normalizedMigration));
 });
 
 test('migration 057 exposes only a runtime-bound read-only migration 056 attestation function', () => {
