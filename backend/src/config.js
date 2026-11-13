@@ -43,6 +43,7 @@ module.exports = {
   stripeWebhookToleranceSeconds: positiveInt('STRIPE_WEBHOOK_TOLERANCE_SECONDS', 300),
   firewallRateWindowMs: positiveInt('FIREWALL_RATE_WINDOW_MS', 60000, { max: 3600000 }),
   firewallRateLimit: positiveInt('FIREWALL_RATE_LIMIT', 240, { max: 10000 }),
+  trustVercelEdge: String(process.env.VERCEL || '').toLowerCase() === '1',
   trustProxy: String(process.env.TRUST_PROXY || 'false').toLowerCase() === 'true',
   trustedProxyCidrs: String(process.env.TRUSTED_PROXY_CIDRS || '').split(',').map(x => x.trim()).filter(Boolean),
   firewallRateState: String(process.env.FIREWALL_RATE_STATE || 'memory').toLowerCase(),
