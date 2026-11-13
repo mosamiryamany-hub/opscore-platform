@@ -13,7 +13,14 @@ const SAFE_RUNTIME_ROLE = {
   runtime_role_elevated_membership_count: 0
 };
 function buildDatabaseSecurityProof(row, ...args) {
-  return buildDatabaseSecurityProofInternal({ non_postgis_tables_without_force_rls_count: 0, ...SAFE_RUNTIME_ROLE, ...row }, ...args);
+  return buildDatabaseSecurityProofInternal({
+    non_postgis_tables_without_force_rls_count: 0,
+    system_operational_table_count: 3,
+    system_operational_policy_valid_table_count: 3,
+    system_operational_runtime_privilege_gap_count: 0,
+    ...SAFE_RUNTIME_ROLE,
+    ...row
+  }, ...args);
 }
 
 test('identity tables accessible without RLS remain not certified', () => {
@@ -101,6 +108,11 @@ test('runtime catalog query is read-only and inspects identity, PostGIS and migr
   assert.match(DATABASE_SECURITY_SQL,/non_postgis_tables_without_force_rls_count/);
   assert.match(DATABASE_SECURITY_SQL,/runtime_role_bypassrls/);
   assert.match(DATABASE_SECURITY_SQL,/runtime_role_elevated_membership_count/);
+  assert.match(DATABASE_SECURITY_SQL,/system_operational_table_count/);
+  assert.match(DATABASE_SECURITY_SQL,/system_operational_policy_valid_table_count/);
+  assert.match(DATABASE_SECURITY_SQL,/system_operational_runtime_privilege_gap_count/);
+  assert.match(DATABASE_SECURITY_SQL,/opscore_system_table_guard/);
+  assert.match(DATABASE_SECURITY_SQL,/opscore_runtime/);
   assert.match(DATABASE_SECURITY_SQL,/polpermissive/);
   assert.match(DATABASE_SECURITY_SQL,/opscore_tenant_permissive/);
   assert.match(DATABASE_SECURITY_SQL,/opscore_tenant_boundary_guard/);
@@ -144,7 +156,8 @@ test('database security proof performs one catalog query', () => {
     migration_ledger_without_force_rls_count:0,migration_ledger_runtime_privileges_count:0,
     identity_tables_without_rls_with_runtime_access_count:0,
     ...SAFE_RUNTIME_ROLE,
-    control_plane_table_count:3,control_plane_runtime_privilege_gap_count:0, control_plane_policy_valid_table_count: 3
+    control_plane_table_count:3,control_plane_runtime_privilege_gap_count:0, control_plane_policy_valid_table_count: 3,
+    system_operational_table_count:3,system_operational_policy_valid_table_count:3,system_operational_runtime_privilege_gap_count:0
   };}};}};
   const proof=readDatabaseSecurityProof(db,fixedTime);
   assert.equal(calls,1); assert.equal(used,DATABASE_SECURITY_SQL);
@@ -191,6 +204,58 @@ test('live database connection must use the dedicated least-privilege runtime ro
     { runtime_role_elevated_membership_count: 1 },
     { runtime_role_login: false }
   ]) assert.equal(buildDatabaseSecurityProof({ ...base, ...bad }, fixedTime).status, 'REVIEW_REQUIRED');
+});
+
+test('runtime system operational tables require exact runtime-role RLS policies and least-privilege grants', () => {
+  const base = {
+    public_table_count: 132,
+    rls_enabled_table_count: 131,
+    rls_forced_table_count: 131,
+    tables_without_rls_count: 1,
+    non_postgis_tables_without_rls_count: 0,
+    non_postgis_tables_without_force_rls_count: 0,
+    spatial_ref_sys_runtime_write_access_count: 0,
+    migration_ledger_table_count: 1,
+    migration_ledger_without_force_rls_count: 0,
+    migration_ledger_runtime_privileges_count: 0,
+    identity_tables_without_rls_with_runtime_access_count: 0,
+    control_plane_table_count: 3,
+    control_plane_policy_valid_table_count: 3,
+    control_plane_runtime_privilege_gap_count: 0,
+    system_operational_table_count: 3,
+    system_operational_policy_valid_table_count: 3,
+    system_operational_runtime_privilege_gap_count: 0,
+    ...SAFE_RUNTIME_ROLE
+  };
+  const safe = buildDatabaseSecurityProof(base, fixedTime);
+  assert.equal(safe.systemOperationalTables.status, 'LEAST_PRIVILEGE_PRESENT');
+  assert.equal(safe.systemOperationalTables.policyValidTableCount, 3);
+  assert.equal(safe.status, 'IDENTITY_PLANE_RLS_ENFORCED');
+  assert.equal(buildDatabaseSecurityProof({...base, system_operational_policy_valid_table_count: 2}, fixedTime).status, 'REVIEW_REQUIRED');
+  assert.equal(buildDatabaseSecurityProof({...base, system_operational_runtime_privilege_gap_count: 1}, fixedTime).status, 'REVIEW_REQUIRED');
+  assert.equal(buildDatabaseSecurityProof({...base, system_operational_table_count: 2}, fixedTime).status, 'REVIEW_REQUIRED');
+});
+
+test('missing system operational policy evidence cannot default to a safe zero', () => {
+  const proof = buildDatabaseSecurityProofInternal({
+    public_table_count: 132,
+    rls_enabled_table_count: 131,
+    rls_forced_table_count: 131,
+    tables_without_rls_count: 1,
+    non_postgis_tables_without_rls_count: 0,
+    spatial_ref_sys_runtime_write_access_count: 0,
+    migration_ledger_table_count: 1,
+    migration_ledger_without_force_rls_count: 0,
+    migration_ledger_runtime_privileges_count: 0,
+    identity_tables_without_rls_with_runtime_access_count: 0,
+    control_plane_table_count: 3,
+    control_plane_policy_valid_table_count: 3,
+    control_plane_runtime_privilege_gap_count: 0,
+    ...SAFE_RUNTIME_ROLE
+  }, fixedTime);
+  assert.equal(proof.systemOperationalTables.policyValidTableCount, null);
+  assert.equal(proof.systemOperationalTables.status, 'REVIEW_REQUIRED');
+  assert.equal(proof.status, 'REVIEW_REQUIRED');
 });
 
 test('database security proof fails closed when adapter is absent', () => {
