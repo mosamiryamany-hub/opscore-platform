@@ -1,8 +1,11 @@
 name: Digital Twin PostgreSQL 18 Isolated RLS and HTTP Acceptance
 
 on:
-  push:
-    branches: [main, master]
+  workflow_call:
+    outputs:
+      acceptance_evidence_b64:
+        description: "Validated PostgreSQL HTTP acceptance evidence bound to the caller commit and run"
+        value: ${{ jobs.live-rls.outputs.acceptance_evidence_b64 }}
   pull_request:
     paths:
       - '.github/workflows/digital-twin-postgres-live.yml'
@@ -57,6 +60,8 @@ jobs:
     name: isolated-postgres-rls-and-http-acceptance
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    outputs:
+      acceptance_evidence_b64: ${{ steps.publish_acceptance.outputs.evidence_b64 }}
     services:
       postgres:
         image: postgis/postgis:18-3.7
@@ -241,10 +246,13 @@ jobs:
         env:
           OPSC_PG_ACCEPTANCE_STRICT: 'true'
           OPSC_WRITE_EVIDENCE: '1'
+          OPSC_PG_ACCEPTANCE_RESULT_FILE: ${{ github.workspace }}/POSTGRES_HTTP_ACCEPTANCE_RESULT.json
+          CI_COMMIT_SHA: ${{ github.sha }}
+          CI_PIPELINE_ID: ${{ github.run_id }}
         run: |
           set -euo pipefail
           node --test test/postgres-commercial-acceptance-http.test.js
-          cat docs/verification/POSTGRES_HTTP_ACCEPTANCE_RESULT.json
+          cat "${OPSC_PG_ACCEPTANCE_RESULT_FILE}"
       - name: Verify atomic shared login throttling across PostgreSQL runtime processes
         working-directory: backend
         env:
@@ -255,6 +263,69 @@ jobs:
           set -euo pipefail
           test -n "${OPSC_PG_ACCEPTANCE_URL:-}" || { echo "OPSC_PG_ACCEPTANCE_URL is required" >&2; exit 1; }
           node --test test/firewall-rate-limit-postgres.test.js
+
+      - name: Validate and export caller-bound PostgreSQL acceptance evidence
+        id: publish_acceptance
+        env:
+          EXPECTED_COMMIT_SHA: ${{ github.sha }}
+          EXPECTED_PIPELINE_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const reportPath = path.join(process.env.GITHUB_WORKSPACE, 'POSTGRES_HTTP_ACCEPTANCE_RESULT.json');
+          const stat = fs.statSync(reportPath);
+          if (stat.size < 1 || stat.size > 100_000) {
+            throw new Error('POSTGRES_ACCEPTANCE_EVIDENCE_SIZE_INVALID');
+          }
+          const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+          const requiredCheckIds = [
+            'member-role-privilege-boundary',
+            'safe-mode-tenant-scoped',
+            'recovery-bundle-verify-is-dry-run',
+            'recovery-bundle-tamper-detected',
+            'operational-autopilot-postgres-parity-and-tenant-boundary'
+          ];
+          if (report.schemaVersion !== 'opscore.postgres-http-acceptance.v1') {
+            throw new Error('POSTGRES_ACCEPTANCE_SCHEMA_INVALID');
+          }
+          if (report.status !== 'PASS' || report.productionCertification !== false) {
+            throw new Error('POSTGRES_ACCEPTANCE_NOT_PASS_OR_FALSE_CERTIFICATION');
+          }
+          if (String(report.commit || '').toLowerCase() !== process.env.EXPECTED_COMMIT_SHA.toLowerCase()) {
+            throw new Error('POSTGRES_ACCEPTANCE_COMMIT_MISMATCH');
+          }
+          if (Number(report.pipelineId) !== Number(process.env.EXPECTED_PIPELINE_ID)) {
+            throw new Error('POSTGRES_ACCEPTANCE_PIPELINE_MISMATCH');
+          }
+          if (report.environment?.database !== 'opscore_http_acceptance'
+              || report.environment?.connectedRole !== 'opscore_runtime'
+              || report.environment?.roleIsSuperuser !== false
+              || report.environment?.roleBypassesRls !== false) {
+            throw new Error('POSTGRES_ACCEPTANCE_RUNTIME_IDENTITY_INVALID');
+          }
+          if (report.cleanup?.status !== 'PASS') {
+            throw new Error('POSTGRES_ACCEPTANCE_CLEANUP_NOT_PASS');
+          }
+          if (!Array.isArray(report.checks) || report.checks.length === 0
+              || report.checks.some(check => check.status !== 'PASS')) {
+            throw new Error('POSTGRES_ACCEPTANCE_CHECKS_INVALID');
+          }
+          const completedIds = new Set(report.checks.map(check => check.id));
+          for (const requiredId of requiredCheckIds) {
+            if (!completedIds.has(requiredId)) {
+              throw new Error('POSTGRES_ACCEPTANCE_REQUIRED_CHECK_MISSING:' + requiredId);
+            }
+          }
+          const encoded = fs.readFileSync(reportPath).toString('base64');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, 'evidence_b64=' + encoded + '\\n');
+          console.log('POSTGRES_ACCEPTANCE_EVIDENCE_VALIDATED');
+          console.log('POSTGRES_ACCEPTANCE_COMMIT=' + report.commit);
+          console.log('POSTGRES_ACCEPTANCE_PIPELINE=' + report.pipelineId);
+          console.log('POSTGRES_ACCEPTANCE_CHECKS=' + report.checks.length);
+          NODE
+
       - name: Run source-derived tenant route isolation matrix as opscore_runtime
         working-directory: backend
         env:
