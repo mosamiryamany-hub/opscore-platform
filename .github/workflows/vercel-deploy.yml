@@ -249,6 +249,7 @@ jobs:
           VERCEL_SCOPE: mosamiryamany-1692
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
       - name: Verify staged production HTTP, database, security and release proofs
+        id: production_smoke
         if: steps.production_runtime.outputs.allowed == 'true'
         run: node scripts/production-deployment-smoke.js "${{ steps.staged_deploy.outputs.url }}" "$GITHUB_SHA"
         env:
@@ -257,12 +258,14 @@ jobs:
           VERCEL_SCOPE: mosamiryamany-1692
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
       - name: Promote only the verified staged deployment
+        id: production_promote
         if: steps.production_runtime.outputs.allowed == 'true'
         run: vercel promote "${{ steps.staged_deploy.outputs.url }}" --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
       - name: Verify production domain resolves to the exact promoted commit
+        id: production_domain_verify
         if: steps.production_runtime.outputs.allowed == 'true'
         run: node scripts/production-deployment-smoke.js "https://opscore-platform.vercel.app" "$GITHUB_SHA"
         env:
@@ -270,3 +273,20 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_SCOPE: mosamiryamany-1692
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Fail unless production promotion and public-domain verification completed
+        if: ${{ always() && !cancelled() }}
+        env:
+          RUNTIME_OUTCOME: ${{ steps.production_runtime.outcome }}
+          RUNTIME_ALLOWED: ${{ steps.production_runtime.outputs.allowed }}
+          SMOKE_OUTCOME: ${{ steps.production_smoke.outcome }}
+          PROMOTE_OUTCOME: ${{ steps.production_promote.outcome }}
+          DOMAIN_OUTCOME: ${{ steps.production_domain_verify.outcome }}
+        run: |
+          set -euo pipefail
+          test "$RUNTIME_OUTCOME" = "success"
+          test "$RUNTIME_ALLOWED" = "true"
+          test "$SMOKE_OUTCOME" = "success"
+          test "$PROMOTE_OUTCOME" = "success"
+          test "$DOMAIN_OUTCOME" = "success"
+          echo "PRODUCTION_PROMOTION_AND_PUBLIC_DOMAIN_VERIFICATION=PASS"
