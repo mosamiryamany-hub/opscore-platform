@@ -10,6 +10,7 @@ const SAFE_RUNTIME_ROLE = {
   runtime_role_bypassrls: false,
   runtime_role_createrole: false,
   runtime_role_createdb: false,
+  runtime_role_app_membership: false,
   runtime_role_elevated_membership_count: 0
 };
 function buildDatabaseSecurityProof(row, ...args) {
@@ -108,6 +109,7 @@ test('runtime catalog query is read-only and inspects identity, PostGIS and migr
   assert.match(DATABASE_SECURITY_SQL,/non_postgis_tables_without_force_rls_count/);
   assert.match(DATABASE_SECURITY_SQL,/runtime_role_bypassrls/);
   assert.match(DATABASE_SECURITY_SQL,/runtime_role_elevated_membership_count/);
+  assert.match(DATABASE_SECURITY_SQL,/runtime_role_app_membership/);
   assert.match(DATABASE_SECURITY_SQL,/system_operational_table_count/);
   assert.match(DATABASE_SECURITY_SQL,/system_operational_policy_valid_table_count/);
   assert.match(DATABASE_SECURITY_SQL,/system_operational_runtime_privilege_gap_count/);
@@ -200,6 +202,8 @@ test('live database connection must use the dedicated least-privilege runtime ro
     { runtime_role_superuser: true },
     { runtime_role_createrole: true },
     { runtime_role_createdb: true },
+    { runtime_role_app_membership: true },
+    { runtime_role_app_membership: undefined },
     { runtime_role_name: 'opscore_app' },
     { runtime_role_elevated_membership_count: 1 },
     { runtime_role_login: false }
