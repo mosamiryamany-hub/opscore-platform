@@ -209,7 +209,7 @@ async function databaseCatalog(pool) {
       "ORDER BY schemaname,tablename,policyname"
     ),
     pool.query(
-      "SELECT n.nspname AS schema_name,c.relname AS table_name,con.conname,con.contype,con.convalidated,pg_get_constraintdef(con.oid) AS definition " +
+      "SELECT n.nspname AS schema_name,c.relname AS table_name,con.conname,con.contype,con.convalidated,pg_get_constraintdef(con.oid, true) AS definition " +
       "FROM pg_constraint con JOIN pg_class c ON c.oid=con.conrelid JOIN pg_namespace n ON n.oid=c.relnamespace " +
       "WHERE n.nspname NOT IN ('pg_catalog','information_schema') AND n.nspname NOT LIKE 'pg_toast%' " +
       "AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.classid='pg_class'::regclass AND d.objid=c.oid AND d.deptype='e') " +
