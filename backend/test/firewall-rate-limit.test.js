@@ -124,6 +124,8 @@ test('production login limiter forces shared database state even when global lim
   const db=makeDb();
   const oldExpected=process.env.OPSC_EXPECTED_INSTANCES;
   const oldNow=Date.now;
+  const oldVercelEnv=process.env.VERCEL_ENV;
+  delete process.env.VERCEL_ENV;
   process.env.OPSC_EXPECTED_INSTANCES='1';
   Date.now=()=>120000;
   try{
@@ -140,6 +142,8 @@ test('production login limiter forces shared database state even when global lim
     Date.now=oldNow;
     if(oldExpected===undefined)delete process.env.OPSC_EXPECTED_INSTANCES;
     else process.env.OPSC_EXPECTED_INSTANCES=oldExpected;
+    if(oldVercelEnv===undefined)delete process.env.VERCEL_ENV;
+    else process.env.VERCEL_ENV=oldVercelEnv;
     db.close();
   }
 });
@@ -165,5 +169,29 @@ test('non-production login limiter preserves explicit memory mode for acceptance
   }finally{
     if(oldExpected===undefined)delete process.env.OPSC_EXPECTED_INSTANCES;
     else process.env.OPSC_EXPECTED_INSTANCES=oldExpected;
+  }
+});
+test('Vercel preview does not force the production shared limiter when NODE_ENV is production',()=>{
+  const oldExpected=process.env.OPSC_EXPECTED_INSTANCES;
+  const oldVercelEnv=process.env.VERCEL_ENV;
+  process.env.OPSC_EXPECTED_INSTANCES='1';
+  process.env.VERCEL_ENV='preview';
+  try{
+    const forbiddenDatabaseAccess={
+      exec(){throw new Error('PREVIEW_MUST_NOT_OPEN_PRODUCTION_SHARED_TRANSACTION')},
+      prepare(){throw new Error('PREVIEW_MUST_NOT_QUERY_PRODUCTION_SHARED_DATABASE')}
+    };
+    const enforce=createLoginRateLimiter(config({
+      nodeEnv:'production',
+      firewallRateState:'memory',
+      loginRateWindowMs:60000,
+      loginRateLimit:2
+    }),forbiddenDatabaseAccess);
+    assert.equal(enforce(request()).remaining,1);
+  }finally{
+    if(oldExpected===undefined)delete process.env.OPSC_EXPECTED_INSTANCES;
+    else process.env.OPSC_EXPECTED_INSTANCES=oldExpected;
+    if(oldVercelEnv===undefined)delete process.env.VERCEL_ENV;
+    else process.env.VERCEL_ENV=oldVercelEnv;
   }
 });
