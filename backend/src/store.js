@@ -12,6 +12,17 @@ const {recordAuthorizationDecision, listAuthorizationDecisions} = require('./aut
 const {integrityGraph} = require('./integrity-graph');
 const {signPdfBuffer, verifyPdfSignature} = require('./pdf-signing');
 const {warn} = require('./observability');
+
+function isMissingPostgresFunction(error, functionName) {
+  if (error?.code !== '42883') return false;
+  const message = String(error?.message || error).toLowerCase();
+  if (!message.includes('does not exist')) return false;
+  const marker = message.indexOf('function ');
+  if (marker < 0) return false;
+  const signature = message.slice(marker + 'function '.length).trimStart();
+  const name = String(functionName).toLowerCase();
+  return signature.startsWith(name + '(') || signature.startsWith('public.' + name + '(');
+}
 const ROLES = [
   'owner',
   'admin',
@@ -546,7 +557,7 @@ class Store {
       try {
         existing = Number(this.db.prepare('SELECT opscore_count_users() AS c').get()?.c || 0);
       } catch (error) {
-        const functionMissing = error?.code === '42883' || /opscore_count_users[^\n]*does not exist/i.test(String(error?.message || error));
+        const functionMissing = isMissingPostgresFunction(error, 'opscore_count_users');
         if (!functionMissing) throw error;
         existing = Number(this.db.prepare('SELECT COUNT(*) AS c FROM users').get()?.c || 0);
       }
@@ -724,7 +735,7 @@ class Store {
         const row = this.db.prepare('SELECT id, email, status, password_hash FROM opscore_resolve_login_candidate(?)').get(normalizedEmail);
         return row || null;
       } catch (error) {
-        const functionMissing = error?.code === '42883' || /opscore_resolve_login_candidate[^\\n]*does not exist/i.test(String(error?.message || error));
+        const functionMissing = isMissingPostgresFunction(error, 'opscore_resolve_login_candidate');
         if (!functionMissing) throw error;
         // Compatibility only for a schema that has not yet applied migration 035.
       }
@@ -744,7 +755,8 @@ class Store {
           created_at: r.created_at
         }));
       } catch (error) {
-        // Function missing — fall through.
+        if (!isMissingPostgresFunction(error, 'opscore_list_memberships_for_user')) throw error;
+        // Compatibility only for schemas that have not applied migration 035.
       }
     }
     return this.db.prepare(`SELECT m.*,o.name org_name FROM memberships m JOIN organizations o ON o.id=m.organization_id WHERE m.user_id=? ORDER BY m.created_at,m.organization_id`).all(userId);
@@ -756,7 +768,8 @@ class Store {
         if (row) return row;
         return null;
       } catch (error) {
-        // Function missing — fall through.
+        if (!isMissingPostgresFunction(error, 'opscore_resolve_session_by_token_hash')) throw error;
+        // Compatibility only for schemas that have not applied migration 035.
       }
     }
     const s = this.db.prepare(`SELECT s.id session_id,s.expires_at,u.id user_id,u.email,s.organization_id,m.role,o.name org_name FROM sessions s JOIN users u ON u.id=s.user_id JOIN memberships m ON m.user_id=s.user_id AND m.organization_id=s.organization_id JOIN organizations o ON o.id=s.organization_id WHERE s.token_hash=? AND u.status='active'`).get(tokenHash);
@@ -774,7 +787,8 @@ class Store {
         const row = this.db.prepare('SELECT session_id, user_id, organization_id FROM opscore_revoke_session_by_token_hash(?)').get(tokenHash);
         return row || null;
       } catch (error) {
-        // Function missing — fall through.
+        if (!isMissingPostgresFunction(error, 'opscore_revoke_session_by_token_hash')) throw error;
+        // Compatibility only for schemas that have not applied migration 035.
       }
     }
     const s = this.db.prepare(`SELECT s.id session_id,u.id user_id,s.organization_id FROM sessions s JOIN users u ON u.id=s.user_id JOIN memberships m ON m.user_id=s.user_id AND m.organization_id=s.organization_id WHERE s.token_hash=?`).get(tokenHash);
@@ -810,10 +824,8 @@ class Store {
       try {
         linked=this.db.prepare('SELECT user_id, email_at_link, email, status FROM opscore_resolve_oidc_identity(?,?)').get(issuer,subject);
       } catch (error) {
-        const functionMissing = error?.code === '42883' || /opscore_resolve_oidc_identity[^\n]*does not exist/i.test(String(error?.message || error));
-        const oldFunctionShape = error?.code === '42703' && /\b(email|status)\b/i.test(String(error?.message || error));
-        if (!functionMissing && !oldFunctionShape) throw error;
-        // Compatibility only until migration 036 is applied.
+        if (!isMissingPostgresFunction(error, 'opscore_resolve_oidc_identity')) throw error;
+        // Compatibility only when migration 036 has not created the resolver.
         linked=this.db.prepare('SELECT i.user_id,i.email_at_link,u.email,u.status FROM oidc_identities i JOIN users u ON u.id=i.user_id WHERE i.issuer=? AND i.subject=?').get(issuer,subject);
       }
     } else {
@@ -1531,9 +1543,13 @@ class Store {
       let minted = false;
       try {
         resetTarget = this.db.prepare('SELECT user_id, email FROM opscore_create_password_reset_token(?,?,?,CAST(? AS timestamptz))').get(rid, u.id, hashToken(token), exp);
-        if (resetTarget) minted = true;
+        // A present helper returning no row is an authorization/eligibility denial.
+        // Never turn that denial into a broader direct INSERT under auth mode.
+        if (!resetTarget) throw new Error('NOT_FOUND');
+        minted = true;
       } catch (error) {
-        // Function missing or RLS policy mismatch on unpatched engines: fall through.
+        if (!isMissingPostgresFunction(error, 'opscore_create_password_reset_token')) throw error;
+        // Legacy compatibility only when migration 036 has not created the helper.
       }
       if (!minted) {
         // RLS on password_reset_tokens allows INSERT only for auth/system/backoffice.
@@ -1567,18 +1583,25 @@ class Store {
     if (!token) throw new Error('RESET_TOKEN_INVALID');
     if (this._isPostgresEngine()) {
       const tokenHash = hashToken(token);
+      let validationHelperMissing = false;
+      let valid = false;
       try {
-        const valid = this.db.prepare('SELECT opscore_validate_password_reset_token(?) AS valid').get(tokenHash)?.valid;
+        valid = this.db.prepare('SELECT opscore_validate_password_reset_token(?) AS valid').get(tokenHash)?.valid;
+      } catch (error) {
+        if (!isMissingPostgresFunction(error, 'opscore_validate_password_reset_token')) throw error;
+        validationHelperMissing = true;
+      }
+      if (!validationHelperMissing) {
         if (valid !== true && valid !== 1 && valid !== 't') throw new Error('RESET_TOKEN_INVALID');
         const passwordHash = hashPassword(pwd);
+        // Once validation is available, a missing/failed consume helper is schema
+        // drift or an operational error. Do not downgrade to direct table writes.
         const result = this.db.prepare('SELECT opscore_consume_password_reset_token(?,?) AS reset').get(tokenHash, passwordHash);
         if (result?.reset !== true && result?.reset !== 1 && result?.reset !== 't') throw new Error('RESET_TOKEN_INVALID');
         return { reset: true };
-      } catch (error) {
-        const functionMissing = error?.code === '42883' || /opscore_(validate|consume)_password_reset_token[^\n]*does not exist/i.test(String(error?.message || error));
-        if (!functionMissing) throw error;
-        // Transitional compatibility before migration 036. A present helper rejection never falls back.
       }
+      // Older schemas predating migration 036 may use the transactional fallback.
+      // This path is reachable only when the validation SECURITY DEFINER helper itself is absent.
     }
     this.db.exec('BEGIN IMMEDIATE');
     try {
