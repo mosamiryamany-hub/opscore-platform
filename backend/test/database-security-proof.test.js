@@ -298,6 +298,8 @@ test('missing system operational policy evidence cannot default to a safe zero',
   assert.equal(proof.publicSchema.postgisMetadataViews.runtimeWriteAccessCount, null);
   assert.equal(proof.systemOperationalTables.policyValidTableCount, null);
   assert.equal(proof.systemOperationalTables.status, 'REVIEW_REQUIRED');
+  assert.equal(proof.publicSchema.postgisMetadataViews.viewCount, null);
+  assert.equal(proof.publicSchema.postgisMetadataViews.runtimeWriteAccessCount, null);
   assert.equal(proof.status, 'REVIEW_REQUIRED');
 });
 
