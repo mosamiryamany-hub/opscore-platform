@@ -36,10 +36,7 @@ test('restore drill binds only the two named localhost disposable databases', ()
 
 test('pgpass serializer escapes field separators and line breaks', () => {
   const url = new URL('postgresql://neondb_owner:p%3A%5Cword@127.0.0.1:5432/opscore_http_acceptance');
-  assert.equal(
-    buildPgPassLine(url),
-    '127.0.0.1:5432:opscore_http_acceptance:neondb_owner:p\\:\\word'
-  );
+  assert.equal(buildPgPassLine(url), '127.0.0.1:5432:opscore_http_acceptance:neondb_owner:p\\:\\\\word');
 });
 
 test('restore TOC excludes only pre-provisioned extension definitions', () => {
@@ -53,7 +50,7 @@ test('restore TOC excludes only pre-provisioned extension definitions', () => {
     '7; 0 0 COMMENT - EXTENSION vector',
     '8; 2200 0 SCHEMA - public neondb_owner',
     '9; 16390 1259 TABLE public example neondb_owner'
-  ].join('\\n');
+  ].join('\n');
 
   const result = filterExtensionToc(toc);
   assert.equal(result.removedCreate, REQUIRED_EXTENSIONS.length);
@@ -67,7 +64,7 @@ test('restore TOC fails closed when an expected extension definition is missing'
   const toc = [
     '2; 3079 2615 EXTENSION - pgcrypto',
     '4; 16384 2615 EXTENSION - postgis'
-  ].join('\\n');
+  ].join('\n');
   assert.throws(() => filterExtensionToc(toc), /RESTORE_TOC_EXTENSION_FILTER_INCOMPLETE/);
 });
 
