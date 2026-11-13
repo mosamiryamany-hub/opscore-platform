@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { createPublicReleaseProof, hasVerifiedProductionRelease } = require('../src/release-proof');
+const { createPublicReleaseProof, hasVerifiedProductionRelease, readProductionAcceptanceEvidence } = require('../src/release-proof');
 
 const SHA = 'bbbee88e34a9b7e1847571367904fa96a3166bcc';
 const SHA256_COMMIT = '59bd4c8bd4ab8227bd6dce02cb6c9b67d77dd8feafa77658e4ed849df2cce8e1';
@@ -312,6 +312,38 @@ test('embedded GitHub Actions identity gates production release only with signed
 
     fs.writeFileSync(identityPath, JSON.stringify({ ...identity, commitSha: 'invalid' }));
     assert.equal(hasVerifiedProductionRelease(staleEnv, identityPath, acceptance.path, postgresHttp.path), false);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+
+test('isolated behavioral evidence cannot satisfy the production acceptance contract', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-behavioral-not-production-'));
+  try {
+    const behavioral = writeJsonEvidence(dir, 'PRODUCTION_ACCEPTANCE_BEHAVIORAL.json', {
+      schemaVersion: 'opscore.production-acceptance-behavioral.v2',
+      status: 'PASS',
+      sourceCommit: SHA,
+      pipelineId: '2978538209',
+      testedTarget: 'isolated disposable acceptance engine',
+      productionHost: null,
+      productionHostBehavioralStatus: 'REQUIRES_RETEST',
+      productionCertification: false,
+      checks: [
+        { id: 'tenant-session-isolation', status: 'PASS' },
+        { id: 'cross-tenant-access-denied', status: 'PASS' }
+      ]
+    });
+
+    const result = readProductionAcceptanceEvidence({
+      OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: behavioral.sha256
+    }, SHA, '2978538209', behavioral.path, fixedNow);
+
+    assert.equal(result.status, 'NOT_VERIFIED');
+    assert.equal(result.evidenceSha256, null);
+    assert.equal(result.sourceCommit, SHA);
+    assert.equal(result.pipelineId, '2978538209');
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
