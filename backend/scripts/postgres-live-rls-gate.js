@@ -496,7 +496,29 @@ async function main() {
     }
     await client.query('RELEASE SAVEPOINT worker_system_event_read');
     if (!workerEventReadDenied) throw new Error('RUNTIME_WORKER_SYSTEM_EVENT_NOT_APPEND_ONLY');
+
+    const postgisMetadataViews = await client.query(
+      `SELECT c.relname,
+              has_table_privilege(current_user,c.oid,'SELECT') AS can_select,
+              has_table_privilege(current_user,c.oid,'INSERT') AS can_insert,
+              has_table_privilege(current_user,c.oid,'UPDATE') AS can_update,
+              has_table_privilege(current_user,c.oid,'DELETE') AS can_delete,
+              has_table_privilege(current_user,c.oid,'TRUNCATE') AS can_truncate,
+              has_table_privilege(current_user,c.oid,'REFERENCES') AS can_reference,
+              has_table_privilege(current_user,c.oid,'TRIGGER') AS can_trigger
+         FROM pg_class c
+        WHERE c.relnamespace = to_regnamespace('public')
+          AND c.relkind = 'v'
+          AND c.relname = ANY (ARRAY['geometry_columns','geography_columns']::text[])
+        ORDER BY c.relname`
+    );
+    if (postgisMetadataViews.rowCount !== 2 || postgisMetadataViews.rows.some(view =>
+      view.can_select !== true || view.can_insert || view.can_update || view.can_delete ||
+      view.can_truncate || view.can_reference || view.can_trigger
+    )) throw new Error('RUNTIME_POSTGIS_METADATA_VIEWS_NOT_READ_ONLY');
+
     checks.push({ id: 'runtime-role-system-table-rls-and-least-privilege', status: 'PASS', loginThrottle: 'read-write-delete', firewallRateBuckets: 'upsert-delete', workerGuardEvents: 'insert-only' });
+    checks.push({ id: 'runtime-role-postgis-metadata-read-only', status: 'PASS', views: postgisMetadataViews.rows.map(view => view.relname), readOnly: true });
 
     await client.query('RESET ROLE');
     await client.query('ROLLBACK');
