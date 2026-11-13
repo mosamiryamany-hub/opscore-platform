@@ -207,8 +207,6 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
     now
   );
   const acceptanceVerified = ciVerified && productionAcceptance.status === 'PASS';
-  // v2 contains read-only live posture plus disposable CI evidence only. It cannot certify live production tenant isolation.
-  const productionIsolationCertified = false;
   const releaseVerified = Boolean(
     identity && identity.deploymentSource === 'github-actions-cli' && identity.packageSha256 &&
     identity.packageCommit === sourceCommit &&

@@ -157,7 +157,7 @@ function verifyRouteInventory() {
     const route = String(item && item.route || '');
     const key = method + ' ' + route;
     if (!/^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)$/.test(method) ||
-        !route.startsWith('/api/') || seen.has(key)) {
+        !(route.startsWith('/api/') || route === '/metrics') || seen.has(key)) {
       invalid.push(key.slice(0, 180));
     }
     seen.add(key);
