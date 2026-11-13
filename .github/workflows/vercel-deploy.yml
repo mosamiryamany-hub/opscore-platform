@@ -176,12 +176,12 @@ jobs:
 
       - name: Materialize caller-bound tenant and logical restore evidence
         env:
-          TENANT_MATRIX_EVIDENCE_B64: \${{ needs.postgres-acceptance.outputs.tenant_matrix_evidence_b64 }}
-          RESTORE_DRILL_EVIDENCE_B64: \${{ needs.postgres-acceptance.outputs.restore_drill_evidence_b64 }}
+          TENANT_MATRIX_EVIDENCE_B64: ${{ needs.postgres-acceptance.outputs.tenant_matrix_evidence_b64 }}
+          RESTORE_DRILL_EVIDENCE_B64: ${{ needs.postgres-acceptance.outputs.restore_drill_evidence_b64 }}
         run: |
           set -euo pipefail
-          test -n "\${TENANT_MATRIX_EVIDENCE_B64:-}" || { echo "TENANT_MATRIX_EVIDENCE_MISSING" >&2; exit 1; }
-          test -n "\${RESTORE_DRILL_EVIDENCE_B64:-}" || { echo "RESTORE_DRILL_EVIDENCE_MISSING" >&2; exit 1; }
+          test -n "${TENANT_MATRIX_EVIDENCE_B64:-}" || { echo "TENANT_MATRIX_EVIDENCE_MISSING" >&2; exit 1; }
+          test -n "${RESTORE_DRILL_EVIDENCE_B64:-}" || { echo "RESTORE_DRILL_EVIDENCE_MISSING" >&2; exit 1; }
           mkdir -p backend/docs/verification
           printf '%s' "$TENANT_MATRIX_EVIDENCE_B64" | base64 --decode > backend/docs/verification/TENANT_ISOLATION_MATRIX_BOUND.json
           printf '%s' "$RESTORE_DRILL_EVIDENCE_B64" | base64 --decode > backend/docs/verification/POSTGRES_LOGICAL_RESTORE_DRILL_BOUND.json
@@ -231,18 +231,18 @@ jobs:
         id: generate_acceptance
         working-directory: backend
         env:
-          OPSC_PRODUCTION_RUNTIME_URL: \${{ secrets.OPSC_DATABASE_URL }}
-          OPSC_OWNER_DATABASE_URL: \${{ secrets.DATABASE_URL }}
+          OPSC_PRODUCTION_RUNTIME_URL: ${{ secrets.OPSC_DATABASE_URL }}
+          OPSC_OWNER_DATABASE_URL: ${{ secrets.DATABASE_URL }}
           OPSC_TENANT_MATRIX_EVIDENCE_PATH: docs/verification/TENANT_ISOLATION_MATRIX_BOUND.json
           OPSC_RESTORE_DRILL_EVIDENCE_PATH: docs/verification/POSTGRES_LOGICAL_RESTORE_DRILL_BOUND.json
           OPSC_ACCEPTANCE_ENVIRONMENT: production
           OPSC_WRITE_EVIDENCE: '1'
-          GITHUB_SHA: \${{ github.sha }}
-          GITHUB_RUN_ID: \${{ github.run_id }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
         run: |
           set -euo pipefail
-          test -n "\${OPSC_PRODUCTION_RUNTIME_URL:-}" || { echo "PRODUCTION_RUNTIME_DATABASE_URL_REQUIRED" >&2; exit 1; }
-          test -n "\${OPSC_OWNER_DATABASE_URL:-}" || { echo "PRODUCTION_OWNER_DATABASE_URL_REQUIRED" >&2; exit 1; }
+          test -n "${OPSC_PRODUCTION_RUNTIME_URL:-}" || { echo "PRODUCTION_RUNTIME_DATABASE_URL_REQUIRED" >&2; exit 1; }
+          test -n "${OPSC_OWNER_DATABASE_URL:-}" || { echo "PRODUCTION_OWNER_DATABASE_URL_REQUIRED" >&2; exit 1; }
           test -s "$OPSC_TENANT_MATRIX_EVIDENCE_PATH" || { echo "CALLER_BOUND_TENANT_MATRIX_REQUIRED" >&2; exit 1; }
           test -s "$OPSC_RESTORE_DRILL_EVIDENCE_PATH" || { echo "CALLER_BOUND_LOGICAL_RESTORE_REQUIRED" >&2; exit 1; }
           if [ ! -d node_modules/pg ]; then
