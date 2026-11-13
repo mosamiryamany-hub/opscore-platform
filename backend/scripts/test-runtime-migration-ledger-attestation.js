@@ -6,6 +6,12 @@ const path = require('node:path');
 const { Client } = require('pg');
 
 const MIGRATION_056 = path.resolve(__dirname, '..', 'sql', 'postgres', '056_runtime_auth_definer_function_grants.sql');
+const MIGRATION_DIRECTORY = path.resolve(__dirname, '..', 'sql', 'postgres');
+const EXPECTED_LATEST_MIGRATION = fs.readdirSync(MIGRATION_DIRECTORY)
+  .filter(name => /^\\d{3}_.+\\.sql$/.test(name))
+  .sort()
+  .at(-1);
+if (!EXPECTED_LATEST_MIGRATION) throw new Error('POSTGRES_MIGRATION_INVENTORY_EMPTY');
 const FUNCTION_NAME = 'public.opscore_attest_migration_056';
 const FUNCTION_SIGNATURE = 'public.opscore_attest_migration_056(text)';
 
@@ -128,7 +134,7 @@ async function main() {
       attestation &&
       attestation.migration_056_recorded === true &&
       attestation.migration_056_hash_matches === true &&
-      attestation.latest_filename === '058_security_definer_search_path_hardening.sql' &&
+      attestation.latest_filename === EXPECTED_LATEST_MIGRATION &&
       Number(attestation.migration_count) >= 57);
 
     const definerPaths = (await client.query(
