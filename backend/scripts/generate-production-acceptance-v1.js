@@ -194,7 +194,7 @@ async function withClient(connectionString, fn, readOnly = true) {
 }
 
 async function checkRuntimeRole(client) {
-  const result = await client.query(\`
+  const result = await client.query(`
     SELECT current_database() AS database_name,
            current_user AS role_name,
            r.rolcanlogin AS login,
@@ -211,7 +211,7 @@ async function checkRuntimeRole(client) {
            ) AS elevated_membership_count
       FROM pg_roles r
      WHERE r.rolname = current_user
-  \`);
+  `);
   const row = result.rows[0] || {};
   const safe = row.role_name === 'opscore_runtime' &&
     row.login === true && row.superuser === false && row.bypass_rls === false &&
@@ -234,7 +234,7 @@ async function checkRuntimeRole(client) {
 }
 
 async function checkTableCoverage(client) {
-  const result = await client.query(\`
+  const result = await client.query(`
     SELECT count(*)::int AS total_tables,
            count(*) FILTER (
              WHERE c.relrowsecurity IS TRUE AND c.relforcerowsecurity IS TRUE
@@ -251,7 +251,7 @@ async function checkTableCoverage(client) {
             AND d.objid = c.oid
             AND d.deptype = 'e'
        )
-  \`);
+  `);
   const total = Number(result.rows[0] && result.rows[0].total_tables) || 0;
   const tested = Number(result.rows[0] && result.rows[0].tested_tables) || 0;
   return {
