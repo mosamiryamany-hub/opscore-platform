@@ -94,7 +94,84 @@ function classifyVercelCurlFailure(stderr, exitCode) {
   return Number.isInteger(code) && code > 0 && code < 256 ? `VERCEL_CLI_EXIT_${code}` : 'VERCEL_CURL_EXECUTION_FAILED';
 }
 
+async function readLimitedBody(response, maxBytes = 1024 * 1024) {
+  const advertised = Number(response.headers?.get?.('content-length') || 0);
+  if (Number.isFinite(advertised) && advertised > maxBytes) throw new Error('RESPONSE_TOO_LARGE');
+  if (!response.body || typeof response.body.getReader !== 'function') {
+    const body = await response.text();
+    if (Buffer.byteLength(body, 'utf8') > maxBytes) throw new Error('RESPONSE_TOO_LARGE');
+    return body;
+  }
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let body = '';
+  let bytes = 0;
+  try {
+    while (true) {
+      const item = await reader.read();
+      if (item.done) break;
+      bytes += item.value.byteLength;
+      if (bytes > maxBytes) {
+        await reader.cancel().catch(() => {});
+        throw new Error('RESPONSE_TOO_LARGE');
+      }
+      body += decoder.decode(item.value, { stream: true });
+    }
+    body += decoder.decode();
+    return body;
+  } finally {
+    reader.releaseLock?.();
+  }
+}
+
+async function runTrustedOidcFetch(baseUrl, requestPath, options = {}) {
+  const token = String(options.token || process.env.VERCEL_TRUSTED_OIDC_TOKEN || '').trim();
+  if (!token) throw new Error('VERCEL_TRUSTED_OIDC_TOKEN_REQUIRED');
+  let deployment;
+  try { deployment = new URL(String(baseUrl || '')); }
+  catch { throw new Error('VERCEL_DEPLOYMENT_URL_INVALID'); }
+  if (deployment.protocol !== 'https:' ||
+      !(deployment.hostname.toLowerCase() === 'opscore-platform.vercel.app' ||
+        (deployment.hostname.toLowerCase().startsWith('opscore-platform-') && deployment.hostname.toLowerCase().endsWith('.vercel.app'))) ||
+      deployment.username || deployment.password || deployment.pathname !== '/' || deployment.search || deployment.hash) {
+    throw new Error('VERCEL_DEPLOYMENT_URL_NOT_ALLOWED');
+  }
+  const pathValue = String(requestPath || '');
+  if (!pathValue.startsWith('/') || pathValue.includes('\\r') || pathValue.includes('\\n') || pathValue.startsWith('//')) {
+    throw new Error('VERCEL_REQUEST_PATH_INVALID');
+  }
+  const fetchImpl = options.fetchImpl || globalThis.fetch;
+  if (typeof fetchImpl !== 'function') throw new Error('VERCEL_TRUSTED_FETCH_UNAVAILABLE');
+  const timeoutMs = Number.isSafeInteger(options.processTimeoutMs) && options.processTimeoutMs > 0
+    ? options.processTimeoutMs : 30000;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetchImpl(new URL(pathValue, deployment.origin).toString(), {
+      method: 'GET',
+      headers: {
+        'x-vercel-trusted-oidc-idp-token': token,
+        accept: '*/*'
+      },
+      redirect: 'manual',
+      signal: controller.signal
+    });
+    const contentType = String(response.headers?.get?.('content-type') || '');
+    const body = await readLimitedBody(response, 1024 * 1024);
+    return { statusCode: Number(response.status), contentType, body };
+  } catch (error) {
+    if (error && error.message === 'RESPONSE_TOO_LARGE') throw error;
+    if (controller.signal.aborted || error?.name === 'AbortError') throw new Error('NETWORK_TIMEOUT');
+    throw new Error('NETWORK_CONNECTION_FAILED');
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 function runVercelCurl(baseUrl, path, options = {}) {
+  if (String(process.env.VERCEL_TRUSTED_OIDC_TOKEN || '').trim() || String(options.token || '').trim()) {
+    return runTrustedOidcFetch(baseUrl, path, options);
+  }
   return new Promise((resolve, reject) => {
     const token = String(process.env.VERCEL_TOKEN || '').trim();
     if (!token) return reject(new Error('VERCEL_TOKEN_REQUIRED'));
@@ -304,4 +381,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { parseDeploymentUrl, parseCurlResponse, buildVercelCurlArgs, classifyVercelCurlFailure, runVercelCurl, validateEndpoint, runSmoke };
+module.exports = { parseDeploymentUrl, parseCurlResponse, buildVercelCurlArgs, classifyVercelCurlFailure, readLimitedBody, runTrustedOidcFetch, runVercelCurl, validateEndpoint, runSmoke };
