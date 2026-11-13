@@ -32,6 +32,7 @@ function validateGithubOidcClaims(claims, nowSeconds = Math.floor(Date.now() / 1
     claims.environment === EXPECTED_ENVIRONMENT &&
     claims.workflow_ref === EXPECTED_WORKFLOW_REF &&
     Number.isFinite(Number(claims.exp)) && Number(claims.exp) > nowSeconds &&
+    Number.isFinite(Number(claims.iat)) && Number(claims.exp) > Number(claims.iat) &&
     (!Number.isFinite(Number(claims.nbf)) || Number(claims.nbf) <= nowSeconds + 30) &&
     Number.isFinite(Number(claims.iat)) && Number(claims.iat) <= nowSeconds + 30 &&
     Number(claims.exp) - Number(claims.iat) <= 15 * 60;
