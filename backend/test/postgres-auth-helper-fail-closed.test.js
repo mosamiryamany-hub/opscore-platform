@@ -85,7 +85,7 @@ test('legacy membership/session helpers fall back only for PostgreSQL undefined_
     all(sql) {
       if (sql.includes(sqlFunction.memberships)) throw missingMembership;
       if (sql.includes('FROM memberships m JOIN organizations')) return [{
-        organization_id: 'org-a', role: 'owner', org_name: 'Tenant A', created_at: '2026-01-01'
+        user_id: 'user-a', organization_id: 'org-a', role: 'owner', org_name: 'Tenant A', created_at: '2026-01-01'
       }];
       throw new Error('UNEXPECTED_MEMBERSHIP_QUERY');
     }
@@ -170,7 +170,7 @@ test('legacy password-reset compatibility remains limited to an actually missing
   assert.equal(result.delivery, 'caller_must_deliver_token');
   assert.equal(insertCount, 1);
   assert.deepEqual(sessionChanges.map(value => value.accessMode), ['auth', 'field']);
-  assert.equal(calls.filter(call => call.sql.startsWith('INSERT INTO password_reset_tokens')).length, 1);
+  assert.equal(calls.filter(call => call.method === 'run' && call.sql.startsWith('INSERT INTO password_reset_tokens')).length, 1);
 });
 
 
@@ -262,7 +262,7 @@ test('password-reset direct compatibility is reachable only when the validation 
   store.db.exec = sql => statements.push(sql);
   assert.deepEqual(store.resetPassword('raw-reset-token', 'New-password-2026!'), { reset: true });
   assert.deepEqual(statements, ['BEGIN IMMEDIATE', 'COMMIT']);
-  assert.equal(calls.filter(call => call.sql.includes('opscore_validate_password_reset_token')).length, 1);
+  assert.equal(calls.filter(call => call.method === 'get' && call.sql.includes('opscore_validate_password_reset_token')).length, 1);
 });
 
 
