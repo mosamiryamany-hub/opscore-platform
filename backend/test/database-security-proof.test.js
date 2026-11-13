@@ -19,6 +19,8 @@ function buildDatabaseSecurityProof(row, ...args) {
     system_operational_table_count: 3,
     system_operational_policy_valid_table_count: 3,
     system_operational_runtime_privilege_gap_count: 0,
+    postgis_metadata_view_count: 2,
+    postgis_metadata_view_runtime_write_access_count: 0,
     ...SAFE_RUNTIME_ROLE,
     ...row
   }, ...args);
@@ -113,6 +115,10 @@ test('runtime catalog query is read-only and inspects identity, PostGIS and migr
   assert.match(DATABASE_SECURITY_SQL,/system_operational_table_count/);
   assert.match(DATABASE_SECURITY_SQL,/system_operational_policy_valid_table_count/);
   assert.match(DATABASE_SECURITY_SQL,/system_operational_runtime_privilege_gap_count/);
+  assert.match(DATABASE_SECURITY_SQL,/postgis_metadata_view_count/);
+  assert.match(DATABASE_SECURITY_SQL,/postgis_metadata_view_runtime_write_access_count/);
+  assert.match(DATABASE_SECURITY_SQL,/geometry_columns/);
+  assert.match(DATABASE_SECURITY_SQL,/geography_columns/);
   assert.match(DATABASE_SECURITY_SQL,/opscore_system_table_guard/);
   assert.match(DATABASE_SECURITY_SQL,/opscore_runtime/);
   assert.match(DATABASE_SECURITY_SQL,/polpermissive/);
@@ -210,6 +216,36 @@ test('live database connection must use the dedicated least-privilege runtime ro
   ]) assert.equal(buildDatabaseSecurityProof({ ...base, ...bad }, fixedTime).status, 'REVIEW_REQUIRED');
 });
 
+test('PostGIS metadata views must remain read-only to the application runtime', () => {
+  const base = {
+    public_table_count: 132,
+    rls_enabled_table_count: 131,
+    rls_forced_table_count: 131,
+    tables_without_rls_count: 1,
+    non_postgis_tables_without_rls_count: 0,
+    non_postgis_tables_without_force_rls_count: 0,
+    spatial_ref_sys_runtime_write_access_count: 0,
+    postgis_metadata_view_count: 2,
+    postgis_metadata_view_runtime_write_access_count: 0,
+    migration_ledger_table_count: 1,
+    migration_ledger_without_force_rls_count: 0,
+    migration_ledger_runtime_privileges_count: 0,
+    identity_tables_without_rls_with_runtime_access_count: 0,
+    control_plane_table_count: 3,
+    control_plane_policy_valid_table_count: 3,
+    control_plane_runtime_privilege_gap_count: 0,
+    system_operational_table_count: 3,
+    system_operational_policy_valid_table_count: 3,
+    system_operational_runtime_privilege_gap_count: 0,
+    ...SAFE_RUNTIME_ROLE
+  };
+  const safe = buildDatabaseSecurityProof(base, fixedTime);
+  assert.equal(safe.publicSchema.postgisMetadataViews.status, 'READ_ONLY');
+  assert.equal(safe.status, 'IDENTITY_PLANE_RLS_ENFORCED');
+  assert.equal(buildDatabaseSecurityProof({...base, postgis_metadata_view_runtime_write_access_count: 1}, fixedTime).status, 'REVIEW_REQUIRED');
+  assert.equal(buildDatabaseSecurityProof({...base, postgis_metadata_view_count: 1}, fixedTime).status, 'REVIEW_REQUIRED');
+});
+
 test('runtime system operational tables require exact runtime-role RLS policies and least-privilege grants', () => {
   const base = {
     public_table_count: 132,
@@ -255,8 +291,10 @@ test('missing system operational policy evidence cannot default to a safe zero',
     control_plane_table_count: 3,
     control_plane_policy_valid_table_count: 3,
     control_plane_runtime_privilege_gap_count: 0,
+    postgis_metadata_view_count: 2,
     ...SAFE_RUNTIME_ROLE
   }, fixedTime);
+  assert.equal(proof.publicSchema.postgisMetadataViews.runtimeWriteAccessCount, null);
   assert.equal(proof.systemOperationalTables.policyValidTableCount, null);
   assert.equal(proof.systemOperationalTables.status, 'REVIEW_REQUIRED');
   assert.equal(proof.status, 'REVIEW_REQUIRED');
