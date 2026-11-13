@@ -210,6 +210,25 @@ SELECT
   CASE WHEN EXISTS(SELECT 1 FROM runtime_role) AND to_regprocedure('public.opscore_is_privileged()') IS NOT NULL THEN has_function_privilege('opscore_runtime','public.opscore_is_privileged()','EXECUTE') ELSE false END AS runtime_privileged_execute,
   COALESCE((SELECT gap_count FROM runtime_policy_function_gaps),0) AS runtime_policy_function_gap_count,
   COALESCE((SELECT gap_count FROM runtime_control_plane_gaps),0) AS runtime_control_plane_privilege_gap_count,
+  CASE WHEN EXISTS (SELECT 1 FROM runtime_role) THEN (
+    SELECT count(*)
+    FROM (VALUES
+      ('incident_replays', false),
+      ('decision_memory', false),
+      ('autopilot_proposals', true)
+    ) AS required(table_name, allow_update)
+    LEFT JOIN pg_class c
+      ON c.oid = to_regclass('public.' || required.table_name)
+    WHERE c.oid IS NULL
+      OR NOT has_table_privilege('opscore_runtime', c.oid, 'SELECT')
+      OR NOT has_table_privilege('opscore_runtime', c.oid, 'INSERT')
+      OR (required.allow_update AND NOT has_table_privilege('opscore_runtime', c.oid, 'UPDATE'))
+      OR (NOT required.allow_update AND has_table_privilege('opscore_runtime', c.oid, 'UPDATE'))
+      OR has_table_privilege('opscore_runtime', c.oid, 'DELETE')
+      OR has_table_privilege('opscore_runtime', c.oid, 'TRUNCATE')
+      OR has_table_privilege('opscore_runtime', c.oid, 'REFERENCES')
+      OR has_table_privilege('opscore_runtime', c.oid, 'TRIGGER')
+  ) ELSE 0 END AS runtime_autopilot_table_privilege_gap_count,
   CASE WHEN EXISTS(SELECT 1 FROM runtime_role) THEN (
     SELECT count(*)
     FROM pg_auth_members am
@@ -238,7 +257,7 @@ SELECT
   });
   post.control_plane_policy_results=controlPlanePolicyResults;
   post.control_plane_restrictive_policy_gap_count=controlPlanePolicyResults.filter(x=>x.status!=='PASS').length;
-  if((!post.runtime_role_exists&&(post.app_can_create_database_schema||post.app_can_create_public_objects||post.app_can_select||post.app_can_insert||post.app_can_update||post.app_can_delete||Number(post.control_plane_privilege_gap_count)!==0))||!post.ledger_forced_rls||!post.privileged_is_definer||!post.reset_token_row_security_off||Number(post.control_plane_table_count)!==3||Number(post.control_plane_restrictive_policy_gap_count)!==0||(post.runtime_role_exists&&(!post.runtime_login||post.runtime_superuser||post.runtime_bypassrls||post.runtime_create_role||post.runtime_create_db||Number(post.runtime_privileged_membership_count)!==0||post.runtime_database_create||post.runtime_schema_create||post.runtime_neon_superuser_member||post.runtime_neon_superuser_set||post.runtime_app_role_member||post.runtime_schema_migrations_access||!post.runtime_privileged_execute||Number(post.runtime_policy_function_gap_count)!==0||Number(post.runtime_control_plane_privilege_gap_count)!==0)))throw new Error('MIGRATION_POSTCONDITION_FAILED');
+  if((!post.runtime_role_exists&&(post.app_can_create_database_schema||post.app_can_create_public_objects||post.app_can_select||post.app_can_insert||post.app_can_update||post.app_can_delete||Number(post.control_plane_privilege_gap_count)!==0))||!post.ledger_forced_rls||!post.privileged_is_definer||!post.reset_token_row_security_off||Number(post.control_plane_table_count)!==3||Number(post.control_plane_restrictive_policy_gap_count)!==0||(post.runtime_role_exists&&(!post.runtime_login||post.runtime_superuser||post.runtime_bypassrls||post.runtime_create_role||post.runtime_create_db||Number(post.runtime_privileged_membership_count)!==0||post.runtime_database_create||post.runtime_schema_create||post.runtime_neon_superuser_member||post.runtime_neon_superuser_set||post.runtime_app_role_member||post.runtime_schema_migrations_access||!post.runtime_privileged_execute||Number(post.runtime_policy_function_gap_count)!==0||Number(post.runtime_control_plane_privilege_gap_count)!==0||Number(post.runtime_autopilot_table_privilege_gap_count)!==0)))throw new Error('MIGRATION_POSTCONDITION_FAILED');
   emit({status:'APPLIED_AND_VERIFIED',target:{database:info.database,role:info.role,targetClass},serverVersion:info.server_version,legacy042Evidence,controlPlane053Evidence,applied,skipped:plan.skipped,postconditions:post,note:'Only the explicitly confirmed target database was changed. Production certification remains separate.'});
  }finally{
   if(locked&&client)try{await client.query("SELECT pg_advisory_unlock(hashtext(current_database()),hashtext('opscore-schema-migrations'))");}catch(_){}
