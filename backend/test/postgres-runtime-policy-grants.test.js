@@ -27,6 +27,7 @@ test('migration runner verifies runtime role RLS helper privileges without grant
   assert.match(runner, /runtime_database_create/);
   assert.match(runner, /runtime_schema_create/);
   assert.match(runner, /runtime_neon_superuser_set/);
+  assert.match(runner, /runtime_app_role_member/);
   assert.match(runner, /!post\.runtime_role_exists/);
 });
 
@@ -36,6 +37,7 @@ test('live PostgreSQL gate tests the runtime role and tenant policies', () => {
   assert.match(gate, /SET LOCAL ROLE opscore_runtime/);
   assert.match(gate, /runtime-role-tenant-self-read/);
   assert.match(gate, /runtime-role-cross-tenant-read-denied/);
+  assert.match(gate, /legacy_app_member/);
   assert.match(gate, /runtime-role-system-table-rls-and-least-privilege/);
   const workflow = fs.readFileSync(path.resolve(root, '..', '.github/workflows/digital-twin-postgres-live.yml'), 'utf8');
   assert.ok(workflow.includes('backend/sql/postgres/**'));
