@@ -10,6 +10,8 @@ on:
       - 'backend/scripts/postgres-live-rls-gate.js'
       - 'backend/scripts/apply-postgres-migrations.js'
       - 'backend/scripts/validate-postgres-acceptance-target.js'
+      - 'backend/scripts/postgres-logical-restore-drill.js'
+      - 'backend/test/postgres-logical-restore-drill.test.js'
       - 'backend/scripts/postgres-tenant-composite-fk-gate.js'
       - 'backend/scripts/api-inventory.js'
       - 'backend/sql/postgres/**'
@@ -139,8 +141,10 @@ jobs:
             GRANT USAGE, SELECT ON SEQUENCES TO opscore_app;
           CREATE DATABASE opscore_http_acceptance OWNER neondb_owner;
           CREATE DATABASE opscore_matrix_test OWNER neondb_owner;
+          CREATE DATABASE opscore_restore_target OWNER neondb_owner;
           GRANT CONNECT ON DATABASE opscore_http_acceptance TO opscore_app, opscore_runtime;
           GRANT CONNECT ON DATABASE opscore_matrix_test TO opscore_app, opscore_runtime;
+          GRANT CONNECT ON DATABASE opscore_restore_target TO opscore_app, opscore_runtime;
           SQL
           )
           echo "$sql" | docker exec -i -e PGPASSWORD=postgres "${cid}"             psql -U postgres -d opscore_test -v ON_ERROR_STOP=1             -v owner_password="${owner_password}"             -v runtime_password="${runtime_password}"
@@ -156,7 +160,7 @@ jobs:
           set -euo pipefail
           cid="$(docker ps --filter 'ancestor=postgis/postgis:18-3.7' --format '{{.ID}}' | head -n1)"
           test -n "${cid}"
-          for db in opscore_http_acceptance opscore_matrix_test; do
+          for db in opscore_http_acceptance opscore_matrix_test opscore_restore_target; do
             docker exec -e PGPASSWORD=postgres "${cid}"               psql -U postgres -d "${db}" -v ON_ERROR_STOP=1               -c "CREATE EXTENSION IF NOT EXISTS pgcrypto"               -c "CREATE EXTENSION IF NOT EXISTS postgis"               -c "CREATE EXTENSION IF NOT EXISTS vector"               -c "ALTER SCHEMA public OWNER TO neondb_owner"               -c "SELECT current_setting('server_version') AS postgres, (SELECT extversion FROM pg_extension WHERE extname='postgis') AS postgis, (SELECT extversion FROM pg_extension WHERE extname='vector') AS vector, (SELECT extversion FROM pg_extension WHERE extname='pgcrypto') AS pgcrypto"
           done
       - name: Install root-pinned PostgreSQL runtime dependency
@@ -172,6 +176,18 @@ jobs:
             migration_url="postgresql://neondb_owner:${OPSC_CI_MIGRATION_OWNER_PASSWORD}@127.0.0.1:5432/${db}"
             OPSC_MIGRATION_DATABASE_URL="${migration_url}"             OPSC_MIGRATION_CONFIRM_DATABASE="${db}"             OPSC_PG_SSL_MODE=disable               npm run db:migrate:postgres -- --apply
           done
+      - name: Run real PostgreSQL logical dump and restore drill
+        working-directory: backend
+        env:
+          OPSC_RESTORE_DRILL_SOURCE_URL: postgresql://neondb_owner:${{ env.OPSC_CI_MIGRATION_OWNER_PASSWORD }}@127.0.0.1:5432/opscore_http_acceptance
+          OPSC_RESTORE_DRILL_TARGET_URL: postgresql://neondb_owner:${{ env.OPSC_CI_MIGRATION_OWNER_PASSWORD }}@127.0.0.1:5432/opscore_restore_target
+          OPSC_RESTORE_DRILL_REPORT_PATH: ${{ runner.temp }}/POSTGRES_LOGICAL_RESTORE_DRILL_RESULT.json
+        run: |
+          set -euo pipefail
+          cid="$(docker ps --filter 'ancestor=postgis/postgis:18-3.7' --format '{{.ID}}' | head -n1)"
+          test -n "$cid"
+          export OPSC_RESTORE_DRILL_DOCKER_CONTAINER="$cid"
+          node scripts/postgres-logical-restore-drill.js
       - name: Verify runtime-only migration ledger attestation
         working-directory: backend
         run: node scripts/test-runtime-migration-ledger-attestation.js
@@ -180,6 +196,7 @@ jobs:
           node --check backend/scripts/postgres-live-rls-gate.js
           node --check backend/scripts/apply-postgres-migrations.js
           node --check backend/scripts/postgres-tenant-composite-fk-gate.js
+          node --check backend/scripts/postgres-logical-restore-drill.js
           node --check backend/src/adapters/postgres.js
       - name: Run isolated PostgreSQL 18 tenant-isolation gate
         working-directory: backend
