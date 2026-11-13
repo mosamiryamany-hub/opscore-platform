@@ -1,18 +1,20 @@
 #!/usr/bin/env node
 'use strict';
 const path = require('node:path');
+const crypto = require('node:crypto');
 const {Store} = require('../backend/src/store');
 const {openDb} = require('../backend/src/db');
 const db = openDb(':memory:');
 try {
   const s = new Store(db, { sessionTtlHours: 24 });
   const email = 'perf-gate@example.test';
+  const password = `${ crypto.randomUUID() }-Aa1!`;
   s.bootstrap({
     orgName: 'Performance Gate',
     email,
-    password: 'Strong-pass-2026'
+    password
   });
-  const ctx = s.login(email, 'Strong-pass-2026');
+  const ctx = s.login(email, password);
   for (let i = 0; i < 200; i++)
     s.createWorkOrder(ctx, {
       title: `Benchmark ${ i }`,
