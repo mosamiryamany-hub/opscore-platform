@@ -271,8 +271,16 @@ jobs:
             echo "evidence_sha=" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+          if [ ! -d node_modules/pg ]; then
+            npm ci --ignore-scripts
+          fi
           node scripts/generate-production-acceptance-v1.js | tee "$RUNNER_TEMP/production-acceptance-summary.json"
           test -f docs/verification/PRODUCTION_ACCEPTANCE_RESULT.json
+          STATUS="$(node -e 'const d=require("./docs/verification/PRODUCTION_ACCEPTANCE_RESULT.json"); process.stdout.write(String(d.status||""))')"
+          if [ "$STATUS" != "PASS" ]; then
+            echo "PRODUCTION_ACCEPTANCE_GENERATOR_STATUS=$STATUS"
+            exit 1
+          fi
           HASH="$(sha256sum docs/verification/PRODUCTION_ACCEPTANCE_RESULT.json | awk '{print $1}')"
           echo "evidence_sha=$HASH" >> "$GITHUB_OUTPUT"
           echo "PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256=$HASH"
