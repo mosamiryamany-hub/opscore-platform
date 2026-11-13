@@ -38,10 +38,25 @@ CREATE TABLE IF NOT EXISTS public.incident_replays (
 CREATE INDEX IF NOT EXISTS idx_incident_replays_org_created
   ON public.incident_replays(organization_id,created_at);
 
+-- Composite keys prevent cross-tenant references even when RLS policies are bypassed
+-- by PostgreSQL referential-integrity checks.
+DO $migration$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid='public.decision_replays'::regclass
+      AND conname='decision_replays_id_organization_unique'
+  ) THEN
+    ALTER TABLE public.decision_replays
+      ADD CONSTRAINT decision_replays_id_organization_unique UNIQUE (id,organization_id);
+  END IF;
+END
+$migration$;
+
 CREATE TABLE IF NOT EXISTS public.decision_memory (
   id TEXT PRIMARY KEY,
   organization_id TEXT NOT NULL REFERENCES public.organizations(id) ON DELETE CASCADE,
-  decision_id TEXT NOT NULL REFERENCES public.decision_replays(id) ON DELETE CASCADE,
+  decision_id TEXT NOT NULL,
   learning_key TEXT NOT NULL,
   summary TEXT NOT NULL,
   success INTEGER NOT NULL DEFAULT 0 CHECK (success IN (0,1)),
@@ -49,7 +64,11 @@ CREATE TABLE IF NOT EXISTS public.decision_memory (
   created_by TEXT NOT NULL REFERENCES public.users(id) ON DELETE RESTRICT,
   created_at TEXT NOT NULL,
   CONSTRAINT decision_memory_org_decision_learning_key
-    UNIQUE (organization_id,decision_id,learning_key)
+    UNIQUE (organization_id,decision_id,learning_key),
+  CONSTRAINT decision_memory_decision_tenant_fk
+    FOREIGN KEY (decision_id,organization_id)
+    REFERENCES public.decision_replays(id,organization_id)
+    ON DELETE CASCADE
 );
 CREATE INDEX IF NOT EXISTS idx_decision_memory_org_key
   ON public.decision_memory(organization_id,learning_key,created_at);
@@ -71,7 +90,8 @@ CREATE TABLE IF NOT EXISTS public.autopilot_proposals (
   approved_at TEXT,
   executed_by TEXT,
   executed_at TEXT,
-  created_at TEXT NOT NULL
+  created_at TEXT NOT NULL,
+  CONSTRAINT autopilot_proposals_id_organization_unique UNIQUE (id,organization_id)
 );
 CREATE INDEX IF NOT EXISTS idx_autopilot_org_status
   ON public.autopilot_proposals(organization_id,status,created_at);
@@ -127,7 +147,9 @@ BEGIN
   IF to_regclass('public.ai_agent_runs') IS NOT NULL THEN
     SELECT count(*) INTO orphan_count
     FROM public.ai_agent_runs runs
-    LEFT JOIN public.autopilot_proposals proposals ON proposals.id=runs.proposal_id
+    LEFT JOIN public.autopilot_proposals proposals
+      ON proposals.id=runs.proposal_id
+     AND proposals.organization_id=runs.organization_id
     WHERE runs.proposal_id IS NOT NULL AND proposals.id IS NULL;
     IF orphan_count>0 THEN
       RAISE EXCEPTION 'OPSC_AUTOPILOT_EXISTING_PROPOSAL_REFERENCES_UNRESOLVED:%',orphan_count;
@@ -135,13 +157,13 @@ BEGIN
     IF NOT EXISTS (
       SELECT 1 FROM pg_constraint
       WHERE conrelid='public.ai_agent_runs'::regclass
-        AND conname='ai_agent_runs_proposal_id_fkey'
+        AND conname='ai_agent_runs_proposal_tenant_fkey'
     ) THEN
       ALTER TABLE public.ai_agent_runs
-        ADD CONSTRAINT ai_agent_runs_proposal_id_fkey
-        FOREIGN KEY (proposal_id)
-        REFERENCES public.autopilot_proposals(id)
-        ON DELETE SET NULL;
+        ADD CONSTRAINT ai_agent_runs_proposal_tenant_fkey
+        FOREIGN KEY (proposal_id,organization_id)
+        REFERENCES public.autopilot_proposals(id,organization_id)
+        ON DELETE SET NULL (proposal_id);
     END IF;
   END IF;
 END
