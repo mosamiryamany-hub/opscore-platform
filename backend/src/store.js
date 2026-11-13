@@ -12,6 +12,13 @@ const {recordAuthorizationDecision, listAuthorizationDecisions} = require('./aut
 const {integrityGraph} = require('./integrity-graph');
 const {signPdfBuffer, verifyPdfSignature} = require('./pdf-signing');
 const {warn} = require('./observability');
+
+function isMissingPostgresFunction(error, functionName) {
+  if (error?.code === '42883') return true;
+  const message = String(error?.message || error);
+  const escapedName = String(functionName).replace(/[.*+?^${}()|[\]\\]/g, '\\const {warn} = require('./observability');');
+  return new RegExp('\\b' + escapedName + '\\s*\\([^\\n]*\\)\\s+does not exist', 'i').test(message);
+}
 const ROLES = [
   'owner',
   'admin',
@@ -744,7 +751,8 @@ class Store {
           created_at: r.created_at
         }));
       } catch (error) {
-        // Function missing — fall through.
+        if (!isMissingPostgresFunction(error, 'opscore_list_memberships_for_user')) throw error;
+        // Compatibility only for schemas that have not applied migration 035.
       }
     }
     return this.db.prepare(`SELECT m.*,o.name org_name FROM memberships m JOIN organizations o ON o.id=m.organization_id WHERE m.user_id=? ORDER BY m.created_at,m.organization_id`).all(userId);
@@ -756,7 +764,8 @@ class Store {
         if (row) return row;
         return null;
       } catch (error) {
-        // Function missing — fall through.
+        if (!isMissingPostgresFunction(error, 'opscore_resolve_session_by_token_hash')) throw error;
+        // Compatibility only for schemas that have not applied migration 035.
       }
     }
     const s = this.db.prepare(`SELECT s.id session_id,s.expires_at,u.id user_id,u.email,s.organization_id,m.role,o.name org_name FROM sessions s JOIN users u ON u.id=s.user_id JOIN memberships m ON m.user_id=s.user_id AND m.organization_id=s.organization_id JOIN organizations o ON o.id=s.organization_id WHERE s.token_hash=? AND u.status='active'`).get(tokenHash);
@@ -774,7 +783,8 @@ class Store {
         const row = this.db.prepare('SELECT session_id, user_id, organization_id FROM opscore_revoke_session_by_token_hash(?)').get(tokenHash);
         return row || null;
       } catch (error) {
-        // Function missing — fall through.
+        if (!isMissingPostgresFunction(error, 'opscore_revoke_session_by_token_hash')) throw error;
+        // Compatibility only for schemas that have not applied migration 035.
       }
     }
     const s = this.db.prepare(`SELECT s.id session_id,u.id user_id,s.organization_id FROM sessions s JOIN users u ON u.id=s.user_id JOIN memberships m ON m.user_id=s.user_id AND m.organization_id=s.organization_id WHERE s.token_hash=?`).get(tokenHash);
@@ -1531,9 +1541,13 @@ class Store {
       let minted = false;
       try {
         resetTarget = this.db.prepare('SELECT user_id, email FROM opscore_create_password_reset_token(?,?,?,CAST(? AS timestamptz))').get(rid, u.id, hashToken(token), exp);
-        if (resetTarget) minted = true;
+        // A present helper returning no row is an authorization/eligibility denial.
+        // Never turn that denial into a broader direct INSERT under auth mode.
+        if (!resetTarget) throw new Error('NOT_FOUND');
+        minted = true;
       } catch (error) {
-        // Function missing or RLS policy mismatch on unpatched engines: fall through.
+        if (!isMissingPostgresFunction(error, 'opscore_create_password_reset_token')) throw error;
+        // Legacy compatibility only when migration 036 has not created the helper.
       }
       if (!minted) {
         // RLS on password_reset_tokens allows INSERT only for auth/system/backoffice.
