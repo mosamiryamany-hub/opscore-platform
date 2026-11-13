@@ -39,6 +39,8 @@ test('live PostgreSQL gate tests the runtime role and tenant policies', () => {
   assert.match(gate, /runtime-role-cross-tenant-read-denied/);
   assert.match(gate, /legacy_app_member/);
   assert.match(gate, /runtime-role-system-table-rls-and-least-privilege/);
+  assert.match(gate, /runtime-role-postgis-metadata-read-only/);
+  assert.match(gate, /RUNTIME_POSTGIS_METADATA_VIEWS_NOT_READ_ONLY/);
   assert.ok(gate.includes("matches.length !== 3"));
   assert.ok(gate.includes("aliasCounts.n !== 2 || aliasCounts.sn !== 1"));
   assert.ok(gate.includes(String.raw`const pattern = /\b(n|sn)\.nspname = 'public'/g;`));
@@ -58,7 +60,9 @@ test('migration 059 grants direct runtime privileges and transfers unscoped syst
     'GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.login_throttle, public.firewall_rate_buckets TO opscore_runtime',
     'GRANT INSERT ON TABLE public.worker_guard_system_events TO opscore_runtime',
     'REVOKE ALL PRIVILEGES ON TABLE public.schema_migrations FROM opscore_runtime',
-    'GRANT SELECT ON TABLE public.spatial_ref_sys TO opscore_runtime'
+    'GRANT SELECT ON TABLE public.spatial_ref_sys TO opscore_runtime',
+    'REVOKE ALL PRIVILEGES ON TABLE public.geometry_columns, public.geography_columns FROM opscore_runtime',
+    'GRANT SELECT ON TABLE public.geometry_columns, public.geography_columns TO opscore_runtime'
   ]) assert.ok(normalizedMigration.includes(expected), 'missing migration clause: ' + expected);
   for (const table of ['login_throttle', 'firewall_rate_buckets', 'worker_guard_system_events']) {
     assert.ok(migration.includes('ALTER POLICY opscore_system_table_guard ON public.' + table + ' TO opscore_runtime'));
