@@ -3,6 +3,13 @@
   "version": 2,
   "installCommand": "npm ci --omit=dev --prefix backend && npm ci --omit=dev",
   "outputDirectory": "backend/web",
+  "redirects": [
+    {
+      "source": "/command-bridge.html",
+      "destination": "/control-plane.html",
+      "permanent": false
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/(.*)",

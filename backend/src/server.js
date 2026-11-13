@@ -1045,6 +1045,22 @@ function route(req, res) {
     ? suppliedCorrelationId
     : `req_${crypto.randomUUID()}`;
   res.setHeader('x-correlation-id', correlationId);
+  // Retire the former public Mission Control demo. It contained synthetic operational
+  // records and randomly changing KPIs; route the legacy entry to authenticated controls.
+  if (url.pathname === '/command-bridge.html') {
+    if (req.method === 'GET' || req.method === 'HEAD') {
+      res.writeHead(307, { location: '/control-plane.html', 'cache-control': 'no-store' });
+      return res.end();
+    }
+    return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED' } }, {
+      allow: 'GET, HEAD',
+      'cache-control': 'no-store'
+    });
+  }
+  // Do not let retired static assets fall through to the generic index.html fallback.
+  if (url.pathname === '/command-bridge.js' || url.pathname === '/command-bridge.css') {
+    return json(res, 404, { error: { code: 'NOT_FOUND' } }, { 'cache-control': 'no-store' });
+  }
   if (req.method === 'GET' && url.pathname === '/api/health') {
     // Public health: status only — no database name, host, role, or server version.
     const payload = {
