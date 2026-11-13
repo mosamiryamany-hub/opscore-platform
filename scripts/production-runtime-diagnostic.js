@@ -79,6 +79,21 @@ function evaluateRuntimeDiagnostic(payload, httpStatus, expectedCommit, expected
   const rls = database.rowLevelSecurity || {};
   const ledger = database.migrationLedger || {};
 
+  // Emit only non-secret database identity metadata to the GitHub deployment
+  // diagnostic. Never include a hostname, DSN, username, or password.
+  const safeLabel = (value, pattern, maxLength) => {
+    const text = String(value || '');
+    return text.length <= maxLength && pattern.test(text) ? text : null;
+  };
+  const runtimeDatabase = {
+    name: safeLabel(identity.database_name, /^[A-Za-z0-9_]{1,63}$/, 63),
+    provider: target.provider === 'neon' || target.provider === 'postgresql' ? target.provider : null,
+    region: safeLabel(target.region, /^[a-z0-9-]{1,32}$/, 32),
+    hostnameSha256: /^[a-f0-9]{64}$/.test(String(target.hostnameSha256 || '')) ? target.hostnameSha256 : null,
+    runtimeRole: safeLabel(identity.current_user, /^[A-Za-z0-9_]{1,63}$/, 63),
+    serverVersion: safeLabel(identity.server_version, /^[0-9]{1,2}\.[0-9]{1,3}(?:\s*\([^\r\n]{1,40}\))?$/, 64)
+  };
+
   const checks = [
     check('diagnostic_endpoint_reached', httpStatus === 200 || httpStatus === 503, `HTTP_${httpStatus}`),
     check('diagnostic_schema', value.schemaVersion === 'opscore.production-runtime-database-diagnostic.v1'),
@@ -150,6 +165,7 @@ function evaluateRuntimeDiagnostic(payload, httpStatus, expectedCommit, expected
     httpStatus,
     expectedCommit: String(expectedCommit || '').toLowerCase(),
     expectedPipelineId: String(expectedPipelineId || ''),
+    runtimeDatabase,
     environmentFlags: {
       releaseVerifiedConfiguredTrue: environment.releaseVerifiedConfiguredTrue === true,
       releaseVerifiedEffective: environment.releaseVerifiedEffective === true,
