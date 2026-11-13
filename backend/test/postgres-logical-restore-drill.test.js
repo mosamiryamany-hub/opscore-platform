@@ -60,12 +60,17 @@ test('restore TOC excludes only pre-provisioned extension definitions', () => {
   assert.doesNotMatch(result.text, /EXTENSION - (?:pgcrypto|postgis|vector)/);
 });
 
-test('restore TOC fails closed when an expected extension definition is missing', () => {
+test('restore TOC removes only extension objects already present in the target database', () => {
   const toc = [
     '2; 3079 2615 EXTENSION - pgcrypto',
+    '3; 0 0 COMMENT - EXTENSION pgcrypto',
     '4; 16384 2615 EXTENSION - postgis'
   ].join('\n');
-  assert.throws(() => filterExtensionToc(toc), /RESTORE_TOC_EXTENSION_FILTER_INCOMPLETE/);
+  const result = filterExtensionToc(toc, ['pgcrypto']);
+  assert.equal(result.removedCreate, 1);
+  assert.equal(result.removedComments, 1);
+  assert.match(result.text, /EXTENSION - postgis/);
+  assert.doesNotMatch(result.text, /EXTENSION - pgcrypto/);
 });
 
 test('stable JSON compares nested objects without depending on key insertion order', () => {
