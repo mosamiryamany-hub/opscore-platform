@@ -264,3 +264,35 @@ test('password-reset direct compatibility is reachable only when the validation 
   assert.deepEqual(statements, ['BEGIN IMMEDIATE', 'COMMIT']);
   assert.equal(calls.filter(call => call.sql.includes('opscore_validate_password_reset_token')).length, 1);
 });
+
+
+test('login candidate lookup propagates permission and unrelated undefined-function errors', () => {
+  for (const failure of [
+    pgError('42501', 'permission denied for function opscore_resolve_login_candidate'),
+    pgError('42883', 'function opscore_resolve_login_candidate_guard(text) does not exist')
+  ]) {
+    const { store, calls } = makePostgresStore({
+      get(sql) {
+        if (sql.includes('opscore_resolve_login_candidate')) throw failure;
+        throw new Error('RAW_LOGIN_CANDIDATE_FALLBACK_EXECUTED');
+      }
+    });
+    assert.throws(() => store._resolveLoginCandidate('user@example.com'), error => error === failure);
+    assert.equal(calls.filter(call => call.method === 'get').length, 1);
+  }
+});
+
+test('reset-password validation permission failure never reaches direct SQL transaction', () => {
+  const denied = pgError('42501', 'permission denied for function opscore_validate_password_reset_token');
+  const { store, calls } = makePostgresStore({
+    get(sql) {
+      if (sql.includes('opscore_validate_password_reset_token')) throw denied;
+      throw new Error('RAW_PASSWORD_RESET_QUERY_EXECUTED');
+    }
+  });
+  const statements = [];
+  store.db.exec = sql => statements.push(sql);
+  assert.throws(() => store.resetPassword('raw-reset-token', 'New-password-2026!'), error => error === denied);
+  assert.equal(calls.filter(call => call.method === 'get').length, 1);
+  assert.deepEqual(statements, []);
+});
