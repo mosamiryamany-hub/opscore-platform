@@ -137,7 +137,7 @@ async function runTrustedOidcFetch(baseUrl, requestPath, options = {}) {
     throw new Error('VERCEL_DEPLOYMENT_URL_NOT_ALLOWED');
   }
   const pathValue = String(requestPath || '');
-  if (!pathValue.startsWith('/') || pathValue.includes('\\r') || pathValue.includes('\\n') || pathValue.startsWith('//')) {
+  if (!pathValue.startsWith('/') || /[\r\n]/.test(pathValue) || pathValue.startsWith('//')) {
     throw new Error('VERCEL_REQUEST_PATH_INVALID');
   }
   const fetchImpl = options.fetchImpl || globalThis.fetch;
