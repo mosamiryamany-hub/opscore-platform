@@ -820,10 +820,8 @@ class Store {
       try {
         linked=this.db.prepare('SELECT user_id, email_at_link, email, status FROM opscore_resolve_oidc_identity(?,?)').get(issuer,subject);
       } catch (error) {
-        const functionMissing = isMissingPostgresFunction(error, 'opscore_resolve_oidc_identity');
-        const oldFunctionShape = error?.code === '42703' && /\b(email|status)\b/i.test(String(error?.message || error));
-        if (!functionMissing && !oldFunctionShape) throw error;
-        // Compatibility only until migration 036 is applied.
+        if (!isMissingPostgresFunction(error, 'opscore_resolve_oidc_identity')) throw error;
+        // Compatibility only when migration 036 has not created the resolver.
         linked=this.db.prepare('SELECT i.user_id,i.email_at_link,u.email,u.status FROM oidc_identities i JOIN users u ON u.id=i.user_id WHERE i.issuer=? AND i.subject=?').get(issuer,subject);
       }
     } else {
@@ -1581,19 +1579,25 @@ class Store {
     if (!token) throw new Error('RESET_TOKEN_INVALID');
     if (this._isPostgresEngine()) {
       const tokenHash = hashToken(token);
+      let validationHelperMissing = false;
+      let valid = false;
       try {
-        const valid = this.db.prepare('SELECT opscore_validate_password_reset_token(?) AS valid').get(tokenHash)?.valid;
+        valid = this.db.prepare('SELECT opscore_validate_password_reset_token(?) AS valid').get(tokenHash)?.valid;
+      } catch (error) {
+        if (!isMissingPostgresFunction(error, 'opscore_validate_password_reset_token')) throw error;
+        validationHelperMissing = true;
+      }
+      if (!validationHelperMissing) {
         if (valid !== true && valid !== 1 && valid !== 't') throw new Error('RESET_TOKEN_INVALID');
         const passwordHash = hashPassword(pwd);
+        // Once validation is available, a missing/failed consume helper is schema
+        // drift or an operational error. Do not downgrade to direct table writes.
         const result = this.db.prepare('SELECT opscore_consume_password_reset_token(?,?) AS reset').get(tokenHash, passwordHash);
         if (result?.reset !== true && result?.reset !== 1 && result?.reset !== 't') throw new Error('RESET_TOKEN_INVALID');
         return { reset: true };
-      } catch (error) {
-        const functionMissing = isMissingPostgresFunction(error, 'opscore_validate_password_reset_token') ||
-          isMissingPostgresFunction(error, 'opscore_consume_password_reset_token');
-        if (!functionMissing) throw error;
-        // Transitional compatibility before migration 036. A present helper rejection never falls back.
       }
+      // Older schemas predating migration 036 may use the transactional fallback.
+      // This path is reachable only when the validation SECURITY DEFINER helper itself is absent.
     }
     this.db.exec('BEGIN IMMEDIATE');
     try {
