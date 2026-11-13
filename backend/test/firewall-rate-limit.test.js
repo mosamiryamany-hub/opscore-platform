@@ -43,7 +43,8 @@ test('database-backed limiter shares one atomic counter across independent limit
     assert.deepEqual(second(request()),{remaining:0,resetAt:180000});
     assert.throws(()=>first(request()),/FIREWALL_RATE_LIMITED/);
     const row=db.prepare('SELECT window_start,requests FROM firewall_rate_buckets WHERE bucket_key=?').get('198.51.100.10');
-    assert.deepEqual(row,{window_start:120000,requests:3});
+    assert.equal(Number(row.window_start),120000);
+    assert.equal(Number(row.requests),3);
   }finally{
     Date.now=originalNow;
     db.close();
@@ -62,7 +63,8 @@ test('database-backed limiter resets the bucket atomically at the next window',(
     now=180000;
     assert.deepEqual(enforce(request()),{remaining:2,resetAt:240000});
     const row=db.prepare('SELECT window_start,requests FROM firewall_rate_buckets WHERE bucket_key=?').get('198.51.100.10');
-    assert.deepEqual(row,{window_start:180000,requests:1});
+    assert.equal(Number(row.window_start),180000);
+    assert.equal(Number(row.requests),1);
   }finally{
     Date.now=originalNow;
     db.close();
