@@ -45,6 +45,8 @@ function productionAcceptanceEvidence(commit = SHA, pipelineId = '2978538209', o
     },
     migrationLedger: {
       status: 'PASS',
+      databaseName: 'opscore_acceptance',
+      databaseIdentityMatch: true,
       sourceMigrationCount: 60,
       ledgerRowCount: 60,
       matchedCount: 60,
@@ -54,7 +56,22 @@ function productionAcceptanceEvidence(commit = SHA, pipelineId = '2978538209', o
     tenantMatrixEvidenceSha256: 'c'.repeat(64),
     recoveryDrillEvidenceSha256: 'd'.repeat(64),
     tenantTableCoverage: { status: 'PASS', totalTables: 17, testedTables: 17 },
-    apiRouteCoverage: { status: 'PASS_TEST_SCOPE', totalRoutes: 12, testedRoutes: 12 },
+    tenantRouteSecurityCoverage: {
+      status: 'PASS_TEST_SCOPE',
+      scope: 'UNAUTHENTICATED_DENIAL_FOREIGN_ID_DENIAL_AND_CROSS_TENANT_FIXTURES_ONLY',
+      tenantDataRoutes: 12,
+      unauthenticatedChecks: 12,
+      foreignIdRoutes: 8,
+      foreignIdChecks: 8,
+      crossTenantFixtureChecks: 5,
+      functionalRouteAcceptance: 'NOT_VERIFIED'
+    },
+    apiRouteCoverage: {
+      status: 'NOT_VERIFIED',
+      totalRoutes: 358,
+      testedRoutes: 0,
+      reason: 'FUNCTIONAL_ROUTE_ACCEPTANCE_NOT_RUN'
+    },
     runtimeRole: {
       name: 'opscore_runtime',
       login: true,
@@ -62,7 +79,8 @@ function productionAcceptanceEvidence(commit = SHA, pipelineId = '2978538209', o
       bypassRls: false,
       createRole: false,
       createDatabase: false,
-      elevatedMembershipCount: 0
+      elevatedMembershipCount: 0,
+      databaseName: 'opscore_acceptance'
     },
     ...overrides
   };
@@ -129,9 +147,25 @@ test('release proof accepts production acceptance only when the embedded JSON ha
     assert.equal(proof.productionAcceptance.status, 'PASS');
     assert.equal(proof.gates.productionSessionTenantBoundary, 'PASS_TEST_SCOPE');
     assert.equal(proof.gates.productionRecoveryBundle, 'PASS_TEST_SCOPE');
+    assert.equal(proof.gates.tenantRouteSecurityCoverage, 'PASS_TEST_SCOPE');
+    assert.equal(proof.gates.functionalApiRouteAcceptance, 'NOT_VERIFIED');
     assert.equal(proof.gates.productionIsolationCertification, 'NOT_CERTIFIED');
     assert.equal(proof.gates.mobileStoreArtifacts, 'REMAINING_BUYER');
     assert.equal(proof.productionAcceptance.evidenceSha256, evidence.sha256);
+
+    const mismatchedDatabase = writeJsonEvidence(dir, 'mismatched-database.json',
+      productionAcceptanceEvidence(SHA, '2978538209', {
+        migrationLedger: {
+          ...productionAcceptanceEvidence().migrationLedger,
+          databaseName: 'different_database',
+          databaseIdentityMatch: false
+        }
+      })
+    );
+    const mismatchProof = readProductionAcceptanceEvidence({
+      OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: mismatchedDatabase.sha256
+    }, SHA, '2978538209', mismatchedDatabase.path, fixedNow);
+    assert.equal(mismatchProof.status, 'NOT_VERIFIED');
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

@@ -94,8 +94,11 @@ test('production acceptance does not run when live DB credentials and pipeline i
 test('tenant matrix requires every tenant route, both authorization probes and verified cleanup', () => {
   const valid = validateTenantMatrixEnvelope(tenantMatrixEnvelope(), commit, pipelineId);
   assert.equal(valid.ok, true);
-  assert.equal(valid.totalRoutes, 3);
-  assert.equal(valid.testedRoutes, 3);
+  assert.equal(valid.tenantDataRoutes, 3);
+  assert.equal(valid.unauthenticatedChecks, 3);
+  assert.equal(valid.foreignIdRoutes, 3);
+  assert.equal(valid.foreignIdChecks, 3);
+  assert.equal(valid.crossTenantChecks, 5);
 
   const incomplete = validateTenantMatrixEnvelope(
     tenantMatrixEnvelope({ skippedCount: 1 }), commit, pipelineId

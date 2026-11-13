@@ -95,8 +95,12 @@ function validateTenantMatrixEnvelope(envelope, expectedCommit, expectedPipeline
     validSummary;
   return {
     ok: Boolean(ok),
-    totalRoutes: Number.isSafeInteger(totalRoutes) ? totalRoutes : 0,
-    testedRoutes: validSummary ? totalRoutes : 0,
+    tenantDataRoutes: Number.isSafeInteger(totalRoutes) ? totalRoutes : 0,
+    unauthenticatedChecks: Number(unauthenticated.checks) || 0,
+    unauthenticatedPass: Number(unauthenticated.pass) || 0,
+    foreignIdRoutes: Number.isSafeInteger(foreignIdRoutes) ? foreignIdRoutes : 0,
+    foreignIdChecks: Number(foreignId.checks) || 0,
+    foreignIdPass: Number(foreignId.pass) || 0,
     crossTenantChecks: Number(crossTenant.checks) || 0,
     evidenceSha256: HASH_RE.test(String(evidence.fullEvidenceSha256 || ''))
       ? String(evidence.fullEvidenceSha256).toLowerCase() : null,
@@ -270,6 +274,13 @@ async function checkMigrationLedger(ownerClient) {
     verifyLegacy042Catalog,
     verifyControlPlane053Catalog
   } = require('./apply-postgres-migrations');
+  const identityResult = await ownerClient.query(
+    'SELECT current_database() AS database_name, current_user AS role_name'
+  );
+  const ownerIdentity = identityResult.rows[0] || {};
+  if (!ownerIdentity.database_name || !ownerIdentity.role_name) {
+    throw new Error('MIGRATION_LEDGER_DATABASE_IDENTITY_UNAVAILABLE');
+  }
   const source = readMigrations();
   const ledgerResult = await ownerClient.query(
     'SELECT filename, sha256 FROM public.schema_migrations ORDER BY filename'
@@ -304,6 +315,9 @@ async function checkMigrationLedger(ownerClient) {
     ok: status === 'PASS',
     migrationLedger: {
       status,
+      databaseName: ownerIdentity.database_name,
+      ownerRole: ownerIdentity.role_name,
+      databaseIdentityMatch: false,
       sourceMigrationCount: source.length,
       ledgerRowCount: ledger.length,
       matchedCount: plan.skipped.length,
@@ -342,13 +356,24 @@ async function main() {
     evidenceScopes: {
       productionDatabase: 'LIVE_READ_ONLY',
       tenantIsolation: 'DISPOSABLE_POSTGRESQL_18_CI',
-      apiRouteCoverage: 'DISPOSABLE_POSTGRESQL_18_CI',
+      tenantRouteSecurityCoverage: 'DISPOSABLE_POSTGRESQL_18_CI',
+      apiRouteCoverage: 'NOT_VERIFIED_FUNCTIONAL_ACCEPTANCE_NOT_RUN',
       recoveryRestore: 'DISPOSABLE_POSTGRESQL_18_LOGICAL_RESTORE_CI',
       productionNeonPitr: 'NOT_VERIFIED'
     },
     productionIsolationCertification: false,
     tenantTableCoverage: { status: 'FAIL', totalTables: 0, testedTables: 0 },
-    apiRouteCoverage: { status: 'NOT_VERIFIED', totalRoutes: 0, testedRoutes: 0 },
+    apiRouteCoverage: { status: 'NOT_VERIFIED', totalRoutes: 0, testedRoutes: 0, reason: 'FUNCTIONAL_ROUTE_ACCEPTANCE_NOT_RUN' },
+    tenantRouteSecurityCoverage: {
+      status: 'NOT_VERIFIED',
+      scope: 'UNAUTHENTICATED_DENIAL_FOREIGN_ID_DENIAL_AND_CROSS_TENANT_FIXTURES_ONLY',
+      tenantDataRoutes: 0,
+      unauthenticatedChecks: 0,
+      foreignIdRoutes: 0,
+      foreignIdChecks: 0,
+      crossTenantFixtureChecks: 0,
+      functionalRouteAcceptance: 'NOT_VERIFIED'
+    },
     runtimeRole: {
       name: null, login: false, superuser: true, bypassRls: true,
       createRole: true, createDatabase: true, elevatedMembershipCount: -1
@@ -386,6 +411,18 @@ async function main() {
     const migration = await withClient(ownerUrl, async client => {
       return checkMigrationLedger(client);
     }, true);
+    const migrationDatabaseMatchesRuntime =
+      migration.migrationLedger.databaseName === runtime.runtimeRole.databaseName;
+    migration.migrationLedger.databaseIdentityMatch = migrationDatabaseMatchesRuntime;
+    if (!migrationDatabaseMatchesRuntime) {
+      migration.migrationLedger.blockers.push({
+        code: 'MIGRATION_LEDGER_DATABASE_IDENTITY_MISMATCH',
+        runtimeDatabaseName: runtime.runtimeRole.databaseName,
+        migrationDatabaseName: migration.migrationLedger.databaseName
+      });
+      migration.migrationLedger.blockerCount += 1;
+    }
+    migration.ok = migration.ok && migrationDatabaseMatchesRuntime;
     report.migrationLedger = migration.migrationLedger;
     report.checks.migrationLedgerParity = migration.ok ? 'PASS' : 'FAIL';
 
@@ -398,9 +435,20 @@ async function main() {
     report.checks.tenantSessionIsolation = matrix.ok ? 'PASS_TEST_SCOPE' : 'NOT_VERIFIED';
     report.checks.crossTenantAccessDenied = matrix.ok ? 'PASS_TEST_SCOPE' : 'NOT_VERIFIED';
     report.apiRouteCoverage = {
+      status: 'NOT_VERIFIED',
+      totalRoutes: inventory.sourceRoutes,
+      testedRoutes: 0,
+      reason: 'FUNCTIONAL_ROUTE_ACCEPTANCE_NOT_RUN'
+    };
+    report.tenantRouteSecurityCoverage = {
       status: matrix.ok && inventory.ok ? 'PASS_TEST_SCOPE' : 'NOT_VERIFIED',
-      totalRoutes: matrix.totalRoutes,
-      testedRoutes: matrix.testedRoutes
+      scope: 'UNAUTHENTICATED_DENIAL_FOREIGN_ID_DENIAL_AND_CROSS_TENANT_FIXTURES_ONLY',
+      tenantDataRoutes: matrix.tenantDataRoutes,
+      unauthenticatedChecks: matrix.unauthenticatedChecks,
+      foreignIdRoutes: matrix.foreignIdRoutes,
+      foreignIdChecks: matrix.foreignIdChecks,
+      crossTenantFixtureChecks: matrix.crossTenantChecks,
+      functionalRouteAcceptance: 'NOT_VERIFIED'
     };
 
     const restoreEnvelope = readJson(RESTORE_PATH).value;
@@ -424,9 +472,10 @@ async function main() {
       report.checks.backupIntegrity === 'PASS_TEST_SCOPE';
     const ok = runtime.ok && runtime.tenantTableCoverage.status === 'PASS' &&
       migration.ok && inventory.ok && matrix.ok && restore.ok && checksPass &&
-      report.apiRouteCoverage.status === 'PASS_TEST_SCOPE';
+      report.tenantRouteSecurityCoverage.status === 'PASS_TEST_SCOPE' &&
+      report.apiRouteCoverage.status === 'NOT_VERIFIED';
     report.status = ok ? 'PASS' : 'FAIL';
-    report.note = 'Live production database verification is read-only and covers the runtime role, application-table RLS/FORCE RLS, and full source-to-ledger checksum parity. Tenant A/B route isolation and logical pg_dump/pg_restore are independently executed in disposable PostgreSQL 18 CI databases and bound to this exact commit and workflow run. This evidence does NOT certify production tenant behavior, Neon PITR, production backup retention, object ownership/ACL restoration, or production recovery.';
+    report.note = 'Live production database verification is read-only and covers the runtime role, application-table RLS/FORCE RLS, same-database identity for runtime and migration-ledger connections, and full source-to-ledger checksum parity. Tenant route authorization probes (unauthenticated denial, foreign-ID denial, and cross-tenant fixtures) and logical pg_dump/pg_restore are independently executed in disposable PostgreSQL 18 CI databases and bound to this exact commit and workflow run. Functional acceptance of every API route is NOT_VERIFIED. This evidence does NOT certify production tenant behavior, Neon PITR, production backup retention, object ownership/ACL restoration, or production recovery.';
     if (!ok) report.reason = 'ONE_OR_MORE_SCOPED_ACCEPTANCE_GATES_NOT_PASS';
   } catch (error) {
     report.status = 'FAIL';

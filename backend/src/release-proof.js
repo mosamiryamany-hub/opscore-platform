@@ -86,7 +86,8 @@ function readProductionAcceptanceEvidence(env, expectedCommit, expectedPipelineI
   const checks = evidence.checks && typeof evidence.checks === 'object' ? evidence.checks : {};
   const role = evidence.runtimeRole && typeof evidence.runtimeRole === 'object' ? evidence.runtimeRole : {};
   const tableCoverage = evidence.tenantTableCoverage && typeof evidence.tenantTableCoverage === 'object' ? evidence.tenantTableCoverage : {};
-  const routeCoverage = evidence.apiRouteCoverage && typeof evidence.apiRouteCoverage === 'object' ? evidence.apiRouteCoverage : {};
+  const routeSecurity = evidence.tenantRouteSecurityCoverage && typeof evidence.tenantRouteSecurityCoverage === 'object' ? evidence.tenantRouteSecurityCoverage : {};
+  const functionalRouteCoverage = evidence.apiRouteCoverage && typeof evidence.apiRouteCoverage === 'object' ? evidence.apiRouteCoverage : {};
   const migrationLedger = evidence.migrationLedger && typeof evidence.migrationLedger === 'object' ? evidence.migrationLedger : {};
   const scopes = evidence.evidenceScopes && typeof evidence.evidenceScopes === 'object' ? evidence.evidenceScopes : {};
   const recovery = evidence.productionRecovery && typeof evidence.productionRecovery === 'object' ? evidence.productionRecovery : {};
@@ -99,10 +100,20 @@ function readProductionAcceptanceEvidence(env, expectedCommit, expectedPipelineI
   const coverageSafe = tableCoverage.status === 'PASS' &&
     Number.isSafeInteger(tableCoverage.totalTables) && tableCoverage.totalTables > 0 &&
     tableCoverage.testedTables === tableCoverage.totalTables &&
-    routeCoverage.status === 'PASS_TEST_SCOPE' &&
-    Number.isSafeInteger(routeCoverage.totalRoutes) && routeCoverage.totalRoutes > 0 &&
-    routeCoverage.testedRoutes === routeCoverage.totalRoutes;
+    routeSecurity.status === 'PASS_TEST_SCOPE' &&
+    routeSecurity.scope === 'UNAUTHENTICATED_DENIAL_FOREIGN_ID_DENIAL_AND_CROSS_TENANT_FIXTURES_ONLY' &&
+    Number.isSafeInteger(routeSecurity.tenantDataRoutes) && routeSecurity.tenantDataRoutes > 0 &&
+    routeSecurity.unauthenticatedChecks === routeSecurity.tenantDataRoutes &&
+    routeSecurity.foreignIdRoutes >= 0 &&
+    routeSecurity.foreignIdChecks === routeSecurity.foreignIdRoutes &&
+    Number.isSafeInteger(routeSecurity.crossTenantFixtureChecks) && routeSecurity.crossTenantFixtureChecks > 0 &&
+    routeSecurity.functionalRouteAcceptance === 'NOT_VERIFIED' &&
+    functionalRouteCoverage.status === 'NOT_VERIFIED' &&
+    functionalRouteCoverage.reason === 'FUNCTIONAL_ROUTE_ACCEPTANCE_NOT_RUN';
   const migrationSafe = migrationLedger.status === 'PASS' &&
+    migrationLedger.databaseIdentityMatch === true &&
+    typeof migrationLedger.databaseName === 'string' && migrationLedger.databaseName.length > 0 &&
+    migrationLedger.databaseName === role.databaseName &&
     Number.isSafeInteger(migrationLedger.sourceMigrationCount) && migrationLedger.sourceMigrationCount > 0 &&
     Number.isSafeInteger(migrationLedger.ledgerRowCount) && migrationLedger.ledgerRowCount === migrationLedger.sourceMigrationCount &&
     migrationLedger.matchedCount === migrationLedger.sourceMigrationCount &&
@@ -115,7 +126,8 @@ function readProductionAcceptanceEvidence(env, expectedCommit, expectedPipelineI
     checks.productionNeonPitr === 'NOT_VERIFIED';
   const scopesSafe = scopes.productionDatabase === 'LIVE_READ_ONLY' &&
     scopes.tenantIsolation === 'DISPOSABLE_POSTGRESQL_18_CI' &&
-    scopes.apiRouteCoverage === 'DISPOSABLE_POSTGRESQL_18_CI' &&
+    scopes.tenantRouteSecurityCoverage === 'DISPOSABLE_POSTGRESQL_18_CI' &&
+    scopes.apiRouteCoverage === 'NOT_VERIFIED_FUNCTIONAL_ACCEPTANCE_NOT_RUN' &&
     scopes.recoveryRestore === 'DISPOSABLE_POSTGRESQL_18_LOGICAL_RESTORE_CI' &&
     scopes.productionNeonPitr === 'NOT_VERIFIED' &&
     evidence.productionIsolationCertification === false &&
@@ -247,6 +259,8 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
       livePostgresRls: ciVerified ? 'PASS_TEST_SCOPE' : 'UNVERIFIED',
       productionSessionTenantBoundary: acceptanceVerified ? 'PASS_TEST_SCOPE' : 'NOT_VERIFIED',
       productionRecoveryBundle: acceptanceVerified ? 'PASS_TEST_SCOPE' : 'NOT_VERIFIED',
+      tenantRouteSecurityCoverage: acceptanceVerified ? 'PASS_TEST_SCOPE' : 'NOT_VERIFIED',
+      functionalApiRouteAcceptance: 'NOT_VERIFIED',
       neonPointInTimeRecovery: 'NOT_VERIFIED',
       productionIsolationCertification: 'NOT_CERTIFIED',
       mobileStoreArtifacts: 'REMAINING_BUYER',
@@ -270,7 +284,7 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
       sourceCommit: packageVerified ? packageCommit : null
     },
     checkedAt: now().toISOString(),
-    note: 'Release evidence is bound to the source commit reported by the running Vercel deployment. PostgreSQL RLS CI evidence is test-scoped and does not certify every production API route. PostgreSQL HTTP acceptance is PASS only when its evidence commit and pipeline exactly match the running release; historical HTTP acceptance remains NOT_VERIFIED for a newer candidate. Tenant route isolation and PostgreSQL logical restore are labelled PASS_TEST_SCOPE only when separate disposable PostgreSQL 18 CI evidence matches the exact commit and pipeline. Live production database checks are read-only. Neon point-in-time restore and production tenant isolation certification remain NOT_VERIFIED; a Vercel environment flag alone can never certify them. Signed mobile binaries, native-speaker localization review, and a licensed street-map provider remain buyer-owned.'
+    note: 'Release evidence is bound to the source commit reported by the running Vercel deployment. Tenant route security coverage is limited to unauthenticated-denial, foreign-ID-denial, and cross-tenant fixture probes on disposable PostgreSQL 18 CI; it is not functional acceptance of every API route and does not certify production isolation. PostgreSQL logical restore is also CI test-scope only. Functional API route acceptance, Neon point-in-time restore, and production tenant isolation certification remain NOT_VERIFIED. Live production DB checks are read-only and require the runtime and migration-owner connections to identify the same database. A Vercel environment flag alone can never certify these items. Signed mobile binaries, native-speaker localization review, and a licensed street-map provider remain buyer-owned.'
   };
 };
 
@@ -289,6 +303,8 @@ function hasVerifiedProductionRelease(env = process.env, identityPath, productio
     proof.productionAcceptance.status === 'PASS' &&
     proof.gates.productionSessionTenantBoundary === 'PASS_TEST_SCOPE' &&
     proof.gates.productionRecoveryBundle === 'PASS_TEST_SCOPE' &&
+    proof.gates.tenantRouteSecurityCoverage === 'PASS_TEST_SCOPE' &&
+    proof.gates.functionalApiRouteAcceptance === 'NOT_VERIFIED' &&
     proof.gates.neonPointInTimeRecovery === 'NOT_VERIFIED' &&
     proof.gates.productionIsolationCertification === 'NOT_CERTIFIED';
 }
