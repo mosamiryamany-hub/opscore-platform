@@ -143,14 +143,19 @@ function createRateLimiter(config, db){
           INSERT INTO firewall_rate_buckets(bucket_key,window_start,requests,updated_at)
           VALUES(?,?,1,?)
           ON CONFLICT(bucket_key) DO UPDATE SET
-            window_start=excluded.window_start,
-            requests=CASE
-              WHEN firewall_rate_buckets.window_start=excluded.window_start
-                THEN firewall_rate_buckets.requests+1
-              ELSE 1
+            window_start=CASE
+              WHEN firewall_rate_buckets.window_start < excluded.window_start THEN excluded.window_start
+              ELSE firewall_rate_buckets.window_start
             END,
-            updated_at=excluded.updated_at
-          RETURNING requests
+            requests=CASE
+              WHEN firewall_rate_buckets.window_start < excluded.window_start THEN 1
+              ELSE firewall_rate_buckets.requests+1
+            END,
+            updated_at=CASE
+              WHEN firewall_rate_buckets.updated_at < excluded.updated_at THEN excluded.updated_at
+              ELSE firewall_rate_buckets.updated_at
+            END
+          RETURNING requests,window_start
         `).get(key,windowStart,new Date(now).toISOString());
         db.exec('COMMIT');
         committed=true;
@@ -162,7 +167,11 @@ function createRateLimiter(config, db){
         throw error;
       }
       const requests=Number(row?.requests);
-      if(!Number.isSafeInteger(requests)||requests<1) throw new Error('FIREWALL_RATE_STATE_INVALID');
+      const bucketWindowStart=Number(row?.window_start);
+      if(!Number.isSafeInteger(requests)||requests<1||
+          !Number.isSafeInteger(bucketWindowStart)||bucketWindowStart<windowStart) {
+        throw new Error('FIREWALL_RATE_STATE_INVALID');
+      }
       if(now-lastSharedCleanupAt>=60000){
         lastSharedCleanupAt=now;
         try{purgeExpiredRateBuckets(db,now,windowMs);}
@@ -172,7 +181,7 @@ function createRateLimiter(config, db){
         }
       }
       if(requests>limit) throw new Error('FIREWALL_RATE_LIMITED');
-      return {remaining:Math.max(0,limit-requests),resetAt:windowStart+windowMs};
+      return {remaining:Math.max(0,limit-requests),resetAt:bucketWindowStart+windowMs};
     }
     const prior=buckets.get(key);
     const bucket=(!prior || now-prior.startedAt>=windowMs)?{startedAt:now,count:0}:{...prior};
