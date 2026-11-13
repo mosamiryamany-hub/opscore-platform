@@ -56,11 +56,7 @@ function validateRequestUrl(raw) {
     'results-receiver.actions.githubusercontent.com',
     'token.actions.githubusercontent.com'
   ]);
-  const allowedSuffix = '.actions.githubusercontent.com';
-  const hostAllowed = allowedHosts.has(host) || (host.endsWith(allowedSuffix) && host.indexOf('.') === host.lastIndexOf('.') - (allowedSuffix.length - allowedSuffix.indexOf('.')));
-  // Prefer explicit allowlist; also accept any https host under actions.githubusercontent.com without userinfo/hash
-  const isActionsGh = host === 'actions.githubusercontent.com' || host.endsWith('.actions.githubusercontent.com');
-  if (url.protocol !== 'https:' || !isActionsGh || url.username || url.password || url.hash) {
+  if (url.protocol !== 'https:' || !allowedHosts.has(host) || url.username || url.password || url.hash) {
     throw new Error('GITHUB_OIDC_REQUEST_URL_NOT_ALLOWED');
   }
   return url;
