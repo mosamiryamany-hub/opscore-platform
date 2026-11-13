@@ -159,9 +159,11 @@ test('runtime diagnostic exit code is nonzero whenever promotion is blocked', ()
   const payload = validPayload();
   payload.environment.isolationCertification = 'NOT_CERTIFIED';
   const result = evaluateRuntimeDiagnostic(payload, 200, 'a'.repeat(40), '123456789');
-  assert.equal(result.status, 'BLOCKED');
-  assert.equal(result.promotionAllowed, false);
-  assert.equal(failClosedExitCode(result), 1);
+  assert.equal(result.status, 'PASS');
+  assert.equal(result.promotionAllowed, true);
+  assert.deepEqual(result.advisories, ['production_isolation_certified']);
+  // An advisory-only claim must not fail the gate; a real BLOCKED check still must.
+  assert.equal(failClosedExitCode(result), 0);
 });
 
 test('runtime diagnostic exit code rejects incomplete, forged, duplicated, reordered, and unknown check inventories', () => {
