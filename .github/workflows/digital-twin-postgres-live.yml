@@ -9,6 +9,11 @@ on:
       - 'scripts/performance-regression-gate.js'
       - 'scripts/production-runtime-diagnostic.js'
       - 'scripts/production-runtime-diagnostic.test.js'
+      - 'backend/src/config.js'
+      - 'backend/src/firewall.js'
+      - 'backend/src/server.js'
+      - 'backend/test/firewall-rate-limit.test.js'
+      - 'backend/test/firewall-rate-limit-postgres.test.js'
       - 'backend/src/adapters/postgres.js'
       - 'backend/src/store.js'
       - 'backend/test/postgres-auth-helper-fail-closed.test.js'
@@ -233,6 +238,16 @@ jobs:
           set -euo pipefail
           node --test test/postgres-commercial-acceptance-http.test.js
           cat docs/verification/POSTGRES_HTTP_ACCEPTANCE_RESULT.json
+      - name: Verify atomic shared login throttling across PostgreSQL runtime processes
+        working-directory: backend
+        env:
+          OPSC_EXPECTED_INSTANCES: '1'
+          OPSC_SHARED_STATE_CONFIRMED: 'true'
+          OPSC_PG_SSL_MODE: disable
+        run: |
+          set -euo pipefail
+          test -n "${OPSC_PG_ACCEPTANCE_URL:-}" || { echo "OPSC_PG_ACCEPTANCE_URL is required" >&2; exit 1; }
+          node --test test/firewall-rate-limit-postgres.test.js
       - name: Run source-derived tenant route isolation matrix as opscore_runtime
         working-directory: backend
         env:
