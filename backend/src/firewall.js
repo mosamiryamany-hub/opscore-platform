@@ -133,20 +133,34 @@ function createRateLimiter(config, db){
       // One atomic UPSERT prevents concurrent serverless instances from
       // overwriting one another's increments. PostgreSQL ON CONFLICT DO UPDATE
       // serializes conflicting row updates; RETURNING reports this request's
-      // committed counter value. The same statement also works with node:sqlite.
-      const row=db.prepare(`
-        INSERT INTO firewall_rate_buckets(bucket_key,window_start,requests,updated_at)
-        VALUES(?,?,1,?)
-        ON CONFLICT(bucket_key) DO UPDATE SET
-          window_start=excluded.window_start,
-          requests=CASE
-            WHEN firewall_rate_buckets.window_start=excluded.window_start
-              THEN firewall_rate_buckets.requests+1
-            ELSE 1
-          END,
-          updated_at=excluded.updated_at
-        RETURNING requests
-      `).get(key,windowStart,new Date(now).toISOString());
+      // committed counter value. Keep the explicit transaction so SQLite's
+      // writer lock and the existing post-commit rejection contract are preserved.
+      db.exec('BEGIN IMMEDIATE');
+      let committed=false;
+      let row;
+      try{
+        row=db.prepare(`
+          INSERT INTO firewall_rate_buckets(bucket_key,window_start,requests,updated_at)
+          VALUES(?,?,1,?)
+          ON CONFLICT(bucket_key) DO UPDATE SET
+            window_start=excluded.window_start,
+            requests=CASE
+              WHEN firewall_rate_buckets.window_start=excluded.window_start
+                THEN firewall_rate_buckets.requests+1
+              ELSE 1
+            END,
+            updated_at=excluded.updated_at
+          RETURNING requests
+        `).get(key,windowStart,new Date(now).toISOString());
+        db.exec('COMMIT');
+        committed=true;
+      }catch(error){
+        if(!committed){
+          try{db.exec('ROLLBACK');}
+          catch(rollbackError){warn('transaction.rollback_failed',{operation:'firewall_rate_limit',error:rollbackError});}
+        }
+        throw error;
+      }
       const requests=Number(row?.requests);
       if(!Number.isSafeInteger(requests)||requests<1) throw new Error('FIREWALL_RATE_STATE_INVALID');
       if(now-lastSharedCleanupAt>=60000){
