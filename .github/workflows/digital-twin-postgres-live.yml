@@ -9,6 +9,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/digital-twin-postgres-live.yml'
+      - '.github/workflows/vercel-deploy.yml'
       - 'scripts/performance-regression-gate.js'
       - 'scripts/production-runtime-diagnostic.js'
       - 'scripts/production-runtime-diagnostic.test.js'
