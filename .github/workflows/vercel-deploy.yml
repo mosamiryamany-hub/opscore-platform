@@ -14,6 +14,7 @@ concurrency:
 
 jobs:
   verify:
+    name: vercel-contract-verify
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -62,6 +63,9 @@ jobs:
   deploy:
     needs: [verify]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      id-token: write
     runs-on: ubuntu-latest
     environment:
       name: production
@@ -240,6 +244,9 @@ jobs:
           OPSC_RELEASE_PACKAGE_SHA256: ${{ steps.package_fp.outputs.sha }}
           OPSC_RELEASE_PACKAGE_COMMIT: ${{ github.sha }}
           OPSC_PRODUCTION_ISOLATION_CERTIFICATION: NOT_CERTIFIED
+      - name: Request scoped GitHub Actions OIDC identity for Vercel Trusted Sources
+        id: vercel_oidc
+        run: node scripts/request-vercel-trusted-oidc.js
       - name: Verify staged production runtime identity and all release gates
         id: production_runtime
         run: node scripts/production-runtime-diagnostic.js "${{ steps.staged_deploy.outputs.url }}" "$GITHUB_SHA" "$GITHUB_RUN_ID"
@@ -248,6 +255,7 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_SCOPE: mosamiryamany-1692
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TRUSTED_OIDC_TOKEN: ${{ steps.vercel_oidc.outputs.token }}
       - name: Verify staged production HTTP, database, security and release proofs
         id: production_smoke
         if: steps.production_runtime.outputs.allowed == 'true'
@@ -257,6 +265,7 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_SCOPE: mosamiryamany-1692
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TRUSTED_OIDC_TOKEN: ${{ steps.vercel_oidc.outputs.token }}
       - name: Promote only the verified staged deployment
         id: production_promote
         if: steps.production_runtime.outputs.allowed == 'true'
@@ -273,6 +282,7 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_SCOPE: mosamiryamany-1692
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TRUSTED_OIDC_TOKEN: ${{ steps.vercel_oidc.outputs.token }}
 
       - name: Fail unless production promotion and public-domain verification completed
         if: ${{ always() && !cancelled() }}
