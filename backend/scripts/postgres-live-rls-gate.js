@@ -442,6 +442,54 @@ async function main() {
     if (!controlCrossInsertDenied) throw new Error('CONTROL_PLANE_CROSS_TENANT_INSERT_NOT_DENIED');
     checks.push({ id: 'control-plane-cross-tenant-insert-denied', status: 'PASS', deniedByRls: true });
 
+    // System-wide operational tables must be usable by the same NOBYPASSRLS
+    // runtime role as production. These writes are inside the outer rollback-only
+    // transaction and never persist beyond this disposable CI test.
+    await client.query("SELECT set_config('app.tenant_id','',true),set_config('app.user_id','',true),set_config('app.access_mode','auth',true)");
+    const systemThrottleKey = `system_rls_throttle_${crypto.randomBytes(8).toString('hex')}`;
+    const systemBucketKey = `system_rls_bucket_${crypto.randomBytes(8).toString('hex')}`;
+    const systemEventId = `system_rls_event_${crypto.randomBytes(8).toString('hex')}`;
+    const systemNow = Date.now();
+    const systemTimestamp = new Date().toISOString();
+
+    await client.query(
+      'INSERT INTO public.login_throttle(throttle_key,window_start,attempts,locked_until,updated_at) VALUES($1,$2,1,0,$3)',
+      [systemThrottleKey, systemNow, systemTimestamp]
+    );
+    const throttleRead = await client.query('SELECT attempts FROM public.login_throttle WHERE throttle_key=$1', [systemThrottleKey]);
+    if (throttleRead.rowCount !== 1 || Number(throttleRead.rows[0].attempts) !== 1) throw new Error('RUNTIME_LOGIN_THROTTLE_READ_FAILED');
+    await client.query('UPDATE public.login_throttle SET attempts=2 WHERE throttle_key=$1', [systemThrottleKey]);
+    const throttleUpdate = await client.query('SELECT attempts FROM public.login_throttle WHERE throttle_key=$1', [systemThrottleKey]);
+    if (throttleUpdate.rowCount !== 1 || Number(throttleUpdate.rows[0].attempts) !== 2) throw new Error('RUNTIME_LOGIN_THROTTLE_UPDATE_FAILED');
+    await client.query('DELETE FROM public.login_throttle WHERE throttle_key=$1', [systemThrottleKey]);
+
+    await client.query(
+      'INSERT INTO public.firewall_rate_buckets(bucket_key,window_start,requests,updated_at) VALUES($1,$2,1,$3)',
+      [systemBucketKey, systemNow, systemTimestamp]
+    );
+    await client.query(
+      'INSERT INTO public.firewall_rate_buckets(bucket_key,window_start,requests,updated_at) VALUES($1,$2,2,$3) ON CONFLICT(bucket_key) DO UPDATE SET requests=excluded.requests,updated_at=excluded.updated_at',
+      [systemBucketKey, systemNow, systemTimestamp]
+    );
+    const bucketRead = await client.query('SELECT requests FROM public.firewall_rate_buckets WHERE bucket_key=$1', [systemBucketKey]);
+    if (bucketRead.rowCount !== 1 || Number(bucketRead.rows[0].requests) !== 2) throw new Error('RUNTIME_FIREWALL_RATE_BUCKET_UPSERT_FAILED');
+    await client.query('DELETE FROM public.firewall_rate_buckets WHERE bucket_key=$1', [systemBucketKey]);
+
+    await client.query(
+      'INSERT INTO public.worker_guard_system_events(id,queue_name,action,reason,metrics_json,created_at) VALUES($1,$2,$3,$4,$5,$6)',
+      [systemEventId, 'rls-test', 'record', 'runtime-policy-check', '{}', systemTimestamp]
+    );
+    await client.query('SAVEPOINT worker_system_event_read');
+    let workerEventReadDenied = false;
+    try {
+      await client.query('SELECT id FROM public.worker_guard_system_events WHERE id=$1', [systemEventId]);
+    } catch (error) {
+      workerEventReadDenied = error.code === '42501';
+      await client.query('ROLLBACK TO SAVEPOINT worker_system_event_read');
+    }
+    await client.query('RELEASE SAVEPOINT worker_system_event_read');
+    if (!workerEventReadDenied) throw new Error('RUNTIME_WORKER_SYSTEM_EVENT_NOT_APPEND_ONLY');
+    checks.push({ id: 'runtime-role-system-table-rls-and-least-privilege', status: 'PASS', loginThrottle: 'read-write-delete', firewallRateBuckets: 'upsert-delete', workerGuardEvents: 'insert-only' });
 
     await client.query('RESET ROLE');
     await client.query('ROLLBACK');
