@@ -386,8 +386,8 @@ async function main() {
     await client.query('RESET ROLE');
     await client.query('SET LOCAL ROLE opscore_runtime');
     await client.query(`SET LOCAL search_path TO ${quotedSchema}, public`);
-    const runtimeCheck = (await client.query("SELECT current_user AS role_name, r.rolsuper, r.rolbypassrls, has_function_privilege(current_user,'public.opscore_is_privileged()','EXECUTE') AS helper_execute FROM pg_roles r WHERE r.rolname=current_user")).rows[0];
-    if (!runtimeCheck || runtimeCheck.rolsuper || runtimeCheck.rolbypassrls || !runtimeCheck.helper_execute) throw new Error('RUNTIME_ROLE_POLICY_HELPER_POSTCONDITION_FAILED');
+    const runtimeCheck = (await client.query("SELECT current_user AS role_name, r.rolsuper, r.rolbypassrls, pg_has_role(current_user,'opscore_app','MEMBER') AS legacy_app_member, has_function_privilege(current_user,'public.opscore_is_privileged()','EXECUTE') AS helper_execute FROM pg_roles r WHERE r.rolname=current_user")).rows[0];
+    if (!runtimeCheck || runtimeCheck.rolsuper || runtimeCheck.rolbypassrls || runtimeCheck.legacy_app_member || !runtimeCheck.helper_execute) throw new Error('RUNTIME_ROLE_POLICY_HELPER_POSTCONDITION_FAILED');
     await client.query("SELECT set_config('app.tenant_id',$1,true), set_config('app.user_id',$2,true), set_config('app.access_mode','field',true)", [orgA, userA]);
     const ownAppointments = await client.query('SELECT id FROM appointments');
     const ownWorkOrders = await client.query('SELECT id FROM work_orders');
@@ -494,7 +494,7 @@ async function main() {
     await client.query('RESET ROLE');
     await client.query('ROLLBACK');
     inTransaction = false;
-    emit('PASS', { database: info.database, serverVersion: info.server_version, executedChecks: checks, checkCount: checks.length, note: 'This gate runs on the disposable PostgreSQL 18 service created by GitHub Actions. It tests migrations 031, 052 and 053 plus tenant policy execution for twin, appointment, work-order and control-plane tables under the opscore_runtime role in a rollback-only isolated schema. It does not connect to Neon and does not certify all production data or production isolation.' });
+    emit('PASS', { database: info.database, serverVersion: info.server_version, executedChecks: checks, checkCount: checks.length, note: 'This gate runs on the disposable PostgreSQL 18 service created by GitHub Actions. It tests migrations 031, 052, 053 and 059 plus tenant policy execution for twin, appointment, work-order, control-plane and system operational tables under the opscore_runtime role without inheriting opscore_app in a rollback-only isolated schema. It does not connect to Neon and does not certify all production data or production isolation.' });
   } catch (error) {
     if (inTransaction) {
       try { await client.query('ROLLBACK'); } catch (rollbackError) {
