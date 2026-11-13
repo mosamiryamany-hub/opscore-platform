@@ -141,7 +141,7 @@ jobs:
             GRANT USAGE, SELECT ON SEQUENCES TO opscore_app;
           CREATE DATABASE opscore_http_acceptance OWNER neondb_owner;
           CREATE DATABASE opscore_matrix_test OWNER neondb_owner;
-          CREATE DATABASE opscore_restore_target OWNER neondb_owner;
+          CREATE DATABASE opscore_restore_target OWNER postgres;
           GRANT CONNECT ON DATABASE opscore_http_acceptance TO opscore_app, opscore_runtime;
           GRANT CONNECT ON DATABASE opscore_matrix_test TO opscore_app, opscore_runtime;
           GRANT CONNECT ON DATABASE opscore_restore_target TO opscore_app, opscore_runtime;
@@ -160,7 +160,7 @@ jobs:
           set -euo pipefail
           cid="$(docker ps --filter 'ancestor=postgis/postgis:18-3.7' --format '{{.ID}}' | head -n1)"
           test -n "${cid}"
-          for db in opscore_http_acceptance opscore_matrix_test opscore_restore_target; do
+          for db in opscore_http_acceptance opscore_matrix_test; do
             docker exec -e PGPASSWORD=postgres "${cid}"               psql -U postgres -d "${db}" -v ON_ERROR_STOP=1               -c "CREATE EXTENSION IF NOT EXISTS pgcrypto"               -c "CREATE EXTENSION IF NOT EXISTS postgis"               -c "CREATE EXTENSION IF NOT EXISTS vector"               -c "ALTER SCHEMA public OWNER TO neondb_owner"               -c "SELECT current_setting('server_version') AS postgres, (SELECT extversion FROM pg_extension WHERE extname='postgis') AS postgis, (SELECT extversion FROM pg_extension WHERE extname='vector') AS vector, (SELECT extversion FROM pg_extension WHERE extname='pgcrypto') AS pgcrypto"
           done
       - name: Install root-pinned PostgreSQL runtime dependency
@@ -189,7 +189,7 @@ jobs:
           cid="$(docker ps --filter 'ancestor=postgis/postgis:18-3.7' --format '{{.ID}}' | head -n1)"
           test -n "$cid"
           export OPSC_RESTORE_DRILL_SOURCE_URL="postgresql://neondb_owner:${OPSC_CI_MIGRATION_OWNER_PASSWORD}@127.0.0.1:5432/opscore_http_acceptance"
-          export OPSC_RESTORE_DRILL_TARGET_URL="postgresql://neondb_owner:${OPSC_CI_MIGRATION_OWNER_PASSWORD}@127.0.0.1:5432/opscore_restore_target"
+          export OPSC_RESTORE_DRILL_TARGET_URL="postgresql://postgres:postgres@127.0.0.1:5432/opscore_restore_target"
           export OPSC_RESTORE_DRILL_DOCKER_CONTAINER="$cid"
           node scripts/postgres-logical-restore-drill.js
       - name: Verify runtime-only migration ledger attestation
