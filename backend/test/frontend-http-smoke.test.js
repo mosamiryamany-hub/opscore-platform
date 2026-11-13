@@ -15,6 +15,18 @@ test('frontend console API smoke covers every static UI GET route over HTTP',asy
  const child=spawn(process.execPath,['src/server.js'],{cwd:path.resolve(__dirname,'..'),env:{...process.env,NODE_ENV:'test',PORT:String(port),HOST:'127.0.0.1',SQLITE_PATH:path.join(dir,'db.sqlite'),OPSC_REPOSITORY_PATH:path.join(dir,'files')},stdio:['ignore','pipe','pipe']});
  try{await waitForServer(child);const base=`http://127.0.0.1:${port}`;
   const req=async(p,o={})=>fetch(base+p,{...o,headers:{...(o.body?{'content-type':'application/json'}:{}),...(o.headers||{})}});
+  const retiredBridge=await req('/command-bridge.html',{redirect:'manual'});
+  assert.equal(retiredBridge.status,307,'legacy Mission Control route must redirect');
+  assert.equal(retiredBridge.headers.get('location'),'/control-plane.html');
+  assert.equal(retiredBridge.headers.get('cache-control'),'no-store');
+  const retiredBridgeHead=await req('/command-bridge.html',{method:'HEAD',redirect:'manual'});
+  assert.equal(retiredBridgeHead.status,307,'HEAD on legacy Mission Control route must redirect');
+  for(const asset of ['/command-bridge.js','/command-bridge.css']){
+   const retired=await req(asset);
+   assert.equal(retired.status,404,asset+' must not be served');
+   assert.ok((retired.headers.get('content-type')||'').includes('application/json'),asset+' must return JSON');
+   assert.deepEqual(await retired.json(),{error:{code:'NOT_FOUND'}},asset+' must fail closed');
+  }
   let r=await req('/api/v1/auth/bootstrap',{method:'POST',body:JSON.stringify({orgName:'UI Smoke',email:'owner@example.com',password:'Strong-pass-2026'})});assert.equal(r.status,201);
   r=await req('/api/v1/auth/login',{method:'POST',body:JSON.stringify({email:'owner@example.com',password:'Strong-pass-2026'})});assert.equal(r.status,200);const c=cookie(r.headers);
   // Simulate a fresh page context: JS cannot read the HttpOnly cookie, so session restoration must use the authenticated API.
@@ -35,6 +47,18 @@ test('frontend console API smoke covers every static UI GET route over HTTP',asy
  }finally{child.kill('SIGTERM');await new Promise(res=>child.exitCode!==null?res():child.once('exit',res));fs.rmSync(dir,{recursive:true,force:true});}
 });
 
+
+test('synthetic Mission Control page, assets, and public links are retired',()=>{
+ const web=path.resolve(__dirname,'..','web');
+ for(const file of ['command-bridge.html','command-bridge.js','command-bridge.css']){
+  assert.equal(fs.existsSync(path.join(web,file)),false,file+' must not ship');
+ }
+ const home=fs.readFileSync(path.join(web,'index.html'),'utf8');
+ const rooms=fs.readFileSync(path.join(web,'control-rooms.html'),'utf8');
+ assert.doesNotMatch(home,/command-bridge|Mission Control|DEMO MODE/,'home must not link to synthetic Mission Control');
+ assert.doesNotMatch(rooms,/command-bridge|Mission Control/,'control room directory must not link to synthetic Mission Control');
+ assert.match(home,/Open authenticated Control Plane/,'home must expose the authenticated operational surface');
+});
 
 test('public landing page does not auto-open login during silent session restore',()=>{
  const app=fs.readFileSync(path.resolve(__dirname,'..','web','app.js'),'utf8');
