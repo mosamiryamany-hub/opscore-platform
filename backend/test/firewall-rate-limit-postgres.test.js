@@ -67,7 +67,8 @@ test('shared PostgreSQL rate limiter increments atomically across independent ru
   timeout:120000
 },async()=>{
   const pool=new Pool({connectionString,max:2,connectionTimeoutMillis:10000});
-  const bucket=`opscore-rate-test:${crypto.randomUUID()}`;
+  const randomAddress=crypto.randomBytes(3);
+  const bucket=`10.${randomAddress[0]}.${randomAddress[1]}.${randomAddress[2]}`;
   try{
     const identity=await pool.query('SELECT current_user AS role_name');
     assert.equal(identity.rows[0].role_name,'opscore_runtime','the integration test must use the least-privilege runtime role');
