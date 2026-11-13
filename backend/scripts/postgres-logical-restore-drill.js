@@ -308,8 +308,11 @@ async function main() {
     sourceDatabase: SOURCE_DATABASE,
     restoredDatabase: TARGET_DATABASE,
     productionCertification: false,
+    ownershipAndAclRestored: false,
+    verificationScope: 'DATA_SCHEMA_CATALOG_RLS_AND_TABLE_CONTENT',
     checks: [],
     limitations: [
+      'The main full-database dump and restore use --no-owner and --no-acl; object ownership and GRANT/REVOKE ACL restoration are deliberately not certified by this drill.',
       'This is a real pg_dump/pg_restore drill against disposable CI databases, not a production database restore.',
       'It does not validate Neon point-in-time restore, production backup retention, or production credentials.',
       'Production recovery certification requires a separately authorized and evidenced restore into an isolated production-recovery target.'
@@ -513,7 +516,9 @@ async function main() {
           '### PostgreSQL logical restore drill',
           'Status: **' + report.status + '**',
           'Scope: disposable CI databases only; production certification: **false**',
+          'Archive: ' + (report.archive?.bytes || 0) + ' bytes',
           'Archive SHA-256: ' + (report.archive?.sha256 || 'not produced'),
+          'Catalog: ' + (report.tableCount || 0) + ' application tables; ownership/ACL: **not covered**',
           'Cleanup: **' + report.cleanup.status + '**',
           ''
         ].join('\n'), { encoding: 'utf8', mode: 0o600 });
