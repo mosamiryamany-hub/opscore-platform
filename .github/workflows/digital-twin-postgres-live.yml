@@ -319,7 +319,7 @@ jobs:
             }
           }
           const encoded = fs.readFileSync(reportPath).toString('base64');
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, 'evidence_b64=' + encoded + '\\n');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, 'evidence_b64=' + encoded + String.fromCharCode(10));
           console.log('POSTGRES_ACCEPTANCE_EVIDENCE_VALIDATED');
           console.log('POSTGRES_ACCEPTANCE_COMMIT=' + report.commit);
           console.log('POSTGRES_ACCEPTANCE_PIPELINE=' + report.pipelineId);
