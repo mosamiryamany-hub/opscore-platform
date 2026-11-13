@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { evaluateRuntimeDiagnostic, DIAGNOSTIC_PATH, failClosedExitCode } = require('./production-runtime-diagnostic');
+const { evaluateRuntimeDiagnostic, DIAGNOSTIC_PATH, REQUIRED_DIAGNOSTIC_CHECKS, failClosedExitCode } = require('./production-runtime-diagnostic');
 
 function validPayload() {
   return {
@@ -164,9 +164,14 @@ test('runtime diagnostic exit code is nonzero whenever promotion is blocked', ()
   assert.equal(failClosedExitCode(result), 1);
 });
 
-test('runtime diagnostic exit code rejects incomplete or forged PASS summaries', () => {
+test('runtime diagnostic exit code rejects incomplete, forged, duplicated, reordered, and unknown check inventories', () => {
+  const passingChecks = REQUIRED_DIAGNOSTIC_CHECKS.map(name => ({ name, status: 'PASS' }));
   assert.equal(failClosedExitCode({ status: 'PASS', promotionAllowed: true, checks: [] }), 1);
   assert.equal(failClosedExitCode({ status: 'PASS', promotionAllowed: true, checks: [{ status: 'PASS' }, { status: 'BLOCKED' }] }), 1);
-  assert.equal(failClosedExitCode({ status: 'BLOCKED', promotionAllowed: false, checks: [{ status: 'PASS' }] }), 1);
-  assert.equal(failClosedExitCode({ status: 'PASS', promotionAllowed: true, checks: [{ status: 'PASS' }] }), 0);
+  assert.equal(failClosedExitCode({ status: 'BLOCKED', promotionAllowed: false, checks: passingChecks }), 1);
+  assert.equal(failClosedExitCode({ status: 'PASS', promotionAllowed: true, checks: passingChecks.slice(1) }), 1);
+  assert.equal(failClosedExitCode({ status: 'PASS', promotionAllowed: true, checks: [{ ...passingChecks[0] }, ...passingChecks.slice(0, -1)] }), 1);
+  assert.equal(failClosedExitCode({ status: 'PASS', promotionAllowed: true, checks: passingChecks.map((item, index) => index === 0 ? { name: 'unrecognized_check', status: 'PASS' } : item) }), 1);
+  assert.equal(failClosedExitCode({ status: 'PASS', promotionAllowed: true, checks: [...passingChecks].reverse() }), 1);
+  assert.equal(failClosedExitCode({ status: 'PASS', promotionAllowed: true, checks: passingChecks }), 0);
 });
