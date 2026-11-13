@@ -152,13 +152,16 @@ test('non-production login limiter preserves explicit memory mode for acceptance
       exec(){throw new Error('NON_PRODUCTION_MUST_NOT_OPEN_SHARED_TRANSACTION')},
       prepare(){throw new Error('NON_PRODUCTION_MUST_NOT_QUERY_SHARED_DATABASE')}
     };
+    const oldNow=Date.now;
+    Date.now=()=>120000;
     const enforce=createLoginRateLimiter(config({
       nodeEnv:'test',
       firewallRateState:'memory',
       loginRateWindowMs:60000,
       loginRateLimit:2
     }),forbiddenDatabaseAccess);
-    assert.deepEqual(enforce(request()),{remaining:1,resetAt:Date.now()+60000});
+    assert.deepEqual(enforce(request()),{remaining:1,resetAt:180000});
+    Date.now=oldNow;
   }finally{
     if(oldExpected===undefined)delete process.env.OPSC_EXPECTED_INSTANCES;
     else process.env.OPSC_EXPECTED_INSTANCES=oldExpected;
