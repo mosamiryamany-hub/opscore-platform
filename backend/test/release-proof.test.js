@@ -34,7 +34,8 @@ function productionAcceptanceEvidence(commit = SHA, pipelineId = '2978538209', o
     evidenceScopes: {
       productionDatabase: 'LIVE_READ_ONLY',
       tenantIsolation: 'DISPOSABLE_POSTGRESQL_18_CI',
-      apiRouteCoverage: 'DISPOSABLE_POSTGRESQL_18_CI',
+      tenantRouteSecurityCoverage: 'DISPOSABLE_POSTGRESQL_18_CI',
+      apiRouteCoverage: 'NOT_VERIFIED_FUNCTIONAL_ACCEPTANCE_NOT_RUN',
       recoveryRestore: 'DISPOSABLE_POSTGRESQL_18_LOGICAL_RESTORE_CI',
       productionNeonPitr: 'NOT_VERIFIED'
     },
