@@ -128,14 +128,23 @@ test('demo seed URL follows runtime port and never prints demo passwords', () =>
 
 test('Vercel production deploy requires same-run disposable PostgreSQL HTTP acceptance', () => {
   const workflow = read('.github/workflows/vercel-deploy.yml');
+  const postgresWorkflow = read('.github/workflows/digital-twin-postgres-live.yml');
   const targetValidator = read('backend/scripts/validate-postgres-acceptance-target.js');
   const acceptanceTest = read('backend/test/postgres-commercial-acceptance-http.test.js');
-  assert.match(workflow, /OPSC_PG_ACCEPTANCE_URL/);
-  assert.ok(workflow.includes('validate-postgres-acceptance-target.js'));
-  assert.ok(workflow.includes('postgres-commercial-acceptance-http.test.js'));
+  assert.ok(workflow.includes('./.github/workflows/digital-twin-postgres-live.yml'));
+  assert.match(workflow, /needs: \[verify, postgres-acceptance\]/);
+  assert.match(workflow, /acceptance_evidence_b64/);
+  assert.match(workflow, /POSTGRES_ACCEPTANCE_EVIDENCE_MISSING/);
+  assert.doesNotMatch(workflow, /secrets\.OPSC_PG_ACCEPTANCE_URL/);
   assert.match(workflow, /acceptance_commit_mismatch/);
   assert.match(workflow, /acceptance_pipeline_mismatch/);
   assert.ok(workflow.includes("data['productionCertification'] = False"));
+  assert.match(postgresWorkflow, /OPSC_PG_ACCEPTANCE_URL:/);
+  assert.match(postgresWorkflow, /validate-postgres-acceptance-target\.js/);
+  assert.match(postgresWorkflow, /postgres-commercial-acceptance-http\.test\.js/);
+  assert.match(postgresWorkflow, /CI_COMMIT_SHA:\s*\$\{\{ github\.sha \}\}/);
+  assert.match(postgresWorkflow, /CI_PIPELINE_ID:\s*\$\{\{ github\.run_id \}\}/);
+  assert.match(postgresWorkflow, /POSTGRES_ACCEPTANCE_CLEANUP_NOT_PASS/);
   assert.match(targetValidator, /OPSC_PG_ACCEPTANCE_URL_REQUIRED/);
   assert.match(acceptanceTest, /OPSC_PG_ACCEPTANCE_URL/);
 });
