@@ -32,6 +32,7 @@ on:
       - 'backend/scripts/api-inventory.js'
       - 'backend/sql/postgres/**'
       - 'backend/test/postgres-commercial-acceptance-http.test.js'
+      - 'backend/test/release-proof.test.js'
       - 'backend/test/tenant-isolation-matrix.test.js'
       - 'backend/test/postgres-tenant-composite-fk.test.js'
       - 'backend/test/postgres_rls_context_contract.test.js'
