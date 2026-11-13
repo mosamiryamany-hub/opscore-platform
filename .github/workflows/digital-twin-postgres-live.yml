@@ -7,6 +7,8 @@ on:
     paths:
       - '.github/workflows/digital-twin-postgres-live.yml'
       - 'backend/src/adapters/postgres.js'
+      - 'backend/src/store.js'
+      - 'backend/test/postgres-auth-helper-fail-closed.test.js'
       - 'backend/scripts/postgres-live-rls-gate.js'
       - 'backend/scripts/apply-postgres-migrations.js'
       - 'backend/scripts/validate-postgres-acceptance-target.js'
