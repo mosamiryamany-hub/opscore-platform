@@ -37,7 +37,6 @@ function validPayload() {
       productionCertification: false,
       writeOperations: 0,
       transactionMode: 'READ_ONLY',
-      target: { clientSslMode: 'REQUIRE', channelBinding: 'REQUIRE' },
       environmentChecks: {
         opscDatabaseUrlPresent: true,
         databaseUrlMatchesOpscDatabaseUrl: true
