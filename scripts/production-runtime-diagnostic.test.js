@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { evaluateRuntimeDiagnostic, DIAGNOSTIC_PATH, REQUIRED_DIAGNOSTIC_CHECKS, failClosedExitCode } = require('./production-runtime-diagnostic');
+const { evaluateRuntimeDiagnostic, DIAGNOSTIC_PATH, REQUIRED_DIAGNOSTIC_CHECKS, ADVISORY_CHECKS, failClosedExitCode } = require('./production-runtime-diagnostic');
 
 function validPayload() {
   return {
@@ -118,6 +118,7 @@ test('production hold and missing production acceptance proof block promotion', 
   payload.environment.releaseProofVerified = false;
   payload.environment.isolationCertification = 'NOT_CERTIFIED';
   const result = evaluateRuntimeDiagnostic(payload, 200, 'a'.repeat(40), '123456789');
+  assert.equal(result.status, 'BLOCKED');
   assert.equal(result.promotionAllowed, false);
   assert.ok(result.checks.some(item => item.name === 'production_hold_released' && item.status === 'BLOCKED'));
   assert.ok(result.checks.some(item => item.name === 'production_release_proof' && item.status === 'BLOCKED'));
@@ -155,15 +156,26 @@ test('runtime diagnostic requires runtime SSL settings without misreading backen
 });
 
 
-test('runtime diagnostic exit code is nonzero whenever promotion is blocked', () => {
+test('advisory-only isolation state is explicit and cannot forge a blocked check', () => {
+  assert.deepEqual(ADVISORY_CHECKS, ['production_isolation_certified']);
+  assert.equal(Object.isFrozen(ADVISORY_CHECKS), true);
+  assert.throws(() => ADVISORY_CHECKS.push('production_release_proof'), TypeError);
+
   const payload = validPayload();
   payload.environment.isolationCertification = 'NOT_CERTIFIED';
   const result = evaluateRuntimeDiagnostic(payload, 200, 'a'.repeat(40), '123456789');
-  assert.equal(result.status, 'PASS');
+  assert.equal(result.status, 'PASS_WITH_ADVISORIES');
   assert.equal(result.promotionAllowed, true);
   assert.deepEqual(result.advisories, ['production_isolation_certified']);
-  // An advisory-only claim must not fail the gate; a real BLOCKED check still must.
   assert.equal(failClosedExitCode(result), 0);
+
+  const forged = {
+    ...result,
+    checks: result.checks.map(item => item.name === 'production_isolation_certified'
+      ? { ...item, status: 'BLOCKED' }
+      : item)
+  };
+  assert.equal(failClosedExitCode(forged), 1);
 });
 
 test('runtime diagnostic exit code rejects incomplete, forged, duplicated, reordered, and unknown check inventories', () => {
