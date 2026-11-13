@@ -102,3 +102,21 @@ test('shared rate bucket housekeeping removes expired IP rows',()=>{
     db.close();
   }
 });
+test('late requests cannot move a shared rate-limit bucket backwards across windows',()=>{
+  const db=makeDb();
+  const originalNow=Date.now;
+  let now=180000;
+  Date.now=()=>now;
+  try{
+    const enforce=createRateLimiter(config({firewallRateLimit:3}),db);
+    assert.deepEqual(enforce(request()),{remaining:2,resetAt:240000});
+    now=120000;
+    assert.deepEqual(enforce(request()),{remaining:1,resetAt:240000});
+    const row=db.prepare('SELECT window_start,requests FROM firewall_rate_buckets WHERE bucket_key=?').get('198.51.100.10');
+    assert.equal(Number(row.window_start),180000);
+    assert.equal(Number(row.requests),2);
+  }finally{
+    Date.now=originalNow;
+    db.close();
+  }
+});
