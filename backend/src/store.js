@@ -14,10 +14,14 @@ const {signPdfBuffer, verifyPdfSignature} = require('./pdf-signing');
 const {warn} = require('./observability');
 
 function isMissingPostgresFunction(error, functionName) {
+  if (error?.code !== '42883') return false;
   const message = String(error?.message || error).toLowerCase();
-  return error?.code === '42883' &&
-    message.includes(String(functionName).toLowerCase()) &&
-    message.includes('does not exist');
+  if (!message.includes('does not exist')) return false;
+  const marker = message.indexOf('function ');
+  if (marker < 0) return false;
+  const signature = message.slice(marker + 'function '.length).trimStart();
+  const name = String(functionName).toLowerCase();
+  return signature.startsWith(name + '(') || signature.startsWith('public.' + name + '(');
 }
 const ROLES = [
   'owner',
