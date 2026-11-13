@@ -305,6 +305,7 @@ async function checkMigrationLedger(ownerClient) {
       sourceMigrationCount: source.length,
       ledgerRowCount: ledger.length,
       matchedCount: plan.skipped.length,
+      legacyRenameCount: plan.skipped.filter(item => item.reason === 'legacy-rename-same-checksum').length,
       pendingCount: plan.pending.length,
       blockerCount: plan.blockers.length,
       pendingFilenames: plan.pending.map(item => item.filename),
