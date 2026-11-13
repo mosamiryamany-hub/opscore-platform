@@ -132,7 +132,6 @@ jobs:
           CREATE ROLE opscore_runtime NOLOGIN
             NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
           ALTER ROLE opscore_runtime WITH LOGIN PASSWORD :'runtime_password' INHERIT;
-          GRANT opscore_app TO opscore_runtime;
           GRANT CONNECT ON DATABASE opscore_test TO opscore_app, opscore_runtime;
           GRANT USAGE ON SCHEMA public TO opscore_app, opscore_runtime;
           ALTER DEFAULT PRIVILEGES IN SCHEMA public
