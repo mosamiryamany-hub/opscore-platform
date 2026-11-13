@@ -8,7 +8,7 @@ const { Client } = require('pg');
 const MIGRATION_056 = path.resolve(__dirname, '..', 'sql', 'postgres', '056_runtime_auth_definer_function_grants.sql');
 const MIGRATION_DIRECTORY = path.resolve(__dirname, '..', 'sql', 'postgres');
 const EXPECTED_LATEST_MIGRATION = fs.readdirSync(MIGRATION_DIRECTORY)
-  .filter(name => /^\\d{3}_.+\\.sql$/.test(name))
+  .filter(name => /^\d{3}_.+\.sql$/.test(name))
   .sort()
   .at(-1);
 if (!EXPECTED_LATEST_MIGRATION) throw new Error('POSTGRES_MIGRATION_INVENTORY_EMPTY');
