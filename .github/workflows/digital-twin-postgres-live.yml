@@ -176,16 +176,20 @@ jobs:
             migration_url="postgresql://neondb_owner:${OPSC_CI_MIGRATION_OWNER_PASSWORD}@127.0.0.1:5432/${db}"
             OPSC_MIGRATION_DATABASE_URL="${migration_url}"             OPSC_MIGRATION_CONFIRM_DATABASE="${db}"             OPSC_PG_SSL_MODE=disable               npm run db:migrate:postgres -- --apply
           done
+      - name: Verify logical restore drill safety contracts
+        working-directory: backend
+        run: node --test test/postgres-logical-restore-drill.test.js
+
       - name: Run real PostgreSQL logical dump and restore drill
         working-directory: backend
         env:
-          OPSC_RESTORE_DRILL_SOURCE_URL: postgresql://neondb_owner:${{ env.OPSC_CI_MIGRATION_OWNER_PASSWORD }}@127.0.0.1:5432/opscore_http_acceptance
-          OPSC_RESTORE_DRILL_TARGET_URL: postgresql://neondb_owner:${{ env.OPSC_CI_MIGRATION_OWNER_PASSWORD }}@127.0.0.1:5432/opscore_restore_target
           OPSC_RESTORE_DRILL_REPORT_PATH: ${{ runner.temp }}/POSTGRES_LOGICAL_RESTORE_DRILL_RESULT.json
         run: |
           set -euo pipefail
           cid="$(docker ps --filter 'ancestor=postgis/postgis:18-3.7' --format '{{.ID}}' | head -n1)"
           test -n "$cid"
+          export OPSC_RESTORE_DRILL_SOURCE_URL="postgresql://neondb_owner:${OPSC_CI_MIGRATION_OWNER_PASSWORD}@127.0.0.1:5432/opscore_http_acceptance"
+          export OPSC_RESTORE_DRILL_TARGET_URL="postgresql://neondb_owner:${OPSC_CI_MIGRATION_OWNER_PASSWORD}@127.0.0.1:5432/opscore_restore_target"
           export OPSC_RESTORE_DRILL_DOCKER_CONTAINER="$cid"
           node scripts/postgres-logical-restore-drill.js
       - name: Verify runtime-only migration ledger attestation
