@@ -150,13 +150,15 @@ test('production login limiter forces shared database state even when global lim
 
 test('non-production login limiter preserves explicit memory mode for acceptance harnesses',()=>{
   const oldExpected=process.env.OPSC_EXPECTED_INSTANCES;
+  const oldVercelEnv=process.env.VERCEL_ENV;
+  const oldNow=Date.now;
+  delete process.env.VERCEL_ENV;
   process.env.OPSC_EXPECTED_INSTANCES='1';
   try{
     const forbiddenDatabaseAccess={
       exec(){throw new Error('NON_PRODUCTION_MUST_NOT_OPEN_SHARED_TRANSACTION')},
       prepare(){throw new Error('NON_PRODUCTION_MUST_NOT_QUERY_SHARED_DATABASE')}
     };
-    const oldNow=Date.now;
     Date.now=()=>120000;
     const enforce=createLoginRateLimiter(config({
       nodeEnv:'test',
@@ -165,10 +167,12 @@ test('non-production login limiter preserves explicit memory mode for acceptance
       loginRateLimit:2
     }),forbiddenDatabaseAccess);
     assert.deepEqual(enforce(request()),{remaining:1,resetAt:180000});
-    Date.now=oldNow;
   }finally{
+    Date.now=oldNow;
     if(oldExpected===undefined)delete process.env.OPSC_EXPECTED_INSTANCES;
     else process.env.OPSC_EXPECTED_INSTANCES=oldExpected;
+    if(oldVercelEnv===undefined)delete process.env.VERCEL_ENV;
+    else process.env.VERCEL_ENV=oldVercelEnv;
   }
 });
 test('Vercel preview does not force the production shared limiter when NODE_ENV is production',()=>{
