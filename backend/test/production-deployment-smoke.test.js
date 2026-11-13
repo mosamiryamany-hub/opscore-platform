@@ -85,41 +85,77 @@ test('database proof requires a successful PostgreSQL connectivity check', () =>
   assert.throws(() => validateEndpoint('/api/verify/database', 200, { ok: false, engine: 'postgres' }, commit), /DATABASE_CONNECTIVITY_FAILED/);
 });
 
-test('database security proof rejects missing restrictive policy catalog evidence', () => {
+test('database security v2 proves the PostGIS read-only exception and all runtime RLS boundaries without claiming certification', () => {
   const valid = {
+    schemaVersion: 'opscore.public-database-security-proof.v2',
     status: 'IDENTITY_PLANE_RLS_ENFORCED',
-    productionIsolationCertification: 'CERTIFIED',
-    controlPlaneTenantBoundaryPolicies: { status: 'CATALOG_ENFORCED', validatedTableCount: 3 },
-    controlPlaneRuntimePrivileges: { status: 'LEAST_PRIVILEGE_PRESENT', privilegeGapCount: 0 },
-    runtimeRole: { name: 'opscore_runtime', status: 'LEAST_PRIVILEGE_PRESENT', login: true, superuser: false, bypassRls: false, createRole: false, createDatabase: false, elevatedMembershipCount: 0 }
+    productionIsolationCertification: 'NOT_CERTIFIED',
+    publicSchema: {
+      ordinaryTableCount: 135,
+      rlsEnabledTableCount: 134,
+      rlsForcedTableCount: 134,
+      tablesWithoutRlsCount: 1,
+      nonPostgisTablesWithoutRlsCount: 0,
+      nonPostgisTablesWithoutForceRlsCount: 0,
+      postgisSpatialRefSys: { allowedNoRlsCatalog: true, runtimeWriteAccessCount: 0 },
+      postgisMetadataViews: { viewCount: 2, runtimeWriteAccessCount: 0, status: 'READ_ONLY' }
+    },
+    migrationLedger: { tableCount: 1, forceRls: true, runtimePrivilegesCount: 0, status: 'OWNER_ONLY' },
+    controlPlaneTenantBoundaryPolicies: { tableCount: 3, validatedTableCount: 3, status: 'CATALOG_ENFORCED' },
+    controlPlaneRuntimePrivileges: { tableCount: 3, privilegeGapCount: 0, status: 'LEAST_PRIVILEGE_PRESENT' },
+    systemOperationalTables: { tableCount: 3, policyValidTableCount: 3, runtimePrivilegeGapCount: 0, status: 'LEAST_PRIVILEGE_PRESENT' },
+    identityPlane: { criticalTablesWithoutRlsButAccessibleToRuntimeRole: 0, status: 'RLS_ENFORCED' },
+    runtimeRole: { name: 'opscore_runtime', status: 'LEAST_PRIVILEGE_PRESENT', login: true, superuser: false, bypassRls: false, createRole: false, createDatabase: false, appRoleMembership: false, elevatedMembershipCount: 0 }
   };
   assert.equal(validateEndpoint('/api/verify/database-security', 200, valid, commit), true);
+
   assert.throws(() => validateEndpoint('/api/verify/database-security', 200, {
-    ...valid, controlPlaneTenantBoundaryPolicies: { status: 'REVIEW_REQUIRED', validatedTableCount: 0 }
+    ...valid, publicSchema: { ...valid.publicSchema, nonPostgisTablesWithoutForceRlsCount: 1 }
   }, commit), /DATABASE_SECURITY_CATALOG_NOT_ACCEPTABLE/);
   assert.throws(() => validateEndpoint('/api/verify/database-security', 200, {
-    ...valid, productionIsolationCertification: 'NOT_CERTIFIED'
+    ...valid, publicSchema: { ...valid.publicSchema, postgisSpatialRefSys: { allowedNoRlsCatalog: true, runtimeWriteAccessCount: 1 } }
+  }, commit), /DATABASE_SECURITY_CATALOG_NOT_ACCEPTABLE/);
+  assert.throws(() => validateEndpoint('/api/verify/database-security', 200, {
+    ...valid, runtimeRole: { ...valid.runtimeRole, bypassRls: true }
+  }, commit), /DATABASE_SECURITY_CATALOG_NOT_ACCEPTABLE/);
+  assert.throws(() => validateEndpoint('/api/verify/database-security', 200, {
+    ...valid, productionIsolationCertification: 'CERTIFIED'
   }, commit), /DATABASE_SECURITY_CATALOG_NOT_ACCEPTABLE/);
 });
 
-test('release proof must bind CI, package, HTTP acceptance, and deployment to the exact commit', () => {
+test('release proof v2 binds CI, staged production identity, candidate evidence and package while preserving honest residuals', () => {
+  const pipelineId = 42949619029;
   const valid = {
+    schemaVersion: 'opscore.public-release-proof.v2',
     status: 'PASS_WITH_BUYER_RESIDUALS',
     sourceCommit: commit,
     sourceCommitIdentitySource: 'github-actions-cli-assertion',
-    ci: { status: 'PASS', commitSha: commit, pipelineId: 42949619029 },
-    deployment: { status: 'identified', environment: 'production', ref: 'main' },
-    postgresHttpAcceptance: { status: 'PASS', evidenceCommit: commit, evidencePipelineId: '42949619029' },
-    productionAcceptance: { status: 'PASS', commitSha: commit, evidenceSha256: 'a'.repeat(64) },
-    gates: { productionSessionTenantBoundary: 'PASS_PRODUCTION', productionRecoveryBundle: 'PASS_PRODUCTION', productionIsolationCertification: 'CERTIFIED' },
-    packageFingerprint: { status: 'PUBLISHED', sourceCommit: commit }
+    ci: { status: 'PASS', commitSha: commit, pipelineId },
+    deployment: { status: 'identified', environment: 'production', id: 'dpl_123abc', ref: 'main' },
+    postgresHttpAcceptance: { status: 'PASS', evidenceCommit: commit, evidencePipelineId: String(pipelineId), currentCandidateMatch: true },
+    productionAcceptance: { status: 'PASS', commitSha: commit, pipelineId: String(pipelineId), evidenceSha256: 'a'.repeat(64) },
+    gates: {
+      productionSessionTenantBoundary: 'PASS_TEST_SCOPE',
+      productionRecoveryBundle: 'PASS_TEST_SCOPE',
+      tenantRouteSecurityCoverage: 'PASS_TEST_SCOPE',
+      functionalApiRouteAcceptance: 'NOT_VERIFIED',
+      neonPointInTimeRecovery: 'NOT_VERIFIED',
+      productionIsolationCertification: 'NOT_CERTIFIED'
+    },
+    packageFingerprint: { status: 'PUBLISHED', sourceCommit: commit, value: 'b'.repeat(64) }
   };
   assert.equal(validateEndpoint('/api/verify/release', 200, valid, commit), true);
   assert.throws(() => validateEndpoint('/api/verify/release', 200, {
-    ...valid, packageFingerprint: { status: 'PUBLISHED', sourceCommit: 'f'.repeat(40) }
+    ...valid, packageFingerprint: { ...valid.packageFingerprint, sourceCommit: 'f'.repeat(40) }
   }, commit), /RELEASE_EVIDENCE_NOT_BOUND_TO_DEPLOYMENT/);
   assert.throws(() => validateEndpoint('/api/verify/release', 200, {
-    ...valid, productionAcceptance: { status: 'NOT_VERIFIED', commitSha: null, evidenceSha256: null }
+    ...valid, productionAcceptance: { ...valid.productionAcceptance, pipelineId: '1' }
+  }, commit), /RELEASE_EVIDENCE_NOT_BOUND_TO_DEPLOYMENT/);
+  assert.throws(() => validateEndpoint('/api/verify/release', 200, {
+    ...valid, gates: { ...valid.gates, productionIsolationCertification: 'CERTIFIED' }
+  }, commit), /RELEASE_EVIDENCE_NOT_BOUND_TO_DEPLOYMENT/);
+  assert.throws(() => validateEndpoint('/api/verify/release', 200, {
+    ...valid, postgresHttpAcceptance: { ...valid.postgresHttpAcceptance, currentCandidateMatch: false }
   }, commit), /RELEASE_EVIDENCE_NOT_BOUND_TO_DEPLOYMENT/);
 });
 
@@ -127,26 +163,48 @@ test('full staged smoke requires every endpoint to match the same release identi
   const requested = [];
   const pipelineId = 42949619029;
   const release = {
+    schemaVersion: 'opscore.public-release-proof.v2',
     status: 'PASS_WITH_BUYER_RESIDUALS',
     sourceCommit: commit,
     sourceCommitIdentitySource: 'github-actions-cli-assertion',
     ci: { status: 'PASS', commitSha: commit, pipelineId },
-    deployment: { status: 'identified', environment: 'production', ref: 'main' },
-    postgresHttpAcceptance: { status: 'PASS', evidenceCommit: commit, evidencePipelineId: String(pipelineId) },
-    productionAcceptance: { status: 'PASS', commitSha: commit, evidenceSha256: 'b'.repeat(64) },
-    gates: { productionSessionTenantBoundary: 'PASS_PRODUCTION', productionRecoveryBundle: 'PASS_PRODUCTION', productionIsolationCertification: 'CERTIFIED' },
-    packageFingerprint: { status: 'PUBLISHED', sourceCommit: commit }
+    deployment: { status: 'identified', environment: 'production', id: 'dpl_123abc', ref: 'main' },
+    postgresHttpAcceptance: { status: 'PASS', evidenceCommit: commit, evidencePipelineId: String(pipelineId), currentCandidateMatch: true },
+    productionAcceptance: { status: 'PASS', commitSha: commit, pipelineId: String(pipelineId), evidenceSha256: 'b'.repeat(64) },
+    gates: {
+      productionSessionTenantBoundary: 'PASS_TEST_SCOPE',
+      productionRecoveryBundle: 'PASS_TEST_SCOPE',
+      tenantRouteSecurityCoverage: 'PASS_TEST_SCOPE',
+      functionalApiRouteAcceptance: 'NOT_VERIFIED',
+      neonPointInTimeRecovery: 'NOT_VERIFIED',
+      productionIsolationCertification: 'NOT_CERTIFIED'
+    },
+    packageFingerprint: { status: 'PUBLISHED', sourceCommit: commit, value: 'c'.repeat(64) }
   };
   const bodies = {
     '/api/health': { ok: true, status: 'healthy', engine: 'postgres' },
     '/api/verify/deployment': { status: 'identified', source: { commitSha: commit, ref: 'main' }, deployment: { environment: 'production', id: 'dpl_123abc' } },
     '/api/verify/database': { ok: true, engine: 'postgres' },
     '/api/verify/database-security': {
+      schemaVersion: 'opscore.public-database-security-proof.v2',
       status: 'IDENTITY_PLANE_RLS_ENFORCED',
-      productionIsolationCertification: 'CERTIFIED',
-      controlPlaneTenantBoundaryPolicies: { status: 'CATALOG_ENFORCED', validatedTableCount: 3 },
-      controlPlaneRuntimePrivileges: { status: 'LEAST_PRIVILEGE_PRESENT', privilegeGapCount: 0 },
-      runtimeRole: { name: 'opscore_runtime', status: 'LEAST_PRIVILEGE_PRESENT', login: true, superuser: false, bypassRls: false, createRole: false, createDatabase: false, elevatedMembershipCount: 0 }
+      productionIsolationCertification: 'NOT_CERTIFIED',
+      publicSchema: {
+        ordinaryTableCount: 135,
+        rlsEnabledTableCount: 134,
+        rlsForcedTableCount: 134,
+        tablesWithoutRlsCount: 1,
+        nonPostgisTablesWithoutRlsCount: 0,
+        nonPostgisTablesWithoutForceRlsCount: 0,
+        postgisSpatialRefSys: { allowedNoRlsCatalog: true, runtimeWriteAccessCount: 0 },
+        postgisMetadataViews: { viewCount: 2, runtimeWriteAccessCount: 0, status: 'READ_ONLY' }
+      },
+      migrationLedger: { tableCount: 1, forceRls: true, runtimePrivilegesCount: 0, status: 'OWNER_ONLY' },
+      controlPlaneTenantBoundaryPolicies: { tableCount: 3, validatedTableCount: 3, status: 'CATALOG_ENFORCED' },
+      controlPlaneRuntimePrivileges: { tableCount: 3, privilegeGapCount: 0, status: 'LEAST_PRIVILEGE_PRESENT' },
+      systemOperationalTables: { tableCount: 3, policyValidTableCount: 3, runtimePrivilegeGapCount: 0, status: 'LEAST_PRIVILEGE_PRESENT' },
+      identityPlane: { criticalTablesWithoutRlsButAccessibleToRuntimeRole: 0, status: 'RLS_ENFORCED' },
+      runtimeRole: { name: 'opscore_runtime', status: 'LEAST_PRIVILEGE_PRESENT', login: true, superuser: false, bypassRls: false, createRole: false, createDatabase: false, appRoleMembership: false, elevatedMembershipCount: 0 }
     },
     '/api/verify/release': release
   };
