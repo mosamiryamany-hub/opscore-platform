@@ -7,12 +7,19 @@ const crypto = require('node:crypto');
 const { DATABASE_SECURITY_SQL } = require('../src/database-security-proof');
 
 function controlPlaneCatalogProofSql() {
-  const namespaceFilter = "n.nspname = 'public'";
-  const occurrences = DATABASE_SECURITY_SQL.split(namespaceFilter).length - 1;
-  if (occurrences !== 2) {
-    throw new Error('DATABASE_SECURITY_PROOF_NAMESPACE_FILTER_COUNT_INVALID');
+  // Parameterize every schema filter in the shared catalog proof, preserving
+  // each SQL alias. The proof now inspects both tenant-scoped control-plane
+  // tables and runtime system tables, so the alias inventory is explicit.
+  const pattern = /\\b(n|sn)\\.nspname = 'public'/g;
+  const matches = [...DATABASE_SECURITY_SQL.matchAll(pattern)];
+  const aliasCounts = matches.reduce((counts, match) => {
+    counts[match[1]] = (counts[match[1]] || 0) + 1;
+    return counts;
+  }, {});
+  if (matches.length !== 3 || aliasCounts.n !== 2 || aliasCounts.sn !== 1) {
+    throw new Error('DATABASE_SECURITY_PROOF_NAMESPACE_FILTER_INVENTORY_INVALID');
   }
-  return DATABASE_SECURITY_SQL.replaceAll(namespaceFilter, 'n.nspname = $1');
+  return DATABASE_SECURITY_SQL.replace(pattern, (_match, alias) => alias + '.nspname = $1');
 }
 
 
