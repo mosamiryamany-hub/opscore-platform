@@ -102,6 +102,55 @@ SELECT
       ))
     )
   )::int AS control_plane_runtime_privilege_gap_count,
+  COUNT(*) FILTER (
+    WHERE c.relkind = 'r'
+      AND c.relname = ANY (ARRAY['login_throttle','firewall_rate_buckets','worker_guard_system_events']::text[])
+  )::int AS system_operational_table_count,
+  (
+    SELECT COUNT(*)::int
+    FROM (
+      SELECT sc.oid
+      FROM pg_class sc
+      JOIN pg_namespace sn ON sn.oid = sc.relnamespace
+      LEFT JOIN pg_policy sp ON sp.polrelid = sc.oid
+      WHERE sn.nspname = 'public'
+        AND sc.relkind = 'r'
+        AND sc.relname = ANY (ARRAY['login_throttle','firewall_rate_buckets','worker_guard_system_events']::text[])
+      GROUP BY sc.oid, sc.relrowsecurity, sc.relforcerowsecurity
+      HAVING sc.relrowsecurity AND sc.relforcerowsecurity
+        AND COUNT(sp.oid) = 1
+        AND COUNT(sp.oid) FILTER (
+          WHERE sp.polname = 'opscore_system_table_guard'
+            AND sp.polpermissive IS TRUE
+            AND sp.polcmd = '*'
+            AND sp.polroles = ARRAY[(SELECT oid FROM pg_roles WHERE rolname = 'opscore_runtime')]::oid[]
+            AND COALESCE(pg_get_expr(sp.polqual,sp.polrelid),'') = 'true'
+            AND COALESCE(pg_get_expr(sp.polwithcheck,sp.polrelid),'') = 'true'
+        ) = 1
+    ) AS valid_system_operational_policy_tables
+  ) AS system_operational_policy_valid_table_count,
+  COUNT(*) FILTER (
+    WHERE c.relkind = 'r' AND (
+      (c.relname IN ('login_throttle','firewall_rate_buckets') AND (
+        NOT has_table_privilege(current_user,c.oid,'SELECT')
+        OR NOT has_table_privilege(current_user,c.oid,'INSERT')
+        OR NOT has_table_privilege(current_user,c.oid,'UPDATE')
+        OR NOT has_table_privilege(current_user,c.oid,'DELETE')
+        OR has_table_privilege(current_user,c.oid,'TRUNCATE')
+        OR has_table_privilege(current_user,c.oid,'REFERENCES')
+        OR has_table_privilege(current_user,c.oid,'TRIGGER')
+      ))
+      OR (c.relname = 'worker_guard_system_events' AND (
+        NOT has_table_privilege(current_user,c.oid,'INSERT')
+        OR has_table_privilege(current_user,c.oid,'SELECT')
+        OR has_table_privilege(current_user,c.oid,'UPDATE')
+        OR has_table_privilege(current_user,c.oid,'DELETE')
+        OR has_table_privilege(current_user,c.oid,'TRUNCATE')
+        OR has_table_privilege(current_user,c.oid,'REFERENCES')
+        OR has_table_privilege(current_user,c.oid,'TRIGGER')
+      ))
+    )
+  )::int AS system_operational_runtime_privilege_gap_count,
   current_user::text AS runtime_role_name,
   COALESCE((SELECT r.rolcanlogin FROM pg_roles r WHERE r.rolname = current_user), false) AS runtime_role_login,
   COALESCE((SELECT r.rolsuper FROM pg_roles r WHERE r.rolname = current_user), true) AS runtime_role_superuser,
@@ -142,6 +191,9 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
   const controlPlaneTableCount = count(row.control_plane_table_count);
   const controlPlanePolicyValidTableCount = count(row.control_plane_policy_valid_table_count);
   const controlPlaneRuntimePrivilegeGapCount = count(row.control_plane_runtime_privilege_gap_count);
+  const systemOperationalTableCount = count(row.system_operational_table_count);
+  const systemOperationalPolicyValidTableCount = count(row.system_operational_policy_valid_table_count);
+  const systemOperationalRuntimePrivilegeGapCount = count(row.system_operational_runtime_privilege_gap_count);
   const runtimeRoleName = String(row.runtime_role_name || '').trim();
   const runtimeRoleLogin = row.runtime_role_login === true;
   const runtimeRoleSuperuser = row.runtime_role_superuser === true;
@@ -168,6 +220,9 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
     controlPlaneTableCount,
     controlPlanePolicyValidTableCount,
     controlPlaneRuntimePrivilegeGapCount,
+    systemOperationalTableCount,
+    systemOperationalPolicyValidTableCount,
+    systemOperationalRuntimePrivilegeGapCount,
     runtimeRoleElevatedMembershipCount
   ].every(Number.isSafeInteger);
   const identityPlaneHardened = identityTablesWithoutRlsWithRuntimeAccessCount === 0;
@@ -182,6 +237,9 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
     controlPlaneTableCount === 3 &&
     controlPlanePolicyValidTableCount === 3 &&
     controlPlaneRuntimePrivilegeGapCount === 0 &&
+    systemOperationalTableCount === 3 &&
+    systemOperationalPolicyValidTableCount === 3 &&
+    systemOperationalRuntimePrivilegeGapCount === 0 &&
     runtimeRoleSafe;
 
   let status = 'NOT_CERTIFIED';
@@ -196,7 +254,7 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
     note = 'Every public application table except the read-only PostGIS spatial_ref_sys catalog has FORCE RLS. The schema_migrations ledger is owner-only. Control-plane tables have explicit least-privilege runtime grants independent of provider default ACLs. Authenticated path-by-path and cross-tenant behavioral tests are still required before production isolation certification.';
   } else if (identityPlaneHardened) {
     status = 'REVIEW_REQUIRED';
-    note = 'Identity-plane RLS checks passed, but catalog evidence is incomplete or a non-PostGIS relation without RLS or FORCE RLS, migration-ledger boundary, PostGIS write privilege, runtime-role privilege, or control-plane tenant-boundary policy still requires review.';
+    note = 'Identity-plane RLS checks passed, but catalog evidence is incomplete or a non-PostGIS relation without RLS or FORCE RLS, migration-ledger boundary, PostGIS write privilege, runtime-role privilege, control-plane tenant-boundary policy, or runtime system-table policy/grant still requires review.';
   } else {
     note = 'Critical identity tables remain accessible to the runtime role without RLS.';
   }
@@ -228,6 +286,13 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
       tableCount: controlPlaneTableCount,
       privilegeGapCount: controlPlaneRuntimePrivilegeGapCount,
       status: controlPlaneTableCount === 3 && controlPlaneRuntimePrivilegeGapCount === 0 ? 'LEAST_PRIVILEGE_PRESENT' : 'REVIEW_REQUIRED'
+    },
+    systemOperationalTables: {
+      tableCount: systemOperationalTableCount,
+      policyValidTableCount: systemOperationalPolicyValidTableCount,
+      runtimePrivilegeGapCount: systemOperationalRuntimePrivilegeGapCount,
+      status: systemOperationalTableCount === 3 && systemOperationalPolicyValidTableCount === 3 &&
+        systemOperationalRuntimePrivilegeGapCount === 0 ? 'LEAST_PRIVILEGE_PRESENT' : 'REVIEW_REQUIRED'
     },
     runtimeRole: {
       name: runtimeRoleName || null,
