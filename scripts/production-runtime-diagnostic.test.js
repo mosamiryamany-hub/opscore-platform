@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { evaluateRuntimeDiagnostic, DIAGNOSTIC_PATH } = require('./production-runtime-diagnostic');
+const { evaluateRuntimeDiagnostic, DIAGNOSTIC_PATH, REQUIRED_DIAGNOSTIC_CHECKS, failClosedExitCode } = require('./production-runtime-diagnostic');
 
 function validPayload() {
   return {
@@ -152,4 +152,26 @@ test('runtime diagnostic requires runtime SSL settings without misreading backen
   const result = evaluateRuntimeDiagnostic(payload, 200, 'a'.repeat(40), '123456789');
   assert.equal(result.promotionAllowed, false);
   assert.ok(result.checks.some(item => item.name === 'client_tls_configuration' && item.status === 'BLOCKED'));
+});
+
+
+test('runtime diagnostic exit code is nonzero whenever promotion is blocked', () => {
+  const payload = validPayload();
+  payload.environment.isolationCertification = 'NOT_CERTIFIED';
+  const result = evaluateRuntimeDiagnostic(payload, 200, 'a'.repeat(40), '123456789');
+  assert.equal(result.status, 'BLOCKED');
+  assert.equal(result.promotionAllowed, false);
+  assert.equal(failClosedExitCode(result), 1);
+});
+
+test('runtime diagnostic exit code rejects incomplete, forged, duplicated, reordered, and unknown check inventories', () => {
+  const passingChecks = REQUIRED_DIAGNOSTIC_CHECKS.map(name => ({ name, status: 'PASS' }));
+  assert.equal(failClosedExitCode({ status: 'PASS', promotionAllowed: true, checks: [] }), 1);
+  assert.equal(failClosedExitCode({ status: 'PASS', promotionAllowed: true, checks: [{ status: 'PASS' }, { status: 'BLOCKED' }] }), 1);
+  assert.equal(failClosedExitCode({ status: 'BLOCKED', promotionAllowed: false, checks: passingChecks }), 1);
+  assert.equal(failClosedExitCode({ status: 'PASS', promotionAllowed: true, checks: passingChecks.slice(1) }), 1);
+  assert.equal(failClosedExitCode({ status: 'PASS', promotionAllowed: true, checks: [{ ...passingChecks[0] }, ...passingChecks.slice(0, -1)] }), 1);
+  assert.equal(failClosedExitCode({ status: 'PASS', promotionAllowed: true, checks: passingChecks.map((item, index) => index === 0 ? { name: 'unrecognized_check', status: 'PASS' } : item) }), 1);
+  assert.equal(failClosedExitCode({ status: 'PASS', promotionAllowed: true, checks: [...passingChecks].reverse() }), 1);
+  assert.equal(failClosedExitCode({ status: 'PASS', promotionAllowed: true, checks: passingChecks }), 0);
 });

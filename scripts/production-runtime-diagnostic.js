@@ -9,6 +9,40 @@ function check(name, ok, detail = null) {
   return { name, status: ok ? 'PASS' : 'BLOCKED', detail: detail == null ? null : String(detail).slice(0, 120) };
 }
 
+const REQUIRED_DIAGNOSTIC_CHECKS = Object.freeze([
+  'diagnostic_endpoint_reached',
+  'diagnostic_schema',
+  'deployment_environment',
+  'deployment_host_binding',
+  'deployment_commit_binding',
+  'deployment_pipeline_binding',
+  'deployment_main_ref',
+  'application_database_binding',
+  'database_url_alignment',
+  'runtime_environment',
+  'migration_and_bootstrap_urls_absent',
+  'read_only_execution',
+  'postgres_runtime_identity',
+  'runtime_role_least_privilege',
+  'client_tls_configuration',
+  'row_level_security_coverage',
+  'auth_function_grants',
+  'migration_056_attestation_security',
+  'migration_056_hash',
+  'production_hold_released',
+  'production_release_proof',
+  'production_isolation_certified'
+]);
+
+function failClosedExitCode(result) {
+  if (!result || result.status !== 'PASS' || result.promotionAllowed !== true ||
+      !Array.isArray(result.checks) || result.checks.length !== REQUIRED_DIAGNOSTIC_CHECKS.length) return 1;
+  const observed = result.checks.map(item => item && item.name);
+  const exactInventory = observed.every((name, index) => name === REQUIRED_DIAGNOSTIC_CHECKS[index]);
+  const allPassed = result.checks.every(item => item && item.status === 'PASS');
+  return exactInventory && allPassed ? 0 : 1;
+}
+
 function evaluateRuntimeDiagnostic(payload, httpStatus, expectedCommit, expectedPipelineId) {
   const value = payload && typeof payload === 'object' ? payload : {};
   const deployment = value.deployment || {};
@@ -150,6 +184,7 @@ async function main() {
   }
   process.stdout.write(JSON.stringify(result, null, 2) + '\n');
   writeGateOutput(result);
+  process.exitCode = failClosedExitCode(result);
 }
 
 if (require.main === module) {
@@ -163,7 +198,8 @@ if (require.main === module) {
     };
     process.stdout.write(JSON.stringify(result, null, 2) + '\n');
     writeGateOutput(result);
+    process.exitCode = 1;
   });
 }
 
-module.exports = { DIAGNOSTIC_PATH, evaluateRuntimeDiagnostic, runDiagnostic, writeGateOutput };
+module.exports = { DIAGNOSTIC_PATH, REQUIRED_DIAGNOSTIC_CHECKS, evaluateRuntimeDiagnostic, runDiagnostic, writeGateOutput, failClosedExitCode };

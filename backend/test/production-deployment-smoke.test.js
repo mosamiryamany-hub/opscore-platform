@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { parseDeploymentUrl, parseCurlResponse, buildVercelCurlArgs, classifyVercelCurlFailure, validateEndpoint, runSmoke } = require('../../scripts/production-deployment-smoke');
+const { parseDeploymentUrl, parseCurlResponse, buildVercelCurlArgs, classifyVercelCurlFailure, runTrustedOidcFetch, validateEndpoint, runSmoke } = require('../../scripts/production-deployment-smoke');
 
 const commit = '48ed78a825020986c53bd045e50c8ea852f53275';
 
@@ -175,4 +175,47 @@ test('root page must return HTML and unsupported paths fail closed', () => {
   assert.equal(validateEndpoint('/', 200, null, commit, 'text/html; charset=utf-8'), true);
   assert.throws(() => validateEndpoint('/', 200, null, commit, 'application/json'), /ROOT_CONTENT_TYPE_INVALID/);
   assert.throws(() => validateEndpoint('/api/ready', 200, {}, commit), /SMOKE_PATH_NOT_ALLOWED/);
+});
+
+
+test('protected Vercel requests use a short-lived OIDC header without exposing it in the URL', async () => {
+  const token = 'header-only-short-lived-oidc-token';
+  let request;
+  const response = new Response(JSON.stringify({ ok: true }), {
+    status: 200,
+    headers: { 'content-type': 'application/json' }
+  });
+  const result = await runTrustedOidcFetch('https://opscore-platform-abc.vercel.app', '/api/health', {
+    token,
+    fetchImpl: async (url, options) => {
+      request = { url, options };
+      return response;
+    }
+  });
+  assert.equal(result.statusCode, 200);
+  assert.equal(JSON.parse(result.body).ok, true);
+  assert.equal(request.url, 'https://opscore-platform-abc.vercel.app/api/health');
+  assert.equal(request.options.headers['x-vercel-trusted-oidc-idp-token'], token);
+  assert.equal(request.options.redirect, 'manual');
+  assert.equal(request.options.method, 'GET');
+  assert.equal(request.url.includes(token), false);
+});
+
+test('OIDC runtime fetch rejects non-project hosts and unsafe request paths', async () => {
+  const options = { token: 'short-lived-token', fetchImpl: async () => new Response('{}', { status: 200 }) };
+  await assert.rejects(() => runTrustedOidcFetch('https://example.com', '/api/health', options), /VERCEL_DEPLOYMENT_URL_NOT_ALLOWED/);
+  await assert.rejects(() => runTrustedOidcFetch('https://opscore-platform-abc.vercel.app', '//attacker.example/path', options), /VERCEL_REQUEST_PATH_INVALID/);
+  await assert.rejects(() => runTrustedOidcFetch('https://opscore-platform-abc.vercel.app', '/api/health', { fetchImpl: options.fetchImpl }), /VERCEL_TRUSTED_OIDC_TOKEN_REQUIRED/);
+});
+
+test('OIDC runtime fetch enforces response size and fails closed on transport errors', async () => {
+  await assert.rejects(() => runTrustedOidcFetch('https://opscore-platform-abc.vercel.app', '/api/health', {
+    token: 'short-lived-token',
+    fetchImpl: async () => new Response('x'.repeat(1024 * 1024 + 1), { status: 200 })
+  }), /RESPONSE_TOO_LARGE/);
+
+  await assert.rejects(() => runTrustedOidcFetch('https://opscore-platform-abc.vercel.app', '/api/health', {
+    token: 'short-lived-token',
+    fetchImpl: async () => { throw new Error('do-not-leak-transport-details'); }
+  }), /NETWORK_CONNECTION_FAILED/);
 });

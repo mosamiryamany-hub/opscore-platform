@@ -25,6 +25,7 @@
     "buyer:acceptance": "node scripts/buyer-acceptance.js",
     "backup:verify": "node scripts/backup-verify-selftest.js",
     "recovery:drill": "node scripts/recovery-drill.js",
+    "recovery:logical-restore-drill": "node scripts/postgres-logical-restore-drill.js",
     "export:verify": "node scripts/export-verify-selftest.js",
     "demo:clean": "node scripts/clean-demo-data.js --confirm",
     "release:artifact-gate": "node ../scripts/release-artifact-gate.js",
