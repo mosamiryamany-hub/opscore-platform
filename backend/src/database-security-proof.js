@@ -157,6 +157,11 @@ SELECT
   COALESCE((SELECT r.rolbypassrls FROM pg_roles r WHERE r.rolname = current_user), true) AS runtime_role_bypassrls,
   COALESCE((SELECT r.rolcreaterole FROM pg_roles r WHERE r.rolname = current_user), true) AS runtime_role_createrole,
   COALESCE((SELECT r.rolcreatedb FROM pg_roles r WHERE r.rolname = current_user), true) AS runtime_role_createdb,
+  COALESCE((
+    SELECT pg_has_role(current_user, app_role.oid, 'MEMBER')
+    FROM pg_roles app_role
+    WHERE app_role.rolname = 'opscore_app'
+  ), false) AS runtime_role_app_membership,
   (
     SELECT COUNT(*)::int
     FROM pg_roles elevated
@@ -200,10 +205,11 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
   const runtimeRoleBypassRls = row.runtime_role_bypassrls === true;
   const runtimeRoleCreateRole = row.runtime_role_createrole === true;
   const runtimeRoleCreateDatabase = row.runtime_role_createdb === true;
+  const runtimeRoleAppMembership = row.runtime_role_app_membership !== false;
   const runtimeRoleElevatedMembershipCount = count(row.runtime_role_elevated_membership_count);
   const runtimeRoleSafe = runtimeRoleName === 'opscore_runtime' && runtimeRoleLogin &&
     !runtimeRoleSuperuser && !runtimeRoleBypassRls && !runtimeRoleCreateRole &&
-    !runtimeRoleCreateDatabase && runtimeRoleElevatedMembershipCount === 0;
+    !runtimeRoleCreateDatabase && !runtimeRoleAppMembership && runtimeRoleElevatedMembershipCount === 0;
 
   const catalogCountsValid = [
     publicTableCount,
@@ -301,6 +307,7 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
       bypassRls: runtimeRoleBypassRls,
       createRole: runtimeRoleCreateRole,
       createDatabase: runtimeRoleCreateDatabase,
+      appRoleMembership: runtimeRoleAppMembership,
       elevatedMembershipCount: runtimeRoleElevatedMembershipCount,
       status: runtimeRoleSafe ? 'LEAST_PRIVILEGE_PRESENT' : 'REVIEW_REQUIRED'
     },
