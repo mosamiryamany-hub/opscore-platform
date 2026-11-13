@@ -27,10 +27,20 @@ function isTrustedProxy(remoteAddress, config){
   return peers.some(c=>c.includes('/')?cidrContains(remote,c):remote===c);
 }
 function clientKey(req, config){
-  const remote=req.socket?.remoteAddress || 'unknown';
+  const remote=String(req.socket?.remoteAddress || 'unknown');
+  const headers=req.headers || {};
+  // Vercel overwrites x-real-ip at its edge with the observed client IP.
+  // Trust this canonical header only inside Vercel Functions, and only when
+  // it contains one syntactically valid IP address.
+  if(config?.trustVercelEdge){
+    const edgeIp=String(headers['x-real-ip'] || '').trim();
+    if(net.isIP(edgeIp)) return edgeIp;
+  }
+  // For self-hosted reverse proxies, require an explicit trusted peer CIDR.
   const useForwarded=Boolean(config?.trustProxy && isTrustedProxy(remote,config));
-  const forwarded=useForwarded ? req.headers['x-forwarded-for'] : null;
-  return String(forwarded || remote).split(',')[0].trim();
+  const forwarded=useForwarded ? headers['x-forwarded-for'] : null;
+  const candidate=String(forwarded || remote).split(',')[0].trim();
+  return net.isIP(candidate) ? candidate : (candidate || 'unknown');
 }
 function assertRateLimiterDeployment(config, db){
   const rawExpected=process.env.OPSC_EXPECTED_INSTANCES;
@@ -114,27 +124,64 @@ function createRateLimiter(config, db){
   assertRateLimiterDeployment(config,db);
   const shared=String(config?.firewallRateState||'memory').toLowerCase()==='database';
   const buckets=new Map();
+  let lastSharedCleanupAt=0;
   return function enforce(req){
     const key=clientKey(req,config);
     const now=Date.now(), windowMs=config.firewallRateWindowMs, limit=config.firewallRateLimit;
     if(shared){
       const windowStart=Math.floor(now/windowMs)*windowMs;
+      // One atomic UPSERT prevents concurrent serverless instances from
+      // overwriting one another's increments. PostgreSQL ON CONFLICT DO UPDATE
+      // serializes conflicting row updates; RETURNING reports this request's
+      // committed counter value. Keep the explicit transaction so SQLite's
+      // writer lock and the existing post-commit rejection contract are preserved.
       db.exec('BEGIN IMMEDIATE');
       let committed=false;
+      let row;
       try{
-        const row=db.prepare('SELECT window_start,requests FROM firewall_rate_buckets WHERE bucket_key=?').get(key);
-        let requests=1;
-        if(row && Number(row.window_start)===windowStart) requests=Number(row.requests)+1;
-        db.prepare(`INSERT INTO firewall_rate_buckets(bucket_key,window_start,requests,updated_at) VALUES(?,?,?,?)
-          ON CONFLICT(bucket_key) DO UPDATE SET window_start=excluded.window_start,requests=excluded.requests,updated_at=excluded.updated_at`).run(key,windowStart,requests,new Date(now).toISOString());
+        row=db.prepare(`
+          INSERT INTO firewall_rate_buckets(bucket_key,window_start,requests,updated_at)
+          VALUES(?,?,1,?)
+          ON CONFLICT(bucket_key) DO UPDATE SET
+            window_start=CASE
+              WHEN firewall_rate_buckets.window_start < excluded.window_start THEN excluded.window_start
+              ELSE firewall_rate_buckets.window_start
+            END,
+            requests=CASE
+              WHEN firewall_rate_buckets.window_start < excluded.window_start THEN 1
+              ELSE firewall_rate_buckets.requests+1
+            END,
+            updated_at=CASE
+              WHEN firewall_rate_buckets.updated_at < excluded.updated_at THEN excluded.updated_at
+              ELSE firewall_rate_buckets.updated_at
+            END
+          RETURNING requests,window_start
+        `).get(key,windowStart,new Date(now).toISOString());
         db.exec('COMMIT');
         committed=true;
-        if(requests>limit) throw new Error('FIREWALL_RATE_LIMITED');
-        return {remaining:Math.max(0,limit-requests),resetAt:windowStart+windowMs};
-      }catch(e){
-        if(!committed){try{db.exec('ROLLBACK')}catch(rollbackError){warn('transaction.rollback_failed',{operation:'firewall_gate',error:rollbackError})}}
-        throw e;
+      }catch(error){
+        if(!committed){
+          try{db.exec('ROLLBACK');}
+          catch(rollbackError){warn('transaction.rollback_failed',{operation:'firewall_rate_limit',error:rollbackError});}
+        }
+        throw error;
       }
+      const requests=Number(row?.requests);
+      const bucketWindowStart=Number(row?.window_start);
+      if(!Number.isSafeInteger(requests)||requests<1||
+          !Number.isSafeInteger(bucketWindowStart)||bucketWindowStart<windowStart) {
+        throw new Error('FIREWALL_RATE_STATE_INVALID');
+      }
+      if(now-lastSharedCleanupAt>=60000){
+        lastSharedCleanupAt=now;
+        try{purgeExpiredRateBuckets(db,now,windowMs);}
+        catch(error){
+          lastSharedCleanupAt=0;
+          warn('firewall_rate_bucket_cleanup_failed',{error});
+        }
+      }
+      if(requests>limit) throw new Error('FIREWALL_RATE_LIMITED');
+      return {remaining:Math.max(0,limit-requests),resetAt:bucketWindowStart+windowMs};
     }
     const prior=buckets.get(key);
     const bucket=(!prior || now-prior.startedAt>=windowMs)?{startedAt:now,count:0}:{...prior};

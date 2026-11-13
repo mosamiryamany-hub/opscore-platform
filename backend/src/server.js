@@ -27,7 +27,8 @@ const {can: rbacCan}=require('./rbac');
 const {breaker}=require('./enterprise-value-additions');
 breaker.setDb?.(db);
 const firewallRateLimit=createRateLimiter(config,db);
-const loginRateLimit=createRateLimiter({...config, firewallRateWindowMs: config.loginRateWindowMs, firewallRateLimit: config.loginRateLimit}, db);
+// Login throttling must be shared across independently scaled serverless instances.
+const loginRateLimit=createRateLimiter({...config, firewallRateState:'database', firewallRateWindowMs: config.loginRateWindowMs, firewallRateLimit: config.loginRateLimit}, db);
 const {verifySignature} = require('./stripe-billing');
 const {aiStatus, openaiSummary} = require('./ai-copilot');
 const {safeError} = require('./egress-guard');

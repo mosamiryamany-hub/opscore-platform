@@ -595,6 +595,10 @@ function openDb(dbPath = config.sqlitePath) {
   migrate26(db, storedVersion);
   migrate27(db, storedVersion);
   migrate28(db, storedVersion);
+  // Existing very old/imported databases may not have reached migration 15 yet.
+  // Add the housekeeping index only after the shared limiter table exists.
+  const rateBucketsTable = db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='firewall_rate_buckets'").get();
+  if (rateBucketsTable) db.exec('CREATE INDEX IF NOT EXISTS idx_firewall_rate_buckets_updated_at ON firewall_rate_buckets(updated_at)');
   addColumn(db, 'stripe_billing', 'last_event_created', 'INTEGER NOT NULL DEFAULT 0');
   addColumn(db, 'stripe_events', 'event_created', 'INTEGER NOT NULL DEFAULT 0');
   // Backward-compatible local upgrade from the first 0.1 schema.
