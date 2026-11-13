@@ -199,3 +199,30 @@ test('Vercel preview does not force the production shared limiter when NODE_ENV 
     else process.env.VERCEL_ENV=oldVercelEnv;
   }
 });
+test('Vercel production uses shared login state even when NODE_ENV is not production',()=>{
+  const db=makeDb();
+  const oldExpected=process.env.OPSC_EXPECTED_INSTANCES;
+  const oldVercelEnv=process.env.VERCEL_ENV;
+  const oldNow=Date.now;
+  process.env.OPSC_EXPECTED_INSTANCES='1';
+  process.env.VERCEL_ENV='production';
+  Date.now=()=>120000;
+  try{
+    const enforce=createLoginRateLimiter(config({
+      nodeEnv:'test',
+      firewallRateState:'memory',
+      loginRateWindowMs:60000,
+      loginRateLimit:2
+    }),db);
+    assert.deepEqual(enforce(request()),{remaining:1,resetAt:180000});
+    const row=db.prepare('SELECT requests FROM firewall_rate_buckets WHERE bucket_key=?').get('198.51.100.10');
+    assert.equal(Number(row.requests),1);
+  }finally{
+    Date.now=oldNow;
+    if(oldExpected===undefined)delete process.env.OPSC_EXPECTED_INSTANCES;
+    else process.env.OPSC_EXPECTED_INSTANCES=oldExpected;
+    if(oldVercelEnv===undefined)delete process.env.VERCEL_ENV;
+    else process.env.VERCEL_ENV=oldVercelEnv;
+    db.close();
+  }
+});
