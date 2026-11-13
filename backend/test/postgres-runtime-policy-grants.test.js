@@ -50,7 +50,7 @@ test('live PostgreSQL gate tests the runtime role and tenant policies', () => {
 
 test('migration 059 grants direct runtime privileges and transfers unscoped system-table RLS policies', () => {
   const migration = read('sql/postgres/059_runtime_system_table_policy_and_privilege_alignment.sql');
-  const normalizedMigration = migration.replace(/\\s+/g, ' ');
+  const normalizedMigration = migration.replace(/\s+/g, ' ');
   for (const expected of [
     'GRANT USAGE ON SCHEMA public TO opscore_runtime',
     'GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO opscore_runtime',
