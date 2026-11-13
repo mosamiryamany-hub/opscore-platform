@@ -17,16 +17,6 @@ const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { execFileSync } = require('node:child_process');
-const { Client } = require('pg');
-const {
-  LEGACY_CHECKSUM_RECONCILIATIONS,
-  buildMigrationPlan
-} = require('../src/postgres-migration-plan');
-const {
-  readMigrations,
-  verifyLegacy042Catalog,
-  verifyControlPlane053Catalog
-} = require('./apply-postgres-migrations');
 
 const ROOT = path.resolve(__dirname, '..');
 const INVENTORY_PATH = path.join(ROOT, 'docs', 'API_INVENTORY.json');
@@ -173,6 +163,7 @@ function verifyRouteInventory() {
 }
 
 async function withClient(connectionString, fn, readOnly = true) {
+  const { Client } = require('pg');
   const client = new Client({
     connectionString,
     ssl: { rejectUnauthorized: true },
@@ -268,6 +259,15 @@ async function checkTableCoverage(client) {
 }
 
 async function checkMigrationLedger(ownerClient) {
+  const {
+    LEGACY_CHECKSUM_RECONCILIATIONS,
+    buildMigrationPlan
+  } = require('../src/postgres-migration-plan');
+  const {
+    readMigrations,
+    verifyLegacy042Catalog,
+    verifyControlPlane053Catalog
+  } = require('./apply-postgres-migrations');
   const source = readMigrations();
   const ledgerResult = await ownerClient.query(
     'SELECT filename, sha256 FROM public.schema_migrations ORDER BY filename'
