@@ -2,7 +2,7 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const {DatabaseSync}=require('node:sqlite');
-const {createRateLimiter}=require('../src/firewall');
+const {createRateLimiter,createLoginRateLimiter}=require('../src/firewall');
 
 function makeDb(){
   const db=new DatabaseSync(':memory:');
@@ -117,6 +117,112 @@ test('late requests cannot move a shared rate-limit bucket backwards across wind
     assert.equal(Number(row.requests),2);
   }finally{
     Date.now=originalNow;
+    db.close();
+  }
+});
+test('production login limiter forces shared database state even when global limiter defaults to memory',()=>{
+  const db=makeDb();
+  const oldExpected=process.env.OPSC_EXPECTED_INSTANCES;
+  const oldNow=Date.now;
+  const oldVercelEnv=process.env.VERCEL_ENV;
+  delete process.env.VERCEL_ENV;
+  process.env.OPSC_EXPECTED_INSTANCES='1';
+  Date.now=()=>120000;
+  try{
+    const enforce=createLoginRateLimiter(config({
+      nodeEnv:'production',
+      firewallRateState:'memory',
+      loginRateWindowMs:60000,
+      loginRateLimit:3
+    }),db);
+    assert.deepEqual(enforce(request()),{remaining:2,resetAt:180000});
+    const row=db.prepare('SELECT requests FROM firewall_rate_buckets WHERE bucket_key=?').get('198.51.100.10');
+    assert.equal(Number(row.requests),1);
+  }finally{
+    Date.now=oldNow;
+    if(oldExpected===undefined)delete process.env.OPSC_EXPECTED_INSTANCES;
+    else process.env.OPSC_EXPECTED_INSTANCES=oldExpected;
+    if(oldVercelEnv===undefined)delete process.env.VERCEL_ENV;
+    else process.env.VERCEL_ENV=oldVercelEnv;
+    db.close();
+  }
+});
+
+test('non-production login limiter preserves explicit memory mode for acceptance harnesses',()=>{
+  const oldExpected=process.env.OPSC_EXPECTED_INSTANCES;
+  const oldVercelEnv=process.env.VERCEL_ENV;
+  const oldNow=Date.now;
+  delete process.env.VERCEL_ENV;
+  process.env.OPSC_EXPECTED_INSTANCES='1';
+  try{
+    const forbiddenDatabaseAccess={
+      exec(){throw new Error('NON_PRODUCTION_MUST_NOT_OPEN_SHARED_TRANSACTION')},
+      prepare(){throw new Error('NON_PRODUCTION_MUST_NOT_QUERY_SHARED_DATABASE')}
+    };
+    Date.now=()=>120000;
+    const enforce=createLoginRateLimiter(config({
+      nodeEnv:'test',
+      firewallRateState:'memory',
+      loginRateWindowMs:60000,
+      loginRateLimit:2
+    }),forbiddenDatabaseAccess);
+    assert.deepEqual(enforce(request()),{remaining:1,resetAt:180000});
+  }finally{
+    Date.now=oldNow;
+    if(oldExpected===undefined)delete process.env.OPSC_EXPECTED_INSTANCES;
+    else process.env.OPSC_EXPECTED_INSTANCES=oldExpected;
+    if(oldVercelEnv===undefined)delete process.env.VERCEL_ENV;
+    else process.env.VERCEL_ENV=oldVercelEnv;
+  }
+});
+test('Vercel preview does not force the production shared limiter when NODE_ENV is production',()=>{
+  const oldExpected=process.env.OPSC_EXPECTED_INSTANCES;
+  const oldVercelEnv=process.env.VERCEL_ENV;
+  process.env.OPSC_EXPECTED_INSTANCES='1';
+  process.env.VERCEL_ENV='preview';
+  try{
+    const forbiddenDatabaseAccess={
+      exec(){throw new Error('PREVIEW_MUST_NOT_OPEN_PRODUCTION_SHARED_TRANSACTION')},
+      prepare(){throw new Error('PREVIEW_MUST_NOT_QUERY_PRODUCTION_SHARED_DATABASE')}
+    };
+    const enforce=createLoginRateLimiter(config({
+      nodeEnv:'production',
+      firewallRateState:'memory',
+      loginRateWindowMs:60000,
+      loginRateLimit:2
+    }),forbiddenDatabaseAccess);
+    assert.equal(enforce(request()).remaining,1);
+  }finally{
+    if(oldExpected===undefined)delete process.env.OPSC_EXPECTED_INSTANCES;
+    else process.env.OPSC_EXPECTED_INSTANCES=oldExpected;
+    if(oldVercelEnv===undefined)delete process.env.VERCEL_ENV;
+    else process.env.VERCEL_ENV=oldVercelEnv;
+  }
+});
+test('Vercel production uses shared login state even when NODE_ENV is not production',()=>{
+  const db=makeDb();
+  const oldExpected=process.env.OPSC_EXPECTED_INSTANCES;
+  const oldVercelEnv=process.env.VERCEL_ENV;
+  const oldNow=Date.now;
+  process.env.OPSC_EXPECTED_INSTANCES='1';
+  process.env.VERCEL_ENV='production';
+  Date.now=()=>120000;
+  try{
+    const enforce=createLoginRateLimiter(config({
+      nodeEnv:'test',
+      firewallRateState:'memory',
+      loginRateWindowMs:60000,
+      loginRateLimit:2
+    }),db);
+    assert.deepEqual(enforce(request()),{remaining:1,resetAt:180000});
+    const row=db.prepare('SELECT requests FROM firewall_rate_buckets WHERE bucket_key=?').get('198.51.100.10');
+    assert.equal(Number(row.requests),1);
+  }finally{
+    Date.now=oldNow;
+    if(oldExpected===undefined)delete process.env.OPSC_EXPECTED_INSTANCES;
+    else process.env.OPSC_EXPECTED_INSTANCES=oldExpected;
+    if(oldVercelEnv===undefined)delete process.env.VERCEL_ENV;
+    else process.env.VERCEL_ENV=oldVercelEnv;
     db.close();
   }
 });
