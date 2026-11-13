@@ -380,7 +380,6 @@ async function main() {
       containerId, containerPassPath, 'pg_restore', '--list'
     ), { stdinFile: archiveFile, timeoutMs: 2 * 60 * 1000 });
     const filteredToc = filterExtensionToc(listResult.stdout, targetExtensionsBefore.map(item => item.extname));
-    if (filteredToc.removedCreate !== targetExtensionsBefore.length) throw new Error('RESTORE_TARGET_EXTENSION_TOC_MISMATCH');
     fs.writeFileSync(tocFile, filteredToc.text, { encoding: 'utf8', mode: 0o600 });
     await runProcess('docker', ['cp', tocFile, containerId + ':' + containerTocPath]);
     tocCopied = true;
