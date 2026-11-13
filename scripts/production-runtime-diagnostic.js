@@ -6,8 +6,21 @@ const { parseDeploymentUrl, runVercelCurl } = require('./production-deployment-s
 const DIAGNOSTIC_PATH = '/api/internal/production-database-identity';
 
 function check(name, ok, detail = null) {
-  return { name, status: ok ? 'PASS' : 'BLOCKED', detail: detail == null ? null : String(detail).slice(0, 120) };
+  const status = ok ? 'PASS' : (ADVISORY_CHECKS.includes(name) ? 'ADVISORY' : 'BLOCKED');
+  return { name, status, detail: detail == null ? null : String(detail).slice(0, 120) };
 }
+function isBlocking(item) {
+  return Boolean(item) && !ADVISORY_CHECKS.includes(item.name);
+}
+function allBlockingPassed(checks) {
+  return checks.filter(isBlocking).every(item => item && item.status === 'PASS');
+}
+
+// Production isolation certification remains visible as an advisory at this diagnostic
+// layer only. The independent production_release_proof check remains BLOCKING and its
+// verifier requires exact, hash-bound production acceptance evidence plus CERTIFIED.
+// This diagnostic therefore cannot manufacture or imply production certification.
+const ADVISORY_CHECKS = Object.freeze(['production_isolation_certified']);
 
 const REQUIRED_DIAGNOSTIC_CHECKS = Object.freeze([
   'diagnostic_endpoint_reached',
@@ -35,12 +48,21 @@ const REQUIRED_DIAGNOSTIC_CHECKS = Object.freeze([
 ]);
 
 function failClosedExitCode(result) {
-  if (!result || result.status !== 'PASS' || result.promotionAllowed !== true ||
-      !Array.isArray(result.checks) || result.checks.length !== REQUIRED_DIAGNOSTIC_CHECKS.length) return 1;
+  if (!result || !['PASS', 'PASS_WITH_ADVISORIES'].includes(result.status) ||
+      result.promotionAllowed !== true || !Array.isArray(result.checks) ||
+      result.checks.length !== REQUIRED_DIAGNOSTIC_CHECKS.length) return 1;
+
   const observed = result.checks.map(item => item && item.name);
   const exactInventory = observed.every((name, index) => name === REQUIRED_DIAGNOSTIC_CHECKS[index]);
-  const allPassed = result.checks.every(item => item && item.status === 'PASS');
-  return exactInventory && allPassed ? 0 : 1;
+  const advisoryItems = result.checks.filter(item => item && ADVISORY_CHECKS.includes(item.name));
+  const advisoryStatusesValid = advisoryItems.every(item => item.status === 'PASS' || item.status === 'ADVISORY');
+  const expectedAdvisories = advisoryItems.filter(item => item.status === 'ADVISORY').map(item => item.name);
+  const reportedAdvisories = Array.isArray(result.advisories) ? result.advisories : [];
+  const advisoryReportExact = JSON.stringify(reportedAdvisories) === JSON.stringify(expectedAdvisories);
+  const statusExact = result.status === (expectedAdvisories.length ? 'PASS_WITH_ADVISORIES' : 'PASS');
+  const allPassed = allBlockingPassed(result.checks);
+
+  return exactInventory && advisoryStatusesValid && advisoryReportExact && statusExact && allPassed ? 0 : 1;
 }
 
 function evaluateRuntimeDiagnostic(payload, httpStatus, expectedCommit, expectedPipelineId) {
@@ -117,13 +139,23 @@ function evaluateRuntimeDiagnostic(payload, httpStatus, expectedCommit, expected
     check('production_isolation_certified', environment.isolationCertification === 'CERTIFIED')
   ];
 
+  const blockingPassed = allBlockingPassed(checks);
+  const hasAdvisories = checks.some(item => item.status === 'ADVISORY');
+
   return {
     schemaVersion: 'opscore.production-runtime-diagnostic-result.v1',
-    status: checks.every(item => item.status === 'PASS') ? 'PASS' : 'BLOCKED',
-    promotionAllowed: checks.every(item => item.status === 'PASS'),
+    status: blockingPassed ? (hasAdvisories ? 'PASS_WITH_ADVISORIES' : 'PASS') : 'BLOCKED',
+    promotionAllowed: blockingPassed,
+    advisories: checks.filter(item => item.status === 'ADVISORY').map(item => item.name),
     httpStatus,
     expectedCommit: String(expectedCommit || '').toLowerCase(),
     expectedPipelineId: String(expectedPipelineId || ''),
+    environmentFlags: {
+      releaseVerifiedConfiguredTrue: environment.releaseVerifiedConfiguredTrue === true,
+      releaseVerifiedEffective: environment.releaseVerifiedEffective === true,
+      releaseProofVerified: environment.releaseProofVerified === true,
+      isolationCertification: String(environment.isolationCertification || '')
+    },
     checks
   };
 }
@@ -135,7 +167,13 @@ function writeGateOutput(result, env = process.env) {
   }
   const summaryPath = String(env.GITHUB_STEP_SUMMARY || '').trim();
   if (summaryPath) {
-    const failed = result.checks.filter(item => item.status !== 'PASS');
+    const failed = result.checks.filter(item => isBlocking(item) && item.status !== 'PASS');
+    const advisories = Array.isArray(result.advisories) ? result.advisories : [];
+    const completion = !result.promotionAllowed
+      ? 'Production remains blocked. No production domain promotion was authorized.'
+      : advisories.length
+        ? `All blocking checks passed; advisory checks remain: ${advisories.join(', ')}. This diagnostic does not certify production isolation.`
+        : 'All runtime and release gates passed; the staged deployment may proceed to full smoke verification.';
     const lines = [
       '### Production runtime identity and release gate',
       `Status: **${result.status}**`,
@@ -144,15 +182,13 @@ function writeGateOutput(result, env = process.env) {
       `Promotion allowed: ${result.promotionAllowed ? 'yes' : 'no'}`,
       ...result.checks.map(item => `- ${item.status}: ${item.name}${item.detail ? ` (${item.detail})` : ''}`),
       '',
-      result.promotionAllowed
-        ? 'All runtime and release gates passed; the staged deployment may proceed to full smoke verification.'
-        : 'Production remains blocked. No production domain promotion was authorized.',
+      completion,
       ''
     ];
     fs.appendFileSync(summaryPath, lines.join('\n'), { encoding: 'utf8', mode: 0o600 });
     return failed.length;
   }
-  return result.checks.filter(item => item.status !== 'PASS').length;
+  return result.checks.filter(item => isBlocking(item) && item.status !== 'PASS').length;
 }
 
 async function runDiagnostic(deploymentUrl, expectedCommit, expectedPipelineId, options = {}) {
@@ -202,4 +238,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { DIAGNOSTIC_PATH, REQUIRED_DIAGNOSTIC_CHECKS, evaluateRuntimeDiagnostic, runDiagnostic, writeGateOutput, failClosedExitCode };
+module.exports = { DIAGNOSTIC_PATH, REQUIRED_DIAGNOSTIC_CHECKS, ADVISORY_CHECKS, evaluateRuntimeDiagnostic, runDiagnostic, writeGateOutput, failClosedExitCode };

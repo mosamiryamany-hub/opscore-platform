@@ -6,6 +6,9 @@ on:
   pull_request:
     paths:
       - '.github/workflows/digital-twin-postgres-live.yml'
+      - 'scripts/performance-regression-gate.js'
+      - 'scripts/production-runtime-diagnostic.js'
+      - 'scripts/production-runtime-diagnostic.test.js'
       - 'backend/src/adapters/postgres.js'
       - 'backend/src/store.js'
       - 'backend/test/postgres-auth-helper-fail-closed.test.js'
