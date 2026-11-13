@@ -431,8 +431,8 @@ jobs:
             limitations: restore.limitations
           });
           fs.appendFileSync(process.env.GITHUB_OUTPUT,
-            'tenant_matrix_evidence_b64=' + Buffer.from(JSON.stringify(matrixEnvelope)).toString('base64') + '\\n' +
-            'restore_drill_evidence_b64=' + Buffer.from(JSON.stringify(restoreEnvelope)).toString('base64') + '\\n');
+            'tenant_matrix_evidence_b64=' + Buffer.from(JSON.stringify(matrixEnvelope)).toString('base64') + '\n' +
+            'restore_drill_evidence_b64=' + Buffer.from(JSON.stringify(restoreEnvelope)).toString('base64') + '\n');
           console.log('CALLER_BOUND_TENANT_MATRIX=PASS routes=' + tenantRouteCount);
           console.log('CALLER_BOUND_LOGICAL_RESTORE=PASS tables=' + restore.tableCount);
           console.log('PRODUCTION_TENANT_AND_NEON_PITR_CERTIFICATION=false');
