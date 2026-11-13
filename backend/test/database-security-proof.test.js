@@ -63,7 +63,8 @@ test('unprotected non-PostGIS table is rejected even when total RLS gap count is
   const proof=buildDatabaseSecurityProof({
     public_table_count:132,rls_enabled_table_count:131,rls_forced_table_count:131,
     tables_without_rls_count:1,non_postgis_tables_without_rls_count:1,
-    spatial_ref_sys_runtime_write_access_count:0,migration_ledger_table_count:1,
+    spatial_ref_sys_runtime_write_access_count:0,postgis_metadata_view_count:2,
+    postgis_metadata_view_runtime_write_access_count:0,migration_ledger_table_count:1,
     migration_ledger_without_force_rls_count:0,migration_ledger_runtime_privileges_count:0,
     identity_tables_without_rls_with_runtime_access_count:0,
     ...SAFE_RUNTIME_ROLE,
