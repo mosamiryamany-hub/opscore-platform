@@ -191,64 +191,6 @@ jobs:
         env:
           OPSC_RELEASE_PACKAGE_SHA256: ${{ steps.package_fp.outputs.sha }}
           OPSC_RELEASE_PACKAGE_COMMIT: ${{ github.sha }}
-      - name: Build Vercel output
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-        env:
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          # CI-asserted release identity for CLI deploys (deployment-proof + release-proof).
-          OPSC_RELEASE_DEPLOYMENT_SOURCE: github-actions-cli
-          OPSC_RELEASE_CI_COMMIT: ${{ github.sha }}
-          OPSC_RELEASE_CI_PIPELINE_ID: ${{ github.run_id }}
-          OPSC_SOURCE_COMMIT_SHA: ${{ github.sha }}
-          OPSC_RELEASE_CI_REF: ${{ github.ref_name }}
-          OPSC_RELEASE_PACKAGE_SHA256: ${{ steps.package_fp.outputs.sha }}
-          OPSC_RELEASE_PACKAGE_COMMIT: ${{ github.sha }}
-          OPSC_PRODUCTION_ISOLATION_CERTIFICATION: NOT_CERTIFIED
-      - name: Verify Vercel output contains the current release identity
-        run: |
-          set -euo pipefail
-          identity_file="$(find .vercel/output -type f -name 'opscore-vercel-release-identity.json' 2>/dev/null | head -n 1 || true)"
-          if [ -z "${identity_file}" ]; then
-            identity_file="backend/src/opscore-vercel-release-identity.json"
-          fi
-          test -f "$identity_file"
-          echo "IDENTITY_FILE=$identity_file"
-          IDENTITY_FILE="$identity_file" node -e '
-            const fs = require("node:fs");
-            const identity = JSON.parse(fs.readFileSync(process.env.IDENTITY_FILE, "utf8"));
-            const expected = {
-              commitSha: process.env.GITHUB_SHA.toLowerCase(),
-              pipelineId: String(process.env.GITHUB_RUN_ID),
-              runAttempt: Number(process.env.GITHUB_RUN_ATTEMPT),
-              ref: "main",
-              repository: process.env.GITHUB_REPOSITORY
-            };
-            for (const [key, value] of Object.entries(expected)) {
-              if (String(identity[key]) !== String(value)) {
-                throw new Error(`VERCEL_RELEASE_IDENTITY_MISMATCH:${key}:got=${identity[key]}:expected=${value}`);
-              }
-            }
-            console.log("VERCEL_RELEASE_IDENTITY_VERIFY=PASS");
-          '
-      - name: Verify deploy-workspace acceptance evidence matches release identity
-        run: |
-          set -euo pipefail
-          node -e '
-            const fs = require("node:fs");
-            const path = require("node:path");
-            const evidencePath = path.join("backend", "docs", "verification", "POSTGRES_HTTP_ACCEPTANCE_RESULT.json");
-            const evidence = JSON.parse(fs.readFileSync(evidencePath, "utf8"));
-            const commit = String(evidence.commit || "").toLowerCase();
-            const pipelineId = String(evidence.pipelineId || "");
-            const expectedCommit = String(process.env.GITHUB_SHA || "").toLowerCase();
-            const expectedPipeline = String(process.env.GITHUB_RUN_ID || "");
-            if (evidence.status !== "PASS") throw new Error("acceptance_not_pass");
-            if (commit !== expectedCommit) throw new Error("acceptance_commit_mismatch");
-            if (pipelineId !== expectedPipeline) throw new Error("acceptance_pipeline_mismatch");
-            if (evidence.productionCertification === true) throw new Error("acceptance_must_not_claim_production_certification");
-            console.log("DEPLOY_WORKSPACE_ACCEPTANCE_BIND=PASS");
-          '
       - name: Generate production acceptance v1 evidence (fail-closed)
         id: generate_acceptance
         working-directory: backend
@@ -270,6 +212,9 @@ jobs:
             echo "PRODUCTION_ACCEPTANCE_GENERATOR_SKIPPED_MISSING_SECRETS"
             echo "evidence_sha=" >> "$GITHUB_OUTPUT"
             exit 0
+          fi
+          if [ ! -d node_modules/pg ]; then
+            npm ci --ignore-scripts
           fi
           node scripts/generate-production-acceptance-v1.js | tee "$RUNNER_TEMP/production-acceptance-summary.json"
           test -f docs/verification/PRODUCTION_ACCEPTANCE_RESULT.json
@@ -327,6 +272,66 @@ jobs:
           })().catch(e => { console.error(e); process.exit(1); });
           NODE
 
+      - name: Build Vercel output
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          # CI-asserted release identity for CLI deploys (deployment-proof + release-proof).
+          OPSC_RELEASE_DEPLOYMENT_SOURCE: github-actions-cli
+          OPSC_RELEASE_CI_COMMIT: ${{ github.sha }}
+          OPSC_RELEASE_CI_PIPELINE_ID: ${{ github.run_id }}
+          OPSC_SOURCE_COMMIT_SHA: ${{ github.sha }}
+          OPSC_RELEASE_CI_REF: ${{ github.ref_name }}
+          OPSC_RELEASE_PACKAGE_SHA256: ${{ steps.package_fp.outputs.sha }}
+          OPSC_RELEASE_PACKAGE_COMMIT: ${{ github.sha }}
+          OPSC_PRODUCTION_ISOLATION_CERTIFICATION: ${{ steps.generate_acceptance.outputs.evidence_sha != '' && 'CERTIFIED' || 'NOT_CERTIFIED' }}
+          OPSC_RELEASE_VERIFIED: ${{ steps.generate_acceptance.outputs.evidence_sha != '' && 'true' || 'false' }}
+          OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: ${{ steps.generate_acceptance.outputs.evidence_sha }}
+      - name: Verify Vercel output contains the current release identity
+        run: |
+          set -euo pipefail
+          identity_file="$(find .vercel/output -type f -name 'opscore-vercel-release-identity.json' 2>/dev/null | head -n 1 || true)"
+          if [ -z "${identity_file}" ]; then
+            identity_file="backend/src/opscore-vercel-release-identity.json"
+          fi
+          test -f "$identity_file"
+          echo "IDENTITY_FILE=$identity_file"
+          IDENTITY_FILE="$identity_file" node -e '
+            const fs = require("node:fs");
+            const identity = JSON.parse(fs.readFileSync(process.env.IDENTITY_FILE, "utf8"));
+            const expected = {
+              commitSha: process.env.GITHUB_SHA.toLowerCase(),
+              pipelineId: String(process.env.GITHUB_RUN_ID),
+              runAttempt: Number(process.env.GITHUB_RUN_ATTEMPT),
+              ref: "main",
+              repository: process.env.GITHUB_REPOSITORY
+            };
+            for (const [key, value] of Object.entries(expected)) {
+              if (String(identity[key]) !== String(value)) {
+                throw new Error(`VERCEL_RELEASE_IDENTITY_MISMATCH:${key}:got=${identity[key]}:expected=${value}`);
+              }
+            }
+            console.log("VERCEL_RELEASE_IDENTITY_VERIFY=PASS");
+          '
+      - name: Verify deploy-workspace acceptance evidence matches release identity
+        run: |
+          set -euo pipefail
+          node -e '
+            const fs = require("node:fs");
+            const path = require("node:path");
+            const evidencePath = path.join("backend", "docs", "verification", "POSTGRES_HTTP_ACCEPTANCE_RESULT.json");
+            const evidence = JSON.parse(fs.readFileSync(evidencePath, "utf8"));
+            const commit = String(evidence.commit || "").toLowerCase();
+            const pipelineId = String(evidence.pipelineId || "");
+            const expectedCommit = String(process.env.GITHUB_SHA || "").toLowerCase();
+            const expectedPipeline = String(process.env.GITHUB_RUN_ID || "");
+            if (evidence.status !== "PASS") throw new Error("acceptance_not_pass");
+            if (commit !== expectedCommit) throw new Error("acceptance_commit_mismatch");
+            if (pipelineId !== expectedPipeline) throw new Error("acceptance_pipeline_mismatch");
+            if (evidence.productionCertification === true) throw new Error("acceptance_must_not_claim_production_certification");
+            console.log("DEPLOY_WORKSPACE_ACCEPTANCE_BIND=PASS");
+          '
       - name: Create staged production deployment without changing the live domain
         id: staged_deploy
         run: |
@@ -347,7 +352,9 @@ jobs:
           OPSC_RELEASE_CI_REF: ${{ github.ref_name }}
           OPSC_RELEASE_PACKAGE_SHA256: ${{ steps.package_fp.outputs.sha }}
           OPSC_RELEASE_PACKAGE_COMMIT: ${{ github.sha }}
-          OPSC_PRODUCTION_ISOLATION_CERTIFICATION: NOT_CERTIFIED
+          OPSC_PRODUCTION_ISOLATION_CERTIFICATION: ${{ steps.generate_acceptance.outputs.evidence_sha != '' && 'CERTIFIED' || 'NOT_CERTIFIED' }}
+          OPSC_RELEASE_VERIFIED: ${{ steps.generate_acceptance.outputs.evidence_sha != '' && 'true' || 'false' }}
+          OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: ${{ steps.generate_acceptance.outputs.evidence_sha }}
       - name: Request scoped GitHub Actions OIDC identity for Vercel Trusted Sources
         id: vercel_oidc
         run: node scripts/request-vercel-trusted-oidc.js
