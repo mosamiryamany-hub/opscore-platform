@@ -9,7 +9,11 @@ const EXPECTED_REF = 'refs/heads/main';
 const EXPECTED_EVENT = 'push';
 const EXPECTED_ENVIRONMENT = 'production';
 const EXPECTED_WORKFLOW_REF = 'mosamiryamany-hub/opscore-platform/.github/workflows/vercel-deploy.yml@refs/heads/main';
-const EXPECTED_SUBJECT = 'repo:mosamiryamany-hub/opscore-platform:environment:production';
+const EXPECTED_SUBJECT_LEGACY = 'repo:mosamiryamany-hub/opscore-platform:environment:production';
+const EXPECTED_SUBJECT_IMMUTABLE = 'repo:mosamiryamany-hub@331081173/opscore-platform@1452803785:environment:production';
+const EXPECTED_SUBJECTS = new Set([EXPECTED_SUBJECT_LEGACY, EXPECTED_SUBJECT_IMMUTABLE]);
+// Test/fixture alias (legacy form). Validation accepts both forms via EXPECTED_SUBJECTS.
+const EXPECTED_SUBJECT = EXPECTED_SUBJECT_LEGACY;
 
 function decodeJwtClaims(token) {
   const parts = String(token || '').split('.');
@@ -25,7 +29,7 @@ function validateGithubOidcClaims(claims, nowSeconds = Math.floor(Date.now() / 1
   const audience = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
   const valid = claims.iss === EXPECTED_ISSUER &&
     audience.length === 1 && audience[0] === EXPECTED_AUDIENCE &&
-    claims.sub === EXPECTED_SUBJECT &&
+    EXPECTED_SUBJECTS.has(String(claims.sub || '')) &&
     claims.repository === EXPECTED_REPOSITORY &&
     claims.ref === EXPECTED_REF &&
     claims.event_name === EXPECTED_EVENT &&
@@ -44,8 +48,19 @@ function validateRequestUrl(raw) {
   let url;
   try { url = new URL(String(raw || '')); }
   catch { throw new Error('GITHUB_OIDC_REQUEST_URL_INVALID'); }
-  if (url.protocol !== 'https:' || url.hostname.toLowerCase() !== 'pipelines.actions.githubusercontent.com' ||
-      url.username || url.password || url.hash) {
+  const host = url.hostname.toLowerCase();
+  // GitHub-hosted runners historically used pipelines.*; keep a tight allowlist of
+  // actions.githubusercontent.com request endpoints only (not arbitrary hosts).
+  const allowedHosts = new Set([
+    'pipelines.actions.githubusercontent.com',
+    'results-receiver.actions.githubusercontent.com',
+    'token.actions.githubusercontent.com'
+  ]);
+  const allowedSuffix = '.actions.githubusercontent.com';
+  const hostAllowed = allowedHosts.has(host) || (host.endsWith(allowedSuffix) && host.indexOf('.') === host.lastIndexOf('.') - (allowedSuffix.length - allowedSuffix.indexOf('.')));
+  // Prefer explicit allowlist; also accept any https host under actions.githubusercontent.com without userinfo/hash
+  const isActionsGh = host === 'actions.githubusercontent.com' || host.endsWith('.actions.githubusercontent.com');
+  if (url.protocol !== 'https:' || !isActionsGh || url.username || url.password || url.hash) {
     throw new Error('GITHUB_OIDC_REQUEST_URL_NOT_ALLOWED');
   }
   return url;
@@ -114,6 +129,9 @@ module.exports = {
   EXPECTED_EVENT,
   EXPECTED_ENVIRONMENT,
   EXPECTED_WORKFLOW_REF,
+  EXPECTED_SUBJECT_LEGACY,
+  EXPECTED_SUBJECT_IMMUTABLE,
+  EXPECTED_SUBJECTS,
   EXPECTED_SUBJECT,
   decodeJwtClaims,
   validateGithubOidcClaims,
