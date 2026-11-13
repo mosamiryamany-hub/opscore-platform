@@ -172,3 +172,95 @@ test('legacy password-reset compatibility remains limited to an actually missing
   assert.deepEqual(sessionChanges.map(value => value.accessMode), ['auth', 'field']);
   assert.equal(calls.filter(call => call.sql.startsWith('INSERT INTO password_reset_tokens')).length, 1);
 });
+
+
+test('undefined_function from a nested membership helper is not mistaken for a missing auth resolver', () => {
+  const nested = pgError('42883', 'function internal_membership_scope(text) does not exist');
+  const { store, calls } = makePostgresStore({
+    all(sql) {
+      if (sql.includes(sqlFunction.memberships)) throw nested;
+      throw new Error('RAW_MEMBERSHIP_FALLBACK_EXECUTED');
+    }
+  });
+  assert.throws(() => store._listMembershipsForUser('user-a'), error => error === nested);
+  assert.equal(calls.filter(call => call.method === 'all').length, 1);
+});
+
+test('OIDC resolver errors including undefined columns never fall back to raw identity-table reads', () => {
+  for (const failure of [
+    pgError('42501', 'permission denied for function opscore_resolve_oidc_identity'),
+    pgError('42703', 'column "email" does not exist'),
+    pgError('42883', 'function internal_oidc_claim_guard(text) does not exist')
+  ]) {
+    const { store, calls } = makePostgresStore({
+      get(sql) {
+        if (sql.includes('opscore_resolve_oidc_identity')) throw failure;
+        throw new Error('RAW_OIDC_IDENTITY_FALLBACK_EXECUTED');
+      }
+    });
+    assert.throws(
+      () => store.loginOidc({ email: 'user@example.com', issuer: 'https://issuer.example', subject: 'sub-1', emailVerified: true }),
+      error => error === failure
+    );
+    assert.equal(calls.filter(call => call.method === 'get').length, 1);
+  }
+});
+
+test('a nested undefined function from password-reset consumption never opens the direct-write compatibility path', () => {
+  const nested = pgError('42883', 'function internal_password_reset_audit(text) does not exist');
+  const { store, calls, sessionChanges } = makePostgresStore({
+    get(sql) {
+      if (sql.includes('opscore_validate_password_reset_token')) return { valid: true };
+      if (sql.includes('opscore_consume_password_reset_token')) throw nested;
+      throw new Error('RAW_PASSWORD_RESET_QUERY_EXECUTED');
+    }
+  });
+  const statements = [];
+  store.db.exec = sql => statements.push(sql);
+  assert.throws(() => store.resetPassword('raw-reset-token', 'New-password-2026!'), error => error === nested);
+  assert.equal(statements.length, 0);
+  assert.equal(calls.filter(call => call.method === 'get').length, 2);
+  assert.deepEqual(sessionChanges, []);
+});
+
+test('a missing consume helper after successful validation is treated as partial migration and fails closed', () => {
+  const missingConsume = pgError('42883', 'function opscore_consume_password_reset_token(text,text) does not exist');
+  const { store, calls } = makePostgresStore({
+    get(sql) {
+      if (sql.includes('opscore_validate_password_reset_token')) return { valid: true };
+      if (sql.includes('opscore_consume_password_reset_token')) throw missingConsume;
+      throw new Error('RAW_PASSWORD_RESET_QUERY_EXECUTED');
+    }
+  });
+  const statements = [];
+  store.db.exec = sql => statements.push(sql);
+  assert.throws(() => store.resetPassword('raw-reset-token', 'New-password-2026!'), error => error === missingConsume);
+  assert.equal(statements.length, 0);
+  assert.equal(calls.filter(call => call.method === 'get').length, 2);
+});
+
+test('password-reset direct compatibility is reachable only when the validation helper itself is absent', () => {
+  const missingValidation = pgError('42883', 'function opscore_validate_password_reset_token(text) does not exist');
+  const { store, calls } = makePostgresStore({
+    get(sql) {
+      if (sql.includes('opscore_validate_password_reset_token')) throw missingValidation;
+      if (sql.includes('SELECT * FROM password_reset_tokens')) return {
+        id: 'rst-1',
+        user_id: 'user-a',
+        expires_at: new Date(Date.now() + 60_000).toISOString()
+      };
+      throw new Error('UNEXPECTED_RESET_QUERY');
+    },
+    run(sql) {
+      if (sql.startsWith('UPDATE users SET password_hash=')) return { changes: 1 };
+      if (sql.startsWith('UPDATE password_reset_tokens SET used_at=')) return { changes: 1 };
+      if (sql.startsWith('DELETE FROM sessions WHERE user_id=')) return { changes: 1 };
+      throw new Error('UNEXPECTED_RESET_WRITE');
+    }
+  });
+  const statements = [];
+  store.db.exec = sql => statements.push(sql);
+  assert.deepEqual(store.resetPassword('raw-reset-token', 'New-password-2026!'), { reset: true });
+  assert.deepEqual(statements, ['BEGIN IMMEDIATE', 'COMMIT']);
+  assert.equal(calls.filter(call => call.sql.includes('opscore_validate_password_reset_token')).length, 1);
+});
