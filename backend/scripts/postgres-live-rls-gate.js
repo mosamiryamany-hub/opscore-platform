@@ -7,12 +7,19 @@ const crypto = require('node:crypto');
 const { DATABASE_SECURITY_SQL } = require('../src/database-security-proof');
 
 function controlPlaneCatalogProofSql() {
-  const namespaceFilter = "n.nspname = 'public'";
-  const occurrences = DATABASE_SECURITY_SQL.split(namespaceFilter).length - 1;
-  if (occurrences !== 2) {
-    throw new Error('DATABASE_SECURITY_PROOF_NAMESPACE_FILTER_COUNT_INVALID');
+  // Parameterize every schema filter in the shared catalog proof, preserving
+  // each SQL alias. The proof now inspects both tenant-scoped control-plane
+  // tables and runtime system tables, so the alias inventory is explicit.
+  const pattern = /\b(n|sn)\.nspname = 'public'/g;
+  const matches = [...DATABASE_SECURITY_SQL.matchAll(pattern)];
+  const aliasCounts = matches.reduce((counts, match) => {
+    counts[match[1]] = (counts[match[1]] || 0) + 1;
+    return counts;
+  }, {});
+  if (matches.length !== 3 || aliasCounts.n !== 2 || aliasCounts.sn !== 1) {
+    throw new Error('DATABASE_SECURITY_PROOF_NAMESPACE_FILTER_INVENTORY_INVALID');
   }
-  return DATABASE_SECURITY_SQL.replaceAll(namespaceFilter, 'n.nspname = $1');
+  return DATABASE_SECURITY_SQL.replace(pattern, (_match, alias) => alias + '.nspname = $1');
 }
 
 
@@ -386,8 +393,8 @@ async function main() {
     await client.query('RESET ROLE');
     await client.query('SET LOCAL ROLE opscore_runtime');
     await client.query(`SET LOCAL search_path TO ${quotedSchema}, public`);
-    const runtimeCheck = (await client.query("SELECT current_user AS role_name, r.rolsuper, r.rolbypassrls, has_function_privilege(current_user,'public.opscore_is_privileged()','EXECUTE') AS helper_execute FROM pg_roles r WHERE r.rolname=current_user")).rows[0];
-    if (!runtimeCheck || runtimeCheck.rolsuper || runtimeCheck.rolbypassrls || !runtimeCheck.helper_execute) throw new Error('RUNTIME_ROLE_POLICY_HELPER_POSTCONDITION_FAILED');
+    const runtimeCheck = (await client.query("SELECT current_user AS role_name, r.rolsuper, r.rolbypassrls, pg_has_role(current_user,'opscore_app','MEMBER') AS legacy_app_member, has_function_privilege(current_user,'public.opscore_is_privileged()','EXECUTE') AS helper_execute FROM pg_roles r WHERE r.rolname=current_user")).rows[0];
+    if (!runtimeCheck || runtimeCheck.rolsuper || runtimeCheck.rolbypassrls || runtimeCheck.legacy_app_member || !runtimeCheck.helper_execute) throw new Error('RUNTIME_ROLE_POLICY_HELPER_POSTCONDITION_FAILED');
     await client.query("SELECT set_config('app.tenant_id',$1,true), set_config('app.user_id',$2,true), set_config('app.access_mode','field',true)", [orgA, userA]);
     const ownAppointments = await client.query('SELECT id FROM appointments');
     const ownWorkOrders = await client.query('SELECT id FROM work_orders');
@@ -442,11 +449,81 @@ async function main() {
     if (!controlCrossInsertDenied) throw new Error('CONTROL_PLANE_CROSS_TENANT_INSERT_NOT_DENIED');
     checks.push({ id: 'control-plane-cross-tenant-insert-denied', status: 'PASS', deniedByRls: true });
 
+    // System-wide operational tables must be usable by the same NOBYPASSRLS
+    // runtime role as production. These writes are inside the outer rollback-only
+    // transaction and never persist beyond this disposable CI test.
+    await client.query("SELECT set_config('app.tenant_id','',true),set_config('app.user_id','',true),set_config('app.access_mode','auth',true)");
+    const systemThrottleKey = `system_rls_throttle_${crypto.randomBytes(8).toString('hex')}`;
+    const systemBucketKey = `system_rls_bucket_${crypto.randomBytes(8).toString('hex')}`;
+    const systemEventId = `system_rls_event_${crypto.randomBytes(8).toString('hex')}`;
+    const systemNow = Date.now();
+    const systemTimestamp = new Date().toISOString();
+
+    await client.query(
+      'INSERT INTO public.login_throttle(throttle_key,window_start,attempts,locked_until,updated_at) VALUES($1,$2,1,0,$3)',
+      [systemThrottleKey, systemNow, systemTimestamp]
+    );
+    const throttleRead = await client.query('SELECT attempts FROM public.login_throttle WHERE throttle_key=$1', [systemThrottleKey]);
+    if (throttleRead.rowCount !== 1 || Number(throttleRead.rows[0].attempts) !== 1) throw new Error('RUNTIME_LOGIN_THROTTLE_READ_FAILED');
+    await client.query('UPDATE public.login_throttle SET attempts=2 WHERE throttle_key=$1', [systemThrottleKey]);
+    const throttleUpdate = await client.query('SELECT attempts FROM public.login_throttle WHERE throttle_key=$1', [systemThrottleKey]);
+    if (throttleUpdate.rowCount !== 1 || Number(throttleUpdate.rows[0].attempts) !== 2) throw new Error('RUNTIME_LOGIN_THROTTLE_UPDATE_FAILED');
+    await client.query('DELETE FROM public.login_throttle WHERE throttle_key=$1', [systemThrottleKey]);
+
+    await client.query(
+      'INSERT INTO public.firewall_rate_buckets(bucket_key,window_start,requests,updated_at) VALUES($1,$2,1,$3)',
+      [systemBucketKey, systemNow, systemTimestamp]
+    );
+    await client.query(
+      'INSERT INTO public.firewall_rate_buckets(bucket_key,window_start,requests,updated_at) VALUES($1,$2,2,$3) ON CONFLICT(bucket_key) DO UPDATE SET requests=excluded.requests,updated_at=excluded.updated_at',
+      [systemBucketKey, systemNow, systemTimestamp]
+    );
+    const bucketRead = await client.query('SELECT requests FROM public.firewall_rate_buckets WHERE bucket_key=$1', [systemBucketKey]);
+    if (bucketRead.rowCount !== 1 || Number(bucketRead.rows[0].requests) !== 2) throw new Error('RUNTIME_FIREWALL_RATE_BUCKET_UPSERT_FAILED');
+    await client.query('DELETE FROM public.firewall_rate_buckets WHERE bucket_key=$1', [systemBucketKey]);
+
+    await client.query(
+      'INSERT INTO public.worker_guard_system_events(id,queue_name,action,reason,metrics_json,created_at) VALUES($1,$2,$3,$4,$5,$6)',
+      [systemEventId, 'rls-test', 'record', 'runtime-policy-check', '{}', systemTimestamp]
+    );
+    await client.query('SAVEPOINT worker_system_event_read');
+    let workerEventReadDenied = false;
+    try {
+      await client.query('SELECT id FROM public.worker_guard_system_events WHERE id=$1', [systemEventId]);
+    } catch (error) {
+      workerEventReadDenied = error.code === '42501';
+      await client.query('ROLLBACK TO SAVEPOINT worker_system_event_read');
+    }
+    await client.query('RELEASE SAVEPOINT worker_system_event_read');
+    if (!workerEventReadDenied) throw new Error('RUNTIME_WORKER_SYSTEM_EVENT_NOT_APPEND_ONLY');
+
+    const postgisMetadataViews = await client.query(
+      `SELECT c.relname,
+              has_table_privilege(current_user,c.oid,'SELECT') AS can_select,
+              has_table_privilege(current_user,c.oid,'INSERT') AS can_insert,
+              has_table_privilege(current_user,c.oid,'UPDATE') AS can_update,
+              has_table_privilege(current_user,c.oid,'DELETE') AS can_delete,
+              has_table_privilege(current_user,c.oid,'TRUNCATE') AS can_truncate,
+              has_table_privilege(current_user,c.oid,'REFERENCES') AS can_reference,
+              has_table_privilege(current_user,c.oid,'TRIGGER') AS can_trigger
+         FROM pg_class c
+        WHERE c.relnamespace = to_regnamespace('public')
+          AND c.relkind = 'v'
+          AND c.relname = ANY (ARRAY['geometry_columns','geography_columns']::text[])
+        ORDER BY c.relname`
+    );
+    if (postgisMetadataViews.rowCount !== 2 || postgisMetadataViews.rows.some(view =>
+      view.can_select !== true || view.can_insert || view.can_update || view.can_delete ||
+      view.can_truncate || view.can_reference || view.can_trigger
+    )) throw new Error('RUNTIME_POSTGIS_METADATA_VIEWS_NOT_READ_ONLY');
+
+    checks.push({ id: 'runtime-role-system-table-rls-and-least-privilege', status: 'PASS', loginThrottle: 'read-write-delete', firewallRateBuckets: 'upsert-delete', workerGuardEvents: 'insert-only' });
+    checks.push({ id: 'runtime-role-postgis-metadata-read-only', status: 'PASS', views: postgisMetadataViews.rows.map(view => view.relname), readOnly: true });
 
     await client.query('RESET ROLE');
     await client.query('ROLLBACK');
     inTransaction = false;
-    emit('PASS', { database: info.database, serverVersion: info.server_version, executedChecks: checks, checkCount: checks.length, note: 'This gate runs on the disposable PostgreSQL 18 service created by GitHub Actions. It tests migrations 031, 052 and 053 plus tenant policy execution for twin, appointment, work-order and control-plane tables under the opscore_runtime role in a rollback-only isolated schema. It does not connect to Neon and does not certify all production data or production isolation.' });
+    emit('PASS', { database: info.database, serverVersion: info.server_version, executedChecks: checks, checkCount: checks.length, note: 'This gate runs on the disposable PostgreSQL 18 service created by GitHub Actions. It tests migrations 031, 052, 053 and 059 plus tenant policy execution for twin, appointment, work-order, control-plane and system operational tables under the opscore_runtime role without inheriting opscore_app in a rollback-only isolated schema. It does not connect to Neon and does not certify all production data or production isolation.' });
   } catch (error) {
     if (inTransaction) {
       try { await client.query('ROLLBACK'); } catch (rollbackError) {

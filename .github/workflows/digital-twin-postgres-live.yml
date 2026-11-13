@@ -7,6 +7,9 @@ on:
     paths:
       - '.github/workflows/digital-twin-postgres-live.yml'
       - 'backend/src/adapters/postgres.js'
+      - 'backend/src/database-security-proof.js'
+      - 'backend/test/database-security-proof.test.js'
+      - 'backend/test/postgres-runtime-policy-grants.test.js'
       - 'backend/scripts/postgres-live-rls-gate.js'
       - 'backend/scripts/apply-postgres-migrations.js'
       - 'backend/scripts/validate-postgres-acceptance-target.js'
@@ -132,7 +135,6 @@ jobs:
           CREATE ROLE opscore_runtime NOLOGIN
             NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
           ALTER ROLE opscore_runtime WITH LOGIN PASSWORD :'runtime_password' INHERIT;
-          GRANT opscore_app TO opscore_runtime;
           GRANT CONNECT ON DATABASE opscore_test TO opscore_app, opscore_runtime;
           GRANT USAGE ON SCHEMA public TO opscore_app, opscore_runtime;
           ALTER DEFAULT PRIVILEGES IN SCHEMA public
@@ -204,7 +206,16 @@ jobs:
           node --check backend/src/adapters/postgres.js
       - name: Run isolated PostgreSQL 18 tenant-isolation gate
         working-directory: backend
-        run: npm run db:postgres-live-rls
+        run: |
+          set -euo pipefail
+          # Exercise the same fully migrated, disposable acceptance database as
+          # the runtime migration-attestation check. The gate still uses an
+          # owner connection for transactional DDL and SET ROLE for runtime tests.
+          OPSC_PG_TEST_URL="${OPSC_PG_ACCEPTANCE_URL}" \
+          OPSC_MIGRATION_DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:5432/opscore_http_acceptance" \
+          OPSC_MIGRATION_CONFIRM_DATABASE="opscore_http_acceptance" \
+          OPSC_PG_SSL_MODE=disable \
+            npm run db:postgres-live-rls
       - name: Run tenant composite foreign-key integrity gate
         working-directory: backend
         run: node scripts/postgres-tenant-composite-fk-gate.js
