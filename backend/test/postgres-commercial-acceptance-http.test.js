@@ -430,6 +430,138 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
       assert.equal(x.response.status, 403);
       record('member-role-privilege-boundary', 'member received HTTP 403 for Safe Mode toggle and recovery bundle export');
 
+      
+      // Operational Autopilot PostgreSQL parity, tenant RLS and idempotent learning.
+      // Seed one decision through the runtime role, then exercise the real HTTP handlers.
+      const autopilotDecisionId = `decision_acceptance-${stamp}`;
+      const autopilotLearningKey = `acceptance-learning-${stamp}`;
+      const autopilotProposalId = `proposal_acceptance-${stamp}`;
+      const autopilotProposalSha = 'c'.repeat(64);
+      const autopilotProposalPayload = {
+        schemaVersion: 'opscore.autopilot-proposal.v1',
+        actionType: 'keep_safe_mode',
+        incidentRef: `acceptance-${stamp}`,
+        target: { signal: 'safe_mode' },
+        reasons: [{ code: 'ACCEPTANCE_FIXTURE', severity: 'low', count: 1 }],
+        governance: { automaticExecution: false, approvalRequired: true }
+      };
+      const autopilotCatalog = await fixture.query(
+        "SELECT c.relname, c.relrowsecurity, c.relforcerowsecurity, " +
+        "count(p.policyname)::int AS policy_count, " +
+        "count(*) FILTER (WHERE p.policyname='opscore_tenant_permissive' AND p.permissive='PERMISSIVE')::int AS permissive_count, " +
+        "count(*) FILTER (WHERE p.policyname='opscore_tenant_boundary_guard' AND p.permissive='RESTRICTIVE')::int AS restrictive_count " +
+        "FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace " +
+        "LEFT JOIN pg_policies p ON p.schemaname=n.nspname AND p.tablename=c.relname " +
+        "WHERE n.nspname='public' AND c.relname = ANY($1::text[]) " +
+        "GROUP BY c.relname,c.relrowsecurity,c.relforcerowsecurity ORDER BY c.relname",
+        [['incident_replays', 'decision_memory', 'autopilot_proposals']]
+      );
+      assert.equal(autopilotCatalog.rowCount, 3, 'all three PostgreSQL Autopilot tables must exist');
+      for (const table of autopilotCatalog.rows) {
+        assert.equal(table.relrowsecurity, true, `${table.relname} must enable RLS`);
+        assert.equal(table.relforcerowsecurity, true, `${table.relname} must force RLS`);
+        assert.equal(table.policy_count, 2, `${table.relname} must have exactly two tenant policies`);
+        assert.equal(table.permissive_count, 1);
+        assert.equal(table.restrictive_count, 1);
+      }
+
+      await fixture.query(
+        "SELECT set_config('app.tenant_id',$1,false), set_config('app.current_tenant_id',$1,false), " +
+        "set_config('app.organization_id',$1,false), set_config('app.user_id',$2,false), set_config('app.access_mode','field',false)",
+        [orgAId, ownerAId]
+      );
+      await fixture.query(
+        'INSERT INTO decision_replays (id,organization_id,decision_type,input_json,rules_json,outcome_json,decision_sha256,created_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)',
+        [autopilotDecisionId, orgAId, 'acceptance_decision', '{}', '[]', JSON.stringify({ approved: true, result: 'success' }), 'a'.repeat(64), ownerAId, new Date().toISOString()]
+      );
+
+      x = await request('/api/v1/autopilot/incidents/replay', {
+        method: 'POST',
+        body: JSON.stringify({
+          incidentRef: `acceptance-${stamp}`,
+          fromAt: new Date(Date.now() - 60000).toISOString(),
+          toAt: new Date(Date.now() + 60000).toISOString(),
+          limit: 50
+        })
+      }, ownerACookie);
+      assert.equal(x.response.status, 201, JSON.stringify(x.data));
+      const autopilotIncidentId = x.data.id;
+      assert.ok(autopilotIncidentId);
+      x = await request('/api/v1/autopilot/incidents/replay', {}, ownerACookie);
+      assert.equal(x.response.status, 200, JSON.stringify(x.data));
+      assert.ok(x.data.items.some(row => row.id === autopilotIncidentId));
+      x = await request('/api/v1/autopilot/incidents/replay', {}, ownerBCookie);
+      assert.equal(x.response.status, 200, JSON.stringify(x.data));
+      assert.equal(x.data.items.some(row => row.id === autopilotIncidentId), false);
+
+      x = await request('/api/v1/autopilot/decision-memory/build', {
+        method: 'POST',
+        body: JSON.stringify({ limit: 50, learningKey: autopilotLearningKey, summary: 'PostgreSQL acceptance learning record' })
+      }, ownerACookie);
+      assert.equal(x.response.status, 200, JSON.stringify(x.data));
+      assert.equal(x.data.created, 1);
+      x = await request('/api/v1/autopilot/decision-memory/build', {
+        method: 'POST',
+        body: JSON.stringify({ limit: 50, learningKey: autopilotLearningKey, summary: 'PostgreSQL acceptance learning record' })
+      }, ownerACookie);
+      assert.equal(x.response.status, 200, JSON.stringify(x.data));
+      assert.equal(x.data.created, 0, 'rebuilding the same decision memory must be idempotent on PostgreSQL');
+      x = await request(`/api/v1/autopilot/decision-memory?q=${encodeURIComponent(autopilotLearningKey)}`, {}, ownerACookie);
+      assert.equal(x.response.status, 200, JSON.stringify(x.data));
+      assert.ok(x.data.items.some(row => row.decision_id === autopilotDecisionId));
+      x = await request(`/api/v1/autopilot/decision-memory?q=${encodeURIComponent(autopilotLearningKey)}`, {}, ownerBCookie);
+      assert.equal(x.response.status, 200, JSON.stringify(x.data));
+      assert.equal(x.data.items.length, 0);
+
+      // A tenant-B child cannot point at tenant-A's decision, even though the ID is known.
+      await fixture.query(
+        "SELECT set_config('app.tenant_id',$1,false), set_config('app.current_tenant_id',$1,false), " +
+        "set_config('app.organization_id',$1,false), set_config('app.user_id',$2,false), set_config('app.access_mode','field',false)",
+        [orgBId, userBId]
+      );
+      await fixture.query('BEGIN');
+      let crossTenantMemoryError = null;
+      try {
+        await fixture.query(
+          'INSERT INTO decision_memory (id,organization_id,decision_id,learning_key,summary,success,confidence,created_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)',
+          [`memory_cross_tenant-${stamp}`, orgBId, autopilotDecisionId, 'cross-tenant', 'must be rejected', 0, 0.4, userBId, new Date().toISOString()]
+        );
+      } catch (error) {
+        crossTenantMemoryError = error;
+      }
+      await fixture.query('ROLLBACK');
+      assert.equal(crossTenantMemoryError?.code, '23503', 'composite FK must reject cross-tenant decision references');
+
+      // Seed a pending proposal and exercise the actual approval handler under both tenants.
+      await fixture.query(
+        "SELECT set_config('app.tenant_id',$1,false), set_config('app.current_tenant_id',$1,false), " +
+        "set_config('app.organization_id',$1,false), set_config('app.user_id',$2,false), set_config('app.access_mode','field',false)",
+        [orgAId, ownerAId]
+      );
+      await fixture.query(
+        'INSERT INTO autopilot_proposals (id,organization_id,incident_ref,action_type,target_json,reasons_json,risk,approval_required,status,proposal_json,proposal_sha256,created_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)',
+        [autopilotProposalId, orgAId, `acceptance-${stamp}`, 'keep_safe_mode', JSON.stringify({ signal: 'safe_mode' }), JSON.stringify(autopilotProposalPayload.reasons), 'low', 1, 'pending', JSON.stringify(autopilotProposalPayload), autopilotProposalSha, ownerAId, new Date().toISOString()]
+      );
+      x = await request('/api/v1/autopilot/proposals', {}, ownerACookie);
+      assert.equal(x.response.status, 200, JSON.stringify(x.data));
+      assert.ok(x.data.items.some(row => row.id === autopilotProposalId && row.status === 'pending'));
+      x = await request('/api/v1/autopilot/proposals', {}, ownerBCookie);
+      assert.equal(x.response.status, 200, JSON.stringify(x.data));
+      assert.equal(x.data.items.some(row => row.id === autopilotProposalId), false);
+      x = await request(`/api/v1/autopilot/proposals/${encodeURIComponent(autopilotProposalId)}/approve`, {
+        method: 'POST',
+        headers: { 'idempotency-key': `approve-autopilot-${stamp}` }
+      }, ownerBCookie);
+      assert.equal(x.response.status, 404, JSON.stringify(x.data));
+      x = await request(`/api/v1/autopilot/proposals/${encodeURIComponent(autopilotProposalId)}/approve`, {
+        method: 'POST',
+        headers: { 'idempotency-key': `approve-autopilot-owner-${stamp}` }
+      }, ownerACookie);
+      assert.equal(x.response.status, 200, JSON.stringify(x.data));
+      assert.equal(x.data.status, 'approved');
+      record('operational-autopilot-postgres-parity-and-tenant-boundary',
+        'incident replay, decision memory, and proposal approval execute through the PostgreSQL HTTP runtime; RLS is enabled+forced, decision references are tenant-composite, duplicate learning builds are idempotent, and tenant B cannot read or approve tenant A records');
+
       // Safe Mode isolation between tenants.
       x = await request('/api/v1/control-plane/safe-mode', {}, ownerACookie);
       assert.equal(x.response.status, 200);
