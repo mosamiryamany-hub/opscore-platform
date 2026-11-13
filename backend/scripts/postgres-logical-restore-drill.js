@@ -330,8 +330,8 @@ async function main() {
     const targetIdentity = (await targetPool.query(
       "SELECT current_database() AS database,current_user AS role,current_setting('server_version') AS server_version,r.rolsuper AS superuser,r.rolbypassrls AS bypass_rls FROM pg_roles r WHERE r.rolname=current_user"
     )).rows[0];
-    if (!sourceIdentity || !targetIdentity || !/^18\\./.test(sourceIdentity.server_version) ||
-        !/^18\\./.test(targetIdentity.server_version) ||
+    if (!sourceIdentity || !targetIdentity || !/^18\./.test(sourceIdentity.server_version) ||
+        !/^18\./.test(targetIdentity.server_version) ||
         sourceIdentity.role !== 'neondb_owner' || sourceIdentity.superuser ||
         !sourceIdentity.bypass_rls || targetIdentity.role !== 'postgres' ||
         !targetIdentity.superuser) throw new Error('RESTORE_DATABASE_IDENTITY_INVALID');
