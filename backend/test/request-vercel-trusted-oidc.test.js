@@ -67,6 +67,9 @@ test('GitHub OIDC claim validation rejects expired, not-yet-valid, and overlong 
   const longLived = validClaims();
   longLived.exp = longLived.iat + 3600;
   assert.throws(() => validateGithubOidcClaims(longLived, 1_800_000_000), /GITHUB_OIDC_TOKEN_CLAIMS_NOT_ALLOWED/);
+  const invalidOrdering = validClaims();
+  invalidOrdering.exp = invalidOrdering.iat;
+  assert.throws(() => validateGithubOidcClaims(invalidOrdering, 1_800_000_000), /GITHUB_OIDC_TOKEN_CLAIMS_NOT_ALLOWED/);
 });
 
 test('JWT claims decoder rejects malformed or non-JSON payloads', () => {
