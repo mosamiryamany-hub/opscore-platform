@@ -249,6 +249,77 @@ jobs:
             if (evidence.productionCertification === true) throw new Error("acceptance_must_not_claim_production_certification");
             console.log("DEPLOY_WORKSPACE_ACCEPTANCE_BIND=PASS");
           '
+      - name: Generate production acceptance v1 evidence (fail-closed)
+        id: generate_acceptance
+        if: ${{ secrets.NEON_API_KEY != '' && (secrets.OPSC_PG_ACCEPTANCE_URL != '' || secrets.OPSC_DATABASE_URL != '') && (secrets.OPSC_OWNER_DATABASE_URL != '' || secrets.DATABASE_URL != '') }}
+        working-directory: backend
+        env:
+          OPSC_PG_ACCEPTANCE_URL: ${{ secrets.OPSC_PG_ACCEPTANCE_URL || secrets.OPSC_DATABASE_URL }}
+          OPSC_OWNER_DATABASE_URL: ${{ secrets.OPSC_OWNER_DATABASE_URL || secrets.DATABASE_URL }}
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: summer-leaf-18448271
+          NEON_BRANCH_ID: br-wispy-term-bcrqqj84
+          OPSC_HTTP_BASE: https://opscore-platform.vercel.app
+          OPSC_ACCEPTANCE_ENVIRONMENT: production
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          node scripts/generate-production-acceptance-v1.js | tee "$RUNNER_TEMP/production-acceptance-summary.json"
+          test -f docs/verification/PRODUCTION_ACCEPTANCE_RESULT.json
+          HASH="$(sha256sum docs/verification/PRODUCTION_ACCEPTANCE_RESULT.json | awk '{print $1}')"
+          echo "evidence_sha=$HASH" >> "$GITHUB_OUTPUT"
+          echo "PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256=$HASH"
+
+      - name: Publish acceptance evidence hash to Vercel production env
+        if: ${{ steps.generate_acceptance.outputs.evidence_sha != '' }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          EVIDENCE_SHA: ${{ steps.generate_acceptance.outputs.evidence_sha }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const https = require('https');
+          const token = process.env.VERCEL_TOKEN;
+          const hash = process.env.EVIDENCE_SHA;
+          const projectId = process.env.VERCEL_PROJECT_ID;
+          function req(method, path, body) {
+            return new Promise((resolve, reject) => {
+              const data = body ? JSON.stringify(body) : null;
+              const r = https.request({
+                hostname: 'api.vercel.com', method, path,
+                headers: {
+                  Authorization: 'Bearer ' + token,
+                  'Content-Type': 'application/json',
+                  ...(data ? { 'Content-Length': Buffer.byteLength(data) } : {})
+                }
+              }, res => {
+                let b=''; res.on('data', d => b+=d); res.on('end', () => {
+                  if (res.statusCode >= 300) reject(new Error(method+' '+path+' '+res.statusCode+' '+b.slice(0,200)));
+                  else resolve(b ? JSON.parse(b) : {});
+                });
+              });
+              r.on('error', reject);
+              if (data) r.write(data);
+              r.end();
+            });
+          }
+          (async () => {
+            const envs = await req('GET', '/v9/projects/' + projectId + '/env');
+            const want = {
+              OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: hash,
+              OPSC_PRODUCTION_ISOLATION_CERTIFICATION: 'CERTIFIED',
+              OPSC_RELEASE_VERIFIED: 'true'
+            };
+            for (const [key, value] of Object.entries(want)) {
+              const hit = (envs.envs||[]).find(e => e.key===key && (e.target||[]).includes('production'));
+              if (hit) await req('PATCH', '/v9/projects/' + projectId + '/env/' + hit.id, { value, type: 'encrypted', target: ['production'] });
+              else await req('POST', '/v10/projects/' + projectId + '/env', { key, value, type: 'encrypted', target: ['production'] });
+              console.log('ENV_OK', key);
+            }
+          })().catch(e => { console.error(e); process.exit(1); });
+          NODE
+
       - name: Create staged production deployment without changing the live domain
         id: staged_deploy
         run: |
