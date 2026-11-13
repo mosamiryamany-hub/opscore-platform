@@ -409,12 +409,36 @@ async function main() {
     if (catalogMismatch) {
       const expected = beforeCatalog[catalogMismatch];
       const actual = afterCatalog[catalogMismatch];
+      let firstMismatch = null;
+      if (Array.isArray(expected) && Array.isArray(actual)) {
+        const keyOf = row => catalogMismatch === 'constraints'
+          ? [row.schema_name, row.table_name, row.conname].join('.')
+          : catalogMismatch === 'indexes'
+            ? [row.schemaname, row.tablename, row.indexname].join('.')
+            : catalogMismatch === 'policies'
+              ? [row.schemaname, row.tablename, row.policyname].join('.')
+              : catalogMismatch === 'extensions'
+                ? row.extname
+                : stableJson(row);
+        const expectedMap = new Map(expected.map(row => [keyOf(row), row]));
+        const actualMap = new Map(actual.map(row => [keyOf(row), row]));
+        const keys = [...new Set([...expectedMap.keys(), ...actualMap.keys()])].sort();
+        const mismatchKey = keys.find(key =>
+          stableJson(expectedMap.get(key) || null) !== stableJson(actualMap.get(key) || null)
+        );
+        if (mismatchKey) firstMismatch = {
+          key: mismatchKey,
+          expected: expectedMap.get(mismatchKey) || null,
+          actual: actualMap.get(mismatchKey) || null
+        };
+      }
       const detail = {
         field: catalogMismatch,
         expectedCount: Array.isArray(expected) ? expected.length : null,
         actualCount: Array.isArray(actual) ? actual.length : null,
         expectedSummary: !Array.isArray(expected) ? expected : undefined,
-        actualSummary: !Array.isArray(actual) ? actual : undefined
+        actualSummary: !Array.isArray(actual) ? actual : undefined,
+        firstMismatch
       };
       record('database_catalog_match', 'FAIL', JSON.stringify(detail));
       throw new Error('RESTORE_DATABASE_CATALOG_MISMATCH_' + catalogMismatch.toUpperCase());
@@ -494,7 +518,7 @@ async function main() {
           ''
         ].join('\n'), { encoding: 'utf8', mode: 0o600 });
       }
-      process.stdout.write(JSON.stringify({ schemaVersion: report.schemaVersion, status: report.status, reason: report.reason || null, archiveSha256: report.archive?.sha256 || null, cleanup: report.cleanup }, null, 2) + '\n');
+      process.stdout.write(JSON.stringify({ schemaVersion: report.schemaVersion, status: report.status, reason: report.reason || null, archiveSha256: report.archive?.sha256 || null, failedChecks: report.checks.filter(item => item.status === 'FAIL'), cleanup: report.cleanup }, null, 2) + '\n');
     } catch {
       report.status = 'FAIL';
       report.reason = 'RESTORE_REPORT_WRITE_FAILED';
