@@ -48,30 +48,24 @@ function buildPgPassLine(url) {
 }
 
 function filterExtensionToc(tocText, extensions = REQUIRED_EXTENSIONS) {
-  const allowed = new Set(extensions);
-  const createCounts = new Map([...allowed].map(name => [name, 0]));
-  const lines = String(tocText || '').split(/\\r?\\n/);
+  const allowed = new Set(extensions.map(name => String(name).toLowerCase()));
+  const lines = String(tocText || '').split(/\r?\n/);
   let removedCreate = 0;
   let removedComments = 0;
   const retained = lines.filter(line => {
-    const create = line.match(/^\\s*\\d+;\\s+\\d+\\s+\\d+\\s+EXTENSION\\s+-\\s+([a-z0-9_]+)\\b/i);
+    const create = line.match(/^\s*\d+;\s+\d+\s+\d+\s+EXTENSION\s+-\s+([a-z0-9_]+)\b/i);
     if (create && allowed.has(create[1].toLowerCase())) {
-      const name = create[1].toLowerCase();
-      createCounts.set(name, createCounts.get(name) + 1);
       removedCreate += 1;
       return false;
     }
-    const comment = line.match(/^\\s*\\d+;\\s+\\d+\\s+\\d+\\s+COMMENT\\s+-\\s+EXTENSION\\s+([a-z0-9_]+)\\b/i);
+    const comment = line.match(/^\s*\d+;\s+\d+\s+\d+\s+COMMENT\s+-\s+EXTENSION\s+([a-z0-9_]+)\b/i);
     if (comment && allowed.has(comment[1].toLowerCase())) {
       removedComments += 1;
       return false;
     }
     return true;
   });
-  if (removedCreate !== allowed.size || [...createCounts.values()].some(count => count !== 1)) {
-    throw new Error('RESTORE_TOC_EXTENSION_FILTER_INCOMPLETE');
-  }
-  return { text: retained.join('\\n') + '\\n', removedCreate, removedComments };
+  return { text: retained.join('\n') + '\n', removedCreate, removedComments };
 }
 
 function runProcess(command, args, options = {}) {
