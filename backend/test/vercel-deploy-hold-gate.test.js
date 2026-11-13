@@ -24,8 +24,14 @@ test('pull requests run the verification job without invoking the production dep
   const verifyHeader = workflow.slice(workflow.indexOf('  verify:'), workflow.indexOf('  deploy:'));
   assert.match(verifyHeader, /github\.event_name == 'pull_request' \|\| github\.ref == 'refs\/heads\/main'/);
   const deployHeader = deploy.slice(0, deploy.indexOf('      - uses: actions/checkout'));
-  assert.match(deployHeader, /needs: \[verify\]/);
+  assert.match(deployHeader, /needs: \[verify, postgres-acceptance\]/);
   assert.match(deployHeader, /github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'/);
+  const acceptanceStart = workflow.indexOf('  postgres-acceptance:' + String.fromCharCode(10));
+  const acceptanceEnd = workflow.indexOf('  deploy:' + String.fromCharCode(10), acceptanceStart);
+  assert.ok(acceptanceStart >= 0 && acceptanceEnd > acceptanceStart);
+  const acceptanceHeader = workflow.slice(acceptanceStart, acceptanceEnd);
+  assert.match(acceptanceHeader, /if: github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'/);
+  assert.match(acceptanceHeader, /uses: \.\/\.github\/workflows\/digital-twin-postgres-live\.yml/);
 });
 
 test('deploy workflow does not attempt to expose Vercel Sensitive environment values to CI', () => {

@@ -64,8 +64,13 @@ jobs:
         working-directory: mobile
         run: npm audit --omit=dev --audit-level=high
 
+  postgres-acceptance:
+    name: deploy-bound-postgres-18-acceptance
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/digital-twin-postgres-live.yml
+
   deploy:
-    needs: [verify]
+    needs: [verify, postgres-acceptance]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: read
@@ -80,32 +85,26 @@ jobs:
       - name: Assert production ref
         run: test "$GITHUB_REF" = "refs/heads/main"
 
-      # Disposable HTTP acceptance on the same GITHUB_SHA + GITHUB_RUN_ID as the
-      # release identity. Evidence is promoted into the deploy workspace only so
-      # release-proof can bind PASS without rewriting git history or claiming
-      # productionIsolationCertification.
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: '22.23.4'
-          cache: npm
-          cache-dependency-path: backend/package-lock.json
-      - name: Install backend for disposable HTTP acceptance
-        working-directory: backend
-        run: npm ci --omit=dev --ignore-scripts
-      - name: Require disposable acceptance URL
+      # The reusable PostgreSQL 18 workflow ran against a disposable local database.
+      # Import only its validated, caller-run-bound evidence; never connect deploy to a shared Neon test database.
+      - name: Materialize validated isolated PostgreSQL acceptance evidence
         env:
-          OPSC_PG_ACCEPTANCE_URL: ${{ secrets.OPSC_PG_ACCEPTANCE_URL }}
-          OPSC_PG_ACCEPTANCE_HOST: ${{ secrets.OPSC_PG_ACCEPTANCE_HOST }}
-        run: node backend/scripts/validate-postgres-acceptance-target.js
-      - name: Run PostgreSQL HTTP acceptance (deploy-pipeline bound)
-        working-directory: backend
-        env:
-          OPSC_PG_ACCEPTANCE_URL: ${{ secrets.OPSC_PG_ACCEPTANCE_URL }}
-          OPSC_PG_ACCEPTANCE_HOST: ${{ secrets.OPSC_PG_ACCEPTANCE_HOST }}
-          OPSC_PG_ACCEPTANCE_RESULT_FILE: ${{ github.workspace }}/POSTGRES_HTTP_ACCEPTANCE_RESULT.json
-          CI_COMMIT_SHA: ${{ github.sha }}
-          CI_PIPELINE_ID: ${{ github.run_id }}
-        run: node --test --test-force-exit test/postgres-commercial-acceptance-http.test.js
+          ACCEPTANCE_EVIDENCE_B64: ${{ needs.postgres-acceptance.outputs.acceptance_evidence_b64 }}
+        run: |
+          set -euo pipefail
+          test -n "${ACCEPTANCE_EVIDENCE_B64:-}" || { echo "POSTGRES_ACCEPTANCE_EVIDENCE_MISSING" >&2; exit 1; }
+          printf '%s' "$ACCEPTANCE_EVIDENCE_B64" | base64 --decode > "$GITHUB_WORKSPACE/POSTGRES_HTTP_ACCEPTANCE_RESULT.json"
+          test -s "$GITHUB_WORKSPACE/POSTGRES_HTTP_ACCEPTANCE_RESULT.json"
+          node -e '
+            const fs = require("node:fs");
+            const p = process.env.GITHUB_WORKSPACE + "/POSTGRES_HTTP_ACCEPTANCE_RESULT.json";
+            const d = JSON.parse(fs.readFileSync(p, "utf8"));
+            if (d.status !== "PASS" || d.productionCertification !== false) throw new Error("POSTGRES_ACCEPTANCE_EVIDENCE_INVALID");
+            if (String(d.commit).toLowerCase() !== process.env.GITHUB_SHA.toLowerCase()) throw new Error("POSTGRES_ACCEPTANCE_COMMIT_MISMATCH");
+            if (Number(d.pipelineId) !== Number(process.env.GITHUB_RUN_ID)) throw new Error("POSTGRES_ACCEPTANCE_PIPELINE_MISMATCH");
+            if (d.cleanup?.status !== "PASS") throw new Error("POSTGRES_ACCEPTANCE_CLEANUP_NOT_PASS");
+            console.log("DEPLOY_BOUND_ISOLATED_POSTGRES_ACCEPTANCE=PASS");
+          '
       - name: Promote acceptance evidence into deploy workspace
         run: |
           set -euo pipefail
@@ -119,6 +118,29 @@ jobs:
           data = json.loads(src.read_text(encoding='utf-8'))
           if str(data.get('status') or '') != 'PASS':
               raise SystemExit(f"acceptance_status_not_pass:{data.get('status')}")
+          if data.get('productionCertification') is not False:
+              raise SystemExit("acceptance_must_not_claim_production_certification")
+          cleanup = data.get('cleanup') or {}
+          if cleanup.get('status') != 'PASS':
+              raise SystemExit("acceptance_cleanup_not_pass")
+          runtime = data.get('environment') or {}
+          if runtime.get('database') != 'opscore_http_acceptance' or runtime.get('connectedRole') != 'opscore_runtime':
+              raise SystemExit("acceptance_runtime_identity_invalid")
+          if runtime.get('roleIsSuperuser') is not False or runtime.get('roleBypassesRls') is not False:
+              raise SystemExit("acceptance_runtime_role_elevated")
+          checks = data.get('checks') or []
+          if not checks or any(check.get('status') != 'PASS' for check in checks):
+              raise SystemExit("acceptance_checks_not_all_pass")
+          required = {
+              'member-role-privilege-boundary',
+              'safe-mode-tenant-scoped',
+              'recovery-bundle-verify-is-dry-run',
+              'recovery-bundle-tamper-detected',
+              'operational-autopilot-postgres-parity-and-tenant-boundary'
+          }
+          missing = required - {str(check.get('id') or '') for check in checks}
+          if missing:
+              raise SystemExit("acceptance_required_checks_missing:" + ",".join(sorted(missing)))
           commit = str(data.get('commit') or '').strip().lower()
           pipeline = str(data.get('pipelineId') or '').strip()
           expected_commit = os.environ['GITHUB_SHA'].strip().lower()
