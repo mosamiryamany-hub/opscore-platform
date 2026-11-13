@@ -28,11 +28,14 @@ test('only the actual least-privilege runtime receives autopilot DML grants',()=
   assert.ok(migration.includes('OPSC_AUTOPILOT_RUNTIME_PRIVILEGE_POSTCONDITION_FAILED'));
 });
 
-test('ai_agent_runs proposal references match canonical schema and are orphan-checked',()=>{
-  assert.ok(migration.includes('ai_agent_runs_proposal_id_fkey'));
-  assert.ok(migration.includes('FOREIGN KEY (proposal_id)'));
-  assert.ok(migration.includes('REFERENCES public.autopilot_proposals(id)'));
-  assert.ok(migration.includes('ON DELETE SET NULL'));
+test('proposal and decision foreign keys cannot cross tenant boundaries',()=>{
+  assert.ok(migration.includes('decision_replays_id_organization_unique'));
+  assert.ok(migration.includes('FOREIGN KEY (decision_id,organization_id)'));
+  assert.ok(migration.includes('REFERENCES public.decision_replays(id,organization_id)'));
+  assert.ok(migration.includes('ai_agent_runs_proposal_tenant_fkey'));
+  assert.ok(migration.includes('FOREIGN KEY (proposal_id,organization_id)'));
+  assert.ok(migration.includes('REFERENCES public.autopilot_proposals(id,organization_id)'));
+  assert.ok(migration.includes('ON DELETE SET NULL (proposal_id)'));
   assert.ok(migration.includes('OPSC_AUTOPILOT_EXISTING_PROPOSAL_REFERENCES_UNRESOLVED'));
   assert.ok(canonicalSchema.includes('proposal_id TEXT REFERENCES autopilot_proposals(id) ON DELETE SET NULL'));
 });
