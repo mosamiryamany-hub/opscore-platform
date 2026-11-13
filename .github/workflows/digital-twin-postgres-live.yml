@@ -6,6 +6,12 @@ on:
       acceptance_evidence_b64:
         description: "Validated PostgreSQL HTTP acceptance evidence bound to the caller commit and run"
         value: ${{ jobs.live-rls.outputs.acceptance_evidence_b64 }}
+      tenant_matrix_evidence_b64:
+        description: "Validated tenant route isolation evidence, bound to the caller commit and run"
+        value: ${{ jobs.live-rls.outputs.tenant_matrix_evidence_b64 }}
+      restore_drill_evidence_b64:
+        description: "Validated disposable PostgreSQL logical restore evidence, bound to the caller commit and run"
+        value: ${{ jobs.live-rls.outputs.restore_drill_evidence_b64 }}
   pull_request:
     paths:
       - '.github/workflows/digital-twin-postgres-live.yml'
@@ -64,6 +70,8 @@ jobs:
     timeout-minutes: 30
     outputs:
       acceptance_evidence_b64: ${{ steps.publish_acceptance.outputs.evidence_b64 }}
+      tenant_matrix_evidence_b64: ${{ steps.publish_scope_evidence.outputs.tenant_matrix_evidence_b64 }}
+      restore_drill_evidence_b64: ${{ steps.publish_scope_evidence.outputs.restore_drill_evidence_b64 }}
     services:
       postgres:
         image: postgis/postgis:18-3.7
@@ -336,3 +344,97 @@ jobs:
           set -euo pipefail
           OPSC_PG_ACCEPTANCE_URL=           OPSC_PG_TEST_URL="${OPSC_TENANT_MATRIX_DATABASE_URL}"             node --test test/tenant-isolation-matrix.test.js
           cat docs/verification/TENANT_ISOLATION_MATRIX.json
+
+      - name: Validate and publish caller-bound tenant and logical restore evidence
+        id: publish_scope_evidence
+        env:
+          EXPECTED_COMMIT_SHA: ${{ github.sha }}
+          EXPECTED_PIPELINE_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const crypto = require('node:crypto');
+          const root = process.env.GITHUB_WORKSPACE;
+          const commit = String(process.env.EXPECTED_COMMIT_SHA || '').toLowerCase();
+          const pipelineId = String(process.env.EXPECTED_PIPELINE_ID || '');
+          const matrixPath = path.join(root, 'backend/docs/verification/TENANT_ISOLATION_MATRIX.json');
+          const restorePath = path.join(process.env.RUNNER_TEMP, 'POSTGRES_LOGICAL_RESTORE_DRILL_RESULT.json');
+          const matrixRaw = fs.readFileSync(matrixPath, 'utf8');
+          const restoreRaw = fs.readFileSync(restorePath, 'utf8');
+          const matrix = JSON.parse(matrixRaw);
+          const restore = JSON.parse(restoreRaw);
+          const digest = raw => crypto.createHash('sha256').update(raw, 'utf8').digest('hex');
+          const m = matrix.tested || {};
+          const ua = m.unauthenticated || {};
+          const foreign = m.foreignIdProbe || {};
+          const cross = m.crossTenantFixture || {};
+          const tenantRouteCount = Number(matrix.discovered && matrix.discovered.tenantDataRoutes);
+          const foreignIdRouteCount = Number(matrix.discovered && matrix.discovered.foreignIdRoutes);
+          if (matrix.schemaVersion !== 'opscore.tenant-isolation-matrix.v1' ||
+              matrix.status !== 'PASS' ||
+              String(matrix.sourceCommit || '').toLowerCase() !== commit ||
+              matrix.productionCertification !== false ||
+              matrix.isolationCertification !== 'NOT_CERTIFIED' ||
+              !Number.isSafeInteger(tenantRouteCount) || tenantRouteCount < 1 ||
+              Number(ua.checks) !== tenantRouteCount || Number(ua.pass) !== tenantRouteCount || Number(ua.fail) !== 0 ||
+              (!Number.isSafeInteger(foreignIdRouteCount) || foreignIdRouteCount < 0) || Number(foreign.checks) !== foreignIdRouteCount || Number(foreign.pass) !== foreignIdRouteCount || Number(foreign.fail) !== 0 ||
+              Number(cross.checks) < 1 || Number(cross.pass) !== Number(cross.checks) || Number(cross.fail) !== 0 ||
+              (matrix.skipped || []).length !== 0 || (matrix.cleanupErrors || []).length !== 0) {
+            throw new Error('TENANT_MATRIX_EVIDENCE_INCOMPLETE_OR_NOT_CLEAN');
+          }
+          if (restore.schemaVersion !== 'opscore.postgres-logical-restore-drill.v1' ||
+              restore.status !== 'PASS' ||
+              restore.evidenceClass !== 'CI_DISPOSABLE_DATABASE_LOGICAL_RESTORE' ||
+              restore.productionCertification !== false ||
+              restore.ownershipAndAclRestored !== false ||
+              restore.verificationScope !== 'DATA_SCHEMA_CATALOG_RLS_AND_TABLE_CONTENT' ||
+              restore.cleanup?.status !== 'PASS' ||
+              !Array.isArray(restore.checks) || restore.checks.length < 1 ||
+              restore.checks.some(check => check.status !== 'PASS') ||
+              !Number.isSafeInteger(Number(restore.archive?.bytes)) || Number(restore.archive.bytes) < 1024 ||
+              !/^[a-f0-9]{64}$/i.test(String(restore.archive?.sha256 || '')) ||
+              !Number.isSafeInteger(Number(restore.tableCount)) || Number(restore.tableCount) < 1 ||
+              !(restore.limitations || []).some(item => /Neon point-in-time restore/i.test(String(item)))) {
+            throw new Error('LOGICAL_RESTORE_EVIDENCE_INCOMPLETE_OR_SCOPE_MISMATCH');
+          }
+          const wrap = (evidenceType, scope, evidence) => ({
+            schemaVersion: 'opscore.caller-bound-ci-evidence.v1',
+            evidenceType,
+            binding: { commit, pipelineId, scope },
+            evidence
+          });
+          const matrixEnvelope = wrap('tenant-matrix', 'DISPOSABLE_POSTGRESQL_18_CI', {
+            schemaVersion: matrix.schemaVersion,
+            sourceCommit: matrix.sourceCommit,
+            status: matrix.status,
+            productionCertification: matrix.productionCertification,
+            isolationCertification: matrix.isolationCertification,
+            fullEvidenceSha256: digest(matrixRaw),
+            discovered: matrix.discovered,
+            tested: matrix.tested,
+            skippedCount: (matrix.skipped || []).length,
+            cleanupErrorsCount: (matrix.cleanupErrors || []).length
+          });
+          const restoreEnvelope = wrap('postgres-logical-restore', 'DISPOSABLE_POSTGRESQL_18_LOGICAL_RESTORE_CI', {
+            schemaVersion: restore.schemaVersion,
+            status: restore.status,
+            evidenceClass: restore.evidenceClass,
+            productionCertification: restore.productionCertification,
+            ownershipAndAclRestored: restore.ownershipAndAclRestored,
+            verificationScope: restore.verificationScope,
+            fullEvidenceSha256: digest(restoreRaw),
+            checks: restore.checks.map(check => ({ name: check.name, status: check.status })),
+            cleanup: restore.cleanup,
+            archive: restore.archive,
+            tableCount: restore.tableCount,
+            limitations: restore.limitations
+          });
+          fs.appendFileSync(process.env.GITHUB_OUTPUT,
+            'tenant_matrix_evidence_b64=' + Buffer.from(JSON.stringify(matrixEnvelope)).toString('base64') + '\n' +
+            'restore_drill_evidence_b64=' + Buffer.from(JSON.stringify(restoreEnvelope)).toString('base64') + '\n');
+          console.log('CALLER_BOUND_TENANT_MATRIX=PASS routes=' + tenantRouteCount);
+          console.log('CALLER_BOUND_LOGICAL_RESTORE=PASS tables=' + restore.tableCount);
+          console.log('PRODUCTION_TENANT_AND_NEON_PITR_CERTIFICATION=false');
+          NODE
