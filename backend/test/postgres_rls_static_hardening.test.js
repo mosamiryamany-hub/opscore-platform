@@ -82,9 +82,15 @@ test('GitHub Actions: a real PostgreSQL 18 service runs the live digital-twin RL
   assert.match(workflow, /- name: Install backend package\s+working-directory: backend\s+run: npm ci --ignore-scripts --omit=peer/);
   assert.doesNotMatch(workflow, /npm install --no-save --package-lock=false --ignore-scripts pg@8\.23\.0/);
   assert.match(workflow, /npm run db:postgres-live-rls/);
-  assert.match(workflow, /push:\s*\n\s+branches:\s*\[main, master\]/);
+  assert.match(workflow, /workflow_call:\s*\n\s+outputs:/);
+  assert.match(workflow, /acceptance_evidence_b64/);
+  assert.doesNotMatch(workflow, /^\s+push:/m, 'main deploy invokes this workflow; do not start a duplicate push-triggered run');
   assert.match(workflow, /pull_request:/);
   assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /OPSC_PG_ACCEPTANCE_RESULT_FILE:/);
+  assert.match(workflow, /CI_COMMIT_SHA:\s*\$\{\{ github\.sha \}\}/);
+  assert.match(workflow, /CI_PIPELINE_ID:\s*\$\{\{ github\.run_id \}\}/);
+  assert.match(workflow, /POSTGRES_ACCEPTANCE_CLEANUP_NOT_PASS/);
   assert.match(workflow, /permissions:\s*\n\s+contents:\s*read/);
 });
 
