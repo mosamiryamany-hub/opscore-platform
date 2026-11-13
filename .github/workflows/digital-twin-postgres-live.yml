@@ -203,7 +203,16 @@ jobs:
           node --check backend/src/adapters/postgres.js
       - name: Run isolated PostgreSQL 18 tenant-isolation gate
         working-directory: backend
-        run: npm run db:postgres-live-rls
+        run: |
+          set -euo pipefail
+          # Exercise the same fully migrated, disposable acceptance database as
+          # the runtime migration-attestation check. The gate still uses an
+          # owner connection for transactional DDL and SET ROLE for runtime tests.
+          OPSC_PG_TEST_URL="${OPSC_PG_ACCEPTANCE_URL}" \
+          OPSC_MIGRATION_DATABASE_URL="postgresql://neondb_owner:${OPSC_CI_MIGRATION_OWNER_PASSWORD}@127.0.0.1:5432/opscore_http_acceptance" \
+          OPSC_MIGRATION_CONFIRM_DATABASE="opscore_http_acceptance" \
+          OPSC_PG_SSL_MODE=disable \
+            npm run db:postgres-live-rls
       - name: Run tenant composite foreign-key integrity gate
         working-directory: backend
         run: node scripts/postgres-tenant-composite-fk-gate.js
