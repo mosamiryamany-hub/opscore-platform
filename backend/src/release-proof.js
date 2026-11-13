@@ -104,9 +104,7 @@ function readProductionAcceptanceEvidence(env, expectedCommit, expectedPipelineI
     routeCoverage.testedRoutes === routeCoverage.totalRoutes;
   const migrationSafe = migrationLedger.status === 'PASS' &&
     Number.isSafeInteger(migrationLedger.sourceMigrationCount) && migrationLedger.sourceMigrationCount > 0 &&
-    Number.isSafeInteger(migrationLedger.ledgerRowCount) && migrationLedger.ledgerRowCount > 0 &&
-    Number.isSafeInteger(migrationLedger.legacyRenameCount) && migrationLedger.legacyRenameCount >= 0 &&
-    migrationLedger.ledgerRowCount + migrationLedger.legacyRenameCount === migrationLedger.sourceMigrationCount &&
+    Number.isSafeInteger(migrationLedger.ledgerRowCount) && migrationLedger.ledgerRowCount === migrationLedger.sourceMigrationCount &&
     migrationLedger.matchedCount === migrationLedger.sourceMigrationCount &&
     migrationLedger.pendingCount === 0 && migrationLedger.blockerCount === 0;
   const checksSafe = checks.migrationLedgerParity === 'PASS' &&

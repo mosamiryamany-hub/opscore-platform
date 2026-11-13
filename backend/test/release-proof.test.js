@@ -46,8 +46,7 @@ function productionAcceptanceEvidence(commit = SHA, pipelineId = '2978538209', o
     migrationLedger: {
       status: 'PASS',
       sourceMigrationCount: 60,
-      ledgerRowCount: 59,
-      legacyRenameCount: 1,
+      ledgerRowCount: 60,
       matchedCount: 60,
       pendingCount: 0,
       blockerCount: 0
