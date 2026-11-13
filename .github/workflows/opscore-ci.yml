@@ -38,6 +38,8 @@ jobs:
           node --check backend/src/database-security-proof.js
           node --check scripts/production-deployment-smoke.js
           node --check scripts/production-runtime-diagnostic.js
+          node --check scripts/request-vercel-trusted-oidc.js
+          node --check backend/scripts/postgres-logical-restore-drill.js
           node --check backend/src/production-database-identity-route.js
           node --check scripts/verify-production-environment.js
       - name: Production deployment smoke contract tests
@@ -46,6 +48,8 @@ jobs:
         run: node --test backend/test/production-environment-preflight.test.js
       - name: Production runtime identity and release gate contract tests
         run: node --test backend/test/production-database-identity-route.test.js scripts/production-runtime-diagnostic.test.js
+      - name: OIDC and logical restore safety contract tests
+        run: node --test backend/test/request-vercel-trusted-oidc.test.js backend/test/postgres-logical-restore-drill.test.js
       - name: Hardened metadata gate
         working-directory: backend
         run: npm run verify:hardened
