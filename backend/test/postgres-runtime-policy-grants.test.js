@@ -50,6 +50,7 @@ test('live PostgreSQL gate tests the runtime role and tenant policies', () => {
 
 test('migration 059 grants direct runtime privileges and transfers unscoped system-table RLS policies', () => {
   const migration = read('sql/postgres/059_runtime_system_table_policy_and_privilege_alignment.sql');
+  const normalizedMigration = migration.replace(/\\s+/g, ' ');
   for (const expected of [
     'GRANT USAGE ON SCHEMA public TO opscore_runtime',
     'GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO opscore_runtime',
@@ -58,13 +59,13 @@ test('migration 059 grants direct runtime privileges and transfers unscoped syst
     'GRANT INSERT ON TABLE public.worker_guard_system_events TO opscore_runtime',
     'REVOKE ALL PRIVILEGES ON TABLE public.schema_migrations FROM opscore_runtime',
     'GRANT SELECT ON TABLE public.spatial_ref_sys TO opscore_runtime'
-  ]) assert.ok(migration.includes(expected), 'missing migration clause: ' + expected);
+  ]) assert.ok(normalizedMigration.includes(expected), 'missing migration clause: ' + expected);
   for (const table of ['login_throttle', 'firewall_rate_buckets', 'worker_guard_system_events']) {
     assert.ok(migration.includes('ALTER POLICY opscore_system_table_guard ON public.' + table + ' TO opscore_runtime'));
   }
-  assert.ok(!migration.includes('GRANT opscore_app TO opscore_runtime'));
-  assert.ok(!migration.includes('TO PUBLIC'));
-  assert.ok(!/BYPASSRLS|CREATEROLE|CREATEDB/i.test(migration));
+  assert.ok(!normalizedMigration.includes('GRANT opscore_app TO opscore_runtime'));
+  assert.ok(!normalizedMigration.includes('TO PUBLIC'));
+  assert.ok(!/BYPASSRLS|CREATEROLE|CREATEDB/i.test(normalizedMigration));
 });
 
 test('migration 057 exposes only a runtime-bound read-only migration 056 attestation function', () => {
