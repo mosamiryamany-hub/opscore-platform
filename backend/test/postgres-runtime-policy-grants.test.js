@@ -33,7 +33,7 @@ test('migration runner verifies runtime role RLS helper privileges without grant
 
 test('live PostgreSQL gate tests the runtime role and tenant policies', () => {
   const gate = read('scripts/postgres-live-rls-gate.js');
-  assert.match(gate, /052_runtime_policy_function_grants\\.sql/);
+  assert.ok(gate.includes('052_runtime_policy_function_grants.sql'));
   assert.match(gate, /SET LOCAL ROLE opscore_runtime/);
   assert.match(gate, /runtime-role-tenant-self-read/);
   assert.match(gate, /runtime-role-cross-tenant-read-denied/);
@@ -60,7 +60,7 @@ test('migration 059 grants direct runtime privileges and transfers unscoped syst
     assert.ok(migration.includes('ALTER POLICY opscore_system_table_guard ON public.' + table + ' TO opscore_runtime'));
   }
   assert.ok(!migration.includes('GRANT opscore_app TO opscore_runtime'));
-  assert.ok(!/TO\\s+PUBLIC/i.test(migration));
+  assert.ok(!migration.includes('TO PUBLIC'));
   assert.ok(!/BYPASSRLS|CREATEROLE|CREATEDB/i.test(migration));
 });
 
