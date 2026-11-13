@@ -161,7 +161,8 @@ test('database security proof performs one catalog query', () => {
   const db={prepare(sql){calls++;used=sql;return{get(){return{
     public_table_count:132,rls_enabled_table_count:131,rls_forced_table_count:131,
     tables_without_rls_count:1,non_postgis_tables_without_rls_count:0,non_postgis_tables_without_force_rls_count:0,
-    spatial_ref_sys_runtime_write_access_count:0,migration_ledger_table_count:1,
+    spatial_ref_sys_runtime_write_access_count:0,postgis_metadata_view_count:2,
+    postgis_metadata_view_runtime_write_access_count:0,migration_ledger_table_count:1,
     migration_ledger_without_force_rls_count:0,migration_ledger_runtime_privileges_count:0,
     identity_tables_without_rls_with_runtime_access_count:0,
     ...SAFE_RUNTIME_ROLE,
@@ -292,7 +293,6 @@ test('missing system operational policy evidence cannot default to a safe zero',
     control_plane_table_count: 3,
     control_plane_policy_valid_table_count: 3,
     control_plane_runtime_privilege_gap_count: 0,
-    postgis_metadata_view_count: 2,
     ...SAFE_RUNTIME_ROLE
   }, fixedTime);
   assert.equal(proof.publicSchema.postgisMetadataViews.runtimeWriteAccessCount, null);
