@@ -39,6 +39,8 @@ test('live PostgreSQL gate tests the runtime role and tenant policies', () => {
   assert.match(gate, /runtime-role-cross-tenant-read-denied/);
   assert.match(gate, /legacy_app_member/);
   assert.match(gate, /runtime-role-system-table-rls-and-least-privilege/);
+  assert.ok(gate.includes("matches.length !== 3"));
+  assert.ok(gate.includes("aliasCounts.n !== 2 || aliasCounts.sn !== 1"));
   const workflow = fs.readFileSync(path.resolve(root, '..', '.github/workflows/digital-twin-postgres-live.yml'), 'utf8');
   assert.ok(workflow.includes('backend/sql/postgres/**'));
   assert.ok(workflow.includes('CREATE ROLE opscore_runtime NOLOGIN'));
