@@ -15,9 +15,8 @@ const {warn} = require('./observability');
 
 function isMissingPostgresFunction(error, functionName) {
   if (error?.code === '42883') return true;
-  const message = String(error?.message || error);
-  const escapedName = String(functionName).replace(/[.*+?^${}()|[\]\\]/g, '\\const {warn} = require('./observability');');
-  return new RegExp('\\b' + escapedName + '\\s*\\([^\\n]*\\)\\s+does not exist', 'i').test(message);
+  const message = String(error?.message || error).toLowerCase();
+  return message.includes(String(functionName).toLowerCase()) && message.includes('does not exist');
 }
 const ROLES = [
   'owner',
