@@ -368,7 +368,7 @@ async function main() {
 
     await runProcess('docker', dockerPassArgs(
       containerId, containerPassPath,
-      'pg_dump', '--format=custom', '--no-owner', '--no-acl', '--file=-',
+      'pg_dump', '--format=custom', '--no-owner', '--no-acl',
       '--host=127.0.0.1', '--port=5432', '--username=neondb_owner', '--dbname=' + SOURCE_DATABASE
     ), { stdoutFile: archiveFile, timeoutMs: 10 * 60 * 1000 });
     const archiveBytes = fs.statSync(archiveFile).size;
