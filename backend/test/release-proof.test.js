@@ -321,20 +321,18 @@ test('embedded GitHub Actions identity gates production release only with signed
 test('isolated behavioral evidence cannot satisfy the production acceptance contract', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-behavioral-not-production-'));
   try {
-    const behavioral = writeJsonEvidence(dir, 'PRODUCTION_ACCEPTANCE_BEHAVIORAL.json', {
-      schemaVersion: 'opscore.production-acceptance-behavioral.v2',
-      status: 'PASS',
-      sourceCommit: SHA,
-      pipelineId: '2978538209',
-      testedTarget: 'isolated disposable acceptance engine',
-      productionHost: null,
-      productionHostBehavioralStatus: 'REQUIRES_RETEST',
-      productionCertification: false,
-      checks: [
-        { id: 'tenant-session-isolation', status: 'PASS' },
-        { id: 'cross-tenant-access-denied', status: 'PASS' }
-      ]
-    });
+    const behavioral = writeJsonEvidence(dir, 'PRODUCTION_ACCEPTANCE_BEHAVIORAL.json',
+      productionAcceptanceEvidence(SHA, '2978538209', {
+        // Every v1 acceptance field is populated and valid; the schema identity
+        // is the only deliberately different field. This proves schema separation,
+        // not merely rejection of an incomplete behavioral report.
+        schemaVersion: 'opscore.production-acceptance-behavioral.v2',
+        testedTarget: 'isolated disposable acceptance engine',
+        productionHost: null,
+        productionHostBehavioralStatus: 'REQUIRES_RETEST',
+        productionCertification: false
+      })
+    );
 
     const result = readProductionAcceptanceEvidence({
       OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: behavioral.sha256
