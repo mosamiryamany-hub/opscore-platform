@@ -197,6 +197,19 @@ function createRateLimiter(config, db){
     return {remaining:Math.max(0,limit-bucket.count),resetAt:bucket.startedAt+windowMs};
   };
 }
+// Production logins always use shared PostgreSQL state across independent Vercel instances.
+// Non-production harnesses preserve their explicit FIREWALL_RATE_STATE so disposable
+// acceptance roles do not need production-only RLS policies or write grants.
+function createLoginRateLimiter(config, db){
+  const runtimeEnvironment=String(config?.nodeEnv||process.env.NODE_ENV||'development').trim().toLowerCase();
+  const state=runtimeEnvironment==='production' ? 'database' : config?.firewallRateState;
+  return createRateLimiter({
+    ...config,
+    firewallRateState:state,
+    firewallRateWindowMs:config?.loginRateWindowMs ?? config?.firewallRateWindowMs,
+    firewallRateLimit:config?.loginRateLimit ?? config?.firewallRateLimit
+  },db);
+}
 function purgeExpiredRateBuckets(db, nowMs=Date.now(), windowMs=60000){ const cutoff=nowMs-windowMs; return db.prepare('DELETE FROM firewall_rate_buckets WHERE updated_at < ?').run(new Date(cutoff).toISOString()).changes; }
 
 function extractClaimedOrganizationIds(req) {
@@ -242,4 +255,4 @@ function assertTenantAlignment(req, ctx) {
   return true;
 }
 
-module.exports={inspectRequest,productionSafetyGate,validateOsrmBaseUrl,assertOsrmHostResolvesSafely,createRateLimiter,isTrustedProxy,purgeExpiredRateBuckets,extractClaimedOrganizationIds,assertTenantAlignment};
+module.exports={inspectRequest,productionSafetyGate,validateOsrmBaseUrl,assertOsrmHostResolvesSafely,createRateLimiter,createLoginRateLimiter,isTrustedProxy,purgeExpiredRateBuckets,extractClaimedOrganizationIds,assertTenantAlignment};
