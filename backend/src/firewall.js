@@ -201,7 +201,7 @@ function createRateLimiter(config, db){
 // Non-production harnesses preserve their explicit FIREWALL_RATE_STATE so disposable
 // acceptance roles do not need production-only RLS policies or write grants.
 function createLoginRateLimiter(config, db){
-  const runtimeEnvironment=String(config?.nodeEnv||process.env.NODE_ENV||'development').trim().toLowerCase();
+  const runtimeEnvironment=String(process.env.VERCEL_ENV||config?.nodeEnv||process.env.NODE_ENV||'development').trim().toLowerCase();
   const state=runtimeEnvironment==='production' ? 'database' : config?.firewallRateState;
   return createRateLimiter({
     ...config,
