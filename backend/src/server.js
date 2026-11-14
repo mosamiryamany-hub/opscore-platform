@@ -981,6 +981,19 @@ function signedWorkOrdersReadEnabled(req) {
     && String(req.method || '').toUpperCase() === 'GET'
     && supportedReadPath;
 }
+function signedWorkOrdersWriteEnabled(req) {
+  const pathname = String(req.url || '').split('?')[0];
+  const method = String(req.method || '').toUpperCase();
+  const supportedWritePath = (method === 'POST' && pathname === '/api/v1/work-orders')
+    || (method === 'PATCH' && /^\/api\/v1\/work-orders\/[^/]+$/.test(pathname))
+    || (method === 'POST' && /^\/api\/v1\/work-orders\/[^/]+\/comments$/.test(pathname));
+  return process.env.VERCEL_ENV === 'preview'
+    && String(process.env.OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_WRITE_ENABLED || '').toLowerCase() === 'true'
+    && supportedWritePath;
+}
+function signedWorkOrdersContextEnabled(req) {
+  return signedWorkOrdersReadEnabled(req) || signedWorkOrdersWriteEnabled(req);
+}
 function runSignedWorkOrdersRead(res, c, reader, responseHeaders = {}) {
   if (c.apiKeyId || !c.sessionId || !store.db || store.db.engine !== 'postgres'
       || typeof store.db.activateVerifiedTenantContext !== 'function') {
@@ -1023,6 +1036,47 @@ function sendWorkOrderRead(req, res, c, reader, responseHeaders = {}) {
   if (!signedWorkOrdersReadEnabled(req)) return json(res, 200, reader(), responseHeaders);
   return runSignedWorkOrdersRead(res, c, reader, responseHeaders);
 }
+function runSignedWorkOrderWrite(res, c, writer, responder) {
+  if (c.apiKeyId || !c.sessionId || !store.db || store.db.engine !== 'postgres'
+      || typeof store.db.activateVerifiedTenantContext !== 'function'
+      || typeof store.withCallerManagedTransaction !== 'function') {
+    return json(res, 401, { error: { code: 'SIGNED_TENANT_SESSION_REQUIRED' } }, { 'cache-control': 'no-store' });
+  }
+  if (store._txDepth !== 0) {
+    return json(res, 503, { error: { code: 'SIGNED_TENANT_TRANSACTION_STATE_INVALID' } }, { 'cache-control': 'no-store' });
+  }
+  let transactionOpen = false;
+  try {
+    store.db.exec('BEGIN');
+    transactionOpen = true;
+    store.db.activateVerifiedTenantContext();
+
+    // CI-only red-team probe: tenant writes must use signed claims, not caller-settable GUCs.
+    if (process.env.CI === 'true'
+        && String(process.env.OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_TAMPER_TEST || '').toLowerCase() === 'true') {
+      store.db.prepare(
+        "SELECT set_config('app.tenant_id', ?, true), set_config('app.user_id', ?, true), set_config('app.access_mode', ?, true)"
+      ).run('raw-guc-forged-tenant', 'raw-guc-forged-user', 'backoffice');
+    }
+
+    const result = store.withCallerManagedTransaction(writer);
+    store.db.exec('COMMIT');
+    transactionOpen = false;
+    return responder(result, {
+      'cache-control': 'no-store',
+      'x-opscore-signed-tenant-context': 'verified'
+    });
+  } catch (error) {
+    if (transactionOpen) {
+      try { store.db.exec('ROLLBACK'); } catch (_) { /* request teardown rolls back if necessary */ }
+    }
+    warn('signed_work_order_write_failed', {
+      errorCode: safeDatabaseErrorCode(error),
+      organizationId: c.organizationId
+    });
+    return fail(res, error);
+  }
+}
 function requireCtx(req, res) {
   const c = ctx(req);
   if (!c) {
@@ -1033,7 +1087,7 @@ function requireCtx(req, res) {
   // Their handlers use one READ ONLY transaction bound to backend/xid; all writes,
   // PDF streaming, evidence-integrity auditing, and other routes keep their own paths.
   try {
-    if (signedWorkOrdersReadEnabled(req)
+    if (signedWorkOrdersContextEnabled(req)
         && !c.apiKeyId
         && c.sessionId
         && store.db
@@ -1069,8 +1123,11 @@ function requireCtx(req, res) {
 function idempotencyKey(req) {
   return req.headers['idempotency-key'] || req.headers['x-idempotency-key'] || '';
 }
-function idemJson(res, record, createdStatus = 200) {
-  return json(res, record.__idempotent ? 200 : createdStatus, record.payload, { 'x-idempotency-replayed': record.__idempotent ? 'true' : 'false' });
+function idemJson(res, record, createdStatus = 200, responseHeaders = {}) {
+  return json(res, record.__idempotent ? 200 : createdStatus, record.payload, {
+    ...responseHeaders,
+    'x-idempotency-replayed': record.__idempotent ? 'true' : 'false'
+  });
 }
 function sendFile(res, file, download) {
   if (!fs.existsSync(file))
@@ -2814,7 +2871,11 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
     } catch (e) {
       return fail(res, e);
     }
-    return body(req).then(b => json(res, 201, store.createWorkOrder(c, b))).catch(e => fail(res, e));
+    return body(req).then(b => {
+      const write = () => store.createWorkOrder(c, b);
+      if (!signedWorkOrdersWriteEnabled(req)) return json(res, 201, write());
+      return runSignedWorkOrderWrite(res, c, write, (result, headers) => json(res, 201, result, headers));
+    }).catch(e => fail(res, e));
   }
   const wcp = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/completion-package$/);
   if (wcp && req.method === 'GET')
@@ -2841,10 +2902,14 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
     } catch (e) {
       return fail(res, e);
     }
-    return body(req).then(b => idemJson(res, store.idempotentWrite(c, 'work_order_update', idempotencyKey(req), {
-      workOrderId: wm[1],
-      body: b
-    }, () => store.updateWorkOrder(c, wm[1], b)), 200)).catch(e => fail(res, e));
+    return body(req).then(b => {
+      const write = () => store.idempotentWrite(c, 'work_order_update', idempotencyKey(req), {
+        workOrderId: wm[1],
+        body: b
+      }, () => store.updateWorkOrder(c, wm[1], b));
+      if (!signedWorkOrdersWriteEnabled(req)) return idemJson(res, write(), 200);
+      return runSignedWorkOrderWrite(res, c, write, (record, headers) => idemJson(res, record, 200, headers));
+    }).catch(e => fail(res, e));
   }
   const wr = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/operational-risk$/);
   if (wr && req.method === 'GET')
@@ -2858,10 +2923,14 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
     } catch (e) {
       return fail(res, e);
     }
-    return body(req).then(b => idemJson(res, store.idempotentWrite(c, 'work_order_comment', idempotencyKey(req), {
-      workOrderId: cm[1],
-      body: b.body
-    }, () => store.addComment(c, cm[1], b.body)), 201)).catch(e => fail(res, e));
+    return body(req).then(b => {
+      const write = () => store.idempotentWrite(c, 'work_order_comment', idempotencyKey(req), {
+        workOrderId: cm[1],
+        body: b.body
+      }, () => store.addComment(c, cm[1], b.body));
+      if (!signedWorkOrdersWriteEnabled(req)) return idemJson(res, write(), 201);
+      return runSignedWorkOrderWrite(res, c, write, (record, headers) => idemJson(res, record, 201, headers));
+    }).catch(e => fail(res, e));
   }
   const eu = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/evidence-uploads$/);
   if (eu && req.method === 'POST') {
