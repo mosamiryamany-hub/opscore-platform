@@ -1033,6 +1033,10 @@ function sendFile(res, file, download) {
   res.writeHead(200, headers);
   fs.createReadStream(file).pipe(res);
 }
+function safeDatabaseErrorCode(error) {
+  const code = String(error && error.code || '').trim().toUpperCase();
+  return /^[A-Z0-9_]{1,64}$/.test(code) ? code : 'UNCLASSIFIED';
+}
 function route(req, res) {
   const firewallInfo=inspectRequest(req, config);
   const firewallRate=firewallRateLimit(req);
@@ -1076,6 +1080,10 @@ function route(req, res) {
         db.ping();
         return json(res, 200, payload);
       } catch (e) {
+        warn('database.health_probe_failed', {
+          errorCode: safeDatabaseErrorCode(e),
+          route: '/api/health'
+        });
         return json(res, 200, { ...payload, ok: false, status: 'degraded' });
       }
     }
@@ -1127,6 +1135,10 @@ function route(req, res) {
     try {
       return json(res, 200, readDatabaseSecurityProof(store.db));
     } catch (e) {
+      warn('database.security_proof_failed', {
+        errorCode: safeDatabaseErrorCode(e),
+        route: '/api/verify/database-security'
+      });
       return json(res, 503, {
         schemaVersion: 'opscore.public-database-security-proof.v1',
         status: 'UNAVAILABLE',
@@ -1142,7 +1154,13 @@ function route(req, res) {
       const eng = store && store.db && store.db.engine ? store.db.engine : (config.databaseEngine || 'unknown');
       let ok = false;
       if (store && store.db && typeof store.db.prepare === 'function') {
-        try { store.db.prepare('SELECT 1 AS ok').get(); ok = true; } catch (_) { ok = false; }
+        try { store.db.prepare('SELECT 1 AS ok').get(); ok = true; } catch (e) {
+          warn('database.connectivity_proof_failed', {
+            errorCode: safeDatabaseErrorCode(e),
+            route: '/api/verify/database'
+          });
+          ok = false;
+        }
       }
       return json(res, 200, {
         schemaVersion: 'opscore.public-database-proof.v1',
