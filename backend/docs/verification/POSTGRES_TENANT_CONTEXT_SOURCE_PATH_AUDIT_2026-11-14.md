@@ -75,7 +75,7 @@ This was a deterministic source-level default mismatch for production environmen
 
 A pure unit test covers production, test/development, blank values, explicit `verify-full`, and explicit `require`. This code change does not inspect or alter any deployed environment variable.
 
-**Classification:** source fix applied on this branch; CI verification pending for the new head.
+**Classification:** source fix applied and verified by the new unit test in CI at source head `8524896fb0d466048aee8a6b3b7d65247bce8339` (`pg-database-sync.test.js`: 4/4 pass in both CI jobs).
 
 ### F-06 — Authentication, bootstrap, migration, and diagnostic paths are purpose-specific, not ordinary field requests
 
@@ -120,3 +120,14 @@ A pure unit test covers production, test/development, blank values, explicit `ve
 - `backend/scripts/operational-worker.js`
 - `backend/test/operational-worker-runtime-guard.test.js`
 - `backend/docs/verification/POSTGRES_TENANT_CONTEXT_SOURCE_PATH_AUDIT_2026-11-14.md`
+
+
+## Follow-up CI evidence — source head `8524896fb0d466048aee8a6b3b7d65247bce8339`
+
+The two source corrections above were exercised by the CI runs triggered for this branch head:
+
+- **OpsCore CI — run `43632691027`: SUCCESS.** Backend release regression: 145/145 files passed, 667 tests passed, 0 failed, 3 skipped (`PASS_WITH_SKIPS`). Mobile source/contract verification and mobile dependency audit also passed. The new `operational-worker-runtime-guard.test.js` passed 1/1; `pg-database-sync.test.js` passed 4/4.
+- **Vercel contract verification — run `43632691276`: SUCCESS.** The same backend release suite completed with 667 passed, 0 failed, 3 skipped; security dependency audit and per-route functional contract acceptance passed. The `deploy` job and deploy-bound PostgreSQL acceptance job were both **SKIPPED**; no deployment occurred.
+- **Isolated PostgreSQL 18 acceptance — run `43632690981`: SUCCESS.** The Node signed-tenant-context gate emitted `status=PASS` and **112/112** passing assertions using `opscore_runtime` with `BYPASSRLS=false` against disposable database `opscore_http_acceptance`. The source-derived route matrix reported **346/346** route probes passing; logical restore reported **136 tables** and `PASS`; cleanup post-check reported zero remaining synthetic users and throttle rows. The same workflow explicitly emitted `PRODUCTION_TENANT_AND_NEON_PITR_CERTIFICATION=false`.
+
+These are CI/disposable-database results for the cited commit, not Neon Preview HTTP evidence, Vercel deployment evidence, production isolation certification, or a Neon PITR drill. The production trust boundary remains **NOT CERTIFIED**.
