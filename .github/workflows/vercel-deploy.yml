@@ -263,8 +263,12 @@ jobs:
           node -e '
             const fs = require("node:fs");
             const evidence = JSON.parse(fs.readFileSync("docs/verification/API_ROUTE_ACCEPTANCE_RESULT.json", "utf8"));
-            if (evidence.status !== "PASS" || Number(evidence.failed) !== 0 ||
+            if (evidence.schemaVersion !== "opscore.api-route-acceptance.v1" ||
+                evidence.engine !== "sqlite" || evidence.status !== "PASS" ||
+                Number(evidence.failed) !== 0 ||
+                Number(evidence.testedRoutes) < 300 ||
                 Number(evidence.testedRoutes) !== Number(evidence.inventoryRouteCount) ||
+                Number(evidence.passed) !== Number(evidence.testedRoutes) ||
                 String(evidence.commitSha || "").toLowerCase() !== String(process.env.GITHUB_SHA || "").toLowerCase() ||
                 String(evidence.pipelineId || "") !== String(process.env.GITHUB_RUN_ID || "")) {
               throw new Error("API_ROUTE_ACCEPTANCE_EVIDENCE_IDENTITY_OR_RESULT_INVALID");
