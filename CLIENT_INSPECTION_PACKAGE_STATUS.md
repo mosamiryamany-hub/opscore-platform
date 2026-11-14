@@ -1,57 +1,39 @@
 # OpsCore v0.11.62 — Client Inspection Package Status
 
-Delivery class: commercial source-code package.
-Commercial CI closure: `PASS_WITH_BUYER_RESIDUALS` for the exact candidate below.
-Production certification: `NOT_ESTABLISHED`.
-Production isolation certification: `NOT_CERTIFIED`.
+**Status: INTERNAL TECHNICAL INSPECTION ONLY — NO LICENSE GRANT — NO DISTRIBUTION AUTHORIZED.**
 
-## Exact candidate identity
+This static record does not identify a current archive. The source commit, Secure Release run, artifact ID, archive byte count/SHA-256, SBOM, attestation and test evidence must be read from one successful exact-head GitHub Actions Secure Release run. Any later source, release-tooling or package change invalidates prior candidate identity.
 
-- Repository: https://github.com/mosamiryamany-hub/opscore-platform
-- Branch: `main`
-- Commit: `d940152d1428d82d9bb0c57695d929099a648ac3`
-- Secure Release run: [43308699094](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/43308699094)
-- GitHub artifact: `opscore-release-43308699094` (artifact ID `13824023354`)
-- Nested archive: `OpsCore-release.zip` — 1,966,630 bytes
-- SHA-256: `5a5b731b17f1c8dcc1c102ea5c79fa3e4d01bb2750d91b6d941e6a02a068de9c`
+## Rights boundary
 
-All values above identify only this source candidate and its artifact. Any later source, release-tooling or package change requires a new Secure Release and new archive digest.
+The commercial classification `PASS_WITH_BUYER_RESIDUALS` is a technical status only. It is not a license, sale approval, distribution authorization, warranty or buyer acceptance. The former use-only source license is withdrawn. Package metadata must be `UNLICENSED`; the package must contain no first-party `LICENSE` or `LICENCE` grant file. All rights are reserved pending a separate written agreement approved and signed by the rights holder.
 
-## Release evidence
+## Exact-run release evidence
 
-Run 43308699094 completed successfully with all 29 workflow steps successful. The run produced SBOM generation/verification, buyer installation/self-validation, archive, external release statement, artifact Attestation and uploaded artifact.
+For any future technical candidate, verify that the same exact-head workflow run produced:
+- `OpsCore-release.zip` and the external release statement;
+- archive byte count and SHA-256 independently recalculated from the downloaded ZIP;
+- CycloneDX SBOM and provenance attestation bound to the archive digest;
+- JUnit and workflow step results;
+- complete root/mobile dependency-audit JSON and i18n forensic evidence.
 
-The archive statement records:
-- `commercialClosure: PASS_WITH_BUYER_RESIDUALS`
-- `productionCertification: false`
-- `productionAcceptance: NOT_VERIFIED_AT_BUILD`
+An attestation proves provenance of the exact artifact; it does not grant rights, prove that a commit was signed, or certify production behavior by itself.
 
-The archive digest was independently recalculated and matched the release statement. Artifact Attestation is proof about the exact artifact's provenance; it is not a signed Git commit or production certification.
+## Seller-reference production proof
 
-## Mobile source and dependency evidence
+The public production health, deployment, release and database-security endpoints currently identify the seller-operated deployment. The live release proof reports `PASS_WITH_BUYER_RESIDUALS` and `productionIsolationCertification=CERTIFIED` for the seller reference only. Buyer production is not certified by seller-reference evidence. The recovery evidence is a branch-point comparison, not full PITR/RPO/RTO certification. Tenant-route coverage and functional API contract acceptance remain narrower scopes than complete business-flow acceptance.
 
-- Expo SDK 58.0.23 / React Native 0.88.1 / React 19.3.0.
-- Exact run #6 mobile npm audit: zero findings across info, low, moderate, high and critical.
-- Expo Doctor: 20/20 on the isolated SDK58 resolver workflow; Android/iOS/web JavaScript exports succeeded.
-- Signed AAB/IPA, physical-device QA, Google Play Internal Testing, TestFlight and store publication are not included.
-- Native-speaker translation review remains 0/114; language production qualification remains 0/114. Keep machine-translation disclosure visible.
+## Buyer/environment residuals
 
-## Current production deployment
+- EAS project/account linkage, native Android/iOS signing, builds, physical-device QA, store accounts and publication.
+- Native-speaker/domain review of translations; current production-qualified count is 0/114.
+- Buyer credentials/licenses/live acceptance for identity, messaging, telephony/call-center, payments, webhooks, object storage, KMS/HSM, licensed maps/road routing and cloud accounts.
+- Buyer-environment database privilege review, behavioral tenant-isolation acceptance, backup/restore, WAF/TLS, observability, recovery and operational acceptance.
 
-Vercel production deployment `dpl_JD2jLc2ifxtMezaoAovgFALmapjH` is READY and identifies the same source commit. The public site and `/api/health` were live-checked; health returned 200. `/api/ready` returned 401 without an authorized session, so authenticated readiness acceptance remains open. Production database role actually used by Vercel and production-wide tenant isolation are not independently certified.
+## Buyer / seller responsibility boundary
 
-## Buyer-owned residuals
+The seller remains responsible for fixable defects in delivered source, migrations, authorization, tests, package integrity, release tooling and handoff documentation. Buyer-specific accounts, credentials, third-party licenses, external services, native signing and target-environment acceptance are environment-specific responsibilities.
 
-- EAS project/account linkage, native Android/iOS signing, builds, physical-device QA, store accounts, submission and distribution.
-- Native-speaker/domain review of all translations.
-- Buyer credentials/licenses/live acceptance for OIDC/JWKS, email/SMS/WhatsApp/carrier, call-center/telephony, payments, webhooks, object storage, KMS/HSM, licensed maps/road routing and cloud accounts.
-- Production database privilege dependency review, behavioral tenant-isolation acceptance, application-level backup/restore, WAF/TLS, observability, recovery and target environment acceptance.
-- Contract must settle ownership, modification/distribution rights, resale/sublicensing, third-party licenses, support, update scope and responsibility allocation. The bundled license grants internal-use only and does not itself grant resale.
+## Final prohibition
 
-## Buyer / Seller responsibility boundary
-
-Seller remains responsible for fixable defects in delivered source, migrations, authorization, tests, package integrity, release tooling and handoff documentation before acceptance. Buyer-specific accounts, credentials, licensing, external services, native signing and target-environment acceptance remain buyer-owned.
-
-## Historical evidence
-
-Older GitLab pipeline and Preview references are preserved only under `docs/archive/`. Previous candidate IDs, test counts, dependency findings and digests must not be reused for the current or a future release.
+Do not market, sell, transfer, publish, or deliver this source package while the rights hold remains active. Technical tests, Production health, release artifacts, hashes, SBOMs and attestations do not create a license.

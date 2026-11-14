@@ -1,79 +1,43 @@
 # OpsCore v0.11.62 — Start Here (Buyer)
 
-## What you received
-Commercial **source-code** package for a multi-tenant field operations platform (web/API + PostgreSQL assets + mobile source). Verified candidate: GitHub Actions run 43308699094 on commit `d940152d1428d82d9bb0c57695d929099a648ac3`. Artifact `opscore-release-43308699094` contains `OpsCore-release.zip` (1,966,630 bytes; SHA-256 `5a5b731b17f1c8dcc1c102ea5c79fa3e4d01bb2750d91b6d941e6a02a068de9c`). Any newer source commit requires a new run and digest.
+> **IMPORTANT: NO LICENSE GRANT — NO AUTHORIZED USE OR DELIVERY.** This page is technical documentation only. Do not install, run, copy, modify, deploy, distribute, or commercially exploit the source unless and until the rights holder approves and signs a separate written license agreement.
 
-| Field | Value |
-|------|--------|
-| Commercial class | `PASS_WITH_BUYER_RESIDUALS` |
-| Production isolation certification | `NOT_CERTIFIED` (formal badge; see honesty section) |
-| Version | 0.11.62 |
+## What this package represents
 
-## First 15 minutes (clean activation)
+OpsCore is a multi-tenant operational source package comprising web/API source, PostgreSQL assets/migrations and Expo mobile source. The exact release identity (commit, run, artifact, archive SHA-256, SBOM and attestation) is available only from a successful exact-head Secure Release run. Static repository documents are not a substitute for same-run artifact evidence.
 
-### Requirements
-- **Node.js >=22.23.4 and <23**. Node 24 is outside the supported engine range.
-- PostgreSQL 16+ (18 supported), or local SQLite for demo only.
-- For PostgreSQL migrations: **direct** DB host (not a `-pooler` endpoint).
+## Commercial and legal boundary
 
-### Install
-```bash
-cd backend
-npm ci
-# Optional SQLite-only demo (unset PostgreSQL URLs first):
-# unset DATABASE_ENGINE OPSC_DATABASE_URL DATABASE_URL
-# Set the four OPSC_DEMO_PASSWORD_* variables locally (12+ chars each).
-# npm run seed:demo
-# npm run dev
-```
+- License grant: `NONE_PENDING_RIGHTS_HOLDER_DECISION`.
+- Distribution authorization: `false`.
+- All rights are reserved.
+- No source-use, installation, execution, inspection, copying, modification, hosting, publication, distribution, sale, resale, sublicensing, transfer, or commercial exploitation is authorized.
+- The former use-only license is withdrawn. No `PROPRIETARY_LICENSE.txt` or `backend/LICENSE.txt` is part of the active rights model.
+- A future grant requires a separate written agreement approved and signed by the rights holder.
 
+## Technical scope (informational only)
 
-### PostgreSQL migrations (isolated / test database only by default)
-```bash
-export OPSC_MIGRATION_DATABASE_URL='postgresql://USER:PASS@HOST/your_acceptance_db?sslmode=require'
-export OPSC_MIGRATION_CONFIRM_DATABASE='your_acceptance_db'
-node scripts/apply-postgres-migrations.js --apply
-```
-The database name must match `/preview|test|testing|ci|acceptance|scratch|disposable/i`. **Do not set `OPSC_MIGRATION_ALLOW_PRODUCTION` from this buyer quickstart and do not run this command against Production.** A production migration is a separate controlled change: it requires an explicitly approved target, current restorable backup/restore evidence, a reviewed migration plan and rollback procedure, a maintenance window, and separate authorization by the production owner.
+The source includes backend/API, web operations interfaces, PostgreSQL schema and migration tooling, auth/session/tenant controls, Contact Center resources, mobile source, tests, release tooling and documentation.
 
-### Real PostgreSQL activation
+Translation catalog: 114 locale codes; 1 English source, 109 machine-assisted drafts and 4 English fallbacks. Native-speaker review and production qualification remain 0/114 until independently completed. No linguistic qualification is claimed.
 
-Do not run `seed:demo` against PostgreSQL; it is strictly a local SQLite demo. For PostgreSQL, apply migrations with `OPSC_MIGRATION_DATABASE_URL` (owner role), then create the real first organization and owner with `npm run bootstrap` using `OPSC_DATABASE_URL` (restricted `opscore_runtime` role; do not use the elevated `opscore_app` role) and `OPSC_BOOTSTRAP_ORG_NAME`, `OPSC_BOOTSTRAP_CEO_EMAIL`, `OPSC_BOOTSTRAP_CEO_PASSWORD`.
+## Seller-reference evidence boundary
 
-### Verify
-```bash
-npm test
-npm run db:check
-npm run verify
-```
+The live production endpoints identify the seller-operated deployment and report health, release and database-security proof. The current release proof reports `PASS_WITH_BUYER_RESIDUALS` and seller-reference production isolation certification. These results apply only to that exact seller deployment. They do not certify a buyer environment, all functional business flows, full PITR/RPO/RTO or external provider connections.
 
-## Live reference deployment (seller-operated demo)
-- Site: https://opscore-platform.vercel.app/
-- Health: https://opscore-platform.vercel.app/api/health
-- Release proof: https://opscore-platform.vercel.app/api/verify/release
-- Database security proof: https://opscore-platform.vercel.app/api/verify/database-security
+## Buyer-specific work if a future agreement is executed
 
-Treat live proofs as **operator evidence for that deployment**, not as certification of *your* production until you reproduce the checks.
+- Buyer-specific Android/iOS signing, native builds, physical-device QA and app-store publication.
+- Native-speaker/domain review before production language-quality claims.
+- Licensed maps/road-routing, attribution, provider keys and quotas.
+- External provider accounts, contracts, licenses and live acceptance for identity, messaging, telephony/call-center, payments, webhooks, object storage, KMS/HSM and cloud.
+- Buyer-environment database isolation, backup/restore, recovery, WAF/TLS, observability and operational acceptance.
 
-## Honesty — do not over-claim
-**Included and verified in CI / seller acceptance paths:** multi-tenant RLS patterns, auth/session flows, commercial closure gates, package fingerprinting.
+Do not use the technical quickstart or migration instructions while no license has been granted.
 
-**Buyer / deployment-owner residuals (unless covered by a separate written agreement):**
-1. Buyer-specific Android/iOS signing, native AAB/IPA builds, physical-device QA and app-store submission.
-2. Native-speaker/domain review of all 114 locale resources before making production language-quality claims; 0/114 are currently production-qualified.
-3. Licensed maps/road-routing, attribution, provider keys and quotas.
-4. External provider accounts, contracts, licenses and live acceptance for OIDC/JWKS, email/SMS/WhatsApp/PSTN/SIP, call-center/telephony, payments, webhooks, object storage, KMS/HSM and cloud services.
-5. Exact-target production tenant-isolation, database privilege, backup/restore, RPO/RTO, TLS/WAF, observability, incident-response and operational acceptance.
-6. A separately signed commercial agreement defining ownership, permitted modification/distribution, resale/sublicensing rights, support, updates and responsibility allocation. The bundled license grants internal-use rights only.
+## Related technical records
 
-**Formal production isolation certification** remains `NOT_CERTIFIED` in product proofs until a separate formal certification process is recorded. Catalog RLS enforcement and sample production behavioral acceptance are **not** the same as that formal badge.
-
-## Next documents
-- `BUYER_DELIVERY.md` — delivery record and boundaries
-- `backend/BUYER_QUICKSTART.md` — local demo path
-- `docs/COMMERCIAL_HANDOFF.md` — handoff checklist
-- `PROPRIETARY_LICENSE.txt` / `backend/LICENSE.txt` — license terms
-
-NOT_ESTABLISHED
-
-translation
+- `BUYER_DELIVERY.md` — no-license delivery boundary.
+- `backend/BUYER_QUICKSTART.md` — technical setup reference; not permission to use.
+- `docs/COMMERCIAL_HANDOFF.md` — handoff requirements.
+- `NO_LICENSE_GRANT_NOTICE.txt` — authoritative no-license notice.

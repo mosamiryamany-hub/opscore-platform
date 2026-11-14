@@ -1,31 +1,37 @@
-# Delivery Manifest — OpsCore v0.11.62
+# Technical Release Manifest — OpsCore
 
-- Verified candidate branch: `main`.
-- Verified source commit: `d940152d1428d82d9bb0c57695d929099a648ac3`.
-- Secure Release run: [43308699094](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/43308699094).
-- Outer GitHub artifact: `opscore-release-43308699094`.
-- Nested archive: `OpsCore-release.zip`.
-- Archive bytes: `1,881,299`.
-- Archive SHA-256: `5a5b731b17f1c8dcc1c102ea5c79fa3e4d01bb2750d91b6d941e6a02a068de9c`.
-- Delivery type: commercial source-code package (backend/API, web source, PostgreSQL migrations/RLS assets and Expo mobile source).
-- Commercial class: `PASS_WITH_BUYER_RESIDUALS` for this exact candidate only.
-- `productionCertification`: `false`; `productionAcceptance`: `NOT_VERIFIED_AT_BUILD`; `productionIsolationCertification`: `NOT_CERTIFIED`.
-- Signed Android/iOS store binaries are not included. The archive contains mobile source and lockfiles.
-- Mobile locked-tree npm audit in run #6: zero findings at all severities. This is a point-in-time result; run a fresh audit for each new release.
-- Translation native-speaker review is 0/114; machine-assisted translation must remain disclosed and is not production-qualified.
-- Seller-owned scope: fixable source, migration, security, packaging, test and pre-handover dependency defects.
-- Buyer-owned scope: external provider accounts/licenses/credentials and live acceptance, licensed maps, native mobile builds/signing/store publication, native-speaker linguistic review and target-environment acceptance.
+**Package version:** Read from `backend/package.json` and the exact-run release statement.  
+**Source commit, workflow run, artifact ID, archive SHA-256, and attestation:** Must be taken only from one successful exact-head GitHub Actions Secure Release run. This source document intentionally contains no fixed candidate identifiers.
 
-## Mandatory handover checks
+## Rights and distribution
 
-1. Use only the exact-head GitHub Secure Release artifact and verify the nested ZIP SHA-256 against its external release statement.
-2. Verify the same-run SBOM, artifact Attestation, regression report, forensic i18n evidence and dependency audit JSONs.
-3. Run clean extracted-archive installation and buyer preflight using the archive's lockfiles.
-4. Production Vercel deployment for the verified source commit: `dpl_JD2jLc2ifxtMezaoAovgFALmapjH`, state READY. `/api/health` returned 200. Protected readiness/release/database endpoints require authorized acceptance credentials; a bare 401 is not a successful acceptance result.
-5. Buyer must test RLS using an isolated acceptance database under the intended least-privilege runtime role. Do not test or bootstrap production using `opscore_app`.
-6. Verify backup/restore, recovery, TLS/WAF, observability, external integrations and native mobile binaries in the actual target environment.
-7. Record acceptance against the exact archive SHA, source commit, run ID, tests and formally accepted residuals.
+- **License grant:** **NO LICENSE GRANT** (`NONE_PENDING_RIGHTS_HOLDER_DECISION`).
+- **Distribution authorization:** `false`.
+- **Sale, resale, redistribution, sublicensing, hosting for third parties, transfer, and buyer delivery:** **NOT AUTHORIZED**.
+- **Rights:** All rights reserved. This manifest is not a license and does not transfer ownership or intellectual-property rights.
+- A future grant requires a separate written agreement approved and signed by the rights holder.
 
-Production Vercel, Production Neon and `main` remain outside buyer bootstrap/migration steps unless separately authorized. A successful isolated acceptance run is not formal production certification.
+The authoritative notice is `NO_LICENSE_GRANT_NOTICE.txt`. Package metadata must remain `UNLICENSED`. No first-party `LICENSE` or `LICENCE` file may be included in the package while this hold is active.
 
-Historical GitLab and Vercel Preview instructions are retained under `docs/archive/` for traceability only; they are not the active release/deployment process.
+## Technical classification and boundaries
+
+The exact current run may report `PASS_WITH_BUYER_RESIDUALS` for the seller reference only. This classification is technical evidence, not a grant of rights, a warranty, or buyer-environment certification.
+
+Production isolation evidence applies only to the exact seller deployment and evidence identity reported by the live verification endpoints. It does not certify a buyer environment. A branch-point recovery comparison is not a full PITR/RPO/RTO certification.
+
+## Included source and disclosed buyer residuals
+
+- Backend/API, web operations interface, migrations, security controls, tests, and deployment tooling.
+- Mobile application source and lockfiles; no signed Android/iOS store binaries or app-store publication.
+- Contact-center locale resources and machine-assisted translation drafts; native-speaker/domain review remains outstanding.
+- External provider accounts, licenses, credentials, quotas, contracts, and live acceptance (including identity, messaging/telephony, storage, KMS/HSM, maps/road-routing, and cloud) remain environment-specific.
+
+## Mandatory gates before any future sale or delivery
+
+1. The rights holder decides the commercial model and exact rights to grant.
+2. A separate written agreement is approved and signed.
+3. Repository notices, package contents, metadata, manifests, and agreement are reconciled.
+4. A new exact-head release is built; archive digest, SBOM, and provenance attestation are verified.
+5. Buyer residuals and buyer-environment acceptance scope are explicitly acknowledged.
+
+Until every applicable gate passes, this manifest is technical evidence only and is not authorization to sell, distribute, or deliver the source package.
