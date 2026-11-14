@@ -85,6 +85,8 @@ test('OIDC request URL is restricted to the GitHub Actions issuer endpoint', () 
   for (const url of [
     'http://pipelines.actions.githubusercontent.com/token',
     'https://attacker.example/token',
+    'https://unlisted.actions.githubusercontent.com/token',
+    'https://actions.githubusercontent.com/token',
     'https://user:pass@pipelines.actions.githubusercontent.com/token'
   ]) assert.throws(() => validateRequestUrl(url), /GITHUB_OIDC_REQUEST_URL_NOT_ALLOWED/);
 });

@@ -51,3 +51,24 @@ test('the default production verifier does not elevate operator-open into verifi
     OPSC_PRODUCTION_ISOLATION_CERTIFICATION: 'CERTIFIED'
   }), { allowed: true, mode: 'production-operator-open' });
 });
+
+test('Vercel Preview remains available when NODE_ENV is production without opening the production gate', () => {
+  assert.deepEqual(productionSafetyGate({ nodeEnv: 'production' }, {
+    NODE_ENV: 'production',
+    VERCEL_ENV: 'preview'
+  }), { allowed: true, mode: 'preview' });
+});
+
+test('Vercel production target remains held even if config nodeEnv is not production', () => {
+  assert.throws(() => productionSafetyGate({ nodeEnv: 'development' }, {
+    NODE_ENV: 'development',
+    VERCEL_ENV: 'production'
+  }), /PRODUCTION_HOLD_ACTIVE/);
+});
+
+test('unknown Vercel deployment targets fail closed', () => {
+  assert.throws(() => productionSafetyGate({ nodeEnv: 'production' }, {
+    NODE_ENV: 'production',
+    VERCEL_ENV: 'staging'
+  }), /VERCEL_ENV_INVALID/);
+});
