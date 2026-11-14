@@ -526,8 +526,12 @@ async function main() {
         || replayA.body?.title !== updateBodyA.title) {
       throw new Error('SIGNED_CONTEXT_WORK_ORDER_PATCH_IDEMPOTENCY_REPLAY_FAILED:' + JSON.stringify({
         status: replayA.status,
+        body: replayA.body,
         signedHeader: replayA.headers?.['x-opscore-signed-tenant-context'] || null,
-        idempotentHeader: replayA.headers?.['x-idempotency-replayed'] || null
+        idempotentHeader: replayA.headers?.['x-idempotency-replayed'] || null,
+        requestIdempotencyKey: updateKeyA,
+        originalStatus: updateA.status,
+        originalBody: updateA.body
       }));
     }
     signedWriteRouteProof.patchIdempotencyReplay = 'PASS';
