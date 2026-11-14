@@ -42,9 +42,10 @@ test('async scrypt path is wired into HTTP authentication', () => {
   assert.match(server, /await store\.loginAsync/);
 });
 
-test('tooling and proprietary release boundary are present', () => {
+test('tooling and explicit no-license release boundary are present', () => {
   assert.equal(fs.existsSync(path.join(root, 'eslint.config.js')), true);
   assert.equal(fs.existsSync(path.join(root, '.prettierrc.json')), true);
   assert.equal(fs.existsSync(path.join(root, '.github', 'workflows', 'opscore-ci.yml')), true);
-  assert.equal(fs.existsSync(path.join(root, 'PROPRIETARY_LICENSE.txt')), true);
+  assert.equal(fs.existsSync(path.join(root, 'NO_LICENSE_GRANT_NOTICE.txt')), true);
+  assert.equal(fs.existsSync(path.join(root, 'PROPRIETARY_LICENSE.txt')), false);
 });

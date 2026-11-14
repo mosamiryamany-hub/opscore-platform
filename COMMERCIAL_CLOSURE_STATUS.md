@@ -1,35 +1,54 @@
-# Commercial Closure Status — OpsCore v0.11.62
+# Technical Release Status — OpsCore v0.11.62
 
-**Last mainline CI closure class:** PASS_WITH_BUYER_RESIDUALS  
-**Current commercial candidate:** identify the exact archive-producing commit and Pipeline from its generated release statement; status is PASS_WITH_BUYER_RESIDUALS only when that same Pipeline succeeds.  
-**Formal production isolation certification:** NOT_CERTIFIED  
-**Documentation refresh:** aligned to the protected commercial candidate branch.
+**Technical reference head:** `4ef126ccd59f23cebeead30224d1bcf7199535ab`  
+**Bound seller-reference pipeline:** `43588278472`  
+**Technical status:** `PASS_WITH_BUYER_RESIDUALS` for the exact reference candidate only  
+**Commercial license status:** **NO LICENSE GRANTED — COMMERCIAL MODEL PENDING**  
+**Distribution status:** **HOLD — DO NOT SELL OR DISTRIBUTE**
 
-## Verified in seller CI / package gates
-- Commercial-closure gate on exact-head pipeline
-- Automated tests bundled with the release runner
-- Migration preflight through `058_*`
-- Mobile dependency audit policy (High/Critical blocked; residuals disclosed)
-- Mobile local-database SQLCipher keying (PRAGMA key + cipher_version verification, fail-closed) and iOS privacy manifest asserted by `mobile/scripts/verify-mobile.js` in CI
-- Archive integrity + SHA-256 attestation files
+## Commercial rights hold
 
-## Seller reference production (informative — not buyer certification)
-- Health: healthy / postgres / 0.11.62
-- `/api/verify/database-security`: IDENTITY_PLANE_RLS_ENFORCED
-- `/api/verify/release` (verified candidate): CI PASS / package fingerprint PUBLISHED / PostgreSQL HTTP acceptance PASS; overall status stays UNVERIFIED until the production promotion gate passes
-- Session/tenant + recovery production gates: PASS_PRODUCTION when acceptance evidence SHA is bound to the deployed commit
-- Formal productionIsolationCertification: still NOT_CERTIFIED
+The former use-only source license is withdrawn from this repository pending the rights holder's decision on the commercial model. This notice grants no right to use, install, run, inspect, modify, copy, distribute, resell, sublicense, host, or otherwise commercially exploit the source package. All rights are reserved. A future grant requires a separate written agreement signed by the rights holder.
 
-## Buyer residuals (explicit)
-1. Signed store artifacts  
-2. Native-speaker language review  
-3. Licensed maps / external providers  
+This technical release record, passing CI, a deployment, an archive, or a fingerprint does not create a license or imply permission to distribute.
 
-## Honesty
-CI success and seller reference deployment proofs do **not** automatically certify a buyer’s production. Reproduce install, migrations, tests, and tenant isolation checks in the buyer environment.
+## Seller-reference technical evidence
 
-## Certification and buyer residuals
-- Production certification: **NOT_ESTABLISHED**.
-- Production isolation certification: **NOT_CERTIFIED**.
-- Buyer residuals include signed **mobile** store artifacts (Android/iOS), native-speaker **translation**/locale review, and licensed maps or other external providers.
+The following technical statuses are recorded for the seller reference only, bound to the exact commit and pipeline above. They are not a buyer-environment certificate and do not change the commercial hold.
 
+| Gate | Recorded status |
+|---|---|
+| commercialClosure | PASS_WITH_BUYER_RESIDUALS (technical classification only) |
+| productionSessionTenantBoundary | PASS_PRODUCTION |
+| productionRecoveryBundle | PASS_PRODUCTION |
+| productionIsolationCertification | CERTIFIED (seller reference only) |
+| neonPointInTimeRecovery | PASS_BRANCH_POINT |
+| livePostgresRls | PASS_TEST_SCOPE |
+| tenantRouteSecurityCoverage | PASS_TEST_SCOPE |
+| functionalApiRouteAcceptance | PASS_CONTRACT_SCOPE |
+| postgresHttpAcceptance | PASS |
+| mobileStoreArtifacts | REMAINING_BUYER |
+| nativeTranslationReview | REMAINING_BUYER |
+| licensedStreetMap | REMAINING_BUYER |
+
+## Certification boundary
+
+Seller-reference certification applies only to the recorded seller commit/pipeline and evidence. It does not certify a buyer's environment, and it does not grant any commercial rights.
+
+## Remaining engineering and buyer-environment work
+
+1. Signed Android/iOS store artifacts and store publication.
+2. Native-speaker/domain translation review.
+3. Licensed maps, external providers, credentials and buyer contracts.
+4. Buyer-environment installation, migration, isolation, restore and operational acceptance.
+5. PR #103 remains a separate security engineering track and must not be merged merely to create a sale milestone.
+
+## Release integrity
+
+- Historical archives bound to older commits are not current.
+- A new Secure Release may be generated for internal technical validation, but its artifact must be marked **NOT LICENSED FOR DISTRIBUTION**.
+- No archive, checksum, SBOM, or attestation overrides this rights hold.
+- Do not create or publish a sale listing or buyer delivery until the commercial model and signed rights agreement are approved.
+
+**Final commercial decision:** PENDING.  
+**Current permission to sell/distribute:** NONE.

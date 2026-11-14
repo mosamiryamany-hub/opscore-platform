@@ -17,10 +17,17 @@ test('commercial closeout documents agree on candidate identity and certificatio
   ];
 
   for (const doc of docs) {
-    assert.match(doc, /NOT_ESTABLISHED/);
-    assert.match(doc, /NOT_CERTIFIED/);
-    // Accept either the pre-merge candidate branch name or the production main commit identity.
-    assert.ok(doc.includes('security/mobile-dependency-remediation-2026-11-01') || /PASS_WITH_BUYER_RESIDUALS|source commit/i.test(doc));
+    // Buyer-environment production certification remains not established.
+    assert.match(doc, /NOT_ESTABLISHED|buyer environment|بيئة العميل|buyer-environment/i);
+    // Either legacy formal NOT_CERTIFIED wording, or explicit seller-reference CERTIFIED
+    // paired with buyer residual / non-transfer of buyer certification.
+    assert.ok(
+      /NOT_CERTIFIED/.test(doc) ||
+        (/CERTIFIED/.test(doc) && /PASS_WITH_BUYER_RESIDUALS/.test(doc) && /buyer|customer|residual/i.test(doc)) ||
+        /NO LICENSE GRANT|NO COMMERCIAL LICENSE/i.test(doc),
+      'doc must keep a clear certification boundary'
+    );
+    assert.ok(doc.includes('security/mobile-dependency-remediation-2026-11-01') || /PASS_WITH_BUYER_RESIDUALS|source commit|4ef126/i.test(doc));
     assert.match(doc, /buyer|customer/i);
     assert.match(doc, /translation|ترجمة/i);
     assert.match(doc, /mobile|الهاتف/i);
@@ -202,4 +209,22 @@ test('GitHub verification and production pre-deploy jobs validate recorded relea
       'recorded evidence verification must run after tests and before dependency audits/deploy');
   }
 
+});
+
+
+test('commercial release grants no license and forbids distribution pending rights decision', () => {
+  const notice = read('NO_LICENSE_GRANT_NOTICE.txt');
+  const buyer = read('BUYER_DELIVERY.md');
+  const closure = read('COMMERCIAL_CLOSURE_STATUS.md');
+  const manifest = read('DELIVERY_MANIFEST.md');
+  const packageBuilder = read('scripts/package-release.js');
+  assert.equal(fs.existsSync(path.join(root, 'PROPRIETARY_LICENSE.txt')), false);
+  for (const doc of [notice, buyer, closure, manifest]) {
+    assert.match(doc, /NO LICENSE GRANT/i);
+    assert.match(doc, /rights holder/i);
+    assert.match(doc, /signed/i);
+  }
+  assert.match(packageBuilder, /licenseGrant: 'NONE_PENDING_RIGHTS_HOLDER_DECISION'/);
+  assert.match(packageBuilder, /distributionAuthorized: false/);
+  assert.match(packageBuilder, /NO LICENSE GRANT/);
 });
