@@ -85,6 +85,7 @@ test('per-route functional contract acceptance across the full API inventory', a
       OPSC_DATABASE_URL: '',
       DATABASE_URL: '',
       AUTH_MODE: 'local',
+      METRICS_AUTH_TOKEN: 'route-acceptance-test-only-token',
       FIREWALL_RATE_LIMIT: '1024'
     },
     stdio: ['ignore', 'pipe', 'pipe']
@@ -113,7 +114,22 @@ test('per-route functional contract acceptance across the full API inventory', a
         });
         status = response.status;
         const bodyText = await response.text();
-        try { bodyCode = JSON.parse(bodyText)?.error?.code || null; } catch { bodyCode = bodyText.slice(0, 80); }
+        let bodyPayload = null;
+        try { bodyPayload = JSON.parse(bodyText); bodyCode = bodyPayload?.error?.code || null; }
+        catch { bodyCode = bodyText.slice(0, 80); }
+        if (route.route === '/api/verify/database-security' && status === 503 &&
+            bodyPayload?.schemaVersion === 'opscore.public-database-security-proof.v1' &&
+            bodyPayload?.status === 'UNAVAILABLE' &&
+            bodyPayload?.productionIsolationCertification === 'NOT_CERTIFIED') {
+          bodyCode = 'LOCAL_SQLITE_DATABASE_SECURITY_PROOF_UNAVAILABLE';
+        } else if (route.route === '/api/verify/deployment' && status === 503 &&
+            bodyPayload?.schemaVersion === 'opscore.public-deployment-proof.v2' &&
+            bodyPayload?.status === 'unavailable' &&
+            bodyPayload?.source?.commitSha === null &&
+            bodyPayload?.deployment?.id === null &&
+            bodyPayload?.deployment?.environment === 'unknown') {
+          bodyCode = 'LOCAL_NO_DEPLOYMENT_IDENTITY';
+        }
       } catch (error) {
         status = -1; bodyCode = error.message;
       }
@@ -127,6 +143,8 @@ test('per-route functional contract acceptance across the full API inventory', a
       if (status < 0) { verdict = 'FAIL'; reason = 'TRANSPORT_ERROR'; }
       else if (status === 429) { verdict = 'FAIL'; reason = 'RATE_LIMITED_UNVERIFIED'; }
       else if (status === 503 && ENV_DEPENDENT_503.has(String(bodyCode))) { verdict = 'PASS'; reason = `ENV_DEPENDENT_${bodyCode}`; }
+      else if (status === 503 && bodyCode === 'LOCAL_SQLITE_DATABASE_SECURITY_PROOF_UNAVAILABLE') { verdict = 'PASS'; reason = bodyCode; }
+      else if (status === 503 && bodyCode === 'LOCAL_NO_DEPLOYMENT_IDENTITY') { verdict = 'PASS'; reason = bodyCode; }
       else if (status >= 500) { verdict = 'FAIL'; reason = `UNHANDLED_5XX_${status}`; }
       else if (unknownMarker) { verdict = 'FAIL'; reason = 'ROUTE_MISSING_404'; }
       else if (route.auth === 'required' && ![401, 403].includes(status)) { verdict = 'FAIL'; reason = `AUTH_CONTRACT_${status}`; }
