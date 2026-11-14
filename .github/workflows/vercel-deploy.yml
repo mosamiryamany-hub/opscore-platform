@@ -246,6 +246,8 @@ jobs:
           OPSC_WRITE_EVIDENCE: '1'
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_RUN_ID: ${{ github.run_id }}
+          CI_COMMIT_SHA: ${{ github.sha }}
+          CI_PIPELINE_ID: ${{ github.run_id }}
         run: |
           set -euo pipefail
           test -n "${OPSC_PRODUCTION_RUNTIME_URL:-}" || { echo "PRODUCTION_RUNTIME_DATABASE_URL_REQUIRED" >&2; exit 1; }
@@ -255,6 +257,20 @@ jobs:
           if [ ! -d node_modules/pg ]; then
             npm ci --ignore-scripts
           fi
+          # Generate route-contract evidence in this deploy job's own workspace.
+          # The verify job runs on a separate runner and its filesystem is not shared.
+          node --test test/api-route-acceptance.test.js
+          node -e '
+            const fs = require("node:fs");
+            const evidence = JSON.parse(fs.readFileSync("docs/verification/API_ROUTE_ACCEPTANCE_RESULT.json", "utf8"));
+            if (evidence.status !== "PASS" || Number(evidence.failed) !== 0 ||
+                Number(evidence.testedRoutes) !== Number(evidence.inventoryRouteCount) ||
+                String(evidence.commitSha || "").toLowerCase() !== String(process.env.GITHUB_SHA || "").toLowerCase() ||
+                String(evidence.pipelineId || "") !== String(process.env.GITHUB_RUN_ID || "")) {
+              throw new Error("API_ROUTE_ACCEPTANCE_EVIDENCE_IDENTITY_OR_RESULT_INVALID");
+            }
+            console.log("DEPLOY_WORKSPACE_API_ROUTE_ACCEPTANCE=PASS", evidence.testedRoutes);
+          '
           node scripts/generate-production-acceptance-v1.js | tee "$RUNNER_TEMP/production-acceptance-summary.json"
           test -f docs/verification/PRODUCTION_ACCEPTANCE_RESULT.json
           HASH="$(sha256sum docs/verification/PRODUCTION_ACCEPTANCE_RESULT.json | awk '{print $1}')"
