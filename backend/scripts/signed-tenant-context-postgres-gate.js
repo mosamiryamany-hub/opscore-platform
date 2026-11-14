@@ -1063,6 +1063,38 @@ async function main() {
     signedEvidenceRouteProof.chunkTenantA = 'PASS';
     signedEvidenceRouteProof.chunkTenantAPersisted = 'PASS';
 
+    const evidenceChunkPolicies = await owner.query(
+      `SELECT policyname, permissive, roles, cmd, qual, with_check
+       FROM pg_policies
+       WHERE schemaname='public' AND tablename='evidence_upload_chunks'
+       ORDER BY policyname`
+    );
+    await runtimeProbe.query('BEGIN READ ONLY');
+    const evidenceRuntimeIdentity = await beginReadOnly(runtimeProbe);
+    const evidenceRuntimeAssertion = createSignedTenantContext({
+      principal: { sessionId: sessionA, userId: userA, tenantId: tenantA },
+      backendPid: evidenceRuntimeIdentity.backendPid,
+      transactionId: evidenceRuntimeIdentity.transactionId,
+      env: { OPSC_TENANT_CONTEXT_HMAC_KEY: keyHex, OPSC_TENANT_CONTEXT_KEY_ID: keyId }
+    });
+    await bindAssertion(runtimeProbe, evidenceRuntimeAssertion);
+    const evidenceRuntimeVisibility = await runtimeProbe.query(
+      `SELECT public.opscore_current_tenant() AS signed_tenant,
+              (SELECT COUNT(*)::int FROM public.evidence_uploads WHERE id=$1 AND organization_id=$2) AS parent_count,
+              (SELECT COUNT(*)::int FROM public.evidence_upload_chunks WHERE upload_id=$1) AS chunk_count`,
+      [evidenceInitA.body.uploadId, tenantA]
+    );
+    await runtimeProbe.query('COMMIT');
+    if (evidenceRuntimeVisibility.rows[0]?.signed_tenant !== tenantA
+        || evidenceRuntimeVisibility.rows[0]?.parent_count !== 1
+        || evidenceRuntimeVisibility.rows[0]?.chunk_count !== 1) {
+      throw new Error('SIGNED_CONTEXT_EVIDENCE_CHUNK_RUNTIME_RLS_VISIBILITY_DIAGNOSTIC:' + JSON.stringify({
+        visibility: evidenceRuntimeVisibility.rows[0] || null,
+        policies: evidenceChunkPolicies.rows
+      }));
+    }
+    signedEvidenceRouteProof.runtimeSignedChunkVisibility = 'PASS';
+
     const duplicateEvidenceChunkA = await queryHttp(
       port,
       '/api/v1/evidence-uploads/' + encodeURIComponent(evidenceInitA.body.uploadId) + '/chunks/0',
