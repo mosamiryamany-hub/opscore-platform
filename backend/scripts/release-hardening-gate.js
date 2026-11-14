@@ -29,7 +29,7 @@ check('cli-demo-no-hardcoded-passwords', !/password:\s*['"][^'"]+['"]/.test(cli)
 const runbook = fs.readFileSync(path.join(repoRoot, 'docs', '00-START-HERE', 'DEMO_RUNBOOK.md'), 'utf8');
 const legacyDemoCredentialMarker = ['Demo', 'Owner', '2026', 'Local!'].join('-');
 check('demo-runbook-no-legacy-password', !runbook.includes(legacyDemoCredentialMarker), 'runbook must not ship demo credentials');
-check('proprietary-license-present', fs.existsSync(path.join(repoRoot, 'PROPRIETARY_LICENSE.txt')));
+check('no-license-grant-notice-present', fs.existsSync(path.join(repoRoot, 'NO_LICENSE_GRANT_NOTICE.txt')) && !fs.existsSync(path.join(repoRoot, 'PROPRIETARY_LICENSE.txt')));
 
 const config = read('src/config.js');
 check('storage-provider-explicit', /storageProvider/.test(config) && /STORAGE_PROVIDER/.test(config), 'unsupported providers fail closed');
