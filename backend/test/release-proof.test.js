@@ -426,7 +426,7 @@ test('functionalApiRouteAcceptance flips to PASS_CONTRACT_SCOPE only with commit
     const acceptance = writeJsonEvidence(dir, 'production-acceptance.json', productionAcceptanceEvidence(SHA, pipelineId));
     const postgresHttp = writeJsonEvidence(dir, 'postgres-http-acceptance.json', postgresHttpEvidence(SHA, pipelineId));
     const route = writeJsonEvidence(dir, 'api-route-acceptance.json', {
-      schemaVersion: 'opscore.api-route-acceptance.v1', status: 'PASS', commitSha: SHA, pipelineId, testedRoutes: 358, failed: 0
+      schemaVersion: 'opscore.api-route-acceptance.v1', engine: 'sqlite', status: 'PASS', commitSha: SHA, pipelineId, testedRoutes: 358, inventoryRouteCount: 358, passed: 358, failed: 0
     });
     const env = deploymentEnv({
       OPSC_RELEASE_DEPLOYMENT_SOURCE: 'cli',
@@ -441,11 +441,18 @@ test('functionalApiRouteAcceptance flips to PASS_CONTRACT_SCOPE only with commit
     assert.equal(hasVerifiedProductionRelease(env, identityPath, acceptance.path, postgresHttp.path, route.path), true);
 
     const staleRoute = writeJsonEvidence(dir, 'stale-route.json', {
-      schemaVersion: 'opscore.api-route-acceptance.v1', status: 'PASS', commitSha: '0'.repeat(40), pipelineId, testedRoutes: 358, failed: 0
+      schemaVersion: 'opscore.api-route-acceptance.v1', engine: 'sqlite', status: 'PASS', commitSha: '0'.repeat(40), pipelineId, testedRoutes: 358, inventoryRouteCount: 358, passed: 358, failed: 0
     });
     const staleProof = createPublicReleaseProof(env, fixedNow, identityPath, acceptance.path, postgresHttp.path, staleRoute.path);
     assert.equal(staleProof.gates.functionalApiRouteAcceptance, 'NOT_VERIFIED');
     assert.equal(hasVerifiedProductionRelease(env, identityPath, acceptance.path, postgresHttp.path, staleRoute.path), true);
+
+    const incompleteRoute = writeJsonEvidence(dir, 'incomplete-route.json', {
+      schemaVersion: 'opscore.api-route-acceptance.v1', engine: 'sqlite', status: 'PASS',
+      commitSha: SHA, pipelineId, testedRoutes: 358, inventoryRouteCount: 359, passed: 358, failed: 0
+    });
+    const incompleteProof = createPublicReleaseProof(env, fixedNow, identityPath, acceptance.path, postgresHttp.path, incompleteRoute.path);
+    assert.equal(incompleteProof.gates.functionalApiRouteAcceptance, 'NOT_VERIFIED', 'incomplete inventory evidence cannot pass');
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
