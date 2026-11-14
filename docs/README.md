@@ -21,5 +21,8 @@
 - [release/CHANGELOG.md](release/CHANGELOG.md)
 - [../INTEGRATED_SHA256SUMS.txt](../INTEGRATED_SHA256SUMS.txt)
 
+## Verification Evidence
+- [Native Neon PITR canary result](../backend/docs/verification/NEON_NATIVE_PITR_CANARY_RESULT.json) — `PASS_TEST_SCOPE` on a disposable Neon Free PostgreSQL 18 canary only; production Neon PITR remains `NOT_VERIFIED`.
+
 ## Archive
 Historical gate results and prior-version reports live in `archive/`. They are retained for provenance but are **not required** for operation or buyer evaluation of the current release.
