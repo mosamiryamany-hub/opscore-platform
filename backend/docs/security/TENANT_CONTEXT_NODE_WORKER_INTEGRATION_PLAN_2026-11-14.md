@@ -135,7 +135,7 @@ For code commit `21dd4a3779508ffd5a0ab0b69f6af6697f0234d4`, GitHub Actions run `
 
 The proof environment was the disposable local PostgreSQL 18 database `opscore_http_acceptance`, with owner `neondb_owner` and runtime role `opscore_runtime`; the runtime role had `BYPASSRLS=false`. This is real Node HTTP/worker/PostgreSQL integration evidence, but it is **not** evidence from a Neon-hosted database or a deployed Vercel Preview.
 
-The current branch head `c3bde9d0c5b19eb5a689c1f1f8c324a03191a239` is two documentation-only commits ahead of the tested code head and has no code-file differences from that tested checkpoint.
+A GitHub compare from the tested code head to the branch state at this documentation update found three commits, with changes limited to `backend/docs/security/TENANT_CONTEXT_NODE_WORKER_INTEGRATION_PLAN_2026-11-14.md` and `backend/docs/verification/SIGNED_TENANT_CONTEXT_WORK_ORDERS_CI_VERIFICATION_2026-11-14.md`; no code-file differences exist after the tested source checkpoint.
 
 ### 5.3 Neon isolated branch status — schema applied, signed proof not run
 
