@@ -342,7 +342,7 @@ It prevents cross-transaction replay by binding a valid assertion to both the ac
 1. The actual Node request path must begin a DB transaction, obtain `pg_backend_pid()` and `pg_current_xact_id()` from that exact connection, ask a trusted signer to sign only the independently authenticated user/session/tenant context plus those DB values, then bind the resulting payload/signature transaction-locally on the **same** connection before any tenant query.
 2. The signer must never sign caller-supplied arbitrary user/tenant/mode values. It must derive those claims from verified HTTP session/API-key/OIDC state and an authorized membership selection.
 3. Prove the connection remains pinned to the same backend for the transaction under the actual Neon pooler and Node worker. A pooler disconnect/retry/new transaction must require a newly signed assertion.
-4. Explicitly define the policy for a transaction attempting to install a second, different signed context. The isolated no-write verifier validates each signed assertion but does not maintain a database-side one-context latch; the trusted signer/application must issue only one tenant context per transaction, or a separate safe latch mechanism must be designed.
+4. Explicitly enforce one context per transaction. A temporary-table latch prototype was added and tested below: it enforces one context in READ WRITE transactions, but CREATE TEMP fails in READ ONLY transactions; therefore it is not yet a universal solution.
 5. Measure the cost of repeated HMAC + key lookup + session lookup from RLS. No performance claim is made.
 6. Test session revocation semantics under the application's isolation level. The prototype reads session state without a row lock so it remains compatible with READ ONLY transactions; a concurrent revocation is observed according to the transaction snapshot.
 7. Keep the shared HMAC secret unavailable to `opscore_runtime`. The test signing step used `opscore_auth_definer` on the same test database solely to generate a proof assertion. Real application signing must live in the trusted server process/secret manager, not in a function callable by runtime.
@@ -355,4 +355,45 @@ It prevents cross-transaction replay by binding a valid assertion to both the ac
 - **Not approved for production:** it has not been integrated into the real Node signer/worker, has not passed real Neon pooler tests, and has not migrated any production RLS policy.
 - The HMAC key is symmetric and shared by the trusted signer and the privileged verifier owner. A compromise of the signer, `opscore_auth_definer`, `neondb_owner`, or higher database administration remains outside this credential-only proof.
 - Production isolation remains **NOT CERTIFIED**.
+
+
+
+## 12. One-context-per-transaction latch experiment — result split by transaction mode
+
+To close the gap in Section 11 point 4, the isolated branch gained:
+
+- `security_proof.activate_context_bound(payload,signature)`: validates a signed context against issuer, audience, purpose, HMAC, time bounds, backend PID, transaction ID, and the matching active test-session row; then creates/uses a private temp table `pg_temp._opscore_trusted_context_v1` with `ON COMMIT DROP`.
+- `security_proof.active_bound_context()`: returns the context stored in that temp table only when the table owner is `opscore_auth_definer` and the stored backend PID/transaction ID still match the live transaction.
+- The table has one boolean primary-key slot, so only one context can be activated for the transaction. A later activation is accepted only for the same exact payload hash and signature.
+
+### READ WRITE transaction — PASS
+
+Observed in one ordinary transaction:
+
+1. Valid signed Tenant A activation returned `true`.
+2. RLS exposed only the Tenant A test row.
+3. Raw GUCs were changed to Tenant B and `backoffice`; RLS still exposed only Tenant A.
+4. A second valid signed Tenant B assertion, bound to the same backend PID and transaction ID, was submitted for activation; it returned `false`.
+5. The active context remained Tenant A and only Tenant A's row remained visible.
+6. The temporary table owner was `opscore_auth_definer`; runtime `SELECT` and `INSERT` privileges on it were both false.
+
+### READ ONLY transaction — FAIL CLOSED, NOT SUPPORTED BY THIS LATCH
+
+The same activation path was attempted after `SET TRANSACTION READ ONLY`. PostgreSQL rejected temp-table creation with SQLSTATE `25006` (`cannot execute CREATE TABLE in a read-only transaction`). The function caught the exception and returned `false`; no context was activated and RLS exposed zero rows. A separate diagnostic function reproduced the same SQLSTATE under READ ONLY.
+
+Therefore this latch is **not suitable for any route or code path that requires a READ ONLY transaction** in its current form. The earlier no-write `verified_bound_context()` does pass READ ONLY but does not itself prevent a second signed context in the same transaction.
+
+### Runtime-created same-name temp table — fail-closed result
+
+A red-team test first created `pg_temp._opscore_trusted_context_v1` as `opscore_runtime`, then attempted activation of a valid signed assertion. Activation returned `false`, `active_bound_context()` returned NULL, and the RLS query returned zero rows. Catalog inspection confirmed that the decoy table owner was `opscore_runtime`, unlike the required `opscore_auth_definer` owner.
+
+This demonstrates the test function rejects a same-name runtime-owned temp table rather than trusting it. It does not constitute a formal review of every PostgreSQL temporary-object shadowing case.
+
+### Decision after latch test
+
+- The temp-table latch is a **candidate only for READ WRITE request transactions** on the isolated test branch.
+- It is **not a universal candidate** because it fails closed on READ ONLY transactions.
+- The read-only no-write verifier and the read-write temp latch are not yet one coherent production protocol. A future design must either establish that all tenant HTTP request transactions are READ WRITE (with source and runtime evidence) or implement a latch mechanism that works for both modes without making read-only queries mutable.
+- The repository code search for explicit `SET TRANSACTION READ ONLY`, `readOnly` PostgreSQL transaction usage, and `transaction_read_only` returned no matches, but this was GitHub code search, not a complete source-level proof that no path can run READ ONLY. Do not use that result to claim absence.
+- The temp table is `ON COMMIT DROP`; a fresh activation is required in every transaction. The real Node worker and Neon pooler have not been used to validate temp-table ownership, backend pinning, retry behavior, or temp schema lifecycle.
 
