@@ -1,0 +1,157 @@
+{
+  "schemaVersion": "opscore.neon-native-pitr-canary.v1",
+  "recordedAt": "2026-11-14T08:09:17.016Z",
+  "status": "PASS_TEST_SCOPE",
+  "evidenceScope": "DISPOSABLE_NEON_FREE_CANARY_POSTGRESQL_18",
+  "product": "OpsCore",
+  "releaseContext": "0.11.62",
+  "project": {
+    "name": "opscore-native-pitr-canary-20261114",
+    "id": "withered-snow-96046673",
+    "provider": "Neon",
+    "subscriptionType": "free_v3",
+    "region": "aws-us-east-1",
+    "postgresMajorVersion": 18,
+    "production": false,
+    "createdAt": "2026-11-14T07:49:45Z",
+    "historyRetentionSeconds": 21600,
+    "quota": {
+      "activeTimeSeconds": 1800,
+      "computeTimeSeconds": 900,
+      "writtenDataBytes": 5242880,
+      "dataTransferBytes": 104857600,
+      "logicalSizeBytes": 536870912
+    },
+    "defaultCompute": {
+      "minCu": 0.25,
+      "maxCu": 0.25,
+      "suspendTimeoutSeconds": 0
+    }
+  },
+  "database": {
+    "name": "opscore_pitr_probe",
+    "probeTable": "public.pitr_acceptance_probe",
+    "probeColumns": [
+      "marker",
+      "written_at"
+    ]
+  },
+  "restore": {
+    "mechanism": "NEON_INSTANT_RESTORE_FROM_HISTORY",
+    "snapshotRestoreUsed": false,
+    "targetBranch": {
+      "name": "main",
+      "id": "br-icy-lake-bc4hm6au",
+      "nativePitrEligibleBeforeRestore": true
+    },
+    "sourceBranchId": "br-icy-lake-bc4hm6au",
+    "targetTimestampUtc": "2026-11-14T07:51:00Z",
+    "targetTimestampLocal": "2026-11-14T02:51:00-05:00",
+    "timezone": "America/New_York",
+    "historyWindowSeconds": 21600,
+    "consoleSuccessBanner": "This branch and all its roles and databases successfully restored to their state on 2026-11-14T07:51:00.000Z",
+    "restoredBranchState": "ready"
+  },
+  "markers": {
+    "baseline": {
+      "marker": "BASELINE_BEFORE_RESTORE",
+      "writtenAtUtc": "2026-11-14T07:49:58.535314Z"
+    },
+    "postBaseline": {
+      "marker": "POST_BASELINE_SHOULD_DISAPPEAR_AFTER_RESTORE",
+      "writtenAtUtc": "2026-11-14T07:53:46.976Z"
+    }
+  },
+  "checks": {
+    "preRestoreLiveState": {
+      "status": "PASS",
+      "query": "SELECT marker, written_at FROM public.pitr_acceptance_probe ORDER BY written_at",
+      "rows": [
+        {
+          "marker": "BASELINE_BEFORE_RESTORE",
+          "writtenAtUtc": "2026-11-14T07:49:58.535Z"
+        },
+        {
+          "marker": "POST_BASELINE_SHOULD_DISAPPEAR_AFTER_RESTORE",
+          "writtenAtUtc": "2026-11-14T07:53:46.976Z"
+        }
+      ]
+    },
+    "timeTravelAssistBeforeRestore": {
+      "status": "PASS",
+      "readOnly": true,
+      "timestampUtc": "2026-11-14T07:51:00Z",
+      "query": "SELECT marker, written_at FROM public.pitr_acceptance_probe ORDER BY written_at",
+      "rows": [
+        {
+          "marker": "BASELINE_BEFORE_RESTORE",
+          "writtenAtUtc": "2026-11-14T07:49:58.535314Z"
+        }
+      ],
+      "postBaselineMarkerAbsent": true
+    },
+    "restoredMainState": {
+      "status": "PASS",
+      "branchId": "br-icy-lake-bc4hm6au",
+      "rows": [
+        {
+          "marker": "BASELINE_BEFORE_RESTORE",
+          "writtenAtUtc": "2026-11-14T07:49:58.535Z"
+        }
+      ],
+      "postBaselineMarkerAbsent": true
+    },
+    "automaticPreRestoreBackup": {
+      "status": "PASS",
+      "branchName": "main_old_2026-11-14T07:51:00Z",
+      "branchId": "br-winter-sun-bcsqbyiz",
+      "state": "ready",
+      "primary": false,
+      "default": false,
+      "rows": [
+        {
+          "marker": "BASELINE_BEFORE_RESTORE",
+          "writtenAtUtc": "2026-11-14T07:49:58.535Z"
+        },
+        {
+          "marker": "POST_BASELINE_SHOULD_DISAPPEAR_AFTER_RESTORE",
+          "writtenAtUtc": "2026-11-14T07:53:46.976Z"
+        }
+      ],
+      "postBaselineMarkerPreserved": true
+    }
+  },
+  "provenance": {
+    "restoreInitiatedAndConfirmedIn": "Neon Console / Restore from history",
+    "historicalStateVerifiedWith": "Neon Console / Time Travel Assist read-only SQL query",
+    "postRestoreDataVerifiedWith": "Neon SQL query on restored main branch and retained pre-restore backup branch",
+    "observedAtUtc": "2026-11-14T08:00:49Z",
+    "productionDatabaseAccess": "NONE",
+    "otherProjectOrBranchChanges": "NONE"
+  },
+  "cleanup": {
+    "mainReadWriteCompute": {
+      "endpointId": "ep-restless-salad-bcwb8t4r",
+      "finalState": "idle",
+      "suspendTimeoutSeconds": 0
+    },
+    "temporaryBackupReadOnlyVerificationCompute": {
+      "endpointId": "ep-empty-cell-bclkcr8n",
+      "finalState": "deleted_after_verification",
+      "branchComputesAfterCleanup": []
+    },
+    "restoreBackupBranchRetained": true
+  },
+  "productionGateDisposition": {
+    "neonPointInTimeRecovery": "NOT_VERIFIED",
+    "productionIsolationCertification": "NOT_CERTIFIED",
+    "productionCertification": false,
+    "commercialClosure": "PASS_WITH_BUYER_RESIDUALS"
+  },
+  "limitations": [
+    "This PASS_TEST_SCOPE result proves native Neon Instant Restore/PITR only on the named disposable free canary project.",
+    "It does not prove PITR execution, retention, restore permissions, RPO/RTO, or backup integrity on the OpsCore production Neon project.",
+    "It does not certify production tenant isolation or any production recovery control.",
+    "The canary result must not be promoted to the production neonPointInTimeRecovery gate."
+  ]
+}
