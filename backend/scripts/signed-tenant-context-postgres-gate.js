@@ -988,7 +988,7 @@ async function main() {
         body: { fileName: 'tenant-a-evidence.txt', mediaType: 'text/plain', totalBytes: evidenceBytesA.length, sha256: evidenceShaA }
       }
     );
-    if (evidenceInitReplayA.status !== 201
+    if (evidenceInitReplayA.status !== 200
         || evidenceInitReplayA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
         || evidenceInitReplayA.headers?.['x-idempotency-replayed'] !== 'true'
         || evidenceInitReplayA.body?.uploadId !== evidenceInitA.body.uploadId) {
