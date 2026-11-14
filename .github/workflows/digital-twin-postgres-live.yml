@@ -65,7 +65,7 @@ on:
       - 'package-lock.json'
   workflow_dispatch:
   schedule:
-    # Nightly disposable-PostgreSQL logical backup/restore drill: measured RPO=24h.
+    # Nightly CI-only logical restore drill on disposable PostgreSQL; not a production backup or RPO guarantee.
     - cron: '17 2 * * *'
 
 permissions:
