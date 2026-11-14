@@ -64,8 +64,13 @@ async function releaseSession(requestId) {
     session.signedContextBound = false;
   }
   if (!destroy) {
-    try { await session.client.query('RESET ALL'); }
-    catch (_) { destroy = true; }
+    try {
+      // Belt-and-suspenders: clear tenant GUCs even if a caller skipped endRequest ordering.
+      await session.client.query(
+        "SELECT set_config('app.tenant_id', '', false), set_config('app.user_id', '', false), set_config('app.access_mode', '', false), set_config('app.signed_context_payload', '', false), set_config('app.signed_context_signature', '', false)"
+      );
+      await session.client.query('RESET ALL');
+    } catch (_) { destroy = true; }
   }
   try { session.client.release(destroy); }
   catch (_) { /* client may already have been destroyed by pg */ }
@@ -185,14 +190,15 @@ async function handle(message) {
     if (accessMode === 'field' && String(process.env.OPSC_REQUIRE_SIGNED_TENANT_CONTEXT || '').trim().toLowerCase() === 'true') {
       return { id, ok: false, error: 'SIGNED_TENANT_CONTEXT_REQUIRED', code: 'SIGNED_TENANT_CONTEXT_REQUIRED' };
     }
-    // Transaction-local only (is_local=true). Session-level set_config(false) leaks tenant
-    // context across pooled connections (PgBouncer / Neon pooler). Callers must setSession
-    // inside an explicit transaction and re-bind after COMMIT/ROLLBACK.
+    // Inside an explicit transaction: SET LOCAL (is_local=true) so context cannot outlive COMMIT/ROLLBACK.
+    // Outside a transaction: session-level bind is required for multi-statement request handlers that
+    // do not open a SQL transaction; releaseSession()/endRequest MUST RESET ALL (enforced below).
+    const isLocal = session.inTransaction === true;
     await session.client.query(
-      "SELECT set_config('app.tenant_id', $1, true), set_config('app.user_id', $2, true), set_config('app.access_mode', $3, true)",
-      [tenantId, userId, accessMode]
+      "SELECT set_config('app.tenant_id', $1, $4), set_config('app.user_id', $2, $4), set_config('app.access_mode', $3, $4)",
+      [tenantId, userId, accessMode, isLocal]
     );
-    return { id, ok: true, tenantId: tenantId || null, userId: userId || null, accessMode };
+    return { id, ok: true, tenantId: tenantId || null, userId: userId || null, accessMode, isLocal };
   }
 
   const sql = prepareSql(message.sql || '');
