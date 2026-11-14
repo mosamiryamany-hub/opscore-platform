@@ -54,7 +54,7 @@ test('no-license grant is enforced across first-party package files and release 
   const pkg = JSON.parse(fs.readFileSync(path.join(backend, 'package.json'), 'utf8'));
   const { collectFiles } = require('../scripts/provenance-files');
   const licenseFiles = collectFiles(root).filter(relativePath =>
-    /(^|\\/)(?:LICENSE|LICENCE)(?:\\.[^/]*)?$/i.test(relativePath)
+    /(^|\/)(?:LICENSE|LICENCE)(?:\.[^/]*)?$/i.test(relativePath)
   );
   const notice = fs.readFileSync(path.join(root, 'NO_LICENSE_GRANT_NOTICE.txt'), 'utf8');
   const builder = fs.readFileSync(path.join(root, 'scripts', 'package-release.js'), 'utf8');
@@ -66,7 +66,7 @@ test('no-license grant is enforced across first-party package files and release 
   assert.match(notice, /grants no permission or rights/i);
   assert.match(notice, /No sale, delivery, redistribution, resale, sublicensing/i);
   assert.match(builder, /function assertNoLicenseGrantFiles/);
-  assert.match(builder, /assertNoLicenseGrantFiles\\(root, 'source tree'\\)/);
-  assert.match(builder, /assertNoLicenseGrantFiles\\(extractedRoot, 'round-trip archive'\\)/);
+  assert.match(builder, /assertNoLicenseGrantFiles\(root, 'source tree'\)/);
+  assert.match(builder, /assertNoLicenseGrantFiles\(extractedRoot, 'round-trip archive'\)/);
   assert.match(hardening, /no-first-party-license-grant-files/);
 });
