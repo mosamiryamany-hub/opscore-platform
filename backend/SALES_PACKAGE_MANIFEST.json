@@ -1,7 +1,7 @@
 {
   "product": "OpsCore Operational SaaS Starter Kit",
   "version": "0.11.62",
-  "generatedAt": "2026-11-14T21:27:26.711Z",
+  "generatedAt": "2026-11-14T21:28:46.065Z",
   "integrityExclusions": [
     "RELEASE_COMPONENT_SHA256SUMS.txt",
     "RELEASE_FILE_SHA256SUMS.txt",
@@ -1869,8 +1869,8 @@
     },
     {
       "path": "test/release-documentation-consistency.test.js",
-      "sha256": "c789f52e85523aa62f28ff588e845d90d8ded3fc779d6c6ff0ae00d5b7a5c4a1",
-      "bytes": 12189
+      "sha256": "0fb5b5bc568e9e4ff2d12a7a734e53407bf75f1cbc6651cd667c1b17a7b09127",
+      "bytes": 12217
     },
     {
       "path": "test/release-proof-ui.test.js",
