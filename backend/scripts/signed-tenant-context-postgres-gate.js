@@ -1,8 +1,10 @@
 'use strict';
 
 const crypto = require('node:crypto');
+const fs = require('node:fs');
 const http = require('node:http');
 const net = require('node:net');
+const os = require('node:os');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
 const { Client } = require('pg');
@@ -151,6 +153,8 @@ async function main() {
     workOrderIds: ['tc_wo_a_' + crypto.randomUUID().replace(/-/g, ''), 'tc_wo_b_' + crypto.randomUUID().replace(/-/g, '')],
     idempotencyKeys: [],
     bulkJobIds: [],
+    evidenceUploadIds: [],
+    attachmentIds: [],
     keyId
   };
 
@@ -226,6 +230,7 @@ async function main() {
     );
 
     const port = await choosePort();
+    const evidenceRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-signed-evidence-root-'));
     const serverEnv = {
       ...process.env,
       NODE_ENV: 'test',
@@ -243,6 +248,7 @@ async function main() {
       OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_TAMPER_TEST: 'true',
       OPSC_TENANT_CONTEXT_HMAC_KEY: keyHex,
       OPSC_TENANT_CONTEXT_KEY_ID: keyId,
+      OPSC_RELEASE_VERIFICATION_ROOT: evidenceRoot,
       OPSC_PG_SSL_MODE: 'disable'
     };
     delete serverEnv.OPSC_TENANT_CONTEXT_OWNER_URL;
@@ -447,6 +453,7 @@ async function main() {
     }
 
     const signedWriteRouteProof = {};
+    const signedEvidenceRouteProof = {};
     const createA = await queryHttp(port, '/api/v1/work-orders', tokenA, {
       method: 'POST',
       body: {
@@ -935,6 +942,328 @@ async function main() {
     }
     signedWriteRouteProof.restoreBothMarkersCleared = 'PASS';
 
+    // Evidence and attachment writes must use the same signed transaction
+    // as work-order writes, including the child-table RLS check and disk cleanup.
+    const evidenceBytesA = Buffer.from('tenant A signed evidence ' + keyId, 'utf8');
+    const evidenceBytesB = Buffer.from('tenant B signed evidence ' + keyId, 'utf8');
+    const evidenceShaA = crypto.createHash('sha256').update(evidenceBytesA).digest('hex');
+    const evidenceShaB = crypto.createHash('sha256').update(evidenceBytesB).digest('hex');
+    const evidenceBase64A = evidenceBytesA.toString('base64');
+    const evidenceBase64B = evidenceBytesB.toString('base64');
+    const evidenceInitKeyA = 'signed-context-ci-evidence-init-a-' + keyId;
+    const evidenceInitKeyB = 'signed-context-ci-evidence-init-b-' + keyId;
+    synthetic.idempotencyKeys.push(evidenceInitKeyA, evidenceInitKeyB);
+
+    const evidenceInitA = await queryHttp(
+      port,
+      '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[0]) + '/evidence-uploads',
+      tokenA,
+      {
+        method: 'POST',
+        headers: { 'idempotency-key': evidenceInitKeyA },
+        body: { fileName: 'tenant-a-evidence.txt', mediaType: 'text/plain', totalBytes: evidenceBytesA.length, sha256: evidenceShaA }
+      }
+    );
+    if (evidenceInitA.status !== 201
+        || evidenceInitA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || evidenceInitA.headers?.['x-idempotency-replayed'] !== 'false'
+        || !evidenceInitA.body?.uploadId
+        || evidenceInitA.body?.status !== 'initiated') {
+      throw new Error('SIGNED_CONTEXT_EVIDENCE_INIT_TENANT_A_FAILED:' + JSON.stringify({
+        status: evidenceInitA.status, body: evidenceInitA.body,
+        headers: evidenceInitA.headers
+      }));
+    }
+    synthetic.evidenceUploadIds.push(evidenceInitA.body.uploadId);
+    signedEvidenceRouteProof.initiateTenantA = 'PASS';
+
+    const evidenceInitReplayA = await queryHttp(
+      port,
+      '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[0]) + '/evidence-uploads',
+      tokenA,
+      {
+        method: 'POST',
+        headers: { 'idempotency-key': evidenceInitKeyA },
+        body: { fileName: 'tenant-a-evidence.txt', mediaType: 'text/plain', totalBytes: evidenceBytesA.length, sha256: evidenceShaA }
+      }
+    );
+    if (evidenceInitReplayA.status !== 201
+        || evidenceInitReplayA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || evidenceInitReplayA.headers?.['x-idempotency-replayed'] !== 'true'
+        || evidenceInitReplayA.body?.uploadId !== evidenceInitA.body.uploadId) {
+      throw new Error('SIGNED_CONTEXT_EVIDENCE_INIT_REPLAY_FAILED:' + JSON.stringify({
+        status: evidenceInitReplayA.status, body: evidenceInitReplayA.body,
+        headers: evidenceInitReplayA.headers
+      }));
+    }
+    signedEvidenceRouteProof.initiateIdempotencyReplay = 'PASS';
+
+    const evidenceInitB = await queryHttp(
+      port,
+      '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[1]) + '/evidence-uploads',
+      tokenB,
+      {
+        method: 'POST',
+        headers: { 'idempotency-key': evidenceInitKeyB },
+        body: { fileName: 'tenant-b-evidence.txt', mediaType: 'text/plain', totalBytes: evidenceBytesB.length, sha256: evidenceShaB }
+      }
+    );
+    if (evidenceInitB.status !== 201
+        || evidenceInitB.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || !evidenceInitB.body?.uploadId
+        || evidenceInitB.body?.status !== 'initiated') {
+      throw new Error('SIGNED_CONTEXT_EVIDENCE_INIT_TENANT_B_FAILED:' + JSON.stringify({
+        status: evidenceInitB.status, body: evidenceInitB.body,
+        headers: evidenceInitB.headers
+      }));
+    }
+    synthetic.evidenceUploadIds.push(evidenceInitB.body.uploadId);
+    signedEvidenceRouteProof.initiateTenantB = 'PASS';
+
+    const foreignEvidenceChunk = await queryHttp(
+      port,
+      '/api/v1/evidence-uploads/' + encodeURIComponent(evidenceInitB.body.uploadId) + '/chunks/0',
+      tokenA,
+      { method: 'PUT', body: { contentBase64: evidenceBase64B } }
+    );
+    if (foreignEvidenceChunk.status !== 404
+        || foreignEvidenceChunk.body?.error?.code !== 'NOT_FOUND'
+        || foreignEvidenceChunk.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_FOREIGN_EVIDENCE_CHUNK_NOT_DENIED:' + JSON.stringify({
+        status: foreignEvidenceChunk.status, body: foreignEvidenceChunk.body,
+        headers: foreignEvidenceChunk.headers
+      }));
+    }
+    signedEvidenceRouteProof.crossTenantChunkDenied = 'PASS';
+
+    const evidenceChunkA = await queryHttp(
+      port,
+      '/api/v1/evidence-uploads/' + encodeURIComponent(evidenceInitA.body.uploadId) + '/chunks/0',
+      tokenA,
+      { method: 'PUT', body: { contentBase64: evidenceBase64A } }
+    );
+    if (evidenceChunkA.status !== 200
+        || evidenceChunkA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || evidenceChunkA.body?.status !== 'ready'
+        || evidenceChunkA.body?.sha256 !== evidenceShaA) {
+      throw new Error('SIGNED_CONTEXT_EVIDENCE_CHUNK_TENANT_A_FAILED:' + JSON.stringify({
+        status: evidenceChunkA.status, body: evidenceChunkA.body,
+        headers: evidenceChunkA.headers
+      }));
+    }
+    signedEvidenceRouteProof.chunkTenantA = 'PASS';
+
+    const duplicateEvidenceChunkA = await queryHttp(
+      port,
+      '/api/v1/evidence-uploads/' + encodeURIComponent(evidenceInitA.body.uploadId) + '/chunks/0',
+      tokenA,
+      { method: 'PUT', body: { contentBase64: evidenceBase64A } }
+    );
+    if (duplicateEvidenceChunkA.status !== 200
+        || duplicateEvidenceChunkA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || duplicateEvidenceChunkA.body?.status !== 'duplicate'
+        || duplicateEvidenceChunkA.body?.sha256 !== evidenceShaA) {
+      throw new Error('SIGNED_CONTEXT_EVIDENCE_CHUNK_IDEMPOTENT_REPLAY_FAILED:' + JSON.stringify({
+        status: duplicateEvidenceChunkA.status, body: duplicateEvidenceChunkA.body,
+        headers: duplicateEvidenceChunkA.headers
+      }));
+    }
+    signedEvidenceRouteProof.chunkDuplicateReplay = 'PASS';
+
+    const evidenceChunkB = await queryHttp(
+      port,
+      '/api/v1/evidence-uploads/' + encodeURIComponent(evidenceInitB.body.uploadId) + '/chunks/0',
+      tokenB,
+      { method: 'PUT', body: { contentBase64: evidenceBase64B } }
+    );
+    if (evidenceChunkB.status !== 200
+        || evidenceChunkB.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || evidenceChunkB.body?.status !== 'ready'
+        || evidenceChunkB.body?.sha256 !== evidenceShaB) {
+      throw new Error('SIGNED_CONTEXT_EVIDENCE_CHUNK_TENANT_B_FAILED:' + JSON.stringify({
+        status: evidenceChunkB.status, body: evidenceChunkB.body,
+        headers: evidenceChunkB.headers
+      }));
+    }
+    signedEvidenceRouteProof.chunkTenantB = 'PASS';
+
+    const foreignEvidenceComplete = await queryHttp(
+      port,
+      '/api/v1/evidence-uploads/' + encodeURIComponent(evidenceInitB.body.uploadId) + '/complete',
+      tokenA,
+      { method: 'POST' }
+    );
+    if (foreignEvidenceComplete.status !== 404
+        || foreignEvidenceComplete.body?.error?.code !== 'NOT_FOUND'
+        || foreignEvidenceComplete.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_FOREIGN_EVIDENCE_COMPLETE_NOT_DENIED:' + JSON.stringify({
+        status: foreignEvidenceComplete.status, body: foreignEvidenceComplete.body,
+        headers: foreignEvidenceComplete.headers
+      }));
+    }
+    signedEvidenceRouteProof.crossTenantCompleteDenied = 'PASS';
+
+    const evidenceCompleteA = await queryHttp(
+      port,
+      '/api/v1/evidence-uploads/' + encodeURIComponent(evidenceInitA.body.uploadId) + '/complete',
+      tokenA,
+      { method: 'POST' }
+    );
+    if (evidenceCompleteA.status !== 201
+        || evidenceCompleteA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || evidenceCompleteA.body?.organization_id !== tenantA
+        || evidenceCompleteA.body?.sha256 !== evidenceShaA
+        || evidenceCompleteA.body?.work_order_id !== synthetic.workOrderIds[0]) {
+      throw new Error('SIGNED_CONTEXT_EVIDENCE_COMPLETE_TENANT_A_FAILED:' + JSON.stringify({
+        status: evidenceCompleteA.status, body: evidenceCompleteA.body,
+        headers: evidenceCompleteA.headers
+      }));
+    }
+    synthetic.attachmentIds.push(evidenceCompleteA.body.id);
+    signedEvidenceRouteProof.completeTenantA = 'PASS';
+
+    const evidenceCompleteReplayA = await queryHttp(
+      port,
+      '/api/v1/evidence-uploads/' + encodeURIComponent(evidenceInitA.body.uploadId) + '/complete',
+      tokenA,
+      { method: 'POST' }
+    );
+    if (evidenceCompleteReplayA.status !== 201
+        || evidenceCompleteReplayA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || evidenceCompleteReplayA.body?.id !== evidenceCompleteA.body.id) {
+      throw new Error('SIGNED_CONTEXT_EVIDENCE_COMPLETE_REPLAY_FAILED:' + JSON.stringify({
+        status: evidenceCompleteReplayA.status, body: evidenceCompleteReplayA.body,
+        headers: evidenceCompleteReplayA.headers
+      }));
+    }
+    signedEvidenceRouteProof.completeIdempotencyReplay = 'PASS';
+
+    const evidenceCompleteB = await queryHttp(
+      port,
+      '/api/v1/evidence-uploads/' + encodeURIComponent(evidenceInitB.body.uploadId) + '/complete',
+      tokenB,
+      { method: 'POST' }
+    );
+    if (evidenceCompleteB.status !== 201
+        || evidenceCompleteB.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || evidenceCompleteB.body?.organization_id !== tenantB
+        || evidenceCompleteB.body?.sha256 !== evidenceShaB
+        || evidenceCompleteB.body?.work_order_id !== synthetic.workOrderIds[1]) {
+      throw new Error('SIGNED_CONTEXT_EVIDENCE_COMPLETE_TENANT_B_FAILED:' + JSON.stringify({
+        status: evidenceCompleteB.status, body: evidenceCompleteB.body,
+        headers: evidenceCompleteB.headers
+      }));
+    }
+    synthetic.attachmentIds.push(evidenceCompleteB.body.id);
+    signedEvidenceRouteProof.completeTenantB = 'PASS';
+
+    const directAttachmentBytesA = Buffer.from('tenant A direct attachment ' + keyId, 'utf8');
+    const directAttachmentBytesB = Buffer.from('tenant B direct attachment ' + keyId, 'utf8');
+    const directAttachmentKeyA = 'signed-context-ci-direct-attachment-a-' + keyId;
+    const directAttachmentKeyB = 'signed-context-ci-direct-attachment-b-' + keyId;
+    const directAttachmentForeignKey = 'signed-context-ci-direct-attachment-foreign-' + keyId;
+    synthetic.idempotencyKeys.push(directAttachmentKeyA, directAttachmentKeyB, directAttachmentForeignKey);
+
+    const foreignDirectAttachment = await queryHttp(
+      port,
+      '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[1]) + '/attachments',
+      tokenA,
+      {
+        method: 'POST',
+        headers: { 'idempotency-key': directAttachmentForeignKey },
+        body: {
+          fileName: 'foreign-attachment.txt',
+          mediaType: 'text/plain',
+          contentBase64: directAttachmentBytesB.toString('base64')
+        }
+      }
+    );
+    if (foreignDirectAttachment.status !== 404
+        || foreignDirectAttachment.body?.error?.code !== 'NOT_FOUND'
+        || foreignDirectAttachment.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_FOREIGN_DIRECT_ATTACHMENT_NOT_DENIED:' + JSON.stringify({
+        status: foreignDirectAttachment.status, body: foreignDirectAttachment.body,
+        headers: foreignDirectAttachment.headers
+      }));
+    }
+    signedEvidenceRouteProof.crossTenantDirectAttachmentDenied = 'PASS';
+
+    const directAttachmentA = await queryHttp(
+      port,
+      '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[0]) + '/attachments',
+      tokenA,
+      {
+        method: 'POST',
+        headers: { 'idempotency-key': directAttachmentKeyA },
+        body: {
+          fileName: 'tenant-a-direct.txt',
+          mediaType: 'text/plain',
+          contentBase64: directAttachmentBytesA.toString('base64')
+        }
+      }
+    );
+    if (directAttachmentA.status !== 201
+        || directAttachmentA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || directAttachmentA.body?.organization_id !== tenantA
+        || directAttachmentA.body?.work_order_id !== synthetic.workOrderIds[0]) {
+      throw new Error('SIGNED_CONTEXT_DIRECT_ATTACHMENT_TENANT_A_FAILED:' + JSON.stringify({
+        status: directAttachmentA.status, body: directAttachmentA.body,
+        headers: directAttachmentA.headers
+      }));
+    }
+    synthetic.attachmentIds.push(directAttachmentA.body.id);
+    signedEvidenceRouteProof.directAttachmentTenantA = 'PASS';
+
+    const directAttachmentB = await queryHttp(
+      port,
+      '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[1]) + '/attachments',
+      tokenB,
+      {
+        method: 'POST',
+        headers: { 'idempotency-key': directAttachmentKeyB },
+        body: {
+          fileName: 'tenant-b-direct.txt',
+          mediaType: 'text/plain',
+          contentBase64: directAttachmentBytesB.toString('base64')
+        }
+      }
+    );
+    if (directAttachmentB.status !== 201
+        || directAttachmentB.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || directAttachmentB.body?.organization_id !== tenantB
+        || directAttachmentB.body?.work_order_id !== synthetic.workOrderIds[1]) {
+      throw new Error('SIGNED_CONTEXT_DIRECT_ATTACHMENT_TENANT_B_FAILED:' + JSON.stringify({
+        status: directAttachmentB.status, body: directAttachmentB.body,
+        headers: directAttachmentB.headers
+      }));
+    }
+    synthetic.attachmentIds.push(directAttachmentB.body.id);
+    signedEvidenceRouteProof.directAttachmentTenantB = 'PASS';
+
+    const attachmentsA = await queryHttp(
+      port, '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[0]) + '/attachments', tokenA
+    );
+    const attachmentsB = await queryHttp(
+      port, '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[1]) + '/attachments', tokenB
+    );
+    if (attachmentsA.status !== 200
+        || attachmentsA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || !Array.isArray(attachmentsA.body)
+        || attachmentsA.body.some(row => row.organization_id !== undefined && row.organization_id !== tenantA)
+        || !attachmentsA.body.some(row => row.id === directAttachmentA.body.id)
+        || attachmentsB.status !== 200
+        || attachmentsB.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || !Array.isArray(attachmentsB.body)
+        || attachmentsB.body.some(row => row.organization_id !== undefined && row.organization_id !== tenantB)
+        || !attachmentsB.body.some(row => row.id === directAttachmentB.body.id)
+        || attachmentsB.body.some(row => row.id === directAttachmentA.body.id || row.id === evidenceCompleteA.body.id)) {
+      throw new Error('SIGNED_CONTEXT_ATTACHMENT_LIST_TENANT_BOUNDARY_FAILED:' + JSON.stringify({
+        tenantA: { status: attachmentsA.status, body: attachmentsA.body },
+        tenantB: { status: attachmentsB.status, body: attachmentsB.body }
+      }));
+    }
+    signedEvidenceRouteProof.attachmentListsTenantIsolated = 'PASS';
+
     clientA = new Client({ connectionString: runtimeUrl });
     clientB = new Client({ connectionString: runtimeUrl });
     await clientA.connect();
@@ -1025,6 +1354,7 @@ async function main() {
         signedWorkOrderDetailTenantB: 'PASS',
         signedWorkOrderSubresourceReads: signedReadRouteProof,
         signedWorkOrderWrites: signedWriteRouteProof,
+        signedEvidenceWrites: signedEvidenceRouteProof,
         workOrdersRawGucTamperingIgnored: 'PASS',
         readOnlyBoundTransaction: 'PASS',
         rawGucTampering: 'PASS',
@@ -1057,6 +1387,10 @@ async function main() {
     }
     try { await owner.query('DELETE FROM opscore_security.context_probe_rows WHERE organization_id = ANY($1::text[])', [synthetic.tenantIds]); } catch (_) {}
 
+    try { await owner.query('DELETE FROM public.evidence_upload_chunks WHERE upload_id = ANY($1::text[])', [synthetic.evidenceUploadIds]); } catch (_) {}
+    try { await owner.query('DELETE FROM public.attachments WHERE id = ANY($1::text[]) OR organization_id = ANY($2::text[])', [synthetic.attachmentIds, synthetic.tenantIds]); } catch (_) {}
+    try { await owner.query('DELETE FROM public.evidence_uploads WHERE id = ANY($1::text[]) OR organization_id = ANY($2::text[])', [synthetic.evidenceUploadIds, synthetic.tenantIds]); } catch (_) {}
+    try { fs.rmSync(evidenceRoot, { recursive: true, force: true }); } catch (_) {}
     try { await owner.query('DELETE FROM public.comments WHERE organization_id = ANY($1::text[]) AND work_order_id = ANY($2::text[])', [synthetic.tenantIds, synthetic.workOrderIds]); } catch (_) {}
     try { await owner.query("DELETE FROM public.activity_log WHERE organization_id = ANY($1::text[]) AND entity_type='work_order' AND entity_id = ANY($2::text[])", [synthetic.tenantIds, synthetic.workOrderIds]); } catch (_) {}
     try { await owner.query("DELETE FROM public.audit_log WHERE organization_id = ANY($1::text[]) AND resource_type='work_order' AND resource_id = ANY($2::text[])", [synthetic.tenantIds, synthetic.workOrderIds]); } catch (_) {}
