@@ -187,6 +187,14 @@ function parseJSON(v, fallback) {
     return fallback;
   }
 }
+function parseStoredJsonValue(value, fallback = null) {
+  if (value == null) return fallback;
+  if (typeof value === 'string') return JSON.parse(value);
+  if (Buffer.isBuffer(value)) return JSON.parse(value.toString('utf8'));
+  // PostgreSQL JSON/JSONB adapters return decoded objects; SQLite stores JSON text.
+  return value;
+}
+
 const LOGIN_MAX_ATTEMPTS = 8;
 const LOGIN_WINDOW_MS = 15 * 60000;
 const LOGIN_LOCKOUT_MS = 15 * 60000;
@@ -225,7 +233,7 @@ class Store {
         this._txDepth--;
         if (outerTx)
           this.db.exec('COMMIT');
-        return { __idempotent: true, status: prior.response_status, payload: JSON.parse(prior.response_json) };
+        return { __idempotent: true, status: prior.response_status, payload: parseStoredJsonValue(prior.response_json) };
       }
       this.db.prepare(`INSERT INTO operation_envelopes
         (id,organization_id,actor_user_id,role,source,correlation_id,causation_id,idempotency_key,operation,resource_type,resource_id,request_hash_sha256,status,started_at)
@@ -275,7 +283,7 @@ class Store {
         if (prior.status === 'committed') {
           this._txDepth--;
           if (outerTx) this.db.exec('COMMIT');
-          return { __idempotent: true, status: prior.response_status || 200, payload: JSON.parse(prior.response_json || 'null'), operationEnvelopeId: prior.operation_envelope_id };
+          return { __idempotent: true, status: prior.response_status || 200, payload: parseStoredJsonValue(prior.response_json), operationEnvelopeId: prior.operation_envelope_id };
         }
         activeReservationId = prior.id;
         activeEnvelopeId = prior.operation_envelope_id;
