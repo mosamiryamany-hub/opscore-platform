@@ -984,9 +984,13 @@ function signedWorkOrdersReadEnabled(req) {
 function signedWorkOrdersWriteEnabled(req) {
   const pathname = String(req.url || '').split('?')[0];
   const method = String(req.method || '').toUpperCase();
+  const workOrderIdPath = /^\/api\/v1\/work-orders\/[^/]+$/;
   const supportedWritePath = (method === 'POST' && pathname === '/api/v1/work-orders')
-    || (method === 'PATCH' && /^\/api\/v1\/work-orders\/[^/]+$/.test(pathname))
-    || (method === 'POST' && /^\/api\/v1\/work-orders\/[^/]+\/comments$/.test(pathname));
+    || (method === 'PATCH' && workOrderIdPath.test(pathname))
+    || (method === 'POST' && /^\/api\/v1\/work-orders\/[^/]+\/comments$/.test(pathname))
+    || (method === 'POST' && /^\/api\/v1\/work-orders\/[^/]+\/transition$/.test(pathname))
+    || (method === 'DELETE' && workOrderIdPath.test(pathname))
+    || (method === 'POST' && /^\/api\/v1\/work-orders\/[^/]+\/restore$/.test(pathname));
   return process.env.VERCEL_ENV === 'preview'
     && String(process.env.OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_WRITE_ENABLED || '').toLowerCase() === 'true'
     && supportedWritePath;
@@ -2020,11 +2024,15 @@ function route(req, res) {
     } catch (e) {
       return fail(res, e);
     }
-    return body(req).then(b => idemJson(res, store.idempotentWrite(c, 'work_order_transition', idempotencyKey(req), {
-      workOrderId: wtrans[1],
-      toStatus: b.toStatus,
-      reason: b.reason
-    }, () => store.transitionWorkOrder(c, wtrans[1], b.toStatus)), 200)).catch(e => fail(res, e));
+    return body(req).then(b => {
+      const write = () => store.idempotentWrite(c, 'work_order_transition', idempotencyKey(req), {
+        workOrderId: wtrans[1],
+        toStatus: b.toStatus,
+        reason: b.reason
+      }, () => store.transitionWorkOrder(c, wtrans[1], b.toStatus, b.reason));
+      if (!signedWorkOrdersWriteEnabled(req)) return idemJson(res, write(), 200);
+      return runSignedWorkOrderWrite(res, c, write, (record, headers) => idemJson(res, record, 200, headers));
+    }).catch(e => fail(res, e));
   }
   if (req.method === 'GET' && url.pathname === '/api/v1/escalations')
     return json(res, 200, store.listEscalations(c));
@@ -2627,6 +2635,11 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
       'work-orders': 'work_order',
       assets: 'asset'
     }[del[1]];
+    if (del[1] === 'work-orders' && signedWorkOrdersWriteEnabled(req)) {
+      return runSignedWorkOrderWrite(res, c,
+        () => store.softDelete(c, 'work_order', del[2]),
+        (result, headers) => json(res, 200, result, headers));
+    }
     return json(res, 200, store.softDelete(c, et, del[2]));
   }
   const rest = url.pathname.match(/^\/api\/v1\/(customers|sites|work-orders|assets)\/([^/]+)\/restore$/);
@@ -2642,6 +2655,11 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
       'work-orders': 'work_order',
       assets: 'asset'
     }[rest[1]];
+    if (rest[1] === 'work-orders' && signedWorkOrdersWriteEnabled(req)) {
+      return runSignedWorkOrderWrite(res, c,
+        () => store.restore(c, 'work_order', rest[2]),
+        (result, headers) => json(res, 200, result, headers));
+    }
     return json(res, 200, store.restore(c, et, rest[2]));
   }
   if (req.method === 'GET' && url.pathname === '/api/v1/deleted') {
