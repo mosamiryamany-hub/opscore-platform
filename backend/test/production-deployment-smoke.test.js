@@ -138,13 +138,16 @@ test('release proof v2 binds CI, staged production identity, candidate evidence 
       productionSessionTenantBoundary: 'PASS_TEST_SCOPE',
       productionRecoveryBundle: 'PASS_TEST_SCOPE',
       tenantRouteSecurityCoverage: 'PASS_TEST_SCOPE',
-      functionalApiRouteAcceptance: 'NOT_VERIFIED',
+      functionalApiRouteAcceptance: 'PASS_CONTRACT_SCOPE',
       neonPointInTimeRecovery: 'NOT_VERIFIED',
       productionIsolationCertification: 'NOT_CERTIFIED'
     },
     packageFingerprint: { status: 'PUBLISHED', sourceCommit: commit, value: 'b'.repeat(64) }
   };
   assert.equal(validateEndpoint('/api/verify/release', 200, valid, commit), true);
+  assert.throws(() => validateEndpoint('/api/verify/release', 200, {
+    ...valid, gates: { ...valid.gates, functionalApiRouteAcceptance: 'NOT_VERIFIED' }
+  }, commit), /RELEASE_EVIDENCE_NOT_BOUND_TO_DEPLOYMENT/);
   assert.throws(() => validateEndpoint('/api/verify/release', 200, {
     ...valid, packageFingerprint: { ...valid.packageFingerprint, sourceCommit: 'f'.repeat(40) }
   }, commit), /RELEASE_EVIDENCE_NOT_BOUND_TO_DEPLOYMENT/);
@@ -175,7 +178,7 @@ test('full staged smoke requires every endpoint to match the same release identi
       productionSessionTenantBoundary: 'PASS_TEST_SCOPE',
       productionRecoveryBundle: 'PASS_TEST_SCOPE',
       tenantRouteSecurityCoverage: 'PASS_TEST_SCOPE',
-      functionalApiRouteAcceptance: 'NOT_VERIFIED',
+      functionalApiRouteAcceptance: 'PASS_CONTRACT_SCOPE',
       neonPointInTimeRecovery: 'NOT_VERIFIED',
       productionIsolationCertification: 'NOT_CERTIFIED'
     },
