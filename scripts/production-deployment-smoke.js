@@ -360,7 +360,9 @@ function validateEndpoint(path, statusCode, payload, expectedCommit, contentType
     const gatesHonest = gates.productionSessionTenantBoundary === 'PASS_TEST_SCOPE' &&
       gates.productionRecoveryBundle === 'PASS_TEST_SCOPE' &&
       gates.tenantRouteSecurityCoverage === 'PASS_TEST_SCOPE' &&
-      gates.functionalApiRouteAcceptance === 'NOT_VERIFIED' &&
+      // The API route contract run is accepted only after release-proof.js binds its evidence to this exact commit and pipeline.
+      // PASS_CONTRACT_SCOPE does not represent full business-flow acceptance.
+      gates.functionalApiRouteAcceptance === 'PASS_CONTRACT_SCOPE' &&
       gates.neonPointInTimeRecovery === 'NOT_VERIFIED' &&
       gates.productionIsolationCertification === 'NOT_CERTIFIED';
     const packageBound = packageFingerprint.status === 'PUBLISHED' &&
