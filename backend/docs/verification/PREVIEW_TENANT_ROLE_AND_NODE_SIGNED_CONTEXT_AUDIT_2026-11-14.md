@@ -181,3 +181,18 @@ The Preview catalog definitions of the authentication helpers were inspected rea
 A second expression count across the same 276 policies found 253 tenant-accessor references, 18 current-user-accessor references, and 243 access-mode-accessor references. These counts overlap and must not be summed. Together with the 21 policies directly referencing GUCs, they confirm that most of the current policy set depends on the legacy GUC-based accessor contract.
 
 This additional inspection remains read-only and does not change the disposition in sections 1 and 6.
+
+
+## 9. Historical source provenance for the `opscore_app` grants
+
+The Preview migration ledger and exact source files were checked for migrations 049–051:
+
+| Migration | Ledger SHA-256 | Source blob SHA | Verified purpose |
+|---|---|---|---|
+| `049_app_role_table_privileges.sql` | `d2225d45849b029cb611d918fbf09eacd88c7df29b17f1f14029c0cb95ed8e7b` | `d53770cee6a23e2d46b6fa9735f59cf1d8d8ea1b` | Broad DML on existing public tables and default DML for future public tables to `opscore_app`; sequences USAGE/SELECT; schema USAGE. |
+| `050_app_role_schema_create.sql` | `417e6ac6d00e8b393d71f2ba833df15fce91947633a6bb3043991ca7b939a900` | `b6c79377df15e5a9a5a1ff60fdc75ae0206f49ca` | Temporarily grants database and public-schema CREATE for isolated live RLS gate setup. |
+| `051_revoke_runtime_role_ddl_privileges.sql` | `b1057ee7c46e81322cf9e3e5a4feae72322bed5f56f9501d08d164b134ddc2b5` | `60d642c599f5de10d14eaf80401fe1d4e80e943b` | Revokes CREATE on the database and public schema; does not revoke 049 DML grants or default privileges. |
+
+Migration 051's source comment says the old live RLS gate now bootstraps a rollback-only schema using the owner URL and `SET LOCAL ROLE opscore_app`. Migration 059's source comment separately states that the production application connects as `opscore_runtime`, not `opscore_app`.
+
+The evidence therefore supports this narrower conclusion: `opscore_app` is not identified by migration 059 as the production HTTP application role, but it has a documented isolated acceptance-test use and retains broad effective privileges on the inspected Preview target. Its provider membership and broad defaults remain a role-governance risk until all deploy/test credentials and uses are reconciled. This is not sufficient evidence to remove its membership or credentials now.
