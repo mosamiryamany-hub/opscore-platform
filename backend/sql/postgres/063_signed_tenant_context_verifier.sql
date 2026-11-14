@@ -7,16 +7,18 @@ DO $bootstrap$
 DECLARE
   verifier_owner text;
 BEGIN
-  SELECT CASE
-    WHEN EXISTS (
-      SELECT 1 FROM pg_roles
-      WHERE rolname = 'opscore_auth_definer'
-        AND rolbypassrls
-        AND NOT rolsuper
-        AND NOT rolcanlogin
-    ) THEN 'opscore_auth_definer'
-    ELSE 'neondb_owner'
-  END INTO verifier_owner;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_roles
+    WHERE rolname = 'opscore_auth_definer'
+      AND rolbypassrls
+      AND NOT rolsuper
+      AND NOT rolcanlogin
+      AND NOT rolcreatedb
+      AND NOT rolcreaterole
+  ) THEN
+    RAISE EXCEPTION 'OPSC_SIGNED_CONTEXT_DEDICATED_DEFINER_REQUIRED';
+  END IF;
+  verifier_owner := 'opscore_auth_definer';
 
   IF NOT EXISTS (
     SELECT 1 FROM pg_roles
@@ -174,16 +176,18 @@ DO $ownership_and_grants$
 DECLARE
   verifier_owner text;
 BEGIN
-  SELECT CASE
-    WHEN EXISTS (
-      SELECT 1 FROM pg_roles
-      WHERE rolname = 'opscore_auth_definer'
-        AND rolbypassrls
-        AND NOT rolsuper
-        AND NOT rolcanlogin
-    ) THEN 'opscore_auth_definer'
-    ELSE 'neondb_owner'
-  END INTO verifier_owner;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_roles
+    WHERE rolname = 'opscore_auth_definer'
+      AND rolbypassrls
+      AND NOT rolsuper
+      AND NOT rolcanlogin
+      AND NOT rolcreatedb
+      AND NOT rolcreaterole
+  ) THEN
+    RAISE EXCEPTION 'OPSC_SIGNED_CONTEXT_DEDICATED_DEFINER_REQUIRED';
+  END IF;
+  verifier_owner := 'opscore_auth_definer';
 
   EXECUTE format('ALTER TABLE opscore_security.context_hmac_keys OWNER TO %I', verifier_owner);
   EXECUTE format('ALTER FUNCTION opscore_security.verified_tenant_context() OWNER TO %I', verifier_owner);
@@ -227,7 +231,7 @@ BEGIN
          has_schema_privilege('opscore_runtime', 'opscore_security', 'CREATE')
   INTO runtime_key_read, runtime_execute, public_execute, runtime_schema_create;
 
-  IF verifier_owner NOT IN ('opscore_auth_definer', 'neondb_owner')
+  IF verifier_owner IS DISTINCT FROM 'opscore_auth_definer'
      OR runtime_key_read IS NOT FALSE
      OR runtime_execute IS NOT TRUE
      OR public_execute IS NOT FALSE
