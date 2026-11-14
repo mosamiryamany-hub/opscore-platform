@@ -1,7 +1,7 @@
 # Node/PostgreSQL Signed-Context Integration Plan
 
 Date: 2026-11-14  
-Status: **DESIGN / SOURCE-AUDIT COMPLETE FOR THE FIRST INTEGRATION CUT — NOT IMPLEMENTED**  
+Status: **PARTIALLY IMPLEMENTED — 112/112 ISOLATED CI ASSERTIONS PASS; LIVE NEON HTTP / PRODUCTION TRUST-BOUNDARY CERTIFICATION NOT COMPLETE**  
 Main baseline: 4ef126ccd59f23cebeead30224d1bcf7199535ab  
 Work branch: security/priority-production-hardening-20261114  
 Related ADR: backend/docs/security/TENANT_CONTEXT_TRUST_BOUNDARY_REMEDIATION_ADR_2026-11-14.md  
@@ -9,9 +9,9 @@ Live evidence: backend/docs/verification/PRODUCTION_TENANT_CONTEXT_TRUST_BOUNDAR
 
 ## 1. Why this document exists
 
-The signed-context ADR proves a limited database-side mechanism on an isolated Neon branch. It does not show how the actual OpsCore Node process should create and bind that context without breaking existing request handling, transactions, authentication flows, or separate database pools.
+The first synchronous-bridge vertical slice now has application signer code, worker-side transaction binding, explicit Preview-gated work-order/evidence routes, and a real Node HTTP CI gate. The CI gate passed against a disposable PostgreSQL 18 service. That result is not a live Neon Preview HTTP test and does not certify the full identity plane or production tenant isolation.
 
-This document records the source-specific integration constraints so the next implementation is a real end-to-end vertical slice, not an unused signer module or a cosmetic replacement of set_config.
+This document separates the implemented slice and its evidence from the remaining work: legacy unsigned GUC compatibility, unmigrated routes and privileged auth operations, the independent asynchronous knowledge pool, and live Neon/Preview acceptance.
 
 ## 2. Actual source execution topology
 
@@ -111,21 +111,54 @@ The following operations need separate contracts and cannot be made safe by the 
 | Bootstrap | Single-use bootstrap capability + database lock/singleton guard + atomic initial organization/user/membership write |
 | Logout/revoke | Narrow exact-token-hash revocation; no generic auth-mode access |
 
-## 5. First implementation slice — exact scope
+## 5. Implemented first slice and exact proof boundary
 
-The first code slice should be limited to an authenticated session-based READ route using the main synchronous bridge, not every auth flow at once:
+### 5.1 Source implementation present on this branch
 
-1. Keep the current main behavior unchanged.
-2. Add canonical payload construction and HMAC signing in the trusted Node worker path, with key material read only from a dedicated deployment secret.
-3. Add a worker-level transaction-bound context binder that obtains backend PID/XID and binds transaction-local signed context to the same checked-out client.
-4. Add a new explicit principal-binding API that requires sessionId, userId, and tenantId returned by the session resolver. Do not allow this API to sign a client-provided arbitrary tenant/user.
-5. On a fresh isolated Neon branch, create a separate test-only RLS table using the already-reviewed security_proof.verified_bound_context() pattern, but replace the test session lookup with the actual production public.sessions, public.users, public.memberships, and organization-state checks. Do not alter production policies in this slice.
-6. Exercise one real HTTP read route end-to-end against that isolated database and two valid, active, non-empty user sessions. Verify tenant A sees only A and tenant B sees only B.
-7. Include raw SQL red-team tests using only the runtime DB credential: change raw GUCs, supply a mismatched tenant, replay on same backend/new transaction, replay on a different backend, and omit/break the signature.
-8. Test normal autocommit, explicit READ WRITE transactions, explicit READ ONLY transactions, rollback, backend reconnect, query retry, and actual Neon pooling.
-9. Only after this slice passes should the same protocol be extended to all CRUD operations and purpose-bound auth operations.
+The following implementation is present in the current work branch:
 
-**No code in this PR currently implements steps 2–9.** The existing isolated ADR proof and this plan are evidence/design inputs, not completion of that slice.
+1. `backend/src/signed-tenant-context.js` builds a bounded versioned HMAC-SHA256 assertion with issuer, audience, purpose, subject, tenant, session, issue/not-before/expiry times, JTI, key ID, backend PID, and transaction ID. The signer reads `OPSC_TENANT_CONTEXT_HMAC_KEY` and `OPSC_TENANT_CONTEXT_KEY_ID` from the trusted Node process.
+2. `backend/src/pg-database-sync.js` stores a verified session principal in request-local state, obtains backend PID and transaction ID through the request's worker connection, signs the assertion, and sends only payload/signature to the worker.
+3. `backend/src/pg-sync-worker.js` requires an active transaction and matching captured backend/transaction identity before binding payload/signature with transaction-local `set_config(..., true)`. The signing key is not passed to the worker.
+4. `backend/src/server.js` has a Preview-only signed-context route allowlist. Read and write routes require explicit Preview feature flags and an authenticated session (API keys are excluded from this first slice). The signed write wrapper preserves the caller-owned transaction and rollback cleanup semantics.
+5. `backend/scripts/signed-tenant-context-postgres-gate.js` runs the Node server against isolated PostgreSQL, seeds synthetic Tenant A/B identities and sessions, creates a temporary HMAC key, and tests the HTTP routes and RLS behavior.
+
+### 5.2 CI evidence — passed, but disposable PostgreSQL only
+
+For code commit `21dd4a3779508ffd5a0ab0b69f6af6697f0234d4`, GitHub Actions run `43622890070` completed successfully. The job was `isolated-postgres-rls-and-http-acceptance`, and the signed-context gate emitted:
+
+- `status: PASS`, with **112/112 assertions PASS**.
+- 48 signed subresource-read assertions (Tenant A, Tenant B, and foreign-tenant denial).
+- 31 work-order write assertions (create, patch/idempotency, comments, bulk, transition, delete, and restore).
+- 20 evidence-write assertions (upload initiation, chunks, completion, idempotency, integrity failure, direct attachments, rollback cleanup, and tenant isolation).
+- The remaining assertions covered session binding, raw-GUC tampering, read-only transaction binding, unsigned/invalid assertion rejection, and replay rejection on both same-backend/new-transaction and different-backend cases.
+
+The proof environment was the disposable local PostgreSQL 18 database `opscore_http_acceptance`, with owner `neondb_owner` and runtime role `opscore_runtime`; the runtime role had `BYPASSRLS=false`. This is real Node HTTP/worker/PostgreSQL integration evidence, but it is **not** evidence from a Neon-hosted database or a deployed Vercel Preview.
+
+The current branch head `c3bde9d0c5b19eb5a689c1f1f8c324a03191a239` is two documentation-only commits ahead of the tested code head and has no code-file differences from that tested checkpoint.
+
+### 5.3 Neon isolated branch status — schema applied, signed proof not run
+
+The following migrations were applied and hash-verified on Neon child branch `br-fragrant-king-bcr9928f` (`opscore-signed-context-063-065-20261114`), cloned from Preview branch `br-wispy-credit-bckacgvt`:
+
+- `063_signed_tenant_context_verifier.sql`
+- `064_signed_tenant_context_work_orders_routing.sql`
+- `065_signed_tenant_context_evidence_upload_chunks.sql`
+
+The branch catalog checks confirmed the dedicated `opscore_auth_definer` ownership/role contract, runtime non-access to the HMAC key table, runtime EXECUTE on the verifier, and signed-aware work-order/evidence-chunk RLS policies. The test database currently has no seeded organizations, users, memberships, or unexpired sessions, and the HMAC key table has zero rows. No valid HMAC assertion or real Node HTTP request has been executed against this Neon branch. No signing secret or feature flags were added to Vercel Preview.
+
+### 5.4 Remaining implementation and acceptance work
+
+The first slice is not the full identity-plane migration. The following remain outside its verified route boundary:
+
+- The generic worker `setSession` operation still accepts caller-supplied `field`, `auth`, `system`, and `backoffice` modes and writes unsigned session-level GUCs. The code must not remove it until every legitimate caller has moved to purpose-specific operations.
+- `backend/src/server.js` still binds legacy GUC context for non-allowlisted request paths, login/OIDC/bootstrap flows, and other existing operations.
+- Password reset, invitation, bootstrap, API-key, OIDC, logout, and other identity-plane operations require narrow purpose-bound database contracts; the field assertion is not a replacement for those contracts.
+- The independent asynchronous `postgres-runtime` pool and AI knowledge index/search path do not yet bind the signed assertion on the exact checked-out `PoolClient`; their organization filters are not a substitute for RLS trust.
+- Migration 064 deliberately preserves the raw-GUC compatibility fallback when no signed payload is present. Invalid signed payloads fail closed, but absence of a signed payload still reaches legacy context. Therefore the database-wide direct-runtime-credential trust boundary is not certified.
+- Live Neon proof remains outstanding: a valid HMAC assertion, negative/tamper/replay tests, real Node HTTP acceptance against the isolated Neon branch, Neon pooling/transaction lifecycle, and cleanup verification.
+
+Do not remove legacy context, migrate broad production RLS policy sets, revoke identity-table grants, provision a production signing key, merge to main, or deploy Production until the remaining flows have migrated and the full isolated acceptance matrix passes.
 
 ## 6. Mandatory regression tests before broader rollout
 
