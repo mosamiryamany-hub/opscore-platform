@@ -19,3 +19,5 @@
 2. Run buyer preflight and acceptance in the buyer environment.
 3. Record accepted residuals explicitly (mobile store, translations, maps/providers).
 4. Do not reuse fingerprints from older commits as proof of the current candidate.
+
+Buyer-environment production certification: **NOT_ESTABLISHED** (seller-reference CERTIFIED does not transfer).

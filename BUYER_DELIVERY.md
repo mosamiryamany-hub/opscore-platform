@@ -53,3 +53,5 @@ The archive contains Expo source, not signed Android AAB/APK or iOS IPA binaries
 7. Record buyer acceptance against the exact archive SHA, source commit, pipeline ID, test results and accepted residuals.
 
 This package is a source-code commercial candidate with disclosed buyer residuals. It is not a managed SaaS tenancy on the seller's Neon or Vercel projects and is not a certified production deployment.
+
+Buyer-environment production certification: **NOT_ESTABLISHED** until the buyer reproduces acceptance in their own environment.

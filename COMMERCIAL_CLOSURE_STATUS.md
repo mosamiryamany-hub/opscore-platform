@@ -54,3 +54,5 @@ PR `#103` (`security/priority-production-hardening-20261114`) remains **Draft**:
 - CI success alone does not certify buyer production.
 - Historical archives bound to older commits (e.g. `d940152…`) are not the current live candidate.
 - Any new commercial archive must be regenerated from the exact release-producing commit and pipeline.
+
+Buyer-environment production certification: **NOT_ESTABLISHED** until the buyer reproduces acceptance in their own environment.
