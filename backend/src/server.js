@@ -991,7 +991,11 @@ function signedWorkOrdersWriteEnabled(req) {
     || (method === 'POST' && /^\/api\/v1\/work-orders\/[^/]+\/comments$/.test(pathname))
     || (method === 'POST' && /^\/api\/v1\/work-orders\/[^/]+\/transition$/.test(pathname))
     || (method === 'DELETE' && workOrderIdPath.test(pathname))
-    || (method === 'POST' && /^\/api\/v1\/work-orders\/[^/]+\/restore$/.test(pathname));
+    || (method === 'POST' && /^\/api\/v1\/work-orders\/[^/]+\/restore$/.test(pathname))
+    || (method === 'POST' && /^\/api\/v1\/work-orders\/[^/]+\/evidence-uploads$/.test(pathname))
+    || (method === 'PUT' && /^\/api\/v1\/evidence-uploads\/[^/]+\/chunks\/\d+$/.test(pathname))
+    || (method === 'POST' && /^\/api\/v1\/evidence-uploads\/[^/]+\/complete$/.test(pathname))
+    || (method === 'POST' && /^\/api\/v1\/work-orders\/[^/]+\/attachments$/.test(pathname));
   return process.env.VERCEL_ENV === 'preview'
     && String(process.env.OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_WRITE_ENABLED || '').toLowerCase() === 'true'
     && supportedWritePath;
@@ -1051,6 +1055,23 @@ function runSignedWorkOrderWrite(res, c, writer, responder) {
     return json(res, 503, { error: { code: 'SIGNED_TENANT_TRANSACTION_STATE_INVALID' } }, { 'cache-control': 'no-store' });
   }
   let transactionOpen = false;
+  let commitAttempted = false;
+  const lifecycle = { afterRollback: [] };
+  const cleanupAfterConfirmedRollback = () => {
+    for (const cleanup of lifecycle.afterRollback.slice().reverse()) {
+      try {
+        const result = cleanup();
+        if (result && typeof result.then === 'function') {
+          warn('signed_tenant_rollback_cleanup_async_ignored', { organizationId: c.organizationId });
+        }
+      } catch (cleanupError) {
+        warn('signed_tenant_rollback_cleanup_failed', {
+          organizationId: c.organizationId,
+          errorCode: safeDatabaseErrorCode(cleanupError)
+        });
+      }
+    }
+  };
   try {
     store.db.exec('BEGIN');
     transactionOpen = true;
@@ -1064,16 +1085,49 @@ function runSignedWorkOrderWrite(res, c, writer, responder) {
       ).run('raw-guc-forged-tenant', 'raw-guc-forged-user', 'backoffice');
     }
 
-    const result = store.withCallerManagedTransaction(writer);
+    const result = store.withCallerManagedTransaction(writer, lifecycle);
+    commitAttempted = true;
     store.db.exec('COMMIT');
     transactionOpen = false;
     return responder(result, {
       'cache-control': 'no-store',
       'x-opscore-signed-tenant-context': 'verified'
     });
-  } catch (error) {
+  } catch (caughtError) {
+    let error = caughtError;
+    // Some domain operations must persist a failure state (for example, a
+    // digest mismatch) before returning the domain error to the caller.
+    if (error?.commitSignedTenantTransaction === true && transactionOpen && !commitAttempted) {
+      try {
+        commitAttempted = true;
+        store.db.exec('COMMIT');
+        transactionOpen = false;
+        return fail(res, error);
+      } catch (commitError) {
+        error = commitError;
+      }
+    }
+    let rollbackConfirmed = false;
     if (transactionOpen) {
-      try { store.db.exec('ROLLBACK'); } catch (_) { /* request teardown rolls back if necessary */ }
+      try {
+        store.db.exec('ROLLBACK');
+        transactionOpen = false;
+        rollbackConfirmed = !commitAttempted;
+      } catch (rollbackError) {
+        warn('signed_work_order_rollback_failed', {
+          errorCode: safeDatabaseErrorCode(rollbackError),
+          organizationId: c.organizationId
+        });
+      }
+    }
+    if (rollbackConfirmed) cleanupAfterConfirmedRollback();
+    else if (commitAttempted && lifecycle.afterRollback.length) {
+      // Commit outcome is ambiguous. Preserve files that may already be
+      // referenced by committed rows; reconcile them rather than risk data loss.
+      warn('signed_work_order_file_cleanup_deferred_commit_ambiguous', {
+        organizationId: c.organizationId,
+        cleanupCount: lifecycle.afterRollback.length
+      });
     }
     warn('signed_work_order_write_failed', {
       errorCode: safeDatabaseErrorCode(error),
@@ -2960,13 +3014,17 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
     } catch (e) {
       return fail(res, e);
     }
-    return body(req, 32000).then(b => idemJson(res, store.idempotentWrite(c, 'evidence_upload_initiate', idempotencyKey(req), {
-      workOrderId: eu[1],
-      body: b
-    }, () => store.initiateEvidenceUpload(c, {
-      workOrderId: eu[1],
-      ...b
-    })), 201)).catch(e => fail(res, e));
+    return body(req, 32000).then(b => {
+      const write = () => store.idempotentWrite(c, 'evidence_upload_initiate', idempotencyKey(req), {
+        workOrderId: eu[1],
+        body: b
+      }, () => store.initiateEvidenceUpload(c, {
+        workOrderId: eu[1],
+        ...b
+      }));
+      if (!signedWorkOrdersWriteEnabled(req)) return idemJson(res, write(), 201);
+      return runSignedWorkOrderWrite(res, c, write, (record, headers) => idemJson(res, record, 201, headers));
+    }).catch(e => fail(res, e));
   }
   const ec = url.pathname.match(/^\/api\/v1\/evidence-uploads\/([^/]+)\/chunks\/(\d+)$/);
   if (ec && req.method === 'PUT') {
@@ -2975,7 +3033,11 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
     } catch (e) {
       return fail(res, e);
     }
-    return body(req, 800000).then(b => json(res, 200, store.putEvidenceChunk(c, ec[1], ec[2], b.contentBase64))).catch(e => fail(res, e));
+    return body(req, 800000).then(b => {
+      const write = () => store.putEvidenceChunk(c, ec[1], ec[2], b.contentBase64);
+      if (!signedWorkOrdersWriteEnabled(req)) return json(res, 200, write());
+      return runSignedWorkOrderWrite(res, c, write, (result, headers) => json(res, 200, result, headers));
+    }).catch(e => fail(res, e));
   }
   const ex = url.pathname.match(/^\/api\/v1\/evidence-uploads\/([^/]+)\/complete$/);
   if (ex && req.method === 'POST') {
@@ -2984,7 +3046,9 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
     } catch (e) {
       return fail(res, e);
     }
-    return json(res, 201, store.completeEvidenceUpload(c, ex[1]));
+    const write = () => store.completeEvidenceUpload(c, ex[1]);
+    if (!signedWorkOrdersWriteEnabled(req)) return json(res, 201, write());
+    return runSignedWorkOrderWrite(res, c, write, (result, headers) => json(res, 201, result, headers));
   }
   const am = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/attachments$/);
   if (am && req.method === 'GET')
@@ -2995,15 +3059,19 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
     } catch (e) {
       return fail(res, e);
     }
-    return body(req, 8000000).then(b => idemJson(res, store.idempotentWrite(c, 'work_order_evidence', idempotencyKey(req), {
-      workOrderId: am[1],
-      fileName: b.fileName,
-      mediaType: b.mediaType,
-      contentBase64: b.contentBase64
-    }, () => store.storeAttachment(c, {
-      workOrderId: am[1],
-      ...b
-    })), 201)).catch(e => fail(res, e));
+    return body(req, 8000000).then(b => {
+      const write = () => store.idempotentWrite(c, 'work_order_evidence', idempotencyKey(req), {
+        workOrderId: am[1],
+        fileName: b.fileName,
+        mediaType: b.mediaType,
+        contentBase64: b.contentBase64
+      }, () => store.storeAttachment(c, {
+        workOrderId: am[1],
+        ...b
+      }));
+      if (!signedWorkOrdersWriteEnabled(req)) return idemJson(res, write(), 201);
+      return runSignedWorkOrderWrite(res, c, write, (record, headers) => idemJson(res, record, 201, headers));
+    }).catch(e => fail(res, e));
   }
   if (req.method === 'GET' && url.pathname === '/api/v1/assets')
     return json(res, 200, store.listAssets(c));
