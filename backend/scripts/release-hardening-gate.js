@@ -31,7 +31,7 @@ const legacyDemoCredentialMarker = ['Demo', 'Owner', '2026', 'Local!'].join('-')
 check('demo-runbook-no-legacy-password', !runbook.includes(legacyDemoCredentialMarker), 'runbook must not ship demo credentials');
 const noLicenseNoticePath = path.join(repoRoot, 'NO_LICENSE_GRANT_NOTICE.txt');
 const noLicenseNotice = fs.existsSync(noLicenseNoticePath) ? fs.readFileSync(noLicenseNoticePath, 'utf8') : '';
-const licenseFilePattern = /(^|\\/)(?:LICENSE|LICENCE)(?:\\.[^/]*)?$/i;
+const licenseFilePattern = /(^|\/)(?:LICENSE|LICENCE)(?:\.[^/]*)?$/i;
 function findFirstPartyLicenseFiles(dir, relative = '') {
   const found = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
