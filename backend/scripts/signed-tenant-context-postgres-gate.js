@@ -1053,7 +1053,15 @@ async function main() {
         headers: evidenceChunkA.headers
       }));
     }
+    const persistedChunkA = await owner.query(
+      'SELECT COUNT(*)::int AS count FROM public.evidence_upload_chunks WHERE upload_id=$1 AND chunk_index=0',
+      [evidenceInitA.body.uploadId]
+    );
+    if (persistedChunkA.rows[0]?.count !== 1) {
+      throw new Error('SIGNED_CONTEXT_EVIDENCE_CHUNK_A_NOT_PERSISTED_AFTER_HTTP_COMMIT:' + JSON.stringify(persistedChunkA.rows[0]));
+    }
     signedEvidenceRouteProof.chunkTenantA = 'PASS';
+    signedEvidenceRouteProof.chunkTenantAPersisted = 'PASS';
 
     const duplicateEvidenceChunkA = await queryHttp(
       port,
@@ -1087,7 +1095,15 @@ async function main() {
         headers: evidenceChunkB.headers
       }));
     }
+    const persistedChunkB = await owner.query(
+      'SELECT COUNT(*)::int AS count FROM public.evidence_upload_chunks WHERE upload_id=$1 AND chunk_index=0',
+      [evidenceInitB.body.uploadId]
+    );
+    if (persistedChunkB.rows[0]?.count !== 1) {
+      throw new Error('SIGNED_CONTEXT_EVIDENCE_CHUNK_B_NOT_PERSISTED_AFTER_HTTP_COMMIT:' + JSON.stringify(persistedChunkB.rows[0]));
+    }
     signedEvidenceRouteProof.chunkTenantB = 'PASS';
+    signedEvidenceRouteProof.chunkTenantBPersisted = 'PASS';
 
     const foreignEvidenceComplete = await queryHttp(
       port,
