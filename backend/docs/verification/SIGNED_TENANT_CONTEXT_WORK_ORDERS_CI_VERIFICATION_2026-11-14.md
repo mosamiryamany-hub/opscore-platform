@@ -6,7 +6,7 @@ Repository: `mosamiryamany-hub/opscore-platform`
 
 PR: #103 — `security/priority-production-hardening-20261114`
 
-Branch HEAD: `bc07f7a68d5df1f757103a46160aef9d1c962427`
+Application source commit verified by the CI runs below: `bc07f7a68d5df1f757103a46160aef9d1c962427`
 
 PR base / unchanged `main`: `4ef126ccd59f23cebeead30224d1bcf7199535ab`
 
@@ -142,8 +142,9 @@ No application of 063/064 to the existing Neon Preview branch was performed. No 
 ## Change control
 
 - PR #103 remains **OPEN / DRAFT / NOT MERGED**.
-- Branch HEAD: `bc07f7a68d5df1f757103a46160aef9d1c962427`.
-- The branch is 39 commits ahead of `main` and 0 behind at this checkpoint.
+- Application source commit covered by the CI evidence above: `bc07f7a68d5df1f757103a46160aef9d1c962427`.
+- This report was refreshed in a later documentation-only commit; that refresh did not modify application code, migrations, deployment settings, or databases.
+- At the tested source checkpoint, the branch was 39 commits ahead of `main` and 0 behind.
 - `main` remains `4ef126ccd59f23cebeead30224d1bcf7199535ab`.
 - No deployment was performed.
 
