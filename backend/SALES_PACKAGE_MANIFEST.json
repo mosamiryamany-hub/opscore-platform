@@ -1,7 +1,7 @@
 {
   "product": "OpsCore Operational SaaS Starter Kit",
   "version": "0.11.62",
-  "generatedAt": "2026-11-14T00:02:41.041Z",
+  "generatedAt": "2026-11-14T21:24:55.036Z",
   "integrityExclusions": [
     "RELEASE_COMPONENT_SHA256SUMS.txt",
     "RELEASE_FILE_SHA256SUMS.txt",
@@ -71,11 +71,6 @@
       "path": "INTEGRATION_DEPENDENCIES.md",
       "sha256": "b81faa8a52ae404d774dba5f8ceb99c0945a44ecca770330b7087f5b27eea579",
       "bytes": 2361
-    },
-    {
-      "path": "LICENSE.txt",
-      "sha256": "ad66f29984d858fec6a3b8e0205bb1f557e706b867967c1b4a232877ea3ccd98",
-      "bytes": 1207
     },
     {
       "path": "PRODUCT_POSITIONING.md",
@@ -594,8 +589,8 @@
     },
     {
       "path": "scripts/release-hardening-gate.js",
-      "sha256": "1b498feefb73ecc9c8ea8a01face3b1c999b3ff0d40fba80c66528568f7d45f7",
-      "bytes": 4384
+      "sha256": "2b1dd1c4dc9a2fb4521943795f3888ece6d33ae23da458aa249631886cab3c0f",
+      "bytes": 5848
     },
     {
       "path": "scripts/release-test-runner.js",
@@ -1874,8 +1869,8 @@
     },
     {
       "path": "test/release-documentation-consistency.test.js",
-      "sha256": "80b1ba81b0115b84911173f84acae79b7d8868c6f245ec947b371b294066508a",
-      "bytes": 9724
+      "sha256": "d05dac58114621aa96e6c16d4c53f7e9228c6e40cc9a0508a58f194835055286",
+      "bytes": 11760
     },
     {
       "path": "test/release-proof-ui.test.js",
@@ -1894,8 +1889,8 @@
     },
     {
       "path": "test/release_hardening_1160.test.js",
-      "sha256": "b1e739aab2980944f1ae92b196bdd209ed0b4d32614d38d02f581a6f156ed626",
-      "bytes": 2526
+      "sha256": "878e983ad5849f1f5c1f9b6a5ea3a7e96be970823b38291a367e0fb9f870d7fa",
+      "bytes": 3869
     },
     {
       "path": "test/release_hardening_2026.test.js",
