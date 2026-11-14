@@ -81,7 +81,7 @@ function collect(dir, rel = '') {
   return out.sort();
 }
 
-const firstPartyLicenseFilePattern = /(^|\\/)(?:LICENSE|LICENCE)(?:\\.[^/]*)?$/i;
+const firstPartyLicenseFilePattern = /(^|\/)(?:LICENSE|LICENCE)(?:\.[^/]*)?$/i;
 function assertNoLicenseGrantFiles(dir, phase) {
   const licenseFiles = collect(dir).filter(relativePath => firstPartyLicenseFilePattern.test(relativePath));
   if (licenseFiles.length) {
