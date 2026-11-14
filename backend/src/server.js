@@ -1468,7 +1468,13 @@ function route(req, res) {
         errorCode: safeDatabaseErrorCode(error),
         route: '/api/v1/_internal/tenant-context-proof'
       });
-      return json(res, 503, { error: { code: 'SIGNED_TENANT_CONTEXT_PROOF_FAILED' } }, { 'cache-control': 'no-store' });
+      return json(res, 503, {
+        error: { code: 'SIGNED_TENANT_CONTEXT_PROOF_FAILED' },
+        ...(process.env.VERCEL_ENV === 'preview'
+          && String(process.env.OPSC_TENANT_CONTEXT_PROOF_ENABLED || '').toLowerCase() === 'true'
+          ? { diagnosticCode: safeDatabaseErrorCode(error) }
+          : {})
+      }, { 'cache-control': 'no-store' });
     }
   }
 

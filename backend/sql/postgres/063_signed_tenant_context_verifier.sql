@@ -69,7 +69,7 @@ BEGIN
      OR signature_hex IS NULL
      OR pg_catalog.octet_length(raw_payload) > 4096
      OR signature_hex !~ '^[0-9a-f]{64}$' THEN
-    RETURN NULL;
+    RAISE EXCEPTION USING ERRCODE = 'P0631', MESSAGE = 'OPSC_SIGNED_CONTEXT_REJECTED_MISSING_OR_MALFORMED_ASSERTION';
   END IF;
 
   claims := raw_payload::jsonb;
@@ -91,7 +91,7 @@ BEGIN
      OR claims->>'iat' !~ '^[0-9]{1,12}$'
      OR claims->>'nbf' !~ '^[0-9]{1,12}$'
      OR claims->>'exp' !~ '^[0-9]{1,12}$' THEN
-    RETURN NULL;
+    RAISE EXCEPTION USING ERRCODE = 'P0632', MESSAGE = 'OPSC_SIGNED_CONTEXT_REJECTED_CLAIMS_SHAPE';
   END IF;
 
   issued_at := (claims->>'iat')::bigint;
@@ -108,7 +108,7 @@ BEGIN
      OR expires_at > current_epoch + 60
      OR (claims->>'backend_pid')::integer IS DISTINCT FROM pg_catalog.pg_backend_pid()
      OR claims->>'transaction_id' IS DISTINCT FROM pg_catalog.pg_current_xact_id()::text THEN
-    RETURN NULL;
+    RAISE EXCEPTION USING ERRCODE = 'P0633', MESSAGE = 'OPSC_SIGNED_CONTEXT_REJECTED_TIME_OR_TRANSACTION_BINDING';
   END IF;
 
   SELECT k.secret INTO key_material
@@ -119,14 +119,14 @@ BEGIN
     AND (k.not_after IS NULL OR k.not_after > pg_catalog.clock_timestamp());
 
   IF key_material IS NULL THEN
-    RETURN NULL;
+    RAISE EXCEPTION USING ERRCODE = 'P0634', MESSAGE = 'OPSC_SIGNED_CONTEXT_REJECTED_KEY_NOT_ACTIVE';
   END IF;
 
   expected_mac := public.hmac(pg_catalog.convert_to(raw_payload, 'UTF8'), key_material, 'sha256');
   supplied_mac := pg_catalog.decode(signature_hex, 'hex');
   IF pg_catalog.octet_length(expected_mac) <> 32
      OR pg_catalog.octet_length(supplied_mac) <> 32 THEN
-    RETURN NULL;
+    RAISE EXCEPTION USING ERRCODE = 'P0635', MESSAGE = 'OPSC_SIGNED_CONTEXT_REJECTED_SIGNATURE_ENCODING';
   END IF;
 
   -- Fixed-length comparison loop. This is a constant-work preliminary check,
@@ -138,7 +138,7 @@ BEGIN
     );
   END LOOP;
   IF difference <> 0 THEN
-    RETURN NULL;
+    RAISE EXCEPTION USING ERRCODE = 'P0636', MESSAGE = 'OPSC_SIGNED_CONTEXT_REJECTED_HMAC_MISMATCH';
   END IF;
 
   -- The existing schema has no revoked_at column; logout revokes by deleting this row.
@@ -160,13 +160,13 @@ BEGIN
   LIMIT 1;
 
   IF session_found IS DISTINCT FROM true THEN
-    RETURN NULL;
+    RAISE EXCEPTION USING ERRCODE = 'P0637', MESSAGE = 'OPSC_SIGNED_CONTEXT_REJECTED_SESSION_MEMBERSHIP';
   END IF;
 
   RETURN claims;
 EXCEPTION
   WHEN OTHERS THEN
-    RETURN NULL;
+    RAISE;
 END
 $function$;
 
