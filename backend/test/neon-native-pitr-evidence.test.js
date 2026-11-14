@@ -9,6 +9,7 @@ const crypto = require('node:crypto');
 const repositoryRoot = path.resolve(__dirname, '..', '..');
 const evidencePath = path.join(
   repositoryRoot,
+  'backend',
   'docs',
   'verification',
   'NEON_NATIVE_PITR_CANARY_RESULT.json'
