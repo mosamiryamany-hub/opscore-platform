@@ -27,7 +27,7 @@ These statuses apply only to the exact seller production target and the evidence
 1. PR #103 signed tenant-context integration remains a separate, unmerged security track; its remaining legacy unsigned paths, independent Knowledge pool, and full runtime proof must be closed before claiming complete trust-boundary coverage.
 2. WAF enforcement must be proven in blocking mode; logging-only rules are not blocking protection.
 3. Neon PITR/restore must be validated with a real restore drill and measured RPO/RTO.
-4. Signed Android/iOS store artifacts, buyer-specific signing, physical-device QA, and store publication remain outstanding.
+4. Mobile source is included, but signed Android/iOS store artifacts, buyer-specific signing, physical-device QA, and store publication remain outstanding.
 5. Native-speaker/domain translation review remains outstanding.
 6. Licensed maps/road-routing and buyer-specific external providers, credentials, contracts, and live acceptance remain outstanding.
 7. Buyer-environment installation, migration, isolation, backup/restore, and operational acceptance remain buyer-environment gates.
