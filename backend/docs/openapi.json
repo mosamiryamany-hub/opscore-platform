@@ -361,18 +361,38 @@
     },
     "/api/v1/appointments": {
       "get": {
-        "summary": "List appointments"
+        "summary": "List appointments",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       },
       "post": {
-        "summary": "Schedule appointment"
+        "summary": "Schedule appointment",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/appointments/{id}": {
       "get": {
-        "summary": "Get appointment"
+        "summary": "Get appointment",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       },
       "patch": {
-        "summary": "Update appointment"
+        "summary": "Update appointment",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/appointments/{id}/on-my-way": {
@@ -392,7 +412,12 @@
             "description": "Updated appointment"
           }
         },
-        "summary": "Mark appointment on the way"
+        "summary": "Mark appointment on the way",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/approvals": {
@@ -776,7 +801,12 @@
             "description": "Audit chain verification result"
           }
         },
-        "summary": "Verify tenant audit hash chain"
+        "summary": "Verify tenant audit hash chain",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/auth/bootstrap": {
@@ -1098,7 +1128,12 @@
             "description": "Unauthenticated"
           }
         },
-        "summary": "Get Stripe billing state"
+        "summary": "Get Stripe billing state",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/billing/stripe/link": {
@@ -1134,7 +1169,12 @@
             "description": "Admin scope required"
           }
         },
-        "summary": "Link a Stripe customer to the current organization"
+        "summary": "Link a Stripe customer to the current organization",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/billing/stripe/webhook": {
@@ -1154,7 +1194,12 @@
             "description": "Webhook secret is not configured"
           }
         },
-        "summary": "Receive a verified Stripe webhook"
+        "summary": "Receive a verified Stripe webhook",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/business-calendars": {
@@ -1314,7 +1359,12 @@
             "description": "Client contract"
           }
         },
-        "summary": "Shared client contract for web, Android and iOS"
+        "summary": "Shared client contract for web, Android and iOS",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/commands": {
@@ -1394,7 +1444,12 @@
             "description": "Completion policy list"
           }
         },
-        "summary": "List active completion assurance policies"
+        "summary": "List active completion assurance policies",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       },
       "post": {
         "requestBody": {
@@ -1439,7 +1494,12 @@
             "description": "Policy saved"
           }
         },
-        "summary": "Create or replace a completion assurance policy"
+        "summary": "Create or replace a completion assurance policy",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/completion-policies/{id}/versions": {
@@ -1459,7 +1519,12 @@
             "description": "Policy version history"
           }
         },
-        "summary": "List immutable completion policy versions"
+        "summary": "List immutable completion policy versions",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/configs": {
@@ -1728,7 +1793,12 @@
             "description": "Invalid action or target"
           }
         },
-        "summary": "Execute an explicit Control Tower operator action"
+        "summary": "Execute an explicit Control Tower operator action",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/custom-domains": {
@@ -2213,7 +2283,12 @@
             "description": "Technician/appointment board"
           }
         },
-        "summary": "Dispatch board"
+        "summary": "Dispatch board",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/dispatcher-map": {
@@ -2796,7 +2871,12 @@
             "description": "Forbidden"
           }
         },
-        "summary": "Export tenant-scoped operational snapshot"
+        "summary": "Export tenant-scoped operational snapshot",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/export/work-orders.csv": {
@@ -2820,7 +2900,12 @@
             "description": "Technician-scoped daily appointments"
           }
         },
-        "summary": "Today's field mission"
+        "summary": "Today's field mission",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/financial-settings": {
@@ -3208,7 +3293,12 @@
             "description": "Validation report; no database writes"
           }
         },
-        "summary": "Validate customer import without writing"
+        "summary": "Validate customer import without writing",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/intelligence/status": {
@@ -3236,7 +3326,12 @@
             "description": "Conflict"
           }
         },
-        "summary": "2026 intelligence status"
+        "summary": "2026 intelligence status",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/intelligence/work-orders/{id}/predict": {
@@ -3304,7 +3399,12 @@
     },
     "/api/v1/inventory": {
       "get": {
-        "summary": "List inventory"
+        "summary": "List inventory",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/inventory/ledger": {
@@ -3379,17 +3479,32 @@
     },
     "/api/v1/inventory/locations": {
       "post": {
-        "summary": "Create inventory location"
+        "summary": "Create inventory location",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/inventory/parts": {
       "post": {
-        "summary": "Create part"
+        "summary": "Create part",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/inventory/receive": {
       "post": {
-        "summary": "Receive stock"
+        "summary": "Receive stock",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/invitations": {
@@ -4305,7 +4420,12 @@
             "description": "Compiled closure sheet"
           }
         },
-        "summary": "Compile a governed daily closure sheet"
+        "summary": "Compile a governed daily closure sheet",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/operations/closure-sheets/latest": {
@@ -4315,7 +4435,12 @@
             "description": "Closure sheet"
           }
         },
-        "summary": "Read latest persisted closure sheet"
+        "summary": "Read latest persisted closure sheet",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/operations/closure-sheets/verify": {
@@ -4370,7 +4495,12 @@
             "description": "Role-aware persisted operational focus, decision queue and management brief"
           }
         },
-        "summary": "Role-aware operational cockpit"
+        "summary": "Role-aware operational cockpit",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/operations/daily-brief": {
@@ -4520,7 +4650,12 @@
             "description": "Owner/admin required"
           }
         },
-        "summary": "Read-only operational diagnostics"
+        "summary": "Read-only operational diagnostics",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/outbox": {
@@ -5398,7 +5533,12 @@
     },
     "/api/v1/route-plan": {
       "post": {
-        "summary": "Plan route using coordinate distance"
+        "summary": "Plan route using coordinate distance",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/routes/osrm": {
@@ -6366,20 +6506,40 @@
     },
     "/api/v1/sla-policies": {
       "get": {
-        "summary": "List SLA policies"
+        "summary": "List SLA policies",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       },
       "post": {
-        "summary": "Create/update SLA policy"
+        "summary": "Create/update SLA policy",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/sla-risks": {
       "get": {
-        "summary": "Evaluate SLA risks"
+        "summary": "Evaluate SLA risks",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/sync": {
       "post": {
-        "summary": "Apply idempotent field sync events"
+        "summary": "Apply idempotent field sync events",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/sync/conflicts": {
@@ -6461,18 +6621,38 @@
     },
     "/api/v1/technicians": {
       "get": {
-        "summary": "List technicians"
+        "summary": "List technicians",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       },
       "post": {
-        "summary": "Create/update technician profile"
+        "summary": "Create/update technician profile",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/technicians/skills": {
       "get": {
-        "summary": "List technician skills"
+        "summary": "List technician skills",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       },
       "post": {
-        "summary": "Create/update technician skill"
+        "summary": "Create/update technician skill",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/technicians/{id}/geofences": {
@@ -6821,17 +7001,32 @@
     },
     "/api/v1/work-order-parts/reserve": {
       "post": {
-        "summary": "Reserve stock for work order"
+        "summary": "Reserve stock for work order",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/work-order-parts/{id}/consume": {
       "post": {
-        "summary": "Consume reserved part"
+        "summary": "Consume reserved part",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/work-order-signoffs": {
       "post": {
-        "summary": "Record customer sign-off"
+        "summary": "Record customer sign-off",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/work-orders": {
@@ -7162,7 +7357,12 @@
             "description": "Completion readiness and blockers"
           }
         },
-        "summary": "Evaluate whether a work order satisfies its completion assurance policy"
+        "summary": "Evaluate whether a work order satisfies its completion assurance policy",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/work-orders/{id}/completion-assurance/preview": {
@@ -7192,7 +7392,12 @@
             "description": "Non-mutating completion assessment"
           }
         },
-        "summary": "Preview a completion policy without writing"
+        "summary": "Preview a completion policy without writing",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/work-orders/{id}/completion-package": {
@@ -7212,7 +7417,12 @@
             "description": "Completion evidence package"
           }
         },
-        "summary": "Verified completion package"
+        "summary": "Verified completion package",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/work-orders/{id}/completion.pdf": {
@@ -7252,7 +7462,12 @@
     },
     "/api/v1/work-orders/{id}/dispatch-candidates": {
       "get": {
-        "summary": "List dispatch candidates"
+        "summary": "List dispatch candidates",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/work-orders/{id}/dispatch-eligibility": {
@@ -7307,7 +7522,12 @@
             "description": "Evidence package with SHA-256 integrity manifest"
           }
         },
-        "summary": "Export a verified work-order evidence package manifest"
+        "summary": "Export a verified work-order evidence package manifest",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/work-orders/{id}/evidence-uploads": {
@@ -7465,7 +7685,12 @@
             "description": "Handoff packet carrying current truth, next action, risk, evidence and recent timeline"
           }
         },
-        "summary": "Server-generated work-order handoff context"
+        "summary": "Server-generated work-order handoff context",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/work-orders/{id}/operational-risk": {
@@ -7498,12 +7723,22 @@
     },
     "/api/v1/work-orders/{id}/parts": {
       "get": {
-        "summary": "List work-order parts"
+        "summary": "List work-order parts",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/work-orders/{id}/signoffs": {
       "get": {
-        "summary": "List customer sign-offs"
+        "summary": "List customer sign-offs",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/work-orders/{id}/time-summary": {
@@ -7625,7 +7860,12 @@
             "description": "Transition preview"
           }
         },
-        "summary": "Preview a governed work-order transition without writing"
+        "summary": "Preview a governed work-order transition without writing",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/workflows": {
@@ -7716,7 +7956,12 @@
             "description": "Not found"
           }
         },
-        "summary": "List immutable workflow versions"
+        "summary": "List immutable workflow versions",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/v1/{param}/{id}": {
@@ -11857,11 +12102,6 @@
             "description": "Validation failure"
           }
         },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
         "x-opscore-source": "src/server.js:1105",
         "x-opscore-schema-note": "Request/response schemas are omitted here when they are not statically derived from the server branch. No payload shape is inferred."
       }
@@ -11892,11 +12132,6 @@
             "description": "Validation failure"
           }
         },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
         "x-opscore-source": "src/server.js:1080",
         "x-opscore-schema-note": "Request/response schemas are omitted here when they are not statically derived from the server branch. No payload shape is inferred."
       }
@@ -11927,11 +12162,6 @@
             "description": "Validation failure"
           }
         },
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
         "x-opscore-source": "src/server.js:1072",
         "x-opscore-schema-note": "Request/response schemas are omitted here when they are not statically derived from the server branch. No payload shape is inferred."
       }

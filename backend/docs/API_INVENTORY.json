@@ -2593,21 +2593,21 @@
     {
       "method": "GET",
       "route": "/api/verify/database",
-      "auth": "required",
+      "auth": "public",
       "scope": null,
       "sourceLine": 1105
     },
     {
       "method": "GET",
       "route": "/api/verify/database-security",
-      "auth": "required",
+      "auth": "public",
       "scope": null,
       "sourceLine": 1080
     },
     {
       "method": "GET",
       "route": "/api/verify/deployment",
-      "auth": "required",
+      "auth": "public",
       "scope": null,
       "sourceLine": 1072
     },

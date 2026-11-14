@@ -10,7 +10,10 @@ const METHOD = /req\.method\s*===\s*'(GET|POST|PUT|PATCH|DELETE)'/g;
 const SCOPE = /requireScope\s*\(\s*c\s*,\s*'(admin|write|read)'\s*\)/g;
 const routes = [];
 function classifyAuth(route) {
-  if (route === '/api/health' || route === '/api/openapi.json') return 'public';
+  if (route === '/api/health' || route === '/api/openapi.json' ||
+      route === '/api/verify/database' ||
+      route === '/api/verify/database-security' ||
+      route === '/api/verify/deployment') return 'public';
   if (route.startsWith('/api/v1/auth/') || route === '/api/v1/portal/overview' || route.startsWith('/api/v1/portal/')) return 'public/scoped';
   return 'required';
 }

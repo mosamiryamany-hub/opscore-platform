@@ -30,4 +30,12 @@ test('source-derived API inventory and OpenAPI include all known regex-backed op
     assert.ok(openapi.paths[pathName][route.split(' ')[0].toLowerCase()], `OpenAPI method missing: ${route}`);
   }
   assert.equal(Object.prototype.hasOwnProperty.call(openapi.paths['/api/v1/platform/twin/snapshots/{id}/verify'], 'post'), false, 'verification endpoint is GET-only');
+  for (const route of ['/api/verify/database','/api/verify/database-security','/api/verify/deployment']) {
+    const entry = inventory.routes.find(r => r.method === 'GET' && r.route === route);
+    assert.equal(entry?.auth, 'public', `public verification route classification: ${route}`);
+    assert.equal(openapi.paths[route]?.get?.security, undefined, `public verification route must not require bearer auth: ${route}`);
+  }
+  const metrics = inventory.routes.find(r => r.method === 'GET' && r.route === '/metrics');
+  assert.equal(metrics?.auth, 'required', 'metrics remains protected by its bearer token');
+  assert.deepEqual(openapi.paths['/metrics']?.get?.security, [{ bearerAuth: [] }]);
 });
