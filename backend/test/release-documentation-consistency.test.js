@@ -228,3 +228,20 @@ test('commercial release grants no license and forbids distribution pending righ
   assert.match(packageBuilder, /distributionAuthorized: false/);
   assert.match(packageBuilder, /NO LICENSE GRANT/);
 });
+
+test('current-facing release documents do not pin superseded candidate identities', () => {
+  const sourceDocs = [
+    'DELIVERY_MANIFEST.md',
+    'BUYER_DELIVERY.md',
+    'COMMERCIAL_CLOSURE_STATUS.md',
+    'CLOSEOUT_EXECUTION_RUNBOOK.md',
+    'docs/release/RELEASE_SCOPE.md'
+  ].map(read);
+
+  const supersededIdentity = /4ef126ccd59f23cebeead30224d1bcf7199535ab|43588278472|43308699094|dpl_5nx3dRRu9WuYmpqR9deiSeCqHwF3|d940152d1428d82d9bb0c57695d929099a648ac3/;
+  for (const doc of sourceDocs) {
+    assert.doesNotMatch(doc, supersededIdentity);
+    assert.match(doc, /NO LICENSE GRANT|NO COMMERCIAL DISTRIBUTION/i);
+    assert.match(doc, /exact-head|exact release|exact current|current seller-reference|current seller reference/i);
+  }
+});
