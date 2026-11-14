@@ -61,7 +61,9 @@ The helper is a separate raw-GUC compatibility mechanism. Its cleanup behavior i
 
 The worker constructs an elevated synthetic system context from the claimed job's organization and creator. It currently operates through SQLite, not the production PostgreSQL RLS connection. Consequently the signed PostgreSQL HTTP slice does not cover this worker. Starting `npm run worker` alongside a PostgreSQL-backed server does not make this worker a PostgreSQL worker; absent an explicit database-mode guard, it may operate on the configured local SQLite file instead.
 
-**Classification:** SQLite-only worker; PostgreSQL integration **NOT IMPLEMENTED**. Do not describe it as a Neon-backed or signed-context worker. Add an explicit startup refusal when PostgreSQL is selected until a real PostgreSQL worker adapter and purpose-bound per-job authorization contract are implemented. Do not solve this by granting a generic `system` GUC mode.
+**Source correction applied in this audit branch:** `operational-worker.js` now exits with `OPSC_POSTGRES_WORKER_NOT_IMPLEMENTED` before opening SQLite whenever `DATABASE_ENGINE=postgres`. This prevents a PostgreSQL deployment from silently running a second, unrelated SQLite database through the worker command.
+
+**Classification:** SQLite-only worker; PostgreSQL integration **NOT IMPLEMENTED**; fail-closed startup guard now applied. Do not describe it as a Neon-backed or signed-context worker. A real PostgreSQL worker adapter and purpose-bound per-job authorization contract are still required. Do not solve this by granting a generic `system` GUC mode.
 
 `backend/scripts/resilience-worker.js` is likewise a CLI helper using an explicit SQLite database path; classify it separately as a local resilience/test utility, not a PostgreSQL runtime worker.
 
@@ -100,7 +102,7 @@ A pure unit test covers production, test/development, blank values, explicit `ve
 1. **Completed in this audit branch:** correct production sync-worker TLS default and add a unit test for the default/override contract.
 2. **Next P0:** implement a shared transaction-bound signer/binder for the asynchronous knowledge pool, with real PostgreSQL acceptance proving the same PoolClient handles identity capture, binding, and tenant query. Avoid holding the transaction during embedding-provider network calls.
 3. **P0/P1:** define and implement purpose-bound database functions for session resolution, login/OIDC, API-key authentication, logout/revocation, password reset, invitation, and bootstrap. Avoid generic caller-selectable `auth/system/backoffice` context.
-4. **P1:** either implement a PostgreSQL-native operational worker with job-scoped verified/system authorization and per-transaction context, or refuse PostgreSQL mode at worker startup. Never silently fall back to SQLite when the API runtime is PostgreSQL.
+4. **P1:** implement a PostgreSQL-native operational worker with job-scoped verified/system authorization and per-transaction context. Until then, the new startup guard refuses PostgreSQL mode. Never silently fall back to SQLite when the API runtime is PostgreSQL.
 5. **P1:** retire or migrate the optional asynchronous `PgDatabase`/raw-GUC helper after verifying actual consumer reachability.
 6. **Only after all callers are migrated:** remove unsigned `setSession`, raw-GUC compatibility fallbacks, and broad runtime identity-table grants; then run exhaustive route/worker acceptance, Neon-hosted HTTP tests, and direct-runtime-credential red-team probes.
 
@@ -115,4 +117,6 @@ A pure unit test covers production, test/development, blank values, explicit `ve
 
 - `backend/src/pg-database-sync.js`
 - `backend/test/pg-database-sync.test.js`
+- `backend/scripts/operational-worker.js`
+- `backend/test/operational-worker-runtime-guard.test.js`
 - `backend/docs/verification/POSTGRES_TENANT_CONTEXT_SOURCE_PATH_AUDIT_2026-11-14.md`
