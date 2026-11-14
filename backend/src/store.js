@@ -384,6 +384,27 @@ class Store {
       startedAt: now()
     };
   }
+  withCallerManagedTransaction(fn) {
+    if (typeof fn !== 'function') throw new Error('CALLER_MANAGED_TRANSACTION_CALLBACK_REQUIRED');
+    if (this.db?.engine !== 'postgres') throw new Error('CALLER_MANAGED_TRANSACTION_POSTGRES_REQUIRED');
+    const baseDepth = this._txDepth;
+    if (!Number.isSafeInteger(baseDepth) || baseDepth !== 0) {
+      throw new Error('CALLER_MANAGED_TRANSACTION_ALREADY_ACTIVE');
+    }
+    this._txDepth = baseDepth + 1;
+    try {
+      const result = fn();
+      if (result && typeof result.then === 'function') {
+        throw new Error('CALLER_MANAGED_TRANSACTION_MUST_BE_SYNCHRONOUS');
+      }
+      if (this._txDepth !== baseDepth + 1) {
+        throw new Error('CALLER_MANAGED_TRANSACTION_DEPTH_CORRUPTED');
+      }
+      return result;
+    } finally {
+      this._txDepth = baseDepth;
+    }
+  }
   _loginThrottleKey(rawEmail, ip='unknown') {
     return `${email(rawEmail)}:${String(ip||'unknown')}`;
   }
