@@ -974,13 +974,14 @@ function auditSafeAi(store,c,workOrderId,out){
 function signedWorkOrdersReadEnabled(req) {
   const pathname = String(req.url || '').split('?')[0];
   const supportedReadPath = pathname === '/api/v1/work-orders'
-    || /^\/api\/v1\/work-orders\/[^/]+$/.test(pathname);
+    || /^\/api\/v1\/work-orders\/[^/]+$/.test(pathname)
+    || /^\/api\/v1\/work-orders\/[^/]+\/(?:completion-package|timeline|handoff|operational-risk|comments|attachments|dispatch-candidates|parts|signoffs|why-blocked|changelog|verified-job-record|work-pack|completion-assurance|time-summary|first-time-right)$/.test(pathname);
   return process.env.VERCEL_ENV === 'preview'
     && String(process.env.OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_ENABLED || '').toLowerCase() === 'true'
     && String(req.method || '').toUpperCase() === 'GET'
     && supportedReadPath;
 }
-function runSignedWorkOrdersRead(res, c, reader) {
+function runSignedWorkOrdersRead(res, c, reader, responseHeaders = {}) {
   if (c.apiKeyId || !c.sessionId || !store.db || store.db.engine !== 'postgres'
       || typeof store.db.activateVerifiedTenantContext !== 'function') {
     return json(res, 401, { error: { code: 'SIGNED_TENANT_SESSION_REQUIRED' } }, { 'cache-control': 'no-store' });
@@ -1003,6 +1004,7 @@ function runSignedWorkOrdersRead(res, c, reader) {
     store.db.exec('COMMIT');
     transactionOpen = false;
     return json(res, 200, result, {
+      ...responseHeaders,
       'cache-control': 'no-store',
       'x-opscore-signed-tenant-context': 'verified'
     });
@@ -1017,16 +1019,19 @@ function runSignedWorkOrdersRead(res, c, reader) {
     return json(res, 503, { error: { code: 'SIGNED_TENANT_WORK_ORDER_READ_FAILED' } }, { 'cache-control': 'no-store' });
   }
 }
+function sendWorkOrderRead(req, res, c, reader, responseHeaders = {}) {
+  if (!signedWorkOrdersReadEnabled(req)) return json(res, 200, reader(), responseHeaders);
+  return runSignedWorkOrdersRead(res, c, reader, responseHeaders);
+}
 function requireCtx(req, res) {
   const c = ctx(req);
   if (!c) {
     json(res, 401, { error: { code: 'UNAUTHENTICATED' } });
     return null;
   }
-  // The signed work-order slice pins a verified session principal in request-local
-  // state. Its route opens a READ ONLY transaction and binds the assertion to that
-  // backend/xid before running the real Store read. All other routes retain the
-  // legacy binder until their own signed-context migration and tests are complete.
+  // Explicitly allowlisted work-order GET routes pin a verified session principal.
+  // Their handlers use one READ ONLY transaction bound to backend/xid; all writes,
+  // PDF streaming, evidence-integrity auditing, and other routes keep their own paths.
   try {
     if (signedWorkOrdersReadEnabled(req)
         && !c.apiKeyId
@@ -1892,19 +1897,19 @@ function route(req, res) {
   
   const wo_why_blocked = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/why-blocked$/);
   if (req.method === 'GET' && wo_why_blocked) {
-    try { return json(res, 200, store.whyBlocked(c, decodeURIComponent(wo_why_blocked[1])), { 'x-correlation-id': correlationId }); } catch (e) { return fail(res, e); }
+    try { return sendWorkOrderRead(req, res, c, () => store.whyBlocked(c, decodeURIComponent(wo_why_blocked[1])), { 'x-correlation-id': correlationId }); } catch (e) { return fail(res, e); }
   }
 
   
   const wo_changelog = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/changelog$/);
   if (req.method === 'GET' && wo_changelog) {
-    try { return json(res, 200, store.workOrderReadableChangelog(c, decodeURIComponent(wo_changelog[1])), { 'x-correlation-id': correlationId }); } catch (e) { return fail(res, e); }
+    try { return sendWorkOrderRead(req, res, c, () => store.workOrderReadableChangelog(c, decodeURIComponent(wo_changelog[1])), { 'x-correlation-id': correlationId }); } catch (e) { return fail(res, e); }
   }
 
   
   const wo_verified_job_record = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/verified-job-record$/);
   if (req.method === 'GET' && wo_verified_job_record) {
-    try { return json(res, 200, store.verifiedJobRecord(c, decodeURIComponent(wo_verified_job_record[1])), { 'x-correlation-id': correlationId }); } catch (e) { return fail(res, e); }
+    try { return sendWorkOrderRead(req, res, c, () => store.verifiedJobRecord(c, decodeURIComponent(wo_verified_job_record[1])), { 'x-correlation-id': correlationId }); } catch (e) { return fail(res, e); }
   }
 
   
@@ -1923,12 +1928,12 @@ function route(req, res) {
   }
   const woPack = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/work-pack$/);
   if (req.method === 'GET' && woPack) {
-    try { return json(res, 200, store.technicianWorkPack(c, decodeURIComponent(woPack[1])), { 'x-correlation-id': correlationId }); } catch (e) { return fail(res, e); }
+    try { return sendWorkOrderRead(req, res, c, () => store.technicianWorkPack(c, decodeURIComponent(woPack[1])), { 'x-correlation-id': correlationId }); } catch (e) { return fail(res, e); }
   }
 
   const ca = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/completion-assurance$/);
   if (ca && req.method === 'GET')
-    return json(res, 200, store.completionAssurance(c, ca[1]));
+    return sendWorkOrderRead(req, res, c, () => store.completionAssurance(c, ca[1]));
   if (req.method === 'GET' && url.pathname === '/api/v1/workflows')
     return json(res, 200, store.listWorkflows(c));
   const wfv = url.pathname.match(/^\/api\/v1\/workflows\/([^/]+)\/versions$/);
@@ -2220,7 +2225,7 @@ function route(req, res) {
   const stopTime = url.pathname.match(/^\/api\/v1\/time-entries\/([^/]+)\/stop$/);
   if (stopTime && req.method === 'POST') { const c=requireCtx(req,res); if(!c)return; requireScope(c,'write'); return body(req).then(b=>json(res,200,store.stopTimeEntry(c,stopTime[1],b))).catch(e=>fail(res,e)); }
   const wtime = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/time-summary$/);
-  if (wtime && req.method === 'GET') { const c=requireCtx(req,res); if(!c)return; requireScope(c,'read'); return json(res,200,store.workOrderTimeSummary(c,wtime[1])); }
+  if (wtime && req.method === 'GET') { const c=requireCtx(req,res); if(!c)return; requireScope(c,'read'); return sendWorkOrderRead(req,res,c,()=>store.workOrderTimeSummary(c,wtime[1])); }
 
   if (req.method === 'GET' && url.pathname === '/api/v1/search') {
     try { return json(res, 200, store.unifiedSearch(c, url.searchParams.get('q') || ''), { 'x-correlation-id': correlationId }); } catch (e) { return fail(res, e); }
@@ -2415,7 +2420,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
   }
   const cand = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/dispatch-candidates$/);
   if (cand && req.method === 'GET')
-    return json(res, 200, store.dispatchCandidates(c, cand[1]));
+    return sendWorkOrderRead(req, res, c, () => store.dispatchCandidates(c, cand[1]));
   if (req.method === 'POST' && url.pathname === '/api/v1/scheduling/conflicts/analyze') {
     try { const c=requireCtx(req,res); if(!c)return; requireScope(c,'read');
       return body(req).then(b=>json(res,200,schedulingConflictAnalysis(store,c,b))).catch(e=>fail(res,e));
@@ -2517,7 +2522,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
   }
   const wparts = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/parts$/);
   if (wparts && req.method === 'GET')
-    return json(res, 200, store.listWorkOrderParts(c, wparts[1]));
+    return sendWorkOrderRead(req, res, c, () => store.listWorkOrderParts(c, wparts[1]));
   if (req.method === 'POST' && url.pathname === '/api/v1/portal/access') {
     try {
       requireScope(c, 'write');
@@ -2539,7 +2544,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
   }
   const sign = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/signoffs$/);
   if (sign && req.method === 'GET')
-    return json(res, 200, store.listSignoffs(c, sign[1]));
+    return sendWorkOrderRead(req, res, c, () => store.listSignoffs(c, sign[1]));
   if (req.method === 'POST' && url.pathname === '/api/v1/sync') {
     try {
       requireScope(c, 'write');
@@ -2779,9 +2784,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
       assignedTo: url.searchParams.get('assignedTo'),
       limit: url.searchParams.get('limit')
     };
-    const read = () => store.listWorkOrders(c, filters);
-    if (!signedWorkOrdersReadEnabled(req)) return json(res, 200, read());
-    return runSignedWorkOrdersRead(res, c, read);
+    return sendWorkOrderRead(req, res, c, () => store.listWorkOrders(c, filters));
   }
   if (req.method === 'GET' && url.pathname === '/api/v1/search') {
     try {
@@ -2815,21 +2818,19 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
   }
   const wcp = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/completion-package$/);
   if (wcp && req.method === 'GET')
-    return json(res, 200, store.completionPackage(c, wcp[1]));
+    return sendWorkOrderRead(req, res, c, () => store.completionPackage(c, wcp[1]));
   const ep = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/evidence-package$/);
   if (ep && req.method === 'GET')
     return json(res, 200, store.evidencePackage(c, ep[1]));
   const wt = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/timeline$/);
   if (wt && req.method === 'GET')
-    return json(res, 200, store.workOrderTimeline(c, wt[1]));
+    return sendWorkOrderRead(req, res, c, () => store.workOrderTimeline(c, wt[1]));
   const wh = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/handoff$/);
   if (wh && req.method === 'GET')
-    return json(res, 200, store.workOrderHandoff(c, wh[1]));
+    return sendWorkOrderRead(req, res, c, () => store.workOrderHandoff(c, wh[1]));
   const wm = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)$/);
   if (wm && req.method === 'GET') {
-    const read = () => store.getWorkOrder(c, wm[1]);
-    if (!signedWorkOrdersReadEnabled(req)) return json(res, 200, read());
-    return runSignedWorkOrdersRead(res, c, read);
+    return sendWorkOrderRead(req, res, c, () => store.getWorkOrder(c, wm[1]));
   }
   if (wm && req.method === 'POST') {
     return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', reasons: [{ code: 'METHOD_NOT_ALLOWED', severity: 'blocking' }] } });
@@ -2847,10 +2848,10 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
   }
   const wr = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/operational-risk$/);
   if (wr && req.method === 'GET')
-    return json(res, 200, store.workOrderOperationalRisk(c, wr[1]));
+    return sendWorkOrderRead(req, res, c, () => store.workOrderOperationalRisk(c, wr[1]));
   const cm = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/comments$/);
   if (cm && req.method === 'GET')
-    return json(res, 200, store.listComments(c, cm[1]));
+    return sendWorkOrderRead(req, res, c, () => store.listComments(c, cm[1]));
   if (cm && req.method === 'POST') {
     try {
       requireScope(c, 'write');
@@ -2897,7 +2898,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
   }
   const am = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/attachments$/);
   if (am && req.method === 'GET')
-    return json(res, 200, store.listAttachments(c, 'work_order', am[1]));
+    return sendWorkOrderRead(req, res, c, () => store.listAttachments(c, 'work_order', am[1]));
   if (am && req.method === 'POST') {
     try {
       requireScope(c, 'write');
@@ -3152,7 +3153,7 @@ if(req.method==='POST'&&url.pathname==='/api/v1/reconciliation/run'){try{require
     return body(req, config.maxCsvBodyBytes).then(b => json(res, 201, store.importCustomers(c, String(b.csv || '')))).catch(e => fail(res, e));
   }
   const ftr = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/first-time-right$/);
-  if (ftr && req.method === 'GET') { const c=requireCtx(req,res); if(!c)return; requireScope(c,'read'); return json(res,200,store.firstTimeRightAssessment(c,ftr[1])); }
+  if (ftr && req.method === 'GET') { const c=requireCtx(req,res); if(!c)return; requireScope(c,'read'); return sendWorkOrderRead(req,res,c,()=>store.firstTimeRightAssessment(c,ftr[1])); }
   if (ftr && req.method === 'POST') { const c=requireCtx(req,res); if(!c)return; requireScope(c,'write'); return json(res,200,store.recordFirstTimeRightCheck(c,ftr[1])); }
   if (req.method === 'GET' && url.pathname === '/api/v1/export/organization.json') {
     try {
