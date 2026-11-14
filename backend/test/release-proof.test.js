@@ -457,3 +457,4 @@ test('functionalApiRouteAcceptance flips to PASS_CONTRACT_SCOPE only with commit
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
