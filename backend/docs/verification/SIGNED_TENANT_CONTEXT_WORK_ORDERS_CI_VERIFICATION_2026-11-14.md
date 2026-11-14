@@ -6,13 +6,13 @@ Repository: `mosamiryamany-hub/opscore-platform`
 
 PR: #103 — `security/priority-production-hardening-20261114`
 
-Application source commit verified by the latest CI runs below: `f31c15a91b9a0256522d3f6c7546f545f2aff7f1`
+Application source commit verified by the latest CI runs below: `7b04d2117b5d9fd804378bc5e6f121ccd4ac8ac9`
 
 PR base / unchanged `main`: `4ef126ccd59f23cebeead30224d1bcf7199535ab`
 
 ## Status
 
-**PASS — isolated CI verification of 18 explicitly allowlisted work-order Preview GET route patterns (list, detail, and 16 read-only subresources).**
+**PASS — isolated CI verification of 18 explicitly allowlisted work-order Preview GET route patterns plus 3 explicitly allowlisted signed write patterns (create, update, and comment).**
 
 **NOT CERTIFIED — production tenant isolation against direct compromise of the `opscore_runtime` database credential.**
 
@@ -46,11 +46,14 @@ The SQL comparison loop is described in source as fixed-work/preliminary; this i
 - The explicitly enabled, Preview-only signed-context allowlist covers 18 GET route patterns: `GET /api/v1/work-orders`, `GET /api/v1/work-orders/:id`, and these 16 read-only subresources: `completion-package`, `timeline`, `handoff`, `operational-risk`, `comments`, `attachments`, `dispatch-candidates`, `parts`, `signoffs`, `why-blocked`, `changelog`, `verified-job-record`, `work-pack`, `completion-assurance`, `time-summary`, and `first-time-right`.
 - Each selected route pins the authenticated session principal, opens one `READ ONLY` transaction, obtains the backend PID and transaction ID from the same worker connection, binds a short-lived signed assertion, and executes its existing Store read inside that transaction.
 - The 16 selected Store methods and their inspected read helpers use read-only database access. The CI-only red-team probe overwrites the raw tenant, user, and access-mode GUCs after the assertion is bound; the probe requires both `CI=true` and its explicit test flag.
+- Three write patterns use a separate Preview-only feature flag: `POST /api/v1/work-orders`, `PATCH /api/v1/work-orders/:id`, and `POST /api/v1/work-orders/:id/comments`. Each opens one read-write transaction, binds the signed assertion to that transaction, and returns the signed-context response marker only after commit.
+- `Store.withCallerManagedTransaction()` marks the externally owned transaction in the Store's transaction-depth accounting. This prevents nested Store methods and `idempotentWrite()` from opening or committing a second PostgreSQL transaction before the signed request is complete.
+- Idempotency replay now deserializes stored responses from either PostgreSQL JSON/JSONB objects or SQLite JSON text; the same helper is used for synchronous and asynchronous idempotency replay.
 - The Node signer remains in the trusted parent process. The PostgreSQL worker receives a minimal allowlist of database and transport settings; the HMAC signing key is not passed to the worker.
 - Deliberately excluded: `GET /evidence-package` because it calls attachment integrity verification that writes an audit record; `GET /completion.pdf` because it uses a binary streaming response not handled by this JSON read wrapper; and `dispatch-eligibility` / `field-duration-forecast` pending a source-specific side-effect and transaction audit.
 
 
-The Preview route is gated by `VERCEL_ENV=preview` and `OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_ENABLED=true`. No such flag or signing key was provisioned in Vercel in this change, and the Vercel deployment step was skipped.
+The Preview read routes are gated by `VERCEL_ENV=preview` and `OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_ENABLED=true`. The three write routes additionally require `OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_WRITE_ENABLED=true`. Neither flag nor a signing key was provisioned in Vercel by this source-only change, and the Vercel deployment job was skipped.
 
 ## Initial list/detail CI evidence (historical checkpoint)
 
@@ -148,10 +151,36 @@ The Vercel contract job passed. Its `deploy-bound-postgres-18-acceptance` and `d
 
 The signed read wrapper is still feature-gated by `VERCEL_ENV=preview` and `OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_ENABLED=true`. No Preview signer secret or HMAC key row was provisioned by this source-only change, and migrations 063/064 were not applied to Neon.
 
+## Latest signed work-order write expansion — 2026-11-14
+
+Application source commit: `7b04d2117b5d9fd804378bc5e6f121ccd4ac8ac9`.
+
+The PostgreSQL 18 gate exercised the real HTTP write paths as `opscore_runtime` using two independent authenticated tenant sessions:
+
+- `POST /api/v1/work-orders`: Tenant A and Tenant B each created an order. Each response was bound to that session's tenant and user; a client-supplied opposing `organizationId` claim was ignored.
+- `PATCH /api/v1/work-orders/:id`: both tenants updated their own order with the signed assertion active and the raw tenant/user/access-mode GUCs overwritten by the CI red-team probe.
+- The identical Tenant A PATCH was replayed with the same idempotency key and payload. The replay returned the stored response with `x-idempotency-replayed: true` rather than re-running the write.
+- Tenant A attempted to PATCH Tenant B's order. The server returned `404 NOT_FOUND`, and a subsequent authenticated Tenant B read proved that its title remained unchanged.
+- `POST /api/v1/work-orders/:id/comments`: both tenants created comments on their own orders. Tenant A's attempt to comment on Tenant B's order returned `404 NOT_FOUND`; Tenant B's subsequent comment listing proved the forged comment was not persisted.
+
+The emitted PostgreSQL proof object contained **12/12 PASS write assertions**: Tenant A/B create, client tenant-claim override rejection, Tenant A/B patch, idempotent replay, cross-tenant patch denial and unchanged foreign row, Tenant A/B comment, and cross-tenant comment denial and non-persistence. All 48 prior read-subresource assertions and the unsigned/invalid/replay/GUC-tampering checks also remained PASS.
+
+The first test attempt exposed an existing cross-database compatibility defect: PostgreSQL returns JSONB response columns as decoded objects, while the idempotency replay path assumed SQLite-style JSON text and called `JSON.parse` unconditionally. The shared deserializer now accepts both object and string forms for synchronous and asynchronous idempotency replay. The subsequent PostgreSQL 18 gate passed the real replay.
+
+Exact GitHub Actions evidence for source commit `7b04d2117b5d9fd804378bc5e6f121ccd4ac8ac9`:
+
+| Workflow | Run ID | Result |
+|---|---:|---|
+| Digital Twin PostgreSQL 18 Isolated RLS and HTTP Acceptance | `43619126822` | SUCCESS |
+| OpsCore CI | `43619126851` | SUCCESS |
+| Vercel contract verification | `43619126836` | SUCCESS |
+
+The Vercel contract job passed; `deploy-bound-postgres-18-acceptance` and `deploy` were SKIPPED. This is not a deployment result. The signed write feature flag was set only in the disposable CI process, not in Vercel.
+
 ## Explicit remaining limitations
 
 1. **The database-credential trust boundary is not closed.** Migration 064 deliberately preserves the legacy accessor behavior when no signed payload is supplied. A holder of the raw `opscore_runtime` credential can still omit the signed payload and supply the legacy tenant/user/access-mode GUCs on paths that have not been migrated. The CI pass proves the enabled HTTP paths use the signed assertion; it does not prove that arbitrary direct SQL using the runtime credential cannot impersonate a tenant.
-2. **The signed HTTP read slice is incomplete.** Eighteen route patterns are allowlisted (list, detail, and 16 read-only subresources). Work-order writes, `evidence-package`, PDF streaming, the two unevaluated GET subresources, and other tenant-owned routes still need their own transaction design and route-specific tests.
+2. **The signed work-order slice remains incomplete.** Eighteen GET patterns are allowlisted (list, detail, and 16 read-only subresources), and only three write patterns are migrated (create, update, and comments). Bulk creation, transition, delete/restore, evidence upload and other write paths remain on the legacy path. `evidence-package`, PDF streaming, `dispatch-eligibility`, `field-duration-forecast`, and other tenant-owned routes still need their own transaction design and route-specific tests.
 3. The complete policy inventory and identity plane are not migrated. The legacy arbitrary-user membership resolver, login/OIDC/API-key/password-reset/invitation/bootstrap/session lifecycle paths, and broad identity-table grants still require their own narrow-function and end-to-end work.
 4. The HMAC key used by this test was ephemeral CI material. No Preview Vercel key was provisioned and no live Preview rollout was executed.
 5. The 136-table restore was a disposable logical dump/restore exercise. It is not a Neon point-in-time restore drill or evidence of a scheduled production backup/PITR configuration.
@@ -162,15 +191,16 @@ The signed read wrapper is still feature-gated by `VERCEL_ENV=preview` and `OPSC
 
 1. Obtain explicit authorization before applying migrations 063/064 to a fresh, isolated Neon child branch. Run the same signed HTTP and direct-SQL red-team cases there; do not reuse Production or silently alter the existing Preview branch.
 2. Remove the unsigned-GUC fallback from each tenant table/policy as that table's full route surface is migrated. The final direct-SQL test must prove a runtime-only credential cannot read or mutate another tenant merely by choosing raw GUC values or omitting the assertion.
-3. Migrate the remaining work-order writes and excluded read/streaming paths, then the remaining tenant routes, workers, knowledge pool, and identity helpers. Do not revoke grants until every corresponding caller and rollback path is mapped and tested.
+3. Migrate the remaining work-order write paths and excluded read/streaming paths, then the remaining tenant routes, workers, knowledge pool, and identity helpers. Do not revoke grants until every corresponding caller and rollback path is mapped and tested.
 4. Provision a Preview-only signer secret and matching verifier key record only after the isolated branch passes and deployment settings are reviewed. Keep Production key provisioning separate and explicitly approved.
 5. Complete real Neon backup/PITR configuration and a genuine recovery drill, plus production HTTP-session, authorization, firewall enforcement, and final release gates.
 
 ## Change control
 
 - PR #103 remains **OPEN / DRAFT / NOT MERGED**.
-- Application source commit covered by the latest CI evidence: `f31c15a91b9a0256522d3f6c7546f545f2aff7f1`.
-- The application-source checkpoint was 44 commits ahead of `main` and 0 behind. The report-refresh commit is documentation-only.
+- Application source commit covered by the latest CI evidence: `7b04d2117b5d9fd804378bc5e6f121ccd4ac8ac9`.
+- The application-source checkpoint is 50 commits ahead of `main` and 0 behind.
+- No migration, deployment setting, signer secret, or production database was changed.
 - No migration, deployment setting, signer secret, or production database was changed.
 - `main` remains `4ef126ccd59f23cebeead30224d1bcf7199535ab`.
 - No deployment was performed.
