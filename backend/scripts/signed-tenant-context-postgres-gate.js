@@ -134,6 +134,7 @@ async function main() {
   let clientB = null;
   let activeVerifierRole = false;
   let evidenceRoot = null;
+  let evidenceRollbackTriggerInstalled = false;
 
   const keyId = 'ci-' + crypto.randomUUID();
   const key = crypto.randomBytes(32);
@@ -1158,6 +1159,69 @@ async function main() {
     synthetic.attachmentIds.push(evidenceCompleteB.body.id);
     signedEvidenceRouteProof.completeTenantB = 'PASS';
 
+    const mismatchActual = Buffer.from('actual evidence bytes ' + keyId, 'utf8');
+    const mismatchExpected = Buffer.from('different expected bytes ' + keyId, 'utf8');
+    const mismatchExpectedSha = crypto.createHash('sha256').update(mismatchExpected).digest('hex');
+    const mismatchUploadKey = 'signed-context-ci-evidence-mismatch-' + keyId;
+    synthetic.idempotencyKeys.push(mismatchUploadKey);
+    const mismatchInit = await queryHttp(
+      port,
+      '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[0]) + '/evidence-uploads',
+      tokenA,
+      {
+        method: 'POST',
+        headers: { 'idempotency-key': mismatchUploadKey },
+        body: { fileName: 'integrity-mismatch.txt', mediaType: 'text/plain', totalBytes: mismatchActual.length, sha256: mismatchExpectedSha }
+      }
+    );
+    if (mismatchInit.status !== 201
+        || mismatchInit.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || !mismatchInit.body?.uploadId) {
+      throw new Error('SIGNED_CONTEXT_EVIDENCE_MISMATCH_INIT_FAILED:' + JSON.stringify({
+        status: mismatchInit.status, body: mismatchInit.body, headers: mismatchInit.headers
+      }));
+    }
+    synthetic.evidenceUploadIds.push(mismatchInit.body.uploadId);
+    const mismatchChunk = await queryHttp(
+      port,
+      '/api/v1/evidence-uploads/' + encodeURIComponent(mismatchInit.body.uploadId) + '/chunks/0',
+      tokenA,
+      { method: 'PUT', body: { contentBase64: mismatchActual.toString('base64') } }
+    );
+    if (mismatchChunk.status !== 200
+        || mismatchChunk.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || mismatchChunk.body?.status !== 'ready') {
+      throw new Error('SIGNED_CONTEXT_EVIDENCE_MISMATCH_CHUNK_FAILED:' + JSON.stringify({
+        status: mismatchChunk.status, body: mismatchChunk.body, headers: mismatchChunk.headers
+      }));
+    }
+    const mismatchComplete = await queryHttp(
+      port,
+      '/api/v1/evidence-uploads/' + encodeURIComponent(mismatchInit.body.uploadId) + '/complete',
+      tokenA,
+      { method: 'POST' }
+    );
+    const mismatchState = await owner.query(
+      'SELECT status,last_error FROM public.evidence_uploads WHERE id=$1 AND organization_id=$2',
+      [mismatchInit.body.uploadId, tenantA]
+    );
+    const mismatchTemp = path.join(
+      evidenceRoot, tenantA, '.evidence', mismatchInit.body.uploadId, 'assembled.bin'
+    );
+    if (mismatchComplete.status < 400
+        || mismatchComplete.body?.error?.code !== 'EVIDENCE_INTEGRITY_MISMATCH'
+        || mismatchComplete.headers?.['x-opscore-signed-tenant-context'] === 'verified'
+        || mismatchState.rows[0]?.status !== 'failed'
+        || mismatchState.rows[0]?.last_error !== 'EVIDENCE_INTEGRITY_MISMATCH'
+        || fs.existsSync(mismatchTemp)) {
+      throw new Error('SIGNED_CONTEXT_EVIDENCE_MISMATCH_STATE_NOT_COMMITTED:' + JSON.stringify({
+        status: mismatchComplete.status, body: mismatchComplete.body,
+        headers: mismatchComplete.headers, state: mismatchState.rows[0] || null,
+        tempExists: fs.existsSync(mismatchTemp)
+      }));
+    }
+    signedEvidenceRouteProof.integrityMismatchFailureCommitted = 'PASS';
+
     const directAttachmentBytesA = Buffer.from('tenant A direct attachment ' + keyId, 'utf8');
     const directAttachmentBytesB = Buffer.from('tenant B direct attachment ' + keyId, 'utf8');
     const directAttachmentKeyA = 'signed-context-ci-direct-attachment-a-' + keyId;
@@ -1240,6 +1304,67 @@ async function main() {
     }
     synthetic.attachmentIds.push(directAttachmentB.body.id);
     signedEvidenceRouteProof.directAttachmentTenantB = 'PASS';
+
+    // Force a database failure after storeAttachment writes the file and row,
+    // but before idempotency persistence. The outer signed transaction must
+    // roll back and execute its filesystem compensation callback.
+    const rollbackIdempotencyKey = 'signed-context-ci-force-evidence-rollback-' + keyId;
+    synthetic.idempotencyKeys.push(rollbackIdempotencyKey);
+    await owner.query(`
+      CREATE OR REPLACE FUNCTION opscore_security.ci_reject_signed_evidence_rollback()
+      RETURNS trigger LANGUAGE plpgsql AS $rollback$
+      BEGIN
+        IF NEW.idempotency_key = '${rollbackIdempotencyKey}' THEN
+          RAISE EXCEPTION 'CI_FORCED_SIGNED_EVIDENCE_ROLLBACK';
+        END IF;
+        RETURN NEW;
+      END
+      $rollback$
+    `);
+    await owner.query('DROP TRIGGER IF EXISTS ci_reject_signed_evidence_rollback ON public.idempotency_records');
+    await owner.query(`
+      CREATE TRIGGER ci_reject_signed_evidence_rollback
+      BEFORE INSERT ON public.idempotency_records
+      FOR EACH ROW EXECUTE FUNCTION opscore_security.ci_reject_signed_evidence_rollback()
+    `);
+    evidenceRollbackTriggerInstalled = true;
+
+    const forcedRollback = await queryHttp(
+      port,
+      '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[0]) + '/attachments',
+      tokenA,
+      {
+        method: 'POST',
+        headers: { 'idempotency-key': rollbackIdempotencyKey },
+        body: {
+          fileName: 'rollback-cleanup.txt',
+          mediaType: 'text/plain',
+          contentBase64: Buffer.from('must be removed after rollback ' + keyId, 'utf8').toString('base64')
+        }
+      }
+    );
+    const rollbackAttachmentRows = await owner.query(
+      "SELECT COUNT(*)::int AS count FROM public.attachments WHERE organization_id=$1 AND work_order_id=$2 AND file_name='rollback-cleanup.txt'",
+      [tenantA, synthetic.workOrderIds[0]]
+    );
+    const tenantAStorageRoot = path.join(evidenceRoot, tenantA);
+    const rollbackFileExists = fs.existsSync(tenantAStorageRoot)
+      && fs.readdirSync(tenantAStorageRoot).some(name => name.endsWith('-rollback-cleanup.txt'));
+    await owner.query('DROP TRIGGER IF EXISTS ci_reject_signed_evidence_rollback ON public.idempotency_records');
+    await owner.query('DROP FUNCTION IF EXISTS opscore_security.ci_reject_signed_evidence_rollback()');
+    evidenceRollbackTriggerInstalled = false;
+    if (forcedRollback.status < 400
+        || forcedRollback.headers?.['x-opscore-signed-tenant-context'] === 'verified'
+        || rollbackAttachmentRows.rows[0]?.count !== 0
+        || rollbackFileExists) {
+      throw new Error('SIGNED_CONTEXT_EVIDENCE_ROLLBACK_COMPENSATION_FAILED:' + JSON.stringify({
+        status: forcedRollback.status, body: forcedRollback.body,
+        headers: forcedRollback.headers,
+        databaseRows: rollbackAttachmentRows.rows[0]?.count,
+        fileExists: rollbackFileExists
+      }));
+    }
+    signedEvidenceRouteProof.outerRollbackRemovedFileAndRow = 'PASS';
 
     const attachmentsA = await queryHttp(
       port, '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[0]) + '/attachments', tokenA
@@ -1372,6 +1497,13 @@ async function main() {
       }
     }) + '\\n');
   } finally {
+    if (evidenceRollbackTriggerInstalled) {
+      try { await owner.query('DROP TRIGGER IF EXISTS ci_reject_signed_evidence_rollback ON public.idempotency_records'); }
+      catch (cleanupError) { process.stderr.write('EVIDENCE_ROLLBACK_TRIGGER_CLEANUP_FAILED:' + String(cleanupError.code || cleanupError.message) + '\\n'); }
+      try { await owner.query('DROP FUNCTION IF EXISTS opscore_security.ci_reject_signed_evidence_rollback()'); }
+      catch (cleanupError) { process.stderr.write('EVIDENCE_ROLLBACK_FUNCTION_CLEANUP_FAILED:' + String(cleanupError.code || cleanupError.message) + '\\n'); }
+      evidenceRollbackTriggerInstalled = false;
+    }
     if (activeVerifierRole) {
       try { await owner.query('RESET ROLE'); } catch (_) {}
       activeVerifierRole = false;
