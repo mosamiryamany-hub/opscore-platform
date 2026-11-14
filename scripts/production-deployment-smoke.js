@@ -320,7 +320,7 @@ function validateEndpoint(path, statusCode, payload, expectedCommit, contentType
       identityPlane.status === 'RLS_ENFORCED';
     if (body.schemaVersion !== 'opscore.public-database-security-proof.v2' ||
         body.status !== 'IDENTITY_PLANE_RLS_ENFORCED' ||
-        body.productionIsolationCertification !== 'NOT_CERTIFIED' ||
+        ![ 'NOT_CERTIFIED', 'CERTIFIED' ].includes(body.productionIsolationCertification) ||
         !catalogCoverageSafe || !ledgerSafe || !controlPlaneSafe ||
         !systemOperationalSafe || !runtimeRoleSafe || !identityPlaneSafe) {
       throw new Error('DATABASE_SECURITY_CATALOG_NOT_ACCEPTABLE');
@@ -357,14 +357,21 @@ function validateEndpoint(path, statusCode, payload, expectedCommit, contentType
       acceptance.commitSha === expectedCommit &&
       acceptancePipelineId === String(pipelineId) &&
       /^[a-f0-9]{64}$/.test(String(acceptance.evidenceSha256 || ''));
-    const gatesHonest = gates.productionSessionTenantBoundary === 'PASS_TEST_SCOPE' &&
-      gates.productionRecoveryBundle === 'PASS_TEST_SCOPE' &&
+    const sessionOk = ['PASS_TEST_SCOPE', 'PASS_PRODUCTION'].includes(gates.productionSessionTenantBoundary);
+    const recoveryOk = ['PASS_TEST_SCOPE', 'PASS_PRODUCTION'].includes(gates.productionRecoveryBundle);
+    const pitrOk = ['NOT_VERIFIED', 'PASS_BRANCH_POINT'].includes(gates.neonPointInTimeRecovery);
+    const isolationOk = ['NOT_CERTIFIED', 'CERTIFIED'].includes(gates.productionIsolationCertification);
+    // CERTIFIED requires both production-scope session and recovery gates.
+    const isolationConsistent = gates.productionIsolationCertification !== 'CERTIFIED' || (
+      gates.productionSessionTenantBoundary === 'PASS_PRODUCTION' &&
+      gates.productionRecoveryBundle === 'PASS_PRODUCTION'
+    );
+    const gatesHonest = sessionOk && recoveryOk &&
       gates.tenantRouteSecurityCoverage === 'PASS_TEST_SCOPE' &&
       // The API route contract run is accepted only after release-proof.js binds its evidence to this exact commit and pipeline.
       // PASS_CONTRACT_SCOPE does not represent full business-flow acceptance.
       gates.functionalApiRouteAcceptance === 'PASS_CONTRACT_SCOPE' &&
-      gates.neonPointInTimeRecovery === 'NOT_VERIFIED' &&
-      gates.productionIsolationCertification === 'NOT_CERTIFIED';
+      pitrOk && isolationOk && isolationConsistent;
     const packageBound = packageFingerprint.status === 'PUBLISHED' &&
       packageFingerprint.sourceCommit === expectedCommit &&
       /^[a-f0-9]{64}$/.test(String(packageFingerprint.value || ''));
