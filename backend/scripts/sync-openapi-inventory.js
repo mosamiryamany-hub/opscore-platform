@@ -31,6 +31,9 @@ for(const entry of inventory.routes){
   const method=entry.method.toLowerCase();
   if(!openapi.paths[route]) openapi.paths[route]={};
   if(!openapi.paths[route][method]){openapi.paths[route][method]=fallbackOperation(route,entry);added++;}
+  const operation=openapi.paths[route][method];
+  if(entry.auth==='required') operation.security=[{bearerAuth:[]}];
+  else delete operation.security;
 }
 fs.writeFileSync(path.join(root,'docs','openapi.json'),JSON.stringify(openapi,null,2)+'\n');
 console.log(JSON.stringify({added,removed,totalPaths:Object.keys(openapi.paths).length,version:openapi.info.version},null,2));
