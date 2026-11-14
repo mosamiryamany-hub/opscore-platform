@@ -3188,7 +3188,7 @@ class Store {
       const finalDigest = crypto.createHash('sha256').update(assembled).digest('hex');
       if (finalDigest !== u.expected_sha256) {
         this.db.prepare("UPDATE evidence_uploads SET status='failed',last_error=?,updated_at=? WHERE id=? AND organization_id=?").run('EVIDENCE_INTEGRITY_MISMATCH', now(), uploadId, ctx.organizationId);
-        try { fs.rmSync(tmp, { force: true }); } catch (_) {}
+        try { fs.rmSync(tmp, { force: true }); } catch (cleanupError) { warn('file_cleanup_failed', { operation: 'complete_evidence_upload_temp', error: cleanupError }); }
         commitAttempted = true;
         scope.commit();
         const integrityError = new Error('EVIDENCE_INTEGRITY_MISMATCH');
@@ -3208,7 +3208,7 @@ class Store {
       if (upd.changes !== 1) throw new Error('EVIDENCE_UPLOAD_CLOSED');
       this._activity(ctx, 'work_order', u.work_order_id, 'evidence_committed', `${ u.file_name } evidence committed`, { uploadId, attachmentId: aid, sha256: u.expected_sha256 });
       const row = this.db.prepare('SELECT * FROM attachments WHERE id=? AND organization_id=?').get(aid, ctx.organizationId);
-      try { fs.rmSync(tmp, { force: true }); } catch (_) {}
+      try { fs.rmSync(tmp, { force: true }); } catch (cleanupError) { warn('file_cleanup_failed', { operation: 'complete_evidence_upload_temp', error: cleanupError }); }
       commitAttempted = true;
       scope.commit();
       return row;
