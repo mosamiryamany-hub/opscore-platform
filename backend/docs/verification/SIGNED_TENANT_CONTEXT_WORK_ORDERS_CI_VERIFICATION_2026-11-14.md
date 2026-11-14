@@ -207,10 +207,38 @@ Exact GitHub Actions evidence for the CI-tested PR head `3a82852b3aff075de841fb1
 
 Both Vercel deployment jobs, `deploy-bound-postgres-18-acceptance` and `deploy`, were SKIPPED. This is not a deployment result. The signed write flag was set only in the disposable CI process, not in Vercel.
 
+## Latest bulk work-order write expansion — 2026-11-14
+
+Application and acceptance-test head: `e53079b04dbd554da612a0d9d27c2420514ac065`.
+
+The Preview-only signed-write allowlist now includes `POST /api/v1/work-orders/bulk`. The route retains its existing idempotency operation, request payload, HTTP status, and response body; when the signed write feature is enabled it runs inside the same caller-managed transaction and only returns the signed-context response marker after commit.
+
+The PostgreSQL 18 gate exercised the real HTTP endpoint as `opscore_runtime` with two authenticated tenant sessions:
+
+- Tenant A performed a bulk priority update on its own synthetic work order; the operation returned one affected item and no failures.
+- Replaying the same request with the same idempotency key returned the same persisted `jobId`, proving that the bulk operation was not executed a second time.
+- Tenant B independently performed a bulk priority update on its own work order.
+- Tenant A then submitted Tenant B's work-order ID in a bulk request. The endpoint preserved its batch contract and returned one per-item `NOT_FOUND` failure with zero affected items; it did not expose or mutate the foreign row.
+- A subsequent authenticated Tenant B read confirmed the foreign work order retained its original priority.
+
+The new bulk proof added **5/5 PASS assertions**: Tenant A success, idempotency replay, Tenant B success, cross-tenant per-item denial, and unchanged foreign row. The complete signed write proof now contains **31/31 PASS assertions**. The previous **48/48 signed read-subresource assertions** and the signed-assertion tampering, invalid-signature, unsigned-GUC, and backend/transaction replay checks also remained PASS.
+
+Synthetic bulk-job rows and their audit rows are included in the PostgreSQL gate cleanup. All test data was created and removed in the disposable local PostgreSQL 18 acceptance database; no live Neon branch was used.
+
+Exact GitHub Actions evidence for head `e53079b04dbd554da612a0d9d27c2420514ac065`:
+
+| Workflow | Run ID | Result |
+|---|---:|---|
+| Digital Twin PostgreSQL 18 Isolated RLS and HTTP Acceptance | `43620996858` | SUCCESS |
+| OpsCore CI | `43620996875` | SUCCESS |
+| Vercel contract verification | `43620996874` | SUCCESS |
+
+The Vercel `vercel-contract-verify` job succeeded. Its `deploy-bound-postgres-18-acceptance` and `deploy` jobs were SKIPPED. This is not a deployment result. The signed write flag and ephemeral HMAC key were supplied only to the disposable CI process, not to Vercel.
+
 ## Explicit remaining limitations
 
 1. **The database-credential trust boundary is not closed.** Migration 064 deliberately preserves the legacy accessor behavior when no signed payload is supplied. A holder of the raw `opscore_runtime` credential can still omit the signed payload and supply the legacy tenant/user/access-mode GUCs on paths that have not been migrated. The CI pass proves the enabled HTTP paths use the signed assertion; it does not prove that arbitrary direct SQL using the runtime credential cannot impersonate a tenant.
-2. **The signed work-order slice remains incomplete.** Eighteen GET patterns are allowlisted (list, detail, and 16 read-only subresources), and six write method/path patterns are migrated (create, update, comments, transition, soft-delete, and restore). Bulk creation, evidence upload, and other write paths remain on the legacy path. `evidence-package`, PDF streaming, `dispatch-eligibility`, `field-duration-forecast`, and other tenant-owned routes still need their own transaction design and route-specific tests.
+2. **The signed work-order slice remains incomplete.** Eighteen GET patterns are allowlisted (list, detail, and 16 read-only subresources), and seven write method/path patterns are migrated (create, bulk update, update, comments, transition, soft-delete, and restore). Evidence-upload initiation, chunk upload, upload completion, direct attachment upload, and other write paths remain on the legacy path. `evidence-package`, PDF streaming, `dispatch-eligibility`, `field-duration-forecast`, and other tenant-owned routes still need their own transaction design and route-specific tests.
 3. The complete policy inventory and identity plane are not migrated. The legacy arbitrary-user membership resolver, login/OIDC/API-key/password-reset/invitation/bootstrap/session lifecycle paths, and broad identity-table grants still require their own narrow-function and end-to-end work.
 4. The HMAC key used by this test was ephemeral CI material. No Preview Vercel key was provisioned and no live Preview rollout was executed.
 5. The 136-table restore was a disposable logical dump/restore exercise. It is not a Neon point-in-time restore drill or evidence of a scheduled production backup/PITR configuration.
@@ -221,17 +249,17 @@ Both Vercel deployment jobs, `deploy-bound-postgres-18-acceptance` and `deploy`,
 
 1. Obtain explicit authorization before applying migrations 063/064 to a fresh, isolated Neon child branch. Run the same signed HTTP and direct-SQL red-team cases there; do not reuse Production or silently alter the existing Preview branch.
 2. Remove the unsigned-GUC fallback from each tenant table/policy as that table's full route surface is migrated. The final direct-SQL test must prove a runtime-only credential cannot read or mutate another tenant merely by choosing raw GUC values or omitting the assertion.
-3. Migrate the remaining work-order write paths (including bulk and evidence-upload operations) and excluded read/streaming paths, then the remaining tenant routes, workers, knowledge pool, and identity helpers. Do not revoke grants until every corresponding caller and rollback path is mapped and tested.
+3. Migrate the remaining work-order write paths (including evidence-upload initiation, chunk upload, upload completion, and direct attachment writes) and excluded read/streaming paths, then the remaining tenant routes, workers, knowledge pool, and identity helpers. Do not revoke grants until every corresponding caller and rollback path is mapped and tested.
 4. Provision a Preview-only signer secret and matching verifier key record only after the isolated branch passes and deployment settings are reviewed. Keep Production key provisioning separate and explicitly approved.
 5. Complete real Neon backup/PITR configuration and a genuine recovery drill, plus production HTTP-session, authorization, firewall enforcement, and final release gates.
 
 ## Change control
 
 - PR #103 remains **OPEN / DRAFT / NOT MERGED**.
-- CI-tested application/test head: `3a82852b3aff075de841fb195937e36d6572beeb`.
-- Three documentation-only commits followed that tested source/test head, including this report-only revision; none changed application code, migrations, deployment settings, signer secrets, or databases.
-- Including this report-only revision, the PR is 57 commits ahead of `main` and 0 behind.
-- No migration, deployment setting, signer secret, or production database was changed.
+- Latest CI-tested application/test head: `e53079b04dbd554da612a0d9d27c2420514ac065`.
+- The signed work-order test matrix at this head is **48/48 read-subresource assertions and 31/31 write assertions PASS** on disposable PostgreSQL 18, with OpsCore CI and Vercel contract verification also SUCCESS.
+- The branch is 59 commits ahead of `main` and 0 behind at this tested head; the report-only update that follows may add one further commit.
 - `main` remains `4ef126ccd59f23cebeead30224d1bcf7199535ab`.
-- No deployment was performed.
-
+- No migration, deployment setting, signer secret, or live Neon database was changed by the bulk expansion.
+- Both Vercel deployment jobs were SKIPPED; no Preview or Production deployment was performed.
+- No merge to `main` was performed.
