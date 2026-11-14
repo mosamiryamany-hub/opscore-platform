@@ -641,6 +641,186 @@ async function main() {
     signedWriteRouteProof.crossTenantCommentDenied = 'PASS';
     signedWriteRouteProof.crossTenantCommentNotPersisted = 'PASS';
 
+    const transitionKeyA = 'signed-context-ci-transition-a-' + keyId;
+    const transitionKeyB = 'signed-context-ci-transition-b-' + keyId;
+    const transitionKeyForeign = 'signed-context-ci-transition-foreign-' + keyId;
+    synthetic.idempotencyKeys.push(transitionKeyA, transitionKeyB, transitionKeyForeign);
+    const transitionA = await queryHttp(port, '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[0]) + '/transition', tokenA, {
+      method: 'POST',
+      headers: { 'idempotency-key': transitionKeyA },
+      body: { toStatus: 'in_progress', reason: 'CI signed tenant transition A' }
+    });
+    if (transitionA.status !== 200
+        || transitionA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || transitionA.headers?.['x-idempotency-replayed'] !== 'false'
+        || transitionA.body?.status !== 'in_progress'
+        || transitionA.body?.organization_id !== tenantA) {
+      throw new Error('SIGNED_CONTEXT_WORK_ORDER_TRANSITION_TENANT_A_FAILED:' + JSON.stringify({
+        status: transitionA.status, body: transitionA.body,
+        signedHeader: transitionA.headers?.['x-opscore-signed-tenant-context'] || null,
+        idempotentHeader: transitionA.headers?.['x-idempotency-replayed'] || null
+      }));
+    }
+    signedWriteRouteProof.transitionTenantA = 'PASS';
+
+    const transitionReplayA = await queryHttp(port, '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[0]) + '/transition', tokenA, {
+      method: 'POST',
+      headers: { 'idempotency-key': transitionKeyA },
+      body: { toStatus: 'in_progress', reason: 'CI signed tenant transition A' }
+    });
+    if (transitionReplayA.status !== 200
+        || transitionReplayA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || transitionReplayA.headers?.['x-idempotency-replayed'] !== 'true'
+        || transitionReplayA.body?.status !== 'in_progress') {
+      throw new Error('SIGNED_CONTEXT_WORK_ORDER_TRANSITION_IDEMPOTENCY_REPLAY_FAILED:' + JSON.stringify({
+        status: transitionReplayA.status, body: transitionReplayA.body,
+        signedHeader: transitionReplayA.headers?.['x-opscore-signed-tenant-context'] || null,
+        idempotentHeader: transitionReplayA.headers?.['x-idempotency-replayed'] || null
+      }));
+    }
+    signedWriteRouteProof.transitionIdempotencyReplay = 'PASS';
+
+    const transitionB = await queryHttp(port, '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[1]) + '/transition', tokenB, {
+      method: 'POST',
+      headers: { 'idempotency-key': transitionKeyB },
+      body: { toStatus: 'in_progress', reason: 'CI signed tenant transition B' }
+    });
+    if (transitionB.status !== 200
+        || transitionB.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || transitionB.body?.status !== 'in_progress'
+        || transitionB.body?.organization_id !== tenantB) {
+      throw new Error('SIGNED_CONTEXT_WORK_ORDER_TRANSITION_TENANT_B_FAILED:' + JSON.stringify({
+        status: transitionB.status, body: transitionB.body,
+        signedHeader: transitionB.headers?.['x-opscore-signed-tenant-context'] || null
+      }));
+    }
+    signedWriteRouteProof.transitionTenantB = 'PASS';
+
+    const foreignTransition = await queryHttp(port, '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[1]) + '/transition', tokenA, {
+      method: 'POST',
+      headers: { 'idempotency-key': transitionKeyForeign },
+      body: { toStatus: 'blocked', reason: 'FORGED CROSS TENANT TRANSITION' }
+    });
+    if (foreignTransition.status !== 404
+        || foreignTransition.body?.error?.code !== 'NOT_FOUND'
+        || foreignTransition.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_CROSS_TENANT_TRANSITION_NOT_DENIED:' + JSON.stringify({
+        status: foreignTransition.status, body: foreignTransition.body,
+        signedHeader: foreignTransition.headers?.['x-opscore-signed-tenant-context'] || null
+      }));
+    }
+    const transitionBUnchanged = await queryHttp(port, '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[1]), tokenB);
+    if (transitionBUnchanged.status !== 200
+        || transitionBUnchanged.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || transitionBUnchanged.body?.status !== 'in_progress'
+        || transitionBUnchanged.body?.organization_id !== tenantB) {
+      throw new Error('SIGNED_CONTEXT_CROSS_TENANT_TRANSITION_CHANGED_FOREIGN_ROW');
+    }
+    signedWriteRouteProof.crossTenantTransitionDenied = 'PASS';
+    signedWriteRouteProof.crossTenantTransitionLeftForeignRowUnchanged = 'PASS';
+
+    const deleteA = await queryHttp(port, '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[0]), tokenA, { method: 'DELETE' });
+    if (deleteA.status !== 200
+        || deleteA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || deleteA.body?.deleted !== true
+        || deleteA.body?.entityType !== 'work_order'
+        || deleteA.body?.entityId !== synthetic.workOrderIds[0]) {
+      throw new Error('SIGNED_CONTEXT_WORK_ORDER_DELETE_TENANT_A_FAILED:' + JSON.stringify({
+        status: deleteA.status, body: deleteA.body,
+        signedHeader: deleteA.headers?.['x-opscore-signed-tenant-context'] || null
+      }));
+    }
+    signedWriteRouteProof.deleteTenantA = 'PASS';
+
+    const foreignDelete = await queryHttp(port, '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[1]), tokenA, { method: 'DELETE' });
+    if (foreignDelete.status !== 404
+        || foreignDelete.body?.error?.code !== 'NOT_FOUND'
+        || foreignDelete.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_CROSS_TENANT_DELETE_NOT_DENIED:' + JSON.stringify({
+        status: foreignDelete.status, body: foreignDelete.body,
+        signedHeader: foreignDelete.headers?.['x-opscore-signed-tenant-context'] || null
+      }));
+    }
+    const foreignDeleteState = await owner.query(
+      "SELECT COUNT(*)::int AS active_deletions FROM public.deleted_records WHERE organization_id=$1 AND entity_type='work_order' AND entity_id=$2 AND restored_at IS NULL",
+      [tenantB, synthetic.workOrderIds[1]]
+    );
+    if (foreignDeleteState.rows[0]?.active_deletions !== 0) {
+      throw new Error('SIGNED_CONTEXT_CROSS_TENANT_DELETE_CREATED_FOREIGN_MARKER');
+    }
+    signedWriteRouteProof.crossTenantDeleteDenied = 'PASS';
+    signedWriteRouteProof.crossTenantDeleteNoForeignMarker = 'PASS';
+
+    const deleteB = await queryHttp(port, '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[1]), tokenB, { method: 'DELETE' });
+    if (deleteB.status !== 200
+        || deleteB.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || deleteB.body?.deleted !== true
+        || deleteB.body?.entityId !== synthetic.workOrderIds[1]) {
+      throw new Error('SIGNED_CONTEXT_WORK_ORDER_DELETE_TENANT_B_FAILED:' + JSON.stringify({
+        status: deleteB.status, body: deleteB.body,
+        signedHeader: deleteB.headers?.['x-opscore-signed-tenant-context'] || null
+      }));
+    }
+    signedWriteRouteProof.deleteTenantB = 'PASS';
+
+    const foreignRestore = await queryHttp(port, '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[1]) + '/restore', tokenA, {
+      method: 'POST'
+    });
+    if (foreignRestore.status !== 404
+        || foreignRestore.body?.error?.code !== 'NOT_FOUND'
+        || foreignRestore.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_CROSS_TENANT_RESTORE_NOT_DENIED:' + JSON.stringify({
+        status: foreignRestore.status, body: foreignRestore.body,
+        signedHeader: foreignRestore.headers?.['x-opscore-signed-tenant-context'] || null
+      }));
+    }
+    const foreignRestoreState = await owner.query(
+      "SELECT COUNT(*)::int AS active_deletions FROM public.deleted_records WHERE organization_id=$1 AND entity_type='work_order' AND entity_id=$2 AND restored_at IS NULL",
+      [tenantB, synthetic.workOrderIds[1]]
+    );
+    if (foreignRestoreState.rows[0]?.active_deletions !== 1) {
+      throw new Error('SIGNED_CONTEXT_CROSS_TENANT_RESTORE_CHANGED_FOREIGN_MARKER');
+    }
+    signedWriteRouteProof.crossTenantRestoreDenied = 'PASS';
+    signedWriteRouteProof.crossTenantRestoreLeftForeignMarker = 'PASS';
+
+    const restoreA = await queryHttp(port, '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[0]) + '/restore', tokenA, {
+      method: 'POST'
+    });
+    if (restoreA.status !== 200
+        || restoreA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || restoreA.body?.restored !== true
+        || restoreA.body?.entityId !== synthetic.workOrderIds[0]) {
+      throw new Error('SIGNED_CONTEXT_WORK_ORDER_RESTORE_TENANT_A_FAILED:' + JSON.stringify({
+        status: restoreA.status, body: restoreA.body,
+        signedHeader: restoreA.headers?.['x-opscore-signed-tenant-context'] || null
+      }));
+    }
+    signedWriteRouteProof.restoreTenantA = 'PASS';
+
+    const restoreB = await queryHttp(port, '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[1]) + '/restore', tokenB, {
+      method: 'POST'
+    });
+    if (restoreB.status !== 200
+        || restoreB.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || restoreB.body?.restored !== true
+        || restoreB.body?.entityId !== synthetic.workOrderIds[1]) {
+      throw new Error('SIGNED_CONTEXT_WORK_ORDER_RESTORE_TENANT_B_FAILED:' + JSON.stringify({
+        status: restoreB.status, body: restoreB.body,
+        signedHeader: restoreB.headers?.['x-opscore-signed-tenant-context'] || null
+      }));
+    }
+    signedWriteRouteProof.restoreTenantB = 'PASS';
+
+    const restoredMarkers = await owner.query(
+      "SELECT COUNT(*)::int AS active_deletions FROM public.deleted_records WHERE organization_id = ANY($1::text[]) AND entity_type='work_order' AND entity_id = ANY($2::text[]) AND restored_at IS NULL",
+      [synthetic.tenantIds, [synthetic.workOrderIds[0], synthetic.workOrderIds[1]]]
+    );
+    if (restoredMarkers.rows[0]?.active_deletions !== 0) {
+      throw new Error('SIGNED_CONTEXT_WORK_ORDER_RESTORE_MARKERS_REMAIN_ACTIVE');
+    }
+    signedWriteRouteProof.restoreBothMarkersCleared = 'PASS';
+
     clientA = new Client({ connectionString: runtimeUrl });
     clientB = new Client({ connectionString: runtimeUrl });
     await clientA.connect();
