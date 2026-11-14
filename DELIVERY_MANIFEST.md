@@ -5,7 +5,7 @@
 - Bound seller-reference pipeline: `43588278472`.
 - Seller-reference deployment: `dpl_5nx3dRRu9WuYmpqR9deiSeCqHwF3`.
 - Technical classification: `PASS_WITH_BUYER_RESIDUALS` for this exact candidate only.
-- Commercial license: **NONE — RIGHTS DECISION PENDING**.
+- Commercial license: **NO LICENSE GRANT — RIGHTS DECISION PENDING**.
 - Distribution: **PROHIBITED UNTIL A SEPARATE SIGNED LICENSE/AGREEMENT**.
 - Seller-reference certification does not transfer to a buyer environment.
 - Signed Android/iOS store binaries are not included; the repository contains source and lockfiles.
