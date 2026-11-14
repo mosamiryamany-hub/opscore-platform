@@ -317,6 +317,116 @@ async function main() {
       }
     }
 
+    const signedReadRouteCases = [
+  {
+    "key": "completionPackage",
+    "suffix": "/completion-package"
+  },
+  {
+    "key": "timeline",
+    "suffix": "/timeline"
+  },
+  {
+    "key": "handoff",
+    "suffix": "/handoff"
+  },
+  {
+    "key": "operationalRisk",
+    "suffix": "/operational-risk"
+  },
+  {
+    "key": "comments",
+    "suffix": "/comments"
+  },
+  {
+    "key": "attachments",
+    "suffix": "/attachments"
+  },
+  {
+    "key": "dispatchCandidates",
+    "suffix": "/dispatch-candidates"
+  },
+  {
+    "key": "parts",
+    "suffix": "/parts"
+  },
+  {
+    "key": "signoffs",
+    "suffix": "/signoffs"
+  },
+  {
+    "key": "whyBlocked",
+    "suffix": "/why-blocked"
+  },
+  {
+    "key": "changelog",
+    "suffix": "/changelog"
+  },
+  {
+    "key": "verifiedJobRecord",
+    "suffix": "/verified-job-record"
+  },
+  {
+    "key": "workPack",
+    "suffix": "/work-pack"
+  },
+  {
+    "key": "completionAssurance",
+    "suffix": "/completion-assurance"
+  },
+  {
+    "key": "timeSummary",
+    "suffix": "/time-summary"
+  },
+  {
+    "key": "firstTimeRight",
+    "suffix": "/first-time-right"
+  }
+];
+    const signedReadRouteProof = {};
+    for (const routeCase of signedReadRouteCases) {
+      const responseA = await queryHttp(
+        port, '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[0]) + routeCase.suffix, tokenA
+      );
+      const responseB = await queryHttp(
+        port, '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[1]) + routeCase.suffix, tokenB
+      );
+      for (const [tenantLabel, response, foreignWorkOrderId] of [
+        ['TenantA', responseA, synthetic.workOrderIds[1]],
+        ['TenantB', responseB, synthetic.workOrderIds[0]]
+      ]) {
+        if (response.status !== 200
+            || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+            || response.body === undefined
+            || JSON.stringify(response.body).includes(foreignWorkOrderId)) {
+          throw new Error('SIGNED_CONTEXT_WORK_ORDER_READ_ROUTE_FAILED:' + JSON.stringify({
+            route: routeCase.key,
+            tenant: tenantLabel,
+            status: response.status,
+            signedHeader: response.headers?.['x-opscore-signed-tenant-context'] || null,
+            serverOutput: serverOutput.slice(-2500)
+          }));
+        }
+        signedReadRouteProof[routeCase.key + tenantLabel] = 'PASS';
+      }
+
+      // A session for one tenant must not retrieve the other tenant's work order.
+      const foreignResponse = await queryHttp(
+        port, '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[1]) + routeCase.suffix, tokenA
+      );
+      const foreignWasHidden = foreignResponse.status === 503
+        || (foreignResponse.status === 200 && Array.isArray(foreignResponse.body) && foreignResponse.body.length === 0);
+      if (!foreignWasHidden || foreignResponse.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+        throw new Error('SIGNED_CONTEXT_WORK_ORDER_CROSS_TENANT_READ_EXPOSED:' + JSON.stringify({
+          route: routeCase.key,
+          status: foreignResponse.status,
+          rowCount: Array.isArray(foreignResponse.body) ? foreignResponse.body.length : null,
+          signedHeader: foreignResponse.headers?.['x-opscore-signed-tenant-context'] || null
+        }));
+      }
+      signedReadRouteProof[routeCase.key + 'ForeignTenantDenied'] = 'PASS';
+    }
+
     clientA = new Client({ connectionString: runtimeUrl });
     clientB = new Client({ connectionString: runtimeUrl });
     await clientA.connect();
@@ -405,6 +515,7 @@ async function main() {
         signedWorkOrdersTenantB: 'PASS',
         signedWorkOrderDetailTenantA: 'PASS',
         signedWorkOrderDetailTenantB: 'PASS',
+        signedWorkOrderSubresourceReads: signedReadRouteProof,
         workOrdersRawGucTamperingIgnored: 'PASS',
         readOnlyBoundTransaction: 'PASS',
         rawGucTampering: 'PASS',
