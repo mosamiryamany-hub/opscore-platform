@@ -238,7 +238,7 @@ The Vercel `vercel-contract-verify` job succeeded. Its `deploy-bound-postgres-18
 ## Explicit remaining limitations
 
 1. **The database-credential trust boundary is not closed.** Migration 064 deliberately preserves the legacy accessor behavior when no signed payload is supplied. A holder of the raw `opscore_runtime` credential can still omit the signed payload and supply the legacy tenant/user/access-mode GUCs on paths that have not been migrated. The CI pass proves the enabled HTTP paths use the signed assertion; it does not prove that arbitrary direct SQL using the runtime credential cannot impersonate a tenant.
-2. **The signed work-order slice remains incomplete.** Eighteen GET patterns are allowlisted (list, detail, and 16 read-only subresources), and seven write method/path patterns are migrated (create, bulk update, update, comments, transition, soft-delete, and restore). Evidence-upload initiation, chunk upload, upload completion, direct attachment upload, and other write paths remain on the legacy path. `evidence-package`, PDF streaming, `dispatch-eligibility`, `field-duration-forecast`, and other tenant-owned routes still need their own transaction design and route-specific tests.
+2. **The signed work-order slice remains incomplete.** Eighteen GET patterns are allowlisted (list, detail, and 16 read-only subresources), and seven write method/path patterns are migrated (create, bulk update, update, comments, transition, soft-delete, and restore). Evidence-upload initiation, chunk upload, upload completion, and direct attachment upload are now included in the expanded CI-only signed write slice described below; other tenant-owned write paths remain outside this slice. `evidence-package`, PDF streaming, `dispatch-eligibility`, `field-duration-forecast`, and other tenant-owned routes still need their own transaction design and route-specific tests.
 3. The complete policy inventory and identity plane are not migrated. The legacy arbitrary-user membership resolver, login/OIDC/API-key/password-reset/invitation/bootstrap/session lifecycle paths, and broad identity-table grants still require their own narrow-function and end-to-end work.
 4. The HMAC key used by this test was ephemeral CI material. No Preview Vercel key was provisioned and no live Preview rollout was executed.
 5. The 136-table restore was a disposable logical dump/restore exercise. It is not a Neon point-in-time restore drill or evidence of a scheduled production backup/PITR configuration.
@@ -249,7 +249,7 @@ The Vercel `vercel-contract-verify` job succeeded. Its `deploy-bound-postgres-18
 
 1. Obtain explicit authorization before applying migrations 063/064 to a fresh, isolated Neon child branch. Run the same signed HTTP and direct-SQL red-team cases there; do not reuse Production or silently alter the existing Preview branch.
 2. Remove the unsigned-GUC fallback from each tenant table/policy as that table's full route surface is migrated. The final direct-SQL test must prove a runtime-only credential cannot read or mutate another tenant merely by choosing raw GUC values or omitting the assertion.
-3. Migrate the remaining work-order write paths (including evidence-upload initiation, chunk upload, upload completion, and direct attachment writes) and excluded read/streaming paths, then the remaining tenant routes, workers, knowledge pool, and identity helpers. Do not revoke grants until every corresponding caller and rollback path is mapped and tested.
+3. Continue migrating the remaining work-order write paths and excluded read/streaming paths, then the remaining tenant routes, workers, knowledge pool, and identity helpers. Do not revoke grants until every corresponding caller and rollback path is mapped and tested.
 4. Provision a Preview-only signer secret and matching verifier key record only after the isolated branch passes and deployment settings are reviewed. Keep Production key provisioning separate and explicitly approved.
 5. Complete real Neon backup/PITR configuration and a genuine recovery drill, plus production HTTP-session, authorization, firewall enforcement, and final release gates.
 
@@ -263,3 +263,41 @@ The Vercel `vercel-contract-verify` job succeeded. Its `deploy-bound-postgres-18
 - No migration, deployment setting, signer secret, or live Neon database was changed by the bulk expansion.
 - Both Vercel deployment jobs were SKIPPED; no Preview or Production deployment was performed.
 - No merge to `main` was performed.
+
+
+## Latest signed evidence-upload and direct-attachment expansion — 2026-11-14
+
+Application and acceptance-test head: `21dd4a3779508ffd5a0ab0b69f6af6697f0234d4`.
+
+The Preview-only signed-write allowlist and real PostgreSQL 18 HTTP acceptance gate now include:
+- `POST /api/v1/work-orders/:id/evidence-uploads` — tenant A/B upload initiation and idempotent replay.
+- `PUT /api/v1/evidence-uploads/:id/chunks/:index` — tenant A/B chunk writes, duplicate replay, and cross-tenant denial.
+- `POST /api/v1/evidence-uploads/:id/complete` — tenant A/B completion and cross-tenant completion denial.
+- `POST /api/v1/work-orders/:id/attachments` — tenant A/B direct attachment writes and cross-tenant denial.
+- Attachment listing tenant isolation.
+- Integrity mismatch handling: the failed upload state is committed, no success marker is returned, and temporary assembly data is removed.
+- Forced database write failure after file creation: rollback is verified to remove the database row and the unreferenced file.
+
+The Store transaction integration now uses caller-managed transaction lifecycle hooks and savepoints for the evidence upload and attachment paths. Files created during a transaction are removed only after a confirmed rollback; ambiguous commit outcomes do not trigger unsafe deletion of potentially referenced files. The acceptance gate uses an isolated temporary file root and cleans up its synthetic database and filesystem fixtures.
+
+The first full run exposed a PostgreSQL driver type boundary: BIGINT `chunk_index` values are returned as strings, while the assembly loop compared them directly with JavaScript numeric indexes. The check now validates safe integer conversion before comparing the index. This fixes the observed `EVIDENCE_CHUNKS_GAPPED` false rejection without weakening the contiguous-chunk invariant.
+
+Exact GitHub Actions evidence for head `21dd4a3779508ffd5a0ab0b69f6af6697f0234d4`:
+
+| Workflow | Run ID | Result |
+|---|---:|---|
+| Digital Twin PostgreSQL 18 Isolated RLS and HTTP Acceptance | `43622890070` | SUCCESS |
+| OpsCore CI | `43622890112` | SUCCESS |
+| Vercel contract verification | `43622890412` | SUCCESS |
+
+The PostgreSQL acceptance workflow completed successfully, including the signed Node worker/HTTP gate, logical restore safety and drill, runtime migration-ledger attestation, isolated RLS gate, tenant composite-FK gate, real PostgreSQL HTTP commercial acceptance, shared login-throttling gate, evidence export, and source-derived tenant route isolation matrix. OpsCore CI completed successfully. Vercel contract verification completed successfully; its deployment and deploy-bound acceptance jobs were SKIPPED. No deployment occurred.
+
+The CI success applies to disposable PostgreSQL 18 and isolated test filesystems. It does not mean migrations 063–065 were applied to Neon, that Vercel signer settings were provisioned, or that the signed feature flags were enabled in a live Preview deployment.
+
+## Current branch and control state
+
+- Current tested head at the time of this report update: `21dd4a3779508ffd5a0ab0b69f6af6697f0234d4`.
+- Comparison against `main`: 71 commits ahead, 0 behind; base SHA remains `4ef126ccd59f23cebeead30224d1bcf7199535ab`.
+- PR #103 remains OPEN / DRAFT / NOT MERGED.
+- No live Neon migration, Vercel environment change, signer secret provisioning, Production action, or merge to `main` was performed.
+- Production tenant isolation remains NOT CERTIFIED; Neon PITR/restore remains NOT VERIFIED; production firewall enforcement and commercial release closure remain OPEN.
