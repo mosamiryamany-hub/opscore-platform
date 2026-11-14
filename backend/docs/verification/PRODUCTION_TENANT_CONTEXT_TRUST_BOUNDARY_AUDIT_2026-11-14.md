@@ -116,3 +116,39 @@ The current context-based RLS tests prove policy behavior for supplied contexts.
 - It does not claim the proposed signed-context design has been implemented or proven.
 - It does not certify HTTP session isolation, restore/PITR, WAF enforcement, or commercial release readiness.
 
+
+
+## Operational protection and recovery gates — rechecked 2026-11-14
+
+### Vercel active firewall configuration
+
+The active project firewall configuration was read back from Vercel (config version 3):
+
+- Firewall enabled: true.
+- Managed Bot Protection: active, action `log`.
+- CRS: Generic, RCE, SQLi, and XSS are active, but each action is `log`; Java, LFI, multipart, PHP, RFI, scanner detection, and session fixation are inactive.
+- One custom login-rate observation rule is active for POST `/api/v1/auth/(login|mobile-login)`: fixed window 60 requests / 60 seconds keyed by IP. Its mitigation is `rate_limit` with nested action `log`, so it observes and does not block.
+- No active deny/challenge action was observed in this configuration.
+
+A previous attempt to move SQLi CRS to deny returned HTTP 402 / payment_required because the required OWASP Core Ruleset entitlement was unavailable. No firewall configuration was changed in that attempt or in this recheck.
+
+**Status: WAF configured and logging; preventive managed-rule enforcement is NOT VERIFIED.** Do not describe the current WAF as blocking SQLi/XSS/RCE.
+
+### Neon backup and recovery configuration
+
+Read-only Neon API checks on the production project reported:
+
+- Automatic snapshot schedule for production branch `br-wispy-term-bcrqqj84`: empty array (`[]`).
+- Current snapshot listing: one manual snapshot, `snap-lively-lab-bcezlz2o`, named `opscore-pre-closeout-2026-11-11`, expiring `2026-12-11T23:59:59Z`. Its source branch is the earlier branch `br-lively-dream-bclpg1xi`, not the current production branch ID.
+- A new snapshot/backup schedule cannot be assumed from the presence of child branch clones. The prior schedule-creation request returned `backup schedule creation is not enabled for this project`; the new-branch request returned `branches limit exceeded`.
+- The lab branch used for the tenant-context proof is a disposable, modified child and is not a recovery point. Its compute was suspended and verified idle.
+
+**Status: native scheduled backup/PITR and a production restore drill remain NOT VERIFIED.** A branch clone or row-count parity check is not a point-in-time restore certification.
+
+### Vercel environment prerequisite for signed-context integration
+
+The environment-variable metadata was listed with decryption disabled. Production and preview currently list `OPSC_DATABASE_URL`, but neither target lists `OPSC_TENANT_CONTEXT_HMAC_KEY` or an equivalent dedicated tenant-context signing key.
+
+No environment variable values were decrypted or displayed. No environment variables were changed.
+
+**Status: signer key provisioning is NOT DONE.** The next integration must provision a new key only for the isolated Preview branch and its corresponding lab verifier key record. A production signing key must not be added until the vertical slice is tested end-to-end and explicit production rollout is approved.
