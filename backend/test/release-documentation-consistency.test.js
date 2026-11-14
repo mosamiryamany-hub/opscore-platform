@@ -42,6 +42,7 @@ test('handover sources do not hard-code a superseded candidate ZIP digest', () =
     'COMMERCIAL_CLOSURE_STATUS.md',
     'CLOSEOUT_EXECUTION_RUNBOOK.md',
     'BUYER_DELIVERY.md',
+    'DELIVERY_MANIFEST.md',
     'INTEGRATED_RELEASE_SCOPE.json'
   ].map(read);
 
