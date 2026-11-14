@@ -5,7 +5,7 @@
 
 ## Rights and distribution
 
-- **License grant:** `NONE_PENDING_RIGHTS_HOLDER_DECISION`.
+- **License grant:** **NO LICENSE GRANT** (`NONE_PENDING_RIGHTS_HOLDER_DECISION`).
 - **Distribution authorization:** `false`.
 - **Sale, resale, redistribution, sublicensing, hosting for third parties, transfer, and buyer delivery:** **NOT AUTHORIZED**.
 - **Rights:** All rights reserved. This manifest is not a license and does not transfer ownership or intellectual-property rights.
