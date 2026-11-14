@@ -6,13 +6,13 @@ Repository: `mosamiryamany-hub/opscore-platform`
 
 PR: #103 — `security/priority-production-hardening-20261114`
 
-Application source commit verified by the latest CI runs below: `7b04d2117b5d9fd804378bc5e6f121ccd4ac8ac9`
+CI-tested PR head: `3a82852b3aff075de841fb195937e36d6572beeb`
 
 PR base / unchanged `main`: `4ef126ccd59f23cebeead30224d1bcf7199535ab`
 
 ## Status
 
-**PASS — isolated CI verification of 18 explicitly allowlisted work-order Preview GET route patterns plus 3 explicitly allowlisted signed write patterns (create, update, and comment).**
+**PASS — isolated CI verification of 18 explicitly allowlisted work-order Preview GET route patterns plus 6 explicitly allowlisted signed write patterns (create, update, comment, transition, soft-delete, and restore).**
 
 **NOT CERTIFIED — production tenant isolation against direct compromise of the `opscore_runtime` database credential.**
 
@@ -46,8 +46,10 @@ The SQL comparison loop is described in source as fixed-work/preliminary; this i
 - The explicitly enabled, Preview-only signed-context allowlist covers 18 GET route patterns: `GET /api/v1/work-orders`, `GET /api/v1/work-orders/:id`, and these 16 read-only subresources: `completion-package`, `timeline`, `handoff`, `operational-risk`, `comments`, `attachments`, `dispatch-candidates`, `parts`, `signoffs`, `why-blocked`, `changelog`, `verified-job-record`, `work-pack`, `completion-assurance`, `time-summary`, and `first-time-right`.
 - Each selected route pins the authenticated session principal, opens one `READ ONLY` transaction, obtains the backend PID and transaction ID from the same worker connection, binds a short-lived signed assertion, and executes its existing Store read inside that transaction.
 - The 16 selected Store methods and their inspected read helpers use read-only database access. The CI-only red-team probe overwrites the raw tenant, user, and access-mode GUCs after the assertion is bound; the probe requires both `CI=true` and its explicit test flag.
-- Three write patterns use a separate Preview-only feature flag: `POST /api/v1/work-orders`, `PATCH /api/v1/work-orders/:id`, and `POST /api/v1/work-orders/:id/comments`. Each opens one read-write transaction, binds the signed assertion to that transaction, and returns the signed-context response marker only after commit.
+- Six write method/path patterns use the separate Preview-only feature flag: `POST /api/v1/work-orders`, `PATCH /api/v1/work-orders/:id`, `POST /api/v1/work-orders/:id/comments`, `POST /api/v1/work-orders/:id/transition`, `DELETE /api/v1/work-orders/:id`, and `POST /api/v1/work-orders/:id/restore`. Each opens one read-write transaction, binds the signed assertion to that transaction, and returns the signed-context response marker only after commit.
 - `Store.withCallerManagedTransaction()` marks the externally owned transaction in the Store's transaction-depth accounting. This prevents nested Store methods and `idempotentWrite()` from opening or committing a second PostgreSQL transaction before the signed request is complete.
+- The transition route passes the supplied reason into `Store.transitionWorkOrder`; transition events and webhook-delivery records are written in the same caller-owned transaction.
+- Soft-delete and restore are scoped to the authenticated organization before their `deleted_records` mutation, and their audit records participate in the same signed transaction.
 - Idempotency replay now deserializes stored responses from either PostgreSQL JSON/JSONB objects or SQLite JSON text; the same helper is used for synchronous and asynchronous idempotency replay.
 - The Node signer remains in the trusted parent process. The PostgreSQL worker receives a minimal allowlist of database and transport settings; the HMAC signing key is not passed to the worker.
 - Deliberately excluded: `GET /evidence-package` because it calls attachment integrity verification that writes an audit record; `GET /completion.pdf` because it uses a binary streaming response not handled by this JSON read wrapper; and `dispatch-eligibility` / `field-duration-forecast` pending a source-specific side-effect and transaction audit.
@@ -177,10 +179,38 @@ Exact GitHub Actions evidence for source commit `7b04d2117b5d9fd804378bc5e6f121c
 
 The Vercel contract job passed; `deploy-bound-postgres-18-acceptance` and `deploy` were SKIPPED. This is not a deployment result. The signed write feature flag was set only in the disposable CI process, not in Vercel.
 
+## Latest transition, delete, and restore expansion — 2026-11-14
+
+CI-tested PR head: `3a82852b3aff075de841fb195937e36d6572beeb`.
+
+The PostgreSQL 18 gate exercised the following new HTTP flows with separate Tenant A and Tenant B session tokens:
+
+- Status transition: both tenants transitioned their own synthetic order from `open` to `in_progress`; the response carried the signed-context marker and idempotency metadata.
+- Transition replay: Tenant A repeated the identical transition with the same idempotency key and payload. The stored response was replayed; the transition was not executed a second time.
+- Cross-tenant transition: Tenant A attempted to transition Tenant B's order. The server returned `404 NOT_FOUND`; a subsequent Tenant B read confirmed its status remained `in_progress`.
+- Soft-delete: each tenant soft-deleted its own work order. Tenant A's attempt to delete Tenant B's order returned `404 NOT_FOUND`; a direct owner-side acceptance assertion confirmed no active deletion marker was created for Tenant B.
+- Restore: Tenant A's attempt to restore Tenant B's deleted order returned `404 NOT_FOUND`; a direct owner-side acceptance assertion confirmed Tenant B's deletion marker remained active. Each tenant then restored its own order, and the owner-side assertion confirmed both active deletion markers were cleared.
+
+The emitted proof object contained **14/14 PASS assertions** for this expansion: Tenant A/B transitions, idempotent transition replay, cross-tenant transition denial and unchanged foreign row, Tenant A/B soft-delete, cross-tenant delete denial and absence of a foreign deletion marker, cross-tenant restore denial and preservation of the foreign deletion marker, Tenant A/B own restores, and confirmation that no active deletion markers remained.
+
+Together with the previous write suite, the proof object contained **26/26 PASS write assertions**. The earlier **48/48 read-subresource assertions** and the signed-assertion tampering, invalid-signature, unsigned-GUC, and replay checks also remained PASS.
+
+The acceptance gate explicitly cleans up the synthetic `deleted_records` and `workflow_transition_log` rows, together with related audit/activity, idempotency, and work-order fixtures. All data was created in and removed from the disposable local PostgreSQL 18 acceptance database; no live Neon branch was used.
+
+Exact GitHub Actions evidence for the CI-tested PR head `3a82852b3aff075de841fb195937e36d6572beeb`:
+
+| Workflow | Run ID | Result |
+|---|---:|---|
+| Digital Twin PostgreSQL 18 Isolated RLS and HTTP Acceptance | `43619954294` | SUCCESS |
+| OpsCore CI | `43619954346` | SUCCESS |
+| Vercel contract verification | `43619954434` | SUCCESS |
+
+Both Vercel deployment jobs, `deploy-bound-postgres-18-acceptance` and `deploy`, were SKIPPED. This is not a deployment result. The signed write flag was set only in the disposable CI process, not in Vercel.
+
 ## Explicit remaining limitations
 
 1. **The database-credential trust boundary is not closed.** Migration 064 deliberately preserves the legacy accessor behavior when no signed payload is supplied. A holder of the raw `opscore_runtime` credential can still omit the signed payload and supply the legacy tenant/user/access-mode GUCs on paths that have not been migrated. The CI pass proves the enabled HTTP paths use the signed assertion; it does not prove that arbitrary direct SQL using the runtime credential cannot impersonate a tenant.
-2. **The signed work-order slice remains incomplete.** Eighteen GET patterns are allowlisted (list, detail, and 16 read-only subresources), and only three write patterns are migrated (create, update, and comments). Bulk creation, transition, delete/restore, evidence upload and other write paths remain on the legacy path. `evidence-package`, PDF streaming, `dispatch-eligibility`, `field-duration-forecast`, and other tenant-owned routes still need their own transaction design and route-specific tests.
+2. **The signed work-order slice remains incomplete.** Eighteen GET patterns are allowlisted (list, detail, and 16 read-only subresources), and six write method/path patterns are migrated (create, update, comments, transition, soft-delete, and restore). Bulk creation, evidence upload, and other write paths remain on the legacy path. `evidence-package`, PDF streaming, `dispatch-eligibility`, `field-duration-forecast`, and other tenant-owned routes still need their own transaction design and route-specific tests.
 3. The complete policy inventory and identity plane are not migrated. The legacy arbitrary-user membership resolver, login/OIDC/API-key/password-reset/invitation/bootstrap/session lifecycle paths, and broad identity-table grants still require their own narrow-function and end-to-end work.
 4. The HMAC key used by this test was ephemeral CI material. No Preview Vercel key was provisioned and no live Preview rollout was executed.
 5. The 136-table restore was a disposable logical dump/restore exercise. It is not a Neon point-in-time restore drill or evidence of a scheduled production backup/PITR configuration.
@@ -191,15 +221,15 @@ The Vercel contract job passed; `deploy-bound-postgres-18-acceptance` and `deplo
 
 1. Obtain explicit authorization before applying migrations 063/064 to a fresh, isolated Neon child branch. Run the same signed HTTP and direct-SQL red-team cases there; do not reuse Production or silently alter the existing Preview branch.
 2. Remove the unsigned-GUC fallback from each tenant table/policy as that table's full route surface is migrated. The final direct-SQL test must prove a runtime-only credential cannot read or mutate another tenant merely by choosing raw GUC values or omitting the assertion.
-3. Migrate the remaining work-order write paths and excluded read/streaming paths, then the remaining tenant routes, workers, knowledge pool, and identity helpers. Do not revoke grants until every corresponding caller and rollback path is mapped and tested.
+3. Migrate the remaining work-order write paths (including bulk and evidence-upload operations) and excluded read/streaming paths, then the remaining tenant routes, workers, knowledge pool, and identity helpers. Do not revoke grants until every corresponding caller and rollback path is mapped and tested.
 4. Provision a Preview-only signer secret and matching verifier key record only after the isolated branch passes and deployment settings are reviewed. Keep Production key provisioning separate and explicitly approved.
 5. Complete real Neon backup/PITR configuration and a genuine recovery drill, plus production HTTP-session, authorization, firewall enforcement, and final release gates.
 
 ## Change control
 
 - PR #103 remains **OPEN / DRAFT / NOT MERGED**.
-- Application source commit covered by the latest CI evidence: `7b04d2117b5d9fd804378bc5e6f121ccd4ac8ac9`.
-- The application-source checkpoint is 50 commits ahead of `main` and 0 behind.
+- CI-tested PR head: `3a82852b3aff075de841fb195937e36d6572beeb`.
+- The PR is 54 commits ahead of `main` and 0 behind.
 - No migration, deployment setting, signer secret, or production database was changed.
 - No migration, deployment setting, signer secret, or production database was changed.
 - `main` remains `4ef126ccd59f23cebeead30224d1bcf7199535ab`.
