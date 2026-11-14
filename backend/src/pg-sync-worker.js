@@ -30,16 +30,23 @@ async function getSession(requestId) {
   let session = sessions.get(key);
   if (session) return session;
   const client = await getPool().connect();
-  session = { client, inTransaction: false };
+  session = { client, inTransaction: false, transactionIdentity: null, signedContextBound: false };
   sessions.set(key, session);
   return session;
 }
 
 function updateTransactionState(session, sql) {
   const normalized = String(sql || '').trim();
-  if (/^(BEGIN|START\s+TRANSACTION)\b/i.test(normalized)) session.inTransaction = true;
-  else if (/^(COMMIT|END)\b/i.test(normalized)) session.inTransaction = false;
-  else if (/^ROLLBACK\b/i.test(normalized) && !/^ROLLBACK\s+TO\b/i.test(normalized)) session.inTransaction = false;
+  if (/^(BEGIN|START\s+TRANSACTION)\b/i.test(normalized)) {
+    session.inTransaction = true;
+    session.transactionIdentity = null;
+    session.signedContextBound = false;
+  } else if (/^(COMMIT|END)\b/i.test(normalized)
+      || (/^ROLLBACK\b/i.test(normalized) && !/^ROLLBACK\s+TO\b/i.test(normalized))) {
+    session.inTransaction = false;
+    session.transactionIdentity = null;
+    session.signedContextBound = false;
+  }
 }
 
 async function releaseSession(requestId) {
@@ -53,6 +60,8 @@ async function releaseSession(requestId) {
     try { await session.client.query('ROLLBACK'); }
     catch (_) { destroy = true; }
     session.inTransaction = false;
+    session.transactionIdentity = null;
+    session.signedContextBound = false;
   }
   if (!destroy) {
     try { await session.client.query('RESET ALL'); }
@@ -113,6 +122,55 @@ async function handle(message) {
   if (type === 'ping') {
     const result = await session.client.query("SELECT current_database() AS database, version() AS server_version, current_user AS role_name");
     return { id, ok: true, row: result.rows[0] };
+  }
+
+  if (type === 'transactionIdentity') {
+    if (!session.inTransaction) {
+      return { id, ok: false, error: 'TENANT_CONTEXT_TRANSACTION_REQUIRED', code: 'TENANT_CONTEXT_TRANSACTION_REQUIRED' };
+    }
+    const result = await session.client.query(
+      'SELECT pg_backend_pid() AS backend_pid, pg_current_xact_id()::text AS transaction_id'
+    );
+    const identity = {
+      backendPid: Number(result.rows[0].backend_pid),
+      transactionId: String(result.rows[0].transaction_id)
+    };
+    if (session.transactionIdentity
+        && (session.transactionIdentity.backendPid !== identity.backendPid
+          || session.transactionIdentity.transactionId !== identity.transactionId)) {
+      return { id, ok: false, error: 'TENANT_CONTEXT_TRANSACTION_IDENTITY_CHANGED', code: 'TENANT_CONTEXT_TRANSACTION_IDENTITY_CHANGED' };
+    }
+    session.transactionIdentity = identity;
+    return { id, ok: true, row: identity };
+  }
+
+  if (type === 'bindSignedContext') {
+    const payload = String(message.signedContextPayload || '');
+    const signature = String(message.signedContextSignature || '');
+    if (!session.inTransaction || !session.transactionIdentity) {
+      return { id, ok: false, error: 'TENANT_CONTEXT_TRANSACTION_REQUIRED', code: 'TENANT_CONTEXT_TRANSACTION_REQUIRED' };
+    }
+    if (session.signedContextBound) {
+      return { id, ok: false, error: 'TENANT_CONTEXT_ALREADY_BOUND_FOR_TRANSACTION', code: 'TENANT_CONTEXT_ALREADY_BOUND_FOR_TRANSACTION' };
+    }
+    if (!payload || Buffer.byteLength(payload, 'utf8') > 4096 || !/^[0-9a-f]{64}$/.test(signature)) {
+      return { id, ok: false, error: 'TENANT_CONTEXT_ASSERTION_INVALID', code: 'TENANT_CONTEXT_ASSERTION_INVALID' };
+    }
+    let claims;
+    try { claims = JSON.parse(payload); }
+    catch { return { id, ok: false, error: 'TENANT_CONTEXT_ASSERTION_INVALID', code: 'TENANT_CONTEXT_ASSERTION_INVALID' }; }
+    if (!claims || claims.backend_pid !== session.transactionIdentity.backendPid
+        || String(claims.transaction_id || '') !== session.transactionIdentity.transactionId
+        || claims.purpose !== 'field_request' || claims.aud !== 'opscore-database'
+        || claims.iss !== 'opscore-api') {
+      return { id, ok: false, error: 'TENANT_CONTEXT_TRANSACTION_BINDING_MISMATCH', code: 'TENANT_CONTEXT_TRANSACTION_BINDING_MISMATCH' };
+    }
+    await session.client.query(
+      "SELECT set_config('app.signed_context_payload', $1, true), set_config('app.signed_context_signature', $2, true)",
+      [payload, signature]
+    );
+    session.signedContextBound = true;
+    return { id, ok: true, bound: true };
   }
 
   // Bind all row-security context settings together to avoid partially applied identity context.

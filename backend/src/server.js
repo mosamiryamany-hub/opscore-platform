@@ -1389,6 +1389,66 @@ function route(req, res) {
   }
 
 
+  if (url.pathname === '/api/v1/_internal/tenant-context-proof' && req.method === 'GET') {
+    if (process.env.VERCEL_ENV !== 'preview'
+        || String(process.env.OPSC_TENANT_CONTEXT_PROOF_ENABLED || '').toLowerCase() !== 'true') {
+      return json(res, 404, { error: { code: 'NOT_FOUND' } });
+    }
+    if (c.apiKeyId || !c.sessionId || !c.userId || !c.organizationId) {
+      return json(res, 401, { error: { code: 'SESSION_AUTHENTICATION_REQUIRED' } });
+    }
+    if (!store.db || store.db.engine !== 'postgres'
+        || typeof store.db.setVerifiedPrincipal !== 'function'
+        || typeof store.db.activateVerifiedTenantContext !== 'function') {
+      return json(res, 503, { error: { code: 'SIGNED_TENANT_CONTEXT_UNAVAILABLE' } });
+    }
+
+    let transactionOpen = false;
+    try {
+      store.db.setVerifiedPrincipal({
+        sessionId: c.sessionId,
+        userId: c.userId,
+        tenantId: c.organizationId
+      });
+      store.db.exec('BEGIN READ ONLY');
+      transactionOpen = true;
+
+      const binding = store.db.activateVerifiedTenantContext();
+
+      // Red-team tampering: the verifier must ignore these unsigned settings.
+      store.db.prepare(
+        "SELECT set_config('app.tenant_id', ?, true), set_config('app.user_id', ?, true), set_config('app.access_mode', ?, true)"
+      ).run('attacker-selected-tenant', 'attacker-selected-user', 'backoffice');
+
+      const rows = store.db.prepare(
+        'SELECT probe_value FROM opscore_security.context_probe_rows WHERE organization_id=? ORDER BY id'
+      ).all(c.organizationId);
+
+      store.db.exec('COMMIT');
+      transactionOpen = false;
+
+      const passed = rows.length === 1 && rows[0].probe_value === 'proof:' + c.organizationId;
+      return json(res, passed ? 200 : 409, {
+        schemaVersion: 'opscore.signed-tenant-context-preview-proof.v1',
+        ok: passed,
+        status: passed ? 'PASS' : 'FAIL',
+        signedContextBoundToBackendAndTransaction: true,
+        rawGucTamperingIgnored: passed,
+        visibleProbeRows: rows.length,
+        assertionExpiresAt: binding.expiresAt
+      }, { 'cache-control': 'no-store' });
+    } catch (error) {
+      if (transactionOpen) {
+        try { store.db.exec('ROLLBACK'); } catch (_) { /* worker cleanup also rolls back an open transaction */ }
+      }
+      warn('signed_tenant_context_preview_proof_failed', {
+        errorCode: safeDatabaseErrorCode(error),
+        route: '/api/v1/_internal/tenant-context-proof'
+      });
+      return json(res, 503, { error: { code: 'SIGNED_TENANT_CONTEXT_PROOF_FAILED' } }, { 'cache-control': 'no-store' });
+    }
+  }
+
   // AI Contact Center: every query and mutation is explicitly tenant-scoped. Transcript bodies are
   // encrypted at rest by the service; provider calls are opt-in and fail closed when unconfigured.
   if (url.pathname === '/api/v1/contact-center/status' && req.method === 'GET') {
