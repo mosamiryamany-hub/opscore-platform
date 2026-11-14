@@ -19,6 +19,10 @@ The referenced source candidate has seller-reference evidence for health, databa
 
 Historical archives bound to older commits are not current release evidence. Any future package must be regenerated from its exact source commit and pipeline and must not be distributed before a separate commercial license decision.
 
+## Mobile source boundary
+
+The repository includes mobile application source and lockfiles only; signed Android/iOS store binaries, physical-device QA and store publication are not included.
+
 ## Technical residuals — not a grant of rights
 
 - Buyer EAS project/account linkage, Android/iOS signing, native builds, physical-device QA, store accounts, submission and distribution.
