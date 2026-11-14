@@ -73,7 +73,7 @@ The production branch already has `pgcrypto` 1.4 and a working `hmac()` routine.
 Candidate design:
 
 1. The application signer obtains a high-entropy HMAC key from the deployment secret manager, outside PostgreSQL and outside the database connection.
-2. PostgreSQL stores a verifier copy only in a private schema/table that the runtime role cannot read, write, own, or alter.
+2. Because HMAC is symmetric, the same high-entropy secret is held by the trusted application signer and stored for verification in a private schema/table accessible only to the non-login definer owner. The runtime role cannot read, write, own, or alter that table. This protects against a runtime-credential-only compromise, not compromise of the privileged database owner/definer or the trusted signer.
 3. A narrowly scoped `SECURITY DEFINER` verification function, owned by the dedicated NOLOGIN `opscore_auth_definer` role, reads that verifier key and validates the exact signed assertion. It returns only verified claims or a boolean/error; it never returns the key or a newly generated MAC.
 4. RLS context accessors read only the verified assertion. Plain `app.tenant_id`, `app.user_id`, and `app.access_mode` become non-authoritative.
 5. The signer key is not present in SQL arguments, database logs, worker IPC diagnostics, exception messages, or any table accessible by `opscore_runtime`.
@@ -204,3 +204,79 @@ Required end-state:
 ## 9. Non-claims
 
 This ADR does not say the fix is implemented, tested in an isolated branch, merged, deployed, or certified. No production database DDL/DML, grants, secrets, roles, Vercel project settings, or deployments were changed by this analysis.
+
+
+## 10. Isolated HMAC/RLS proof — executed on a Neon child branch
+
+**Status: PASS for the limited cryptographic-context prototype; NOT an application fix or production certification.**
+
+### Isolated target
+
+- Branch: `security-tenant-context-proof-20261114`
+- Branch ID: `br-patient-truth-bcc63gli`
+- Parent: production branch `br-wispy-term-bcrqqj84`
+- Parent LSN: `0/8A2B988`
+- Parent timestamp: `2026-11-14T13:54:14Z`
+- PostgreSQL: 18.7
+- `pgcrypto`: 1.4, installed
+- The proof created a separate `security_proof` schema, one private HMAC key table, one toy tenant-row table, and a `SECURITY DEFINER` verifier function. No production schema, row, role, grant, or Vercel setting was changed.
+
+### Ownership and access checks
+
+Live isolated-branch catalogue checks reported:
+
+- `security_proof` schema and both tables are owned by `opscore_auth_definer`.
+- `security_proof.verified_context()` is `SECURITY DEFINER`, owned by `opscore_auth_definer`, with fixed `search_path=pg_catalog, security_proof`.
+- `opscore_runtime` is not a member of `opscore_auth_definer`.
+- Runtime has SELECT on the toy tenant-row table and EXECUTE on the verifier, but no SELECT/INSERT access to the private key table.
+- Direct SELECT from `security_proof.context_keys` as `opscore_runtime` failed with SQLSTATE `42501` (permission denied).
+- `SET ROLE opscore_auth_definer` as `opscore_runtime` failed with SQLSTATE `42501` (permission denied).
+
+### Positive tenant-boundary tests
+
+Using separately signed test assertions:
+
+| Signed assertion | Raw caller settings | Verified context | Rows visible |
+|---|---|---|---:|
+| Tenant A | Tenant A / field | Tenant A | 1 (A only) |
+| Tenant B | Tenant B / field | Tenant B | 1 (B only) |
+| Tenant B | Changed to Tenant A / backoffice | Tenant B | 1 (B only) |
+| Tenant A | Changed to Tenant B / system | Tenant A | 1 (A only) |
+
+This proves that in this isolated prototype the RLS policy reads the verified assertion, not the caller's mutable tenant/user/access-mode GUCs.
+
+### Negative tests
+
+The following assertion cases returned no verified context and zero rows:
+
+- Tenant B payload paired with Tenant A's signature.
+- Wrong signature.
+- Missing signed payload/signature while caller-supplied tenant GUCs were populated.
+- Expired assertion.
+- Wrong audience.
+- Disallowed `backoffice` purpose.
+- Empty subject.
+- Unknown key ID.
+- Missing `nbf`.
+- Valid signature with a future `nbf` outside the acceptance time.
+
+The verifier prototype enforces a 60-second maximum assertion lifetime, exact issuer/audience/purpose, non-empty subject/tenant/session/JTI/key ID, `iat`, `nbf`, and `exp`, a 4 KiB payload bound, and a 32-byte HMAC-SHA256 value. The comparison uses a fixed-length XOR accumulation loop; this is not a formal constant-time certification.
+
+### Critical limits — still open
+
+This proof is a deliberately small mechanism test, not a production identity implementation:
+
+1. It protects against a holder of `opscore_runtime` who does not possess the shared HMAC secret. HMAC is symmetric: the trusted signer and privileged verifier owner share the same secret. A compromise of the signer, `opscore_auth_definer`, `neondb_owner`, or higher database administration remains outside this proof's threat boundary.
+2. The test assertion is a bearer capability. The prototype does **not** implement one-time `jti`/nonce consumption, so replay protection is not proven. A stolen still-valid assertion could be replayed until expiry unless production design binds and consumes it safely.
+3. The verifier does not yet look up a real session record to prove that `sub`, `tenant_id`, and `session_id` correspond to an active, unrevoked session. It validates cryptographic claims only.
+4. The prototype has not been connected to `pg-sync-worker.js`, `pg-database-sync.js`, `Store`, `server.js`, API-key authentication, OIDC, bootstrap, invitation acceptance, or password-reset routes.
+5. It protects only the toy `security_proof.tenant_rows` table. None of the 276 production policies or 134 production tables has been migrated.
+6. The test key is a temporary isolated-branch value, not a production key. Key management, rotation, auditing, replay controls, session verification, performance, and formal constant-time behavior remain unproven.
+7. No live production HTTP login/session tenant-boundary test was run.
+
+### Decision after proof
+
+- The `pgcrypto` HMAC route is now a **viable candidate for a fuller isolated implementation**, not an approved production design.
+- The next isolated phase must add session binding and replay-safe request context, then integrate one narrow vertical slice (session resolution + one tenant read route) and prove it with real HTTP and raw SQL tests.
+- Do not revoke production grants, alter production policies, apply migrations to production, or change `main` based on this proof.
+- Production isolation remains **NOT CERTIFIED**.
