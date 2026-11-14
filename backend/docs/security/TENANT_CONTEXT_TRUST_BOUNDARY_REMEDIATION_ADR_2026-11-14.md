@@ -267,11 +267,11 @@ The verifier prototype enforces a 60-second maximum assertion lifetime, exact is
 This proof is a deliberately small mechanism test, not a production identity implementation:
 
 1. It protects against a holder of `opscore_runtime` who does not possess the shared HMAC secret. HMAC is symmetric: the trusted signer and privileged verifier owner share the same secret. A compromise of the signer, `opscore_auth_definer`, `neondb_owner`, or higher database administration remains outside this proof's threat boundary.
-2. The test assertion is a bearer capability. The prototype does **not** implement one-time `jti`/nonce consumption, so replay protection is not proven. A stolen still-valid assertion could be replayed until expiry unless production design binds and consumes it safely.
-3. The verifier does not yet look up a real session record to prove that `sub`, `tenant_id`, and `session_id` correspond to an active, unrevoked session. It validates cryptographic claims only.
+2. The prototype now records each `jti` in a private table bound to `pg_backend_pid()` and `pg_current_xact_id()`. Verified on the isolated branch: the same assertion supports repeated reads in the same transaction; after that transaction commits, the same assertion is rejected in a second transaction; and two concurrent transactions presenting the same assertion produced one winner (one tenant row visible) and one denial (zero rows). This is a limited replay-consumption proof, not production replay certification. An attacker who steals a valid but unused bearer assertion could still race to consume it first.
+3. The prototype now looks up a private test-session row and proves that `sub`, `tenant_id`, and `session_id` match, that the session is not revoked, and that the session/assertion have not expired. Valid A and B sessions passed; wrong subject/tenant binding, revoked session, and expired session were denied. This uses only synthetic `security_proof.test_sessions`, not the production `sessions` table or real HTTP sessions.
 4. The prototype has not been connected to `pg-sync-worker.js`, `pg-database-sync.js`, `Store`, `server.js`, API-key authentication, OIDC, bootstrap, invitation acceptance, or password-reset routes.
 5. It protects only the toy `security_proof.tenant_rows` table. None of the 276 production policies or 134 production tables has been migrated.
-6. The test key is a temporary isolated-branch value, not a production key. Key management, rotation, auditing, replay controls, session verification, performance, and formal constant-time behavior remain unproven.
+6. The test key is a temporary isolated-branch value, not a production key. Production key management, rotation, signer audit, cleanup/retention of consumed JTI rows, first-use bearer theft/racing, pooler behavior, read-only transaction compatibility, performance, and formal constant-time behavior remain unproven. Because the current RLS verifier inserts a JTI-use row while evaluating SELECT policy, the request transaction must be writable; this write-on-read cost and compatibility must be redesigned or measured before production.
 7. No live production HTTP login/session tenant-boundary test was run.
 
 ### Decision after proof
@@ -280,3 +280,31 @@ This proof is a deliberately small mechanism test, not a production identity imp
 - The next isolated phase must add session binding and replay-safe request context, then integrate one narrow vertical slice (session resolution + one tenant read route) and prove it with real HTTP and raw SQL tests.
 - Do not revoke production grants, alter production policies, apply migrations to production, or change `main` based on this proof.
 - Production isolation remains **NOT CERTIFIED**.
+
+
+### Session binding and replay-consumption extension — additional isolated tests
+
+The prototype was extended on the same Neon child branch (no production DDL/DML):
+
+- Added private test-session records for active Tenant A/B sessions, one revoked session, and one expired session. The verifier checks a matching `session_id`, `sub`, and `tenant_id`, session expiry, session revocation, and that assertion expiry does not outlive the session.
+- Added private `used_assertions` with unique `jti`, backend PID, transaction ID (`xid8`), session, tenant, user, assertion hash, and expiry.
+- The verifier atomically inserts the JTI on first use. Further RLS evaluations in the same transaction are accepted only when backend PID, transaction ID, session, tenant, user, and exact assertion hash match.
+- Runtime cannot SELECT or INSERT into either private table and cannot CREATE in the proof schema. It can only SELECT the toy tenant rows and EXECUTE the verifier.
+
+Observed result matrix:
+
+| Test | Result |
+|---|---|
+| Valid Tenant A signed assertion + matching active test session | PASS — A row only |
+| Valid Tenant B signed assertion + matching active test session | PASS — B row only |
+| Two independent tenant-row reads in the same transaction using same JTI | PASS — repeated read allowed |
+| Commit the first transaction, then replay same still-valid assertion in a new transaction | PASS — denied, zero rows |
+| Two concurrent transactions race using the same JTI | PASS — one winner (one row), one denied (zero rows) |
+| Signed subject/tenant do not match the named test session | PASS — denied, zero rows |
+| Test session already revoked | PASS — denied, zero rows |
+| Test session expired | PASS — denied, zero rows |
+
+The concurrent race used two independent tool transactions and a one-second barrier before the verifier query. The winning transaction committed the unique JTI row. The other transaction observed the already-claimed JTI from a different backend/transaction and was denied.
+
+**Additional design constraints:** this lazy RLS-consumption technique writes to `used_assertions` during a SELECT. It can reject a PostgreSQL READ ONLY transaction and adds a write/lock to tenant reads. The proof does not measure that cost, test a real Neon pooler, or validate cleanup/retention of expired JTI rows. The first-use bearer-race risk remains if a valid unused assertion is stolen. A production implementation may use a separate explicit `activate_context` step at the start of each writable request transaction, provided RLS then requires the activation record bound to that same backend and transaction.
+
