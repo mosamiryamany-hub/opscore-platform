@@ -187,6 +187,55 @@ function readEmbeddedBuildIdentity(identityPath = path.join(__dirname, 'opscore-
   };
 }
 
+
+function readProductionSessionIsolationEvidence(filePath = path.join(__dirname, '..', 'docs', 'verification', 'PRODUCTION_SESSION_ISOLATION.json'), env = process.env) {
+  if (String(env.OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE || '').trim().toLowerCase() !== 'true') {
+    return { status: 'NOT_VERIFIED', testedAt: null, checks: null };
+  }
+  let evidence;
+  try { evidence = JSON.parse(fs.readFileSync(filePath, 'utf8')); }
+  catch { return { status: 'NOT_VERIFIED', testedAt: null, checks: null }; }
+  if (evidence.schemaVersion !== 'opscore.production-session-isolation.v1') {
+    return { status: 'NOT_VERIFIED', testedAt: null, checks: null };
+  }
+  const checks = evidence.checks || {};
+  const required = ['dualLogin','ownAssetCreate','tenantListIsolation','crossTenantAssetDenied','crossTenantWriteDenied','unauthenticatedDenied','cleanupComplete'];
+  const allPass = evidence.status === 'PASS' && required.every((k) => checks[k] === 'PASS');
+  return {
+    status: allPass ? 'PASS' : 'FAIL',
+    testedAt: evidence.testedAt || null,
+    checks,
+    httpBase: evidence.httpBase || null,
+    evidenceClass: evidence.evidenceClass || null
+  };
+}
+
+function readProductionRecoveryPointEvidence(filePath = path.join(__dirname, '..', 'docs', 'verification', 'PRODUCTION_RECOVERY_POINT.json'), env = process.env) {
+  if (String(env.OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE || '').trim().toLowerCase() !== 'true') {
+    return { status: 'NOT_VERIFIED', testedAt: null };
+  }
+  let evidence;
+  try { evidence = JSON.parse(fs.readFileSync(filePath, 'utf8')); }
+  catch { return { status: 'NOT_VERIFIED', testedAt: null }; }
+  if (evidence.schemaVersion !== 'opscore.production-recovery-point.v1') {
+    return { status: 'NOT_VERIFIED', testedAt: null };
+  }
+  const ok = evidence.status === 'PASS' &&
+    evidence.coreTenantTablesMatch === true &&
+    Number(evidence.tableCountCompared) >= 130 &&
+    Number(evidence.mismatchCount) === 0 &&
+    typeof evidence.recoveryBranchId === 'string' && evidence.recoveryBranchId.length > 0;
+  return {
+    status: ok ? 'PASS' : 'FAIL',
+    testedAt: evidence.testedAt || null,
+    recoveryBranchId: evidence.recoveryBranchId || null,
+    tableCountCompared: evidence.tableCountCompared || null,
+    mismatchCount: evidence.mismatchCount,
+    historyRetentionSeconds: evidence.historyRetentionSeconds || null,
+    evidenceClass: evidence.evidenceClass || null
+  };
+}
+
 function createPublicReleaseProof(env = process.env, now = () => new Date(), identityPath, productionAcceptanceEvidencePath, postgresHttpAcceptancePath, apiRouteAcceptancePath = path.join(__dirname, '..', 'docs', 'verification', 'API_ROUTE_ACCEPTANCE_RESULT.json')) {
   const identity = readEmbeddedBuildIdentity(identityPath);
   const proofEnv = identity ? {
@@ -232,6 +281,9 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
     acceptanceVerified
   );
 
+  const sessionIsolation = readProductionSessionIsolationEvidence(undefined, proofEnv);
+  const recoveryPoint = readProductionRecoveryPointEvidence(undefined, proofEnv);
+
   return {
     schemaVersion: 'opscore.public-release-proof.v2',
     product: 'OpsCore',
@@ -258,12 +310,12 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
     gates: {
       commercialClosure: releaseVerified ? 'PASS_WITH_BUYER_RESIDUALS' : 'UNVERIFIED',
       livePostgresRls: ciVerified ? 'PASS_TEST_SCOPE' : 'UNVERIFIED',
-      productionSessionTenantBoundary: acceptanceVerified ? 'PASS_TEST_SCOPE' : 'NOT_VERIFIED',
-      productionRecoveryBundle: acceptanceVerified ? 'PASS_TEST_SCOPE' : 'NOT_VERIFIED',
+      productionSessionTenantBoundary: sessionIsolation.status === 'PASS' ? 'PASS_PRODUCTION' : (acceptanceVerified ? 'PASS_TEST_SCOPE' : 'NOT_VERIFIED'),
+      productionRecoveryBundle: recoveryPoint.status === 'PASS' ? 'PASS_PRODUCTION' : (acceptanceVerified ? 'PASS_TEST_SCOPE' : 'NOT_VERIFIED'),
       tenantRouteSecurityCoverage: acceptanceVerified ? 'PASS_TEST_SCOPE' : 'NOT_VERIFIED',
       functionalApiRouteAcceptance: apiRouteAcceptance.status,
-      neonPointInTimeRecovery: 'NOT_VERIFIED',
-      productionIsolationCertification: 'NOT_CERTIFIED',
+      neonPointInTimeRecovery: recoveryPoint.status === 'PASS' ? 'PASS_BRANCH_POINT' : 'NOT_VERIFIED',
+      productionIsolationCertification: (sessionIsolation.status === 'PASS' && recoveryPoint.status === 'PASS' && acceptanceVerified && String(proofEnv.OPSC_PRODUCTION_ISOLATION_CERTIFICATION || '').trim().toUpperCase() === 'CERTIFIED') ? 'CERTIFIED' : 'NOT_CERTIFIED',
       mobileStoreArtifacts: 'REMAINING_BUYER',
       nativeTranslationReview: 'REMAINING_BUYER',
       licensedStreetMap: 'REMAINING_BUYER',
@@ -302,12 +354,12 @@ function hasVerifiedProductionRelease(env = process.env, identityPath, productio
     proof.sourceCommitIdentitySource === 'github-actions-cli-assertion' &&
     proof.postgresHttpAcceptance.status === 'PASS' &&
     proof.productionAcceptance.status === 'PASS' &&
-    proof.gates.productionSessionTenantBoundary === 'PASS_TEST_SCOPE' &&
-    proof.gates.productionRecoveryBundle === 'PASS_TEST_SCOPE' &&
+    ['PASS_TEST_SCOPE', 'PASS_PRODUCTION'].includes(proof.gates.productionSessionTenantBoundary) &&
+    ['PASS_TEST_SCOPE', 'PASS_PRODUCTION'].includes(proof.gates.productionRecoveryBundle) &&
     proof.gates.tenantRouteSecurityCoverage === 'PASS_TEST_SCOPE' &&
     ['NOT_VERIFIED', 'PASS_CONTRACT_SCOPE'].includes(proof.gates.functionalApiRouteAcceptance) &&
-    proof.gates.neonPointInTimeRecovery === 'NOT_VERIFIED' &&
-    proof.gates.productionIsolationCertification === 'NOT_CERTIFIED';
+    ['NOT_VERIFIED', 'PASS_BRANCH_POINT'].includes(proof.gates.neonPointInTimeRecovery) &&
+    ['NOT_CERTIFIED', 'CERTIFIED'].includes(proof.gates.productionIsolationCertification);
 }
 
 function readCurrentApiRouteAcceptance(env = process.env, filePath = path.join(__dirname, '..', 'docs', 'verification', 'API_ROUTE_ACCEPTANCE_RESULT.json')) {
@@ -349,4 +401,4 @@ function readCurrentApiRouteAcceptance(env = process.env, filePath = path.join(_
   };
 }
 
-module.exports = { createPublicReleaseProof, hasVerifiedProductionRelease, readEmbeddedBuildIdentity, readProductionAcceptanceEvidence };
+module.exports = { createPublicReleaseProof, hasVerifiedProductionRelease, readEmbeddedBuildIdentity, readProductionAcceptanceEvidence, readProductionSessionIsolationEvidence, readProductionRecoveryPointEvidence };
