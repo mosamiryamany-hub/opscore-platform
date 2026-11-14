@@ -1,23 +1,23 @@
-# Delivery Manifest — OpsCore v0.11.62
+# Technical Release Manifest — OpsCore v0.11.62
 
-- Verified candidate branch: `main`.
-- Verified live source commit: `4ef126ccd59f23cebeead30224d1bcf7199535ab`.
-- Bound production pipeline: `43588278472`.
-- Production deployment: `dpl_5nx3dRRu9WuYmpqR9deiSeCqHwF3`.
-- Delivery type: commercial source-code package (backend/API, web source, PostgreSQL migrations/RLS assets and Expo mobile source).
-- Commercial class: `PASS_WITH_BUYER_RESIDUALS` for this exact candidate only.
-- Seller-reference `productionIsolationCertification`: **CERTIFIED** (live gates; buyer environment remains separately accepted).
-- Seller-reference session/recovery gates: `PASS_PRODUCTION` / `PASS_PRODUCTION`.
-- Signed Android/iOS store binaries are not included. The package contains mobile source and lockfiles.
-- Translation native-speaker review remains buyer-owned (structural locale resources ≠ linguistic qualification).
-- Seller-owned scope: fixable source, migration, security, packaging, test and pre-handover dependency defects on the bound candidate.
-- Buyer-owned scope: external provider accounts/licenses/credentials and live acceptance, licensed maps, native mobile builds/signing/store publication, native-speaker linguistic review and target-environment acceptance.
+- Reference branch: `main`.
+- Reference source commit: `4ef126ccd59f23cebeead30224d1bcf7199535ab`.
+- Bound seller-reference pipeline: `43588278472`.
+- Seller-reference deployment: `dpl_5nx3dRRu9WuYmpqR9deiSeCqHwF3`.
+- Technical classification: `PASS_WITH_BUYER_RESIDUALS` for this exact candidate only.
+- Commercial license: **NONE — RIGHTS DECISION PENDING**.
+- Distribution: **PROHIBITED UNTIL A SEPARATE SIGNED LICENSE/AGREEMENT**.
+- Seller-reference certification does not transfer to a buyer environment.
+- Signed Android/iOS store binaries are not included; the repository contains source and lockfiles.
+- Translation native-speaker review and licensed maps remain unresolved buyer/environment dependencies.
+- No ownership or IP rights are transferred by this manifest.
 
-## Mandatory handover checks
+## Mandatory pre-sale gates
 
-1. Confirm archive/commit/pipeline identity matches the purchase record.
-2. Run buyer preflight and acceptance in the buyer environment.
-3. Record accepted residuals explicitly (mobile store, translations, maps/providers).
-4. Do not reuse fingerprints from older commits as proof of the current candidate.
+1. Rights holder decides the commercial model and approved scope of rights.
+2. A separate written agreement is signed by the rights holder.
+3. Repository notices, package contents, manifest and contract are reconciled.
+4. A new exact-head release artifact and all fingerprints are generated and verified.
+5. Buyer residuals and acceptance scope are acknowledged in writing.
 
-Buyer-environment production certification: **NOT_ESTABLISHED** (seller-reference CERTIFIED does not transfer).
+Until all five gates pass, this manifest is technical evidence only and is not authorization to sell, distribute, or deliver the source package.
