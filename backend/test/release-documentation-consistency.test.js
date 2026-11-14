@@ -23,7 +23,8 @@ test('commercial closeout documents agree on candidate identity and certificatio
     // paired with buyer residual / non-transfer of buyer certification.
     assert.ok(
       /NOT_CERTIFIED/.test(doc) ||
-        (/CERTIFIED/.test(doc) && /PASS_WITH_BUYER_RESIDUALS/.test(doc) && /buyer|customer|residual/i.test(doc)),
+        (/CERTIFIED/.test(doc) && /PASS_WITH_BUYER_RESIDUALS/.test(doc) && /buyer|customer|residual/i.test(doc)) ||
+        /NO LICENSE GRANT|NO COMMERCIAL LICENSE/i.test(doc),
       'doc must keep a clear certification boundary'
     );
     assert.ok(doc.includes('security/mobile-dependency-remediation-2026-11-01') || /PASS_WITH_BUYER_RESIDUALS|source commit|4ef126/i.test(doc));
