@@ -292,12 +292,77 @@ Exact GitHub Actions evidence for head `21dd4a3779508ffd5a0ab0b69f6af6697f0234d4
 
 The PostgreSQL acceptance workflow completed successfully, including the signed Node worker/HTTP gate, logical restore safety and drill, runtime migration-ledger attestation, isolated RLS gate, tenant composite-FK gate, real PostgreSQL HTTP commercial acceptance, shared login-throttling gate, evidence export, and source-derived tenant route isolation matrix. OpsCore CI completed successfully. Vercel contract verification completed successfully; its deployment and deploy-bound acceptance jobs were SKIPPED. No deployment occurred.
 
-The CI success applies to disposable PostgreSQL 18 and isolated test filesystems. It does not mean migrations 063–065 were applied to Neon, that Vercel signer settings were provisioned, or that the signed feature flags were enabled in a live Preview deployment.
+The CI success applies to disposable PostgreSQL 18 and isolated test filesystems. At the time of those CI runs, migrations 063–065 had not yet been applied to Neon. Their later application to one isolated Neon child branch is documented in the addendum below; Vercel signer settings remain unprovisioned and the signed feature flags remain disabled in live Preview.
 
 ## Current branch and control state
 
 - Current tested head at the time of this report update: `21dd4a3779508ffd5a0ab0b69f6af6697f0234d4`.
 - Comparison against `main`: 71 commits ahead, 0 behind; base SHA remains `4ef126ccd59f23cebeead30224d1bcf7199535ab`.
 - PR #103 remains OPEN / DRAFT / NOT MERGED.
-- No live Neon migration, Vercel environment change, signer secret provisioning, Production action, or merge to `main` was performed.
+- No migration was applied to the original Preview parent or Production; migrations 063–065 were later applied only to the isolated Neon child branch documented below. No Vercel environment change, signer secret provisioning, Production action, or merge to `main` was performed.
 - Production tenant isolation remains NOT CERTIFIED; Neon PITR/restore remains NOT VERIFIED; production firewall enforcement and commercial release closure remain OPEN.
+
+
+## Neon isolated child-branch migration execution addendum — 2026-11-14
+
+**Authorization:** The user explicitly approved deleting the single named migration-validation branch, creating a new child of Preview, and applying migrations 063–065 to that new child only. The following actions were limited to that scope.
+
+### Branch lifecycle and isolation
+
+- Neon project: `summer-leaf-18448271`
+- Existing Preview parent: `vercel-dev` / `br-wispy-credit-bckacgvt`
+- Authorized obsolete validation branch deleted: `opscore-mig-059-validate-20261113` / `br-sparkling-scene-bcvfwfzo`
+- The deleted branch was confirmed absent from the active branch list after deletion; it had no child branches and was not the default or protected branch.
+- New isolated child created from the Preview parent: `opscore-signed-context-063-065-20261114` / `br-fragrant-king-bcr9928f`
+- New branch parent: `br-wispy-credit-bckacgvt`; parent LSN at creation: `0/6847040`; parent timestamp: `2026-11-14T17:57:58Z`.
+- New child state: READY; PostgreSQL: 18.7; database: `opscore_acceptance`.
+- Active branch count after creation: 10.
+- The original Preview parent and Production branch were queried after migration execution. Both remain at 61 ledger rows, latest migration 062, with no 063/064/065 ledger entries.
+
+### Applied migrations and source-hash attestation
+
+Each migration ran as its own transaction on `br-fragrant-king-bcr9928f`; its source SHA-256 was computed by PostgreSQL from the exact UTF-8 source file fetched from the PR branch and inserted into `public.schema_migrations` in the same transaction.
+
+| Migration | Source SHA-256 recorded and independently recomputed | Ledger applied_at (UTC) |
+|---|---|---|
+| `063_signed_tenant_context_verifier.sql` | `74e944d47693d4928fd908478c17016c41b940c238e1542ed18052f00b0dcc6f` | `2026-11-14T17:59:25.162Z` |
+| `064_signed_tenant_context_work_orders_routing.sql` | `30b9984589dcbe62cc2cc74fbb918a174bac29cdabe668f515ff13a4b51f6496` | `2026-11-14T17:59:57.468Z` |
+| `065_signed_tenant_context_evidence_upload_chunks.sql` | `f8e847efb7257ebf4a45f9ca80aa8b1b464401ce0132825c3d0a8869c7f9285a` | `2026-11-14T18:00:25.798Z` |
+
+Post-migration ledger: 64 rows; latest migration 065. All three expected filenames are present. Each recorded SHA-256 was independently recomputed from the corresponding current source file and matched exactly.
+
+### Catalog and effective-privilege verification
+
+Verified on the new child branch:
+
+- `opscore_auth_definer`: NOLOGIN, NOSUPERUSER, BYPASSRLS, NOCREATEDB, NOCREATEROLE.
+- `opscore_runtime`: LOGIN, NOSUPERUSER, NOBYPASSRLS, NOCREATEDB, NOCREATEROLE.
+- Runtime cannot SELECT the HMAC key table, can EXECUTE the verifier, and cannot CREATE objects in `opscore_security`.
+- `opscore_security.verified_tenant_context()` exists and is owned by `opscore_auth_definer`.
+- `opscore_current_tenant()`, `opscore_current_user()`, and `opscore_access_mode()` exist.
+- `work_orders` retains FORCE RLS and has the expected restrictive signed-aware `opscore_work_order_context` policy in addition to its existing tenant policies.
+- `evidence_upload_chunks` has RLS and FORCE RLS, with both its permissive and restrictive policies routed through `opscore_current_tenant()`; the legacy raw-GUC chunk policies were removed.
+- Runtime has SELECT on the evidence upload parent and chunk tables as required by the policy subquery.
+- HMAC key table row count is **0**. No signer key or application secret was provisioned.
+
+### Direct SQL behavior probes
+
+Two transaction-local probes ran on the isolated child branch; they used synthetic GUC values and left no persistent data:
+
+1. **Invalid signed assertion with spoofed legacy GUCs:** set raw tenant/user/access-mode GUCs to synthetic values, then supplied a non-empty invalid signed payload and a 64-character zero signature. Results: `opscore_current_tenant() = NULL`, `opscore_current_user() = NULL`, and `opscore_access_mode() = ''`. This confirms fail-closed behavior when a signed payload is present but invalid.
+2. **No signed payload:** set synthetic legacy GUC values and cleared signed payload/signature. Results: the tenant/user/access-mode accessors returned the synthetic legacy GUC values. This confirms migration 064's documented compatibility fallback remains active.
+
+### What this execution does not prove
+
+- A valid HMAC assertion was **not** exercised against this Neon child branch. The HMAC key table is empty and no signer secret is configured.
+- The actual Node HTTP acceptance gate was **not** run against this branch. The prior CI HTTP proof ran against disposable PostgreSQL 18 and remains a separate evidence source.
+- No Vercel deployment or Preview runtime flag/key provisioning occurred.
+- The legacy unsigned-GUC fallback remains active when no signed payload is supplied. Therefore this migration set alone does not establish resistance to direct SQL impersonation by a holder of the runtime credential on unmigrated paths.
+- No Production branch was modified. Production isolation, PITR, WAF enforcement, and commercial release certification remain open.
+
+### Change control
+
+- PR #103 remains OPEN / DRAFT / NOT MERGED.
+- `main` remains unchanged at `4ef126ccd59f23cebeead30224d1bcf7199535ab`.
+- No deployment occurred.
+- This addendum records live Neon DDL only on the newly created isolated child branch. It does not claim production readiness.
