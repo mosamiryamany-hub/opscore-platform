@@ -121,12 +121,12 @@ test('per-route functional contract acceptance across the full API inventory', a
       const unknownMarker = status === 404 && probe.status === 404 && bodyCode !== null && bodyCode === probeCode;
       // Documented env-dependent 503s (server.js error map): an explicitly unconfigured
       // optional dependency is a correct fail-closed answer, not a route defect.
-      const ENV_DEPENDENT_503 = new Set(['STRIPE_NOT_CONFIGURED', 'OSRM_NOT_CONFIGURED', 'OSRM_BASE_URL_INVALID']);
+      const ENV_DEPENDENT_503 = new Set(['STRIPE_NOT_CONFIGURED', 'STRIPE_WEBHOOK_NOT_CONFIGURED', 'OSRM_NOT_CONFIGURED']);
       let verdict = 'PASS';
       let reason = null;
       if (status < 0) { verdict = 'FAIL'; reason = 'TRANSPORT_ERROR'; }
       else if (status === 429) { verdict = 'FAIL'; reason = 'RATE_LIMITED_UNVERIFIED'; }
-      else if (status === 503 && /^(STRIPE_|OSRM_)/.test(String(bodyCode))) { verdict = 'PASS'; reason = `ENV_DEPENDENT_${bodyCode}`; }
+      else if (status === 503 && ENV_DEPENDENT_503.has(String(bodyCode))) { verdict = 'PASS'; reason = `ENV_DEPENDENT_${bodyCode}`; }
       else if (status >= 500) { verdict = 'FAIL'; reason = `UNHANDLED_5XX_${status}`; }
       else if (unknownMarker) { verdict = 'FAIL'; reason = 'ROUTE_MISSING_404'; }
       else if (route.auth === 'required' && ![401, 403].includes(status)) { verdict = 'FAIL'; reason = `AUTH_CONTRACT_${status}`; }
