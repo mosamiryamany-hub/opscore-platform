@@ -39,7 +39,7 @@ Read-only catalog inspection of the production branch reported:
 | `hmac(bytea,bytea,text)` | Exists; EXECUTE granted to `opscore_runtime` |
 | `pg_session_jwt` | Available version 0.5.0; not installed |
 | `pgjwt` | Available version 0.2.0; not installed |
-| `opscore_auth_definer` | NOLOGIN, NOBYPASS? No — BYPASSRLS is true |
+| `opscore_auth_definer` | NOLOGIN, NOSUPERUSER, BYPASSRLS=true |
 | `opscore_runtime` | LOGIN, NOSUPERUSER, NOBYPASSRLS, NOCREATEROLE, NOCREATEDB |
 | Runtime CREATE on public schema | false |
 | Runtime CREATE on database | false |
