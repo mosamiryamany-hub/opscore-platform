@@ -986,6 +986,7 @@ function signedWorkOrdersWriteEnabled(req) {
   const method = String(req.method || '').toUpperCase();
   const workOrderIdPath = /^\/api\/v1\/work-orders\/[^/]+$/;
   const supportedWritePath = (method === 'POST' && pathname === '/api/v1/work-orders')
+    || (method === 'POST' && pathname === '/api/v1/work-orders/bulk')
     || (method === 'PATCH' && workOrderIdPath.test(pathname))
     || (method === 'POST' && /^\/api\/v1\/work-orders\/[^/]+\/comments$/.test(pathname))
     || (method === 'POST' && /^\/api\/v1\/work-orders\/[^/]+\/transition$/.test(pathname))
@@ -2880,7 +2881,9 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
     }
     return body(req).then(b => {
       const k = req.headers['idempotency-key'] || req.headers['x-idempotency-key'];
-      return json(res, 200, store.idempotentWrite(c, 'work_orders_bulk', k, b, () => store.bulkWorkOrders(c, b)).payload);
+      const write = () => store.idempotentWrite(c, 'work_orders_bulk', k, b, () => store.bulkWorkOrders(c, b));
+      if (!signedWorkOrdersWriteEnabled(req)) return json(res, 200, write().payload);
+      return runSignedWorkOrderWrite(res, c, write, (record, headers) => json(res, 200, record.payload, headers));
     }).catch(e => fail(res, e));
   }
   if (req.method === 'POST' && url.pathname === '/api/v1/work-orders') {
