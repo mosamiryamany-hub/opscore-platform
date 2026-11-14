@@ -1,0 +1,20 @@
+NO LICENSE GRANT — ALL RIGHTS RESERVED
+
+OpsCore source package
+Copyright © 2026 OpsCore rights holder. All rights reserved.
+
+This notice is not a license and grants no permission or rights, whether express,
+implied, by estoppel, or otherwise, to access, use, install, run, inspect, copy,
+modify, create derivative works from, host, publish, distribute, sell, resell,
+sublicense, rent, transfer, or commercially exploit this source package.
+
+The commercial model and any future license grant are pending a separate decision
+by the rights holder. No sale, delivery, redistribution, resale, sublicensing, or
+other commercial distribution is authorized until a separate written agreement
+is approved and signed by the rights holder.
+
+Third-party components remain subject to their respective upstream licenses.
+This notice does not grant rights to third-party components.
+
+For avoidance of doubt: CI success, deployment status, release artifacts, hashes,
+SBOMs, attestations, or buyer-delivery documents do not create or imply a license.
