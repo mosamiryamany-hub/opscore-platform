@@ -38,6 +38,7 @@ on:
       - 'backend/scripts/validate-postgres-acceptance-target.js'
       - 'backend/scripts/postgres-logical-restore-drill.js'
       - 'backend/test/postgres-logical-restore-drill.test.js'
+      - 'backend/test/neon-native-pitr-evidence.test.js'
       - 'backend/scripts/postgres-tenant-composite-fk-gate.js'
       - 'backend/scripts/api-inventory.js'
       - 'backend/sql/postgres/**'
