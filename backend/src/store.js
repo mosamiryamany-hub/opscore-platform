@@ -3174,7 +3174,7 @@ class Store {
       const fd = fs.openSync(tmp, 'w');
       try {
         for (let i = 0; i < chunks.length; i++) {
-          if (chunks[i].chunk_index !== i) throw new Error('EVIDENCE_CHUNKS_GAPPED');
+          if (!Number.isSafeInteger(Number(chunks[i].chunk_index)) || Number(chunks[i].chunk_index) !== i) throw new Error('EVIDENCE_CHUNKS_GAPPED');
           const cp = path.resolve(root, chunks[i].storage_key);
           if (!cp.startsWith(dir + path.sep) || !fs.existsSync(cp)) throw new Error('NOT_FOUND');
           const buf = fs.readFileSync(cp);
