@@ -58,7 +58,7 @@ DECLARE
   byte_index integer;
   issued_at bigint;
   not_before bigint;
-  expires_at bigint;
+  claim_expires_at bigint;
   current_epoch bigint;
   session_found boolean := false;
 BEGIN
@@ -69,7 +69,7 @@ BEGIN
      OR signature_hex IS NULL
      OR pg_catalog.octet_length(raw_payload) > 4096
      OR signature_hex !~ '^[0-9a-f]{64}$' THEN
-    RAISE EXCEPTION USING ERRCODE = 'P0631', MESSAGE = 'OPSC_SIGNED_CONTEXT_REJECTED_MISSING_OR_MALFORMED_ASSERTION';
+    RETURN NULL;
   END IF;
 
   claims := raw_payload::jsonb;
@@ -91,24 +91,24 @@ BEGIN
      OR claims->>'iat' !~ '^[0-9]{1,12}$'
      OR claims->>'nbf' !~ '^[0-9]{1,12}$'
      OR claims->>'exp' !~ '^[0-9]{1,12}$' THEN
-    RAISE EXCEPTION USING ERRCODE = 'P0632', MESSAGE = 'OPSC_SIGNED_CONTEXT_REJECTED_CLAIMS_SHAPE';
+    RETURN NULL;
   END IF;
 
   issued_at := (claims->>'iat')::bigint;
   not_before := (claims->>'nbf')::bigint;
-  expires_at := (claims->>'exp')::bigint;
+  claim_expires_at := (claims->>'exp')::bigint;
   current_epoch := floor(extract(epoch FROM pg_catalog.clock_timestamp()))::bigint;
 
   IF issued_at > current_epoch + 2
      OR not_before > current_epoch + 2
      OR not_before < issued_at - 2
-     OR expires_at <= current_epoch
-     OR expires_at <= issued_at
-     OR expires_at - issued_at > 60
-     OR expires_at > current_epoch + 60
+     OR claim_expires_at <= current_epoch
+     OR claim_expires_at <= issued_at
+     OR claim_expires_at - issued_at > 60
+     OR claim_expires_at > current_epoch + 60
      OR (claims->>'backend_pid')::integer IS DISTINCT FROM pg_catalog.pg_backend_pid()
      OR claims->>'transaction_id' IS DISTINCT FROM pg_catalog.pg_current_xact_id()::text THEN
-    RAISE EXCEPTION USING ERRCODE = 'P0633', MESSAGE = 'OPSC_SIGNED_CONTEXT_REJECTED_TIME_OR_TRANSACTION_BINDING';
+    RETURN NULL;
   END IF;
 
   SELECT k.secret INTO key_material
@@ -119,14 +119,14 @@ BEGIN
     AND (k.not_after IS NULL OR k.not_after > pg_catalog.clock_timestamp());
 
   IF key_material IS NULL THEN
-    RAISE EXCEPTION USING ERRCODE = 'P0634', MESSAGE = 'OPSC_SIGNED_CONTEXT_REJECTED_KEY_NOT_ACTIVE';
+    RETURN NULL;
   END IF;
 
   expected_mac := public.hmac(pg_catalog.convert_to(raw_payload, 'UTF8'), key_material, 'sha256');
   supplied_mac := pg_catalog.decode(signature_hex, 'hex');
   IF pg_catalog.octet_length(expected_mac) <> 32
      OR pg_catalog.octet_length(supplied_mac) <> 32 THEN
-    RAISE EXCEPTION USING ERRCODE = 'P0635', MESSAGE = 'OPSC_SIGNED_CONTEXT_REJECTED_SIGNATURE_ENCODING';
+    RETURN NULL;
   END IF;
 
   -- Fixed-length comparison loop. This is a constant-work preliminary check,
@@ -138,7 +138,7 @@ BEGIN
     );
   END LOOP;
   IF difference <> 0 THEN
-    RAISE EXCEPTION USING ERRCODE = 'P0636', MESSAGE = 'OPSC_SIGNED_CONTEXT_REJECTED_HMAC_MISMATCH';
+    RETURN NULL;
   END IF;
 
   -- The existing schema has no revoked_at column; logout revokes by deleting this row.
@@ -155,18 +155,18 @@ BEGIN
     AND s.organization_id = claims->>'tenant_id'
     AND u.status = 'active'
     AND s.expires_at::timestamptz > pg_catalog.clock_timestamp()
-    AND pg_catalog.to_timestamp(expires_at::double precision) <= s.expires_at::timestamptz
+    AND pg_catalog.to_timestamp(claim_expires_at::double precision) <= s.expires_at::timestamptz
     AND COALESCE(g.status, 'active') = 'active'
   LIMIT 1;
 
   IF session_found IS DISTINCT FROM true THEN
-    RAISE EXCEPTION USING ERRCODE = 'P0637', MESSAGE = 'OPSC_SIGNED_CONTEXT_REJECTED_SESSION_MEMBERSHIP';
+    RETURN NULL;
   END IF;
 
   RETURN claims;
 EXCEPTION
   WHEN OTHERS THEN
-    RAISE;
+    RETURN NULL;
 END
 $function$;
 
