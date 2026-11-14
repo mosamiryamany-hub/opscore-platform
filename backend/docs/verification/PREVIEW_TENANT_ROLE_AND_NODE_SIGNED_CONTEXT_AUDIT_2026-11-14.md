@@ -168,3 +168,16 @@ During this revalidation:
 - No merge to `main` was performed.
 
 This report is evidence of a revalidation and the exact reason the signed-context implementation is still open. It does not claim tenant-isolation certification or production release readiness.
+
+
+## 8. Additional identity-plane function semantics confirmed after the source audit
+
+The Preview catalog definitions of the authentication helpers were inspected read-only:
+
+- `opscore_resolve_session_by_token_hash(text)` is SECURITY DEFINER, owned by `neondb_owner`, has a fixed `search_path=pg_catalog, public, pg_temp`, and is executable by `opscore_runtime` while PUBLIC EXECUTE is absent. It joins session, active user, membership, organization, and organization-governance records, returning the organization status. It does not itself filter the session expiry; `Store.session()` rejects an expired returned session in Node. The application server then blocks most routes for non-active organizations, with explicit exceptions for governance/status, `/api/v1/me`, and logout.
+- `opscore_revoke_session_by_token_hash(text)` is SECURITY DEFINER under the same owner/search-path contract and deletes only the exact matching `sessions.token_hash` row. There is no `revoked_at` column in this schema; successful logout removes the row.
+- `opscore_list_memberships_for_user(text)` is SECURITY DEFINER under `neondb_owner` and executable by `opscore_runtime` while PUBLIC EXECUTE is absent. Its body returns memberships for the caller-supplied user ID without a separate proof binding that ID to an authenticated login. This is a separate authentication-plane hardening requirement; a field-session assertion alone does not repair it.
+
+A second expression count across the same 276 policies found 253 tenant-accessor references, 18 current-user-accessor references, and 243 access-mode-accessor references. These counts overlap and must not be summed. Together with the 21 policies directly referencing GUCs, they confirm that most of the current policy set depends on the legacy GUC-based accessor contract.
+
+This additional inspection remains read-only and does not change the disposition in sections 1 and 6.
