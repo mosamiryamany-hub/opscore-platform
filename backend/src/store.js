@@ -384,6 +384,7 @@ class Store {
     if (String(config?.storageProvider || 'local') !== 'local') throw new Error('STORAGE_PROVIDER_UNSUPPORTED');
     this._loginAttempts = new Map();
     this._txDepth = 0;
+    this._callerManagedTransactionLifecycle = null;
     this._runtimeMetrics = {
       requests: 0,
       errors: 0,
@@ -392,13 +393,18 @@ class Store {
       startedAt: now()
     };
   }
-  withCallerManagedTransaction(fn) {
+  withCallerManagedTransaction(fn, lifecycle = {}) {
     if (typeof fn !== 'function') throw new Error('CALLER_MANAGED_TRANSACTION_CALLBACK_REQUIRED');
     if (this.db?.engine !== 'postgres') throw new Error('CALLER_MANAGED_TRANSACTION_POSTGRES_REQUIRED');
     const baseDepth = this._txDepth;
     if (!Number.isSafeInteger(baseDepth) || baseDepth !== 0) {
       throw new Error('CALLER_MANAGED_TRANSACTION_ALREADY_ACTIVE');
     }
+    if (!lifecycle || !Array.isArray(lifecycle.afterRollback)) {
+      throw new Error('CALLER_MANAGED_TRANSACTION_LIFECYCLE_INVALID');
+    }
+    const previousLifecycle = this._callerManagedTransactionLifecycle;
+    this._callerManagedTransactionLifecycle = lifecycle;
     this._txDepth = baseDepth + 1;
     try {
       const result = fn();
@@ -411,7 +417,61 @@ class Store {
       return result;
     } finally {
       this._txDepth = baseDepth;
+      this._callerManagedTransactionLifecycle = previousLifecycle;
     }
+  }
+  registerCallerManagedRollback(callback) {
+    if (typeof callback !== 'function') throw new Error('CALLER_MANAGED_ROLLBACK_CALLBACK_REQUIRED');
+    const lifecycle = this._callerManagedTransactionLifecycle;
+    if (!lifecycle) return false;
+    lifecycle.afterRollback.push(callback);
+    return true;
+  }
+  _beginWriteScope(operation) {
+    const baseDepth = this._txDepth;
+    if (!Number.isSafeInteger(baseDepth) || baseDepth < 0) {
+      throw new Error('WRITE_SCOPE_TRANSACTION_DEPTH_INVALID');
+    }
+    const ownsTransaction = baseDepth === 0;
+    const savepoint = ownsTransaction
+      ? null
+      : 'opscore_' + String(operation || 'write').replace(/[^a-zA-Z0-9_]/g, '_') + '_' + crypto.randomUUID().replace(/-/g, '');
+    if (ownsTransaction) this.db.exec('BEGIN IMMEDIATE');
+    else this.db.exec('SAVEPOINT ' + savepoint);
+    this._txDepth = baseDepth + 1;
+    let closed = false;
+    return {
+      commit: () => {
+        if (closed) throw new Error('WRITE_SCOPE_ALREADY_CLOSED');
+        if (ownsTransaction) this.db.exec('COMMIT');
+        else this.db.exec('RELEASE SAVEPOINT ' + savepoint);
+        closed = true;
+        this._txDepth = baseDepth;
+        return true;
+      },
+      rollback: () => {
+        if (closed) return false;
+        let rolledBack = false;
+        try {
+          if (ownsTransaction) {
+            this.db.exec('ROLLBACK');
+          } else {
+            this.db.exec('ROLLBACK TO SAVEPOINT ' + savepoint);
+            this.db.exec('RELEASE SAVEPOINT ' + savepoint);
+          }
+          rolledBack = true;
+        } catch (rollbackError) {
+          warn('transaction.write_scope_rollback_failed', {
+            operation: String(operation || 'write').slice(0, 80),
+            error: rollbackError
+          });
+        } finally {
+          closed = true;
+          this._txDepth = baseDepth;
+        }
+        return rolledBack;
+      }
+    };
   }
   _loginThrottleKey(rawEmail, ip='unknown') {
     return `${email(rawEmail)}:${String(ip||'unknown')}`;
@@ -2978,6 +3038,7 @@ class Store {
     const abs = path.join(fileRoot, key);
     fs.mkdirSync(path.dirname(abs), { recursive: true });
     fs.writeFileSync(abs, buf, { flag: 'wx' });
+    this.registerCallerManagedRollback(() => fs.rmSync(abs, { force: true }));
     const digest = crypto.createHash('sha256').update(buf).digest('hex'), aid = id('att'), t = now();
     const sp = `attachment_${ crypto.randomUUID().replace(/-/g, '') }`;
     this.db.exec(`SAVEPOINT ${ sp }`);
@@ -3005,8 +3066,17 @@ class Store {
       throw new Error('ATTACHMENT_SHA256_INVALID');
     const safe = path.basename(clean(fileName) || 'attachment.bin').replace(/[^a-zA-Z0-9._-]/g, '_');
     const uploadId = id('upl'), t = now(), chunks = Math.ceil(total / EVIDENCE_CHUNK_BYTES), rel = path.join(ctx.organizationId, '.evidence', uploadId);
-    fs.mkdirSync(path.join(fileRootPath(), rel), { recursive: true });
-    this.db.prepare('INSERT INTO evidence_uploads (id,organization_id,work_order_id,file_name,media_type,total_bytes,expected_sha256,received_bytes,chunk_size,total_chunks,status,storage_key,created_by,created_at,updated_at,committed_attachment_id,last_error) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run(uploadId, ctx.organizationId, workOrderId, safe, clean(mediaType || 'application/octet-stream'), total, digest, 0, EVIDENCE_CHUNK_BYTES, chunks, 'initiated', rel, ctx.userId, t, t, null, null);
+    const uploadDir = path.join(fileRootPath(), rel);
+    fs.mkdirSync(uploadDir, { recursive: true });
+    this.registerCallerManagedRollback(() => fs.rmSync(uploadDir, { recursive: true, force: true }));
+    try {
+      this.db.prepare('INSERT INTO evidence_uploads (id,organization_id,work_order_id,file_name,media_type,total_bytes,expected_sha256,received_bytes,chunk_size,total_chunks,status,storage_key,created_by,created_at,updated_at,committed_attachment_id,last_error) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run(uploadId, ctx.organizationId, workOrderId, safe, clean(mediaType || 'application/octet-stream'), total, digest, 0, EVIDENCE_CHUNK_BYTES, chunks, 'initiated', rel, ctx.userId, t, t, null, null);
+    } catch (error) {
+      try { fs.rmSync(uploadDir, { recursive: true, force: true }); } catch (cleanupError) {
+        warn('file_cleanup_failed', { operation: 'initiate_evidence_upload', error: cleanupError });
+      }
+      throw error;
+    }
     return {
       uploadId,
       workOrderId,
@@ -3037,8 +3107,9 @@ class Store {
     const digest = crypto.createHash('sha256').update(buf).digest('hex');
     const dir = path.resolve(fileRootPath(), u.storage_key), fp = path.join(dir, `chunk-${ i }.bin`);
     fs.mkdirSync(dir, { recursive: true });
-    this.db.exec('BEGIN IMMEDIATE');
+    const scope = this._beginWriteScope('evidence_chunk');
     let createdFile = false;
+    let commitAttempted = false;
     try {
       const current = this.db.prepare('SELECT * FROM evidence_uploads WHERE id=? AND organization_id=?').get(uploadId, ctx.organizationId);
       if (!current) throw new Error('NOT_FOUND');
@@ -3046,12 +3117,14 @@ class Store {
       const existing = this.db.prepare('SELECT * FROM evidence_upload_chunks WHERE upload_id=? AND chunk_index=?').get(uploadId, i);
       if (existing) {
         if (existing.sha256 !== digest || Number(existing.bytes) !== buf.length) throw new Error('EVIDENCE_CHUNK_CONFLICT');
-        this.db.exec('COMMIT');
+        commitAttempted = true;
+        scope.commit();
         return { uploadId, chunkIndex: i, status: 'duplicate', sha256: existing.sha256 };
       }
       try {
         fs.writeFileSync(fp, buf, { flag: 'wx' });
         createdFile = true;
+        this.registerCallerManagedRollback(() => fs.rmSync(fp, { force: true }));
       } catch (e) {
         if (e?.code !== 'EEXIST') throw e;
         const existingBytes = fs.readFileSync(fp);
@@ -3064,28 +3137,37 @@ class Store {
       const received = this.db.prepare('SELECT COALESCE(SUM(bytes),0) n FROM evidence_upload_chunks WHERE upload_id=?').get(uploadId).n;
       const status = Number(received) === Number(current.total_bytes) ? 'ready' : 'uploading';
       this.db.prepare('UPDATE evidence_uploads SET received_bytes=?,status=?,updated_at=? WHERE id=? AND organization_id=?').run(received, status, t, uploadId, ctx.organizationId);
-      this.db.exec('COMMIT');
+      commitAttempted = true;
+      scope.commit();
       return { uploadId, chunkIndex: i, status, receivedBytes: Number(received), totalBytes: current.total_bytes, sha256: digest };
     } catch (e) {
-      try { this.db.exec('ROLLBACK'); } catch (rollbackError) { warn('transaction.rollback_failed', { operation: 'idempotent_write', error: rollbackError }); }
-      if (createdFile) { try { fs.rmSync(fp, { force: true }); } catch (cleanupError) { warn('file_cleanup_failed', { operation: 'upload_evidence_chunk', error: cleanupError }); } }
+      const rolledBack = scope.rollback();
+      if (createdFile && !commitAttempted && rolledBack) {
+        try { fs.rmSync(fp, { force: true }); } catch (cleanupError) {
+          warn('file_cleanup_failed', { operation: 'upload_evidence_chunk', error: cleanupError });
+        }
+      }
       throw e;
     }
   }
   completeEvidenceUpload(ctx, uploadId) {
     requireRole(ctx.role, 'write');
-    this.db.exec('BEGIN IMMEDIATE');
+    const scope = this._beginWriteScope('complete_evidence_upload');
     let finalPath = null;
+    let tmpPath = null;
+    let commitAttempted = false;
     try {
       const u = this.db.prepare('SELECT * FROM evidence_uploads WHERE id=? AND organization_id=?').get(uploadId, ctx.organizationId);
       if (!u) throw new Error('NOT_FOUND');
       if (u.status === 'committed') {
         const row = this.db.prepare('SELECT * FROM attachments WHERE id=? AND organization_id=?').get(u.committed_attachment_id, ctx.organizationId);
-        this.db.exec('COMMIT');
+        commitAttempted = true;
+        scope.commit();
         return row;
       }
       if (Number(u.received_bytes) !== Number(u.total_bytes)) throw new Error('EVIDENCE_UPLOAD_INCOMPLETE');
       const root = path.resolve(fileRootPath()), dir = path.resolve(root, u.storage_key), tmp = path.join(dir, 'assembled.bin');
+      tmpPath = tmp;
       if (!dir.startsWith(root + path.sep)) throw new Error('NOT_FOUND');
       const chunks = this.db.prepare('SELECT * FROM evidence_upload_chunks WHERE upload_id=? ORDER BY chunk_index').all(uploadId);
       if (chunks.length !== Number(u.total_chunks)) throw new Error('EVIDENCE_CHUNKS_GAPPED');
@@ -3106,8 +3188,12 @@ class Store {
       const finalDigest = crypto.createHash('sha256').update(assembled).digest('hex');
       if (finalDigest !== u.expected_sha256) {
         this.db.prepare("UPDATE evidence_uploads SET status='failed',last_error=?,updated_at=? WHERE id=? AND organization_id=?").run('EVIDENCE_INTEGRITY_MISMATCH', now(), uploadId, ctx.organizationId);
-        this.db.exec('COMMIT');
-        throw new Error('EVIDENCE_INTEGRITY_MISMATCH');
+        try { fs.rmSync(tmp, { force: true }); } catch (_) {}
+        commitAttempted = true;
+        scope.commit();
+        const integrityError = new Error('EVIDENCE_INTEGRITY_MISMATCH');
+        if (this._callerManagedTransactionLifecycle) integrityError.commitSignedTenantTransaction = true;
+        throw integrityError;
       }
       validateAttachmentContent(u.file_name, u.media_type, assembled);
       const relFinal = `${ ctx.organizationId }/${ crypto.randomUUID() }-${ u.file_name }`;
@@ -3115,21 +3201,29 @@ class Store {
       fs.mkdirSync(path.dirname(absFinal), { recursive: true });
       fs.renameSync(tmp, absFinal);
       finalPath = absFinal;
+      this.registerCallerManagedRollback(() => fs.rmSync(absFinal, { force: true }));
       const aid = id('att'), t = now();
-      try {
-        this.db.prepare('INSERT INTO attachments VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)').run(aid, ctx.organizationId, u.work_order_id, 'work_order', u.work_order_id, 'local', relFinal, u.file_name, u.media_type, u.total_bytes, u.expected_sha256, ctx.userId, t);
-        const upd = this.db.prepare("UPDATE evidence_uploads SET status='committed',storage_key=?,committed_attachment_id=?,updated_at=?,last_error=NULL WHERE id=? AND organization_id=? AND status<>'committed'").run(relFinal, aid, t, uploadId, ctx.organizationId);
-        if (upd.changes !== 1) throw new Error('EVIDENCE_UPLOAD_CLOSED');
-        this._activity(ctx, 'work_order', u.work_order_id, 'evidence_committed', `${ u.file_name } evidence committed`, { uploadId, attachmentId: aid, sha256: u.expected_sha256 });
-        const row = this.db.prepare('SELECT * FROM attachments WHERE id=? AND organization_id=?').get(aid, ctx.organizationId);
-        this.db.exec('COMMIT');
-        return row;
-      } catch (e) {
-        throw e;
-      }
+      this.db.prepare('INSERT INTO attachments VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)').run(aid, ctx.organizationId, u.work_order_id, 'work_order', u.work_order_id, 'local', relFinal, u.file_name, u.media_type, u.total_bytes, u.expected_sha256, ctx.userId, t);
+      const upd = this.db.prepare("UPDATE evidence_uploads SET status='committed',storage_key=?,committed_attachment_id=?,updated_at=?,last_error=NULL WHERE id=? AND organization_id=? AND status<>'committed'").run(relFinal, aid, t, uploadId, ctx.organizationId);
+      if (upd.changes !== 1) throw new Error('EVIDENCE_UPLOAD_CLOSED');
+      this._activity(ctx, 'work_order', u.work_order_id, 'evidence_committed', `${ u.file_name } evidence committed`, { uploadId, attachmentId: aid, sha256: u.expected_sha256 });
+      const row = this.db.prepare('SELECT * FROM attachments WHERE id=? AND organization_id=?').get(aid, ctx.organizationId);
+      try { fs.rmSync(tmp, { force: true }); } catch (_) {}
+      commitAttempted = true;
+      scope.commit();
+      return row;
     } catch (e) {
-      try { this.db.exec('ROLLBACK'); } catch (rollbackError) { warn('transaction.rollback_failed', { operation: 'idempotent_write', error: rollbackError }); }
-      if (finalPath) { try { fs.rmSync(finalPath, { force: true }); } catch (cleanupError) { warn('file_cleanup_failed', { operation: 'complete_evidence_upload', error: cleanupError }); } }
+      const rolledBack = scope.rollback();
+      if (tmpPath) {
+        try { fs.rmSync(tmpPath, { force: true }); } catch (cleanupError) {
+          warn('file_cleanup_failed', { operation: 'complete_evidence_upload_temp', error: cleanupError });
+        }
+      }
+      if (finalPath && !commitAttempted && rolledBack) {
+        try { fs.rmSync(finalPath, { force: true }); } catch (cleanupError) {
+          warn('file_cleanup_failed', { operation: 'complete_evidence_upload', error: cleanupError });
+        }
+      }
       throw e;
     }
   }
