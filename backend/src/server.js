@@ -1035,7 +1035,17 @@ function sendFile(res, file, download) {
 }
 function safeDatabaseErrorCode(error) {
   const code = String(error && error.code || '').trim().toUpperCase();
-  return /^[A-Z0-9_]{1,64}$/.test(code) ? code : 'UNCLASSIFIED';
+  if (/^[A-Z0-9_]{1,64}$/.test(code)) return code;
+  const message = String(error && error.message || '').trim().toUpperCase();
+  if (/^POSTGRES_[A-Z0-9_]+(?::|$)/.test(message)) return message.match(/^POSTGRES_[A-Z0-9_]+/)[0];
+  if (/^DATABASE_URL_REQUIRED$/.test(message)) return 'DATABASE_URL_REQUIRED';
+  if (/PASSWORD AUTHENTICATION FAILED/.test(message)) return 'DB_AUTH_FAILED';
+  if (/CERTIFICATE|TLS|SSL/.test(message)) return 'DB_TLS_FAILED';
+  if (/ENOTFOUND|EAI_AGAIN/.test(message)) return 'DB_DNS_FAILED';
+  if (/ECONNREFUSED/.test(message)) return 'DB_CONNECTION_REFUSED';
+  if (/ETIMEDOUT|TIMEOUT/.test(message)) return 'DB_CONNECTION_TIMEOUT';
+  if (/PG_SYNC_/.test(message)) return 'PG_SYNC_FAILURE';
+  return 'UNCLASSIFIED';
 }
 function route(req, res) {
   const firewallInfo=inspectRequest(req, config);
@@ -1135,13 +1145,15 @@ function route(req, res) {
     try {
       return json(res, 200, readDatabaseSecurityProof(store.db));
     } catch (e) {
+      const probeErrorCode = safeDatabaseErrorCode(e);
       warn('database.security_proof_failed', {
-        errorCode: safeDatabaseErrorCode(e),
+        errorCode: probeErrorCode,
         route: '/api/verify/database-security'
       });
       return json(res, 503, {
         schemaVersion: 'opscore.public-database-security-proof.v1',
         status: 'UNAVAILABLE',
+        ...(process.env.VERCEL_ENV === 'preview' ? { probeErrorCode } : {}),
         productionIsolationCertification: 'NOT_CERTIFIED',
         checkedAt: new Date().toISOString(),
         note: 'The live database catalog check failed. No production isolation certification is inferred.'
@@ -1153,10 +1165,12 @@ function route(req, res) {
     try {
       const eng = store && store.db && store.db.engine ? store.db.engine : (config.databaseEngine || 'unknown');
       let ok = false;
+      let probeErrorCode = null;
       if (store && store.db && typeof store.db.prepare === 'function') {
         try { store.db.prepare('SELECT 1 AS ok').get(); ok = true; } catch (e) {
+          probeErrorCode = safeDatabaseErrorCode(e);
           warn('database.connectivity_proof_failed', {
-            errorCode: safeDatabaseErrorCode(e),
+            errorCode: probeErrorCode,
             route: '/api/verify/database'
           });
           ok = false;
@@ -1166,6 +1180,7 @@ function route(req, res) {
         schemaVersion: 'opscore.public-database-proof.v1',
         ok,
         engine: eng === 'postgres' ? 'postgres' : String(eng),
+        ...(process.env.VERCEL_ENV === 'preview' && !ok ? { probeErrorCode: probeErrorCode || 'DB_PROBE_UNAVAILABLE' } : {}),
         checkedAt: new Date().toISOString(),
         note: 'Connectivity only. Host, role, and database name are withheld.'
       });
