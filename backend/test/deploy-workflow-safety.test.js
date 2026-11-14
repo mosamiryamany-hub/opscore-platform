@@ -24,6 +24,8 @@ test('production acceptance consumes caller-bound CI evidence and certifies isol
   // Isolation may be CERTIFIED only after PRODUCTION_SESSION_ISOLATION + PRODUCTION_RECOVERY_POINT validate.
   assert.match(deploy, /PRODUCTION_SESSION_ISOLATION\.json/);
   assert.match(deploy, /PRODUCTION_RECOVERY_POINT\.json/);
+  assert.match(deploy, /sourceCommitHint/);
+  assert.match(deploy, /process\.env\.GITHUB_SHA/);
   assert.match(deploy, /steps\.isolation_cert\.outputs\.certified/);
   assert.match(deploy, /behavioralPass\(\)/);
   // Must not hard-code CERTIFIED without reading evidence files.

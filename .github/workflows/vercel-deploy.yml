@@ -323,8 +323,10 @@ jobs:
               try {
                 const session = JSON.parse(fs.readFileSync(path.join('backend','docs','verification','PRODUCTION_SESSION_ISOLATION.json'),'utf8'));
                 const recovery = JSON.parse(fs.readFileSync(path.join('backend','docs','verification','PRODUCTION_RECOVERY_POINT.json'),'utf8'));
-                const sOk = session.schemaVersion === 'opscore.production-session-isolation.v1' && session.status === 'PASS';
-                const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v1' && recovery.status === 'PASS' && recovery.coreTenantTablesMatch === true && Number(recovery.mismatchCount) === 0;
+                const expectedCommit = String(process.env.GITHUB_SHA || '').trim().toLowerCase();
+                const sourceCommitMatches = (evidence) => expectedCommit.length === 40 && String(evidence.sourceCommitHint || '').trim().toLowerCase() === expectedCommit;
+                const sOk = session.schemaVersion === 'opscore.production-session-isolation.v1' && session.status === 'PASS' && sourceCommitMatches(session);
+                const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v1' && recovery.status === 'PASS' && recovery.coreTenantTablesMatch === true && Number(recovery.mismatchCount) === 0 && sourceCommitMatches(recovery);
                 return sOk && rOk;
               } catch { return false; }
             }
@@ -356,8 +358,10 @@ jobs:
             try {
               const session = JSON.parse(fs.readFileSync(path.join('backend','docs','verification','PRODUCTION_SESSION_ISOLATION.json'),'utf8'));
               const recovery = JSON.parse(fs.readFileSync(path.join('backend','docs','verification','PRODUCTION_RECOVERY_POINT.json'),'utf8'));
-              const sOk = session.schemaVersion === 'opscore.production-session-isolation.v1' && session.status === 'PASS';
-              const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v1' && recovery.status === 'PASS' && recovery.coreTenantTablesMatch === true && Number(recovery.mismatchCount) === 0;
+              const expectedCommit = String(process.env.GITHUB_SHA || '').trim().toLowerCase();
+              const sourceCommitMatches = (evidence) => expectedCommit.length === 40 && String(evidence.sourceCommitHint || '').trim().toLowerCase() === expectedCommit;
+              const sOk = session.schemaVersion === 'opscore.production-session-isolation.v1' && session.status === 'PASS' && sourceCommitMatches(session);
+              const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v1' && recovery.status === 'PASS' && recovery.coreTenantTablesMatch === true && Number(recovery.mismatchCount) === 0 && sourceCommitMatches(recovery);
               return sOk && rOk;
             } catch { return false; }
           }
