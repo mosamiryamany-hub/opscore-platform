@@ -98,7 +98,8 @@
     "saleAuthorized": false,
     "buyerDeliveryAuthorized": false,
     "rights": "ALL_RIGHTS_RESERVED",
-    "requiredBeforeAnyFutureGrant": "Separate written agreement approved and signed by the rights holder"
+    "requiredBeforeAnyFutureGrant": "Separate written agreement approved and signed by the rights holder",
+    "licenseNotice": "NO LICENSE GRANT — ALL RIGHTS RESERVED"
   },
   "productionChangesMadeByThisCandidateCloseout": false,
   "buyerResiduals": [
