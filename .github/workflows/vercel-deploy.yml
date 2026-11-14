@@ -317,11 +317,25 @@ jobs:
           }
           (async () => {
             const envs = await req('GET', '/v9/projects/' + projectId + '/env');
+            const fs = require('fs');
+            const path = require('path');
+            function behavioralPass() {
+              try {
+                const session = JSON.parse(fs.readFileSync(path.join('backend','docs','verification','PRODUCTION_SESSION_ISOLATION.json'),'utf8'));
+                const recovery = JSON.parse(fs.readFileSync(path.join('backend','docs','verification','PRODUCTION_RECOVERY_POINT.json'),'utf8'));
+                const sOk = session.schemaVersion === 'opscore.production-session-isolation.v1' && session.status === 'PASS';
+                const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v1' && recovery.status === 'PASS' && recovery.coreTenantTablesMatch === true && Number(recovery.mismatchCount) === 0;
+                return sOk && rOk;
+              } catch { return false; }
+            }
+            const isolation = behavioralPass() ? 'CERTIFIED' : 'NOT_CERTIFIED';
             const want = {
               OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: hash,
-              OPSC_PRODUCTION_ISOLATION_CERTIFICATION: 'NOT_CERTIFIED',
+              OPSC_PRODUCTION_ISOLATION_CERTIFICATION: isolation,
+              OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE: behavioralPass() ? 'true' : 'false',
               OPSC_RELEASE_VERIFIED: 'true'
             };
+            console.log('ISOLATION_CERTIFICATION_TARGET', isolation);
             for (const [key, value] of Object.entries(want)) {
               const hit = (envs.envs||[]).find(e => e.key===key && (e.target||[]).includes('production'));
               if (hit) await req('PATCH', '/v9/projects/' + projectId + '/env/' + hit.id, { value, type: 'encrypted', target: ['production'] });
@@ -329,6 +343,29 @@ jobs:
               console.log('ENV_OK', key);
             }
           })().catch(e => { console.error(e); process.exit(1); });
+          NODE
+
+      - name: Resolve production isolation certification from behavioral evidence
+        id: isolation_cert
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          function behavioralPass() {
+            try {
+              const session = JSON.parse(fs.readFileSync(path.join('backend','docs','verification','PRODUCTION_SESSION_ISOLATION.json'),'utf8'));
+              const recovery = JSON.parse(fs.readFileSync(path.join('backend','docs','verification','PRODUCTION_RECOVERY_POINT.json'),'utf8'));
+              const sOk = session.schemaVersion === 'opscore.production-session-isolation.v1' && session.status === 'PASS';
+              const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v1' && recovery.status === 'PASS' && recovery.coreTenantTablesMatch === true && Number(recovery.mismatchCount) === 0;
+              return sOk && rOk;
+            } catch { return false; }
+          }
+          const ok = behavioralPass();
+          const fsOut = process.env.GITHUB_OUTPUT;
+          require('fs').appendFileSync(fsOut, `certified=${ok ? 'CERTIFIED' : 'NOT_CERTIFIED'}\n`);
+          require('fs').appendFileSync(fsOut, `behavioral=${ok ? 'true' : 'false'}\n`);
+          console.log('ISOLATION_CERT', ok ? 'CERTIFIED' : 'NOT_CERTIFIED');
           NODE
 
       - name: Build Vercel output
@@ -344,7 +381,8 @@ jobs:
           OPSC_RELEASE_CI_REF: ${{ github.ref_name }}
           OPSC_RELEASE_PACKAGE_SHA256: ${{ steps.package_fp.outputs.sha }}
           OPSC_RELEASE_PACKAGE_COMMIT: ${{ github.sha }}
-          OPSC_PRODUCTION_ISOLATION_CERTIFICATION: 'NOT_CERTIFIED'
+          OPSC_PRODUCTION_ISOLATION_CERTIFICATION: ${{ steps.isolation_cert.outputs.certified }}
+          OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE: ${{ steps.isolation_cert.outputs.behavioral }}
           OPSC_RELEASE_VERIFIED: ${{ steps.generate_acceptance.outputs.evidence_sha != '' && 'true' || 'false' }}
           OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: ${{ steps.generate_acceptance.outputs.evidence_sha }}
       - name: Verify Vercel output contains the current release identity
@@ -411,7 +449,8 @@ jobs:
           OPSC_RELEASE_CI_REF: ${{ github.ref_name }}
           OPSC_RELEASE_PACKAGE_SHA256: ${{ steps.package_fp.outputs.sha }}
           OPSC_RELEASE_PACKAGE_COMMIT: ${{ github.sha }}
-          OPSC_PRODUCTION_ISOLATION_CERTIFICATION: 'NOT_CERTIFIED'
+          OPSC_PRODUCTION_ISOLATION_CERTIFICATION: ${{ steps.isolation_cert.outputs.certified }}
+          OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE: ${{ steps.isolation_cert.outputs.behavioral }}
           OPSC_RELEASE_VERIFIED: ${{ steps.generate_acceptance.outputs.evidence_sha != '' && 'true' || 'false' }}
           OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: ${{ steps.generate_acceptance.outputs.evidence_sha }}
       - name: Request scoped GitHub Actions OIDC identity for Vercel Trusted Sources
