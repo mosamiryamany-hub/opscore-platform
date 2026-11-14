@@ -267,7 +267,7 @@ The verifier prototype enforces a 60-second maximum assertion lifetime, exact is
 This proof is a deliberately small mechanism test, not a production identity implementation:
 
 1. It protects against a holder of `opscore_runtime` who does not possess the shared HMAC secret. HMAC is symmetric: the trusted signer and privileged verifier owner share the same secret. A compromise of the signer, `opscore_auth_definer`, `neondb_owner`, or higher database administration remains outside this proof's threat boundary.
-2. The prototype now records each `jti` in a private table bound to `pg_backend_pid()` and `pg_current_xact_id()`. Verified on the isolated branch: the same assertion supports repeated reads in the same transaction; after that transaction commits, the same assertion is rejected in a second transaction; and two concurrent transactions presenting the same assertion produced one winner (one tenant row visible) and one denial (zero rows). This is a limited replay-consumption proof, not production replay certification. An attacker who steals a valid but unused bearer assertion could still race to consume it first.
+2. The first prototype (`verified_context`) records each `jti` in a private table bound to `pg_backend_pid()` and `pg_current_xact_id()`. Verified on the isolated branch: the same assertion supports repeated reads in the same transaction; after that transaction commits, the same assertion is rejected in a second transaction; and two concurrent transactions presenting the same assertion produced one winner and one denial. This mechanism is replay-resistant in the test but writes during RLS SELECT and is not the preferred production candidate. A second, no-write backend/transaction-bound verifier is documented below.
 3. The prototype now looks up a private test-session row and proves that `sub`, `tenant_id`, and `session_id` match, that the session is not revoked, and that the session/assertion have not expired. Valid A and B sessions passed; wrong subject/tenant binding, revoked session, and expired session were denied. This uses only synthetic `security_proof.test_sessions`, not the production `sessions` table or real HTTP sessions.
 4. The prototype has not been connected to `pg-sync-worker.js`, `pg-database-sync.js`, `Store`, `server.js`, API-key authentication, OIDC, bootstrap, invitation acceptance, or password-reset routes.
 5. It protects only the toy `security_proof.tenant_rows` table. None of the 276 production policies or 134 production tables has been migrated.
@@ -307,4 +307,52 @@ Observed result matrix:
 The concurrent race used two independent tool transactions and a one-second barrier before the verifier query. The winning transaction committed the unique JTI row. The other transaction observed the already-claimed JTI from a different backend/transaction and was denied.
 
 **Additional design constraints:** this lazy RLS-consumption technique writes to `used_assertions` during a SELECT. It can reject a PostgreSQL READ ONLY transaction and adds a write/lock to tenant reads. The proof does not measure that cost, test a real Neon pooler, or validate cleanup/retention of expired JTI rows. The first-use bearer-race risk remains if a valid unused assertion is stolen. A production implementation may use a separate explicit `activate_context` step at the start of each writable request transaction, provided RLS then requires the activation record bound to that same backend and transaction.
+
+
+
+## 11. Preferred isolated candidate: signed context bound to the live backend and transaction
+
+A second verifier, `security_proof.verified_bound_context()`, was created on the same isolated child branch. It is separate from the earlier JTI-writing `verified_context()` prototype.
+
+### Verification contract
+
+The signed payload additionally carries:
+
+- `backend_pid`: the PostgreSQL backend PID returned by the actual transaction connection.
+- `transaction_id`: the PostgreSQL `pg_current_xact_id()::text` value for that same open transaction.
+
+The verifier compares these claims to the live `pg_backend_pid()` and `pg_current_xact_id()::text` on every RLS evaluation. It also verifies the HMAC, issuer, audience, purpose, required non-empty identity/session/JTI/key claims, `iat`, `nbf`, `exp`, maximum 60-second lifetime, and the matching active test-session row. Unlike the first prototype, it does not insert a JTI record or write any table when reading tenant rows.
+
+### Exact isolated outcomes
+
+- **READ ONLY success:** a transaction executed `BEGIN; SET TRANSACTION READ ONLY`, generated a signed assertion in that same transaction, switched effective role to `opscore_runtime`, changed the raw tenant/user/access-mode GUCs to a different tenant and `backoffice`, and read the RLS-protected table. Only the signed tenant A row was visible.
+- **Tenant B symmetry:** a separate READ ONLY transaction signed for tenant B while raw GUCs were set to tenant A/`backoffice`; only tenant B's row was visible.
+- **Same backend, new transaction replay:** the first transaction used backend PID `991` and transaction ID `175117`; it committed. A second transaction on the **same backend PID `991`** had transaction ID `175118`. Reusing the exact same signed payload and signature returned NULL context and zero rows.
+- **Different backend replay:** reusing an assertion created for backend PID `991` on another backend PID `1016` also returned NULL context and zero rows.
+- **Invalid assertions:** a correctly signed wrong-audience assertion and a correctly signed future-`nbf` assertion each returned NULL context and zero rows.
+- **Session binding:** correctly signed assertions whose subject/tenant did not match the referenced test session, or whose test session was revoked or expired, returned NULL context and zero rows.
+- The read-only tests executed under effective role `opscore_runtime`; the trusted signing step was simulated inside the isolated database under `opscore_auth_definer`, not in a real Node signer service.
+
+### Why this is the stronger candidate
+
+It prevents cross-transaction replay by binding a valid assertion to both the actual backend and the actual transaction. It can be checked repeatedly during one request transaction and does not need to write a JTI-use row during each RLS read. The observed READ ONLY success is evidence that this approach avoids the first prototype's write-on-read limitation.
+
+### Remaining design obligations
+
+1. The actual Node request path must begin a DB transaction, obtain `pg_backend_pid()` and `pg_current_xact_id()` from that exact connection, ask a trusted signer to sign only the independently authenticated user/session/tenant context plus those DB values, then bind the resulting payload/signature transaction-locally on the **same** connection before any tenant query.
+2. The signer must never sign caller-supplied arbitrary user/tenant/mode values. It must derive those claims from verified HTTP session/API-key/OIDC state and an authorized membership selection.
+3. Prove the connection remains pinned to the same backend for the transaction under the actual Neon pooler and Node worker. A pooler disconnect/retry/new transaction must require a newly signed assertion.
+4. Explicitly define the policy for a transaction attempting to install a second, different signed context. The isolated no-write verifier validates each signed assertion but does not maintain a database-side one-context latch; the trusted signer/application must issue only one tenant context per transaction, or a separate safe latch mechanism must be designed.
+5. Measure the cost of repeated HMAC + key lookup + session lookup from RLS. No performance claim is made.
+6. Test session revocation semantics under the application's isolation level. The prototype reads session state without a row lock so it remains compatible with READ ONLY transactions; a concurrent revocation is observed according to the transaction snapshot.
+7. Keep the shared HMAC secret unavailable to `opscore_runtime`. The test signing step used `opscore_auth_definer` on the same test database solely to generate a proof assertion. Real application signing must live in the trusted server process/secret manager, not in a function callable by runtime.
+8. The fixed-length XOR comparison in PL/pgSQL is a preliminary constant-work comparison only; formal constant-time behavior is not certified. A production implementation needs independent security review and possibly an audited verifier primitive.
+9. Do not remove the first proof's test schema or any prior evidence until the final design is selected and all test artifacts are preserved. The experimental child branch is kept with its compute suspended.
+
+### Decision
+
+- **Preferred candidate for the next isolated vertical slice:** backend/transaction-bound signed context, because the test succeeded under `READ ONLY` and rejected replay on the same backend in a new transaction.
+- **Not approved for production:** it has not been integrated into the real Node signer/worker, has not passed real Neon pooler tests, and has not migrated any production RLS policy.
+- The HMAC key is symmetric and shared by the trusted signer and the privileged verifier owner. A compromise of the signer, `opscore_auth_definer`, `neondb_owner`, or higher database administration remains outside this credential-only proof.
+- Production isolation remains **NOT CERTIFIED**.
 
