@@ -322,12 +322,21 @@ function readCurrentApiRouteAcceptance(env = process.env, filePath = path.join(_
   const expectedPipelineId = String(env.OPSC_RELEASE_CI_PIPELINE_ID || env.CI_PIPELINE_ID || '').trim();
   const evidenceCommit = normalizedSha(evidence.commitSha);
   const evidencePipelineId = String(evidence.pipelineId || '').trim();
+  const testedRoutes = Number(evidence.testedRoutes);
+  const inventoryRouteCount = Number(evidence.inventoryRouteCount);
+  const passed = Number(evidence.passed);
   const exactMatch = Boolean(
+    evidence.schemaVersion === 'opscore.api-route-acceptance.v1' &&
+    evidence.engine === 'sqlite' &&
     status === 'PASS' &&
     expectedCommit &&
     evidenceCommit === expectedCommit &&
     PIPELINE_RE.test(expectedPipelineId) &&
     evidencePipelineId === expectedPipelineId &&
+    Number.isSafeInteger(testedRoutes) &&
+    testedRoutes >= 300 &&
+    testedRoutes === inventoryRouteCount &&
+    passed === testedRoutes &&
     Number(evidence.failed) === 0
   );
   return {
