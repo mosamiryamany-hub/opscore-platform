@@ -283,6 +283,30 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
 
   const sessionIsolation = readProductionSessionIsolationEvidence(undefined, proofEnv);
   const recoveryPoint = readProductionRecoveryPointEvidence(undefined, proofEnv);
+  const isolationCertified = sessionIsolation.status === 'PASS' && recoveryPoint.status === 'PASS' && acceptanceVerified && String(proofEnv.OPSC_PRODUCTION_ISOLATION_CERTIFICATION || '').trim().toUpperCase() === 'CERTIFIED';
+  const sessionGate = sessionIsolation.status === 'PASS' ? 'PASS_PRODUCTION' : (acceptanceVerified ? 'PASS_TEST_SCOPE' : 'NOT_VERIFIED');
+  const recoveryGate = recoveryPoint.status === 'PASS' ? 'PASS_PRODUCTION' : (acceptanceVerified ? 'PASS_TEST_SCOPE' : 'NOT_VERIFIED');
+  const pitrGate = recoveryPoint.status === 'PASS' ? 'PASS_BRANCH_POINT' : 'NOT_VERIFIED';
+  const noteParts = [
+    'Release evidence is bound to the source commit reported by the running Vercel deployment.'
+  ];
+  if (sessionIsolation.status === 'PASS') {
+    noteParts.push('Production session tenant boundary is PASS_PRODUCTION based on dual-tenant HTTP login/session probes against the live production surface with cleanup.');
+  } else {
+    noteParts.push('Tenant session boundary remains test-scope unless production dual-tenant HTTP session evidence is present and activated.');
+  }
+  if (recoveryPoint.status === 'PASS') {
+    noteParts.push('Production recovery bundle is PASS_PRODUCTION based on a Neon branch recovery point compared to the live tip (table-count parity). History retention is plan-limited; this is branch-point recovery evidence, not a full RPO/RTO certification.');
+  } else {
+    noteParts.push('PostgreSQL logical restore in CI remains test-scope only until a production recovery-point evidence file validates.');
+  }
+  if (isolationCertified) {
+    noteParts.push('productionIsolationCertification is CERTIFIED because production session isolation evidence, production recovery-point evidence, commit-bound acceptance, and OPSC_PRODUCTION_ISOLATION_CERTIFICATION=CERTIFIED are all satisfied together. An environment flag alone is not sufficient.');
+  } else {
+    noteParts.push('productionIsolationCertification remains NOT_CERTIFIED until production session isolation evidence, recovery-point evidence, commit-bound acceptance, and the certification env flag are all satisfied together.');
+  }
+  noteParts.push('Tenant route security coverage and functional API route acceptance remain separately scoped (CI fixtures / contract-scope) and are not full business-flow certification. Signed mobile binaries, native-speaker localization review, and a licensed street-map provider remain buyer-owned.');
+  const releaseNote = noteParts.join(' ');
 
   return {
     schemaVersion: 'opscore.public-release-proof.v2',
@@ -310,12 +334,12 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
     gates: {
       commercialClosure: releaseVerified ? 'PASS_WITH_BUYER_RESIDUALS' : 'UNVERIFIED',
       livePostgresRls: ciVerified ? 'PASS_TEST_SCOPE' : 'UNVERIFIED',
-      productionSessionTenantBoundary: sessionIsolation.status === 'PASS' ? 'PASS_PRODUCTION' : (acceptanceVerified ? 'PASS_TEST_SCOPE' : 'NOT_VERIFIED'),
-      productionRecoveryBundle: recoveryPoint.status === 'PASS' ? 'PASS_PRODUCTION' : (acceptanceVerified ? 'PASS_TEST_SCOPE' : 'NOT_VERIFIED'),
+      productionSessionTenantBoundary: sessionGate,
+      productionRecoveryBundle: recoveryGate,
       tenantRouteSecurityCoverage: acceptanceVerified ? 'PASS_TEST_SCOPE' : 'NOT_VERIFIED',
       functionalApiRouteAcceptance: apiRouteAcceptance.status,
-      neonPointInTimeRecovery: recoveryPoint.status === 'PASS' ? 'PASS_BRANCH_POINT' : 'NOT_VERIFIED',
-      productionIsolationCertification: (sessionIsolation.status === 'PASS' && recoveryPoint.status === 'PASS' && acceptanceVerified && String(proofEnv.OPSC_PRODUCTION_ISOLATION_CERTIFICATION || '').trim().toUpperCase() === 'CERTIFIED') ? 'CERTIFIED' : 'NOT_CERTIFIED',
+      neonPointInTimeRecovery: pitrGate,
+      productionIsolationCertification: isolationCertified ? 'CERTIFIED' : 'NOT_CERTIFIED',
       mobileStoreArtifacts: 'REMAINING_BUYER',
       nativeTranslationReview: 'REMAINING_BUYER',
       licensedStreetMap: 'REMAINING_BUYER',
@@ -327,7 +351,11 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
       pipelineId: acceptanceVerified ? productionAcceptance.pipelineId : null,
       checkedAt: acceptanceVerified ? productionAcceptance.testedAt : null,
       evidenceSha256: acceptanceVerified ? productionAcceptance.evidenceSha256 : null,
-      evidenceNote: acceptanceVerified ? 'SHA-256 was recomputed and matched. Production DB checks were read-only; tenant/API tests and logical restore were run on disposable PostgreSQL 18 CI. This is not production tenant certification or Neon PITR.' : null
+      evidenceNote: acceptanceVerified ? (
+        sessionIsolation.status === 'PASS' && recoveryPoint.status === 'PASS'
+          ? 'SHA-256 was recomputed and matched. CI acceptance remains read-only/test-scoped for disposable PostgreSQL; production dual-tenant HTTP session isolation and branch recovery-point parity were separately verified and bound as production-scope evidence.'
+          : 'SHA-256 was recomputed and matched. Production DB checks were read-only; tenant/API tests and logical restore were run on disposable PostgreSQL 18 CI. This is not production tenant certification or Neon PITR.'
+      ) : null
     },
     postgresHttpAcceptance,
     packageFingerprint: {
@@ -337,7 +365,7 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
       sourceCommit: packageVerified ? packageCommit : null
     },
     checkedAt: now().toISOString(),
-    note: 'Release evidence is bound to the source commit reported by the running Vercel deployment. Tenant route security coverage is limited to unauthenticated-denial, foreign-ID-denial, and cross-tenant fixture probes on disposable PostgreSQL 18 CI; it is not functional acceptance of every API route and does not certify production isolation. PostgreSQL logical restore is also CI test-scope only. Functional API route acceptance is contract-scope only (existence + auth contract + no unhandled 5xx across all inventory routes; PASS_CONTRACT_SCOPE requires commit-and-pipeline-bound evidence with zero failures) and never a business-flow certification. Neon point-in-time restore and production tenant isolation certification remain NOT_VERIFIED. Live production DB checks are read-only and require the runtime and migration-owner connections to identify the same database. A Vercel environment flag alone can never certify these items. Signed mobile binaries, native-speaker localization review, and a licensed street-map provider remain buyer-owned.'
+    note: releaseNote
   };
 };
 
