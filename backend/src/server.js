@@ -972,10 +972,50 @@ function auditSafeAi(store,c,workOrderId,out){
   }
 }
 function signedWorkOrdersReadEnabled(req) {
+  const pathname = String(req.url || '').split('?')[0];
+  const supportedReadPath = pathname === '/api/v1/work-orders'
+    || /^\/api\/v1\/work-orders\/[^/]+$/.test(pathname);
   return process.env.VERCEL_ENV === 'preview'
     && String(process.env.OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_ENABLED || '').toLowerCase() === 'true'
     && String(req.method || '').toUpperCase() === 'GET'
-    && String(req.url || '').split('?')[0] === '/api/v1/work-orders';
+    && supportedReadPath;
+}
+function runSignedWorkOrdersRead(res, c, reader) {
+  if (c.apiKeyId || !c.sessionId || !store.db || store.db.engine !== 'postgres'
+      || typeof store.db.activateVerifiedTenantContext !== 'function') {
+    return json(res, 401, { error: { code: 'SIGNED_TENANT_SESSION_REQUIRED' } }, { 'cache-control': 'no-store' });
+  }
+  let transactionOpen = false;
+  try {
+    store.db.exec('BEGIN READ ONLY');
+    transactionOpen = true;
+    store.db.activateVerifiedTenantContext();
+
+    // CI-only red-team probe: signed RLS accessors must ignore these raw GUC values.
+    if (process.env.CI === 'true'
+        && String(process.env.OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_TAMPER_TEST || '').toLowerCase() === 'true') {
+      store.db.prepare(
+        "SELECT set_config('app.tenant_id', ?, true), set_config('app.user_id', ?, true), set_config('app.access_mode', ?, true)"
+      ).run('raw-guc-forged-tenant', 'raw-guc-forged-user', 'backoffice');
+    }
+
+    const result = reader();
+    store.db.exec('COMMIT');
+    transactionOpen = false;
+    return json(res, 200, result, {
+      'cache-control': 'no-store',
+      'x-opscore-signed-tenant-context': 'verified'
+    });
+  } catch (error) {
+    if (transactionOpen) {
+      try { store.db.exec('ROLLBACK'); } catch (_) { /* request teardown rolls back if necessary */ }
+    }
+    warn('signed_work_order_read_failed', {
+      errorCode: safeDatabaseErrorCode(error),
+      organizationId: c.organizationId
+    });
+    return json(res, 503, { error: { code: 'SIGNED_TENANT_WORK_ORDER_READ_FAILED' } }, { 'cache-control': 'no-store' });
+  }
 }
 function requireCtx(req, res) {
   const c = ctx(req);
@@ -2739,45 +2779,9 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
       assignedTo: url.searchParams.get('assignedTo'),
       limit: url.searchParams.get('limit')
     };
-    if (!signedWorkOrdersReadEnabled(req)) {
-      return json(res, 200, store.listWorkOrders(c, filters));
-    }
-    if (c.apiKeyId || !c.sessionId || store.db.engine !== 'postgres'
-        || typeof store.db.activateVerifiedTenantContext !== 'function') {
-      return json(res, 401, { error: { code: 'SIGNED_TENANT_SESSION_REQUIRED' } });
-    }
-    let transactionOpen = false;
-    try {
-      store.db.exec('BEGIN READ ONLY');
-      transactionOpen = true;
-      store.db.activateVerifiedTenantContext();
-
-      // CI-only red-team probe: the signed RLS accessors must ignore these
-      // caller-settable values while the signed assertion is transaction-bound.
-      if (process.env.CI === 'true'
-          && String(process.env.OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_TAMPER_TEST || '').toLowerCase() === 'true') {
-        store.db.prepare(
-          "SELECT set_config('app.tenant_id', ?, true), set_config('app.user_id', ?, true), set_config('app.access_mode', ?, true)"
-        ).run('raw-guc-forged-tenant', 'raw-guc-forged-user', 'backoffice');
-      }
-
-      const result = store.listWorkOrders(c, filters);
-      store.db.exec('COMMIT');
-      transactionOpen = false;
-      return json(res, 200, result, {
-        'cache-control': 'no-store',
-        'x-opscore-signed-tenant-context': 'verified'
-      });
-    } catch (error) {
-      if (transactionOpen) {
-        try { store.db.exec('ROLLBACK'); } catch (_) { /* request teardown rolls back if necessary */ }
-      }
-      warn('signed_work_order_read_failed', {
-        errorCode: safeDatabaseErrorCode(error),
-        organizationId: c.organizationId
-      });
-      return json(res, 503, { error: { code: 'SIGNED_TENANT_WORK_ORDER_READ_FAILED' } }, { 'cache-control': 'no-store' });
-    }
+    const read = () => store.listWorkOrders(c, filters);
+    if (!signedWorkOrdersReadEnabled(req)) return json(res, 200, read());
+    return runSignedWorkOrdersRead(res, c, read);
   }
   if (req.method === 'GET' && url.pathname === '/api/v1/search') {
     try {
@@ -2822,8 +2826,11 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
   if (wh && req.method === 'GET')
     return json(res, 200, store.workOrderHandoff(c, wh[1]));
   const wm = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)$/);
-  if (wm && req.method === 'GET')
-    return json(res, 200, store.getWorkOrder(c, wm[1]));
+  if (wm && req.method === 'GET') {
+    const read = () => store.getWorkOrder(c, wm[1]);
+    if (!signedWorkOrdersReadEnabled(req)) return json(res, 200, read());
+    return runSignedWorkOrdersRead(res, c, read);
+  }
   if (wm && req.method === 'POST') {
     return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED', reasons: [{ code: 'METHOD_NOT_ALLOWED', severity: 'blocking' }] } });
   }
