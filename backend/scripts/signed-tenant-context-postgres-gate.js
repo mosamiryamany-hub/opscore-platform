@@ -947,6 +947,8 @@ async function main() {
     try { await owner.query("DELETE FROM public.activity_log WHERE organization_id = ANY($1::text[]) AND entity_type='work_order' AND entity_id = ANY($2::text[])", [synthetic.tenantIds, synthetic.workOrderIds]); } catch (_) {}
     try { await owner.query("DELETE FROM public.audit_log WHERE organization_id = ANY($1::text[]) AND resource_type='work_order' AND resource_id = ANY($2::text[])", [synthetic.tenantIds, synthetic.workOrderIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.work_order_sla WHERE organization_id = ANY($1::text[]) AND work_order_id = ANY($2::text[])', [synthetic.tenantIds, synthetic.workOrderIds]); } catch (_) {}
+    try { await owner.query("DELETE FROM public.deleted_records WHERE organization_id = ANY($1::text[]) AND entity_type='work_order' AND entity_id = ANY($2::text[])", [synthetic.tenantIds, synthetic.workOrderIds]); } catch (_) {}
+    try { await owner.query('DELETE FROM public.workflow_transition_log WHERE organization_id = ANY($1::text[]) AND entity_id = ANY($2::text[])', [synthetic.tenantIds, synthetic.workOrderIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.idempotency_records WHERE organization_id = ANY($1::text[]) AND idempotency_key = ANY($2::text[])', [synthetic.tenantIds, synthetic.idempotencyKeys]); } catch (_) {}
     try { await owner.query('DELETE FROM public.operation_envelopes WHERE organization_id = ANY($1::text[]) AND idempotency_key = ANY($2::text[])', [synthetic.tenantIds, synthetic.idempotencyKeys]); } catch (_) {}
     try { await owner.query('DELETE FROM public.work_orders WHERE id = ANY($1::text[])', [synthetic.workOrderIds]); } catch (_) {}
