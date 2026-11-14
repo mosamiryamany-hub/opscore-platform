@@ -181,9 +181,15 @@ async function handle(message) {
     if (!['field', 'system', 'auth', 'backoffice'].includes(accessMode)) {
       return { id, ok: false, error: 'INVALID_ACCESS_MODE', code: 'INVALID_ACCESS_MODE' };
     }
-    // Bind all three GUCs atomically; is_local=false so context survives statements on this client.
+    // Optional hard cutover: Preview/prod can require signed context for field mode.
+    if (accessMode === 'field' && String(process.env.OPSC_REQUIRE_SIGNED_TENANT_CONTEXT || '').trim().toLowerCase() === 'true') {
+      return { id, ok: false, error: 'SIGNED_TENANT_CONTEXT_REQUIRED', code: 'SIGNED_TENANT_CONTEXT_REQUIRED' };
+    }
+    // Transaction-local only (is_local=true). Session-level set_config(false) leaks tenant
+    // context across pooled connections (PgBouncer / Neon pooler). Callers must setSession
+    // inside an explicit transaction and re-bind after COMMIT/ROLLBACK.
     await session.client.query(
-      "SELECT set_config('app.tenant_id', $1, false), set_config('app.user_id', $2, false), set_config('app.access_mode', $3, false)",
+      "SELECT set_config('app.tenant_id', $1, true), set_config('app.user_id', $2, true), set_config('app.access_mode', $3, true)",
       [tenantId, userId, accessMode]
     );
     return { id, ok: true, tenantId: tenantId || null, userId: userId || null, accessMode };
