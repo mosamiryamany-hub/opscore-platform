@@ -22,28 +22,40 @@ function requireLocalAcceptanceUrl(value, expectedRole, label) {
   return url;
 }
 
-function queryHttp(port, route, token) {
+function queryHttp(port, route, token, options = {}) {
   return new Promise((resolve, reject) => {
+    const method = String(options.method || 'GET').toUpperCase();
+    const hasBody = options.body !== undefined;
+    const requestBody = hasBody ? JSON.stringify(options.body) : '';
+    const headers = {
+      authorization: 'Bearer ' + token,
+      accept: 'application/json',
+      ...(hasBody ? {
+        'content-type': 'application/json',
+        'content-length': String(Buffer.byteLength(requestBody, 'utf8'))
+      } : {}),
+      ...(options.headers && typeof options.headers === 'object' ? options.headers : {})
+    };
     const request = http.request({
       hostname: '127.0.0.1',
       port,
       path: route,
-      method: 'GET',
-      headers: { authorization: 'Bearer ' + token, accept: 'application/json' },
-      timeout: 2500
+      method,
+      headers,
+      timeout: 5000
     }, (response) => {
-      let body = '';
+      let responseBody = '';
       response.setEncoding('utf8');
-      response.on('data', (chunk) => { body += chunk; });
+      response.on('data', (chunk) => { responseBody += chunk; });
       response.on('end', () => {
         let parsed = null;
-        try { parsed = JSON.parse(body); } catch (_) { /* rejected below */ }
+        try { parsed = JSON.parse(responseBody); } catch (_) { /* non-JSON is asserted by caller */ }
         resolve({ status: response.statusCode, headers: response.headers, body: parsed });
       });
     });
     request.on('timeout', () => request.destroy(new Error('HTTP_ACCEPTANCE_TIMEOUT')));
     request.on('error', reject);
-    request.end();
+    request.end(requestBody || undefined);
   });
 }
 
@@ -137,6 +149,7 @@ async function main() {
     userIds: [userA, userB],
     sessionIds: [sessionA, sessionB],
     workOrderIds: ['tc_wo_a_' + crypto.randomUUID().replace(/-/g, ''), 'tc_wo_b_' + crypto.randomUUID().replace(/-/g, '')],
+    idempotencyKeys: [],
     keyId
   };
 
@@ -225,6 +238,7 @@ async function main() {
       VERCEL_ENV: 'preview',
       OPSC_TENANT_CONTEXT_PROOF_ENABLED: 'true',
       OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_ENABLED: 'true',
+      OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_WRITE_ENABLED: 'true',
       OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_TAMPER_TEST: 'true',
       OPSC_TENANT_CONTEXT_HMAC_KEY: keyHex,
       OPSC_TENANT_CONTEXT_KEY_ID: keyId,
@@ -431,6 +445,198 @@ async function main() {
       signedReadRouteProof[routeCase.key + 'ForeignTenantDenied'] = 'PASS';
     }
 
+    const signedWriteRouteProof = {};
+    const createA = await queryHttp(port, '/api/v1/work-orders', tokenA, {
+      method: 'POST',
+      body: {
+        title: 'Signed write tenant A ' + keyId,
+        priority: 'normal',
+        organizationId: tenantB
+      }
+    });
+    if (createA.status !== 201
+        || createA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || createA.body?.organization_id !== tenantA
+        || createA.body?.created_by !== userA
+        || !createA.body?.id) {
+      throw new Error('SIGNED_CONTEXT_WORK_ORDER_CREATE_TENANT_A_FAILED:' + JSON.stringify({
+        status: createA.status,
+        body: createA.body,
+        signedHeader: createA.headers?.['x-opscore-signed-tenant-context'] || null
+      }));
+    }
+    synthetic.workOrderIds.push(createA.body.id);
+    signedWriteRouteProof.createTenantA = 'PASS';
+    signedWriteRouteProof.createIgnoresClientTenantClaim = 'PASS';
+
+    const createB = await queryHttp(port, '/api/v1/work-orders', tokenB, {
+      method: 'POST',
+      body: {
+        title: 'Signed write tenant B ' + keyId,
+        priority: 'normal',
+        organizationId: tenantA
+      }
+    });
+    if (createB.status !== 201
+        || createB.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || createB.body?.organization_id !== tenantB
+        || createB.body?.created_by !== userB
+        || !createB.body?.id) {
+      throw new Error('SIGNED_CONTEXT_WORK_ORDER_CREATE_TENANT_B_FAILED:' + JSON.stringify({
+        status: createB.status,
+        body: createB.body,
+        signedHeader: createB.headers?.['x-opscore-signed-tenant-context'] || null
+      }));
+    }
+    synthetic.workOrderIds.push(createB.body.id);
+    signedWriteRouteProof.createTenantB = 'PASS';
+
+    const updateKeyA = 'signed-context-ci-update-a-' + keyId;
+    const updateKeyB = 'signed-context-ci-update-b-' + keyId;
+    const updateKeyForeign = 'signed-context-ci-update-foreign-' + keyId;
+    synthetic.idempotencyKeys.push(updateKeyA, updateKeyB, updateKeyForeign);
+    const updateBodyA = { title: 'Signed update tenant A ' + keyId };
+    const updateA = await queryHttp(port, '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[0]), tokenA, {
+      method: 'PATCH',
+      headers: { 'idempotency-key': updateKeyA },
+      body: updateBodyA
+    });
+    if (updateA.status !== 200
+        || updateA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || updateA.headers?.['x-idempotency-replayed'] !== 'false'
+        || updateA.body?.title !== updateBodyA.title
+        || updateA.body?.organization_id !== tenantA) {
+      throw new Error('SIGNED_CONTEXT_WORK_ORDER_PATCH_TENANT_A_FAILED:' + JSON.stringify({
+        status: updateA.status,
+        body: updateA.body,
+        signedHeader: updateA.headers?.['x-opscore-signed-tenant-context'] || null,
+        idempotentHeader: updateA.headers?.['x-idempotency-replayed'] || null
+      }));
+    }
+    signedWriteRouteProof.patchTenantA = 'PASS';
+
+    const replayA = await queryHttp(port, '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[0]), tokenA, {
+      method: 'PATCH',
+      headers: { 'idempotency-key': updateKeyA },
+      body: updateBodyA
+    });
+    if (replayA.status !== 200
+        || replayA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || replayA.headers?.['x-idempotency-replayed'] !== 'true'
+        || replayA.body?.title !== updateBodyA.title) {
+      throw new Error('SIGNED_CONTEXT_WORK_ORDER_PATCH_IDEMPOTENCY_REPLAY_FAILED:' + JSON.stringify({
+        status: replayA.status,
+        signedHeader: replayA.headers?.['x-opscore-signed-tenant-context'] || null,
+        idempotentHeader: replayA.headers?.['x-idempotency-replayed'] || null
+      }));
+    }
+    signedWriteRouteProof.patchIdempotencyReplay = 'PASS';
+
+    const updateBodyB = { title: 'Signed update tenant B ' + keyId };
+    const updateB = await queryHttp(port, '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[1]), tokenB, {
+      method: 'PATCH',
+      headers: { 'idempotency-key': updateKeyB },
+      body: updateBodyB
+    });
+    if (updateB.status !== 200
+        || updateB.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || updateB.body?.title !== updateBodyB.title
+        || updateB.body?.organization_id !== tenantB) {
+      throw new Error('SIGNED_CONTEXT_WORK_ORDER_PATCH_TENANT_B_FAILED:' + JSON.stringify({
+        status: updateB.status,
+        body: updateB.body,
+        signedHeader: updateB.headers?.['x-opscore-signed-tenant-context'] || null
+      }));
+    }
+    signedWriteRouteProof.patchTenantB = 'PASS';
+
+    const foreignPatch = await queryHttp(port, '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[1]), tokenA, {
+      method: 'PATCH',
+      headers: { 'idempotency-key': updateKeyForeign },
+      body: { title: 'FORGED TENANT A UPDATE ' + keyId }
+    });
+    if (foreignPatch.status !== 404
+        || foreignPatch.body?.error?.code !== 'NOT_FOUND'
+        || foreignPatch.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_CROSS_TENANT_PATCH_NOT_DENIED:' + JSON.stringify({
+        status: foreignPatch.status,
+        body: foreignPatch.body,
+        signedHeader: foreignPatch.headers?.['x-opscore-signed-tenant-context'] || null
+      }));
+    }
+    const unchangedB = await queryHttp(port, '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[1]), tokenB);
+    if (unchangedB.status !== 200
+        || unchangedB.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || unchangedB.body?.title !== updateBodyB.title
+        || unchangedB.body?.organization_id !== tenantB) {
+      throw new Error('SIGNED_CONTEXT_CROSS_TENANT_PATCH_CHANGED_FOREIGN_ROW');
+    }
+    signedWriteRouteProof.crossTenantPatchDenied = 'PASS';
+    signedWriteRouteProof.crossTenantPatchLeftForeignRowUnchanged = 'PASS';
+
+    const commentKeyA = 'signed-context-ci-comment-a-' + keyId;
+    const commentKeyB = 'signed-context-ci-comment-b-' + keyId;
+    const commentKeyForeign = 'signed-context-ci-comment-foreign-' + keyId;
+    synthetic.idempotencyKeys.push(commentKeyA, commentKeyB, commentKeyForeign);
+    const commentA = await queryHttp(port, '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[0]) + '/comments', tokenA, {
+      method: 'POST',
+      headers: { 'idempotency-key': commentKeyA },
+      body: { body: 'Signed-context tenant A comment ' + keyId }
+    });
+    if (commentA.status !== 201
+        || commentA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || commentA.body?.organization_id !== tenantA
+        || commentA.body?.work_order_id !== synthetic.workOrderIds[0]) {
+      throw new Error('SIGNED_CONTEXT_WORK_ORDER_COMMENT_TENANT_A_FAILED:' + JSON.stringify({
+        status: commentA.status,
+        body: commentA.body,
+        signedHeader: commentA.headers?.['x-opscore-signed-tenant-context'] || null
+      }));
+    }
+    signedWriteRouteProof.commentTenantA = 'PASS';
+
+    const commentB = await queryHttp(port, '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[1]) + '/comments', tokenB, {
+      method: 'POST',
+      headers: { 'idempotency-key': commentKeyB },
+      body: { body: 'Signed-context tenant B comment ' + keyId }
+    });
+    if (commentB.status !== 201
+        || commentB.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || commentB.body?.organization_id !== tenantB
+        || commentB.body?.work_order_id !== synthetic.workOrderIds[1]) {
+      throw new Error('SIGNED_CONTEXT_WORK_ORDER_COMMENT_TENANT_B_FAILED:' + JSON.stringify({
+        status: commentB.status,
+        body: commentB.body,
+        signedHeader: commentB.headers?.['x-opscore-signed-tenant-context'] || null
+      }));
+    }
+    signedWriteRouteProof.commentTenantB = 'PASS';
+
+    const foreignCommentText = 'FORGED TENANT A COMMENT ' + keyId;
+    const foreignComment = await queryHttp(port, '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[1]) + '/comments', tokenA, {
+      method: 'POST',
+      headers: { 'idempotency-key': commentKeyForeign },
+      body: { body: foreignCommentText }
+    });
+    if (foreignComment.status !== 404
+        || foreignComment.body?.error?.code !== 'NOT_FOUND'
+        || foreignComment.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_CROSS_TENANT_COMMENT_NOT_DENIED:' + JSON.stringify({
+        status: foreignComment.status,
+        body: foreignComment.body,
+        signedHeader: foreignComment.headers?.['x-opscore-signed-tenant-context'] || null
+      }));
+    }
+    const commentsB = await queryHttp(port, '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[1]) + '/comments', tokenB);
+    if (commentsB.status !== 200
+        || commentsB.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || !Array.isArray(commentsB.body)
+        || commentsB.body.some(row => row.body === foreignCommentText)) {
+      throw new Error('SIGNED_CONTEXT_CROSS_TENANT_COMMENT_PERSISTED');
+    }
+    signedWriteRouteProof.crossTenantCommentDenied = 'PASS';
+    signedWriteRouteProof.crossTenantCommentNotPersisted = 'PASS';
+
     clientA = new Client({ connectionString: runtimeUrl });
     clientB = new Client({ connectionString: runtimeUrl });
     await clientA.connect();
@@ -520,6 +726,7 @@ async function main() {
         signedWorkOrderDetailTenantA: 'PASS',
         signedWorkOrderDetailTenantB: 'PASS',
         signedWorkOrderSubresourceReads: signedReadRouteProof,
+        signedWorkOrderWrites: signedWriteRouteProof,
         workOrdersRawGucTamperingIgnored: 'PASS',
         readOnlyBoundTransaction: 'PASS',
         rawGucTampering: 'PASS',
@@ -551,6 +758,13 @@ async function main() {
       if (serverProcess.exitCode === null) serverProcess.kill('SIGKILL');
     }
     try { await owner.query('DELETE FROM opscore_security.context_probe_rows WHERE organization_id = ANY($1::text[])', [synthetic.tenantIds]); } catch (_) {}
+
+    try { await owner.query('DELETE FROM public.comments WHERE organization_id = ANY($1::text[]) AND work_order_id = ANY($2::text[])', [synthetic.tenantIds, synthetic.workOrderIds]); } catch (_) {}
+    try { await owner.query("DELETE FROM public.activity_log WHERE organization_id = ANY($1::text[]) AND entity_type='work_order' AND entity_id = ANY($2::text[])", [synthetic.tenantIds, synthetic.workOrderIds]); } catch (_) {}
+    try { await owner.query("DELETE FROM public.audit_log WHERE organization_id = ANY($1::text[]) AND resource_type='work_order' AND resource_id = ANY($2::text[])", [synthetic.tenantIds, synthetic.workOrderIds]); } catch (_) {}
+    try { await owner.query('DELETE FROM public.work_order_sla WHERE organization_id = ANY($1::text[]) AND work_order_id = ANY($2::text[])', [synthetic.tenantIds, synthetic.workOrderIds]); } catch (_) {}
+    try { await owner.query('DELETE FROM public.idempotency_records WHERE organization_id = ANY($1::text[]) AND idempotency_key = ANY($2::text[])', [synthetic.tenantIds, synthetic.idempotencyKeys]); } catch (_) {}
+    try { await owner.query('DELETE FROM public.operation_envelopes WHERE organization_id = ANY($1::text[]) AND idempotency_key = ANY($2::text[])', [synthetic.tenantIds, synthetic.idempotencyKeys]); } catch (_) {}
     try { await owner.query('DELETE FROM public.work_orders WHERE id = ANY($1::text[])', [synthetic.workOrderIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.sessions WHERE id = ANY($1::text[])', [synthetic.sessionIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.memberships WHERE user_id = ANY($1::text[])', [synthetic.userIds]); } catch (_) {}
