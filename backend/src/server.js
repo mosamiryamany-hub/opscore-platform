@@ -2754,7 +2754,8 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
 
       // CI-only red-team probe: the signed RLS accessors must ignore these
       // caller-settable values while the signed assertion is transaction-bound.
-      if (String(process.env.OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_TAMPER_TEST || '').toLowerCase() === 'true') {
+      if (process.env.CI === 'true'
+          && String(process.env.OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_TAMPER_TEST || '').toLowerCase() === 'true') {
         store.db.prepare(
           "SELECT set_config('app.tenant_id', ?, true), set_config('app.user_id', ?, true), set_config('app.access_mode', ?, true)"
         ).run('raw-guc-forged-tenant', 'raw-guc-forged-user', 'backoffice');
