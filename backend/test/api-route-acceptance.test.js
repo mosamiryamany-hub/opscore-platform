@@ -147,7 +147,7 @@ test('per-route functional contract acceptance across the full API inventory', a
     commitSha: commitSha(),
     pipelineId: String(process.env.CI_PIPELINE_ID || '').trim(),
     engine: 'sqlite',
-    scope: 'contract-scope: existence + auth contract + no-5xx per route; not full business-flow happy paths',
+    scope: 'contract-scope: route existence + no unhandled 5xx across all inventory routes; anonymous 401/403 contract for auth=required routes only; public/scoped valid-session behavior and full business-flow happy paths are not covered',
     inventoryRouteCount: inventory.routeCount,
     testedRoutes: results.length,
     passed,
