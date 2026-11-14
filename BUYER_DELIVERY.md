@@ -1,23 +1,23 @@
 # OpsCore v0.11.62 — Buyer Delivery Record
 
 Delivery type: commercial source-code package.
-Commercial closure: **PASS_WITH_BUYER_RESIDUALS** for the exact candidate identified below.
-Production certification: **NOT_ESTABLISHED**.
-Production-wide tenant-isolation certification: **NOT_CERTIFIED**.
+Commercial closure: **PASS_WITH_BUYER_RESIDUALS** for the exact live candidate identified below.
+Seller-reference production isolation certification: **CERTIFIED** on the bound commit/pipeline (not a buyer-environment certificate).
 
-## Exact verified candidate
+## Exact live commercial candidate (seller reference)
 
 - GitHub repository: https://github.com/mosamiryamany-hub/opscore-platform
 - Source branch: `main`
-- Source commit: `d940152d1428d82d9bb0c57695d929099a648ac3`
-- Secure Release workflow run: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/43308699094
-- GitHub artifact name: `opscore-release-43308699094`
-- GitHub artifact ID: `13824023354`
-- Nested release archive: `OpsCore-release.zip`
-- Archive bytes: `1,881,299`
-- Archive SHA-256: `5a5b731b17f1c8dcc1c102ea5c79fa3e4d01bb2750d91b6d941e6a02a068de9c`
+- Source commit: `4ef126ccd59f23cebeead30224d1bcf7199535ab`
+- Production pipeline: `43588278472`
+- Production deployment id: `dpl_5nx3dRRu9WuYmpqR9deiSeCqHwF3`
+- Live health: healthy / postgres / 0.11.62
+- Live release status: PASS_WITH_BUYER_RESIDUALS
+- Live isolation certification: CERTIFIED
+- Live session boundary: PASS_PRODUCTION
+- Live recovery bundle: PASS_PRODUCTION
 
-The ZIP passed archive integrity testing. The nested source package contains 687 files (734 ZIP entries including directory entries). Use the archive and statement from this exact run only. Any later source/documentation change requires a new archive and digest.
+Historical secure-release archive from run `43308699094` (commit `d940152…`) remains a prior package snapshot. Prefer regenerating a fresh archive from the live candidate above before external handover.
 
 ## Release evidence
 
