@@ -247,7 +247,7 @@ test('current-facing release documents do not pin superseded candidate identitie
   ].map(read);
 
   const supersededIdentity = /4ef126ccd59f23cebeead30224d1bcf7199535ab|43588278472|43308699094|dpl_5nx3dRRu9WuYmpqR9deiSeCqHwF3|d940152d1428d82d9bb0c57695d929099a648ac3|3014428936|30bf29aa1a995a476f40a37600e869772c086ece9f3148da5e9140766806bbf6/;
-  const withdrawnLicenseGrant = /bundled license grants internal-use|upon full payment[\\s\\S]{0,120}purchaser receives/i;
+  const withdrawnLicenseGrant = /bundled license grants internal-use|upon full payment[\s\S]{0,120}purchaser receives/i;
   for (const doc of sourceDocs) {
     assert.doesNotMatch(doc, supersededIdentity);
     assert.doesNotMatch(doc, withdrawnLicenseGrant);
