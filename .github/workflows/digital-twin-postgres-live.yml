@@ -59,6 +59,8 @@ on:
       - 'backend/test/postgres_rls_static_hardening.test.js'
       - 'backend/test/postgres-runtime-policy-grants.test.js'
       - 'backend/test/postgres-control-plane-rls.test.js'
+      - 'backend/test/request-vercel-trusted-oidc.test.js'
+      - 'scripts/request-vercel-trusted-oidc.js'
       - 'backend/docs/API_INVENTORY.json'
       - 'backend/package.json'
       - 'backend/package-lock.json'
