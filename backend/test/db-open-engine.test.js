@@ -27,7 +27,7 @@ test('PostgreSQL engine resolution does not load the experimental SQLite module'
     assert.equal(typeof opened.db.close, 'function');
     opened.db.close();
     assert.equal(sqliteLoads, 0, 'PostgreSQL initialization must not load node:sqlite');
-    process.stdout.write('POSTGRES_ENGINE_SQLITE_IMPORT_GATE=PASS\\n');
+    process.stdout.write('POSTGRES_ENGINE_SQLITE_IMPORT_GATE=PASS\n');
   `;
   const result = spawnSync(process.execPath, ['-e', script], {
     cwd: path.resolve(__dirname, '..'),
@@ -63,7 +63,7 @@ test('production PostgreSQL refuses generic and injected config URL fallbacks', 
       () => resolveEngine({ nodeEnv: 'production', databaseEngine: 'postgres', databaseUrl: 'postgres://config.invalid/opscore' }, env),
       { message: 'OPSC_DATABASE_URL_REQUIRED' }
     );
-    process.stdout.write('PRODUCTION_DATABASE_URL_FAIL_CLOSED=PASS\\n');
+    process.stdout.write('PRODUCTION_DATABASE_URL_FAIL_CLOSED=PASS\n');
   `;
   const result = spawnSync(process.execPath, ['-e', script], {
     cwd: path.resolve(__dirname, '..'),
@@ -89,7 +89,7 @@ test('production PostgreSQL selects only OPSC_DATABASE_URL when both URLs exist'
       }
     );
     assert.equal(url, 'postgres://least-privilege.invalid/opscore');
-    process.stdout.write('PRODUCTION_DATABASE_URL_IDENTITY=PASS\\n');
+    process.stdout.write('PRODUCTION_DATABASE_URL_IDENTITY=PASS\n');
   `;
   const result = spawnSync(process.execPath, ['-e', script], {
     cwd: path.resolve(__dirname, '..'),
