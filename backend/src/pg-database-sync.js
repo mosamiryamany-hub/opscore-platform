@@ -139,7 +139,7 @@ function getTransport(connectionString, poolMax) {
   const workerEnv = {
     PATH: process.env.PATH || '/usr/bin:/bin',
     HOME: process.env.HOME || '',
-    NODE_ENV: process.env.NODE_ENV || 'production',
+    ...(process.env.NODE_ENV ? { NODE_ENV: process.env.NODE_ENV } : {}),
     DATABASE_URL: connectionString,
     NODE_PATH: nodePath,
     OPSC_PG_POOL_MAX: String(poolMax),
