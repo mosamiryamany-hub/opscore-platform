@@ -18,6 +18,12 @@ let configuredConnectionString = null;
 let configuredPoolMax = null;
 let nextMessageId = 0;
 
+function resolveWorkerSslMode(env = process.env) {
+  const configured = String(env.OPSC_PG_SSL_MODE || '').trim();
+  if (configured) return configured;
+  return String(env.NODE_ENV || '').trim().toLowerCase() === 'production' ? 'verify-full' : 'require';
+}
+
 function waitBriefly() {
   Atomics.wait(sleepCell, 0, 0, 2);
 }
@@ -143,7 +149,7 @@ function getTransport(connectionString, poolMax) {
     DATABASE_URL: connectionString,
     NODE_PATH: nodePath,
     OPSC_PG_POOL_MAX: String(poolMax),
-    OPSC_PG_SSL_MODE: process.env.OPSC_PG_SSL_MODE || 'require',
+    OPSC_PG_SSL_MODE: resolveWorkerSslMode(process.env),
     OPSC_PG_SSL_REJECT_UNAUTHORIZED: process.env.OPSC_PG_SSL_REJECT_UNAUTHORIZED || 'true',
     ...(process.env.OPSC_PG_CA_CERT ? { OPSC_PG_CA_CERT: process.env.OPSC_PG_CA_CERT } : {}),
     ...(process.env.OPSC_PG_STATEMENT_TIMEOUT_MS ? { OPSC_PG_STATEMENT_TIMEOUT_MS: process.env.OPSC_PG_STATEMENT_TIMEOUT_MS } : {}),
@@ -441,5 +447,6 @@ module.exports = {
   openPgDatabaseSync,
   runWithRequest,
   currentRequestId,
-  setVerifiedPrincipal
+  setVerifiedPrincipal,
+  resolveWorkerSslMode
 };

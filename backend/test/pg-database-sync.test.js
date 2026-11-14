@@ -6,7 +6,7 @@ process.env.OPSC_PG_SYNC_WORKER_SCRIPT = require('node:path').join(__dirname, 'f
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
-const { openPgDatabaseSync, runWithRequest, currentRequestId } = require('../src/pg-database-sync');
+const { openPgDatabaseSync, runWithRequest, currentRequestId, resolveWorkerSslMode } = require('../src/pg-database-sync');
 
 test('persistent PostgreSQL bridge preserves transactions and isolates HTTP requests', async (t) => {
   const db = openPgDatabaseSync('postgres://test.invalid/opscore_test', { max: 2 });
@@ -128,4 +128,16 @@ test('signed tenant context fails closed when the key is missing', async (t) => 
     db.exec('ROLLBACK');
   }, req, res);
   res.emit('finish');
+});
+
+
+test('PostgreSQL worker inherits a production-safe TLS default and preserves explicit overrides', () => {
+  assert.equal(resolveWorkerSslMode({ NODE_ENV: 'production' }), 'verify-full');
+  assert.equal(resolveWorkerSslMode({ NODE_ENV: 'production', OPSC_PG_SSL_MODE: '' }), 'verify-full');
+  assert.equal(resolveWorkerSslMode({ NODE_ENV: 'test' }), 'require');
+  assert.equal(resolveWorkerSslMode({ NODE_ENV: 'development' }), 'require');
+  assert.equal(resolveWorkerSslMode({ NODE_ENV: 'production', OPSC_PG_SSL_MODE: 'verify-full' }), 'verify-full');
+  // An explicitly weakened production mode is preserved so the adapter rejects it;
+  // the worker bootstrap must not silently override operator security policy.
+  assert.equal(resolveWorkerSslMode({ NODE_ENV: 'production', OPSC_PG_SSL_MODE: 'require' }), 'require');
 });
