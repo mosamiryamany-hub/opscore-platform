@@ -211,7 +211,7 @@ const statusSnapshot = [
   '',
   '**Package version:** ' + version,
   '**CI technical closure:** ' + releaseStatement.commercialClosure,
-  '**Commercial license:** NONE — RIGHTS DECISION PENDING; DISTRIBUTION NOT AUTHORIZED,
+  '**Commercial license:** NONE - RIGHTS DECISION PENDING; DISTRIBUTION NOT AUTHORIZED',
   '**Mobile dependency audit:** ' + summarizeAuditStatus(mobileAuditSummary) + ' — ' + JSON.stringify(mobileAuditSummary),
   '**Root PostgreSQL runtime dependency audit:** ' + summarizeAuditStatus(rootAuditSummary) + ' — ' + JSON.stringify(rootAuditSummary),
   '**Source commit:** ' + (sourceCommit || 'UNVERIFIED'),
