@@ -1,21 +1,27 @@
-# Commercial Closure Status — OpsCore v0.11.62
+# Technical Release Status — OpsCore v0.11.62
 
-**Last mainline production head:** `4ef126ccd59f23cebeead30224d1bcf7199535ab`  
-**Bound production pipeline:** `43588278472`  
-**Commercial class:** `PASS_WITH_BUYER_RESIDUALS`  
-**Seller-reference production isolation certification:** `CERTIFIED` (live gates on the bound commit/pipeline only)  
-**Documentation refresh:** 2026-11-14 — aligned to live `/api/verify/release` and `/api/verify/database-security`.
+**Technical reference head:** `4ef126ccd59f23cebeead30224d1bcf7199535ab`  
+**Bound seller-reference pipeline:** `43588278472`  
+**Technical status:** `PASS_WITH_BUYER_RESIDUALS` for the exact reference candidate only  
+**Commercial license status:** **NO LICENSE GRANTED — COMMERCIAL MODEL PENDING**  
+**Distribution status:** **HOLD — DO NOT SELL OR DISTRIBUTE**
 
-## Live seller-reference gates (informative)
+## Commercial rights hold
 
-Measured on the seller reference deployment bound to the commit/pipeline above:
+The former use-only source license is withdrawn from this repository pending the rights holder's decision on the commercial model. This notice grants no right to use, install, run, inspect, modify, copy, distribute, resell, sublicense, host, or otherwise commercially exploit the source package. All rights are reserved. A future grant requires a separate written agreement signed by the rights holder.
 
-| Gate | Status |
-|------|--------|
-| commercialClosure | PASS_WITH_BUYER_RESIDUALS |
+This technical release record, passing CI, a deployment, an archive, or a fingerprint does not create a license or imply permission to distribute.
+
+## Seller-reference technical evidence
+
+The following technical statuses are recorded for the seller reference only, bound to the exact commit and pipeline above. They are not a buyer-environment certificate and do not change the commercial hold.
+
+| Gate | Recorded status |
+|---|---|
+| commercialClosure | PASS_WITH_BUYER_RESIDUALS (technical classification only) |
 | productionSessionTenantBoundary | PASS_PRODUCTION |
 | productionRecoveryBundle | PASS_PRODUCTION |
-| productionIsolationCertification | CERTIFIED |
+| productionIsolationCertification | CERTIFIED (seller reference only) |
 | neonPointInTimeRecovery | PASS_BRANCH_POINT |
 | livePostgresRls | PASS_TEST_SCOPE |
 | tenantRouteSecurityCoverage | PASS_TEST_SCOPE |
@@ -25,34 +31,24 @@ Measured on the seller reference deployment bound to the commit/pipeline above:
 | nativeTranslationReview | REMAINING_BUYER |
 | licensedStreetMap | REMAINING_BUYER |
 
-Database-security surface: `IDENTITY_PLANE_RLS_ENFORCED` with runtime role `opscore_runtime` (least privilege; no superuser; no bypassrls).
+## Certification boundary
 
-## What CERTIFIED means here
+Seller-reference certification applies only to the recorded seller commit/pipeline and evidence. It does not certify a buyer's environment, and it does not grant any commercial rights.
 
-`productionIsolationCertification=CERTIFIED` on the seller reference means:
+## Remaining engineering and buyer-environment work
 
-1. Dual-tenant HTTP session isolation evidence was bound and activated for this commit/pipeline.
-2. Production branch recovery-point evidence (table parity) was bound.
-3. Commit-bound acceptance evidence hash matched.
-4. Runtime env flag was derived from behavioral evidence files — not from an env flag alone.
+1. Signed Android/iOS store artifacts and store publication.
+2. Native-speaker/domain translation review.
+3. Licensed maps, external providers, credentials and buyer contracts.
+4. Buyer-environment installation, migration, isolation, restore and operational acceptance.
+5. PR #103 remains a separate security engineering track and must not be merged merely to create a sale milestone.
 
-It does **not** mean a buyer’s own production environment is certified. Buyers must reproduce install, migrations, isolation, and recovery checks in their environment.
+## Release integrity
 
-## Buyer residuals (explicit)
+- Historical archives bound to older commits are not current.
+- A new Secure Release may be generated for internal technical validation, but its artifact must be marked **NOT LICENSED FOR DISTRIBUTION**.
+- No archive, checksum, SBOM, or attestation overrides this rights hold.
+- Do not create or publish a sale listing or buyer delivery until the commercial model and signed rights agreement are approved.
 
-1. Signed Android/iOS store artifacts and store publication  
-2. Native-speaker translation/locale review (structural locales ≠ linguistic qualification)  
-3. Licensed maps / external providers and credentials  
-4. Buyer-environment acceptance and operational runbooks
-
-## Open engineering track (not required to keep current live CERTIFIED)
-
-PR `#103` (`security/priority-production-hardening-20261114`) remains **Draft**: signed-tenant-context migrations 063–065 and path coverage are incomplete for production merge. Do not treat that branch as the commercial candidate until Preview proof, keying, and full path cutover are done without breaking auth/sessions.
-
-## Honesty
-
-- CI success alone does not certify buyer production.
-- Historical archives bound to older commits (e.g. `d940152…`) are not the current live candidate.
-- Any new commercial archive must be regenerated from the exact release-producing commit and pipeline.
-
-Buyer-environment production certification: **NOT_ESTABLISHED** until the buyer reproduces acceptance in their own environment.
+**Final commercial decision:** PENDING.  
+**Current permission to sell/distribute:** NONE.
