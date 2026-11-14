@@ -200,3 +200,57 @@ Additional operational gates rechecked at the same time:
 - Vercel Firewall is enabled, but active CRS protections (Generic, RCE, SQLi, XSS) and Bot Protection are currently configured as `log`, not `deny`/challenge. The auth endpoint rate-limit rule (60 requests per 60 seconds per IP) also logs rather than blocks.
 - The production Neon branch has no automatic snapshot schedule. The project snapshot listing currently returns one manual snapshot expiring 2026-12-11; this does not certify native PITR or a restore drill.
 - No WAF, Neon backup, environment, key, production schema, role, grant, or production data setting was changed during this recheck.
+
+
+## 9. Source-level trust-boundary audit — 2026-11-14 (branch head 652cebd585ecc3bccb63e0050a2ab58a73552a88)
+
+Scope: direct source inspection of the request bridge, worker, PostgreSQL adapters, runtime pool, knowledge query module, server call sites, and Store transaction/context call sites. This is a source audit, not a proof that every runtime call path has been exercised.
+
+### 9.1 Confirmed paths and findings
+
+| Path | Observed source behavior | Classification | Required disposition |
+|---|---|---|---|
+| Main synchronous request bridge | `pg-database-sync.js` uses request-local AsyncLocalStorage and passes a request ID to the worker; `pg-sync-worker.js` holds one PoolClient per request ID | Partially migrated | Preserve the existing transaction boundaries; bind a fresh signed assertion at each tenant transaction boundary |
+| Signed work-order/evidence wrappers | `server.js` calls `setVerifiedPrincipal` and `activateVerifiedTenantContext` for the explicit signed allowlist | Signed first slice | Expand only after route-by-route tests and transaction-boundary review |
+| Generic worker `setSession` | `pg-sync-worker.js` accepts `field`, `system`, `auth`, and `backoffice`, then writes caller-supplied tenant/user/access-mode into session-level GUCs with `set_config(..., false)` | Legacy unsigned trust path | Replace only after all legitimate auth/system/field callers have purpose-specific contracts |
+| Public sync adapter methods | `pg-database-sync.js` exposes `setTenant`, `setAccessMode`, and `setSession` and forwards caller-provided values to the generic worker handler | Legacy unsigned API surface | Remove or restrict after call-site migration; do not leave a generic access-mode selector |
+| Session/auth resolution | `server.js` binds `auth` mode before identity/session lookup and later binds `field` mode from returned organization/user data | Purpose-specific migration required | Replace with narrow database authentication/session functions; never treat raw auth GUCs as trusted identity |
+| Bootstrap and login/OIDC | `server.js` and `store.js` contain additional `setSession` use in bootstrap, login, OIDC and related identity flows | Purpose-specific migration required | Separate one-time bootstrap, password login, OIDC, and session issuance contracts |
+| Password-reset and other Store identity operations | Store has additional temporary access-mode changes around identity-table operations | Purpose-specific migration required | Move to narrowly scoped functions and test atomicity, one-time use, and revocation |
+| Separate AI knowledge pool | `postgres-runtime.js` creates a second asynchronous Pool from `config.databaseUrl`; `server.js` calls it directly for knowledge index/search; `postgres-knowledge.js` uses `pool.query` directly | Unbound side path | Bind signed context on the exact checked-out PoolClient inside each transaction, or disable this path until migrated |
+| Generic async adapter | `adapters/postgres.js` exposes `acquireTenantClient` / `withTenantClient`, which set unsigned session-level tenant GUCs; `pg-database.js` uses this adapter for its own tenant-client flow | Legacy unsigned alternate adapter | Prove whether it is reachable in deployed configuration; migrate or remove, do not assume the main sync bridge covers it |
+| Raw pool operations | `pg-database.js` falls back to `pool.query` when no AsyncLocalStorage client exists; runtime health/ping also uses direct pool queries | Non-tenant/system operation or unbound query, depending on caller | Explicitly classify every caller; tenant-table queries must not execute through an unbound fallback |
+| Worker transaction state | Worker tracks a boolean `inTransaction`, not transaction/savepoint depth; `batch` and direct SQL both update that boolean | Transaction-lifecycle risk | Add state-machine tests for nested/savepoint/rollback-to/failed-commit behavior before broadening signed binding |
+| Worker cleanup | `endRequest` rolls back if worker believes a transaction is open, then `RESET ALL`, destroying the client if cleanup cannot be confirmed | Cleanup behavior present, but state tracking is boolean | Verify cleanup after every error/commit ambiguity and ensure transaction state cannot become desynchronized |
+
+### 9.2 Specific code-level observations
+
+1. The worker's generic `setSession` branch does not require a verified principal and does not require a signed assertion. It accepts any caller-supplied tenant/user IDs and any of four access modes, then persists those values at session scope (`is_local=false`). This is a concrete remaining unsigned-context mechanism.
+2. The signed worker binder is stronger: it requires an active transaction, a previously captured backend PID/transaction ID, and a payload whose claims match that identity; it binds payload/signature transaction-locally. However, the generic unsigned branch remains independently callable.
+3. `pg-database-sync.js` exposes both signed-principal methods and legacy setters on the same database object. The signed methods do not make other methods signed automatically.
+4. The AI knowledge endpoint reads tenant-scoped source rows through the primary Store, then writes/searches vectors through a separate pool. Passing `organizationId` as a SQL parameter is a query filter, not proof of tenant identity to RLS. The async pool must use its own signed transaction context.
+5. The alternate `pg-database.js` adapter has a separate unsigned tenant-GUC helper and an unbound `pool.query` fallback. Its production reachability must be resolved from `openDatabase` and deployment configuration before it is either classified as dead code or treated as a live attack surface.
+6. The main synchronous worker receives a database connection string through its parent transport. The worker itself expects `DATABASE_URL`; this is not by itself proof of a generic environment fallback because the parent passes the configured connection string to the child. Nevertheless, startup must continue to enforce the production-only `OPSC_DATABASE_URL` gate in `db-open.js`.
+7. The worker's boolean transaction tracker cannot safely represent all PostgreSQL transaction states (including savepoint rollback and transaction-aborted state) by inspection alone. Do not add a blanket outer request transaction or rely on the boolean as proof of exact transaction lifecycle.
+
+### 9.3 Audit disposition
+
+- **Confirmed signed:** explicit Preview-gated work-order/evidence route slice and the worker's transaction-bound assertion binder.
+- **Partially migrated:** main request bridge, because signed and unsigned context APIs coexist.
+- **Confirmed legacy unsigned:** generic worker `setSession`, sync adapter `setTenant` / `setAccessMode` / `setSession`, async adapter tenant GUC helper.
+- **Unbound side path:** AI knowledge index/search pool until it binds the same trust contract on its own checked-out client.
+- **Requires reachability proof:** alternate `pg-database.js` adapter and all direct pool-query fallback callers.
+- **Requires purpose-specific contracts:** auth/session resolution, login, OIDC, bootstrap, password reset, invitations, API keys, logout/revocation, and system/backoffice operations.
+- **Not certified:** database-wide tenant isolation against compromise of the runtime credential; all 276 production policies / 134 tables; all production route/worker paths; live Neon HTTP proof for this signed Node slice.
+
+### 9.4 Safe next implementation sequence
+
+1. Build a complete call-site inventory for every `setTenant`, `setAccessMode`, `setSession`, `withTenantClient`, direct `pool.query`, and transaction start/commit/rollback. Record file, function, route/job, identity source, tables touched, and required purpose.
+2. Resolve reachability of `pg-database.js` and the async knowledge pool in the actual production startup graph. No path may be dismissed as dead based only on naming.
+3. Design and test the transaction state machine for explicit transactions, nested calls, savepoints, rollback-to, aborted transactions, commit failure, client replacement, and endRequest cleanup.
+4. Migrate the independent knowledge pool to a signed transaction-bound client contract, or disable its production route until that contract is implemented and accepted.
+5. Implement narrow purpose-bound auth-plane functions and migrate callers one family at a time. Keep field tenant assertions separate from login/bootstrap/reset/invitation capabilities.
+6. Only after every call site is migrated and the full negative/positive acceptance matrix passes on an isolated Neon branch may the generic unsigned GUC setter and database fallback be removed.
+7. Run the full source/CI/isolated Neon HTTP acceptance matrix; do not merge, deploy, or certify Production as part of this audit.
+
+No application code, migration, Neon branch, Vercel environment, secret, deployment, or main-branch ref was changed by this source audit. This section records confirmed source findings and does not claim that the full call-site inventory or live Neon proof is complete.
