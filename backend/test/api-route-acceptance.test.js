@@ -84,7 +84,8 @@ test('per-route functional contract acceptance across the full API inventory', a
       DATABASE_ENGINE: 'sqlite',
       OPSC_DATABASE_URL: '',
       DATABASE_URL: '',
-      AUTH_MODE: 'local'
+      AUTH_MODE: 'local',
+      FIREWALL_RATE_LIMIT: '1024'
     },
     stdio: ['ignore', 'pipe', 'pipe']
   });
@@ -124,7 +125,7 @@ test('per-route functional contract acceptance across the full API inventory', a
       let verdict = 'PASS';
       let reason = null;
       if (status < 0) { verdict = 'FAIL'; reason = 'TRANSPORT_ERROR'; }
-      else if (status === 429) { verdict = 'PASS'; reason = 'RATE_LIMITED_FAIL_CLOSED'; }
+      else if (status === 429) { verdict = 'FAIL'; reason = 'RATE_LIMITED_UNVERIFIED'; }
       else if (status === 503 && /^(STRIPE_|OSRM_)/.test(String(bodyCode))) { verdict = 'PASS'; reason = `ENV_DEPENDENT_${bodyCode}`; }
       else if (status >= 500) { verdict = 'FAIL'; reason = `UNHANDLED_5XX_${status}`; }
       else if (unknownMarker) { verdict = 'FAIL'; reason = 'ROUTE_MISSING_404'; }
