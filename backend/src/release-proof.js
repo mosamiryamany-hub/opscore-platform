@@ -187,7 +187,7 @@ function readEmbeddedBuildIdentity(identityPath = path.join(__dirname, 'opscore-
   };
 }
 
-function createPublicReleaseProof(env = process.env, now = () => new Date(), identityPath, productionAcceptanceEvidencePath, postgresHttpAcceptancePath) {
+function createPublicReleaseProof(env = process.env, now = () => new Date(), identityPath, productionAcceptanceEvidencePath, postgresHttpAcceptancePath, apiRouteAcceptancePath = path.join(__dirname, '..', 'docs', 'verification', 'API_ROUTE_ACCEPTANCE_RESULT.json')) {
   const identity = readEmbeddedBuildIdentity(identityPath);
   const proofEnv = identity ? {
     ...env,
@@ -206,6 +206,7 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
   const pipelineId = String(proofEnv.OPSC_RELEASE_CI_PIPELINE_ID || '').trim();
   const ciVerified = Boolean(sourceCommit && ciCommit === sourceCommit && PIPELINE_RE.test(pipelineId));
   const postgresHttpAcceptance = readCurrentPostgresHttpAcceptance({ ...proofEnv, OPSC_RELEASE_CI_COMMIT: ciCommit, OPSC_RELEASE_CI_PIPELINE_ID: pipelineId }, postgresHttpAcceptancePath);
+  const apiRouteAcceptance = readCurrentApiRouteAcceptance({ ...proofEnv, OPSC_RELEASE_CI_COMMIT: ciCommit, OPSC_RELEASE_CI_PIPELINE_ID: pipelineId }, apiRouteAcceptancePath);
 
   const packageCommit = normalizedSha(proofEnv.OPSC_RELEASE_PACKAGE_COMMIT);
   const packageSha = String(proofEnv.OPSC_RELEASE_PACKAGE_SHA256 || '').trim().toLowerCase();
@@ -260,7 +261,7 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
       productionSessionTenantBoundary: acceptanceVerified ? 'PASS_TEST_SCOPE' : 'NOT_VERIFIED',
       productionRecoveryBundle: acceptanceVerified ? 'PASS_TEST_SCOPE' : 'NOT_VERIFIED',
       tenantRouteSecurityCoverage: acceptanceVerified ? 'PASS_TEST_SCOPE' : 'NOT_VERIFIED',
-      functionalApiRouteAcceptance: 'NOT_VERIFIED',
+      functionalApiRouteAcceptance: apiRouteAcceptance.status,
       neonPointInTimeRecovery: 'NOT_VERIFIED',
       productionIsolationCertification: 'NOT_CERTIFIED',
       mobileStoreArtifacts: 'REMAINING_BUYER',
@@ -284,14 +285,14 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
       sourceCommit: packageVerified ? packageCommit : null
     },
     checkedAt: now().toISOString(),
-    note: 'Release evidence is bound to the source commit reported by the running Vercel deployment. Tenant route security coverage is limited to unauthenticated-denial, foreign-ID-denial, and cross-tenant fixture probes on disposable PostgreSQL 18 CI; it is not functional acceptance of every API route and does not certify production isolation. PostgreSQL logical restore is also CI test-scope only. Functional API route acceptance, Neon point-in-time restore, and production tenant isolation certification remain NOT_VERIFIED. Live production DB checks are read-only and require the runtime and migration-owner connections to identify the same database. A Vercel environment flag alone can never certify these items. Signed mobile binaries, native-speaker localization review, and a licensed street-map provider remain buyer-owned.'
+    note: 'Release evidence is bound to the source commit reported by the running Vercel deployment. Tenant route security coverage is limited to unauthenticated-denial, foreign-ID-denial, and cross-tenant fixture probes on disposable PostgreSQL 18 CI; it is not functional acceptance of every API route and does not certify production isolation. PostgreSQL logical restore is also CI test-scope only. Functional API route acceptance is contract-scope only (existence + auth contract + no unhandled 5xx across all inventory routes; PASS_CONTRACT_SCOPE requires commit-and-pipeline-bound evidence with zero failures) and never a business-flow certification. Neon point-in-time restore and production tenant isolation certification remain NOT_VERIFIED. Live production DB checks are read-only and require the runtime and migration-owner connections to identify the same database. A Vercel environment flag alone can never certify these items. Signed mobile binaries, native-speaker localization review, and a licensed street-map provider remain buyer-owned.'
   };
 };
 
-function hasVerifiedProductionRelease(env = process.env, identityPath, productionAcceptanceEvidencePath, postgresHttpAcceptancePath) {
+function hasVerifiedProductionRelease(env = process.env, identityPath, productionAcceptanceEvidencePath, postgresHttpAcceptancePath, apiRouteAcceptancePath = path.join(__dirname, '..', 'docs', 'verification', 'API_ROUTE_ACCEPTANCE_RESULT.json')) {
   const identity = readEmbeddedBuildIdentity(identityPath);
   if (!identity) return false;
-  const proof = createPublicReleaseProof(env, () => new Date(), identityPath, productionAcceptanceEvidencePath, postgresHttpAcceptancePath);
+  const proof = createPublicReleaseProof(env, () => new Date(), identityPath, productionAcceptanceEvidencePath, postgresHttpAcceptancePath, apiRouteAcceptancePath);
   return proof.status === 'PASS_WITH_BUYER_RESIDUALS' &&
     proof.ci.status === 'PASS' &&
     proof.packageFingerprint.status === 'PUBLISHED' &&
@@ -304,9 +305,39 @@ function hasVerifiedProductionRelease(env = process.env, identityPath, productio
     proof.gates.productionSessionTenantBoundary === 'PASS_TEST_SCOPE' &&
     proof.gates.productionRecoveryBundle === 'PASS_TEST_SCOPE' &&
     proof.gates.tenantRouteSecurityCoverage === 'PASS_TEST_SCOPE' &&
-    proof.gates.functionalApiRouteAcceptance === 'NOT_VERIFIED' &&
+    ['NOT_VERIFIED', 'PASS_CONTRACT_SCOPE'].includes(proof.gates.functionalApiRouteAcceptance) &&
     proof.gates.neonPointInTimeRecovery === 'NOT_VERIFIED' &&
     proof.gates.productionIsolationCertification === 'NOT_CERTIFIED';
+}
+
+function readCurrentApiRouteAcceptance(env = process.env, filePath = path.join(__dirname, '..', 'docs', 'verification', 'API_ROUTE_ACCEPTANCE_RESULT.json')) {
+  let evidence;
+  try {
+    evidence = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  } catch {
+    return { status: 'NOT_VERIFIED', testedAt: null, evidenceCommit: null, evidencePipelineId: null, testedRoutes: null, failed: null };
+  }
+  const status = String(evidence.status || '');
+  const expectedCommit = normalizedSha(env.OPSC_RELEASE_CI_COMMIT || env.CI_COMMIT_SHA);
+  const expectedPipelineId = String(env.OPSC_RELEASE_CI_PIPELINE_ID || env.CI_PIPELINE_ID || '').trim();
+  const evidenceCommit = normalizedSha(evidence.commitSha);
+  const evidencePipelineId = String(evidence.pipelineId || '').trim();
+  const exactMatch = Boolean(
+    status === 'PASS' &&
+    expectedCommit &&
+    evidenceCommit === expectedCommit &&
+    PIPELINE_RE.test(expectedPipelineId) &&
+    evidencePipelineId === expectedPipelineId &&
+    Number(evidence.failed) === 0
+  );
+  return {
+    status: exactMatch ? 'PASS_CONTRACT_SCOPE' : 'NOT_VERIFIED',
+    testedAt: exactMatch ? String(evidence.generatedAt || '') : null,
+    evidenceCommit: exactMatch ? evidenceCommit : null,
+    evidencePipelineId: exactMatch ? evidencePipelineId : null,
+    testedRoutes: exactMatch ? Number(evidence.testedRoutes) : null,
+    failed: exactMatch ? Number(evidence.failed) : null
+  };
 }
 
 module.exports = { createPublicReleaseProof, hasVerifiedProductionRelease, readEmbeddedBuildIdentity, readProductionAcceptanceEvidence };

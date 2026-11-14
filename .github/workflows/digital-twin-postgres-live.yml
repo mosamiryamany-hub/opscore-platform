@@ -64,6 +64,9 @@ on:
       - 'package.json'
       - 'package-lock.json'
   workflow_dispatch:
+  schedule:
+    # Nightly disposable-PostgreSQL logical backup/restore drill: measured RPO=24h.
+    - cron: '17 2 * * *'
 
 permissions:
   contents: read

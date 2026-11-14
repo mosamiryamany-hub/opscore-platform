@@ -60,6 +60,13 @@ jobs:
       - name: Security dependency audit
         working-directory: backend
         run: npm audit --omit=dev --audit-level=high
+      - name: Per-route functional contract acceptance (writes commit-bound evidence)
+        working-directory: backend
+        env:
+          OPSC_WRITE_EVIDENCE: '1'
+          CI_COMMIT_SHA: ${{ github.sha }}
+          CI_PIPELINE_ID: ${{ github.run_id }}
+        run: node --test test/api-route-acceptance.test.js
       - name: Mobile dependency audit
         working-directory: mobile
         run: npm audit --omit=dev --audit-level=high

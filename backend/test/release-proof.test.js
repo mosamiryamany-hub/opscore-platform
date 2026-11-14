@@ -405,3 +405,48 @@ test('isolated behavioral evidence cannot satisfy the production acceptance cont
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('functionalApiRouteAcceptance flips to PASS_CONTRACT_SCOPE only with commit-and-pipeline-bound zero-failure evidence', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-route-acceptance-gate-'));
+  try {
+    const identityPath = path.join(dir, 'identity.json');
+    const pipelineId = '3014583826';
+    const identity = {
+      schemaVersion: 'opscore.vercel-release-identity.v1',
+      deploymentSource: 'github-actions-cli',
+      commitSha: SHA,
+      pipelineId,
+      runAttempt: 1,
+      ref: 'main',
+      repository: 'mosamiryamany-hub/opscore-platform',
+      runUrl: `https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/${pipelineId}`,
+      packageSha256: PACKAGE_SHA,
+      packageCommit: SHA
+    };
+    const acceptance = writeJsonEvidence(dir, 'production-acceptance.json', productionAcceptanceEvidence(SHA, pipelineId));
+    const postgresHttp = writeJsonEvidence(dir, 'postgres-http-acceptance.json', postgresHttpEvidence(SHA, pipelineId));
+    const route = writeJsonEvidence(dir, 'api-route-acceptance.json', {
+      schemaVersion: 'opscore.api-route-acceptance.v1', status: 'PASS', commitSha: SHA, pipelineId, testedRoutes: 358, failed: 0
+    });
+    const env = deploymentEnv({
+      OPSC_RELEASE_DEPLOYMENT_SOURCE: 'cli',
+      OPSC_RELEASE_CI_COMMIT: SHA,
+      OPSC_RELEASE_CI_PIPELINE_ID: pipelineId,
+      OPSC_RELEASE_CI_REF: 'main',
+      OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: acceptance.sha256
+    });
+    fs.writeFileSync(identityPath, JSON.stringify(identity));
+    const proof = createPublicReleaseProof(env, fixedNow, identityPath, acceptance.path, postgresHttp.path, route.path);
+    assert.equal(proof.gates.functionalApiRouteAcceptance, 'PASS_CONTRACT_SCOPE');
+    assert.equal(hasVerifiedProductionRelease(env, identityPath, acceptance.path, postgresHttp.path, route.path), true);
+
+    const staleRoute = writeJsonEvidence(dir, 'stale-route.json', {
+      schemaVersion: 'opscore.api-route-acceptance.v1', status: 'PASS', commitSha: '0'.repeat(40), pipelineId, testedRoutes: 358, failed: 0
+    });
+    const staleProof = createPublicReleaseProof(env, fixedNow, identityPath, acceptance.path, postgresHttp.path, staleRoute.path);
+    assert.equal(staleProof.gates.functionalApiRouteAcceptance, 'NOT_VERIFIED');
+    assert.equal(hasVerifiedProductionRelease(env, identityPath, acceptance.path, postgresHttp.path, staleRoute.path), true);
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
