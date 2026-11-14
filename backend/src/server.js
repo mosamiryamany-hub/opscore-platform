@@ -1420,6 +1420,28 @@ function route(req, res) {
         "SELECT set_config('app.tenant_id', ?, true), set_config('app.user_id', ?, true), set_config('app.access_mode', ?, true)"
       ).run('attacker-selected-tenant', 'attacker-selected-user', 'backoffice');
 
+      const contextCheck = store.db.prepare(
+        "SELECT pg_backend_pid() AS backend_pid, pg_current_xact_id()::text AS transaction_id, current_setting('app.signed_context_payload', true) AS payload, current_setting('app.signed_context_signature', true) AS signature, opscore_security.verified_tenant_context() AS verified"
+      ).get();
+      let claims = null;
+      try { claims = JSON.parse(contextCheck.payload || 'null'); } catch (_) { claims = null; }
+      const signingKey = String(process.env.OPSC_TENANT_CONTEXT_HMAC_KEY || '');
+      let signatureMatchesNode = false;
+      try {
+        const expectedMac = crypto.createHmac('sha256', Buffer.from(signingKey, 'hex')).update(contextCheck.payload, 'utf8').digest();
+        const suppliedMac = Buffer.from(String(contextCheck.signature || ''), 'hex');
+        signatureMatchesNode = suppliedMac.length === expectedMac.length && crypto.timingSafeEqual(suppliedMac, expectedMac);
+      } catch (_) { signatureMatchesNode = false; }
+      const diagnostic = {
+        payloadPresent: Boolean(contextCheck.payload),
+        signaturePresent: Boolean(contextCheck.signature),
+        signatureMatchesNode,
+        principalClaimsMatch: Boolean(claims && claims.sub === c.userId && claims.tenant_id === c.organizationId && claims.session_id === c.sessionId),
+        backendMatches: Boolean(claims && Number(claims.backend_pid) === Number(contextCheck.backend_pid)),
+        transactionMatches: Boolean(claims && String(claims.transaction_id) === String(contextCheck.transaction_id)),
+        databaseVerifierAccepted: Boolean(contextCheck.verified)
+      };
+
       const rows = store.db.prepare(
         'SELECT probe_value FROM opscore_security.context_probe_rows WHERE organization_id=? ORDER BY id'
       ).all(c.organizationId);
@@ -1435,7 +1457,8 @@ function route(req, res) {
         signedContextBoundToBackendAndTransaction: true,
         rawGucTamperingIgnored: passed,
         visibleProbeRows: rows.length,
-        assertionExpiresAt: binding.expiresAt
+        assertionExpiresAt: binding.expiresAt,
+        diagnostic
       }, { 'cache-control': 'no-store' });
     } catch (error) {
       if (transactionOpen) {

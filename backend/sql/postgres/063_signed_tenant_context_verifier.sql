@@ -155,7 +155,7 @@ BEGIN
     AND s.organization_id = claims->>'tenant_id'
     AND u.status = 'active'
     AND s.expires_at::timestamptz > pg_catalog.clock_timestamp()
-    AND pg_catalog.to_timestamp(expires_at) <= s.expires_at::timestamptz
+    AND pg_catalog.to_timestamp(expires_at::double precision) <= s.expires_at::timestamptz
     AND COALESCE(g.status, 'active') = 'active'
   LIMIT 1;
 
