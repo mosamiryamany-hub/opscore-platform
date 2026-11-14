@@ -6,15 +6,13 @@ Repository: `mosamiryamany-hub/opscore-platform`
 
 PR: #103 — `security/priority-production-hardening-20261114`
 
-Branch HEAD: `315364f42ad80beb3416eae8ae0df02c6481c171`
+Branch HEAD: `bc07f7a68d5df1f757103a46160aef9d1c962427`
 
 PR base / unchanged `main`: `4ef126ccd59f23cebeead30224d1bcf7199535ab`
 
-PostgreSQL acceptance workflow merge-test commit: `3aa9f19852d3dba6122c3bd29c1f7b6357c1dcd7`
-
 ## Status
 
-**PASS — isolated CI verification of the signed tenant-context prototype and the explicitly enabled `GET /api/v1/work-orders` Preview route.**
+**PASS — isolated CI verification of the signed tenant-context prototype and the explicitly enabled Preview read routes `GET /api/v1/work-orders` and `GET /api/v1/work-orders/:id`.**
 
 **NOT CERTIFIED — production tenant isolation against direct compromise of the `opscore_runtime` database credential.**
 
@@ -45,7 +43,7 @@ The SQL comparison loop is described in source as fixed-work/preliminary; this i
 
 ### Application and worker integration
 
-- `GET /api/v1/work-orders` has an explicitly enabled, Preview-only signed-context path. It pins the authenticated session principal, opens a `READ ONLY` transaction, obtains the backend PID and transaction ID from the same worker connection, binds a short-lived signed assertion, then runs the existing Store query.
+- `GET /api/v1/work-orders` and `GET /api/v1/work-orders/:id` have explicitly enabled, Preview-only signed-context paths. Both pin the authenticated session principal, open a `READ ONLY` transaction, obtain the backend PID and transaction ID from the same worker connection, bind a short-lived signed assertion, then run the existing Store read.
 - The CI-only red-team probe overwrites the raw tenant, user, and access-mode GUCs with attacker-selected values after the assertion is bound. The feature flag alone is not enough: the tamper probe also requires `CI=true`.
 - The Node signer remains in the trusted parent process. The PostgreSQL worker receives a minimal allowlist of database and transport settings rather than a wholesale copy of the application environment; the HMAC signing key is not passed to the worker.
 
@@ -53,15 +51,15 @@ The Preview route is gated by `VERCEL_ENV=preview` and `OPSC_SIGNED_TENANT_CONTE
 
 ## Exact CI evidence on the tested branch head
 
-All three workflows completed successfully for branch HEAD `315364f42ad80beb3416eae8ae0df02c6481c171`:
+All three workflows completed successfully for branch HEAD `bc07f7a68d5df1f757103a46160aef9d1c962427`:
 
 | Workflow | Run ID | Result |
 |---|---:|---|
-| Digital Twin PostgreSQL 18 Isolated RLS and HTTP Acceptance | `43616032127` | SUCCESS |
-| OpsCore CI | `43616032173` | SUCCESS |
-| Vercel contract workflow | `43616032217` | SUCCESS |
+| Digital Twin PostgreSQL 18 Isolated RLS and HTTP Acceptance | `43617102664` | SUCCESS |
+| OpsCore CI | `43617102713` | SUCCESS |
+| Vercel contract workflow | `43617102699` | SUCCESS |
 
-The Vercel `vercel-contract-verify` check passed. Both `deploy-bound-postgres-18-acceptance` and `deploy` were **SKIPPED**; this is not a deployment result.
+The Vercel `vercel-contract-verify` job passed. Both `deploy-bound-postgres-18-acceptance` and `deploy` were **SKIPPED** for the pull-request event; this is not a deployment result.
 
 ### Real Node worker / HTTP proof
 
@@ -76,6 +74,8 @@ The PostgreSQL gate emitted:
     "tenantBHttpSession": "PASS",
     "signedWorkOrdersTenantA": "PASS",
     "signedWorkOrdersTenantB": "PASS",
+    "signedWorkOrderDetailTenantA": "PASS",
+    "signedWorkOrderDetailTenantB": "PASS",
     "workOrdersRawGucTamperingIgnored": "PASS",
     "readOnlyBoundTransaction": "PASS",
     "rawGucTampering": "PASS",
@@ -93,7 +93,7 @@ The PostgreSQL gate emitted:
 }
 ```
 
-The real HTTP test seeded one work-order row for each of two synthetic tenants and called the actual `GET /api/v1/work-orders` route with each tenant's real session token. Before the Store query, the CI-only probe attempted to replace the raw tenant, user, and access-mode settings. Each HTTP response still contained exactly the row for its authenticated tenant and carried the `x-opscore-signed-tenant-context: verified` response marker. The test fails unless both tenant responses satisfy those exact conditions.
+The real HTTP test seeded one work-order row for each of two synthetic tenants and called both actual product read routes — `GET /api/v1/work-orders` and `GET /api/v1/work-orders/:id` — with each tenant's real session token. Before each Store read, the CI-only probe attempted to replace the raw tenant, user, and access-mode settings. List responses contained exactly the authenticated tenant's one seeded row; detail responses returned exactly that tenant's seeded work-order ID and organization ID. All four HTTP responses carried `x-opscore-signed-tenant-context: verified`. The test fails on any mismatch.
 
 The lower-level PostgreSQL checks also passed for unsigned GUC-only access, invalid HMAC, same-backend later-transaction replay, and different-backend replay. The verifier is bound to the database backend and current transaction; it is not a reusable bearer assertion.
 
@@ -117,14 +117,14 @@ Read-only revalidation of the existing Neon Preview branch `br-wispy-credit-bcka
 - `opscore_auth_definer`: NOLOGIN, NOSUPERUSER, BYPASSRLS, NOCREATEDB, NOCREATEROLE.
 - `opscore_runtime`: LOGIN, NOSUPERUSER, NOBYPASSRLS, NOCREATEDB, NOCREATEROLE.
 - `neondb_owner`: LOGIN, NOSUPERUSER, BYPASSRLS, CREATEDB, CREATEROLE.
-- Neither `063_signed_tenant_context_verifier.sql` nor `064_signed_tenant_context_work_orders_routing.sql` is recorded in the Preview `schema_migrations) ledger (zero matching rows).
+- Neither `063_signed_tenant_context_verifier.sql` nor `064_signed_tenant_context_work_orders_routing.sql` is recorded in the Preview `schema_migrations` ledger (zero matching rows).
 
 No application of 063/064 to the existing Neon Preview branch was performed. No Production schema/data/role/grant/secret change was performed. No Vercel environment variable or firewall setting was changed.
 
 ## Explicit remaining limitations
 
 1. **The database-credential trust boundary is not closed.** Migration 064 deliberately preserves the legacy accessor behavior when no signed payload is supplied. A holder of the raw `opscore_runtime` credential can still omit the signed payload and supply the legacy tenant/user/access-mode GUCs on paths that have not been migrated. The CI pass proves the enabled HTTP path uses the signed assertion; it does not prove that arbitrary direct SQL using the runtime credential cannot impersonate a tenant.
-2. **Only one application route is currently moved to the signed path:** `GET /api/v1/work-orders). Other work-order reads/writes and other tenant-owned API routes still need transaction-bound assertions and route-specific tests.
+2. **Only two application routes are currently moved to the signed path:** `GET /api/v1/work-orders` and `GET /api/v1/work-orders/:id`. Work-order subresource reads, all work-order writes, and other tenant-owned API routes still need transaction-bound assertions and route-specific tests.
 3. The complete policy inventory and identity plane are not migrated. The legacy arbitrary-user membership resolver, login/OIDC/API-key/password-reset/invitation/bootstrap/session lifecycle paths, and broad identity-table grants still require their own narrow-function and end-to-end work.
 4. The HMAC key used by this test was ephemeral CI material. No Preview Vercel key was provisioned and no live Preview rollout was executed.
 5. The 136-table restore was a disposable logical dump/restore exercise. It is not a Neon point-in-time restore drill or evidence of a scheduled production backup/PITR configuration.
@@ -142,7 +142,8 @@ No application of 063/064 to the existing Neon Preview branch was performed. No 
 ## Change control
 
 - PR #103 remains **OPEN / DRAFT / NOT MERGED**.
-- Branch HEAD: `315364f42ad80beb3416eae8ae0df02c6481c171`.
-- `main) remains `4ef126ccd59f23cebeead30224d1bcf7199535ab`.
+- Branch HEAD: `bc07f7a68d5df1f757103a46160aef9d1c962427`.
+- The branch is 39 commits ahead of `main` and 0 behind at this checkpoint.
+- `main` remains `4ef126ccd59f23cebeead30224d1bcf7199535ab`.
 - No deployment was performed.
 
