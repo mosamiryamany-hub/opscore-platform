@@ -81,7 +81,18 @@ function inspectRequest(req, config){
 }
 function productionSafetyGate(config, env = process.env, releaseVerifier = hasVerifiedProductionRelease){
   const nodeEnv=String(config?.nodeEnv||env.NODE_ENV||'development').trim().toLowerCase();
-  if(nodeEnv!=='production') return {allowed:true,mode:'development'};
+  const vercelEnv=String(env.VERCEL_ENV||'').trim().toLowerCase();
+
+  // Vercel sets NODE_ENV=production for Preview builds too. The production traffic
+  // hold must follow the deployment target, not NODE_ENV alone, otherwise every
+  // Preview Function fails during module initialization before serving health/API.
+  // VERCEL_ENV is a platform-provided deployment target; only an explicit Preview
+  // target bypasses the production-only hold. Production remains fail-closed.
+  if(vercelEnv==='preview') return {allowed:true,mode:'preview'};
+  if(vercelEnv==='development') return {allowed:true,mode:'development'};
+  if(vercelEnv && vercelEnv!=='production') throw new Error('VERCEL_ENV_INVALID');
+  if(nodeEnv!=='production' && vercelEnv!=='production') return {allowed:true,mode:'development'};
+
   // Operator-explicit open: OPSC_PRODUCTION_HOLD=false is the sole production traffic gate.
   // Full release evidence remains independently reported by /api/verify/release and is not
   // fabricated here. When hold is not explicitly false, production stays closed.
