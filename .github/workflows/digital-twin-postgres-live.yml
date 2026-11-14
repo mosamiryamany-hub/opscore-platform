@@ -58,6 +58,9 @@ on:
       - 'backend/docs/API_INVENTORY.json'
       - 'backend/package.json'
       - 'backend/package-lock.json'
+      - 'backend/SALES_PACKAGE_MANIFEST.json'
+      - 'backend/RELEASE_FILE_SHA256SUMS.txt'
+      - 'backend/RELEASE_COMPONENT_SHA256SUMS.txt'
       - 'package.json'
       - 'package-lock.json'
   workflow_dispatch:
