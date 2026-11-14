@@ -147,3 +147,23 @@ The first code slice should be limited to an authenticated session-based READ ro
 - No key provisioning/rotation in production before the secret management, rollback, and old/new key overlap are tested.
 - No main merge, production deployment, or production certification is implied by a passing unit/CI job.
 - The current production tenant-isolation gate remains **NOT CERTIFIED**.
+
+
+## 8. Current environment prerequisites — rechecked 2026-11-14
+
+Vercel project environment metadata was read with decryption disabled. The production and preview targets list the database URL variables, but neither target currently lists `OPSC_TENANT_CONTEXT_HMAC_KEY` or an equivalent dedicated context-signing key.
+
+Therefore:
+
+- The signer code must not silently run with a missing key or fall back to an unsigned GUC.
+- Do not add a key to the production target in this phase.
+- When the Node slice is ready, generate one high-entropy key for the isolated Preview branch only, create the matching verifier-key record in the isolated Neon lab schema under `opscore_auth_definer`, and bind the Preview environment variable specifically to the security branch.
+- Verify that no other Preview or Production deployment can read that variable. Do not expose the value in logs, PR text, tool output, or application responses.
+- Keep the production signer key absent until real Preview HTTP acceptance, Neon pooler/backend binding, rollback/retry, and raw-database-credential red-team tests pass.
+- Key rotation must have key IDs, bounded old/new overlap, and a tested rollback. Never overwrite a shared key before both verifier and signer are ready.
+
+Additional operational gates rechecked at the same time:
+
+- Vercel Firewall is enabled, but active CRS protections (Generic, RCE, SQLi, XSS) and Bot Protection are currently configured as `log`, not `deny`/challenge. The auth endpoint rate-limit rule (60 requests per 60 seconds per IP) also logs rather than blocks.
+- The production Neon branch has no automatic snapshot schedule. The project snapshot listing currently returns one manual snapshot expiring 2026-12-11; this does not certify native PITR or a restore drill.
+- No WAF, Neon backup, environment, key, production schema, role, grant, or production data setting was changed during this recheck.
