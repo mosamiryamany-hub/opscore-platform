@@ -229,9 +229,8 @@ Both Vercel deployment jobs, `deploy-bound-postgres-18-acceptance` and `deploy`,
 
 - PR #103 remains **OPEN / DRAFT / NOT MERGED**.
 - CI-tested application/test head: `3a82852b3aff075de841fb195937e36d6572beeb`.
-- Current PR head after this report-only refresh: `a4e9d85ea81c44c0ee7f1a594a781aa3f8bb2521`.
-- The PR is 55 commits ahead of `main` and 0 behind.
-- This refresh changed documentation only; no application code, migration, deployment setting, signer secret, or production database was changed.
+- Three documentation-only commits followed that tested source/test head, including this report-only revision; none changed application code, migrations, deployment settings, signer secrets, or databases.
+- Including this report-only revision, the PR is 57 commits ahead of `main` and 0 behind.
 - No migration, deployment setting, signer secret, or production database was changed.
 - `main` remains `4ef126ccd59f23cebeead30224d1bcf7199535ab`.
 - No deployment was performed.
