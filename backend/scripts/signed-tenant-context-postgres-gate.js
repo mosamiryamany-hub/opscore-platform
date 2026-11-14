@@ -133,6 +133,7 @@ async function main() {
   let clientA = null;
   let clientB = null;
   let activeVerifierRole = false;
+  let evidenceRoot = null;
 
   const keyId = 'ci-' + crypto.randomUUID();
   const key = crypto.randomBytes(32);
@@ -230,7 +231,7 @@ async function main() {
     );
 
     const port = await choosePort();
-    const evidenceRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-signed-evidence-root-'));
+    evidenceRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-signed-evidence-root-'));
     const serverEnv = {
       ...process.env,
       NODE_ENV: 'test',
