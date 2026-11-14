@@ -115,6 +115,7 @@ async function main() {
   const owner = new Client({ connectionString: ownerUrl });
   const runtimeProbe = new Client({ connectionString: runtimeUrl });
   let serverProcess = null;
+  let serverOutput = '';
   let clientA = null;
   let clientB = null;
   let activeVerifierRole = false;
@@ -230,18 +231,28 @@ async function main() {
     serverProcess = spawn(process.execPath, [path.join(__dirname, '..', 'src', 'server.js')], {
       cwd: path.join(__dirname, '..'),
       env: serverEnv,
-      stdio: ['ignore', 'ignore', 'ignore']
+      stdio: ['ignore', 'pipe', 'pipe']
     });
+    for (const stream of [serverProcess.stdout, serverProcess.stderr]) {
+      stream.on('data', (chunk) => {
+        serverOutput = (serverOutput + chunk.toString('utf8')).slice(-6000);
+      });
+    }
     await waitForServer(port, serverProcess);
 
     const httpA = await queryHttp(port, '/api/v1/_internal/tenant-context-proof', tokenA);
     const httpB = await queryHttp(port, '/api/v1/_internal/tenant-context-proof', tokenB);
-    for (const response of [httpA, httpB]) {
+    for (const [label, response] of [['tenantA', httpA], ['tenantB', httpB]]) {
       if (response.status !== 200 || response.body?.status !== 'PASS'
           || response.body?.signedContextBoundToBackendAndTransaction !== true
           || response.body?.rawGucTamperingIgnored !== true
           || response.body?.visibleProbeRows !== 1) {
-        throw new Error('SIGNED_CONTEXT_HTTP_TENANT_PROOF_FAILED');
+        throw new Error('SIGNED_CONTEXT_HTTP_TENANT_PROOF_FAILED:' + JSON.stringify({
+          label,
+          status: response.status,
+          body: response.body,
+          serverOutput: serverOutput.slice(-2000)
+        }));
       }
     }
 
@@ -372,6 +383,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  process.stderr.write('SIGNED_CONTEXT_POSTGRES_GATE_FAILED:' + String(error && (error.code || error.message) || error).slice(0, 200) + '\\n');
+  process.stderr.write('SIGNED_CONTEXT_POSTGRES_GATE_FAILED:' + String(error && (error.code || error.message) || error).slice(0, 1200) + '\\n');
   process.exitCode = 1;
 });
