@@ -45,6 +45,8 @@ test('external release attestation binds the exact completed archive digest and 
     assert.equal(statement.productionAcceptance.status, 'NOT_VERIFIED_AT_BUILD');
     assert.match(statement.productionAcceptance.scope, /after deployment/);
     assert.equal(statement.commercialClosure, 'PASS_WITH_BUYER_RESIDUALS');
+    assert.equal(statement.licenseGrant, 'NONE_PENDING_RIGHTS_HOLDER_DECISION');
+    assert.equal(statement.distributionAuthorized, false);
   } finally {
     fs.rmSync(temp, { recursive: true, force: true });
   }

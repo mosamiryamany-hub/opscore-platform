@@ -53,7 +53,7 @@ Any serious buyer is expected to run `npm run buyer:preflight` and `npm run buye
 
 ```
 ├── README.md                 ← you are here
-├── PROPRIETARY_LICENSE.txt   ← Proprietary source license
+├── NO_LICENSE_GRANT_NOTICE.txt ← No license grant; all rights reserved
 ├── VERSION
 ├── backend/                  ← Node backend + web console
 ├── mobile/                   ← Expo source (Android/iOS)
@@ -72,7 +72,7 @@ Any serious buyer is expected to run `npm run buyer:preflight` and `npm run buye
 
 ## Quick Commercial Boundaries
 
-- Form: non-exclusive source-code sale (exclusivity by separate written agreement only)
+- Form: commercial model pending rights-holder decision (NO LICENSE GRANT until a separate signed agreement)
 - Support included: 30 days for critical defects in the supplied source
 - Out of scope: deployment, TLS, store submission/signing, buyer infrastructure, new feature development
 
