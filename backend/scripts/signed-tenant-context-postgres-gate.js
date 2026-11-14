@@ -290,6 +290,33 @@ async function main() {
     assertSignedWorkOrders('tenantA', signedWorkOrdersA, synthetic.workOrderIds[0], tenantA);
     assertSignedWorkOrders('tenantB', signedWorkOrdersB, synthetic.workOrderIds[1], tenantB);
 
+    // Exercise the distinct item-read route through the same signed transaction
+    // contract; the response must remain tenant-scoped after the CI GUC-tamper probe.
+    const signedWorkOrderDetailA = await queryHttp(
+      port, '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[0]), tokenA
+    );
+    const signedWorkOrderDetailB = await queryHttp(
+      port, '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[1]), tokenB
+    );
+    for (const [label, response, expectedId, expectedTenant] of [
+      ['tenantA', signedWorkOrderDetailA, synthetic.workOrderIds[0], tenantA],
+      ['tenantB', signedWorkOrderDetailB, synthetic.workOrderIds[1], tenantB]
+    ]) {
+      if (response.status !== 200
+          || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+          || response.body?.id !== expectedId
+          || response.body?.organization_id !== expectedTenant) {
+        throw new Error('SIGNED_CONTEXT_WORK_ORDER_DETAIL_ROUTE_FAILED:' + JSON.stringify({
+          label,
+          status: response.status,
+          signedHeader: response.headers?.['x-opscore-signed-tenant-context'] || null,
+          returnedId: response.body?.id || null,
+          returnedTenant: response.body?.organization_id || null,
+          serverOutput: serverOutput.slice(-2500)
+        }));
+      }
+    }
+
     clientA = new Client({ connectionString: runtimeUrl });
     clientB = new Client({ connectionString: runtimeUrl });
     await clientA.connect();
@@ -376,6 +403,8 @@ async function main() {
         tenantBHttpSession: 'PASS',
         signedWorkOrdersTenantA: 'PASS',
         signedWorkOrdersTenantB: 'PASS',
+        signedWorkOrderDetailTenantA: 'PASS',
+        signedWorkOrderDetailTenantB: 'PASS',
         workOrdersRawGucTamperingIgnored: 'PASS',
         readOnlyBoundTransaction: 'PASS',
         rawGucTampering: 'PASS',
