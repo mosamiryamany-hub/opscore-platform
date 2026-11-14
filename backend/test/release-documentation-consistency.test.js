@@ -42,6 +42,7 @@ test('handover sources do not hard-code a superseded candidate ZIP digest', () =
     'COMMERCIAL_CLOSURE_STATUS.md',
     'CLOSEOUT_EXECUTION_RUNBOOK.md',
     'BUYER_DELIVERY.md',
+    'DELIVERY_MANIFEST.md',
     'INTEGRATED_RELEASE_SCOPE.json'
   ].map(read);
 
@@ -227,4 +228,30 @@ test('commercial release grants no license and forbids distribution pending righ
   assert.match(packageBuilder, /licenseGrant: 'NONE_PENDING_RIGHTS_HOLDER_DECISION'/);
   assert.match(packageBuilder, /distributionAuthorized: false/);
   assert.match(packageBuilder, /NO LICENSE GRANT/);
+});
+
+test('current-facing release documents do not pin superseded candidate identities or bundled license grants', () => {
+  const sourceDocs = [
+    'DELIVERY_MANIFEST.md',
+    'BUYER_DELIVERY.md',
+    'COMMERCIAL_CLOSURE_STATUS.md',
+    'CLOSEOUT_EXECUTION_RUNBOOK.md',
+    'docs/release/RELEASE_SCOPE.md',
+    'COMMERCIAL_RELEASE_STATUS.md',
+    'SALES_KIT.md',
+    'SALES_README.md',
+    'docs/COMMERCIAL_HANDOFF.md',
+    'BUYER_FIRST.md',
+    'CLIENT_INSPECTION_PACKAGE_STATUS.md',
+    'INTEGRATED_RELEASE_SCOPE.json',
+    'docs/release/COMMERCIAL_RELEASE_STATEMENT.json'
+  ].map(read);
+
+  const supersededIdentity = /4ef126ccd59f23cebeead30224d1bcf7199535ab|43588278472|43308699094|dpl_5nx3dRRu9WuYmpqR9deiSeCqHwF3|d940152d1428d82d9bb0c57695d929099a648ac3|3014428936|30bf29aa1a995a476f40a37600e869772c086ece9f3148da5e9140766806bbf6/;
+  const withdrawnLicenseGrant = /bundled license grants internal-use|upon full payment[\s\S]{0,120}purchaser receives/i;
+  for (const doc of sourceDocs) {
+    assert.doesNotMatch(doc, supersededIdentity);
+    assert.doesNotMatch(doc, withdrawnLicenseGrant);
+    assert.match(doc, /NO LICENSE GRANT|NO COMMERCIAL DISTRIBUTION/i);
+  }
 });

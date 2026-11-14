@@ -80,6 +80,28 @@ function collect(dir, rel = '') {
   }
   return out.sort();
 }
+
+const firstPartyLicenseFilePattern = /(^|\/)(?:LICENSE|LICENCE)(?:\.[^/]*)?$/i;
+function assertNoLicenseGrantFiles(dir, phase) {
+  const licenseFiles = collect(dir).filter(relativePath => firstPartyLicenseFilePattern.test(relativePath));
+  if (licenseFiles.length) {
+    throw new Error(`NO_LICENSE_GRANT_VIOLATION:${phase} contains first-party license files: ${licenseFiles.join(', ')}`);
+  }
+  const noticePath = path.join(dir, 'NO_LICENSE_GRANT_NOTICE.txt');
+  if (!fs.existsSync(noticePath)) throw new Error(`NO_LICENSE_GRANT_NOTICE_MISSING:${phase}`);
+  const notice = fs.readFileSync(noticePath, 'utf8');
+  if (!notice.includes('NO LICENSE GRANT') ||
+      !/grants no permission or rights/i.test(notice) ||
+      !/No sale, delivery, redistribution, resale, sublicensing/i.test(notice)) {
+    throw new Error(`NO_LICENSE_GRANT_NOTICE_INVALID:${phase}`);
+  }
+  const packagePath = path.join(dir, 'backend', 'package.json');
+  const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+  if (packageJson.license !== 'UNLICENSED') {
+    throw new Error(`PACKAGE_LICENSE_METADATA_NOT_UNLICENSED:${phase}`);
+  }
+}
+
 // Tests are allowed to create runtime attachment files. Clean the actual backend path explicitly,
 // then require a fail-closed gate before staging. The gate itself remains active in verify-integrated.
 run('clean generated demo attachments', 'require(\'./backend/scripts/clean-demo-data.js\')', root, {
@@ -96,6 +118,7 @@ fs.rmSync(releaseDir, {
   force: true
 });
 fs.mkdirSync(releaseDir, { recursive: true });
+assertNoLicenseGrantFiles(root, 'source tree');
 const files = collect(root);
 const supersededVerificationSnapshots = new Set([
   'backend/docs/verification/COMMERCIAL_CLOSURE_DECISION.json',
@@ -357,6 +380,7 @@ try {
   const roots = fs.readdirSync(verifyRoot);
   if (roots.length !== 1 || roots[0] !== path.basename(releaseDir)) throw new Error('ARCHIVE_ROOT_LAYOUT_MISMATCH');
   const extractedRoot = path.join(verifyRoot, roots[0]);
+  assertNoLicenseGrantFiles(extractedRoot, 'round-trip archive');
   const extractedManifest = JSON.parse(fs.readFileSync(path.join(extractedRoot, 'INTEGRATED_PACKAGE_MANIFEST.json'), 'utf8'));
   const extractedSums = path.join(extractedRoot, 'INTEGRATED_SHA256SUMS.txt');
   const expected = extractedManifest.files.map(entry => entry.path).concat(['INTEGRATED_PACKAGE_MANIFEST.json', 'INTEGRATED_SHA256SUMS.txt']).sort();

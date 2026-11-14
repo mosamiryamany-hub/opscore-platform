@@ -1,39 +1,37 @@
 # OpsCore v0.11.62 — Commercial Sales Kit
 
+> **INACTIVE — NO LICENSE GRANT — NO SALE OR DISTRIBUTION AUTHORIZED.** This file is product information only, not an offer, license, or delivery authorization.
+
 ## Product
 
-A multi-sector operations management source package: web console, HTTP API, work-order and dispatch workflows, Contact Center runtime, authentication/session/tenant controls, PostgreSQL migrations and RLS, and Expo Android/iOS source.
+OpsCore is a multi-sector operations source package with a web console, HTTP API, work-order and dispatch workflows, Contact Center runtime, authentication/session/tenant controls, PostgreSQL migrations and RLS, and Expo Android/iOS source.
 
-## Evidence and release identity
+## Release identity and evidence
 
-Use only the exact successful archive-producing pipeline's OPSCORE.zip, release statement, SHA-256 sums, JUnit, root/mobile dependency-audit JSON, i18n forensic result and Preview proof. Those same-pipeline artifacts are the canonical source for commits, pipeline IDs, test counts, dependency findings and archive fingerprints. PostgreSQL HTTP acceptance must match the exact current source commit and pipeline. Do not copy historical proof into a newer candidate.
+A candidate's source commit, workflow run, artifact ID, archive filename, byte count, SHA-256, SBOM, and provenance attestation must all come from one successful exact-head GitHub Actions Secure Release run. Use only that run's output. A new source change invalidates the prior package identity. Never copy historical IDs, test counts, dependency reports, Preview URLs, or digests into a newer candidate.
 
-## Included
+The exact-run mobile and root dependency-audit JSON files are authoritative for their respective build. Do not claim "vulnerability-free"; disclose every severity category from the matching reports. PostgreSQL HTTP acceptance is current only when its source commit and workflow run match the archive-producing run.
+
+## Included source
 
 Backend/API and web operations source; work orders, scheduling and dispatch; Contact Center runtime and locale resources; authentication and tenant controls; PostgreSQL migrations and RLS; Expo mobile source; tests, scripts, release tooling, documentation and CI evidence.
 
-Translation catalog: 114 locale codes, 1 English source, 109 machine-assisted drafts, 4 English fallbacks, 89 keys per locale. Structural/forensic automation: 4 rounds. Native-speaker review 0/114; production qualification 0/114. Keep the AI-translation notice visible.
+Translation catalog: 114 locale codes, 1 English source, 109 machine-assisted drafts, 4 English fallbacks, and 89 keys per locale. Structural/forensic automation is not linguistic qualification. Native-speaker review and production language qualification remain 0/114 until independently completed. Keep the machine-translation notice visible.
 
-## Dependency status
+## Buyer/environment residuals
 
-Latest verified candidate (Secure Release run 43308699094) mobile audit: 0 critical, 0 high, 0 moderate, 0 low. Root dependency audit: 0 findings. The current exact-head pipeline must rerun both JSON reports. Do not say "vulnerability-free"; moderate and low mobile advisories remain disclosed.
-
-## Buyer-owned scope
-
-External provider accounts/licenses/credentials/live acceptance including call-center and telephony; maps/road-routing provider license, keys, attribution and quotas; Android/iOS EAS setup, signing, native builds, physical-device QA, developer accounts, store submission/distribution; native-speaker translation review; post-handover mobile dependency maintenance.
+External provider accounts/licenses/credentials/live acceptance (including identity, messaging, call-center and telephony); maps/road-routing provider license, keys, attribution and quotas; Android/iOS EAS setup, signing, native builds, physical-device QA, developer accounts and store publication; native-speaker translation review; buyer-environment installation, database migration/isolation, restore, WAF/TLS and operational acceptance; post-handover dependency maintenance.
 
 ## Seller-owned scope
 
-Source correctness, internal adapters, authorization, database migrations, RLS, test failures, package integrity, release evidence and all fixable pre-handover source/dependency defects.
+Source correctness, internal adapters, authorization, database migrations, RLS, test failures, package integrity, release evidence, documentation, and fixable pre-handover source/dependency defects.
 
-## Prohibited claims
+## Technical truth
 
-Do not claim production certification, vulnerability-free dependencies, 114 human-reviewed languages, signed app binaries, store approval or live external providers without exact evidence. This is a source-code package, not a hosted SaaS subscription.
+The live production proof currently identifies the seller-operated deployment and reports production isolation certification for that exact seller reference. It does not certify a buyer environment, all possible business flows, full PITR/RPO/RTO, or all external integrations. The technical classification is `PASS_WITH_BUYER_RESIDUALS` only for its exact evidence scope.
 
-## PostgreSQL HTTP acceptance — exact-head evidence
+## Commercial rights hold
 
-The live PostgreSQL HTTP acceptance gate runs against the isolated acceptance database using the application runtime role. It is a current PASS only when the result generated by the archive-producing Pipeline carries the same source commit and Pipeline ID as the release statement. The current run's JUnit and `POSTGRES_HTTP_ACCEPTANCE_RESULT.json` are the authoritative evidence. A historical PASS from another commit or Pipeline never qualifies. This is a seller-owned pre-handover gate; it is not a buyer residual.
+**NO LICENSE GRANT. ALL RIGHTS RESERVED.** No access, use, installation, execution, inspection, copying, modification, hosting, publication, distribution, sale, resale, sublicensing, rental, transfer, or commercial exploitation is authorized. The commercial model is pending a separate decision by the rights holder. A future grant requires a separate written agreement approved and signed by the rights holder. No technical test, deployment, archive, checksum, SBOM, or attestation creates or implies a license.
 
-## Commercial rights hold — effective 2026-11-14
-
-**NO LICENSE GRANT. NO SALE OR DISTRIBUTION AUTHORIZED.** The commercial model and any license grant are pending a separate decision by the rights holder. This document is technical/product information only; it grants no right to access, use, copy, modify, host, publish, distribute, sell, resell, sublicense, rent, transfer, or commercially exploit the OpsCore source. Do not issue a buyer delivery or sale listing until a separate written agreement is approved and signed by the rights holder. All rights are reserved. Technical test results, deployment status, release artifacts, hashes, SBOMs and attestations do not create or imply a license.
+Do not use this sales kit to market or sell OpsCore while the hold remains active.

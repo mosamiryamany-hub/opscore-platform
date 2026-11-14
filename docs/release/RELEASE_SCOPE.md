@@ -1,59 +1,37 @@
 # OpsCore v0.11.62 — Release Scope and Verification Boundary
 
-Verified candidate: GitHub main, commit `d940152d1428d82d9bb0c57695d929099a648ac3`, Secure Release run `43308699094`.
-Delivery: `OpsCore-release.zip`, commercial source-code package. Outer Actions artifact: `opscore-release-43308699094`.
-Commercial class: PASS_WITH_BUYER_RESIDUALS, only after exact-head current CI acceptance.
-Production certification: NOT_ESTABLISHED.
-Production isolation certification: NOT_CERTIFIED.
+## Release identity and validity
 
-## Included and seller-owned
+The exact release identity is generated for each successful exact-head GitHub Actions Secure Release run. Use the same run's source commit, workflow run ID, artifact ID, archive filename, byte count, SHA-256, SBOM, and provenance attestation as one indivisible evidence set. This source document intentionally carries no fixed commit, pipeline, deployment, or digest values. Any source change invalidates the previous candidate identity.
 
-- Node.js backend/API, web operations console, internal workflows and source contracts.
-- Authentication/session/tenant authorization, database migrations, RLS policies and internal integration adapters.
-- Contact Center module and 114 locale resources, selector/loader/RTL/safe rendering and visible machine-translation notice.
-- Expo mobile source for Android/iOS, source verification, dependency lockfile and Web export verification.
-- Automated tests, release packaging, evidence generation, checksums, installation and operational documentation.
-- Fixing defects in delivered source and remediating high/critical dependency vulnerabilities before delivery.
+## Commercial rights hold
 
-## Translation disclosure
+**NO LICENSE GRANT — ALL RIGHTS RESERVED.** Distribution, sale, resale, redistribution, sublicensing, buyer delivery, and other commercial exploitation are not authorized. Package metadata remains `UNLICENSED`; the authoritative notice is `NO_LICENSE_GRANT_NOTICE.txt`. No first-party `LICENSE` or `LICENCE` file may be packaged while this hold is active. Technical evidence does not create or imply rights.
 
-One English source locale, 109 machine-assisted draft locales, 4 explicit English fallback locales (din, nus, pau, ch), 89 keys per locale. Four structural/forensic rounds run in CI. Native-speaker reviewed = 0/114; production-qualified = 0/114. This is not linguistic certification; the machine-translation notice must remain visible. Buyer owns native-speaker review before production language-quality claims.
+## Included source and seller-owned scope
 
-## Buyer/customer-owned scope
+- Node.js backend/API, web operations console, internal workflows, source contracts, and integration adapters.
+- Authentication/session/tenant authorization, database migrations, RLS policies, automated tests, and operational/release tooling.
+- Contact-center module, locale resources, selector/loader/RTL rendering, and machine-translation disclosure.
+- Expo mobile application source, lockfiles, source verification, and web-export verification.
+- Installation, recovery, security, and operational documentation.
 
-- External provider accounts, licenses, credentials, setup, quotas, billing, contracts and live acceptance: identity/OIDC/JWKS, email/SMS/WhatsApp/PSTN/SIP, external call-center/telephony, payments, webhooks, object storage, KMS/HSM and cloud.
-- Maps/road-routing provider, license, API key, attribution, quota and live acceptance.
-- Android/iOS buyer-specific EAS accounts/projects, signing, native builds, physical-device QA, developer accounts, app-store submission and distribution. No signed APK/AAB/IPA is included.
-- Post-handover dependency/security maintenance and buyer-environment operations.
+## Explicit buyer residuals and exclusions
 
-Buyer-owned tasks do not transfer responsibility for defects in the source package, internal APIs/adapters, authorization, migrations, tests or release tooling to the buyer.
+- Signed Android/iOS store binaries, buyer-specific EAS accounts/projects, signing credentials, native builds, physical-device QA, developer accounts, app-store submission, and publication are not included.
+- Native-speaker/domain review of machine-assisted translations is outstanding; no linguistic qualification is claimed.
+- Licensed maps/road-routing and required attribution, API keys, quota, and provider contracts are not included.
+- External provider accounts, licenses, credentials, setup, billing, quotas, and live acceptance for identity/OIDC/JWKS, email/SMS/WhatsApp/PSTN/SIP, external call-center/telephony, payments, webhooks, object storage, KMS/HSM, and cloud remain environment-specific.
+- Buyer-environment installation, migrations, database isolation, recovery, WAF/TLS, observability, and operational acceptance must be independently completed.
 
-## Previous successful candidate evidence (not current-head package identity)
+## Verification boundary
 
-Pipeline 3014428936 passed on commit 30bf29aa: 468 tests total, 467 passed, 0 failed, 1 skipped. Mobile dependency audit: 0 high, 0 critical, 10 moderate, 2 low. Root PostgreSQL driver pg 8.23.1 was pinned; root audit reported 0 findings. The same archive pipeline generated OPSCORE.zip and its release statement/checksums. That evidence is historical only. Use the exact current-head pipeline's generated release statement, checksum manifest and Preview proofs for current identity.
+The public production proof identifies the current seller-reference deployment and reports its health, release status, database catalog status, and seller-reference production isolation certification. These claims are limited to that exact seller environment and its bound evidence. They do not certify a buyer environment or all possible functional business flows.
 
-## Current-candidate evidence rule
+The production recovery evidence currently described as a branch-point pass is not a full PITR/RPO/RTO certification. Tenant route-security coverage and functional API route acceptance have narrower CI/contract scopes and must not be upgraded to full business-flow certification.
 
-The authoritative identity of a handover candidate is generated by the same successful exact-head GitHub Actions `OpsCore secure release` workflow. For the verified candidate, run 43308699094 produced artifact `opscore-release-43308699094` and the nested `OpsCore-release.zip`; use the external release statement to bind commit, run ID, byte count and SHA-256. Use only this run's JUnit/step results, audit JSONs, i18n forensic evidence and artifact. Any subsequent source change invalidates that candidate identity.
+PR #103 remains a separate, unmerged signed tenant-context engineering track. Its remaining unsigned compatibility paths, authentication/purpose-specific contracts, independent asynchronous Knowledge pool, and full live runtime integration must be resolved before claiming complete trust-boundary coverage.
 
-Vercel Production deployment `dpl_JD2jLc2ifxtMezaoAovgFALmapjH` is READY on the verified candidate SHA. `/api/health` returned 200. Protected readiness/release/database endpoints require an authorized acceptance identity; a bare 401 is not a successful acceptance result. Neon Preview migration, RLS and role-grant proof must be queried on the actual Preview database as the runtime role.
+## Release gate
 
-PostgreSQL HTTP acceptance is PASS only when the evidence's source commit and pipeline ID exactly match the same candidate. When no dedicated acceptance URL is supplied, state NOT_VERIFIED; historical PASS evidence never qualifies for a newer candidate. This is seller-owned before handover. Commercial status is PASS_WITH_BUYER_RESIDUALS only when all required current-head gates pass and residuals are disclosed. Production certification remains NOT_ESTABLISHED and production isolation NOT_CERTIFIED until separate exact-target production evidence and authorization.
-
-## Production boundary
-
-Historical Neon catalog snapshot (2026-11-01; prior environment, not current-project evidence): PostgreSQL 18.6, 131 public base tables, 130 RLS+FORCE, 266 public policies, no non-PostGIS application table without RLS. That snapshot also reported no `public.schema_migrations`, a password-reset definer without `row_security=off`, and `opscore_gate` able to SET ROLE `neon_superuser`; those findings must not be carried forward as current facts. On the current Neon project `opscore-production` (database `opscore_acceptance`, main branch), a 2026-11-11 read-only catalog check found `public.schema_migrations` present, `opscore_create_password_reset_token(text,text,text,timestamptz)` SECURITY DEFINER with `row_security=off`, and no `opscore_gate` role. The actual Vercel runtime DB login role remains unverified because the deployed connection identity was not independently queried. This catalog inspection does not prove production-wide tenant isolation or authenticated behavior.
-
-Seller reference production is operator-identified to main commits via release proofs. Formal productionIsolationCertification remains NOT_CERTIFIED. Buyer production requires independent acceptance.
-
-## Release decision
-
-The source package may be delivered only after the exact current-head build statement, checksums, audit reports and Preview evidence have passed. Do not describe it as Production-certified, fully translated by humans, signed for app stores or connected to every external provider.
-
-## PostgreSQL HTTP acceptance — exact-head evidence
-
-The live PostgreSQL HTTP acceptance gate runs against the isolated acceptance database using the application runtime role. It is a current PASS only when the result generated by the archive-producing Pipeline carries the same source commit and Pipeline ID as the release statement. The current run's JUnit and `POSTGRES_HTTP_ACCEPTANCE_RESULT.json` are the authoritative evidence. A historical PASS from another commit or Pipeline never qualifies. This is a seller-owned pre-handover gate; it is not a buyer residual.
-
-## Commercial rights hold — effective 2026-11-14
-
-**NO LICENSE GRANT. NO SALE OR DISTRIBUTION AUTHORIZED.** The commercial model and any license grant are pending a separate decision by the rights holder. This document is technical/product information only; it grants no right to access, use, copy, modify, host, publish, distribute, sell, resell, sublicense, rent, transfer, or commercially exploit the OpsCore source. Do not issue a buyer delivery or sale listing until a separate written agreement is approved and signed by the rights holder. All rights are reserved. Technical test results, deployment status, release artifacts, hashes, SBOMs and attestations do not create or imply a license.
+An archive can be considered a verified technical candidate only when the exact-head workflow succeeds, the no-license package gate passes, the package round-trip and manifests verify, and the archive digest matches the same-run external release statement. While the commercial rights hold remains active, such an archive is for internal technical verification only and is **NOT LICENSED FOR DISTRIBUTION**.

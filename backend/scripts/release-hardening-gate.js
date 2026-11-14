@@ -29,7 +29,39 @@ check('cli-demo-no-hardcoded-passwords', !/password:\s*['"][^'"]+['"]/.test(cli)
 const runbook = fs.readFileSync(path.join(repoRoot, 'docs', '00-START-HERE', 'DEMO_RUNBOOK.md'), 'utf8');
 const legacyDemoCredentialMarker = ['Demo', 'Owner', '2026', 'Local!'].join('-');
 check('demo-runbook-no-legacy-password', !runbook.includes(legacyDemoCredentialMarker), 'runbook must not ship demo credentials');
-check('no-license-grant-notice-present', fs.existsSync(path.join(repoRoot, 'NO_LICENSE_GRANT_NOTICE.txt')) && !fs.existsSync(path.join(repoRoot, 'PROPRIETARY_LICENSE.txt')));
+const noLicenseNoticePath = path.join(repoRoot, 'NO_LICENSE_GRANT_NOTICE.txt');
+const noLicenseNotice = fs.existsSync(noLicenseNoticePath) ? fs.readFileSync(noLicenseNoticePath, 'utf8') : '';
+const licenseFilePattern = /(^|\/)(?:LICENSE|LICENCE)(?:\.[^/]*)?$/i;
+function findFirstPartyLicenseFiles(dir, relative = '') {
+  const found = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const rel = relative ? path.posix.join(relative, entry.name) : entry.name;
+    const absolute = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (entry.name !== 'node_modules' && entry.name !== '.git') {
+        found.push(...findFirstPartyLicenseFiles(absolute, rel));
+      }
+    } else if (entry.isFile() && licenseFilePattern.test(rel)) {
+      found.push(rel);
+    }
+  }
+  return found;
+}
+const conflictingLicenseFiles = findFirstPartyLicenseFiles(repoRoot);
+check(
+  'no-first-party-license-grant-files',
+  conflictingLicenseFiles.length === 0,
+  conflictingLicenseFiles.length ? conflictingLicenseFiles.join(', ') : 'no LICENSE/LICENCE files in first-party package tree'
+);
+check(
+  'no-license-grant-notice-present',
+  noLicenseNotice.includes('NO LICENSE GRANT') &&
+    /grants no permission or rights/i.test(noLicenseNotice) &&
+    /No sale, delivery, redistribution, resale, sublicensing/i.test(noLicenseNotice) &&
+    pkg.license === 'UNLICENSED' &&
+    !fs.existsSync(path.join(repoRoot, 'PROPRIETARY_LICENSE.txt')),
+  'explicit rights hold, package metadata UNLICENSED, and no conflicting first-party license file'
+);
 
 const config = read('src/config.js');
 check('storage-provider-explicit', /storageProvider/.test(config) && /STORAGE_PROVIDER/.test(config), 'unsupported providers fail closed');
