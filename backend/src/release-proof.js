@@ -188,7 +188,10 @@ function readEmbeddedBuildIdentity(identityPath = path.join(__dirname, 'opscore-
 }
 
 
-function readProductionSessionIsolationEvidence(filePath = path.join(__dirname, '..', 'docs', 'verification', 'PRODUCTION_SESSION_ISOLATION.json')) {
+function readProductionSessionIsolationEvidence(filePath = path.join(__dirname, '..', 'docs', 'verification', 'PRODUCTION_SESSION_ISOLATION.json'), env = process.env) {
+  if (String(env.OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE || '').trim().toLowerCase() !== 'true') {
+    return { status: 'NOT_VERIFIED', testedAt: null, checks: null };
+  }
   let evidence;
   try { evidence = JSON.parse(fs.readFileSync(filePath, 'utf8')); }
   catch { return { status: 'NOT_VERIFIED', testedAt: null, checks: null }; }
@@ -207,7 +210,10 @@ function readProductionSessionIsolationEvidence(filePath = path.join(__dirname, 
   };
 }
 
-function readProductionRecoveryPointEvidence(filePath = path.join(__dirname, '..', 'docs', 'verification', 'PRODUCTION_RECOVERY_POINT.json')) {
+function readProductionRecoveryPointEvidence(filePath = path.join(__dirname, '..', 'docs', 'verification', 'PRODUCTION_RECOVERY_POINT.json'), env = process.env) {
+  if (String(env.OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE || '').trim().toLowerCase() !== 'true') {
+    return { status: 'NOT_VERIFIED', testedAt: null };
+  }
   let evidence;
   try { evidence = JSON.parse(fs.readFileSync(filePath, 'utf8')); }
   catch { return { status: 'NOT_VERIFIED', testedAt: null }; }
@@ -275,8 +281,8 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
     acceptanceVerified
   );
 
-  const sessionIsolation = readProductionSessionIsolationEvidence();
-  const recoveryPoint = readProductionRecoveryPointEvidence();
+  const sessionIsolation = readProductionSessionIsolationEvidence(undefined, proofEnv);
+  const recoveryPoint = readProductionRecoveryPointEvidence(undefined, proofEnv);
 
   return {
     schemaVersion: 'opscore.public-release-proof.v2',
