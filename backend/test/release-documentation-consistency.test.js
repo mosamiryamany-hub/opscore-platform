@@ -255,3 +255,26 @@ test('current-facing release documents do not pin superseded candidate identitie
     assert.match(doc, /NO LICENSE GRANT|NO COMMERCIAL DISTRIBUTION/i);
   }
 });
+
+test('external release attestation statement includes explicit no-license fields', () => {
+  const attestation = read('scripts/write-release-attestation.js');
+  assert.match(attestation, /licenseGrant:\s*'NONE_PENDING_RIGHTS_HOLDER_DECISION'/);
+  assert.match(attestation, /distributionAuthorized:\s*false/);
+});
+
+test('handover docs do not advertise a bundled proprietary or use-only license file', () => {
+  const files = [
+    'README.md',
+    'docs/commercial/COMMERCIAL_TRANSFER_CHECKLIST.md',
+    'backend/docs/COMMERCIAL_HANDOFF.md',
+    'BUYER_DELIVERY.md',
+    'DELIVERY_MANIFEST.md',
+    'COMMERCIAL_CLOSURE_STATUS.md'
+  ];
+  for (const file of files) {
+    const doc = read(file);
+    assert.doesNotMatch(doc, /PROPRIETARY_LICENSE\.txt/);
+    assert.doesNotMatch(doc, /bundled license file is not a substitute/i);
+    assert.doesNotMatch(doc, /proprietary internal-use license/i);
+  }
+});
