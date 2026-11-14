@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "opscore.production-recovery-point.v1",
+  "status": "PASS",
+  "testedAt": "2026-11-14T10:26:27.095Z",
+  "parentBranchId": "br-wispy-term-bcrqqj84",
+  "recoveryBranchId": "br-sparkling-forest-bc71ee3s",
+  "recoveryBranchName": "opscore-prod-recovery-point-20261114-b",
+  "parentLsn": "0/85D9468",
+  "historyRetentionSeconds": 21600,
+  "tableCountCompared": 134,
+  "mismatchCount": 0,
+  "coreTenantTablesMatch": true,
+  "mismatches": [],
+  "note": "Branch-from-parent recovery point created from live production tip. Core tenant tables must match; ephemeral operational tables (audit/login_throttle/firewall) may differ if activity occurred after branch creation.",
+  "sourceCommitHint": "59c8f60a961db8a5f16bd2cf923bc9f327839278",
+  "evidenceClass": "PRODUCTION_BRANCH_RECOVERY_POINT"
+}

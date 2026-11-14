@@ -1,0 +1,264 @@
+{
+  "schemaVersion": "opscore.production-session-isolation.v1",
+  "status": "PASS",
+  "environment": "production",
+  "httpBase": "https://opscore-platform.vercel.app",
+  "testedAt": "2026-11-14T10:26:35.745Z",
+  "tenants": {
+    "A": {
+      "organizationId": "org_accept_a_aa2a1583fa7a",
+      "userId": "usr_accept_a_aa2a1583fa7a"
+    },
+    "B": {
+      "organizationId": "org_accept_b_511fee9d5504",
+      "userId": "usr_accept_b_511fee9d5504"
+    }
+  },
+  "checks": {
+    "dualLogin": "PASS",
+    "ownAssetCreate": "PASS",
+    "tenantListIsolation": "PASS",
+    "crossTenantAssetDenied": "PASS",
+    "crossTenantWriteDenied": "PASS",
+    "unauthenticatedDenied": "PASS",
+    "cleanupComplete": "PASS"
+  },
+  "probes": [
+    {
+      "phase": "own-read",
+      "label": "A",
+      "method": "GET",
+      "path": "/api/v1/me",
+      "status": 200
+    },
+    {
+      "phase": "own-read",
+      "label": "A",
+      "method": "GET",
+      "path": "/api/v1/session",
+      "status": 404
+    },
+    {
+      "phase": "own-read",
+      "label": "A",
+      "method": "GET",
+      "path": "/api/v1/organizations",
+      "status": 404
+    },
+    {
+      "phase": "own-read",
+      "label": "A",
+      "method": "GET",
+      "path": "/api/v1/users",
+      "status": 404
+    },
+    {
+      "phase": "own-read",
+      "label": "A",
+      "method": "GET",
+      "path": "/api/v1/assets",
+      "status": 200
+    },
+    {
+      "phase": "own-read",
+      "label": "A",
+      "method": "GET",
+      "path": "/api/v1/sites",
+      "status": 200
+    },
+    {
+      "phase": "own-read",
+      "label": "A",
+      "method": "GET",
+      "path": "/api/v1/work-orders",
+      "status": 200
+    },
+    {
+      "phase": "own-read",
+      "label": "A",
+      "method": "GET",
+      "path": "/api/v1/memberships",
+      "status": 404
+    },
+    {
+      "phase": "own-read",
+      "label": "B",
+      "method": "GET",
+      "path": "/api/v1/me",
+      "status": 200
+    },
+    {
+      "phase": "own-read",
+      "label": "B",
+      "method": "GET",
+      "path": "/api/v1/session",
+      "status": 404
+    },
+    {
+      "phase": "own-read",
+      "label": "B",
+      "method": "GET",
+      "path": "/api/v1/organizations",
+      "status": 404
+    },
+    {
+      "phase": "own-read",
+      "label": "B",
+      "method": "GET",
+      "path": "/api/v1/users",
+      "status": 404
+    },
+    {
+      "phase": "own-read",
+      "label": "B",
+      "method": "GET",
+      "path": "/api/v1/assets",
+      "status": 200
+    },
+    {
+      "phase": "own-read",
+      "label": "B",
+      "method": "GET",
+      "path": "/api/v1/sites",
+      "status": 200
+    },
+    {
+      "phase": "own-read",
+      "label": "B",
+      "method": "GET",
+      "path": "/api/v1/work-orders",
+      "status": 200
+    },
+    {
+      "phase": "own-read",
+      "label": "B",
+      "method": "GET",
+      "path": "/api/v1/memberships",
+      "status": 404
+    },
+    {
+      "phase": "cross-read",
+      "label": "A",
+      "method": "GET",
+      "path": "/api/v1/organizations/org_accept_b_511fee9d5504",
+      "status": 404
+    },
+    {
+      "phase": "cross-read",
+      "label": "B",
+      "method": "GET",
+      "path": "/api/v1/organizations/org_accept_a_aa2a1583fa7a",
+      "status": 404
+    },
+    {
+      "phase": "cross-read",
+      "label": "A",
+      "method": "GET",
+      "path": "/api/v1/users/usr_accept_b_511fee9d5504",
+      "status": 404
+    },
+    {
+      "phase": "cross-read",
+      "label": "B",
+      "method": "GET",
+      "path": "/api/v1/users/usr_accept_a_aa2a1583fa7a",
+      "status": 404
+    },
+    {
+      "phase": "own-write",
+      "label": "A",
+      "method": "POST",
+      "path": "/api/v1/assets",
+      "status": 201
+    },
+    {
+      "phase": "own-write",
+      "label": "B",
+      "method": "POST",
+      "path": "/api/v1/assets",
+      "status": 201
+    },
+    {
+      "phase": "list-after-write",
+      "label": "A",
+      "method": "GET",
+      "path": "/api/v1/assets",
+      "status": 200
+    },
+    {
+      "phase": "list-after-write",
+      "label": "B",
+      "method": "GET",
+      "path": "/api/v1/assets",
+      "status": 200
+    },
+    {
+      "phase": "cross-asset",
+      "label": "B",
+      "method": "GET",
+      "path": "/api/v1/assets/ast_cad4564b-5848-46d7-809b-18e761b7980b",
+      "status": 404
+    },
+    {
+      "phase": "cross-asset",
+      "label": "A",
+      "method": "GET",
+      "path": "/api/v1/assets/ast_125e482f-e7cc-49a3-8db1-6292c6f42e7e",
+      "status": 404
+    },
+    {
+      "phase": "cross-write",
+      "label": "A",
+      "method": "PATCH",
+      "path": "/api/v1/organizations/org_accept_b_511fee9d5504",
+      "status": 404
+    },
+    {
+      "phase": "cross-write",
+      "label": "B",
+      "method": "PATCH",
+      "path": "/api/v1/organizations/org_accept_a_aa2a1583fa7a",
+      "status": 404
+    },
+    {
+      "phase": "cross-write",
+      "label": "A",
+      "method": "DELETE",
+      "path": "/api/v1/users/usr_accept_b_511fee9d5504",
+      "status": 404
+    },
+    {
+      "phase": "cross-write",
+      "label": "B",
+      "method": "DELETE",
+      "path": "/api/v1/users/usr_accept_a_aa2a1583fa7a",
+      "status": 404
+    },
+    {
+      "phase": "unauth",
+      "label": "NONE",
+      "method": "GET",
+      "path": "/api/v1/me",
+      "status": 401
+    },
+    {
+      "phase": "unauth",
+      "label": "NONE",
+      "method": "GET",
+      "path": "/api/v1/assets",
+      "status": 401
+    }
+  ],
+  "cleanup": {
+    "assetsDeleted": [
+      "ast_cad4564b-5848-46d7-809b-18e761b7980b",
+      "ast_125e482f-e7cc-49a3-8db1-6292c6f42e7e"
+    ],
+    "sessionsDeleted": true,
+    "usersDisabled": true,
+    "organizationsClosed": true
+  },
+  "note": "Real dual-tenant HTTP sessions on production Control Plane. Cross-tenant reads/writes returned 404/401. Fixture users disabled and orgs closed after probe.",
+  "sourceCommitHint": "59c8f60a961db8a5f16bd2cf923bc9f327839278",
+  "evidenceClass": "PRODUCTION_HTTP_DUAL_TENANT_SESSION"
+}
