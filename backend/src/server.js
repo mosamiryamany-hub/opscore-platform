@@ -971,15 +971,35 @@ function auditSafeAi(store,c,workOrderId,out){
     throw new Error('AI_AUDIT_EVIDENCE_REQUIRED');
   }
 }
+function signedWorkOrdersReadEnabled(req) {
+  return process.env.VERCEL_ENV === 'preview'
+    && String(process.env.OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_ENABLED || '').toLowerCase() === 'true'
+    && String(req.method || '').toUpperCase() === 'GET'
+    && String(req.url || '').split('?')[0] === '/api/v1/work-orders';
+}
 function requireCtx(req, res) {
   const c = ctx(req);
   if (!c) {
     json(res, 401, { error: { code: 'UNAUTHENTICATED' } });
     return null;
   }
-  // Enforce Neon RLS for NOBYPASSRLS app role: bind session tenant GUC per request.
+  // The signed work-order slice pins a verified session principal in request-local
+  // state. Its route opens a READ ONLY transaction and binds the assertion to that
+  // backend/xid before running the real Store read. All other routes retain the
+  // legacy binder until their own signed-context migration and tests are complete.
   try {
-    if (store.db && typeof store.db.setSession === 'function' && c.organizationId) {
+    if (signedWorkOrdersReadEnabled(req)
+        && !c.apiKeyId
+        && c.sessionId
+        && store.db
+        && store.db.engine === 'postgres'
+        && typeof store.db.setVerifiedPrincipal === 'function') {
+      store.db.setVerifiedPrincipal({
+        sessionId: c.sessionId,
+        userId: c.userId || '',
+        tenantId: c.organizationId || ''
+      });
+    } else if (store.db && typeof store.db.setSession === 'function' && c.organizationId) {
       store.db.setSession({ tenantId: c.organizationId, userId: c.userId || '', accessMode: 'field' });
     }
   } catch (sessionError) {
@@ -2711,14 +2731,53 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
       }));
     } catch (e) { return fail(res, e); }
   }
-  if (req.method === 'GET' && url.pathname === '/api/v1/work-orders')
-    return json(res, 200, store.listWorkOrders(c, {
+  if (req.method === 'GET' && url.pathname === '/api/v1/work-orders') {
+    const filters = {
       q: url.searchParams.get('q'),
       status: url.searchParams.get('status'),
       priority: url.searchParams.get('priority'),
       assignedTo: url.searchParams.get('assignedTo'),
       limit: url.searchParams.get('limit')
-    }));
+    };
+    if (!signedWorkOrdersReadEnabled(req)) {
+      return json(res, 200, store.listWorkOrders(c, filters));
+    }
+    if (c.apiKeyId || !c.sessionId || store.db.engine !== 'postgres'
+        || typeof store.db.activateVerifiedTenantContext !== 'function') {
+      return json(res, 401, { error: { code: 'SIGNED_TENANT_SESSION_REQUIRED' } });
+    }
+    let transactionOpen = false;
+    try {
+      store.db.exec('BEGIN READ ONLY');
+      transactionOpen = true;
+      store.db.activateVerifiedTenantContext();
+
+      // CI-only red-team probe: the signed RLS accessors must ignore these
+      // caller-settable values while the signed assertion is transaction-bound.
+      if (String(process.env.OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_TAMPER_TEST || '').toLowerCase() === 'true') {
+        store.db.prepare(
+          "SELECT set_config('app.tenant_id', ?, true), set_config('app.user_id', ?, true), set_config('app.access_mode', ?, true)"
+        ).run('raw-guc-forged-tenant', 'raw-guc-forged-user', 'backoffice');
+      }
+
+      const result = store.listWorkOrders(c, filters);
+      store.db.exec('COMMIT');
+      transactionOpen = false;
+      return json(res, 200, result, {
+        'cache-control': 'no-store',
+        'x-opscore-signed-tenant-context': 'verified'
+      });
+    } catch (error) {
+      if (transactionOpen) {
+        try { store.db.exec('ROLLBACK'); } catch (_) { /* request teardown rolls back if necessary */ }
+      }
+      warn('signed_work_order_read_failed', {
+        errorCode: safeDatabaseErrorCode(error),
+        organizationId: c.organizationId
+      });
+      return json(res, 503, { error: { code: 'SIGNED_TENANT_WORK_ORDER_READ_FAILED' } }, { 'cache-control': 'no-store' });
+    }
+  }
   if (req.method === 'GET' && url.pathname === '/api/v1/search') {
     try {
       requireScope(c, 'read');

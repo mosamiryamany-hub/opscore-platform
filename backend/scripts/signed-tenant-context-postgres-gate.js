@@ -38,7 +38,7 @@ function queryHttp(port, route, token) {
       response.on('end', () => {
         let parsed = null;
         try { parsed = JSON.parse(body); } catch (_) { /* rejected below */ }
-        resolve({ status: response.statusCode, body: parsed });
+        resolve({ status: response.statusCode, headers: response.headers, body: parsed });
       });
     });
     request.on('timeout', () => request.destroy(new Error('HTTP_ACCEPTANCE_TIMEOUT')));
@@ -136,6 +136,7 @@ async function main() {
     tenantIds: [tenantA, tenantB],
     userIds: [userA, userB],
     sessionIds: [sessionA, sessionB],
+    workOrderIds: ['tc_wo_a_' + crypto.randomUUID().replace(/-/g, ''), 'tc_wo_b_' + crypto.randomUUID().replace(/-/g, '')],
     keyId
   };
 
@@ -201,6 +202,11 @@ async function main() {
       [sessionA, userA, tenantA, hashToken(tokenA), expiresAt, sessionB, userB, tenantB, hashToken(tokenB), expiresAt]
     );
     await owner.query(
+      'INSERT INTO public.work_orders(id,organization_id,number,title,created_by,created_at,updated_at) VALUES($1,$2,$3,$4,$5,now()::text,now()::text),($6,$7,$8,$9,$10,now()::text,now()::text)',
+      [synthetic.workOrderIds[0], tenantA, 'TC-A-' + keyId, 'Signed context tenant A work order', userA,
+       synthetic.workOrderIds[1], tenantB, 'TC-B-' + keyId, 'Signed context tenant B work order', userB]
+    );
+    await owner.query(
       'INSERT INTO opscore_security.context_probe_rows(id,organization_id,probe_value) VALUES($1,$2,$3),($4,$5,$6)',
       ['row-' + sessionA, tenantA, 'proof:' + tenantA, 'row-' + sessionB, tenantB, 'proof:' + tenantB]
     );
@@ -218,6 +224,8 @@ async function main() {
       AUTH_MODE: 'local',
       VERCEL_ENV: 'preview',
       OPSC_TENANT_CONTEXT_PROOF_ENABLED: 'true',
+      OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_ENABLED: 'true',
+      OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_TAMPER_TEST: 'true',
       OPSC_TENANT_CONTEXT_HMAC_KEY: keyHex,
       OPSC_TENANT_CONTEXT_KEY_ID: keyId,
       OPSC_PG_SSL_MODE: 'disable'
@@ -255,6 +263,32 @@ async function main() {
         }));
       }
     }
+
+    // A real authenticated product route now runs with the transaction-bound
+    // assertion. Its own preview-only test switch overwrites every legacy GUC
+    // with an attacker-selected Tenant B/backoffice identity before Store runs.
+    const signedWorkOrdersA = await queryHttp(port, '/api/v1/work-orders', tokenA);
+    const signedWorkOrdersB = await queryHttp(port, '/api/v1/work-orders', tokenB);
+    const assertSignedWorkOrders = (label, response, expectedId, expectedTenant) => {
+      const rows = response.body;
+      if (response.status !== 200
+          || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+          || !Array.isArray(rows)
+          || rows.length !== 1
+          || rows[0].id !== expectedId
+          || rows[0].organization_id !== expectedTenant) {
+        throw new Error('SIGNED_CONTEXT_REAL_WORK_ORDER_ROUTE_FAILED:' + JSON.stringify({
+          label,
+          status: response.status,
+          signedHeader: response.headers?.['x-opscore-signed-tenant-context'] || null,
+          rowCount: Array.isArray(rows) ? rows.length : null,
+          returnedIds: Array.isArray(rows) ? rows.map(row => row.id).slice(0, 3) : null,
+          serverOutput: serverOutput.slice(-2500)
+        }));
+      }
+    };
+    assertSignedWorkOrders('tenantA', signedWorkOrdersA, synthetic.workOrderIds[0], tenantA);
+    assertSignedWorkOrders('tenantB', signedWorkOrdersB, synthetic.workOrderIds[1], tenantB);
 
     clientA = new Client({ connectionString: runtimeUrl });
     clientB = new Client({ connectionString: runtimeUrl });
@@ -340,6 +374,9 @@ async function main() {
       checks: {
         tenantAHttpSession: 'PASS',
         tenantBHttpSession: 'PASS',
+        signedWorkOrdersTenantA: 'PASS',
+        signedWorkOrdersTenantB: 'PASS',
+        workOrdersRawGucTamperingIgnored: 'PASS',
         readOnlyBoundTransaction: 'PASS',
         rawGucTampering: 'PASS',
         unsignedGucDenied: 'PASS',
@@ -370,6 +407,7 @@ async function main() {
       if (serverProcess.exitCode === null) serverProcess.kill('SIGKILL');
     }
     try { await owner.query('DELETE FROM opscore_security.context_probe_rows WHERE organization_id = ANY($1::text[])', [synthetic.tenantIds]); } catch (_) {}
+    try { await owner.query('DELETE FROM public.work_orders WHERE id = ANY($1::text[])', [synthetic.workOrderIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.sessions WHERE id = ANY($1::text[])', [synthetic.sessionIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.memberships WHERE user_id = ANY($1::text[])', [synthetic.userIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.organization_governance WHERE organization_id = ANY($1::text[])', [synthetic.tenantIds]); } catch (_) {}
