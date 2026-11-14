@@ -127,7 +127,7 @@
     "postRestoreDataVerifiedWith": "Neon SQL query on restored main branch and retained pre-restore backup branch",
     "observedAtUtc": "2026-11-14T08:00:49Z",
     "productionDatabaseAccess": "NONE",
-    "otherProjectOrBranchChanges": "NONE"
+    "otherProjectOrBranchChanges": "No production or unrelated project was modified. A temporary 0.25-CU read-only compute endpoint was created on the automatic canary backup branch solely for SELECT verification, then deleted after the query."
   },
   "cleanup": {
     "mainReadWriteCompute": {
