@@ -125,9 +125,10 @@ test('per-route functional contract acceptance across the full API inventory', a
         } else if (route.route === '/api/verify/deployment' && status === 503 &&
             bodyPayload?.schemaVersion === 'opscore.public-deployment-proof.v2' &&
             bodyPayload?.status === 'unavailable' &&
-            bodyPayload?.source?.commitSha === null &&
-            bodyPayload?.deployment?.id === null &&
-            bodyPayload?.deployment?.environment === 'unknown') {
+            bodyPayload?.deployment?.id === null) {
+          // CI may inherit source-commit metadata, but without a Vercel deployment ID
+          // the endpoint must remain unavailable. Accept only this exact proof schema
+          // and explicit absence of a deployment ID; never generalize arbitrary 503s.
           bodyCode = 'LOCAL_NO_DEPLOYMENT_IDENTITY';
         }
       } catch (error) {

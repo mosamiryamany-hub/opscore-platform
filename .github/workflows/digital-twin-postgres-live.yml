@@ -42,6 +42,7 @@ on:
       - 'backend/scripts/api-inventory.js'
       - 'backend/sql/postgres/**'
       - 'backend/test/postgres-commercial-acceptance-http.test.js'
+      - 'backend/test/api-route-acceptance.test.js'
       - 'backend/test/release-proof.test.js'
       - 'backend/scripts/generate-production-acceptance-v1.js'
       - 'scripts/production-deployment-smoke.js'
