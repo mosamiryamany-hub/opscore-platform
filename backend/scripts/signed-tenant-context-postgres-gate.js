@@ -150,6 +150,7 @@ async function main() {
     sessionIds: [sessionA, sessionB],
     workOrderIds: ['tc_wo_a_' + crypto.randomUUID().replace(/-/g, ''), 'tc_wo_b_' + crypto.randomUUID().replace(/-/g, '')],
     idempotencyKeys: [],
+    bulkJobIds: [],
     keyId
   };
 
@@ -641,6 +642,119 @@ async function main() {
     signedWriteRouteProof.crossTenantCommentDenied = 'PASS';
     signedWriteRouteProof.crossTenantCommentNotPersisted = 'PASS';
 
+    // Bulk writes must carry the same transaction-bound assertion as single-item writes.
+    // This also proves that the endpoint retains its per-item NOT_FOUND semantics and
+    // cannot mutate a different tenant's work order.
+    const bulkKeyA = 'signed-context-ci-bulk-a-' + keyId;
+    const bulkKeyB = 'signed-context-ci-bulk-b-' + keyId;
+    const bulkKeyForeign = 'signed-context-ci-bulk-foreign-' + keyId;
+    synthetic.idempotencyKeys.push(bulkKeyA, bulkKeyB, bulkKeyForeign);
+    const bulkBodyA = {
+      workOrderIds: [synthetic.workOrderIds[0]],
+      operation: 'priority',
+      value: 'urgent'
+    };
+    const bulkA = await queryHttp(port, '/api/v1/work-orders/bulk', tokenA, {
+      method: 'POST',
+      headers: { 'idempotency-key': bulkKeyA },
+      body: bulkBodyA
+    });
+    if (bulkA.status !== 200
+        || bulkA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || bulkA.body?.schemaVersion !== 'opscore.bulk-work-order.v1'
+        || bulkA.body?.operation !== 'priority'
+        || bulkA.body?.requestedCount !== 1
+        || bulkA.body?.affectedCount !== 1
+        || bulkA.body?.failedCount !== 0
+        || !bulkA.body?.jobId) {
+      throw new Error('SIGNED_CONTEXT_BULK_WORK_ORDER_TENANT_A_FAILED:' + JSON.stringify({
+        status: bulkA.status, body: bulkA.body,
+        signedHeader: bulkA.headers?.['x-opscore-signed-tenant-context'] || null
+      }));
+    }
+    synthetic.bulkJobIds.push(bulkA.body.jobId);
+    signedWriteRouteProof.bulkTenantA = 'PASS';
+
+    const bulkReplayA = await queryHttp(port, '/api/v1/work-orders/bulk', tokenA, {
+      method: 'POST',
+      headers: { 'idempotency-key': bulkKeyA },
+      body: bulkBodyA
+    });
+    if (bulkReplayA.status !== 200
+        || bulkReplayA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || bulkReplayA.body?.jobId !== bulkA.body.jobId
+        || bulkReplayA.body?.affectedCount !== 1
+        || bulkReplayA.body?.failedCount !== 0) {
+      throw new Error('SIGNED_CONTEXT_BULK_WORK_ORDER_IDEMPOTENCY_REPLAY_FAILED:' + JSON.stringify({
+        status: bulkReplayA.status, body: bulkReplayA.body,
+        originalJobId: bulkA.body?.jobId,
+        signedHeader: bulkReplayA.headers?.['x-opscore-signed-tenant-context'] || null
+      }));
+    }
+    signedWriteRouteProof.bulkIdempotencyReplay = 'PASS';
+
+    const bulkBodyB = {
+      workOrderIds: [synthetic.workOrderIds[1]],
+      operation: 'priority',
+      value: 'high'
+    };
+    const bulkB = await queryHttp(port, '/api/v1/work-orders/bulk', tokenB, {
+      method: 'POST',
+      headers: { 'idempotency-key': bulkKeyB },
+      body: bulkBodyB
+    });
+    if (bulkB.status !== 200
+        || bulkB.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || bulkB.body?.requestedCount !== 1
+        || bulkB.body?.affectedCount !== 1
+        || bulkB.body?.failedCount !== 0
+        || !bulkB.body?.jobId) {
+      throw new Error('SIGNED_CONTEXT_BULK_WORK_ORDER_TENANT_B_FAILED:' + JSON.stringify({
+        status: bulkB.status, body: bulkB.body,
+        signedHeader: bulkB.headers?.['x-opscore-signed-tenant-context'] || null
+      }));
+    }
+    synthetic.bulkJobIds.push(bulkB.body.jobId);
+    signedWriteRouteProof.bulkTenantB = 'PASS';
+
+    const foreignBulk = await queryHttp(port, '/api/v1/work-orders/bulk', tokenA, {
+      method: 'POST',
+      headers: { 'idempotency-key': bulkKeyForeign },
+      body: {
+        workOrderIds: [synthetic.workOrderIds[1]],
+        operation: 'priority',
+        value: 'low'
+      }
+    });
+    if (foreignBulk.status !== 200
+        || foreignBulk.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || foreignBulk.body?.requestedCount !== 1
+        || foreignBulk.body?.affectedCount !== 0
+        || foreignBulk.body?.failedCount !== 1
+        || foreignBulk.body?.failures?.length !== 1
+        || foreignBulk.body?.failures[0]?.id !== synthetic.workOrderIds[1]
+        || foreignBulk.body?.failures[0]?.code !== 'NOT_FOUND'
+        || !foreignBulk.body?.jobId) {
+      throw new Error('SIGNED_CONTEXT_CROSS_TENANT_BULK_NOT_REJECTED:' + JSON.stringify({
+        status: foreignBulk.status, body: foreignBulk.body,
+        signedHeader: foreignBulk.headers?.['x-opscore-signed-tenant-context'] || null
+      }));
+    }
+    synthetic.bulkJobIds.push(foreignBulk.body.jobId);
+    const bulkBUnchanged = await queryHttp(
+      port, '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[1]), tokenB
+    );
+    if (bulkBUnchanged.status !== 200
+        || bulkBUnchanged.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || bulkBUnchanged.body?.priority !== 'high'
+        || bulkBUnchanged.body?.organization_id !== tenantB) {
+      throw new Error('SIGNED_CONTEXT_CROSS_TENANT_BULK_CHANGED_FOREIGN_ROW:' + JSON.stringify({
+        status: bulkBUnchanged.status, body: bulkBUnchanged.body
+      }));
+    }
+    signedWriteRouteProof.crossTenantBulkFailedNotFound = 'PASS';
+    signedWriteRouteProof.crossTenantBulkLeftForeignRowUnchanged = 'PASS';
+
     const transitionKeyA = 'signed-context-ci-transition-a-' + keyId;
     const transitionKeyB = 'signed-context-ci-transition-b-' + keyId;
     const transitionKeyForeign = 'signed-context-ci-transition-foreign-' + keyId;
@@ -947,6 +1061,8 @@ async function main() {
     try { await owner.query("DELETE FROM public.activity_log WHERE organization_id = ANY($1::text[]) AND entity_type='work_order' AND entity_id = ANY($2::text[])", [synthetic.tenantIds, synthetic.workOrderIds]); } catch (_) {}
     try { await owner.query("DELETE FROM public.audit_log WHERE organization_id = ANY($1::text[]) AND resource_type='work_order' AND resource_id = ANY($2::text[])", [synthetic.tenantIds, synthetic.workOrderIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.work_order_sla WHERE organization_id = ANY($1::text[]) AND work_order_id = ANY($2::text[])', [synthetic.tenantIds, synthetic.workOrderIds]); } catch (_) {}
+    try { await owner.query('DELETE FROM public.work_order_bulk_jobs WHERE organization_id = ANY($1::text[]) AND id = ANY($2::text[])', [synthetic.tenantIds, synthetic.bulkJobIds]); } catch (_) {}
+    try { await owner.query("DELETE FROM public.audit_log WHERE organization_id = ANY($1::text[]) AND resource_type='work_order_bulk_job' AND resource_id = ANY($2::text[])", [synthetic.tenantIds, synthetic.bulkJobIds]); } catch (_) {}
     try { await owner.query("DELETE FROM public.deleted_records WHERE organization_id = ANY($1::text[]) AND entity_type='work_order' AND entity_id = ANY($2::text[])", [synthetic.tenantIds, synthetic.workOrderIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.workflow_transition_log WHERE organization_id = ANY($1::text[]) AND entity_id = ANY($2::text[])', [synthetic.tenantIds, synthetic.workOrderIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.idempotency_records WHERE organization_id = ANY($1::text[]) AND idempotency_key = ANY($2::text[])', [synthetic.tenantIds, synthetic.idempotencyKeys]); } catch (_) {}
