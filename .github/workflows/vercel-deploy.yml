@@ -402,7 +402,6 @@ jobs:
           OPSC_PRODUCTION_NEON_BRANCH_ID: br-proud-salad-bcshhdap
           ISOLATION_CERT: ${{ steps.isolation_cert.outputs.certified }}
           BEHAVIORAL: ${{ steps.isolation_cert.outputs.behavioral }}
-          OPSC_PRODUCTION_NEON_BRANCH_ID: br-proud-salad-bcshhdap
         run: |
           set -euo pipefail
           node <<'NODE'
