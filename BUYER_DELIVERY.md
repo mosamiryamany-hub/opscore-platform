@@ -16,7 +16,7 @@ Any source change invalidates the previous candidate identity. Historical runs a
 
 ## Seller-reference technical evidence
 
-The current public production endpoints identify the deployed seller-reference commit and expose health, release, and database-security proof. The live release proof reports `PASS_WITH_BUYER_RESIDUALS` and `productionIsolationCertification=CERTIFIED` for the seller reference only. Those results are bound to that exact deployment and do not certify a buyer environment or grant commercial rights.
+The Vercel Production deployment is `READY`, but that status is not tenant-isolation certification. The stored session-isolation and recovery records contain evidence-rebind markers with `probesReexecuted=false`, and the recovery record refers to a previous Neon branch. Seller-reference production isolation is therefore `NOT_VERIFIED` until fresh dual-tenant and recovery probes are bound to the exact active application commit and Neon Production branch and independently reviewed. Buyer production is not certified, and no technical status grants commercial rights.
 
 The recovery proof is a branch-point comparison. It must not be represented as a full PITR/RPO/RTO certification. Functional route coverage and contract acceptance remain separately scoped from complete business-flow certification.
 

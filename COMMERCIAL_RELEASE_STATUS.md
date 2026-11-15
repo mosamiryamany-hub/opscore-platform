@@ -6,7 +6,7 @@
 **Technical classification:** `PASS_WITH_BUYER_RESIDUALS` only when the exact-head release gates pass.  
 **Commercial license:** `NONE_PENDING_RIGHTS_HOLDER_DECISION`.  
 **Distribution authorization:** `false`.  
-**Production isolation:** Seller-reference certification is scoped to the exact live seller deployment; buyer environments remain NOT CERTIFIED.
+**Production isolation:** Seller-reference isolation is NOT_VERIFIED pending fresh commit-and-Neon-branch-bound probes; buyer environments remain NOT CERTIFIED.
 
 ## Exact-run identity
 

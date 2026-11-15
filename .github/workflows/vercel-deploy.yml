@@ -233,6 +233,7 @@ jobs:
         run: node scripts/write-vercel-release-identity.js
         env:
           OPSC_RELEASE_PACKAGE_SHA256: ${{ steps.package_fp.outputs.sha }}
+          OPSC_PRODUCTION_NEON_BRANCH_ID: br-proud-salad-bcshhdap
           OPSC_RELEASE_PACKAGE_COMMIT: ${{ github.sha }}
       - name: Generate scoped production acceptance v2 evidence (read-only live DB + bound CI proofs)
         id: generate_acceptance
@@ -290,6 +291,7 @@ jobs:
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_RUN_ID: ${{ github.run_id }}
           OPSC_RELEASE_PACKAGE_SHA256: ${{ steps.package_fp.outputs.sha }}
+          OPSC_PRODUCTION_NEON_BRANCH_ID: br-proud-salad-bcshhdap
         run: |
           set -euo pipefail
           node <<'NODE'
@@ -327,9 +329,12 @@ jobs:
                 const session = JSON.parse(fs.readFileSync(path.join('backend','docs','verification','PRODUCTION_SESSION_ISOLATION.json'),'utf8'));
                 const recovery = JSON.parse(fs.readFileSync(path.join('backend','docs','verification','PRODUCTION_RECOVERY_POINT.json'),'utf8'));
                 const expectedCommit = String(process.env.GITHUB_SHA || '').trim().toLowerCase();
+                const expectedBranch = String(process.env.OPSC_PRODUCTION_NEON_BRANCH_ID || '').trim();
                 const sourceCommitMatches = (evidence) => expectedCommit.length === 40 && String(evidence.sourceCommitHint || '').trim().toLowerCase() === expectedCommit;
-                const sOk = session.schemaVersion === 'opscore.production-session-isolation.v1' && session.status === 'PASS' && sourceCommitMatches(session);
-                const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v1' && recovery.status === 'PASS' && recovery.coreTenantTablesMatch === true && Number(recovery.mismatchCount) === 0 && sourceCommitMatches(recovery);
+                const sourceBranchMatches = (evidence) => Boolean(expectedBranch) && String(evidence.parentBranchId || '').trim() === expectedBranch;
+                const noEvidenceRebind = (evidence) => evidence.evidenceRebind == null;
+                const sOk = session.schemaVersion === 'opscore.production-session-isolation.v1' && session.status === 'PASS' && sourceCommitMatches(session) && sourceBranchMatches(session) && noEvidenceRebind(session);
+                const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v1' && recovery.status === 'PASS' && recovery.coreTenantTablesMatch === true && Number(recovery.mismatchCount) === 0 && sourceCommitMatches(recovery) && sourceBranchMatches(recovery) && noEvidenceRebind(recovery);
                 return sOk && rOk;
               } catch { return false; }
             }
@@ -358,35 +363,6 @@ jobs:
           })().catch(e => { console.error(e); process.exit(1); });
           NODE
 
-      - name: Stamp production behavioral evidence with deploy candidate commit
-        run: |
-          set -euo pipefail
-          node <<'NODE'
-          const fs = require('fs');
-          const path = require('path');
-          const commit = String(process.env.GITHUB_SHA || '').trim().toLowerCase();
-          if (!/^[a-f0-9]{40}$/.test(commit)) throw new Error('GITHUB_SHA_INVALID');
-          for (const rel of [
-            ['backend','docs','verification','PRODUCTION_SESSION_ISOLATION.json'],
-            ['backend','docs','verification','PRODUCTION_RECOVERY_POINT.json']
-          ]) {
-            const file = path.join(...rel);
-            const data = JSON.parse(fs.readFileSync(file, 'utf8'));
-            if (data.status !== 'PASS') throw new Error('BEHAVIORAL_EVIDENCE_NOT_PASS:' + file);
-            const prev = data.sourceCommitHint || null;
-            data.sourceCommitHint = commit;
-            data.evidenceRebind = Object.assign({}, data.evidenceRebind || {}, {
-              kind: 'schema_compatible_candidate_rebind',
-              fromCommit: prev,
-              toCommit: commit,
-              stampedAtDeploy: true,
-              probesReexecuted: false
-            });
-            fs.writeFileSync(file, JSON.stringify(data, null, 2) + '\n');
-            console.log('STAMPED', file, 'from', prev, 'to', commit);
-          }
-          NODE
-
       - name: Resolve production isolation certification from behavioral evidence
         id: isolation_cert
         run: |
@@ -399,9 +375,12 @@ jobs:
               const session = JSON.parse(fs.readFileSync(path.join('backend','docs','verification','PRODUCTION_SESSION_ISOLATION.json'),'utf8'));
               const recovery = JSON.parse(fs.readFileSync(path.join('backend','docs','verification','PRODUCTION_RECOVERY_POINT.json'),'utf8'));
               const expectedCommit = String(process.env.GITHUB_SHA || '').trim().toLowerCase();
+              const expectedBranch = String(process.env.OPSC_PRODUCTION_NEON_BRANCH_ID || '').trim();
               const sourceCommitMatches = (evidence) => expectedCommit.length === 40 && String(evidence.sourceCommitHint || '').trim().toLowerCase() === expectedCommit;
-              const sOk = session.schemaVersion === 'opscore.production-session-isolation.v1' && session.status === 'PASS' && sourceCommitMatches(session);
-              const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v1' && recovery.status === 'PASS' && recovery.coreTenantTablesMatch === true && Number(recovery.mismatchCount) === 0 && sourceCommitMatches(recovery);
+              const sourceBranchMatches = (evidence) => Boolean(expectedBranch) && String(evidence.parentBranchId || '').trim() === expectedBranch;
+                const noEvidenceRebind = (evidence) => evidence.evidenceRebind == null;
+              const sOk = session.schemaVersion === 'opscore.production-session-isolation.v1' && session.status === 'PASS' && sourceCommitMatches(session) && sourceBranchMatches(session) && noEvidenceRebind(session);
+              const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v1' && recovery.status === 'PASS' && recovery.coreTenantTablesMatch === true && Number(recovery.mismatchCount) === 0 && sourceCommitMatches(recovery) && sourceBranchMatches(recovery) && noEvidenceRebind(recovery);
               return sOk && rOk;
             } catch { return false; }
           }
@@ -412,7 +391,7 @@ jobs:
           console.log('ISOLATION_CERT', ok ? 'CERTIFIED' : 'NOT_CERTIFIED');
           NODE
 
-      - name: Republish release identity and certification env after evidence stamp
+      - name: Publish release identity and certification env after evidence validation
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
@@ -420,6 +399,7 @@ jobs:
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_RUN_ID: ${{ github.run_id }}
           OPSC_RELEASE_PACKAGE_SHA256: ${{ steps.package_fp.outputs.sha }}
+          OPSC_PRODUCTION_NEON_BRANCH_ID: br-proud-salad-bcshhdap
           ISOLATION_CERT: ${{ steps.isolation_cert.outputs.certified }}
           BEHAVIORAL: ${{ steps.isolation_cert.outputs.behavioral }}
         run: |
@@ -453,11 +433,16 @@ jobs:
           }
           (async () => {
             const envs = await req('GET', '/v9/projects/' + projectId + '/env');
+            const releaseVerified = process.env.ISOLATION_CERT === 'CERTIFIED'
+              && process.env.BEHAVIORAL === 'true'
+              && /^[a-f0-9]{40}$/.test(String(process.env.GITHUB_SHA || '').toLowerCase())
+              && /^[a-f0-9]{64}$/.test(String(process.env.OPSC_RELEASE_PACKAGE_SHA256 || '').toLowerCase())
+              && /^[a-f0-9]{64}$/.test(String(process.env.EVIDENCE_SHA || '').toLowerCase());
             const want = {
               OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: process.env.EVIDENCE_SHA,
               OPSC_PRODUCTION_ISOLATION_CERTIFICATION: process.env.ISOLATION_CERT || 'NOT_CERTIFIED',
               OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE: process.env.BEHAVIORAL === 'true' ? 'true' : 'false',
-              OPSC_RELEASE_VERIFIED: 'true',
+              OPSC_RELEASE_VERIFIED: releaseVerified ? 'true' : 'false',
               OPSC_RELEASE_CI_COMMIT: String(process.env.GITHUB_SHA || '').toLowerCase(),
               OPSC_RELEASE_CI_PIPELINE_ID: String(process.env.GITHUB_RUN_ID || ''),
               OPSC_RELEASE_CI_REF: 'main',
@@ -465,7 +450,7 @@ jobs:
               OPSC_RELEASE_DEPLOYMENT_SOURCE: 'github-actions-cli',
               OPSC_RELEASE_PACKAGE_SHA256: String(process.env.OPSC_RELEASE_PACKAGE_SHA256 || ''),
               OPSC_RELEASE_PACKAGE_COMMIT: String(process.env.GITHUB_SHA || '').toLowerCase(),
-              OPSC_PRODUCTION_HOLD: 'false'
+              OPSC_PRODUCTION_HOLD: releaseVerified ? 'false' : 'true'
             };
             for (const [key, value] of Object.entries(want)) {
               if (!value) continue;
@@ -512,6 +497,7 @@ jobs:
           OPSC_SOURCE_COMMIT_SHA: ${{ github.sha }}
           OPSC_RELEASE_CI_REF: ${{ github.ref_name }}
           OPSC_RELEASE_PACKAGE_SHA256: ${{ steps.package_fp.outputs.sha }}
+          OPSC_PRODUCTION_NEON_BRANCH_ID: br-proud-salad-bcshhdap
           OPSC_RELEASE_PACKAGE_COMMIT: ${{ github.sha }}
           OPSC_PRODUCTION_ISOLATION_CERTIFICATION: ${{ steps.isolation_cert.outputs.certified }}
           OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE: ${{ steps.isolation_cert.outputs.behavioral }}
@@ -580,6 +566,7 @@ jobs:
           OPSC_SOURCE_COMMIT_SHA: ${{ github.sha }}
           OPSC_RELEASE_CI_REF: ${{ github.ref_name }}
           OPSC_RELEASE_PACKAGE_SHA256: ${{ steps.package_fp.outputs.sha }}
+          OPSC_PRODUCTION_NEON_BRANCH_ID: br-proud-salad-bcshhdap
           OPSC_RELEASE_PACKAGE_COMMIT: ${{ github.sha }}
           OPSC_PRODUCTION_ISOLATION_CERTIFICATION: ${{ steps.isolation_cert.outputs.certified }}
           OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE: ${{ steps.isolation_cert.outputs.behavioral }}

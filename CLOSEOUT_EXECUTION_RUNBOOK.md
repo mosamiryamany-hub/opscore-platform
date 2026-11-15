@@ -4,7 +4,7 @@ Candidate branch: use the active pull-request branch shown by GitHub; do not tre
 Candidate CI/package status: PASS_WITH_BUYER_RESIDUALS only when the exact-head GitHub Actions Secure Release workflow succeeds. Clean extracted-install and matching Preview acceptance are separate handover gates.
 Main: the current branch head is authoritative; this runbook intentionally stores no fixed commit or pipeline identity.
 Overall buyer/product qualification: NOT ESTABLISHED; seller-reference production evidence has a narrower, exact-target scope.
-Production isolation certification: CERTIFIED for the current seller reference only when confirmed by the live exact-deployment proof; buyer environments remain NOT CERTIFIED.
+Production isolation certification: NOT_VERIFIED for the current seller reference until fresh dual-tenant and recovery probes are bound to the exact active application commit and Neon Production branch; buyer environments remain NOT CERTIFIED.
 
 ## 1. Release identity and no-stale-evidence rule
 
@@ -49,7 +49,7 @@ Historical observation from an earlier environment (2026-11-01): that snapshot r
 
 Current read-only catalog check (2026-11-11) on Neon project `opscore-production`, database `opscore_acceptance`, branch `main` found `public.schema_migrations` present; `opscore_create_password_reset_token(text,text,text,timestamptz)` is SECURITY DEFINER with function settings `search_path=public, pg_temp` and `row_security=off`; role `opscore_gate` was absent. This inspection used Neon management access as `neondb_owner`, not the exact connection identity consumed by Vercel. The actual Vercel production DB login role remains NOT_VERIFIED. This catalog snapshot does not certify authenticated application behavior, tenant isolation, or recovery. No role or permission change was made.
 
-Seller-reference production is deployment-identified against main. The current live release and database-security proofs report seller-reference production isolation as CERTIFIED, based on bound behavioral and recovery-point evidence. This is not transferable: buyer environments require independent verification. The recovery-point evidence is a branch-point comparison, not full PITR/RPO/RTO certification.
+Seller-reference Production deployment is identified, but the stored behavioral and recovery evidence is NOT_VERIFIED for the active Production commit/branch: it was rebound without rerunning probes and the recovery record refers to a previous Neon branch. The evidence-integrity change in review now rejects such records; a new dual-tenant Production probe and recovery-point comparison are still required. This is not transferable: buyer environments require independent verification. The recovery-point evidence is a branch-point comparison, not full PITR/RPO/RTO certification.
 
 ## 7. Stop conditions
 
