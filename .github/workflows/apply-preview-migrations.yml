@@ -101,6 +101,7 @@ jobs:
 
       - name: Dry-run migrations on Preview
         env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
           OPSC_MIGRATION_TARGET_CLASS: preview
           OPSC_MIGRATION_EXPECTED_DATABASE: ${{ steps.neon.outputs.database }}
           OPSC_MIGRATION_EXPECTED_HOST: ${{ steps.neon.outputs.host }}
@@ -130,6 +131,7 @@ jobs:
 
       - name: Apply migrations on Preview only
         env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
           OPSC_MIGRATION_TARGET_CLASS: preview
           OPSC_MIGRATION_EXPECTED_DATABASE: ${{ steps.neon.outputs.database }}
           OPSC_MIGRATION_EXPECTED_HOST: ${{ steps.neon.outputs.host }}
