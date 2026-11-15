@@ -14,13 +14,9 @@ The authoritative package notice is `NO_LICENSE_GRANT_NOTICE.txt`. Package metad
 
 ## Seller-reference technical evidence
 
-The live seller-reference release proof currently reports:
-- health and deployment identity are available and identify the running production commit;
-- technical classification `PASS_WITH_BUYER_RESIDUALS`;
-- seller-reference `productionIsolationCertification=CERTIFIED`;
-- database catalog proof `IDENTITY_PLANE_RLS_ENFORCED`.
+The current stored Production session-isolation and recovery evidence is `NOT_VERIFIED`: both records contain an evidence-rebind marker with `probesReexecuted=false`, and the recovery record refers to a previous Neon branch rather than the active Production branch. The evidence commit therefore cannot certify the current deployment/database pair. Vercel Production metadata still contains certification/release values that conflict with those embedded records; treat those values as stale, not as proof.
 
-These statuses apply only to the exact seller production target and the evidence exposed by its verification endpoints. They are not transferable to a buyer environment and do not certify every buyer business flow. The reported recovery proof is a branch-point comparison, not complete PITR/RPO/RTO certification.
+Do not claim seller-reference `productionIsolationCertification=CERTIFIED` until new dual-tenant Production probes and a real recovery-point comparison are rerun against the exact current application commit and active Neon Production branch, with independent review. A `READY` Vercel deployment or successful CI run is not a substitute. Buyer environments remain NOT CERTIFIED.
 
 ## Remaining engineering and buyer-environment work
 
