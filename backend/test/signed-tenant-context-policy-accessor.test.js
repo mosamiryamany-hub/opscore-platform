@@ -12,7 +12,7 @@ const previousMigration = path.join(ROOT, 'sql', 'postgres', '066_signed_tenant_
 
 test('signed tenant policy alignment follows verifier search-path hardening', () => {
   assert.ok(fs.existsSync(previousMigration), '066 verifier hardening must precede 067 policy alignment');
-  assert.match(migration, /^BEGIN;/);
+  assert.match(migration.replace(/^--[^\\n]*(?:\\r?\\n|$)/gm, '').trimStart(), /^BEGIN;/);
   assert.match(migration.trimEnd(), /COMMIT;$/);
 });
 
