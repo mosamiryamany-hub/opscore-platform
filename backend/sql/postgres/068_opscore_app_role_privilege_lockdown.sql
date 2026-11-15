@@ -20,7 +20,7 @@ DECLARE
   active_sessions bigint;
   owned_objects bigint;
   incoming_memberships bigint;
-  unexpected_elevated_memberships text[];
+  unexpected_memberships text[];
   app_is_superuser boolean;
 BEGIN
   SELECT oid, rolsuper
@@ -71,16 +71,14 @@ BEGIN
       array_agg(elevated.rolname ORDER BY elevated.rolname),
       ARRAY[]::text[]
     )
-      INTO unexpected_elevated_memberships
+      INTO unexpected_memberships
     FROM pg_catalog.pg_auth_members membership
     JOIN pg_catalog.pg_roles elevated ON elevated.oid = membership.roleid
     WHERE membership.member = app_role_oid
-      AND (elevated.rolsuper OR elevated.rolbypassrls
-           OR elevated.rolcreaterole OR elevated.rolcreatedb)
       AND elevated.rolname <> 'neon_superuser';
 
-    IF cardinality(unexpected_elevated_memberships) <> 0 THEN
-      RAISE EXCEPTION 'OPSC_LEGACY_APP_ROLE_HAS_UNEXPECTED_ELEVATED_MEMBERSHIP';
+    IF cardinality(unexpected_memberships) <> 0 THEN
+      RAISE EXCEPTION 'OPSC_LEGACY_APP_ROLE_HAS_UNEXPECTED_ROLE_MEMBERSHIP';
     END IF;
 
     EXECUTE 'ALTER ROLE opscore_app RENAME TO opscore_app_quarantined_20261115';
