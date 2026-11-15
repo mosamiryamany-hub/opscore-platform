@@ -1003,6 +1003,11 @@ function signedWorkOrdersWriteEnabled(req) {
 function signedWorkOrdersContextEnabled(req) {
   return signedWorkOrdersReadEnabled(req) || signedWorkOrdersWriteEnabled(req);
 }
+
+function signedSessionAutobindEnabled() {
+  return process.env.VERCEL_ENV === 'preview'
+    && String(process.env.OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED || '').trim().toLowerCase() === 'true';
+}
 function runSignedWorkOrdersRead(res, c, reader, responseHeaders = {}) {
   if (c.apiKeyId || !c.sessionId || !store.db || store.db.engine !== 'postgres'
       || typeof store.db.activateVerifiedTenantContext !== 'function') {
@@ -1146,7 +1151,7 @@ function requireCtx(req, res) {
   // Their handlers use one READ ONLY transaction bound to backend/xid; all writes,
   // PDF streaming, evidence-integrity auditing, and other routes keep their own paths.
   try {
-    if (signedWorkOrdersContextEnabled(req)
+    if ((signedSessionAutobindEnabled() || signedWorkOrdersContextEnabled(req))
         && !c.apiKeyId
         && c.sessionId
         && store.db
