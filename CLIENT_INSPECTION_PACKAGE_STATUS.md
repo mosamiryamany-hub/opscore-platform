@@ -21,7 +21,7 @@ An attestation proves provenance of the exact artifact; it does not grant rights
 
 ## Seller-reference production proof
 
-The public production health, deployment, release and database-security endpoints currently identify the seller-operated deployment. The live release proof reports `PASS_WITH_BUYER_RESIDUALS` and `productionIsolationCertification=CERTIFIED` for the seller reference only. Buyer production is not certified by seller-reference evidence. The recovery evidence is a branch-point comparison, not full PITR/RPO/RTO certification. Tenant-route coverage and functional API contract acceptance remain narrower scopes than complete business-flow acceptance.
+The Vercel Production deployment is `READY`, but deployment readiness is not tenant-isolation certification. The stored session-isolation and recovery records contain evidence-rebind markers with `probesReexecuted=false`, and the recovery record is bound to a previous Neon branch. Current seller-reference production isolation is therefore `NOT_VERIFIED` until fresh dual-tenant probes and a recovery-point comparison are bound to the exact active application commit and Neon Production branch. Buyer production remains NOT CERTIFIED. A branch-point comparison is not full PITR/RPO/RTO certification; tenant-route coverage and functional API contract acceptance are narrower than complete business-flow acceptance.
 
 ## Buyer/environment residuals
 
