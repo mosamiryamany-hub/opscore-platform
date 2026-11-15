@@ -84,13 +84,13 @@ jobs:
           echo "branch_id=$BRANCH_ID" >> "$GITHUB_OUTPUT"
           echo "branch_name=$BRANCH_NAME" >> "$GITHUB_OUTPUT"
           echo "Resolved Preview branch: $BRANCH_NAME ($BRANCH_ID)"
-          ENDPOINTS=$(curl -fsS "${AUTH_H[@]}" "https://console.neon.tech/api/v2/projects/${PROJECT_ID}/branches/${BRANCH_ID}/endpoints")
-          ENDPOINT_ID=$(echo "$ENDPOINTS" | python3 -c 'import json,sys;eps=json.load(sys.stdin).get("endpoints") or []; print(next((e["id"] for e in eps if e.get("type")=="read_write"), eps[0]["id"] if eps else ""))')
-          test -n "$ENDPOINT_ID"
-          URI_JSON=$(curl -fsS -X POST "${AUTH_H[@]}" -H "Content-Type: application/json" \
+          curl -fsS -G "${AUTH_H[@]}" \
+            --data-urlencode "branch_id=${BRANCH_ID}" \
+            --data-urlencode "database_name=${INPUT_DB}" \
+            --data-urlencode "role_name=neondb_owner" \
+            --data-urlencode "pooled=false" \
             "https://console.neon.tech/api/v2/projects/${PROJECT_ID}/connection_uri" \
-            -d "{\"branch_id\":\"${BRANCH_ID}\",\"endpoint_id\":\"${ENDPOINT_ID}\",\"database_name\":\"${INPUT_DB}\",\"role_name\":\"neondb_owner\"}")
-          echo "$URI_JSON" > "$RUNNER_TEMP/uri.json"
+            > "$RUNNER_TEMP/uri.json"
           python3 -c 'import json,os;u=json.load(open(os.environ["RUNNER_TEMP"]+"/uri.json"))["uri"]; assert u.startswith("postgres"); assert "-pooler" not in u; open(os.environ["RUNNER_TEMP"]+"/preview.uri","w").write(u)'
           chmod 600 "$RUNNER_TEMP/preview.uri"
           HOST=$(python3 -c 'from urllib.parse import urlparse; print(urlparse(open("'"$RUNNER_TEMP"'/preview.uri").read()).hostname)')
