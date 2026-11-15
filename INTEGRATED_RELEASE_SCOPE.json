@@ -34,7 +34,7 @@
   },
   "production": {
     "healthAndDeploymentIdentity": "VERIFY_LIVE_ENDPOINTS_FOR_EXACT_DEPLOYMENT",
-    "productionIsolationCertification": "CERTIFIED_FOR_EXACT_SELLER_REFERENCE_ONLY",
+    "productionIsolationCertification": "NOT_VERIFIED_PENDING_FRESH_COMMIT_AND_BRANCH_BOUND_PROBES",
     "buyerEnvironmentCertification": "NOT_ESTABLISHED",
     "broaderProductQualification": "NOT_ESTABLISHED",
     "recoveryEvidence": "BRANCH_POINT_COMPARISON_ONLY; NOT_FULL_PITR_RPO_RTO_CERTIFICATION",
