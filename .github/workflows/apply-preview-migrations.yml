@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       branch:
-        description: Preview branch id or name (empty = auto-detect non-primary preview/vercel/dev)
+        description: Preview branch id or name (empty = auto-detect non-primary)
         required: false
-        default: ""
+        default: "br-fragrant-king-bcr9928f"
       database:
         description: Target database name
         required: false
@@ -50,35 +50,8 @@ jobs:
           PROJECT_ID="summer-leaf-18448271"
           AUTH_H=(-H "Authorization: Bearer ${NEON_API_KEY}" -H "Accept: application/json")
           BRANCHES=$(curl -fsS "${AUTH_H[@]}" "https://console.neon.tech/api/v2/projects/${PROJECT_ID}/branches")
-          python3 - <<'PY' > "$RUNNER_TEMP/branch.json"
-          import json, os, sys
-          data=json.load(sys.stdin)
-          branches=data.get("branches") or data
-          want=(os.environ.get("INPUT_BRANCH") or "").strip()
-          chosen=None
-          for b in branches:
-            bid=str(b.get("id") or "")
-            name=str(b.get("name") or "")
-            lname=name.lower()
-            primary=bool(b.get("primary") or b.get("default"))
-            if want:
-              if want in (bid, name):
-                chosen=b; break
-            else:
-              if primary:
-                continue
-              if "preview" in lname or "vercel" in lname or "dev" in lname or "fragrant" in lname or "signed" in lname:
-                chosen=b
-                if "preview" in lname or "fragrant" in lname:
-                  break
-          if not chosen:
-            print("PREVIEW_BRANCH_NOT_FOUND", file=sys.stderr); sys.exit(1)
-          if chosen.get("primary") or chosen.get("default"):
-            print("REFUSING_PRIMARY_BRANCH", file=sys.stderr); sys.exit(1)
-          print(json.dumps({"id": chosen["id"], "name": chosen.get("name"), "project_id": os.environ.get("PROJECT_ID","summer-leaf-18448271")}))
-          PY
-          <<<"$BRANCHES" python3 - <<'PY' > "$RUNNER_TEMP/branch.json"
-          import json, os, sys
+          echo "$BRANCHES" | python3 -c '
+          import json,os,sys
           data=json.load(sys.stdin)
           branches=data.get("branches") or data
           want=(os.environ.get("INPUT_BRANCH") or "").strip()
@@ -93,41 +66,41 @@ jobs:
               if want in (bid, name):
                 chosen=b; break
             else:
-              if primary:
-                continue
+              if primary: continue
               if any(k in lname for k in ("preview","vercel","dev","fragrant","signed","accept")):
                 chosen=b
-                if "preview" in lname or "fragrant" in lname:
-                  break
+                if "preview" in lname or "fragrant" in lname: break
           if not chosen:
             print("PREVIEW_BRANCH_NOT_FOUND", file=sys.stderr); sys.exit(1)
           if chosen.get("primary") or chosen.get("default"):
             print("REFUSING_PRIMARY_BRANCH", file=sys.stderr); sys.exit(1)
-          print(json.dumps({"id": chosen["id"], "name": chosen.get("name"), "project_id": project_id}))
-          PY
-          BRANCH_ID=$(python3 -c 'import json;print(json.load(open("'"$RUNNER_TEMP"'/branch.json"))["id"])')
-          BRANCH_NAME=$(python3 -c 'import json;print(json.load(open("'"$RUNNER_TEMP"'/branch.json"))["name"])')
+          open(os.environ["RUNNER_TEMP"]+"/branch.json","w").write(json.dumps({
+            "id": chosen["id"], "name": chosen.get("name"), "project_id": project_id
+          }))
+          print("branch", chosen.get("name"), chosen["id"])
+          '
+          BRANCH_ID=$(python3 -c 'import json,os;print(json.load(open(os.environ["RUNNER_TEMP"]+"/branch.json"))["id"])')
+          BRANCH_NAME=$(python3 -c 'import json,os;print(json.load(open(os.environ["RUNNER_TEMP"]+"/branch.json"))["name"])')
           echo "branch_id=$BRANCH_ID" >> "$GITHUB_OUTPUT"
           echo "branch_name=$BRANCH_NAME" >> "$GITHUB_OUTPUT"
           echo "Resolved Preview branch: $BRANCH_NAME ($BRANCH_ID)"
-          # connection URI (direct, non-pooler)
           ENDPOINTS=$(curl -fsS "${AUTH_H[@]}" "https://console.neon.tech/api/v2/projects/${PROJECT_ID}/branches/${BRANCH_ID}/endpoints")
-          ENDPOINT_ID=$(python3 -c 'import json,sys;eps=json.load(sys.stdin).get("endpoints") or []; print(next((e["id"] for e in eps if e.get("type")=="read_write" or not e.get("type")), eps[0]["id"] if eps else ""))' <<<"$ENDPOINTS")
+          ENDPOINT_ID=$(echo "$ENDPOINTS" | python3 -c 'import json,sys;eps=json.load(sys.stdin).get("endpoints") or []; print(next((e["id"] for e in eps if e.get("type")=="read_write"), eps[0]["id"] if eps else ""))')
           test -n "$ENDPOINT_ID"
           URI_JSON=$(curl -fsS -X POST "${AUTH_H[@]}" -H "Content-Type: application/json" \
             "https://console.neon.tech/api/v2/projects/${PROJECT_ID}/connection_uri" \
             -d "{\"branch_id\":\"${BRANCH_ID}\",\"endpoint_id\":\"${ENDPOINT_ID}\",\"database_name\":\"${INPUT_DB}\",\"role_name\":\"neondb_owner\"}")
           echo "$URI_JSON" > "$RUNNER_TEMP/uri.json"
-          python3 -c 'import json,os;u=json.load(open(os.environ["RUNNER_TEMP"]+"/uri.json"))["uri"];assert u.startswith("postgres");assert "-pooler" not in u;open(os.environ["RUNNER_TEMP"]+"/preview.uri","w").write(u)'
+          python3 -c 'import json,os;u=json.load(open(os.environ["RUNNER_TEMP"]+"/uri.json"))["uri"]; assert u.startswith("postgres"); assert "-pooler" not in u; open(os.environ["RUNNER_TEMP"]+"/preview.uri","w").write(u)'
           chmod 600 "$RUNNER_TEMP/preview.uri"
-          HOST=$(python3 -c 'from urllib.parse import urlparse; import pathlib; print(urlparse(pathlib.Path("'"$RUNNER_TEMP"'/preview.uri").read_text()).hostname)')
+          HOST=$(python3 -c 'from urllib.parse import urlparse; print(urlparse(open("'"$RUNNER_TEMP"'/preview.uri").read()).hostname)')
           echo "host=$HOST" >> "$GITHUB_OUTPUT"
           echo "database=${INPUT_DB}" >> "$GITHUB_OUTPUT"
           echo "project_id=${PROJECT_ID}" >> "$GITHUB_OUTPUT"
+          echo "endpoint host=$HOST db=$INPUT_DB"
 
       - name: Dry-run migrations on Preview
         env:
-          OPSC_MIGRATION_DATABASE_URL_FILE: ${{ runner.temp }}/preview.uri
           OPSC_MIGRATION_TARGET_CLASS: preview
           OPSC_MIGRATION_EXPECTED_DATABASE: ${{ steps.neon.outputs.database }}
           OPSC_MIGRATION_EXPECTED_HOST: ${{ steps.neon.outputs.host }}
@@ -136,37 +109,27 @@ jobs:
         working-directory: backend
         run: |
           set -euo pipefail
-          export OPSC_MIGRATION_DATABASE_URL="$(cat "$OPSC_MIGRATION_DATABASE_URL_FILE")"
-          node scripts/apply-postgres-migrations.js | tee "$RUNNER_TEMP/dry-run.json"
+          export OPSC_MIGRATION_DATABASE_URL="$(cat "$RUNNER_TEMP/preview.uri")"
+          node scripts/apply-postgres-migrations.js | tee "$RUNNER_TEMP/dry-run.json" || true
           python3 - <<'PY'
-          import json,sys
-          # last JSON object from mixed stdout
-          text=open("/tmp" if False else __import__("os").environ["RUNNER_TEMP"]+"/dry-run.json").read().strip().splitlines()
+          import json,os,sys,re
+          raw=open(os.environ["RUNNER_TEMP"]+"/dry-run.json").read()
           obj=None
-          for line in text:
-            line=line.strip()
-            if line.startswith("{") and line.endswith("}"):
-              try: obj=json.loads(line)
-              except: pass
-          if obj is None:
-            # try whole file
-            try: obj=json.loads("\n".join(text))
-            except Exception as e:
-              print("DRY_RUN_PARSE_FAIL", e); sys.exit(1)
+          for m in re.finditer(r"\{[\s\S]*\}", raw):
+            try: obj=json.loads(m.group(0))
+            except: pass
+          if not obj:
+            print(raw[-2000:]); print("DRY_RUN_PARSE_FAIL"); sys.exit(1)
           print("dry_status", obj.get("status"))
           pending=obj.get("pending") or []
           print("pending_count", len(pending))
-          for p in pending:
-            print(" pending", p.get("filename"))
-          if obj.get("status") not in ("DRY_RUN_PASS","ALREADY_APPLIED","PASS"):
-            # script emits DRY_RUN_PASS on success without apply
-            if obj.get("status") != "DRY_RUN_PASS":
-              print(json.dumps(obj, indent=2)[:2000]); sys.exit(1)
+          for p in pending: print(" pending", p.get("filename"))
+          if obj.get("status") != "DRY_RUN_PASS":
+            print(json.dumps(obj, indent=2)[:2500]); sys.exit(1)
           PY
 
       - name: Apply migrations on Preview only
         env:
-          OPSC_MIGRATION_DATABASE_URL_FILE: ${{ runner.temp }}/preview.uri
           OPSC_MIGRATION_TARGET_CLASS: preview
           OPSC_MIGRATION_EXPECTED_DATABASE: ${{ steps.neon.outputs.database }}
           OPSC_MIGRATION_EXPECTED_HOST: ${{ steps.neon.outputs.host }}
@@ -179,46 +142,35 @@ jobs:
         working-directory: backend
         run: |
           set -euo pipefail
-          export OPSC_MIGRATION_DATABASE_URL="$(cat "$OPSC_MIGRATION_DATABASE_URL_FILE")"
-          # Explicitly never allow production
+          export OPSC_MIGRATION_DATABASE_URL="$(cat "$RUNNER_TEMP/preview.uri")"
           unset OPSC_MIGRATION_ALLOW_PRODUCTION || true
           node scripts/apply-postgres-migrations.js --apply | tee "$RUNNER_TEMP/apply.json"
           python3 - <<'PY'
-          import json, os, sys
-          text=open(os.environ["RUNNER_TEMP"]+"/apply.json").read().strip().splitlines()
+          import json,os,sys,re
+          raw=open(os.environ["RUNNER_TEMP"]+"/apply.json").read()
           obj=None
-          for line in text:
-            line=line.strip()
-            if line.startswith("{") and ("status" in line or line.endswith("}")):
-              try: obj=json.loads(line)
-              except: pass
-          if obj is None:
-            try: obj=json.loads("\n".join(text))
-            except Exception as e:
-              print("APPLY_PARSE_FAIL", e); print("\n".join(text)[-2000:]); sys.exit(1)
-          print(json.dumps({k:obj.get(k) for k in ("status","applied","pending","target","neonIdentity") if k in obj or True}, indent=2, default=str)[:3000])
+          for m in re.finditer(r"\{[\s\S]*\}", raw):
+            try: obj=json.loads(m.group(0))
+            except: pass
+          if not obj:
+            print(raw[-2500:]); print("APPLY_PARSE_FAIL"); sys.exit(1)
+          print(json.dumps({k:obj.get(k) for k in ("status","applied","target","neonIdentity","serverVersion")}, indent=2, default=str)[:4000])
           st=str(obj.get("status") or "")
-          if st not in ("PASS","APPLY_PASS","ALREADY_APPLIED","OK"):
-            # accept if applied list present and no throw
-            applied=obj.get("applied") or []
-            if st and "FAIL" in st.upper():
-              sys.exit(1)
-            print("status", st, "applied", len(applied))
+          if "FAIL" in st.upper() or st in ("ERROR",):
+            sys.exit(1)
           PY
 
       - name: Verify schema_migrations includes 066-068
-        env:
-          OPSC_MIGRATION_DATABASE_URL_FILE: ${{ runner.temp }}/preview.uri
         run: |
           set -euo pipefail
           sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client >/dev/null
-          export PGPASSWORD_URL="$(cat "$OPSC_MIGRATION_DATABASE_URL_FILE")"
-          psql "$PGPASSWORD_URL" -v ON_ERROR_STOP=1 -c \
+          URI="$(cat "$RUNNER_TEMP/preview.uri")"
+          psql "$URI" -v ON_ERROR_STOP=1 -c \
             "SELECT filename, left(sha256,12) AS sha12, applied_at
              FROM public.schema_migrations
              WHERE filename LIKE '066%' OR filename LIKE '067%' OR filename LIKE '068%'
              ORDER BY filename;"
-          COUNT=$(psql "$PGPASSWORD_URL" -Atc \
+          COUNT=$(psql "$URI" -Atc \
             "SELECT count(*) FROM public.schema_migrations
              WHERE filename IN (
                '066_signed_tenant_context_verifier_search_path_hardening.sql',
