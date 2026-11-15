@@ -229,7 +229,7 @@ function readProductionSessionIsolationEvidence(filePath = embeddedEvidencePath(
   const evidenceRebind = evidence.evidenceRebind && typeof evidence.evidenceRebind === 'object'
     ? evidence.evidenceRebind
     : null;
-  const rebindVerified = evidenceRebind === null;
+  const rebindVerified = evidence.evidenceRebind === undefined || evidence.evidenceRebind === null;
   return {
     status: allPass && commitBound && parentBranchBound && rebindVerified ? 'PASS' : 'NOT_VERIFIED',
     testedAt: evidence.testedAt || null,
@@ -268,7 +268,7 @@ function readProductionRecoveryPointEvidence(filePath = embeddedEvidencePath('PR
   const evidenceRebind = evidence.evidenceRebind && typeof evidence.evidenceRebind === 'object'
     ? evidence.evidenceRebind
     : null;
-  const rebindVerified = evidenceRebind === null;
+  const rebindVerified = evidence.evidenceRebind === undefined || evidence.evidenceRebind === null;
   const ok = evidence.status === 'PASS' &&
     evidence.coreTenantTablesMatch === true &&
     Number(evidence.tableCountCompared) >= 130 &&
