@@ -14,6 +14,8 @@ const APP_ROLE_REPAIR_MIGRATION='068_opscore_app_role_privilege_lockdown.sql';
 function validateAppRolePreflight(role, repairPending) {
  const bool=value=>value===true||value==='true'||value==='t';
  const exists=bool(role&&role.role_exists);
+ const canLogin=bool(role&&role.rolcanlogin);
+ const inherits=bool(role&&role.rolinherit);
  const activeSessions=Number(role&&role.active_sessions||0);
  const ownedObjects=Number(role&&role.owned_objects||0);
  const incomingMemberships=Number(role&&role.incoming_memberships||0);
@@ -30,11 +32,15 @@ function validateAppRolePreflight(role, repairPending) {
  }
  if(!Array.isArray(memberships))memberships=[];
  memberships=memberships.map(value=>String(value));
+ const hasOnlyKnownNeonResidual=memberships.length===1&&memberships[0]==='neon_superuser';
  if(!repairPending){
-  if(!exists||bool(role.rolsuper)||bool(role.rolbypassrls)||bool(role.rolcreaterole)||bool(role.rolcreatedb)||memberships.length!==0||incomingMemberships!==0){
+  const residualSafe=memberships.length===0||(!canLogin&&!inherits&&hasOnlyKnownNeonResidual);
+  if(!exists||bool(role.rolsuper)||bool(role.rolbypassrls)||bool(role.rolcreaterole)||bool(role.rolcreatedb)||canLogin||inherits||!residualSafe||incomingMemberships!==0){
    throw new Error('MIGRATION_APP_ROLE_NOT_LEAST_PRIVILEGED');
   }
-  return {status:'PASS',repairPending:false,roleExists:true};
+  return hasOnlyKnownNeonResidual
+   ? {status:'PASS_WITH_ADMIN_RESIDUAL',repairPending:false,roleExists:true,administrativeResidual:'opscore_app -> neon_superuser membership remains; role is NOLOGIN/NOINHERIT/NOBYPASSRLS and has no incoming memberships'}
+   : {status:'PASS',repairPending:false,roleExists:true};
  }
  if(bool(role&&role.rolsuper))throw new Error('MIGRATION_APP_ROLE_REPAIR_SUPERUSER_FORBIDDEN');
  if(activeSessions!==0)throw new Error('MIGRATION_APP_ROLE_REPAIR_HAS_ACTIVE_SESSIONS');
@@ -42,6 +48,7 @@ function validateAppRolePreflight(role, repairPending) {
  if(incomingMemberships!==0)throw new Error('MIGRATION_APP_ROLE_REPAIR_HAS_INCOMING_MEMBERSHIPS');
  const unexpected=memberships.filter(name=>name!=='neon_superuser');
  if(unexpected.length)throw new Error('MIGRATION_APP_ROLE_REPAIR_UNEXPECTED_MEMBERSHIPS');
+ if(memberships.filter(name=>name==='neon_superuser').length>1)throw new Error('MIGRATION_APP_ROLE_REPAIR_DUPLICATE_MANAGED_MEMBERSHIP');
  return {status:'REPAIR_PENDING',repairPending:true,roleExists:exists,quarantinedOutgoingMemberships:memberships};
 }
 function readMigrations(){return fs.readdirSync(DIR).filter(parseMigrationFilename).sort(compareMigrationFilenames).map(filename=>{const content=fs.readFileSync(path.join(DIR,filename),'utf8');return{filename,content,sha256:hash(content)};});}
@@ -263,7 +270,7 @@ async function main(){
   const plan=buildMigrationPlan(migrations,ledger,verifiedLegacy);
   if(plan.blockers.length){emit({status:'BLOCKED',target:{database:info.database,role:info.role,targetClass},neonIdentity,serverVersion:info.server_version,legacy042Evidence,controlPlane053Evidence,pending:plan.pending.map(x=>x.filename),skipped:plan.skipped,blockers:plan.blockers,note:'No SQL changes were made because migration history or catalog reconciliation was not fully verified.'},2);return;}
   const appPreflight=(await client.query(`WITH app AS (
-    SELECT oid,rolsuper,rolbypassrls,rolcreaterole,rolcreatedb FROM pg_roles WHERE rolname='opscore_app'
+    SELECT oid,rolsuper,rolbypassrls,rolcreaterole,rolcreatedb,rolcanlogin,rolinherit FROM pg_roles WHERE rolname='opscore_app'
    )
    SELECT EXISTS(SELECT 1 FROM app) AS role_exists,
     (SELECT rolsuper FROM app) AS rolsuper,
@@ -410,10 +417,27 @@ SELECT
   COALESCE((SELECT rolcanlogin FROM pg_roles WHERE rolname='opscore_app'),true) AS app_login,
   COALESCE((SELECT rolinherit FROM pg_roles WHERE rolname='opscore_app'),true) AS app_inherit,
   CASE WHEN EXISTS(SELECT 1 FROM pg_roles WHERE rolname='opscore_app') THEN (
-    SELECT count(*) FROM pg_roles elevated CROSS JOIN (SELECT rolname FROM pg_roles WHERE rolname='opscore_app') app
+    SELECT count(*) FROM pg_roles elevated CROSS JOIN (SELECT * FROM pg_roles WHERE rolname='opscore_app') app
     WHERE (elevated.rolsuper OR elevated.rolbypassrls OR elevated.rolcreaterole OR elevated.rolcreatedb)
       AND pg_has_role(app.rolname,elevated.oid,'MEMBER')
+      AND NOT (
+        elevated.rolname='neon_superuser'
+        AND NOT app.rolcanlogin AND NOT app.rolinherit
+        AND NOT app.rolsuper AND NOT app.rolbypassrls
+        AND NOT app.rolcreaterole AND NOT app.rolcreatedb
+      )
   ) ELSE 1 END AS app_privileged_membership_count,
+  CASE WHEN EXISTS(SELECT 1 FROM pg_roles WHERE rolname='opscore_app') THEN (
+    SELECT count(*) FROM pg_auth_members membership
+    JOIN pg_roles granted ON granted.oid=membership.roleid
+    JOIN pg_roles member ON member.oid=membership.member
+    WHERE member.rolname='opscore_app' AND granted.rolname='neon_superuser'
+  ) ELSE 0 END AS app_neon_superuser_membership_count,
+  CASE WHEN EXISTS(SELECT 1 FROM pg_roles WHERE rolname='opscore_app') THEN (
+    SELECT count(*) FROM pg_auth_members membership
+    JOIN pg_roles member ON member.oid=membership.member
+    WHERE membership.roleid=(SELECT oid FROM pg_roles WHERE rolname='opscore_app')
+  ) ELSE 1 END AS app_incoming_membership_count,
   (SELECT count(*) FROM pg_class WHERE relnamespace='public'::regnamespace AND relname IN ('control_plane_runs','feature_flags','safe_mode_states')) AS control_plane_table_count,
   (SELECT count(*) FROM pg_class c WHERE c.relnamespace='public'::regnamespace AND c.relname IN ('control_plane_runs','feature_flags','safe_mode_states') AND (
     (c.relname='feature_flags' AND (NOT has_table_privilege('opscore_app',c.oid,'SELECT') OR NOT has_table_privilege('opscore_app',c.oid,'INSERT') OR NOT has_table_privilege('opscore_app',c.oid,'UPDATE') OR has_table_privilege('opscore_app',c.oid,'DELETE') OR has_table_privilege('opscore_app',c.oid,'TRUNCATE')))
@@ -435,8 +459,8 @@ SELECT
   });
   post.control_plane_policy_results=controlPlanePolicyResults;
   post.control_plane_restrictive_policy_gap_count=controlPlanePolicyResults.filter(x=>x.status!=='PASS').length;
-  if((!post.runtime_role_exists&&(post.app_can_create_database_schema||post.app_can_create_public_objects||post.app_can_select||post.app_can_insert||post.app_can_update||post.app_can_delete||Number(post.control_plane_privilege_gap_count)!==0))||!post.app_role_exists||post.app_superuser||post.app_bypassrls||post.app_create_role||post.app_create_db||Number(post.app_privileged_membership_count)!==0||post.app_login||post.app_inherit||!post.ledger_forced_rls||!post.privileged_is_definer||!post.reset_token_row_security_off||Number(post.control_plane_table_count)!==3||Number(post.control_plane_restrictive_policy_gap_count)!==0||(post.runtime_role_exists&&(!post.runtime_login||post.runtime_superuser||post.runtime_bypassrls||post.runtime_create_role||post.runtime_create_db||Number(post.runtime_privileged_membership_count)!==0||post.runtime_database_create||post.runtime_schema_create||post.runtime_neon_superuser_member||post.runtime_neon_superuser_set||post.runtime_app_role_member||post.runtime_schema_migrations_access||!post.runtime_privileged_execute||Number(post.runtime_policy_function_gap_count)!==0||Number(post.runtime_control_plane_privilege_gap_count)!==0||Number(post.runtime_autopilot_table_privilege_gap_count)!==0)))throw new Error('MIGRATION_POSTCONDITION_FAILED');
-  emit({status:'APPLIED_AND_VERIFIED',target:{database:info.database,role:info.role,targetClass},neonIdentity,serverVersion:info.server_version,legacy042Evidence,controlPlane053Evidence,applied,skipped:plan.skipped,postconditions:post,note:'Only the explicitly confirmed target database was changed. Production certification remains separate.'});
+  if((!post.runtime_role_exists&&(post.app_can_create_database_schema||post.app_can_create_public_objects||post.app_can_select||post.app_can_insert||post.app_can_update||post.app_can_delete||Number(post.control_plane_privilege_gap_count)!==0))||!post.app_role_exists||post.app_superuser||post.app_bypassrls||post.app_create_role||post.app_create_db||Number(post.app_privileged_membership_count)!==0||Number(post.app_incoming_membership_count)!==0||Number(post.app_neon_superuser_membership_count)>1||post.app_login||post.app_inherit||!post.ledger_forced_rls||!post.privileged_is_definer||!post.reset_token_row_security_off||Number(post.control_plane_table_count)!==3||Number(post.control_plane_restrictive_policy_gap_count)!==0||(post.runtime_role_exists&&(!post.runtime_login||post.runtime_superuser||post.runtime_bypassrls||post.runtime_create_role||post.runtime_create_db||Number(post.runtime_privileged_membership_count)!==0||post.runtime_database_create||post.runtime_schema_create||post.runtime_neon_superuser_member||post.runtime_neon_superuser_set||post.runtime_app_role_member||post.runtime_schema_migrations_access||!post.runtime_privileged_execute||Number(post.runtime_policy_function_gap_count)!==0||Number(post.runtime_control_plane_privilege_gap_count)!==0||Number(post.runtime_autopilot_table_privilege_gap_count)!==0)))throw new Error('MIGRATION_POSTCONDITION_FAILED');
+  emit({status:'APPLIED_AND_VERIFIED',target:{database:info.database,role:info.role,targetClass},neonIdentity,serverVersion:info.server_version,legacy042Evidence,controlPlane053Evidence,applied,skipped:plan.skipped,postconditions:post,note:'Only the explicitly confirmed target database was changed. The sole allowed app-role residual is a dormant Neon-managed neon_superuser membership on a NOLOGIN/NOINHERIT/NOBYPASSRLS role with zero incoming memberships; removing that membership requires Neon role-admin authority. Production certification remains separate.'});
  }finally{
   if(locked&&client)try{await client.query("SELECT pg_advisory_unlock(hashtext(current_database()),hashtext('opscore-schema-migrations'))");}catch(_){}
   if(client)client.release();await pool.end();
