@@ -85,3 +85,11 @@ test('Runtime diagnostic requires explicit read-only zero-write and full product
   assert.match(runner, /isolationCertification/);
   assert.match(runner, /migration_056_hash/);
 });
+
+
+test('release verification env flag remains false unless current-commit behavioral evidence is certified', () => {
+  const publishStep = step('Publish acceptance evidence hash to Vercel production env');
+  assert.match(publishStep, /const isolation = behavioralPass\(\) \? 'CERTIFIED' : 'NOT_CERTIFIED'/);
+  assert.match(publishStep, /OPSC_RELEASE_VERIFIED:\s*behavioralPass\(\)\s*\?\s*'true'\s*:\s*'false'/);
+  assert.doesNotMatch(publishStep, /OPSC_RELEASE_VERIFIED:\s*'true'/);
+});
