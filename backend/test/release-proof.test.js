@@ -340,7 +340,7 @@ test('production behavioral evidence must carry the exact release commit hint', 
   }
 });
 
-test('production behavioral evidence rejects a candidate rebind unless probes were re-executed', () => {
+test('production behavioral evidence rejects any evidence rebind marker', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-production-evidence-rebind-'));
   const sessionPath = path.join(dir, 'session.json');
   const recoveryPath = path.join(dir, 'recovery.json');
