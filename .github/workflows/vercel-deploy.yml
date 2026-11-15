@@ -287,6 +287,9 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           EVIDENCE_SHA: ${{ steps.generate_acceptance.outputs.evidence_sha }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          OPSC_RELEASE_PACKAGE_SHA256: ${{ steps.package_fp.outputs.sha }}
         run: |
           set -euo pipefail
           node <<'NODE'
@@ -335,9 +338,17 @@ jobs:
               OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: hash,
               OPSC_PRODUCTION_ISOLATION_CERTIFICATION: isolation,
               OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE: behavioralPass() ? 'true' : 'false',
-              OPSC_RELEASE_VERIFIED: 'true'
+              OPSC_RELEASE_VERIFIED: 'true',
+              OPSC_RELEASE_CI_COMMIT: String(process.env.GITHUB_SHA || '').toLowerCase(),
+              OPSC_RELEASE_CI_PIPELINE_ID: String(process.env.GITHUB_RUN_ID || ''),
+              OPSC_RELEASE_CI_REF: 'main',
+              OPSC_SOURCE_COMMIT_SHA: String(process.env.GITHUB_SHA || '').toLowerCase(),
+              OPSC_RELEASE_DEPLOYMENT_SOURCE: 'github-actions-cli',
+              OPSC_RELEASE_PACKAGE_SHA256: String(process.env.OPSC_RELEASE_PACKAGE_SHA256 || ''),
+              OPSC_RELEASE_PACKAGE_COMMIT: String(process.env.GITHUB_SHA || '').toLowerCase()
             };
             console.log('ISOLATION_CERTIFICATION_TARGET', isolation);
+            console.log('RELEASE_CI_IDENTITY', want.OPSC_RELEASE_CI_COMMIT, want.OPSC_RELEASE_CI_PIPELINE_ID);
             for (const [key, value] of Object.entries(want)) {
               const hit = (envs.envs||[]).find(e => e.key===key && (e.target||[]).includes('production'));
               if (hit) await req('PATCH', '/v9/projects/' + projectId + '/env/' + hit.id, { value, type: 'encrypted', target: ['production'] });
@@ -399,6 +410,71 @@ jobs:
           require('fs').appendFileSync(fsOut, `certified=${ok ? 'CERTIFIED' : 'NOT_CERTIFIED'}\n`);
           require('fs').appendFileSync(fsOut, `behavioral=${ok ? 'true' : 'false'}\n`);
           console.log('ISOLATION_CERT', ok ? 'CERTIFIED' : 'NOT_CERTIFIED');
+          NODE
+
+      - name: Republish release identity and certification env after evidence stamp
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          EVIDENCE_SHA: ${{ steps.generate_acceptance.outputs.evidence_sha }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          OPSC_RELEASE_PACKAGE_SHA256: ${{ steps.package_fp.outputs.sha }}
+          ISOLATION_CERT: ${{ steps.isolation_cert.outputs.certified }}
+          BEHAVIORAL: ${{ steps.isolation_cert.outputs.behavioral }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const https = require('https');
+          const token = process.env.VERCEL_TOKEN;
+          const projectId = process.env.VERCEL_PROJECT_ID;
+          function req(method, path, body) {
+            return new Promise((resolve, reject) => {
+              const data = body ? JSON.stringify(body) : null;
+              const r = https.request({
+                hostname: 'api.vercel.com', method, path,
+                headers: {
+                  Authorization: 'Bearer ' + token,
+                  'Content-Type': 'application/json',
+                  ...(data ? { 'Content-Length': Buffer.byteLength(data) } : {})
+                }
+              }, res => {
+                let b = '';
+                res.on('data', c => b += c);
+                res.on('end', () => {
+                  if (res.statusCode >= 300) reject(new Error(method + ' ' + path + ' ' + res.statusCode + ' ' + b.slice(0, 200)));
+                  else resolve(b ? JSON.parse(b) : {});
+                });
+              });
+              r.on('error', reject);
+              if (data) r.write(data);
+              r.end();
+            });
+          }
+          (async () => {
+            const envs = await req('GET', '/v9/projects/' + projectId + '/env');
+            const want = {
+              OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: process.env.EVIDENCE_SHA,
+              OPSC_PRODUCTION_ISOLATION_CERTIFICATION: process.env.ISOLATION_CERT || 'NOT_CERTIFIED',
+              OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE: process.env.BEHAVIORAL === 'true' ? 'true' : 'false',
+              OPSC_RELEASE_VERIFIED: 'true',
+              OPSC_RELEASE_CI_COMMIT: String(process.env.GITHUB_SHA || '').toLowerCase(),
+              OPSC_RELEASE_CI_PIPELINE_ID: String(process.env.GITHUB_RUN_ID || ''),
+              OPSC_RELEASE_CI_REF: 'main',
+              OPSC_SOURCE_COMMIT_SHA: String(process.env.GITHUB_SHA || '').toLowerCase(),
+              OPSC_RELEASE_DEPLOYMENT_SOURCE: 'github-actions-cli',
+              OPSC_RELEASE_PACKAGE_SHA256: String(process.env.OPSC_RELEASE_PACKAGE_SHA256 || ''),
+              OPSC_RELEASE_PACKAGE_COMMIT: String(process.env.GITHUB_SHA || '').toLowerCase(),
+              OPSC_PRODUCTION_HOLD: 'false'
+            };
+            for (const [key, value] of Object.entries(want)) {
+              if (!value) continue;
+              const hit = (envs.envs || []).find(e => e.key === key && (e.target || []).includes('production'));
+              if (hit) await req('PATCH', '/v9/projects/' + projectId + '/env/' + hit.id, { value, type: 'encrypted', target: ['production'] });
+              else await req('POST', '/v10/projects/' + projectId + '/env', { key, value, type: 'encrypted', target: ['production'] });
+              console.log('ENV_OK', key, key.includes('COMMIT') || key.includes('PIPELINE') || key.includes('CERT') ? value : 'set');
+            }
+          })().catch(e => { console.error(e); process.exit(1); });
           NODE
 
       - name: Embed acceptance and behavioral evidence into serverless bundle
