@@ -10,6 +10,41 @@ const EXPECTED_042_COLUMNS=[
 function emit(payload,code=0){process.stdout.write(JSON.stringify({schemaVersion:'opscore.postgres-migration-runner.v1',generatedAt:new Date().toISOString(),...payload},null,2)+'\n');process.exitCode=code;}
 function hash(s){return crypto.createHash('sha256').update(s,'utf8').digest('hex');}
 function readMigrations(){return fs.readdirSync(DIR).filter(parseMigrationFilename).sort(compareMigrationFilenames).map(filename=>{const content=fs.readFileSync(path.join(DIR,filename),'utf8');return{filename,content,sha256:hash(content)};});}
+function unwrapOuterTransaction(content, filename='unknown') {
+ const source=String(content);
+ let offset=0;
+ // Skip only SQL trivia before the first statement. Nested block comments are supported.
+ while(offset<source.length){
+  while(offset<source.length && /\\s/.test(source[offset])) offset++;
+  if(source.startsWith('--',offset)){
+   const newline=source.indexOf('\\n',offset);
+   offset=newline<0?source.length:newline+1;
+   continue;
+  }
+  if(source.startsWith('/*',offset)){
+   let depth=1,cursor=offset+2;
+   while(depth>0){
+    const open=source.indexOf('/*',cursor),close=source.indexOf('*/',cursor);
+    if(close<0)throw new Error('MIGRATION_LEADING_COMMENT_UNTERMINATED:'+filename);
+    if(open>=0&&open<close){depth++;cursor=open+2;}
+    else{depth--;cursor=close+2;}
+   }
+   offset=cursor;
+   continue;
+  }
+  break;
+ }
+ const begin=/^BEGIN\\s*;/i.exec(source.slice(offset));
+ if(!begin)return source;
+ const trimmed=source.trimEnd();
+ const commit=/COMMIT\\s*;$/i.exec(trimmed);
+ if(!commit)throw new Error('MIGRATION_TRANSACTION_WRAPPER_UNBALANCED:'+filename);
+ const commitStart=trimmed.length-commit[0].length;
+ const bodyStart=offset+begin[0].length;
+ if(commitStart<bodyStart)throw new Error('MIGRATION_TRANSACTION_WRAPPER_INVALID:'+filename);
+ // The runner owns the transaction so the schema changes and ledger row commit together.
+ return source.slice(0,offset)+source.slice(bodyStart,commitStart);
+}
 function assertTarget(url,database,apply,env=process.env){
  const hostname=String(url.hostname||'').trim().toLowerCase();
  if(!hostname)throw new Error('MIGRATION_ENDPOINT_HOST_REQUIRED');
@@ -148,7 +183,7 @@ async function main(){
    await client.query('BEGIN');
    try{
     await client.query("SELECT set_config('opscore.app_role','opscore_runtime',true),set_config('opscore.fn_owner','neondb_owner',true)");
-    await client.query(migration.content);
+    await client.query(unwrapOuterTransaction(migration.content,migration.filename));
     await client.query('INSERT INTO public.schema_migrations(filename,sha256,applied_at) VALUES ($1,$2,clock_timestamp())',[migration.filename,migration.sha256]);
     await client.query('COMMIT');applied.push({filename:migration.filename,sha256:migration.sha256});
    }catch(error){try{await client.query('ROLLBACK');}catch(_){}throw new Error('MIGRATION_APPLY_FAILED:'+migration.filename+':'+(error.code||error.message));}
@@ -295,4 +330,4 @@ SELECT
 if (require.main === module) {
  main().catch(error=>emit({status:'FAIL',reason:error.message||String(error),note:'Connection values are never emitted; no production fallback is used.'},1));
 }
-module.exports = { readMigrations, verifyLegacy042Catalog, verifyControlPlane053Catalog, assertTarget };
+module.exports = { readMigrations, verifyLegacy042Catalog, verifyControlPlane053Catalog, assertTarget, unwrapOuterTransaction };
