@@ -143,6 +143,10 @@ async function main() {
   const keyId = 'ci-' + crypto.randomUUID();
   const key = crypto.randomBytes(32);
   const keyHex = key.toString('hex');
+  const priorSigningKey = process.env.OPSC_TENANT_CONTEXT_HMAC_KEY;
+  const priorSigningKeyId = process.env.OPSC_TENANT_CONTEXT_KEY_ID;
+  process.env.OPSC_TENANT_CONTEXT_HMAC_KEY = keyHex;
+  process.env.OPSC_TENANT_CONTEXT_KEY_ID = keyId;
   const tenantA = 'tc_org_a_' + crypto.randomUUID().replace(/-/g, '');
   const tenantB = 'tc_org_b_' + crypto.randomUUID().replace(/-/g, '');
   const userA = 'tc_user_a_' + crypto.randomUUID().replace(/-/g, '');
@@ -1663,6 +1667,10 @@ async function main() {
     try { await owner.query('DROP TABLE IF EXISTS opscore_security.context_probe_rows'); } catch (_) {}
     try { await owner.end(); } catch (_) {}
     try { await runtimeProbe.end(); } catch (_) {}
+    if (priorSigningKey === undefined) delete process.env.OPSC_TENANT_CONTEXT_HMAC_KEY;
+    else process.env.OPSC_TENANT_CONTEXT_HMAC_KEY = priorSigningKey;
+    if (priorSigningKeyId === undefined) delete process.env.OPSC_TENANT_CONTEXT_KEY_ID;
+    else process.env.OPSC_TENANT_CONTEXT_KEY_ID = priorSigningKeyId;
   }
 }
 
