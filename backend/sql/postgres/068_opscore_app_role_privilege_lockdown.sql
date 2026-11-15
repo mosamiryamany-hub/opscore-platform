@@ -57,13 +57,14 @@ BEGIN
     RAISE EXCEPTION 'OPSC_LEGACY_APP_ROLE_HAS_UNEXPECTED_ELEVATED_MEMBERSHIP';
   END IF;
 
-  IF EXISTS (
-    SELECT 1
-    FROM pg_catalog.pg_auth_members membership
-    JOIN pg_catalog.pg_roles elevated ON elevated.oid = membership.roleid
-    WHERE membership.member = app_role_oid
-      AND elevated.rolname = 'neon_superuser'
-  ) THEN
+  IF EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'neon_superuser')
+     AND EXISTS (
+       SELECT 1
+       FROM pg_catalog.pg_auth_members membership
+       JOIN pg_catalog.pg_roles elevated ON elevated.oid = membership.roleid
+       WHERE membership.member = app_role_oid
+         AND elevated.rolname = 'neon_superuser'
+     ) THEN
     EXECUTE 'REVOKE neon_superuser FROM opscore_app';
   END IF;
 
@@ -75,7 +76,8 @@ BEGIN
   WHERE oid = app_role_oid;
 
   IF role_login OR role_superuser OR role_bypass_rls OR role_create_role OR role_create_db
-     OR pg_catalog.pg_has_role('opscore_app', 'neon_superuser', 'MEMBER') THEN
+     OR (EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'neon_superuser')
+         AND pg_catalog.pg_has_role('opscore_app', 'neon_superuser', 'MEMBER')) THEN
     RAISE EXCEPTION 'OPSC_LEGACY_APP_ROLE_LOCKDOWN_FAILED';
   END IF;
 END
@@ -117,9 +119,9 @@ BEGIN
     RAISE EXCEPTION 'OPSC_LEGACY_APP_ROLE_ATTRIBUTE_POSTCONDITION_FAILED';
   END IF;
 
-  IF pg_catalog.has_database_privilege('opscore_app', pg_catalog.current_database(), 'CONNECT')
-     OR pg_catalog.has_database_privilege('opscore_app', pg_catalog.current_database(), 'CREATE')
-     OR pg_catalog.has_database_privilege('opscore_app', pg_catalog.current_database(), 'TEMPORARY')
+  -- CONNECT/TEMPORARY may be granted to PUBLIC by PostgreSQL defaults; those
+  -- inherited defaults do not create a login path because opscore_app is NOLOGIN.
+  IF pg_catalog.has_database_privilege('opscore_app', pg_catalog.current_database(), 'CREATE')
      OR pg_catalog.has_schema_privilege('opscore_app', 'public', 'CREATE') THEN
     RAISE EXCEPTION 'OPSC_LEGACY_APP_ROLE_DATABASE_OR_SCHEMA_PRIVILEGE_REMAINS';
   END IF;
