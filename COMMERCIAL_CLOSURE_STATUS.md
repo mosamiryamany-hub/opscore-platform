@@ -20,7 +20,7 @@ Do not claim seller-reference `productionIsolationCertification=CERTIFIED` until
 
 ## Remaining engineering and buyer-environment work
 
-1. PR #103 signed tenant-context integration remains a separate, unmerged security track; its remaining legacy unsigned paths, independent Knowledge pool, and full runtime proof must be closed before claiming complete trust-boundary coverage.
+1. Signed tenant-context cutover remains incomplete: Preview-only signed-context work is under review; production migrations and the remaining authentication, system/background, Knowledge-pool and route-purpose paths are not yet proven end-to-end. Do not claim complete trust-boundary coverage.
 2. WAF enforcement must be proven in blocking mode; logging-only rules are not blocking protection.
 3. Neon PITR/restore must be validated with a real restore drill and measured RPO/RTO.
 4. Mobile source is included, but signed Android/iOS store artifacts, buyer-specific signing, physical-device QA, and store publication remain outstanding.
