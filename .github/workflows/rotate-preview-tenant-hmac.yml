@@ -155,22 +155,30 @@ jobs:
           \getenv key_hex KEY_HEX
           \getenv key_ttl_days KEY_TTL_DAYS
           BEGIN;
-          INSERT INTO opscore_security.context_hmac_keys (
-            key_id, secret, enabled, not_before, not_after
-          ) VALUES (
-            :'key_id',
-            decode(:'key_hex', 'hex'),
-            true,
-            now(),
-            now() + make_interval(days => :'key_ttl_days'::int)
-          );
-          SELECT CASE WHEN count(*) = 1 THEN 1 ELSE 1/0 END AS new_key_installed
-          FROM opscore_security.context_hmac_keys
-          WHERE key_id = :'key_id' AND enabled = true AND octet_length(secret) = 32
-            AND not_before <= now() AND not_after > now();
-          SELECT CASE WHEN count(*) >= 1 THEN 1 ELSE 1/0 END AS active_key_overlap
-          FROM opscore_security.context_hmac_keys
-          WHERE enabled = true AND not_before <= now() AND (not_after IS NULL OR not_after > now());
+          -- Verify through INSERT...RETURNING so we do not depend on SELECT
+          -- privileges on the definer-owned secrets table.
+          WITH inserted AS (
+            INSERT INTO opscore_security.context_hmac_keys (
+              key_id, secret, enabled, not_before, not_after
+            ) VALUES (
+              :'key_id',
+              decode(:'key_hex', 'hex'),
+              true,
+              now(),
+              now() + make_interval(days => :'key_ttl_days'::int)
+            )
+            RETURNING key_id, enabled, octet_length(secret) AS secret_len, not_before, not_after
+          )
+          SELECT CASE
+            WHEN count(*) = 1
+             AND bool_and(enabled)
+             AND bool_and(secret_len = 32)
+             AND bool_and(not_before <= now())
+             AND bool_and(not_after > now())
+            THEN 1
+            ELSE (SELECT 1/0)
+          END AS new_key_installed
+          FROM inserted;
           COMMIT;
           SQL
           echo "HMAC key row installed on Preview (secret not logged)"
@@ -226,6 +234,8 @@ jobs:
                   print(f"created {key} preview")
 
           upsert("OPSC_TENANT_CONTEXT_KEY_JSON", key_json)
+          upsert("OPSC_TENANT_CONTEXT_HMAC_KEY", key_hex)
+          upsert("OPSC_TENANT_CONTEXT_KEY_ID", key_id)
           verify_envs = req("GET", f"https://api.vercel.com/v9/projects/{project}/env").get("envs", [])
           key_config = [e for e in verify_envs if e.get("key") == "OPSC_TENANT_CONTEXT_KEY_JSON" and set(e.get("target") or []) == {"preview"}]
           if len(key_config) != 1:
