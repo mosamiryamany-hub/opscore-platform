@@ -178,10 +178,14 @@ jobs:
           sql=$(cat <<'SQL'
           DROP ROLE IF EXISTS opscore_runtime;
           DROP ROLE IF EXISTS opscore_app;
+          DROP ROLE IF EXISTS neon_superuser;
           DROP ROLE IF EXISTS neondb_owner;
           CREATE ROLE neondb_owner LOGIN PASSWORD :'owner_password'
             NOSUPERUSER CREATEDB CREATEROLE INHERIT BYPASSRLS;
-          CREATE ROLE opscore_app LOGIN PASSWORD 'app_test_pw'
+          -- This disposable acceptance cluster uses a clean, non-login RLS probe.
+          -- The real Neon Preview legacy role is separately fail-closed by the
+          -- migration runner unless the current role has ADMIN OPTION on it.
+          CREATE ROLE opscore_app NOLOGIN
             NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
           CREATE ROLE opscore_runtime NOLOGIN
             NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
@@ -227,7 +231,7 @@ jobs:
           set -euo pipefail
           for db in opscore_http_acceptance opscore_matrix_test; do
             migration_url="postgresql://neondb_owner:${OPSC_CI_MIGRATION_OWNER_PASSWORD}@127.0.0.1:5432/${db}"
-            OPSC_MIGRATION_DATABASE_URL="${migration_url}"             OPSC_MIGRATION_CONFIRM_DATABASE="${db}"             OPSC_PG_SSL_MODE=disable               npm run db:migrate:postgres -- --apply
+            OPSC_MIGRATION_DATABASE_URL="${migration_url}" OPSC_MIGRATION_TARGET_CLASS=test OPSC_MIGRATION_EXPECTED_DATABASE="${db}" OPSC_MIGRATION_CONFIRM_DATABASE="${db}" OPSC_PG_SSL_MODE=disable npm run db:migrate:postgres -- --apply
           done
       - name: Verify signed tenant context through the real Node PostgreSQL worker
         working-directory: backend
