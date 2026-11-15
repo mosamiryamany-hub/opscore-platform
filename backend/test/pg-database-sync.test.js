@@ -7,6 +7,43 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { EventEmitter } = require('node:events');
 const { openPgDatabaseSync, runWithRequest, currentRequestId, resolveWorkerSslMode } = require('../src/pg-database-sync');
+const crypto = require('node:crypto');
+const { createSignedTenantContext } = require('../src/signed-tenant-context');
+
+test('atomic signed tenant key JSON takes precedence over legacy split variables', () => {
+  const keyHex = 'a7'.repeat(32);
+  const signed = createSignedTenantContext({
+    principal: { sessionId: 'session-atomic', userId: 'user-atomic', tenantId: 'tenant-atomic' },
+    backendPid: 12345,
+    transactionId: '987654321',
+    env: {
+      OPSC_TENANT_CONTEXT_KEY_JSON: JSON.stringify({ key_id: 'atomic-key-v1', secret_hex: keyHex }),
+      OPSC_TENANT_CONTEXT_HMAC_KEY: 'b8'.repeat(32),
+      OPSC_TENANT_CONTEXT_KEY_ID: 'legacy-key-v1'
+    },
+    nowMs: 1794772800000
+  });
+  assert.equal(JSON.parse(signed.payload).kid, 'atomic-key-v1');
+  const expected = crypto.createHmac('sha256', Buffer.from(keyHex, 'hex')).update(signed.payload, 'utf8').digest('hex');
+  assert.equal(signed.signature, expected);
+});
+
+test('invalid atomic signed tenant key JSON fails closed instead of falling back to legacy variables', () => {
+  assert.throws(
+    () => createSignedTenantContext({
+      principal: { sessionId: 'session-invalid', userId: 'user-invalid', tenantId: 'tenant-invalid' },
+      backendPid: 12345,
+      transactionId: '987654322',
+      env: {
+        OPSC_TENANT_CONTEXT_KEY_JSON: '{invalid',
+        OPSC_TENANT_CONTEXT_HMAC_KEY: 'b8'.repeat(32),
+        OPSC_TENANT_CONTEXT_KEY_ID: 'legacy-key-v1'
+      },
+      nowMs: 1794772800000
+    }),
+    (error) => error.code === 'TENANT_CONTEXT_SIGNING_KEY_INVALID'
+  );
+});
 
 test('persistent PostgreSQL bridge preserves transactions and isolates HTTP requests', async (t) => {
   const db = openPgDatabaseSync('postgres://test.invalid/opscore_test', { max: 2 });
