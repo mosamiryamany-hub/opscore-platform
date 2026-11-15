@@ -75,6 +75,16 @@ test('staged smoke, promotion and live-domain verification require every Runtime
   assert.doesNotMatch(deploy, /production_preflight/);
 });
 
+test('deploy workflow never rebinds stale production behavioral evidence to a new candidate', () => {
+  assert.doesNotMatch(deploy, /Stamp production behavioral evidence with deploy candidate commit/);
+  assert.doesNotMatch(deploy, /data\.sourceCommitHint\s*=\s*commit/);
+  assert.doesNotMatch(deploy, /probesReexecuted:\s*false/);
+  const certification = step('Resolve production isolation certification from behavioral evidence');
+  assert.match(certification, /sourceCommitMatches/);
+  assert.match(certification, /CERTIFIED/);
+  assert.match(certification, /NOT_CERTIFIED/);
+});
+
 test('Runtime diagnostic requires explicit read-only zero-write and full production evidence', () => {
   const runnerPath = path.join(__dirname, '..', '..', 'scripts', 'production-runtime-diagnostic.js');
   const runner = fs.readFileSync(runnerPath, 'utf8');
