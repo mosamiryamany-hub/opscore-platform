@@ -39,6 +39,7 @@ function validateAppRolePreflight(role, repairPending) {
  if(bool(role&&role.rolsuper))throw new Error('MIGRATION_APP_ROLE_REPAIR_SUPERUSER_FORBIDDEN');
  if(activeSessions!==0)throw new Error('MIGRATION_APP_ROLE_REPAIR_HAS_ACTIVE_SESSIONS');
  if(ownedObjects!==0)throw new Error('MIGRATION_APP_ROLE_REPAIR_OWNS_OBJECTS');
+ if(incomingMemberships!==0)throw new Error('MIGRATION_APP_ROLE_REPAIR_HAS_INCOMING_MEMBERSHIPS');
  const unexpected=memberships.filter(name=>name!=='neon_superuser');
  if(unexpected.length)throw new Error('MIGRATION_APP_ROLE_REPAIR_UNEXPECTED_MEMBERSHIPS');
  return {status:'REPAIR_PENDING',repairPending:true,roleExists:exists,removableMemberships:memberships};
