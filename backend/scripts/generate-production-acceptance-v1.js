@@ -58,6 +58,11 @@ function readJson(filePath) {
   return { raw, value: JSON.parse(raw) };
 }
 
+/** Pending signed-tenant-context migrations are staged for Preview labs until production keys exist. */
+function isStagedPreviewOnlyMigration(filename) {
+  return /^\d{3}_signed_tenant_context/i.test(String(filename || ''));
+}
+
 function validateTenantMatrixEnvelope(envelope, expectedCommit, expectedPipeline) {
   const binding = envelope && envelope.binding || {};
   const evidence = envelope && envelope.evidence || {};
@@ -309,10 +314,16 @@ async function checkMigrationLedger(ownerClient) {
   }
 
   const plan = buildMigrationPlan(source, ledger, verifiedLegacy);
+  const stagedPreviewPending = plan.pending.filter(item => isStagedPreviewOnlyMigration(item.filename));
+  const productionBlockingPending = plan.pending.filter(item => !isStagedPreviewOnlyMigration(item.filename));
+  // Production may lag Preview-only signed-context migrations (063+) until HMAC keys and cutover exist.
+  // Any other pending migration, or any blocker, still fails closed.
   const status = plan.blockers.length ? 'LEDGER_BLOCKED'
-    : plan.pending.length ? 'LEDGER_PENDING' : 'PASS';
+    : productionBlockingPending.length ? 'LEDGER_PENDING'
+    : stagedPreviewPending.length ? 'PASS_WITH_STAGED_PREVIEW_MIGRATIONS'
+    : 'PASS';
   return {
-    ok: status === 'PASS',
+    ok: status === 'PASS' || status === 'PASS_WITH_STAGED_PREVIEW_MIGRATIONS',
     migrationLedger: {
       status,
       databaseName: ownerIdentity.database_name,
@@ -322,8 +333,12 @@ async function checkMigrationLedger(ownerClient) {
       ledgerRowCount: ledger.length,
       matchedCount: plan.skipped.length,
       pendingCount: plan.pending.length,
+      productionBlockingPendingCount: productionBlockingPending.length,
+      stagedPreviewPendingCount: stagedPreviewPending.length,
       blockerCount: plan.blockers.length,
       pendingFilenames: plan.pending.map(item => item.filename),
+      productionBlockingPendingFilenames: productionBlockingPending.map(item => item.filename),
+      stagedPreviewPendingFilenames: stagedPreviewPending.map(item => item.filename),
       blockers: plan.blockers,
       verifiedLegacyMigrations: verifiedLegacy,
       legacy042Evidence,
