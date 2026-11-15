@@ -42,11 +42,19 @@ jobs:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          PROJECT_ID: ${{ inputs.neon_project_id }}
+          DATABASE_NAME: ${{ inputs.database_name }}
+          ROLE_NAME: ${{ inputs.role_name }}
+          KEY_TTL_DAYS: ${{ inputs.key_ttl_days }}
         run: |
           set -euo pipefail
           test -n "${NEON_API_KEY:-}" || { echo "NEON_API_KEY_MISSING"; exit 1; }
           test -n "${VERCEL_TOKEN:-}" || { echo "VERCEL_TOKEN_MISSING"; exit 1; }
-          test -n "${VERCEL_PROJECT_ID:-}" || { echo "VERCEL_PROJECT_ID_MISSING"; exit 1; }
+          test "$VERCEL_PROJECT_ID" = "prj_8jMqBt0l6OALicWSwQ3ECQTn8yPe" || { echo "UNAPPROVED_VERCEL_PROJECT"; exit 1; }
+          test "$PROJECT_ID" = "summer-leaf-18448271" || { echo "UNAPPROVED_NEON_PROJECT"; exit 1; }
+          test "$DATABASE_NAME" = "opscore_acceptance" || { echo "UNAPPROVED_PREVIEW_DATABASE"; exit 1; }
+          test "$ROLE_NAME" = "neondb_owner" || { echo "UNAPPROVED_PREVIEW_ADMIN_ROLE"; exit 1; }
+          python3 -c 'import os; v=os.environ["KEY_TTL_DAYS"]; assert v.isdecimal() and 1 <= int(v) <= 30, "KEY_TTL_DAYS_MUST_BE_1_TO_30"'
 
       - name: Resolve Preview branch and connection URI
         id: neon
@@ -56,6 +64,7 @@ jobs:
           BRANCH_INPUT: ${{ inputs.neon_branch_id_or_name }}
           DATABASE_NAME: ${{ inputs.database_name }}
           ROLE_NAME: ${{ inputs.role_name }}
+          KEY_TTL_DAYS: ${{ inputs.key_ttl_days }}
         run: |
           set -euo pipefail
           AUTH_H=(-H "Authorization: Bearer ${NEON_API_KEY}" -H "Accept: application/json")
@@ -96,6 +105,8 @@ jobs:
               chosen = ranked[0][2]
           if bool(chosen.get("primary") or chosen.get("default")):
               raise SystemExit("REFUSING_PRIMARY_BRANCH")
+          if chosen.get("name") != "opscore-signed-context-063-065-20261114":
+              raise SystemExit("PREVIEW_BRANCH_NOT_APPROVED")
           out = {
               "id": chosen.get("id"),
               "name": chosen.get("name"),
@@ -110,8 +121,12 @@ jobs:
           echo "branch_id=${BRANCH_ID}" >> "$GITHUB_OUTPUT"
           echo "branch_name=${BRANCH_NAME}" >> "$GITHUB_OUTPUT"
 
-          curl -fsS "${AUTH_H[@]}" \
-            "https://console.neon.tech/api/v2/projects/${PROJECT_ID}/connection_uri?branch_id=${BRANCH_ID}&database_name=${DATABASE_NAME}&role_name=${ROLE_NAME}&pooled=false" \
+          curl -fsS -G "${AUTH_H[@]}" \
+            --data-urlencode "branch_id=${BRANCH_ID}" \
+            --data-urlencode "database_name=${DATABASE_NAME}" \
+            --data-urlencode "role_name=${ROLE_NAME}" \
+            --data-urlencode "pooled=false" \
+            "https://console.neon.tech/api/v2/projects/${PROJECT_ID}/connection_uri" \
             > "$RUNNER_TEMP/uri.json"
           python3 -c 'import json,os;u=json.load(open(os.environ["RUNNER_TEMP"]+"/uri.json"))["uri"];assert u.startswith("postgres");open(os.environ["RUNNER_TEMP"]+"/preview.uri","w").write(u)'
           chmod 600 "$RUNNER_TEMP/preview.uri"
@@ -135,43 +150,27 @@ jobs:
           KEY_HEX=$(cat "$RUNNER_TEMP/key.hex")
           # Use env vars for psql; do not print KEY_HEX
           export KEY_ID KEY_HEX KEY_TTL_DAYS
-          psql "$URI" -v ON_ERROR_STOP=1 <<SQL
+          psql "$URI" -v ON_ERROR_STOP=1 <<'SQL'
+          \getenv key_id KEY_ID
+          \getenv key_hex KEY_HEX
+          \getenv key_ttl_days KEY_TTL_DAYS
           BEGIN;
-          SELECT 1 FROM opscore_security.context_hmac_keys LIMIT 1;
-          UPDATE opscore_security.context_hmac_keys
-             SET enabled = false
-           WHERE enabled = true;
           INSERT INTO opscore_security.context_hmac_keys (
             key_id, secret, enabled, not_before, not_after
           ) VALUES (
-            '${KEY_ID}',
-            decode('${KEY_HEX}', 'hex'),
+            :'key_id',
+            decode(:'key_hex', 'hex'),
             true,
             now(),
-            now() + make_interval(days => ${KEY_TTL_DAYS}::int)
+            now() + make_interval(days => :'key_ttl_days'::int)
           );
-          DO \$\$
-          DECLARE
-            enabled_count integer;
-            octet_len integer;
-            kid text;
-          BEGIN
-            SELECT count(*) INTO enabled_count
-            FROM opscore_security.context_hmac_keys WHERE enabled;
-            IF enabled_count <> 1 THEN
-              RAISE EXCEPTION 'OPSC_PREVIEW_HMAC_ENABLED_COUNT_INVALID:%', enabled_count;
-            END IF;
-            SELECT key_id, octet_length(secret) INTO kid, octet_len
-            FROM opscore_security.context_hmac_keys WHERE enabled;
-            IF octet_len <> 32 THEN
-              RAISE EXCEPTION 'OPSC_PREVIEW_HMAC_SECRET_LENGTH_INVALID:%', octet_len;
-            END IF;
-            IF kid IS DISTINCT FROM '${KEY_ID}' THEN
-              RAISE EXCEPTION 'OPSC_PREVIEW_HMAC_KEY_ID_MISMATCH';
-            END IF;
-            RAISE NOTICE 'preview_hmac_key_installed kid=% len=%', kid, octet_len;
-          END
-          \$\$;
+          SELECT CASE WHEN count(*) = 1 THEN 1 ELSE 1/0 END AS new_key_installed
+          FROM opscore_security.context_hmac_keys
+          WHERE key_id = :'key_id' AND enabled = true AND octet_length(secret) = 32
+            AND not_before <= now() AND not_after > now();
+          SELECT CASE WHEN count(*) >= 1 THEN 1 ELSE 1/0 END AS active_key_overlap
+          FROM opscore_security.context_hmac_keys
+          WHERE enabled = true AND not_before <= now() AND (not_after IS NULL OR not_after > now());
           COMMIT;
           SQL
           echo "HMAC key row installed on Preview (secret not logged)"
@@ -190,6 +189,7 @@ jobs:
           project = os.environ["VERCEL_PROJECT_ID"]
           key_id = os.environ["KEY_ID"]
           key_hex = open(os.environ["RUNNER_TEMP"] + "/key.hex", "r", encoding="utf-8").read().strip()
+          key_json = json.dumps({"key_id": key_id, "secret_hex": key_hex}, separators=(",", ":"))
           assert len(key_hex) == 64
 
           def req(method, url, body=None):
@@ -225,9 +225,12 @@ jobs:
                   })
                   print(f"created {key} preview")
 
-          upsert("OPSC_TENANT_CONTEXT_HMAC_KEY", key_hex)
-          upsert("OPSC_TENANT_CONTEXT_KEY_ID", key_id)
-          upsert("OPSC_REQUIRE_SIGNED_TENANT_CONTEXT", "false")
+          upsert("OPSC_TENANT_CONTEXT_KEY_JSON", key_json)
+          verify_envs = req("GET", f"https://api.vercel.com/v9/projects/{project}/env").get("envs", [])
+          key_config = [e for e in verify_envs if e.get("key") == "OPSC_TENANT_CONTEXT_KEY_JSON" and set(e.get("target") or []) == {"preview"}]
+          if len(key_config) != 1:
+              raise RuntimeError("PREVIEW_ATOMIC_KEY_CONFIG_NOT_UNIQUE")
+          print("vercel_preview_atomic_key_config_synced; signed-context enforcement flag unchanged")
           print("vercel_preview_env_synced")
           PY
 
@@ -236,5 +239,5 @@ jobs:
           set -euo pipefail
           echo "Preview branch: ${{ steps.neon.outputs.branch_name }} (${{ steps.neon.outputs.branch_id }})"
           echo "Installed key_id: ${{ steps.key.outputs.key_id }}"
-          echo "Vercel Preview env synced for OPSC_TENANT_CONTEXT_*"
+          echo "Vercel Preview atomic key config synced; enforcement flag unchanged."
           echo "Production env and Production Neon were not modified."

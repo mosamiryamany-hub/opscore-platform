@@ -20,6 +20,27 @@ function requiredText(value, code) {
 }
 
 function loadSigningKey(env = process.env) {
+  const atomicConfig = String(env.OPSC_TENANT_CONTEXT_KEY_JSON || '').trim();
+  if (atomicConfig) {
+    let parsed;
+    try {
+      parsed = JSON.parse(atomicConfig);
+    } catch {
+      throw fail('TENANT_CONTEXT_SIGNING_KEY_INVALID');
+    }
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw fail('TENANT_CONTEXT_SIGNING_KEY_INVALID');
+    }
+    const encoded = String(parsed.secret_hex || '').trim();
+    if (!/^[a-f0-9]{64}$/i.test(encoded)) {
+      throw fail('TENANT_CONTEXT_SIGNING_KEY_REQUIRED');
+    }
+    const keyId = requiredText(parsed.key_id, 'TENANT_CONTEXT_KEY_ID_REQUIRED');
+    if (keyId.length > 64) throw fail('TENANT_CONTEXT_KEY_ID_INVALID');
+    return { key: Buffer.from(encoded, 'hex'), keyId };
+  }
+
+  // Backward-compatible split variables; atomic JSON takes precedence when present.
   const encoded = String(env.OPSC_TENANT_CONTEXT_HMAC_KEY || '').trim();
   if (!/^[a-f0-9]{64}$/i.test(encoded)) {
     throw fail('TENANT_CONTEXT_SIGNING_KEY_REQUIRED');

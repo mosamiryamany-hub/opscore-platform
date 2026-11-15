@@ -174,6 +174,14 @@ async function handle(message) {
       "SELECT set_config('app.signed_context_payload', $1, true), set_config('app.signed_context_signature', $2, true)",
       [payload, signature]
     );
+    // CI-only red-team probe: run after signing and before the application query,
+    // within the exact same transaction. The verifier must ignore these raw GUCs.
+    if (process.env.OPSC_PG_SIGNED_CONTEXT_TAMPER_TEST === 'true') {
+      await session.client.query(
+        "SELECT set_config('app.tenant_id', $1, true), set_config('app.user_id', $2, true), set_config('app.access_mode', $3, true)",
+        ['raw-guc-forged-tenant', 'raw-guc-forged-user', 'backoffice']
+      );
+    }
     session.signedContextBound = true;
     return { id, ok: true, bound: true };
   }

@@ -98,6 +98,16 @@ input.on('line', (line) => {
       respond({ id, ok: true, bound: true });
       return;
     }
+    if (type === 'setSession') {
+      const accessMode = String(message.accessMode || 'field');
+      if (accessMode === 'field'
+          && String(process.env.OPSC_REQUIRE_SIGNED_TENANT_CONTEXT || '').trim().toLowerCase() === 'true') {
+        respond({ id, ok: false, error: 'SIGNED_TENANT_CONTEXT_REQUIRED', code: 'SIGNED_TENANT_CONTEXT_REQUIRED' });
+      } else {
+        respond({ id, ok: true, accessMode });
+      }
+      return;
+    }
     updateTransaction(session, sql);
     if (type === 'exec') respond({ id, ok: true });
     else if (type === 'run') respond({ id, ok: true, changes: 1 });

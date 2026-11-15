@@ -7,6 +7,7 @@ const { resolveMapTileOrigin } = require('./map-tile-security');
 const config = require('./config');
 const {assertRuntimeConfiguration} = require('./runtime-contract');
 const {openDatabase} = require('./db-open');
+const authenticatedRequestContexts = new WeakMap();
 const {runWithRequest} = require('./pg-database-sync');
 const { createDeploymentProof } = require('./deployment-proof');
 const { createPublicReleaseProof, readEmbeddedBuildIdentity } = require('./release-proof');
@@ -933,6 +934,13 @@ function sessionTokenFromRequest(req) {
 }
 function ctx(req) {
   authProviderGate();
+  // A request can pass through more than one route-level requireCtx guard.
+  // Reuse the already authenticated principal only for this exact IncomingMessage;
+  // a new HTTP request always resolves its session again.
+  if (req && typeof req === 'object') {
+    const cached = authenticatedRequestContexts.get(req);
+    if (cached) return cached;
+  }
   const raw = sessionTokenFromRequest(req);
   if (!raw)
     return null;
@@ -942,7 +950,10 @@ function ctx(req) {
     catch (error) { warn('postgres_identity_context_bind_failed', { error }); return null; }
   }
   const out = store.session(raw) || store.authenticateApiKey(raw);
-  if (out) out.correlationId = null;
+  if (out) {
+    out.correlationId = null;
+    if (req && typeof req === 'object') authenticatedRequestContexts.set(req, out);
+  }
   return out;
 }
 function requireScope(c, scope) {
@@ -1002,6 +1013,11 @@ function signedWorkOrdersWriteEnabled(req) {
 }
 function signedWorkOrdersContextEnabled(req) {
   return signedWorkOrdersReadEnabled(req) || signedWorkOrdersWriteEnabled(req);
+}
+
+function signedSessionAutobindEnabled() {
+  return process.env.VERCEL_ENV === 'preview'
+    && String(process.env.OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED || '').trim().toLowerCase() === 'true';
 }
 function runSignedWorkOrdersRead(res, c, reader, responseHeaders = {}) {
   if (c.apiKeyId || !c.sessionId || !store.db || store.db.engine !== 'postgres'
@@ -1142,20 +1158,26 @@ function requireCtx(req, res) {
     json(res, 401, { error: { code: 'UNAUTHENTICATED' } });
     return null;
   }
-  // Explicitly allowlisted work-order GET routes pin a verified session principal.
-  // Their handlers use one READ ONLY transaction bound to backend/xid; all writes,
-  // PDF streaming, evidence-integrity auditing, and other routes keep their own paths.
+  // Preview session auto-bind and the narrower work-order allowlist both require
+  // a real session principal. Once either gate is enabled, never fall back to raw GUCs.
   try {
-    if (signedWorkOrdersContextEnabled(req)
-        && !c.apiKeyId
-        && c.sessionId
-        && store.db
-        && store.db.engine === 'postgres'
-        && typeof store.db.setVerifiedPrincipal === 'function') {
+    const signedContextRequested = signedSessionAutobindEnabled() || signedWorkOrdersContextEnabled(req);
+    if (signedContextRequested) {
+      if (c.apiKeyId
+          || !c.sessionId
+          || !c.userId
+          || !c.organizationId
+          || !store.db
+          || store.db.engine !== 'postgres'
+          || typeof store.db.setVerifiedPrincipal !== 'function') {
+        throw Object.assign(new Error('SIGNED_SESSION_PRINCIPAL_REQUIRED'), {
+          code: 'SIGNED_SESSION_PRINCIPAL_REQUIRED'
+        });
+      }
       store.db.setVerifiedPrincipal({
         sessionId: c.sessionId,
-        userId: c.userId || '',
-        tenantId: c.organizationId || ''
+        userId: c.userId,
+        tenantId: c.organizationId
       });
     } else if (store.db && typeof store.db.setSession === 'function' && c.organizationId) {
       store.db.setSession({ tenantId: c.organizationId, userId: c.userId || '', accessMode: 'field' });
@@ -1377,12 +1399,12 @@ function route(req, res) {
     const c=requireCtx(req,res); if(!c)return; try{requireScope(c,'write');}catch(e){return fail(res,e);} return body(req).then(b=>runAgenticCopilot(store,c,b).then(out=>json(res,201,out))).catch(e=>fail(res,e));
   }
   if (req.method === 'POST' && url.pathname === '/api/v1/ai/knowledge/index') {
-    const c=requireCtx(req,res); if(!c)return; try{requireScope(c,'admin');}catch(e){return fail(res,e);} return body(req).then(async b=>{const {getPool}=require('./postgres-runtime');const {upsert}=require('./postgres-knowledge');const pool=getPool(config);const limit=Math.min(Math.max(Number(b.limit)||100,1),500);const sources=[];sources.push(...store.db.prepare('SELECT id,title,description FROM work_orders WHERE organization_id=? ORDER BY updated_at DESC LIMIT ?').all(c.organizationId,limit).map(r=>({sourceType:'work_order',sourceId:r.id,content:`${r.title}\n${r.description}`,metadata:{number:r.number||null}})));sources.push(...store.db.prepare('SELECT id,name,asset_type FROM assets WHERE organization_id=? ORDER BY updated_at DESC LIMIT ?').all(c.organizationId,limit).map(r=>({sourceType:'asset',sourceId:r.id,content:`${r.name}\nType: ${r.asset_type}`,metadata:{}})));sources.push(...store.db.prepare('SELECT id,event_type,details_json,occurred_at FROM asset_events WHERE organization_id=? ORDER BY occurred_at DESC LIMIT ?').all(c.organizationId,Math.min(limit,200)).map(r=>({sourceType:'asset_event',sourceId:r.id,content:`${r.event_type}\n${r.details_json||''}`,metadata:{occurredAt:r.occurred_at}})));
+    const c=requireCtx(req,res); if(!c)return; try{requireScope(c,'admin');}catch(e){return fail(res,e);} return body(req).then(async b=>{const {getPool}=require('./postgres-runtime');const {upsert}=require('./postgres-knowledge');const pool=getPool(config);const principal=signedSessionAutobindEnabled()?{sessionId:c.sessionId,userId:c.userId,tenantId:c.organizationId}:null;const limit=Math.min(Math.max(Number(b.limit)||100,1),500);const sources=[];sources.push(...store.db.prepare('SELECT id,title,description FROM work_orders WHERE organization_id=? ORDER BY updated_at DESC LIMIT ?').all(c.organizationId,limit).map(r=>({sourceType:'work_order',sourceId:r.id,content:`${r.title}\n${r.description}`,metadata:{number:r.number||null}})));sources.push(...store.db.prepare('SELECT id,name,asset_type FROM assets WHERE organization_id=? ORDER BY updated_at DESC LIMIT ?').all(c.organizationId,limit).map(r=>({sourceType:'asset',sourceId:r.id,content:`${r.name}\nType: ${r.asset_type}`,metadata:{}})));sources.push(...store.db.prepare('SELECT id,event_type,details_json,occurred_at FROM asset_events WHERE organization_id=? ORDER BY occurred_at DESC LIMIT ?').all(c.organizationId,Math.min(limit,200)).map(r=>({sourceType:'asset_event',sourceId:r.id,content:`${r.event_type}\n${r.details_json||''}`,metadata:{occurredAt:r.occurred_at}})));
       sources.push(...store.db.prepare('SELECT id,procedure_id,status,steps_json,started_at,completed_at FROM procedure_runs WHERE organization_id=? ORDER BY started_at DESC LIMIT ?').all(c.organizationId,Math.min(limit,100)).map(r=>({sourceType:'procedure_run',sourceId:r.id,content:`Procedure ${r.procedure_id}\nStatus: ${r.status}\n${r.steps_json||''}`,metadata:{startedAt:r.started_at,completedAt:r.completed_at}})));
-      sources.push(...store.db.prepare('SELECT id,rows_json,sheet_date FROM closure_sheets WHERE organization_id=? ORDER BY created_at DESC LIMIT ?').all(c.organizationId,Math.min(limit,100)).map(r=>({sourceType:'closure_sheet',sourceId:r.id,content:r.rows_json,metadata:{sheetDate:r.sheet_date}})));let indexed=0;for(const x of sources){await upsert(pool,{organizationId:c.organizationId,...x});indexed++;}return json(res,200,{schemaVersion:'opscore.knowledge-index.v1',indexed,model:require('./ai-embeddings').model(),sourceCounts:sources.reduce((a,x)=>(a[x.sourceType]=(a[x.sourceType]||0)+1,a),{}),note:'Embeddings are generated by the configured provider and stored in PostgreSQL pgvector. No synthetic vectors are created.'});}).catch(e=>fail(res,e));
+      sources.push(...store.db.prepare('SELECT id,rows_json,sheet_date FROM closure_sheets WHERE organization_id=? ORDER BY created_at DESC LIMIT ?').all(c.organizationId,Math.min(limit,100)).map(r=>({sourceType:'closure_sheet',sourceId:r.id,content:r.rows_json,metadata:{sheetDate:r.sheet_date}})));let indexed=0;for(const x of sources){await upsert(pool,{organizationId:c.organizationId,...x,principal});indexed++;}return json(res,200,{schemaVersion:'opscore.knowledge-index.v1',indexed,model:require('./ai-embeddings').model(),sourceCounts:sources.reduce((a,x)=>(a[x.sourceType]=(a[x.sourceType]||0)+1,a),{}),note:'Embeddings are generated by the configured provider and stored in PostgreSQL pgvector. No synthetic vectors are created.'});}).catch(e=>fail(res,e));
   }
   if (req.method === 'POST' && url.pathname === '/api/v1/ai/knowledge/search') {
-    const c=requireCtx(req,res); if(!c)return; try{requireScope(c,'read');}catch(e){return fail(res,e);} return body(req).then(async b=>{const {getPool}=require('./postgres-runtime');const {search}=require('./postgres-knowledge');return json(res,200,await search(getPool(config),{organizationId:c.organizationId,query:b.query,limit:b.limit}));}).catch(e=>fail(res,e));
+    const c=requireCtx(req,res); if(!c)return; try{requireScope(c,'read');}catch(e){return fail(res,e);} return body(req).then(async b=>{const {getPool}=require('./postgres-runtime');const {search}=require('./postgres-knowledge');const principal=signedSessionAutobindEnabled()?{sessionId:c.sessionId,userId:c.userId,tenantId:c.organizationId}:null;return json(res,200,await search(getPool(config),{organizationId:c.organizationId,query:b.query,limit:b.limit,principal}));}).catch(e=>fail(res,e));
   }
   if (req.method === 'POST' && url.pathname === '/api/v1/auth/bootstrap') {
     if (!isHttpBootstrapAllowed(config.nodeEnv)) {
@@ -2388,7 +2410,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
     try {
       const hostname=url.searchParams.get('hostname')||req.headers.host||'';
       const hit=store.resolveTenantByHost(hostname.split(':')[0]);
-      const authenticated=ctx(req);
+      const authenticated=c;
       const sameTenant=authenticated && hit && authenticated.organizationId===hit.organization_id;
       return json(res,200,{schemaVersion:'opscore.custom-domain-resolution.v2',resolved:Boolean(hit),tenant:sameTenant?hit:null});
     } catch(e){ return fail(res,e); }
