@@ -154,7 +154,11 @@ function getTransport(connectionString, poolMax) {
     ...(process.env.OPSC_PG_CA_CERT ? { OPSC_PG_CA_CERT: process.env.OPSC_PG_CA_CERT } : {}),
     ...(process.env.OPSC_PG_STATEMENT_TIMEOUT_MS ? { OPSC_PG_STATEMENT_TIMEOUT_MS: process.env.OPSC_PG_STATEMENT_TIMEOUT_MS } : {}),
     ...(process.env.OPSC_PG_IDLE_IN_TRANSACTION_TIMEOUT_MS ? { OPSC_PG_IDLE_IN_TRANSACTION_TIMEOUT_MS: process.env.OPSC_PG_IDLE_IN_TRANSACTION_TIMEOUT_MS } : {}),
-    ...(process.env.OPSC_PG_KEEPALIVE_INITIAL_DELAY_MS ? { OPSC_PG_KEEPALIVE_INITIAL_DELAY_MS: process.env.OPSC_PG_KEEPALIVE_INITIAL_DELAY_MS } : {})
+    ...(process.env.OPSC_PG_KEEPALIVE_INITIAL_DELAY_MS ? { OPSC_PG_KEEPALIVE_INITIAL_DELAY_MS: process.env.OPSC_PG_KEEPALIVE_INITIAL_DELAY_MS } : {}),
+    ...(process.env.CI === 'true'
+        && process.env.OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_TAMPER_TEST === 'true'
+      ? { OPSC_PG_SIGNED_CONTEXT_TAMPER_TEST: 'true' }
+      : {})
   };
   const child = spawn(process.execPath, [workerPath], {
     stdio: ['pipe', 'pipe', 'inherit'],
