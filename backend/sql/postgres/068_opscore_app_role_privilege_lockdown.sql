@@ -128,13 +128,19 @@ BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'opscore_app'
   ) THEN
-    CREATE ROLE opscore_app
-      NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
+    EXECUTE 'CREATE ROLE opscore_app NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS';
   END IF;
 END
 $quarantine$;
 
-REVOKE CONNECT, CREATE, TEMPORARY ON DATABASE current_database FROM opscore_app;
+DO $new_role_acl$
+BEGIN
+  EXECUTE pg_catalog.format(
+    'REVOKE CONNECT, CREATE, TEMPORARY ON DATABASE %I FROM opscore_app',
+    pg_catalog.current_database()
+  );
+END
+$new_role_acl$;
 REVOKE ALL PRIVILEGES ON SCHEMA public FROM opscore_app;
 GRANT USAGE ON SCHEMA public TO opscore_app;
 
