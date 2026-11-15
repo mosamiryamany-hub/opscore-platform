@@ -256,7 +256,7 @@ test('local test target deliberately skips Neon API identity lookup', async () =
 
 test('control-plane migration postcondition accepts the verified tenant accessor used by signed RLS policies', () => {
   assert.equal(tenantPolicyExprValid('(organization_id = opscore_current_tenant())'), true);
-  assert.equal(tenantPolicyExprValid('(organization_id = NULLIF(current_setting(\\'app.tenant_id\\'::text, true), \\'\\'::text))'), true);
+  assert.equal(tenantPolicyExprValid("(organization_id = NULLIF(current_setting('app.tenant_id'::text, true), ''::text))"), true);
   assert.equal(tenantPolicyExprValid('(organization_id = current_user)'), false);
   assert.equal(tenantPolicyExprValid('(id = opscore_current_tenant())'), false);
 });
