@@ -271,13 +271,15 @@ test('production behavioral evidence must carry the exact release commit hint', 
   const recoveryPath = path.join(dir, 'recovery.json');
   const env = {
     OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE: 'true',
-    OPSC_RELEASE_CI_COMMIT: SHA
+    OPSC_RELEASE_CI_COMMIT: SHA,
+    OPSC_PRODUCTION_NEON_BRANCH_ID: 'br-current-production'
   };
   const session = {
     schemaVersion: 'opscore.production-session-isolation.v1',
     status: 'PASS',
     testedAt: '2026-10-23T00:00:00.000Z',
     sourceCommitHint: SHA,
+    parentBranchId: 'br-current-production',
     checks: {
       dualLogin: 'PASS',
       ownAssetCreate: 'PASS',
@@ -303,6 +305,19 @@ test('production behavioral evidence must carry the exact release commit hint', 
     fs.writeFileSync(recoveryPath, JSON.stringify(recovery));
     assert.equal(readProductionSessionIsolationEvidence(sessionPath, env).status, 'PASS');
     assert.equal(readProductionRecoveryPointEvidence(recoveryPath, env).status, 'PASS');
+
+    assert.equal(readProductionSessionIsolationEvidence(sessionPath, {
+      ...env, OPSC_PRODUCTION_NEON_BRANCH_ID: ''
+    }).status, 'NOT_VERIFIED');
+    assert.equal(readProductionRecoveryPointEvidence(recoveryPath, {
+      ...env, OPSC_PRODUCTION_NEON_BRANCH_ID: ''
+    }).status, 'NOT_VERIFIED');
+    fs.writeFileSync(sessionPath, JSON.stringify({ ...session, parentBranchId: 'br-stale-production' }));
+    assert.equal(readProductionSessionIsolationEvidence(sessionPath, env).status, 'NOT_VERIFIED');
+    fs.writeFileSync(sessionPath, JSON.stringify(session));
+    fs.writeFileSync(recoveryPath, JSON.stringify({ ...recovery, parentBranchId: 'br-stale-production' }));
+    assert.equal(readProductionRecoveryPointEvidence(recoveryPath, env).status, 'NOT_VERIFIED');
+    fs.writeFileSync(recoveryPath, JSON.stringify(recovery));
 
     fs.writeFileSync(sessionPath, JSON.stringify({ ...session, sourceCommitHint: '0'.repeat(40) }));
     fs.writeFileSync(recoveryPath, JSON.stringify({ ...recovery, sourceCommitHint: '0'.repeat(40) }));
