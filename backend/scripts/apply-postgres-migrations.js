@@ -15,9 +15,9 @@ function unwrapOuterTransaction(content, filename='unknown') {
  let offset=0;
  // Skip only SQL trivia before the first statement. Nested block comments are supported.
  while(offset<source.length){
-  while(offset<source.length && /\\s/.test(source[offset])) offset++;
+  while(offset<source.length && /\s/.test(source[offset])) offset++;
   if(source.startsWith('--',offset)){
-   const newline=source.indexOf('\\n',offset);
+   const newline=source.indexOf('\n',offset);
    offset=newline<0?source.length:newline+1;
    continue;
   }
@@ -34,10 +34,10 @@ function unwrapOuterTransaction(content, filename='unknown') {
   }
   break;
  }
- const begin=/^BEGIN\\s*;/i.exec(source.slice(offset));
+ const begin=/^BEGIN\s*;/i.exec(source.slice(offset));
  if(!begin)return source;
  const trimmed=source.trimEnd();
- const commit=/COMMIT\\s*;$/i.exec(trimmed);
+ const commit=/COMMIT\s*;$/i.exec(trimmed);
  if(!commit)throw new Error('MIGRATION_TRANSACTION_WRAPPER_UNBALANCED:'+filename);
  const commitStart=trimmed.length-commit[0].length;
  const bodyStart=offset+begin[0].length;
