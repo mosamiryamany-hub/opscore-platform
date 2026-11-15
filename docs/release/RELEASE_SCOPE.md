@@ -30,7 +30,7 @@ The Vercel Production deployment is READY, but the current stored session-isolat
 
 The production recovery evidence currently described as a branch-point pass is not a full PITR/RPO/RTO certification. Tenant route-security coverage and functional API route acceptance have narrower CI/contract scopes and must not be upgraded to full business-flow certification.
 
-PR #103 remains a separate, unmerged signed tenant-context engineering track. Its remaining unsigned compatibility paths, authentication/purpose-specific contracts, independent asynchronous Knowledge pool, and full live runtime integration must be resolved before claiming complete trust-boundary coverage.
+Signed tenant-context cutover remains incomplete: the Preview-only session-autobind candidate has passed isolated CI but is not yet deployed or enabled in Vercel Preview; Production migrations remain on the legacy context path, and authentication, system/background, Knowledge-pool and remaining route-purpose paths still require live proof. Do not claim complete trust-boundary coverage.
 
 ## Release gate
 
