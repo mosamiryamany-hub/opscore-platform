@@ -17,7 +17,16 @@ function validateAppRolePreflight(role, repairPending) {
  const activeSessions=Number(role&&role.active_sessions||0);
  const ownedObjects=Number(role&&role.owned_objects||0);
  let memberships=role&&role.memberships||[];
- if(typeof memberships==='string'){try{memberships=JSON.parse(memberships);}catch{memberships=[memberships];}}
+ if(typeof memberships==='string'){
+  try{memberships=JSON.parse(memberships);}
+  catch{
+   const raw=memberships.trim();
+   if(raw.startsWith('{')&&raw.endsWith('}')){
+    const inner=raw.slice(1,-1);
+    memberships=inner?inner.split(',').map(value=>value.trim().replace(/^"(.*)"$/,'$1')):[];
+   }else memberships=[raw];
+  }
+ }
  if(!Array.isArray(memberships))memberships=[];
  memberships=memberships.map(value=>String(value));
  if(!repairPending){
