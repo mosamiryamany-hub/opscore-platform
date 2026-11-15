@@ -1147,20 +1147,26 @@ function requireCtx(req, res) {
     json(res, 401, { error: { code: 'UNAUTHENTICATED' } });
     return null;
   }
-  // Explicitly allowlisted work-order GET routes pin a verified session principal.
-  // Their handlers use one READ ONLY transaction bound to backend/xid; all writes,
-  // PDF streaming, evidence-integrity auditing, and other routes keep their own paths.
+  // Preview session auto-bind and the narrower work-order allowlist both require
+  // a real session principal. Once either gate is enabled, never fall back to raw GUCs.
   try {
-    if ((signedSessionAutobindEnabled() || signedWorkOrdersContextEnabled(req))
-        && !c.apiKeyId
-        && c.sessionId
-        && store.db
-        && store.db.engine === 'postgres'
-        && typeof store.db.setVerifiedPrincipal === 'function') {
+    const signedContextRequested = signedSessionAutobindEnabled() || signedWorkOrdersContextEnabled(req);
+    if (signedContextRequested) {
+      if (c.apiKeyId
+          || !c.sessionId
+          || !c.userId
+          || !c.organizationId
+          || !store.db
+          || store.db.engine !== 'postgres'
+          || typeof store.db.setVerifiedPrincipal !== 'function') {
+        throw Object.assign(new Error('SIGNED_SESSION_PRINCIPAL_REQUIRED'), {
+          code: 'SIGNED_SESSION_PRINCIPAL_REQUIRED'
+        });
+      }
       store.db.setVerifiedPrincipal({
         sessionId: c.sessionId,
-        userId: c.userId || '',
-        tenantId: c.organizationId || ''
+        userId: c.userId,
+        tenantId: c.organizationId
       });
     } else if (store.db && typeof store.db.setSession === 'function' && c.organizationId) {
       store.db.setSession({ tenantId: c.organizationId, userId: c.userId || '', accessMode: 'field' });
