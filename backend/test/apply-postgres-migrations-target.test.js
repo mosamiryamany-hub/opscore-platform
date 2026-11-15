@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { assertTarget, unwrapOuterTransaction } = require('../scripts/apply-postgres-migrations');
+const { assertTarget, readMigrations, unwrapOuterTransaction } = require('../scripts/apply-postgres-migrations');
 
 const database = 'opscore_acceptance';
 const projectId = 'summer-leaf-18448271';
@@ -140,6 +140,22 @@ test('runner requires a least-privilege runtime role before migration work', () 
   assert.match(source, /has_table_privilege\('opscore_runtime'/);
 });
 
+
+
+test('runner safely unwraps every checked-in migration transaction before adding its ledger row', () => {
+  const migrations = readMigrations();
+  assert.ok(migrations.length >= 60, 'expected the complete ordered PostgreSQL migration set');
+  const wrapped = [];
+  for (const migration of migrations) {
+    const prepared = unwrapOuterTransaction(migration.content, migration.filename);
+    if (prepared !== migration.content) {
+      wrapped.push(migration.filename);
+      assert.doesNotMatch(prepared.trimStart(), /^BEGIN\s*;/i, migration.filename);
+      assert.doesNotMatch(prepared.trimEnd(), /COMMIT\s*;$/i, migration.filename);
+    }
+  }
+  assert.ok(wrapped.length >= 10, 'expected existing transaction-wrapped migrations to be covered');
+});
 
 test('runner strips only the outer transaction wrapper so migration SQL and its ledger row commit atomically', () => {
   const migration = [
