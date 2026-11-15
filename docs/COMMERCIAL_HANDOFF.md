@@ -18,7 +18,7 @@ PostgreSQL HTTP acceptance is PASS only when the evidence commit and workflow ru
 
 ## 3. Seller-reference technical status
 
-The live public release and database-security proofs currently identify the seller-operated Production deployment and report `PASS_WITH_BUYER_RESIDUALS`, `IDENTITY_PLANE_RLS_ENFORCED`, and `productionIsolationCertification=CERTIFIED` for that exact seller reference. This is not a buyer-environment certificate and does not establish all functional business flows. The recovery evidence is a branch-point comparison, not full PITR/RPO/RTO certification.
+The Vercel Production deployment is READY, but the current stored session-isolation and recovery evidence is NOT_VERIFIED: both records contain a rebind marker with probesReexecuted=false, and the recovery record is bound to a previous Neon branch. Do not claim seller-reference production isolation certification until fresh dual-tenant and recovery probes are bound to the exact active application commit and Neon Production branch and independently reviewed. This does not certify a buyer environment or every functional business flow. A branch-point comparison is not full PITR/RPO/RTO certification.
 
 PR #103 remains a separate, unmerged signed tenant-context engineering track. Its remaining unsigned compatibility paths, purpose-specific authentication contracts, independent asynchronous Knowledge pool and full runtime proof must be closed before claiming complete trust-boundary coverage.
 
