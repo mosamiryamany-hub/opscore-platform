@@ -135,6 +135,7 @@ async function main() {
   let activeVerifierRole = false;
   let evidenceRoot = null;
   let evidenceRollbackTriggerInstalled = false;
+  const signedSessionAutobindHttpProof = {};
 
   const keyId = 'ci-' + crypto.randomUUID();
   const key = crypto.randomBytes(32);
@@ -153,6 +154,7 @@ async function main() {
     userIds: [userA, userB],
     sessionIds: [sessionA, sessionB],
     workOrderIds: ['tc_wo_a_' + crypto.randomUUID().replace(/-/g, ''), 'tc_wo_b_' + crypto.randomUUID().replace(/-/g, '')],
+    customerIds: ['tc_customer_a_' + crypto.randomUUID().replace(/-/g, ''), 'tc_customer_b_' + crypto.randomUUID().replace(/-/g, '')],
     idempotencyKeys: [],
     bulkJobIds: [],
     evidenceUploadIds: [],
@@ -227,6 +229,10 @@ async function main() {
        synthetic.workOrderIds[1], tenantB, 'TC-B-' + keyId, 'Signed context tenant B work order', userB]
     );
     await owner.query(
+      'INSERT INTO public.customers(id,organization_id,name,email,phone,external_ref,status,created_at,updated_at) VALUES($1,$2,$3,$4,$5,$6,\'active\',now()::text,now()::text),($7,$8,$9,$10,$11,$12,\'active\',now()::text,now()::text)',
+      [synthetic.customerIds[0], tenantA, 'Signed Context Customer A', userA + '@customer.invalid', null, null, synthetic.customerIds[1], tenantB, 'Signed Context Customer B', userB + '@customer.invalid', null, null]
+    );
+    await owner.query(
       'INSERT INTO opscore_security.context_probe_rows(id,organization_id,probe_value) VALUES($1,$2,$3),($4,$5,$6)',
       ['row-' + sessionA, tenantA, 'proof:' + tenantA, 'row-' + sessionB, tenantB, 'proof:' + tenantB]
     );
@@ -247,6 +253,8 @@ async function main() {
       OPSC_TENANT_CONTEXT_PROOF_ENABLED: 'true',
       OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_ENABLED: 'true',
       OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_WRITE_ENABLED: 'true',
+      OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED: 'true',
+      OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_TAMPER_TEST: 'true',
       OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_TAMPER_TEST: 'true',
       OPSC_TENANT_CONTEXT_HMAC_KEY: keyHex,
       OPSC_TENANT_CONTEXT_KEY_ID: keyId,
@@ -270,6 +278,33 @@ async function main() {
       });
     }
     await waitForServer(port, serverProcess);
+
+    // Exercise a normal authenticated Store route outside the work-order allowlist.
+    // The PostgreSQL worker tampers legacy tenant/user/access-mode GUCs after the
+    // HMAC assertion is bound, but before each statement executes.
+    const signedCustomersA = await queryHttp(port, '/api/v1/customers', tokenA);
+    const signedCustomersB = await queryHttp(port, '/api/v1/customers', tokenB);
+    const assertSessionAutobindCustomers = (label, response, expectedId, foreignId, expectedTenant) => {
+      const rows = response.body;
+      if (response.status !== 200
+          || !Array.isArray(rows)
+          || rows.length !== 1
+          || rows[0].id !== expectedId
+          || rows[0].organization_id !== expectedTenant
+          || rows.some(row => row.id === foreignId)) {
+        throw new Error('SIGNED_SESSION_AUTOBIND_CUSTOMER_ROUTE_FAILED:' + JSON.stringify({
+          label, status: response.status,
+          returnedIds: Array.isArray(rows) ? rows.map(row => row.id).slice(0, 5) : null,
+          returnedTenants: Array.isArray(rows) ? rows.map(row => row.organization_id).slice(0, 5) : null,
+          serverOutput: serverOutput.slice(-2500)
+        }));
+      }
+    };
+    assertSessionAutobindCustomers('tenantA', signedCustomersA, synthetic.customerIds[0], synthetic.customerIds[1], tenantA);
+    assertSessionAutobindCustomers('tenantB', signedCustomersB, synthetic.customerIds[1], synthetic.customerIds[0], tenantB);
+    signedSessionAutobindHttpProof.customersTenantA = 'PASS';
+    signedSessionAutobindHttpProof.customersTenantB = 'PASS';
+    signedSessionAutobindHttpProof.rawGucTamperingIgnored = 'PASS';
 
     const httpA = await queryHttp(port, '/api/v1/_internal/tenant-context-proof', tokenA);
     const httpB = await queryHttp(port, '/api/v1/_internal/tenant-context-proof', tokenB);
@@ -1522,6 +1557,7 @@ async function main() {
       checks: {
         tenantAHttpSession: 'PASS',
         tenantBHttpSession: 'PASS',
+        signedAuthenticatedSessionRoutes: signedSessionAutobindHttpProof,
         signedWorkOrdersTenantA: 'PASS',
         signedWorkOrdersTenantB: 'PASS',
         signedWorkOrderDetailTenantA: 'PASS',
@@ -1583,6 +1619,7 @@ async function main() {
     try { await owner.query('DELETE FROM public.idempotency_records WHERE organization_id = ANY($1::text[]) AND idempotency_key = ANY($2::text[])', [synthetic.tenantIds, synthetic.idempotencyKeys]); } catch (_) {}
     try { await owner.query('DELETE FROM public.operation_envelopes WHERE organization_id = ANY($1::text[]) AND idempotency_key = ANY($2::text[])', [synthetic.tenantIds, synthetic.idempotencyKeys]); } catch (_) {}
     try { await owner.query('DELETE FROM public.work_orders WHERE id = ANY($1::text[])', [synthetic.workOrderIds]); } catch (_) {}
+    try { await owner.query('DELETE FROM public.customers WHERE id = ANY($1::text[])', [synthetic.customerIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.sessions WHERE id = ANY($1::text[])', [synthetic.sessionIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.memberships WHERE user_id = ANY($1::text[])', [synthetic.userIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.organization_governance WHERE organization_id = ANY($1::text[])', [synthetic.tenantIds]); } catch (_) {}
