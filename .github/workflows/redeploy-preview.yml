@@ -56,7 +56,7 @@ jobs:
           body = {
             "name": proj.get("name") or "opscore-platform",
             "project": project,
-            "target": "preview",
+            
             "gitSource": {
               "type": "github",
               "repoId": int(str(repo_id)),
