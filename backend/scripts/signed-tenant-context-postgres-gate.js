@@ -462,7 +462,8 @@ async function main() {
             tenant: tenantLabel,
             status: response.status,
             signedHeader: response.headers?.['x-opscore-signed-tenant-context'] || null,
-            serverOutput: serverOutput.slice(-2500)
+            responseBody: response.body ?? null,
+            serverOutput: serverOutput.slice(-4000)
           }));
         }
         signedReadRouteProof[routeCase.key + tenantLabel] = 'PASS';
