@@ -146,6 +146,9 @@ function getTransport(connectionString, poolMax) {
     PATH: process.env.PATH || '/usr/bin:/bin',
     HOME: process.env.HOME || '',
     ...(process.env.NODE_ENV ? { NODE_ENV: process.env.NODE_ENV } : {}),
+    ...(String(process.env.OPSC_REQUIRE_SIGNED_TENANT_CONTEXT || '').trim().toLowerCase() === 'true'
+      ? { OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'true' }
+      : {}),
     DATABASE_URL: connectionString,
     NODE_PATH: nodePath,
     OPSC_PG_POOL_MAX: String(poolMax),
@@ -523,6 +526,27 @@ function openPgDatabaseSync(connectionString, { max = Number(process.env.OPSC_PG
         'SIGNED_CONTEXT_PURPOSE_MISMATCH',
         'An authenticated field-session assertion cannot be repurposed as auth, system, or backoffice context'
       );
+    }
+    if (context && context.verifiedPrincipal) {
+      const principal = context.verifiedPrincipal;
+      const requestedTenant = tenantId == null ? '' : String(tenantId).trim();
+      const requestedUser = userId == null ? '' : String(userId).trim();
+      if ((requestedTenant && requestedTenant !== principal.tenantId)
+          || (requestedUser && requestedUser !== principal.userId)) {
+        throw makeError(
+          'TENANT_CONTEXT_PRINCIPAL_MISMATCH',
+          'Legacy field-context rebinding cannot change a signed session principal'
+        );
+      }
+      // The signed assertion is transaction-bound by sendWithVerifiedContext.
+      // Do not issue a second unsigned SET LOCAL that the worker must reject.
+      return Object.freeze({
+        ok: true,
+        signedContext: true,
+        tenantId: principal.tenantId,
+        userId: principal.userId,
+        accessMode: 'field'
+      });
     }
     return sendWithVerifiedContext('setSession', '', [], {
       tenantId: tenantId == null ? '' : String(tenantId),
