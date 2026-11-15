@@ -148,39 +148,13 @@ jobs:
 
           URI=$(cat "$RUNNER_TEMP/preview.uri")
           KEY_HEX=$(cat "$RUNNER_TEMP/key.hex")
-          # Use env vars for psql; do not print KEY_HEX
-          export KEY_ID KEY_HEX KEY_TTL_DAYS
-          psql "$URI" -v ON_ERROR_STOP=1 <<'SQL'
-          \getenv key_id KEY_ID
-          \getenv key_hex KEY_HEX
-          \getenv key_ttl_days KEY_TTL_DAYS
-          BEGIN;
-          -- Verify through INSERT...RETURNING so we do not depend on SELECT
-          -- privileges on the definer-owned secrets table.
-          WITH inserted AS (
-            INSERT INTO opscore_security.context_hmac_keys (
-              key_id, secret, enabled, not_before, not_after
-            ) VALUES (
-              :'key_id',
-              decode(:'key_hex', 'hex'),
-              true,
-              now(),
-              now() + make_interval(days => :'key_ttl_days'::int)
-            )
-            RETURNING key_id, enabled, octet_length(secret) AS secret_len, not_before, not_after
-          )
-          SELECT CASE
-            WHEN count(*) = 1
-             AND bool_and(enabled)
-             AND bool_and(secret_len = 32)
-             AND bool_and(not_before <= now())
-             AND bool_and(not_after > now())
-            THEN 1
-            ELSE (SELECT 1/0)
-          END AS new_key_installed
-          FROM inserted;
-          COMMIT;
-          SQL
+          # Values are generated hex/id only; never log KEY_HEX.
+          case "$KEY_ID" in preview-[0-9a-f-]* ) ;; *) echo "KEY_ID_INVALID"; exit 1 ;; esac
+          case "$KEY_HEX" in [0-9a-f][0-9a-f]* ) test "${#KEY_HEX}" -eq 64 ;; *) echo "KEY_HEX_INVALID"; exit 1 ;; esac
+          TTL="${KEY_TTL_DAYS:-30}"
+          case "$TTL" in ''|*[!0-9]* ) TTL=30 ;; esac
+          # Prefer table-owner role when membership allows; otherwise use connection role.
+          psql "$URI" -v ON_ERROR_STOP=1 -c "BEGIN"             -c "DO \$\$ BEGIN BEGIN EXECUTE 'SET LOCAL ROLE opscore_auth_definer'; EXCEPTION WHEN OTHERS THEN RAISE NOTICE 'role_switch_skipped'; END; END \$\$;"             -c "INSERT INTO opscore_security.context_hmac_keys (key_id, secret, enabled, not_before, not_after) VALUES ('${KEY_ID}', decode('${KEY_HEX}', 'hex'), true, now(), now() + make_interval(days => ${TTL})) RETURNING key_id, enabled, octet_length(secret) AS secret_len;"             -c "COMMIT"
           echo "HMAC key row installed on Preview (secret not logged)"
 
       - name: Sync Vercel Preview env only
