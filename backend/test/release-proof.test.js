@@ -316,6 +316,74 @@ test('production behavioral evidence must carry the exact release commit hint', 
   }
 });
 
+test('production behavioral evidence rejects a candidate rebind unless probes were re-executed', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-production-evidence-rebind-'));
+  const sessionPath = path.join(dir, 'session.json');
+  const recoveryPath = path.join(dir, 'recovery.json');
+  const env = {
+    OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE: 'true',
+    OPSC_RELEASE_CI_COMMIT: SHA,
+    OPSC_PRODUCTION_NEON_BRANCH_ID: 'br-current-production'
+  };
+  const session = {
+    schemaVersion: 'opscore.production-session-isolation.v1',
+    status: 'PASS',
+    testedAt: '2026-10-23T00:00:00.000Z',
+    sourceCommitHint: SHA,
+    checks: {
+      dualLogin: 'PASS',
+      ownAssetCreate: 'PASS',
+      tenantListIsolation: 'PASS',
+      crossTenantAssetDenied: 'PASS',
+      crossTenantWriteDenied: 'PASS',
+      unauthenticatedDenied: 'PASS',
+      cleanupComplete: 'PASS'
+    },
+    evidenceRebind: {
+      kind: 'schema_compatible_candidate_rebind',
+      fromCommit: '0'.repeat(40),
+      toCommit: SHA,
+      probesReexecuted: false
+    }
+  };
+  const recovery = {
+    schemaVersion: 'opscore.production-recovery-point.v1',
+    status: 'PASS',
+    testedAt: '2026-10-23T00:00:00.000Z',
+    sourceCommitHint: SHA,
+    parentBranchId: 'br-current-production',
+    recoveryBranchId: 'br-test-recovery',
+    tableCountCompared: 134,
+    mismatchCount: 0,
+    coreTenantTablesMatch: true,
+    evidenceRebind: { ...session.evidenceRebind }
+  };
+  try {
+    fs.writeFileSync(sessionPath, JSON.stringify(session));
+    fs.writeFileSync(recoveryPath, JSON.stringify(recovery));
+    assert.equal(readProductionSessionIsolationEvidence(sessionPath, env).status, 'NOT_VERIFIED');
+    assert.equal(readProductionRecoveryPointEvidence(recoveryPath, env).status, 'NOT_VERIFIED');
+
+    const executedSession = {
+      ...session,
+      evidenceRebind: { ...session.evidenceRebind, probesReexecuted: true }
+    };
+    const executedRecovery = {
+      ...recovery,
+      evidenceRebind: { ...recovery.evidenceRebind, probesReexecuted: true }
+    };
+    fs.writeFileSync(sessionPath, JSON.stringify(executedSession));
+    fs.writeFileSync(recoveryPath, JSON.stringify(executedRecovery));
+    assert.equal(readProductionSessionIsolationEvidence(sessionPath, env).status, 'PASS');
+    assert.equal(readProductionRecoveryPointEvidence(recoveryPath, env).status, 'PASS');
+
+    fs.writeFileSync(recoveryPath, JSON.stringify({ ...executedRecovery, parentBranchId: 'br-old-production' }));
+    assert.equal(readProductionRecoveryPointEvidence(recoveryPath, env).status, 'NOT_VERIFIED');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('release proof fails closed when CI, package, or production acceptance belongs to another commit', () => {
   const proof = createPublicReleaseProof(deploymentEnv({
     OPSC_RELEASE_CI_COMMIT: '0'.repeat(40),
