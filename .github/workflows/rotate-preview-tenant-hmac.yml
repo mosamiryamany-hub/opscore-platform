@@ -126,7 +126,7 @@ jobs:
           sudo apt-get update -qq
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq postgresql-client
           KEY_ID="preview-$(date -u +%Y%m%d)-$(openssl rand -hex 3)"
-          openssl rand -hex 32 > "$RUNNER_TEMP/key.hex"
+          openssl rand -hex 32 | tr -d '\n' > "$RUNNER_TEMP/key.hex"
           chmod 600 "$RUNNER_TEMP/key.hex"
           test "$(wc -c < "$RUNNER_TEMP/key.hex" | tr -d ' ')" -eq 64
           echo "key_id=${KEY_ID}" >> "$GITHUB_OUTPUT"
