@@ -516,10 +516,18 @@ function openPgDatabaseSync(connectionString, { max = Number(process.env.OPSC_PG
   }
 
   function setSessionContext({ tenantId = '', userId = '', accessMode = 'field' } = {}) {
+    const context = requestStorage.getStore();
+    const requestedMode = accessMode || 'field';
+    if (context && context.verifiedPrincipal && requestedMode !== 'field') {
+      throw makeError(
+        'SIGNED_CONTEXT_PURPOSE_MISMATCH',
+        'An authenticated field-session assertion cannot be repurposed as auth, system, or backoffice context'
+      );
+    }
     return sendWithVerifiedContext('setSession', '', [], {
       tenantId: tenantId == null ? '' : String(tenantId),
       userId: userId == null ? '' : String(userId),
-      accessMode: accessMode || 'field'
+      accessMode: requestedMode
     });
   }
 
