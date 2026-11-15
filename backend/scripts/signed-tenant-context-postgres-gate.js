@@ -341,6 +341,29 @@ async function main() {
     signedSessionAutobindHttpProof.customersTenantB = 'PASS';
     signedSessionAutobindHttpProof.rawGucTamperingIgnored = 'PASS';
 
+    // This route previously called ctx(req) a second time after the global
+    // requireCtx gate, which would attempt to downgrade a signed field principal
+    // back to legacy auth-mode GUCs. It must reuse the already authenticated c.
+    const customDomainA = await queryHttp(
+      port, '/api/v1/custom-domains/resolve?hostname=' + encodeURIComponent('unregistered-' + keyId + '.invalid'), tokenA
+    );
+    const customDomainB = await queryHttp(
+      port, '/api/v1/custom-domains/resolve?hostname=' + encodeURIComponent('unregistered-' + keyId + '.invalid'), tokenB
+    );
+    if (customDomainA.status !== 200 || customDomainA.body?.resolved !== false
+        || customDomainA.body?.tenant !== null
+        || customDomainB.status !== 200 || customDomainB.body?.resolved !== false
+        || customDomainB.body?.tenant !== null) {
+      throw new Error('SIGNED_SESSION_CUSTOM_DOMAIN_RESOLUTION_FAILED:' + JSON.stringify({
+        tenantA: { status: customDomainA.status, body: customDomainA.body },
+        tenantB: { status: customDomainB.status, body: customDomainB.body },
+        serverOutput: serverOutput.slice(-3000)
+      }));
+    }
+    signedSessionAutobindHttpProof.customDomainResolutionTenantA = 'PASS';
+    signedSessionAutobindHttpProof.customDomainResolutionTenantB = 'PASS';
+    signedSessionAutobindHttpProof.noAuthModeDowngrade = 'PASS';
+
     const httpA = await queryHttp(port, '/api/v1/_internal/tenant-context-proof', tokenA);
     const httpB = await queryHttp(port, '/api/v1/_internal/tenant-context-proof', tokenB);
     for (const [label, response] of [['tenantA', httpA], ['tenantB', httpB]]) {
