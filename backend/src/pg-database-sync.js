@@ -266,7 +266,10 @@ function runWithRequest(fn, req, res, options = {}) {
     const result = requestStorage.run({
       requestId,
       verifiedPrincipal: null,
-      lastVerifiedTransactionId: null
+      lastVerifiedTransactionId: null,
+      transactionOpen: false,
+      signedTransactionCount: 0,
+      signedStatementCount: 0
     }, fn);
     if (result && typeof result.then === 'function') {
       return result.catch((error) => {
@@ -314,11 +317,170 @@ function openPgDatabaseSync(connectionString, { max = Number(process.env.OPSC_PG
   if (!connectionString) throw new Error('DATABASE_URL_REQUIRED');
   const poolMax = Number.isSafeInteger(Number(max)) && Number(max) >= 1 && Number(max) <= 200 ? Number(max) : 10;
 
-  function call(type, sql, params) {
-    const requestId = currentRequestId();
-    const response = sendCommand(type, sql, params, requestId, {
-      state: getTransport(connectionString, poolMax)
+
+  function classifyTransactionCommand(sql) {
+    const normalized = String(sql || '').trim();
+    return {
+      begin: /^(?:BEGIN|START\\s+TRANSACTION)\\b/i.test(normalized),
+      end: /^(?:COMMIT|END)\\b/i.test(normalized)
+        || (/^ROLLBACK\\b/i.test(normalized) && !/^ROLLBACK\\s+TO\\b/i.test(normalized)),
+      savepoint: /^(?:SAVEPOINT|RELEASE\\s+SAVEPOINT|ROLLBACK\\s+TO\\s+SAVEPOINT)\\b/i.test(normalized)
+    };
+  }
+
+  function hasMultipleSqlStatements(sql) {
+    const source = String(sql || '');
+    let quote = null;
+    let dollarTag = null;
+    let blockDepth = 0;
+    for (let i = 0; i < source.length; i++) {
+      const ch = source[i];
+      const next = source[i + 1];
+      if (quote === 'single') {
+        if (ch === "'" && next === "'") { i++; continue; }
+        if (ch === "'") quote = null;
+        continue;
+      }
+      if (quote === 'double') {
+        if (ch === '"' && next === '"') { i++; continue; }
+        if (ch === '"') quote = null;
+        continue;
+      }
+      if (dollarTag) {
+        if (source.startsWith(dollarTag, i)) {
+          i += dollarTag.length - 1;
+          dollarTag = null;
+        }
+        continue;
+      }
+      if (blockDepth > 0) {
+        if (source.startsWith('/*', i)) { blockDepth++; i++; }
+        else if (source.startsWith('*/', i)) { blockDepth--; i++; }
+        continue;
+      }
+      if (source.startsWith('--', i)) {
+        const newline = source.indexOf('\\n', i + 2);
+        i = newline < 0 ? source.length : newline;
+        continue;
+      }
+      if (source.startsWith('/*', i)) { blockDepth = 1; i++; continue; }
+      if (ch === "'") { quote = 'single'; continue; }
+      if (ch === '"') { quote = 'double'; continue; }
+      if (ch === '$') {
+        const tag = /^\\$[A-Za-z_][A-Za-z0-9_]*\\$|^\\$\\$/.exec(source.slice(i));
+        if (tag) {
+          dollarTag = tag[0];
+          i += dollarTag.length - 1;
+          continue;
+        }
+      }
+      if (ch === ';') {
+        const tail = source.slice(i + 1).replace(/--[^\\n]*|\\/\\*[\\s\\S]*?\\*\\//g, '').trim();
+        if (tail) return true;
+      }
+    }
+    return false;
+  }
+
+  function bindVerifiedTenantContext(context, requestId, state, allowAlreadyBound) {
+    if (!context || !context.verifiedPrincipal) {
+      throw makeError('TENANT_CONTEXT_PRINCIPAL_REQUIRED', 'An authenticated session principal must be attached first');
+    }
+    const identityResponse = sendCommand('transactionIdentity', '', [], requestId, { state });
+    const identity = identityResponse.row || {};
+    const transactionId = String(identity.transactionId || '');
+    if (!Number.isSafeInteger(Number(identity.backendPid)) || Number(identity.backendPid) < 1
+        || !/^[0-9]{1,20}$/.test(transactionId)) {
+      throw makeError('TENANT_CONTEXT_TRANSACTION_IDENTITY_INVALID');
+    }
+    if (context.lastVerifiedTransactionId === transactionId) {
+      if (allowAlreadyBound) return Object.freeze({
+        backendPid: Number(identity.backendPid),
+        transactionId,
+        alreadyBound: true
+      });
+      throw makeError('TENANT_CONTEXT_ALREADY_BOUND_FOR_TRANSACTION');
+    }
+    const assertion = createSignedTenantContext({
+      principal: context.verifiedPrincipal,
+      backendPid: Number(identity.backendPid),
+      transactionId
     });
+    sendCommand('bindSignedContext', '', [], requestId, {
+      state,
+      signedContextPayload: assertion.payload,
+      signedContextSignature: assertion.signature
+    });
+    context.lastVerifiedTransactionId = transactionId;
+    context.signedTransactionCount = Number(context.signedTransactionCount || 0) + 1;
+    return Object.freeze({
+      backendPid: Number(identity.backendPid),
+      transactionId,
+      expiresAt: assertion.expiresAt,
+      alreadyBound: false
+    });
+  }
+
+  function sendWithVerifiedContext(type, sql, params, options = {}, customExecutor = null) {
+    const requestId = currentRequestId();
+    const state = options.state || getTransport(connectionString, poolMax);
+    const execute = customExecutor || (() => sendCommand(type, sql, params, requestId, { ...options, state }));
+    const context = requestStorage.getStore();
+    if (!context || !context.verifiedPrincipal || type === 'ping') return execute();
+
+    const control = classifyTransactionCommand(sql);
+    if (control.begin) {
+      const response = execute();
+      context.transactionOpen = true;
+      return response;
+    }
+    if (control.end) {
+      const response = execute();
+      context.transactionOpen = false;
+      return response;
+    }
+    // Savepoint control must remain usable after a statement has put the
+    // transaction into the aborted state. It does not read or write tenant rows.
+    if (control.savepoint) return execute();
+
+    if (hasMultipleSqlStatements(sql)) {
+      throw makeError(
+        'SIGNED_CONTEXT_MULTI_STATEMENT_UNSUPPORTED',
+        'A signed request must execute one SQL statement per bridge call'
+      );
+    }
+
+    if (context.transactionOpen === true) {
+      bindVerifiedTenantContext(context, requestId, state, true);
+      context.signedStatementCount = Number(context.signedStatementCount || 0) + 1;
+      return execute();
+    }
+
+    // PostgreSQL autocommit already gives each statement its own transaction.
+    // Make that boundary explicit so the assertion is bound to the same backend
+    // and xid before the application statement executes.
+    sendCommand('exec', 'BEGIN', [], requestId, { state });
+    context.transactionOpen = true;
+    try {
+      bindVerifiedTenantContext(context, requestId, state, true);
+      const response = execute();
+      sendCommand('exec', 'COMMIT', [], requestId, { state });
+      context.transactionOpen = false;
+      return response;
+    } catch (error) {
+      if (context.transactionOpen) {
+        try { sendCommand('exec', 'ROLLBACK', [], requestId, { state }); }
+        catch (rollbackError) {
+          error.rollbackCode = String(rollbackError && (rollbackError.code || rollbackError.message) || 'ROLLBACK_FAILED');
+        }
+        context.transactionOpen = false;
+      }
+      throw error;
+    }
+  }
+
+  function call(type, sql, params) {
+    const response = sendWithVerifiedContext(type, sql, params, {});
     if (type === 'run') return { changes: response.changes || 0, lastInsertRowid: null };
     if (type === 'get') return response.row == null ? undefined : response.row;
     if (type === 'all') return response.rows || [];
@@ -327,6 +489,13 @@ function openPgDatabaseSync(connectionString, { max = Number(process.env.OPSC_PG
   }
 
   function batch(statements) {
+    const context = requestStorage.getStore();
+    if (context && context.verifiedPrincipal) {
+      throw makeError(
+        'SIGNED_CONTEXT_BATCH_UNSUPPORTED',
+        'Signed session requests must use prepared single-statement calls or an explicit bound transaction'
+      );
+    }
     const requestId = currentRequestId();
     const state = getTransport(connectionString, poolMax);
     const response = exchange(state, {
@@ -342,67 +511,40 @@ function openPgDatabaseSync(connectionString, { max = Number(process.env.OPSC_PG
     return response.results || [];
   }
 
+  function setSessionContext({ tenantId = '', userId = '', accessMode = 'field' } = {}) {
+    return sendWithVerifiedContext('setSession', '', [], {
+      tenantId: tenantId == null ? '' : String(tenantId),
+      userId: userId == null ? '' : String(userId),
+      accessMode: accessMode || 'field'
+    });
+  }
+
+  function activateVerifiedTenantContext() {
+    const context = requestStorage.getStore();
+    const requestId = currentRequestId();
+    const state = getTransport(connectionString, poolMax);
+    return bindVerifiedTenantContext(context, requestId, state, false);
+  }
+
 
   return {
     engine: 'postgres',
     batch,
     setTenant(organizationId) {
-      const response = sendCommand('setSession', '', [], currentRequestId(), {
-        state: getTransport(connectionString, poolMax),
+      return setSessionContext({
         tenantId: organizationId == null ? '' : String(organizationId),
-        accessMode: organizationId ? 'field' : 'field'
+        userId: '',
+        accessMode: 'field'
       });
-      return response;
     },
     setAccessMode(mode) {
-      return sendCommand('setSession', '', [], currentRequestId(), {
-        state: getTransport(connectionString, poolMax),
-        tenantId: '',
-        accessMode: mode || 'field'
-      });
+      return setSessionContext({ tenantId: '', userId: '', accessMode: mode || 'field' });
     },
     setSession({ tenantId = '', userId = '', accessMode = 'field' } = {}) {
-      return sendCommand('setSession', '', [], currentRequestId(), {
-        state: getTransport(connectionString, poolMax),
-        tenantId: tenantId == null ? '' : String(tenantId),
-        userId: userId == null ? '' : String(userId),
-        accessMode: accessMode || 'field'
-      });
+      return setSessionContext({ tenantId, userId, accessMode });
     },
     setVerifiedPrincipal,
-    activateVerifiedTenantContext() {
-      const context = requestStorage.getStore();
-      if (!context || !context.verifiedPrincipal) {
-        throw makeError('TENANT_CONTEXT_PRINCIPAL_REQUIRED', 'An authenticated session principal must be attached first');
-      }
-      const state = getTransport(connectionString, poolMax);
-      const requestId = currentRequestId();
-      const identityResponse = sendCommand('transactionIdentity', '', [], requestId, { state });
-      const identity = identityResponse.row || {};
-      const transactionId = String(identity.transactionId || '');
-      if (!Number.isSafeInteger(Number(identity.backendPid)) || Number(identity.backendPid) < 1 || !/^[0-9]{1,20}$/.test(transactionId)) {
-        throw makeError('TENANT_CONTEXT_TRANSACTION_IDENTITY_INVALID');
-      }
-      if (context.lastVerifiedTransactionId === transactionId) {
-        throw makeError('TENANT_CONTEXT_ALREADY_BOUND_FOR_TRANSACTION');
-      }
-      const assertion = createSignedTenantContext({
-        principal: context.verifiedPrincipal,
-        backendPid: Number(identity.backendPid),
-        transactionId
-      });
-      sendCommand('bindSignedContext', '', [], requestId, {
-        state,
-        signedContextPayload: assertion.payload,
-        signedContextSignature: assertion.signature
-      });
-      context.lastVerifiedTransactionId = transactionId;
-      return Object.freeze({
-        backendPid: Number(identity.backendPid),
-        transactionId,
-        expiresAt: assertion.expiresAt
-      });
-    },
+    activateVerifiedTenantContext,
 
     prepare(sql) {
       return {
