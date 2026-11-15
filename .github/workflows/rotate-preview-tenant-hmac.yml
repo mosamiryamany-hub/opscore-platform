@@ -11,7 +11,7 @@ on:
       neon_branch_id_or_name:
         description: Preview branch id or name (empty = auto-detect preview/vercel/dev non-primary)
         required: false
-        default: ''
+        default: 'opscore-signed-context-063-065-20261114'
       database_name:
         description: Database name on the Preview branch
         required: false
