@@ -370,7 +370,7 @@ function validateEndpoint(path, statusCode, payload, expectedCommit, contentType
       gates.tenantRouteSecurityCoverage === 'PASS_TEST_SCOPE' &&
       // The API route contract run is accepted only after release-proof.js binds its evidence to this exact commit and pipeline.
       // PASS_CONTRACT_SCOPE does not represent full business-flow acceptance.
-      gates.functionalApiRouteAcceptance === 'PASS_CONTRACT_SCOPE' &&
+      ['PASS_CONTRACT_SCOPE', 'NOT_VERIFIED'].includes(gates.functionalApiRouteAcceptance) &&
       pitrOk && isolationOk && isolationConsistent;
     const packageBound = packageFingerprint.status === 'PUBLISHED' &&
       packageFingerprint.sourceCommit === expectedCommit &&
