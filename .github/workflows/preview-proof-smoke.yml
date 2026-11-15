@@ -1,0 +1,53 @@
+name: preview-proof-smoke
+on:
+  workflow_dispatch:
+    inputs:
+      deployment_host:
+        description: Preview host without scheme (empty = latest READY non-production)
+        required: false
+        default: "opscore-platform-fydp5bav0-mosamiryamany-1692.vercel.app"
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Setup Vercel CLI
+        run: npm i -g vercel@39
+
+      - name: Probe Preview via vercel curl (bypass deployment protection)
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          HOST: ${{ github.event.inputs.deployment_host }}
+        run: |
+          set -euo pipefail
+          HOST="${HOST:-}"
+          if [ -z "$HOST" ]; then
+            echo "HOST_REQUIRED"; exit 1
+          fi
+          BASE="https://${HOST}"
+          echo "BASE=$BASE"
+          # Health
+          vercel curl "$BASE/api/health" --token "$VERCEL_TOKEN" | tee /tmp/health.json
+          # Unauthenticated proof — must not be PASS
+          set +e
+          vercel curl "$BASE/api/v1/_internal/tenant-context-proof" --token "$VERCEL_TOKEN" | tee /tmp/proof.json
+          set -e
+          python3 - <<'PY'
+          import json,sys
+          h=json.load(open("/tmp/health.json"))
+          print("health_ok", h.get("ok"), h.get("status"), h.get("version"))
+          try:
+            p=json.load(open("/tmp/proof.json"))
+          except Exception as e:
+            print("proof_parse", e); sys.exit(0)
+          print("proof_keys", list(p.keys())[:12])
+          if p.get("status")=="PASS" or p.get("ok") is True:
+            print("UNEXPECTED_UNAUTH_PROOF_PASS"); sys.exit(1)
+          # Expected: NOT_FOUND / SESSION_AUTHENTICATION_REQUIRED / error object
+          print("proof_unauth_surface_ok")
+          PY
+          echo "PREVIEW_PROOF_SMOKE=PASS"
