@@ -391,6 +391,15 @@ test('production behavioral evidence rejects a candidate rebind unless probes we
     };
     fs.writeFileSync(sessionPath, JSON.stringify(executedSession));
     fs.writeFileSync(recoveryPath, JSON.stringify(executedRecovery));
+    assert.equal(readProductionSessionIsolationEvidence(sessionPath, env).status, 'NOT_VERIFIED');
+    assert.equal(readProductionRecoveryPointEvidence(recoveryPath, env).status, 'NOT_VERIFIED');
+
+    const freshSession = { ...session };
+    const freshRecovery = { ...recovery };
+    delete freshSession.evidenceRebind;
+    delete freshRecovery.evidenceRebind;
+    fs.writeFileSync(sessionPath, JSON.stringify(freshSession));
+    fs.writeFileSync(recoveryPath, JSON.stringify(freshRecovery));
     assert.equal(readProductionSessionIsolationEvidence(sessionPath, env).status, 'PASS');
     assert.equal(readProductionRecoveryPointEvidence(recoveryPath, env).status, 'PASS');
 
