@@ -334,7 +334,7 @@ jobs:
                 const sourceBranchMatches = (evidence) => Boolean(expectedBranch) && String(evidence.parentBranchId || '').trim() === expectedBranch;
                 const noEvidenceRebind = (evidence) => evidence.evidenceRebind == null;
                 const sOk = session.schemaVersion === 'opscore.production-session-isolation.v1' && session.status === 'PASS' && sourceCommitMatches(session) && sourceBranchMatches(session) && noEvidenceRebind(session);
-                const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v1' && recovery.status === 'PASS' && recovery.coreTenantTablesMatch === true && Number(recovery.mismatchCount) === 0 && sourceCommitMatches(recovery) && sourceBranchMatches(recovery);
+                const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v1' && recovery.status === 'PASS' && recovery.coreTenantTablesMatch === true && Number(recovery.mismatchCount) === 0 && sourceCommitMatches(recovery) && sourceBranchMatches(recovery) && noEvidenceRebind(recovery);
                 return sOk && rOk;
               } catch { return false; }
             }
@@ -380,7 +380,7 @@ jobs:
               const sourceBranchMatches = (evidence) => Boolean(expectedBranch) && String(evidence.parentBranchId || '').trim() === expectedBranch;
                 const noEvidenceRebind = (evidence) => evidence.evidenceRebind == null;
               const sOk = session.schemaVersion === 'opscore.production-session-isolation.v1' && session.status === 'PASS' && sourceCommitMatches(session) && sourceBranchMatches(session) && noEvidenceRebind(session);
-              const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v1' && recovery.status === 'PASS' && recovery.coreTenantTablesMatch === true && Number(recovery.mismatchCount) === 0 && sourceCommitMatches(recovery) && sourceBranchMatches(recovery);
+              const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v1' && recovery.status === 'PASS' && recovery.coreTenantTablesMatch === true && Number(recovery.mismatchCount) === 0 && sourceCommitMatches(recovery) && sourceBranchMatches(recovery) && noEvidenceRebind(recovery);
               return sOk && rOk;
             } catch { return false; }
           }
