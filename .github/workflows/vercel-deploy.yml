@@ -372,6 +372,17 @@ jobs:
           console.log('ISOLATION_CERT', ok ? 'CERTIFIED' : 'NOT_CERTIFIED');
           NODE
 
+      - name: Require commit-bound production acceptance and isolation before staging
+        env:
+          ACCEPTANCE_SHA: ${{ steps.generate_acceptance.outputs.evidence_sha }}
+          ISOLATION_CERT: ${{ steps.isolation_cert.outputs.certified }}
+          BEHAVIORAL_EVIDENCE: ${{ steps.isolation_cert.outputs.behavioral }}
+        run: |
+          set -euo pipefail
+          test -n "$ACCEPTANCE_SHA" || { echo "::error::PRODUCTION_ACCEPTANCE_EVIDENCE_MISSING"; exit 1; }
+          test "$ISOLATION_CERT" = "CERTIFIED" || { echo "::error::PRODUCTION_ISOLATION_NOT_CERTIFIED"; exit 1; }
+          test "$BEHAVIORAL_EVIDENCE" = "true" || { echo "::error::PRODUCTION_BEHAVIORAL_EVIDENCE_NOT_VERIFIED"; exit 1; }
+
       - name: Build Vercel output
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:
@@ -379,6 +390,7 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           # CI-asserted release identity for CLI deploys (deployment-proof + release-proof).
           OPSC_RELEASE_DEPLOYMENT_SOURCE: github-actions-cli
+          OPSC_PRODUCTION_HOLD: 'false'
           OPSC_RELEASE_CI_COMMIT: ${{ github.sha }}
           OPSC_RELEASE_CI_PIPELINE_ID: ${{ github.run_id }}
           OPSC_SOURCE_COMMIT_SHA: ${{ github.sha }}
@@ -447,6 +459,7 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           OPSC_RELEASE_DEPLOYMENT_SOURCE: github-actions-cli
+          OPSC_PRODUCTION_HOLD: 'false'
           OPSC_RELEASE_CI_COMMIT: ${{ github.sha }}
           OPSC_RELEASE_CI_PIPELINE_ID: ${{ github.run_id }}
           OPSC_SOURCE_COMMIT_SHA: ${{ github.sha }}
