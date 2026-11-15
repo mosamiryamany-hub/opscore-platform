@@ -337,6 +337,15 @@ test('legacy opscore_app repair is allowed only for an inactive, unowned role wi
     roleExists: true,
     removableMemberships: ['neon_superuser']
   });
+  assert.deepEqual(validateAppRolePreflight({
+    ...role,
+    memberships: '{neon_superuser}'
+  }, true), {
+    status: 'REPAIR_PENDING',
+    repairPending: true,
+    roleExists: true,
+    removableMemberships: ['neon_superuser']
+  });
 });
 
 test('legacy opscore_app lockdown refuses to rewrite a role with active sessions or owned objects', () => {
