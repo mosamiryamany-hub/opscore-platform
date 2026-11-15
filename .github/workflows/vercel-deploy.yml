@@ -332,7 +332,8 @@ jobs:
                 const expectedBranch = String(process.env.OPSC_PRODUCTION_NEON_BRANCH_ID || '').trim();
                 const sourceCommitMatches = (evidence) => expectedCommit.length === 40 && String(evidence.sourceCommitHint || '').trim().toLowerCase() === expectedCommit;
                 const sourceBranchMatches = (evidence) => Boolean(expectedBranch) && String(evidence.parentBranchId || '').trim() === expectedBranch;
-                const sOk = session.schemaVersion === 'opscore.production-session-isolation.v1' && session.status === 'PASS' && sourceCommitMatches(session) && sourceBranchMatches(session);
+                const noEvidenceRebind = (evidence) => evidence.evidenceRebind == null;
+                const sOk = session.schemaVersion === 'opscore.production-session-isolation.v1' && session.status === 'PASS' && sourceCommitMatches(session) && sourceBranchMatches(session) && noEvidenceRebind(session);
                 const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v1' && recovery.status === 'PASS' && recovery.coreTenantTablesMatch === true && Number(recovery.mismatchCount) === 0 && sourceCommitMatches(recovery) && sourceBranchMatches(recovery);
                 return sOk && rOk;
               } catch { return false; }
@@ -377,7 +378,8 @@ jobs:
               const expectedBranch = String(process.env.OPSC_PRODUCTION_NEON_BRANCH_ID || '').trim();
               const sourceCommitMatches = (evidence) => expectedCommit.length === 40 && String(evidence.sourceCommitHint || '').trim().toLowerCase() === expectedCommit;
               const sourceBranchMatches = (evidence) => Boolean(expectedBranch) && String(evidence.parentBranchId || '').trim() === expectedBranch;
-              const sOk = session.schemaVersion === 'opscore.production-session-isolation.v1' && session.status === 'PASS' && sourceCommitMatches(session) && sourceBranchMatches(session);
+                const noEvidenceRebind = (evidence) => evidence.evidenceRebind == null;
+              const sOk = session.schemaVersion === 'opscore.production-session-isolation.v1' && session.status === 'PASS' && sourceCommitMatches(session) && sourceBranchMatches(session) && noEvidenceRebind(session);
               const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v1' && recovery.status === 'PASS' && recovery.coreTenantTablesMatch === true && Number(recovery.mismatchCount) === 0 && sourceCommitMatches(recovery) && sourceBranchMatches(recovery);
               return sOk && rOk;
             } catch { return false; }
