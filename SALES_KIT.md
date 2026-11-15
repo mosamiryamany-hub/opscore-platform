@@ -28,7 +28,7 @@ Source correctness, internal adapters, authorization, database migrations, RLS, 
 
 ## Technical truth
 
-The live production proof currently identifies the seller-operated deployment and reports production isolation certification for that exact seller reference. It does not certify a buyer environment, all possible business flows, full PITR/RPO/RTO, or all external integrations. The technical classification is `PASS_WITH_BUYER_RESIDUALS` only for its exact evidence scope.
+The current stored seller-reference production isolation evidence is NOT_VERIFIED: it contains a rebind marker showing probes were not re-executed and a recovery record tied to a previous Neon branch. Do not claim certification until fresh dual-tenant and recovery probes are bound to the exact active Production commit and Neon branch and independently reviewed. This does not certify buyer environments, all business flows, full PITR/RPO/RTO, or external integrations. The technical classification is valid only for its exact verified evidence scope.
 
 ## Commercial rights hold
 

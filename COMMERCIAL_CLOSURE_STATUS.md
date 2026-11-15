@@ -1,6 +1,6 @@
 # OpsCore — Technical and Commercial Closure Status
 
-**Technical classification:** `PASS_WITH_BUYER_RESIDUALS` for the exact seller-reference candidate only.  
+**Technical classification:** `HOLD_FOR_PRODUCTION_EVIDENCE_REVALIDATION` — current seller-reference isolation evidence is not verified for the active Production commit and Neon branch.  
 **Commercial license status:** **NO LICENSE GRANTED — COMMERCIAL MODEL PENDING**.  
 **Distribution status:** **HOLD — DO NOT SELL OR DISTRIBUTE**.
 
@@ -14,17 +14,13 @@ The authoritative package notice is `NO_LICENSE_GRANT_NOTICE.txt`. Package metad
 
 ## Seller-reference technical evidence
 
-The live seller-reference release proof currently reports:
-- health and deployment identity are available and identify the running production commit;
-- technical classification `PASS_WITH_BUYER_RESIDUALS`;
-- seller-reference `productionIsolationCertification=CERTIFIED`;
-- database catalog proof `IDENTITY_PLANE_RLS_ENFORCED`.
+The current stored Production session-isolation and recovery evidence is `NOT_VERIFIED`: both records contain an evidence-rebind marker with `probesReexecuted=false`, and the recovery record refers to a previous Neon branch rather than the active Production branch. The evidence commit therefore cannot certify the current deployment/database pair. Vercel Production metadata still contains certification/release values that conflict with those embedded records; treat those values as stale, not as proof.
 
-These statuses apply only to the exact seller production target and the evidence exposed by its verification endpoints. They are not transferable to a buyer environment and do not certify every buyer business flow. The reported recovery proof is a branch-point comparison, not complete PITR/RPO/RTO certification.
+Do not report seller-reference Production isolation as certified until new dual-tenant Production probes and a real recovery-point comparison are rerun against the exact current application commit and active Neon Production branch, with independent review. A `READY` Vercel deployment or successful CI run is not a substitute. Buyer environments remain NOT CERTIFIED.
 
 ## Remaining engineering and buyer-environment work
 
-1. PR #103 signed tenant-context integration remains a separate, unmerged security track; its remaining legacy unsigned paths, independent Knowledge pool, and full runtime proof must be closed before claiming complete trust-boundary coverage.
+1. Signed tenant-context cutover remains incomplete: Preview-only signed-context work is under review; production migrations and the remaining authentication, system/background, Knowledge-pool and route-purpose paths are not yet proven end-to-end. Do not claim complete trust-boundary coverage.
 2. WAF enforcement must be proven in blocking mode; logging-only rules are not blocking protection.
 3. Neon PITR/restore must be validated with a real restore drill and measured RPO/RTO.
 4. Mobile source is included, but signed Android/iOS store artifacts, buyer-specific signing, physical-device QA, and store publication remain outstanding.

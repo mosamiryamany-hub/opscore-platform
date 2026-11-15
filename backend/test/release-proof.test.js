@@ -271,13 +271,15 @@ test('production behavioral evidence must carry the exact release commit hint', 
   const recoveryPath = path.join(dir, 'recovery.json');
   const env = {
     OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE: 'true',
-    OPSC_RELEASE_CI_COMMIT: SHA
+    OPSC_RELEASE_CI_COMMIT: SHA,
+    OPSC_PRODUCTION_NEON_BRANCH_ID: 'br-current-production'
   };
   const session = {
     schemaVersion: 'opscore.production-session-isolation.v1',
     status: 'PASS',
     testedAt: '2026-10-23T00:00:00.000Z',
     sourceCommitHint: SHA,
+    parentBranchId: 'br-current-production',
     checks: {
       dualLogin: 'PASS',
       ownAssetCreate: 'PASS',
@@ -293,6 +295,7 @@ test('production behavioral evidence must carry the exact release commit hint', 
     status: 'PASS',
     testedAt: '2026-10-23T00:00:00.000Z',
     sourceCommitHint: SHA,
+    parentBranchId: 'br-current-production',
     recoveryBranchId: 'br-test-recovery',
     tableCountCompared: 134,
     mismatchCount: 0,
@@ -304,6 +307,21 @@ test('production behavioral evidence must carry the exact release commit hint', 
     assert.equal(readProductionSessionIsolationEvidence(sessionPath, env).status, 'PASS');
     assert.equal(readProductionRecoveryPointEvidence(recoveryPath, env).status, 'PASS');
 
+
+
+    assert.equal(readProductionSessionIsolationEvidence(sessionPath, {
+      ...env, OPSC_PRODUCTION_NEON_BRANCH_ID: ''
+    }).status, 'NOT_VERIFIED');
+    assert.equal(readProductionRecoveryPointEvidence(recoveryPath, {
+      ...env, OPSC_PRODUCTION_NEON_BRANCH_ID: ''
+    }).status, 'NOT_VERIFIED');
+    fs.writeFileSync(sessionPath, JSON.stringify({ ...session, parentBranchId: 'br-stale-production' }));
+    assert.equal(readProductionSessionIsolationEvidence(sessionPath, env).status, 'NOT_VERIFIED');
+    fs.writeFileSync(sessionPath, JSON.stringify(session));
+    fs.writeFileSync(recoveryPath, JSON.stringify({ ...recovery, parentBranchId: 'br-stale-production' }));
+    assert.equal(readProductionRecoveryPointEvidence(recoveryPath, env).status, 'NOT_VERIFIED');
+    fs.writeFileSync(recoveryPath, JSON.stringify(recovery));
+
     fs.writeFileSync(sessionPath, JSON.stringify({ ...session, sourceCommitHint: '0'.repeat(40) }));
     fs.writeFileSync(recoveryPath, JSON.stringify({ ...recovery, sourceCommitHint: '0'.repeat(40) }));
     assert.equal(readProductionSessionIsolationEvidence(sessionPath, env).status, 'NOT_VERIFIED');
@@ -311,6 +329,105 @@ test('production behavioral evidence must carry the exact release commit hint', 
 
     fs.writeFileSync(sessionPath, JSON.stringify({ ...session, sourceCommitHint: undefined }));
     assert.equal(readProductionSessionIsolationEvidence(sessionPath, env).status, 'NOT_VERIFIED');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('production behavioral evidence rejects any evidence rebind marker', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-production-evidence-rebind-'));
+  const sessionPath = path.join(dir, 'session.json');
+  const recoveryPath = path.join(dir, 'recovery.json');
+  const env = {
+    OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE: 'true',
+    OPSC_RELEASE_CI_COMMIT: SHA,
+    OPSC_PRODUCTION_NEON_BRANCH_ID: 'br-current-production'
+  };
+  const session = {
+    schemaVersion: 'opscore.production-session-isolation.v1',
+    status: 'PASS',
+    testedAt: '2026-10-23T00:00:00.000Z',
+    sourceCommitHint: SHA,
+    parentBranchId: 'br-current-production',
+    checks: {
+      dualLogin: 'PASS',
+      ownAssetCreate: 'PASS',
+      tenantListIsolation: 'PASS',
+      crossTenantAssetDenied: 'PASS',
+      crossTenantWriteDenied: 'PASS',
+      unauthenticatedDenied: 'PASS',
+      cleanupComplete: 'PASS'
+    },
+    evidenceRebind: {
+      kind: 'schema_compatible_candidate_rebind',
+      fromCommit: '0'.repeat(40),
+      toCommit: SHA,
+      probesReexecuted: false
+    }
+  };
+  const recovery = {
+    schemaVersion: 'opscore.production-recovery-point.v1',
+    status: 'PASS',
+    testedAt: '2026-10-23T00:00:00.000Z',
+    sourceCommitHint: SHA,
+    parentBranchId: 'br-current-production',
+    recoveryBranchId: 'br-test-recovery',
+    tableCountCompared: 134,
+    mismatchCount: 0,
+    coreTenantTablesMatch: true,
+    evidenceRebind: { ...session.evidenceRebind }
+  };
+  try {
+    fs.writeFileSync(sessionPath, JSON.stringify(session));
+    fs.writeFileSync(recoveryPath, JSON.stringify(recovery));
+    assert.equal(readProductionSessionIsolationEvidence(sessionPath, env).status, 'NOT_VERIFIED');
+    assert.equal(readProductionRecoveryPointEvidence(recoveryPath, env).status, 'NOT_VERIFIED');
+
+    const executedSession = {
+      ...session,
+      evidenceRebind: { ...session.evidenceRebind, probesReexecuted: true }
+    };
+    const executedRecovery = {
+      ...recovery,
+      evidenceRebind: { ...recovery.evidenceRebind, probesReexecuted: true }
+    };
+    fs.writeFileSync(sessionPath, JSON.stringify(executedSession));
+    fs.writeFileSync(recoveryPath, JSON.stringify(executedRecovery));
+    assert.equal(readProductionSessionIsolationEvidence(sessionPath, env).status, 'NOT_VERIFIED');
+    assert.equal(readProductionRecoveryPointEvidence(recoveryPath, env).status, 'NOT_VERIFIED');
+
+    const freshSession = { ...session };
+    const freshRecovery = { ...recovery };
+    delete freshSession.evidenceRebind;
+    delete freshRecovery.evidenceRebind;
+    fs.writeFileSync(sessionPath, JSON.stringify(freshSession));
+    fs.writeFileSync(recoveryPath, JSON.stringify(freshRecovery));
+    assert.equal(readProductionSessionIsolationEvidence(sessionPath, env).status, 'PASS');
+    assert.equal(readProductionRecoveryPointEvidence(recoveryPath, env).status, 'PASS');
+
+    for (const malformedRebind of ['tampered', true, 1]) {
+      fs.writeFileSync(sessionPath, JSON.stringify({ ...freshSession, evidenceRebind: malformedRebind }));
+      fs.writeFileSync(recoveryPath, JSON.stringify({ ...freshRecovery, evidenceRebind: malformedRebind }));
+      assert.equal(readProductionSessionIsolationEvidence(sessionPath, env).status, 'NOT_VERIFIED');
+      assert.equal(readProductionRecoveryPointEvidence(recoveryPath, env).status, 'NOT_VERIFIED');
+    }
+
+    fs.writeFileSync(sessionPath, JSON.stringify({
+      ...executedSession,
+      evidenceRebind: { ...executedSession.evidenceRebind, toCommit: '0'.repeat(40) }
+    }));
+    assert.equal(readProductionSessionIsolationEvidence(sessionPath, env).status, 'NOT_VERIFIED');
+
+    assert.equal(readProductionSessionIsolationEvidence(sessionPath, {
+      OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE: 'true'
+    }).status, 'NOT_VERIFIED');
+    assert.equal(readProductionRecoveryPointEvidence(recoveryPath, {
+      OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE: 'true'
+    }).status, 'NOT_VERIFIED');
+
+    fs.writeFileSync(sessionPath, JSON.stringify(executedSession));
+    fs.writeFileSync(recoveryPath, JSON.stringify({ ...executedRecovery, parentBranchId: 'br-old-production' }));
+    assert.equal(readProductionRecoveryPointEvidence(recoveryPath, env).status, 'NOT_VERIFIED');
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }

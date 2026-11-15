@@ -8,6 +8,31 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '../..');
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8');
 
+test('commercial-facing documents fail closed while current seller production evidence is not verified', () => {
+  const files = [
+    'COMMERCIAL_CLOSURE_STATUS.md',
+    'COMMERCIAL_RELEASE_STATUS.md',
+    'CLIENT_INSPECTION_PACKAGE_STATUS.md',
+    'CLOSEOUT_EXECUTION_RUNBOOK.md',
+    'BUYER_DELIVERY.md',
+    'SALES_README.md',
+    'SALES_KIT.md',
+    'docs/release/RELEASE_SCOPE.md',
+    'docs/COMMERCIAL_HANDOFF.md'
+  ];
+  for (const file of files) {
+    const doc = read(file);
+    assert.match(doc, /NOT_VERIFIED/);
+    assert.doesNotMatch(doc, /productionIsolationCertification=CERTIFIED/);
+    assert.doesNotMatch(doc, /reports seller-reference production isolation as CERTIFIED/i);
+  }
+  const scope = JSON.parse(read('INTEGRATED_RELEASE_SCOPE.json'));
+  assert.equal(
+    scope.production.productionIsolationCertification,
+    'NOT_VERIFIED_PENDING_FRESH_COMMIT_AND_BRANCH_BOUND_PROBES'
+  );
+});
+
 test('commercial closeout documents agree on candidate identity and certification boundary', () => {
   const docs = [
     read('COMMERCIAL_CLOSURE_STATUS.md'),
