@@ -176,6 +176,35 @@ test('authenticated session requests bind each autocommit SQL statement to its o
   res.emit('finish');
 });
 
+test('a signed field-session assertion cannot be reused for privileged access modes', async (t) => {
+  const priorKey = process.env.OPSC_TENANT_CONTEXT_HMAC_KEY;
+  const priorKid = process.env.OPSC_TENANT_CONTEXT_KEY_ID;
+  process.env.OPSC_TENANT_CONTEXT_HMAC_KEY = 'a1'.repeat(32);
+  process.env.OPSC_TENANT_CONTEXT_KEY_ID = 'unit-test-purpose-bound-v1';
+  const db = openPgDatabaseSync('postgres://test.invalid/opscore_session_purpose', { max: 1 });
+  t.after(() => {
+    db.close();
+    if (priorKey === undefined) delete process.env.OPSC_TENANT_CONTEXT_HMAC_KEY;
+    else process.env.OPSC_TENANT_CONTEXT_HMAC_KEY = priorKey;
+    if (priorKid === undefined) delete process.env.OPSC_TENANT_CONTEXT_KEY_ID;
+    else process.env.OPSC_TENANT_CONTEXT_KEY_ID = priorKid;
+  });
+  const req = new EventEmitter();
+  const res = new EventEmitter();
+  await runWithRequest(() => {
+    db.setVerifiedPrincipal({ sessionId: 's', userId: 'u', tenantId: 't' });
+    assert.throws(
+      () => db.setSession({ tenantId: 't', userId: 'u', accessMode: 'auth' }),
+      (error) => error.code === 'SIGNED_CONTEXT_PURPOSE_MISMATCH'
+    );
+    assert.throws(
+      () => db.setAccessMode('backoffice'),
+      (error) => error.code === 'SIGNED_CONTEXT_PURPOSE_MISMATCH'
+    );
+  }, req, res);
+  res.emit('finish');
+});
+
 test('authenticated session requests reject multiple SQL statements and unbound batch execution', async (t) => {
   const priorKey = process.env.OPSC_TENANT_CONTEXT_HMAC_KEY;
   const priorKid = process.env.OPSC_TENANT_CONTEXT_KEY_ID;
