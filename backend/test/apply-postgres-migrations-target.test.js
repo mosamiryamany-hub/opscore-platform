@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { assertTarget, extractNeonEndpointId, readMigrations, unwrapOuterTransaction, verifyNeonEndpointIdentity } = require('../scripts/apply-postgres-migrations');
+const { assertTarget, extractNeonEndpointId, readMigrations, unwrapOuterTransaction, verifyNeonEndpointIdentity, tenantPolicyExprValid } = require('../scripts/apply-postgres-migrations');
 
 const database = 'opscore_acceptance';
 const projectId = 'summer-leaf-18448271';
@@ -251,6 +251,14 @@ test('Neon API errors and malformed JSON fail closed without exposing credential
 test('local test target deliberately skips Neon API identity lookup', async () => {
   const result=await verifyNeonEndpointIdentity(connection('127.0.0.1'),envFor('test'));
   assert.deepEqual(result,{verified:false,skipped:true,reason:'loopback-test-target'});
+});
+
+
+test('control-plane migration postcondition accepts the verified tenant accessor used by signed RLS policies', () => {
+  assert.equal(tenantPolicyExprValid('(organization_id = opscore_current_tenant())'), true);
+  assert.equal(tenantPolicyExprValid('(organization_id = NULLIF(current_setting(\\'app.tenant_id\\'::text, true), \\'\\'::text))'), true);
+  assert.equal(tenantPolicyExprValid('(organization_id = current_user)'), false);
+  assert.equal(tenantPolicyExprValid('(id = opscore_current_tenant())'), false);
 });
 
 test('runner strips only the outer transaction wrapper so migration SQL and its ledger row commit atomically', () => {
