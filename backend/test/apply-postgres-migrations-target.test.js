@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { assertTarget } = require('../scripts/apply-postgres-migrations');
+const { assertTarget, unwrapOuterTransaction } = require('../scripts/apply-postgres-migrations');
 
 const database = 'opscore_acceptance';
 const projectId = 'summer-leaf-18448271';
@@ -138,4 +138,36 @@ test('runner requires a least-privilege runtime role before migration work', () 
   assert.match(source, /MIGRATION_RUNTIME_ROLE_NOT_LEAST_PRIVILEGED/);
   assert.match(source, /set_config\('opscore\.app_role','opscore_runtime',true\)/);
   assert.match(source, /has_table_privilege\('opscore_runtime'/);
+});
+
+
+test('runner strips only the outer transaction wrapper so migration SQL and its ledger row commit atomically', () => {
+  const migration = `-- migration header
+BEGIN;
+CREATE TABLE public.atomic_example(id integer);
+DO $body$
+BEGIN
+  PERFORM 1;
+END
+$body$;
+COMMIT;
+`;
+  const unwrapped = unwrapOuterTransaction(migration, '063_test.sql');
+  assert.match(unwrapped, /^-- migration header\\n/);
+  assert.match(unwrapped, /CREATE TABLE public\\.atomic_example/);
+  assert.match(unwrapped, /DO \\$body\\$[\\s\\S]*?BEGIN[\\s\\S]*?END[\\s\\S]*?\\$body\\$;/);
+  assert.doesNotMatch(unwrapped, /^\\s*BEGIN\\s*;/i);
+  assert.doesNotMatch(unwrapped, /COMMIT\\s*;\\s*$/i);
+});
+
+test('runner fails closed when an explicit outer BEGIN has no final COMMIT', () => {
+  assert.throws(
+    () => unwrapOuterTransaction('-- header\\nBEGIN;\\nCREATE TABLE public.atomic_example(id integer);', 'bad.sql'),
+    /MIGRATION_TRANSACTION_WRAPPER_UNBALANCED/
+  );
+});
+
+test('runner preserves migration files that do not declare an outer transaction', () => {
+  const migration = '-- plain migration\\nCREATE INDEX ix_example ON public.atomic_example(id);\\n';
+  assert.equal(unwrapOuterTransaction(migration, 'plain.sql'), migration);
 });
