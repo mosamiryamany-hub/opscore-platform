@@ -68,7 +68,9 @@ BEGIN
     EXECUTE 'REVOKE neon_superuser FROM opscore_app';
   END IF;
 
-  EXECUTE 'ALTER ROLE opscore_app WITH NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS';
+  -- NOSUPERUSER is superuser-only even when the role is already non-superuser.
+  -- The preflight refuses a true superuser role; this grantor only changes attributes it owns.
+  EXECUTE 'ALTER ROLE opscore_app WITH NOLOGIN NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS';
 
   SELECT rolcanlogin, rolsuper, rolbypassrls, rolcreaterole, rolcreatedb
     INTO role_login, role_superuser, role_bypass_rls, role_create_role, role_create_db
