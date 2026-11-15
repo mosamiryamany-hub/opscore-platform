@@ -15,9 +15,9 @@ function unwrapOuterTransaction(content, filename='unknown') {
  let offset=0;
  // Skip only SQL trivia before the first statement. Nested block comments are supported.
  while(offset<source.length){
-  while(offset<source.length && /\\s/.test(source[offset])) offset++;
+  while(offset<source.length && /\s/.test(source[offset])) offset++;
   if(source.startsWith('--',offset)){
-   const newline=source.indexOf('\\n',offset);
+   const newline=source.indexOf('\n',offset);
    offset=newline<0?source.length:newline+1;
    continue;
   }
@@ -35,11 +35,11 @@ function unwrapOuterTransaction(content, filename='unknown') {
   break;
  }
  const firstStatement=source.slice(offset);
- if(!/^BEGIN\\b/i.test(firstStatement))return source;
- const begin=/^BEGIN\\s*;/i.exec(firstStatement);
+ if(!/^BEGIN\b/i.test(firstStatement))return source;
+ const begin=/^BEGIN\s*;/i.exec(firstStatement);
  if(!begin)throw new Error('MIGRATION_TRANSACTION_WRAPPER_UNSUPPORTED:'+filename);
  const trimmed=source.trimEnd();
- const commit=/COMMIT\\s*;$/i.exec(trimmed);
+ const commit=/COMMIT\s*;$/i.exec(trimmed);
  if(!commit)throw new Error('MIGRATION_TRANSACTION_WRAPPER_UNBALANCED:'+filename);
  const commitStart=trimmed.length-commit[0].length;
  const bodyStart=offset+begin[0].length;
@@ -79,7 +79,7 @@ function assertTarget(url,database,apply,env=process.env){
 }
 function extractNeonEndpointId(hostname) {
  const host=String(hostname||'').trim().toLowerCase();
- const match=/^(ep-[a-z0-9-]+)\\./.exec(host);
+ const match=/^(ep-[a-z0-9-]+)\./.exec(host);
  if(!match)throw new Error('MIGRATION_NEON_ENDPOINT_ID_INVALID');
  return match[1];
 }
@@ -226,7 +226,7 @@ async function main(){
   if(row53&&file53&&String(row53.sha256).toLowerCase()===reconciliation053.ledgerSha256&&file53.sha256===reconciliation053.sourceSha256){controlPlane053Evidence=await verifyControlPlane053Catalog(client);if(controlPlane053Evidence.verified)verifiedLegacy.push('053_control_plane_restrictive_tenant_guards.sql');}
   const plan=buildMigrationPlan(migrations,ledger,verifiedLegacy);
   if(plan.blockers.length){emit({status:'BLOCKED',target:{database:info.database,role:info.role,targetClass},neonIdentity,serverVersion:info.server_version,legacy042Evidence,controlPlane053Evidence,pending:plan.pending.map(x=>x.filename),skipped:plan.skipped,blockers:plan.blockers,note:'No SQL changes were made because migration history or catalog reconciliation was not fully verified.'},2);return;}
-  if(!apply){emit({status:'DRY_RUN_PASS',target:{database:info.database,role:info.role,targetClass},serverVersion:info.server_version,legacy042Evidence,controlPlane053Evidence,pending:plan.pending.map(x=>({filename:x.filename,sha256:x.sha256})),skipped:plan.skipped,note:'No database changes were made. Apply requires --apply and exact OPSC_MIGRATION_CONFIRM_DATABASE.'});return;}
+  if(!apply){emit({status:'DRY_RUN_PASS',target:{database:info.database,role:info.role,targetClass},neonIdentity,serverVersion:info.server_version,legacy042Evidence,controlPlane053Evidence,pending:plan.pending.map(x=>({filename:x.filename,sha256:x.sha256})),skipped:plan.skipped,note:'No database changes were made. Apply requires --apply and exact OPSC_MIGRATION_CONFIRM_DATABASE.'});return;}
   const applied=[];
   for(const migration of plan.pending){
    await client.query('BEGIN');
@@ -370,7 +370,7 @@ SELECT
   post.control_plane_policy_results=controlPlanePolicyResults;
   post.control_plane_restrictive_policy_gap_count=controlPlanePolicyResults.filter(x=>x.status!=='PASS').length;
   if((!post.runtime_role_exists&&(post.app_can_create_database_schema||post.app_can_create_public_objects||post.app_can_select||post.app_can_insert||post.app_can_update||post.app_can_delete||Number(post.control_plane_privilege_gap_count)!==0))||!post.ledger_forced_rls||!post.privileged_is_definer||!post.reset_token_row_security_off||Number(post.control_plane_table_count)!==3||Number(post.control_plane_restrictive_policy_gap_count)!==0||(post.runtime_role_exists&&(!post.runtime_login||post.runtime_superuser||post.runtime_bypassrls||post.runtime_create_role||post.runtime_create_db||Number(post.runtime_privileged_membership_count)!==0||post.runtime_database_create||post.runtime_schema_create||post.runtime_neon_superuser_member||post.runtime_neon_superuser_set||post.runtime_app_role_member||post.runtime_schema_migrations_access||!post.runtime_privileged_execute||Number(post.runtime_policy_function_gap_count)!==0||Number(post.runtime_control_plane_privilege_gap_count)!==0||Number(post.runtime_autopilot_table_privilege_gap_count)!==0)))throw new Error('MIGRATION_POSTCONDITION_FAILED');
-  emit({status:'APPLIED_AND_VERIFIED',target:{database:info.database,role:info.role,targetClass},serverVersion:info.server_version,legacy042Evidence,controlPlane053Evidence,applied,skipped:plan.skipped,postconditions:post,note:'Only the explicitly confirmed target database was changed. Production certification remains separate.'});
+  emit({status:'APPLIED_AND_VERIFIED',target:{database:info.database,role:info.role,targetClass},neonIdentity,serverVersion:info.server_version,legacy042Evidence,controlPlane053Evidence,applied,skipped:plan.skipped,postconditions:post,note:'Only the explicitly confirmed target database was changed. Production certification remains separate.'});
  }finally{
   if(locked&&client)try{await client.query("SELECT pg_advisory_unlock(hashtext(current_database()),hashtext('opscore-schema-migrations'))");}catch(_){}
   if(client)client.release();await pool.end();
