@@ -202,6 +202,12 @@ async function main(){
        AND pg_has_role(r.rolname,elevated.oid,'MEMBER')) AS elevated_membership_count
     FROM pg_roles r WHERE r.rolname='opscore_runtime'`)).rows[0];
   if(!runtimePreflight||!runtimePreflight.rolcanlogin||runtimePreflight.rolsuper||runtimePreflight.rolbypassrls||runtimePreflight.rolcreaterole||runtimePreflight.rolcreatedb||Number(runtimePreflight.elevated_membership_count)!==0)throw new Error('MIGRATION_RUNTIME_ROLE_NOT_LEAST_PRIVILEGED');
+  const appPreflight=(await client.query(`SELECT r.rolsuper,r.rolbypassrls,r.rolcreaterole,r.rolcreatedb,
+    (SELECT count(*) FROM pg_roles elevated
+     WHERE (elevated.rolsuper OR elevated.rolbypassrls OR elevated.rolcreaterole OR elevated.rolcreatedb)
+       AND pg_has_role(r.rolname,elevated.oid,'MEMBER')) AS elevated_membership_count
+    FROM pg_roles r WHERE r.rolname='opscore_app'`)).rows[0];
+  if(!appPreflight||appPreflight.rolsuper||appPreflight.rolbypassrls||appPreflight.rolcreaterole||appPreflight.rolcreatedb||Number(appPreflight.elevated_membership_count)!==0)throw new Error('MIGRATION_APP_ROLE_NOT_LEAST_PRIVILEGED');
   const targetClass=assertTarget(url,info.database,apply);
   const neonIdentity=await verifyNeonEndpointIdentity(url);
   await client.query("SELECT pg_advisory_lock(hashtext(current_database()),hashtext('opscore-schema-migrations'))");locked=true;
@@ -348,6 +354,16 @@ SELECT
     WHERE (elevated.rolsuper OR elevated.rolbypassrls OR elevated.rolcreaterole OR elevated.rolcreatedb)
       AND pg_has_role(rr.rolname,elevated.oid,'MEMBER')
   ) ELSE 0 END AS runtime_privileged_membership_count,
+  EXISTS(SELECT 1 FROM pg_roles WHERE rolname='opscore_app') AS app_role_exists,
+  COALESCE((SELECT rolsuper FROM pg_roles WHERE rolname='opscore_app'),true) AS app_superuser,
+  COALESCE((SELECT rolbypassrls FROM pg_roles WHERE rolname='opscore_app'),true) AS app_bypassrls,
+  COALESCE((SELECT rolcreaterole FROM pg_roles WHERE rolname='opscore_app'),true) AS app_create_role,
+  COALESCE((SELECT rolcreatedb FROM pg_roles WHERE rolname='opscore_app'),true) AS app_create_db,
+  CASE WHEN EXISTS(SELECT 1 FROM pg_roles WHERE rolname='opscore_app') THEN (
+    SELECT count(*) FROM pg_roles elevated CROSS JOIN (SELECT rolname FROM pg_roles WHERE rolname='opscore_app') app
+    WHERE (elevated.rolsuper OR elevated.rolbypassrls OR elevated.rolcreaterole OR elevated.rolcreatedb)
+      AND pg_has_role(app.rolname,elevated.oid,'MEMBER')
+  ) ELSE 1 END AS app_privileged_membership_count,
   (SELECT count(*) FROM pg_class WHERE relnamespace='public'::regnamespace AND relname IN ('control_plane_runs','feature_flags','safe_mode_states')) AS control_plane_table_count,
   (SELECT count(*) FROM pg_class c WHERE c.relnamespace='public'::regnamespace AND c.relname IN ('control_plane_runs','feature_flags','safe_mode_states') AND (
     (c.relname='feature_flags' AND (NOT has_table_privilege('opscore_app',c.oid,'SELECT') OR NOT has_table_privilege('opscore_app',c.oid,'INSERT') OR NOT has_table_privilege('opscore_app',c.oid,'UPDATE') OR has_table_privilege('opscore_app',c.oid,'DELETE') OR has_table_privilege('opscore_app',c.oid,'TRUNCATE')))
@@ -369,7 +385,7 @@ SELECT
   });
   post.control_plane_policy_results=controlPlanePolicyResults;
   post.control_plane_restrictive_policy_gap_count=controlPlanePolicyResults.filter(x=>x.status!=='PASS').length;
-  if((!post.runtime_role_exists&&(post.app_can_create_database_schema||post.app_can_create_public_objects||post.app_can_select||post.app_can_insert||post.app_can_update||post.app_can_delete||Number(post.control_plane_privilege_gap_count)!==0))||!post.ledger_forced_rls||!post.privileged_is_definer||!post.reset_token_row_security_off||Number(post.control_plane_table_count)!==3||Number(post.control_plane_restrictive_policy_gap_count)!==0||(post.runtime_role_exists&&(!post.runtime_login||post.runtime_superuser||post.runtime_bypassrls||post.runtime_create_role||post.runtime_create_db||Number(post.runtime_privileged_membership_count)!==0||post.runtime_database_create||post.runtime_schema_create||post.runtime_neon_superuser_member||post.runtime_neon_superuser_set||post.runtime_app_role_member||post.runtime_schema_migrations_access||!post.runtime_privileged_execute||Number(post.runtime_policy_function_gap_count)!==0||Number(post.runtime_control_plane_privilege_gap_count)!==0||Number(post.runtime_autopilot_table_privilege_gap_count)!==0)))throw new Error('MIGRATION_POSTCONDITION_FAILED');
+  if((!post.runtime_role_exists&&(post.app_can_create_database_schema||post.app_can_create_public_objects||post.app_can_select||post.app_can_insert||post.app_can_update||post.app_can_delete||Number(post.control_plane_privilege_gap_count)!==0))||!post.app_role_exists||post.app_superuser||post.app_bypassrls||post.app_create_role||post.app_create_db||Number(post.app_privileged_membership_count)!==0||!post.ledger_forced_rls||!post.privileged_is_definer||!post.reset_token_row_security_off||Number(post.control_plane_table_count)!==3||Number(post.control_plane_restrictive_policy_gap_count)!==0||(post.runtime_role_exists&&(!post.runtime_login||post.runtime_superuser||post.runtime_bypassrls||post.runtime_create_role||post.runtime_create_db||Number(post.runtime_privileged_membership_count)!==0||post.runtime_database_create||post.runtime_schema_create||post.runtime_neon_superuser_member||post.runtime_neon_superuser_set||post.runtime_app_role_member||post.runtime_schema_migrations_access||!post.runtime_privileged_execute||Number(post.runtime_policy_function_gap_count)!==0||Number(post.runtime_control_plane_privilege_gap_count)!==0||Number(post.runtime_autopilot_table_privilege_gap_count)!==0)))throw new Error('MIGRATION_POSTCONDITION_FAILED');
   emit({status:'APPLIED_AND_VERIFIED',target:{database:info.database,role:info.role,targetClass},neonIdentity,serverVersion:info.server_version,legacy042Evidence,controlPlane053Evidence,applied,skipped:plan.skipped,postconditions:post,note:'Only the explicitly confirmed target database was changed. Production certification remains separate.'});
  }finally{
   if(locked&&client)try{await client.query("SELECT pg_advisory_unlock(hashtext(current_database()),hashtext('opscore-schema-migrations'))");}catch(_){}
