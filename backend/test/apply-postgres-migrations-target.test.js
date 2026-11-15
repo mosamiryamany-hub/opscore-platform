@@ -330,6 +330,7 @@ test('legacy opscore_app repair is allowed only for an inactive, unowned role wi
     active_sessions: '0',
     owned_objects: '0',
     incoming_memberships: '0',
+    current_user_admin_option: true,
     memberships: ['neon_superuser']
   };
   assert.deepEqual(validateAppRolePreflight(role, true), {
@@ -347,6 +348,10 @@ test('legacy opscore_app repair is allowed only for an inactive, unowned role wi
     roleExists: true,
     quarantinedOutgoingMemberships: ['neon_superuser']
   });
+  assert.throws(
+    () => validateAppRolePreflight({ ...role, current_user_admin_option: false }, true),
+    /MIGRATION_APP_ROLE_REPAIR_ADMIN_OPTION_REQUIRED/
+  );
 });
 
 test('legacy opscore_app lockdown refuses to rewrite a role with active sessions or owned objects', () => {
@@ -442,4 +447,5 @@ test('migration plan includes one in-place lockdown and reports the Neon-managed
   assert.match(repairs[0].content, /OPSC_LEGACY_APP_ROLE_HAS_INCOMING_MEMBERSHIPS/);
   assert.match(repairs[0].content, /neon_superuser/);
   assert.match(repairs[0].content, /This residual must remain disclosed/);
+  assert.match(repairs[0].content, /OPSC_LEGACY_APP_ROLE_ADMIN_OPTION_REQUIRED/);
 });
