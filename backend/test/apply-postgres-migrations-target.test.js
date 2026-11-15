@@ -161,6 +161,10 @@ test('runner requires a least-privilege runtime role before migration work', () 
   // application role is independently constrained as opscore_runtime above.
   assert.match(source, /set_config\('opscore\.app_role','opscore_app',true\)/);
   assert.match(source, /has_table_privilege\('opscore_runtime'/);
+  assert.match(source, /MIGRATION_APP_ROLE_NOT_LEAST_PRIVILEGED/);
+  assert.match(source, /app_bypassrls/);
+  assert.match(source, /app_privileged_membership_count/);
+  assert.match(source, /pg_has_role\(r\.rolname,elevated\.oid,'MEMBER'\)/);
 });
 
 
