@@ -18,7 +18,7 @@ External provider accounts, credentials, licenses, setup and live acceptance inc
 
 ## Production honesty
 
-The live release and database-security proofs report production isolation certification for the exact seller-operated reference only. Buyer environments remain NOT CERTIFIED. A seller-reference certificate is not transferable and does not establish every functional business flow or full PITR/RPO/RTO.
+Current seller-reference production isolation is NOT_VERIFIED: the stored session and recovery evidence was rebound to a later commit without rerunning probes and is not bound to the active Neon Production branch. Do not advertise a seller production isolation certificate until fresh dual-tenant and recovery probes are run against the exact current commit/branch and independently reviewed. Buyer environments remain NOT CERTIFIED. A seller-reference proof is never transferable and does not establish every business flow or full PITR/RPO/RTO.
 
 ## Commercial rights hold
 
