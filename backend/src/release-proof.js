@@ -222,11 +222,16 @@ function readProductionSessionIsolationEvidence(filePath = embeddedEvidencePath(
   const allPass = evidence.status === 'PASS' && required.every((k) => checks[k] === 'PASS');
   const expectedCommit = normalizedSha(env.OPSC_RELEASE_CI_COMMIT || env.CI_COMMIT_SHA || env.OPSC_SOURCE_COMMIT_SHA);
   const evidenceCommit = normalizedSha(evidence.sourceCommitHint);
-  const commitBound = !expectedCommit || evidenceCommit === expectedCommit;
+  const commitBound = /^[a-f0-9]{40}$/.test(expectedCommit || '') && evidenceCommit === expectedCommit;
   const evidenceRebind = evidence.evidenceRebind && typeof evidence.evidenceRebind === 'object'
     ? evidence.evidenceRebind
     : null;
-  const rebindVerified = !evidenceRebind || evidenceRebind.probesReexecuted === true;
+  const rebindVerified = !evidenceRebind || (
+    evidenceRebind.probesReexecuted === true &&
+    normalizedSha(evidenceRebind.fromCommit) !== null &&
+    normalizedSha(evidenceRebind.toCommit) === expectedCommit &&
+    normalizedSha(evidenceRebind.fromCommit) !== expectedCommit
+  );
   return {
     status: allPass && commitBound && rebindVerified ? 'PASS' : 'NOT_VERIFIED',
     testedAt: evidence.testedAt || null,
@@ -257,14 +262,19 @@ function readProductionRecoveryPointEvidence(filePath = embeddedEvidencePath('PR
   }
   const expectedCommit = normalizedSha(env.OPSC_RELEASE_CI_COMMIT || env.CI_COMMIT_SHA || env.OPSC_SOURCE_COMMIT_SHA);
   const evidenceCommit = normalizedSha(evidence.sourceCommitHint);
-  const commitBound = !expectedCommit || evidenceCommit === expectedCommit;
+  const commitBound = /^[a-f0-9]{40}$/.test(expectedCommit || '') && evidenceCommit === expectedCommit;
   const expectedParentBranchId = String(env.OPSC_PRODUCTION_NEON_BRANCH_ID || '').trim();
   const parentBranchBound = !expectedParentBranchId ||
     String(evidence.parentBranchId || '').trim() === expectedParentBranchId;
   const evidenceRebind = evidence.evidenceRebind && typeof evidence.evidenceRebind === 'object'
     ? evidence.evidenceRebind
     : null;
-  const rebindVerified = !evidenceRebind || evidenceRebind.probesReexecuted === true;
+  const rebindVerified = !evidenceRebind || (
+    evidenceRebind.probesReexecuted === true &&
+    normalizedSha(evidenceRebind.fromCommit) !== null &&
+    normalizedSha(evidenceRebind.toCommit) === expectedCommit &&
+    normalizedSha(evidenceRebind.fromCommit) !== expectedCommit
+  );
   const ok = evidence.status === 'PASS' &&
     evidence.coreTenantTablesMatch === true &&
     Number(evidence.tableCountCompared) >= 130 &&
