@@ -358,7 +358,7 @@ SELECT
   const controlPlaneTables=['feature_flags','safe_mode_states','control_plane_runs'];
   const controlPlanePolicyRows=(await client.query(`SELECT c.relname AS table_name,p.polname AS policy_name,p.polpermissive AS permissive,pg_get_expr(p.polqual,p.polrelid) AS using_expr,pg_get_expr(p.polwithcheck,p.polrelid) AS check_expr FROM pg_policy p JOIN pg_class c ON c.oid=p.polrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname=ANY($1::text[])`,[controlPlaneTables])).rows;
   const controlPlaneRlsRows=(await client.query(`SELECT c.relname AS table_name,c.relrowsecurity AS rls_enabled,c.relforcerowsecurity AS force_rls FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname=ANY($1::text[])`,[controlPlaneTables])).rows;
-  const tenantPolicyExprValid=x=>{const value=String(x||'').toLowerCase();return value.includes('organization_id')&&(value.includes('opscore_current_tenant()')||(value.includes("current_setting('app.tenant_id'")&&value.includes('nullif('));};
+  const tenantPolicyExprValid=x=>{const value=String(x||'').toLowerCase();return value.includes('organization_id')&&(value.includes('opscore_current_tenant()')||(value.includes("current_setting('app.tenant_id'")&&value.includes('nullif(')));};
   const controlPlanePolicyResults=controlPlaneTables.map(tableName=>{
     const rows=controlPlanePolicyRows.filter(x=>x.table_name===tableName);
     const rls=controlPlaneRlsRows.find(x=>x.table_name===tableName);
