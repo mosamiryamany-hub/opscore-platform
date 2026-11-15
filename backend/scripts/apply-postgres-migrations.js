@@ -49,6 +49,8 @@ function validateAppRolePreflight(role, repairPending) {
  const unexpected=memberships.filter(name=>name!=='neon_superuser');
  if(unexpected.length)throw new Error('MIGRATION_APP_ROLE_REPAIR_UNEXPECTED_MEMBERSHIPS');
  if(memberships.filter(name=>name==='neon_superuser').length>1)throw new Error('MIGRATION_APP_ROLE_REPAIR_DUPLICATE_MANAGED_MEMBERSHIP');
+ const needsAttributeChange=canLogin||bool(role.rolbypassrls)||bool(role.rolcreatedb)||bool(role.rolcreaterole)||inherits;
+ if(exists&&needsAttributeChange&&!bool(role.current_user_admin_option))throw new Error('MIGRATION_APP_ROLE_REPAIR_ADMIN_OPTION_REQUIRED');
  return {status:'REPAIR_PENDING',repairPending:true,roleExists:exists,quarantinedOutgoingMemberships:memberships};
 }
 function readMigrations(){return fs.readdirSync(DIR).filter(parseMigrationFilename).sort(compareMigrationFilenames).map(filename=>{const content=fs.readFileSync(path.join(DIR,filename),'utf8');return{filename,content,sha256:hash(content)};});}
@@ -286,7 +288,12 @@ async function main(){
       FROM pg_auth_members membership
       JOIN pg_roles granted ON granted.oid=membership.roleid
       CROSS JOIN app
-      WHERE membership.member=app.oid),ARRAY[]::text[]) AS memberships`)).rows[0];
+      WHERE membership.member=app.oid),ARRAY[]::text[]) AS memberships,
+    COALESCE((SELECT bool_or(membership.admin_option)
+      FROM pg_auth_members membership
+      CROSS JOIN app
+      WHERE membership.roleid=app.oid
+        AND membership.member=(SELECT oid FROM pg_roles WHERE rolname=current_user)),false) AS current_user_admin_option`)).rows[0];
   const appRoleRepairPending=plan.pending.some(x=>x.filename===APP_ROLE_REPAIR_MIGRATION);
   const appRolePreflight=validateAppRolePreflight(appPreflight,appRoleRepairPending);
   if(!apply){emit({status:'DRY_RUN_PASS',target:{database:info.database,role:info.role,targetClass},neonIdentity,serverVersion:info.server_version,legacy042Evidence,controlPlane053Evidence,appRolePreflight,pending:plan.pending.map(x=>({filename:x.filename,sha256:x.sha256})),skipped:plan.skipped,note:'No database changes were made. Apply requires --apply and exact OPSC_MIGRATION_CONFIRM_DATABASE.'});return;}
