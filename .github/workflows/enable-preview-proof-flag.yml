@@ -1,0 +1,40 @@
+name: enable-preview-proof-flag
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  enable:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set OPSC_TENANT_CONTEXT_PROOF_ENABLED on Preview only
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, urllib.error, urllib.request
+          token=os.environ["VERCEL_TOKEN"]; project=os.environ["VERCEL_PROJECT_ID"]
+          def req(method, url, body=None):
+            data=None if body is None else json.dumps(body).encode()
+            r=urllib.request.Request(url,data=data,method=method,headers={"Authorization":"Bearer "+token,"Content-Type":"application/json"})
+            try:
+              with urllib.request.urlopen(r) as resp:
+                raw=resp.read().decode(); return json.loads(raw) if raw else {}
+            except urllib.error.HTTPError as e:
+              raise RuntimeError(e.read().decode()[:500]) from None
+          envs=req("GET", f"https://api.vercel.com/v9/projects/{project}/env").get("envs",[])
+          key="OPSC_TENANT_CONTEXT_PROOF_ENABLED"
+          existing=[e for e in envs if e.get("key")==key and set(e.get("target") or [])=={"preview"}]
+          if existing:
+            req("PATCH", f"https://api.vercel.com/v9/projects/{project}/env/{existing[0]['id']}", {"value":"true","target":["preview"]})
+            print("updated proof flag preview")
+          else:
+            req("POST", f"https://api.vercel.com/v10/projects/{project}/env", {"key":key,"value":"true","type":"plain","target":["preview"]})
+            print("created proof flag preview")
+          # confirm not on production
+          prod=[e for e in req("GET", f"https://api.vercel.com/v9/projects/{project}/env").get("envs",[]) if e.get("key")==key and "production" in set(e.get("target") or [])]
+          print("production_targets", len(prod))
+          print("PREVIEW_PROOF_FLAG=ON")
+          PY
