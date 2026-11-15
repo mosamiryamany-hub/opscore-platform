@@ -87,6 +87,12 @@ test('deploy workflow never rebinds stale production behavioral evidence to a ne
   assert.match(certification, /NOT_CERTIFIED/);
 });
 
+test('Production release flags fail closed when isolation evidence is not certified', () => {
+  assert.match(deploy, /const releaseVerified = process\.env\.ISOLATION_CERT === 'CERTIFIED'/);
+  assert.match(deploy, /OPSC_RELEASE_VERIFIED: releaseVerified \? 'true' : 'false'/);
+  assert.match(deploy, /OPSC_PRODUCTION_HOLD: releaseVerified \? 'false' : 'true'/);
+});
+
 test('Runtime diagnostic requires explicit read-only zero-write and full production evidence', () => {
   const runnerPath = path.join(__dirname, '..', '..', 'scripts', 'production-runtime-diagnostic.js');
   const runner = fs.readFileSync(runnerPath, 'utf8');
