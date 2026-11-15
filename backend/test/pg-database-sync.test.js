@@ -176,6 +176,66 @@ test('authenticated session requests bind each autocommit SQL statement to its o
   res.emit('finish');
 });
 
+test('Preview worker enforces signed-only field context without blocking the signed principal', async (t) => {
+  const priorKey = process.env.OPSC_TENANT_CONTEXT_HMAC_KEY;
+  const priorKid = process.env.OPSC_TENANT_CONTEXT_KEY_ID;
+  const priorRequired = process.env.OPSC_REQUIRE_SIGNED_TENANT_CONTEXT;
+  process.env.OPSC_TENANT_CONTEXT_HMAC_KEY = 'b2'.repeat(32);
+  process.env.OPSC_TENANT_CONTEXT_KEY_ID = 'unit-test-signed-worker-gate-v1';
+  process.env.OPSC_REQUIRE_SIGNED_TENANT_CONTEXT = 'true';
+  const db = openPgDatabaseSync('postgres://test.invalid/opscore_signed_worker_gate', { max: 1 });
+  t.after(() => {
+    db.close();
+    if (priorKey === undefined) delete process.env.OPSC_TENANT_CONTEXT_HMAC_KEY;
+    else process.env.OPSC_TENANT_CONTEXT_HMAC_KEY = priorKey;
+    if (priorKid === undefined) delete process.env.OPSC_TENANT_CONTEXT_KEY_ID;
+    else process.env.OPSC_TENANT_CONTEXT_KEY_ID = priorKid;
+    if (priorRequired === undefined) delete process.env.OPSC_REQUIRE_SIGNED_TENANT_CONTEXT;
+    else process.env.OPSC_REQUIRE_SIGNED_TENANT_CONTEXT = priorRequired;
+  });
+  const req = new EventEmitter();
+  const res = new EventEmitter();
+  await runWithRequest(() => {
+    db.setVerifiedPrincipal({ sessionId: 'session-A', userId: 'user-A', tenantId: 'tenant-A' });
+    const accepted = db.setSession({ tenantId: 'tenant-A', userId: 'user-A', accessMode: 'field' });
+    assert.equal(accepted.signedContext, true);
+    assert.equal(accepted.tenantId, 'tenant-A');
+    assert.throws(
+      () => db.setSession({ tenantId: 'tenant-B', userId: 'user-A', accessMode: 'field' }),
+      (error) => error.code === 'TENANT_CONTEXT_PRINCIPAL_MISMATCH'
+    );
+    assert.throws(
+      () => db.setSession({ tenantId: 'tenant-A', userId: 'user-B', accessMode: 'field' }),
+      (error) => error.code === 'TENANT_CONTEXT_PRINCIPAL_MISMATCH'
+    );
+    const row = db.prepare('SELECT signed field context after legacy bind').get();
+    assert.equal(row.signedContextBound, true);
+    assert.equal(row.payloadClaims.tenant_id, 'tenant-A');
+    assert.equal(row.payloadClaims.sub, 'user-A');
+  }, req, res);
+  res.emit('finish');
+});
+
+test('Preview worker rejects unsigned field context when signed context is required', async (t) => {
+  const priorRequired = process.env.OPSC_REQUIRE_SIGNED_TENANT_CONTEXT;
+  process.env.OPSC_REQUIRE_SIGNED_TENANT_CONTEXT = 'true';
+  const db = openPgDatabaseSync('postgres://test.invalid/opscore_unsigned_worker_gate', { max: 1 });
+  t.after(() => {
+    db.close();
+    if (priorRequired === undefined) delete process.env.OPSC_REQUIRE_SIGNED_TENANT_CONTEXT;
+    else process.env.OPSC_REQUIRE_SIGNED_TENANT_CONTEXT = priorRequired;
+  });
+  const req = new EventEmitter();
+  const res = new EventEmitter();
+  await runWithRequest(() => {
+    assert.throws(
+      () => db.setSession({ tenantId: 'tenant-A', userId: 'user-A', accessMode: 'field' }),
+      (error) => error.code === 'SIGNED_TENANT_CONTEXT_REQUIRED'
+    );
+  }, req, res);
+  res.emit('finish');
+});
+
 test('a signed field-session assertion cannot be reused for privileged access modes', async (t) => {
   const priorKey = process.env.OPSC_TENANT_CONTEXT_HMAC_KEY;
   const priorKid = process.env.OPSC_TENANT_CONTEXT_KEY_ID;
