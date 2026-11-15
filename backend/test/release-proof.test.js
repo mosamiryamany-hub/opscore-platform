@@ -307,12 +307,6 @@ test('production behavioral evidence must carry the exact release commit hint', 
     assert.equal(readProductionSessionIsolationEvidence(sessionPath, env).status, 'PASS');
     assert.equal(readProductionRecoveryPointEvidence(recoveryPath, env).status, 'PASS');
 
-    for (const malformedRebind of ['tampered', true, 1]) {
-      fs.writeFileSync(sessionPath, JSON.stringify({ ...freshSession, evidenceRebind: malformedRebind }));
-      fs.writeFileSync(recoveryPath, JSON.stringify({ ...freshRecovery, evidenceRebind: malformedRebind }));
-      assert.equal(readProductionSessionIsolationEvidence(sessionPath, env).status, 'NOT_VERIFIED');
-      assert.equal(readProductionRecoveryPointEvidence(recoveryPath, env).status, 'NOT_VERIFIED');
-    }
 
 
     assert.equal(readProductionSessionIsolationEvidence(sessionPath, {
@@ -410,6 +404,13 @@ test('production behavioral evidence rejects any evidence rebind marker', () => 
     fs.writeFileSync(recoveryPath, JSON.stringify(freshRecovery));
     assert.equal(readProductionSessionIsolationEvidence(sessionPath, env).status, 'PASS');
     assert.equal(readProductionRecoveryPointEvidence(recoveryPath, env).status, 'PASS');
+
+    for (const malformedRebind of ['tampered', true, 1]) {
+      fs.writeFileSync(sessionPath, JSON.stringify({ ...freshSession, evidenceRebind: malformedRebind }));
+      fs.writeFileSync(recoveryPath, JSON.stringify({ ...freshRecovery, evidenceRebind: malformedRebind }));
+      assert.equal(readProductionSessionIsolationEvidence(sessionPath, env).status, 'NOT_VERIFIED');
+      assert.equal(readProductionRecoveryPointEvidence(recoveryPath, env).status, 'NOT_VERIFIED');
+    }
 
     fs.writeFileSync(sessionPath, JSON.stringify({
       ...executedSession,
