@@ -20,7 +20,7 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           REF: ${{ github.event.inputs.ref }}
-          GITHUB_REPO_ID: "1102300873"
+          GITHUB_REPO_ID: "1452803785"
         run: |
           set -euo pipefail
           python3 - <<'PY'
@@ -49,7 +49,7 @@ jobs:
           print("project", proj.get("name"), proj.get("id"))
           link = (proj.get("link") or {})
           # Prefer linked repoId; fall back to known GitHub repository id for this project.
-          repo_id = link.get("repoId") or os.environ.get("GITHUB_REPO_ID") or "1102300873"
+          repo_id = link.get("repoId") or os.environ.get("GITHUB_REPO_ID") or "1452803785"
           print("git_link", link)
           print("repo_id", repo_id)
 
