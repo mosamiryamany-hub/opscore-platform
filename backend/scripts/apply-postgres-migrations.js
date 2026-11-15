@@ -9,6 +9,7 @@ const EXPECTED_042_COLUMNS=[
 ['control_plane_runs','id','text','NO'],['control_plane_runs','organization_id','text','NO'],['control_plane_runs','run_type','text','NO'],['control_plane_runs','result_json','text','NO'],['control_plane_runs','result_sha256','text','NO'],['control_plane_runs','created_by','text','NO'],['control_plane_runs','created_at','text','NO']];
 function emit(payload,code=0){process.stdout.write(JSON.stringify({schemaVersion:'opscore.postgres-migration-runner.v1',generatedAt:new Date().toISOString(),...payload},null,2)+'\n');process.exitCode=code;}
 function hash(s){return crypto.createHash('sha256').update(s,'utf8').digest('hex');}
+function tenantPolicyExprValid(x){const value=String(x||'').toLowerCase();return value.includes('organization_id')&&(value.includes('opscore_current_tenant()')||(value.includes("current_setting('app.tenant_id'")&&value.includes('nullif(')));}
 function readMigrations(){return fs.readdirSync(DIR).filter(parseMigrationFilename).sort(compareMigrationFilenames).map(filename=>{const content=fs.readFileSync(path.join(DIR,filename),'utf8');return{filename,content,sha256:hash(content)};});}
 function unwrapOuterTransaction(content, filename='unknown') {
  const source=String(content);
@@ -196,8 +197,9 @@ async function main(){
   const info=(await client.query("SELECT current_database() AS database,current_user AS role,current_setting('server_version') AS server_version,r.rolsuper AS superuser,r.rolbypassrls AS bypass_rls FROM pg_roles r WHERE r.rolname=current_user")).rows[0];
   if(!info||info.role!=='neondb_owner'||info.superuser||!info.bypass_rls)throw new Error('MIGRATION_ROLE_NOT_ALLOWED');
   const runtimePreflight=(await client.query(`SELECT r.rolcanlogin,r.rolsuper,r.rolbypassrls,r.rolcreaterole,r.rolcreatedb,
-    (SELECT count(*) FROM pg_auth_members am JOIN pg_roles elevated ON elevated.oid=am.roleid
-     WHERE am.member=r.oid AND (elevated.rolsuper OR elevated.rolbypassrls OR elevated.rolcreaterole OR elevated.rolcreatedb)) AS elevated_membership_count
+    (SELECT count(*) FROM pg_roles elevated
+     WHERE (elevated.rolsuper OR elevated.rolbypassrls OR elevated.rolcreaterole OR elevated.rolcreatedb)
+       AND pg_has_role(r.rolname,elevated.oid,'MEMBER')) AS elevated_membership_count
     FROM pg_roles r WHERE r.rolname='opscore_runtime'`)).rows[0];
   if(!runtimePreflight||!runtimePreflight.rolcanlogin||runtimePreflight.rolsuper||runtimePreflight.rolbypassrls||runtimePreflight.rolcreaterole||runtimePreflight.rolcreatedb||Number(runtimePreflight.elevated_membership_count)!==0)throw new Error('MIGRATION_RUNTIME_ROLE_NOT_LEAST_PRIVILEGED');
   const targetClass=assertTarget(url,info.database,apply);
@@ -342,11 +344,9 @@ SELECT
       OR has_table_privilege('opscore_runtime', c.oid, 'TRIGGER')
   ) ELSE 0 END AS runtime_autopilot_table_privilege_gap_count,
   CASE WHEN EXISTS(SELECT 1 FROM runtime_role) THEN (
-    SELECT count(*)
-    FROM pg_auth_members am
-    JOIN pg_roles r ON r.oid=am.roleid
-    JOIN runtime_role rr ON am.member=rr.oid
-    WHERE r.rolsuper OR r.rolbypassrls OR r.rolcreaterole OR r.rolcreatedb
+    SELECT count(*) FROM pg_roles elevated CROSS JOIN runtime_role rr
+    WHERE (elevated.rolsuper OR elevated.rolbypassrls OR elevated.rolcreaterole OR elevated.rolcreatedb)
+      AND pg_has_role(rr.rolname,elevated.oid,'MEMBER')
   ) ELSE 0 END AS runtime_privileged_membership_count,
   (SELECT count(*) FROM pg_class WHERE relnamespace='public'::regnamespace AND relname IN ('control_plane_runs','feature_flags','safe_mode_states')) AS control_plane_table_count,
   (SELECT count(*) FROM pg_class c WHERE c.relnamespace='public'::regnamespace AND c.relname IN ('control_plane_runs','feature_flags','safe_mode_states') AND (
@@ -358,7 +358,7 @@ SELECT
   const controlPlaneTables=['feature_flags','safe_mode_states','control_plane_runs'];
   const controlPlanePolicyRows=(await client.query(`SELECT c.relname AS table_name,p.polname AS policy_name,p.polpermissive AS permissive,pg_get_expr(p.polqual,p.polrelid) AS using_expr,pg_get_expr(p.polwithcheck,p.polrelid) AS check_expr FROM pg_policy p JOIN pg_class c ON c.oid=p.polrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname=ANY($1::text[])`,[controlPlaneTables])).rows;
   const controlPlaneRlsRows=(await client.query(`SELECT c.relname AS table_name,c.relrowsecurity AS rls_enabled,c.relforcerowsecurity AS force_rls FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname=ANY($1::text[])`,[controlPlaneTables])).rows;
-  const tenantPolicyExprValid=x=>{const value=String(x||'').toLowerCase();return value.includes('organization_id')&&(value.includes('opscore_current_tenant()')||(value.includes("current_setting('app.tenant_id'")&&value.includes('nullif(')));};
+
   const controlPlanePolicyResults=controlPlaneTables.map(tableName=>{
     const rows=controlPlanePolicyRows.filter(x=>x.table_name===tableName);
     const rls=controlPlaneRlsRows.find(x=>x.table_name===tableName);
