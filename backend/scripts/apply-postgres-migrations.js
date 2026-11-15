@@ -31,7 +31,7 @@ function validateAppRolePreflight(role, repairPending) {
  if(!Array.isArray(memberships))memberships=[];
  memberships=memberships.map(value=>String(value));
  if(!repairPending){
-  if(!exists||bool(role.rolsuper)||bool(role.rolbypassrls)||bool(role.rolcreaterole)||bool(role.rolcreatedb)||memberships.length!==0){
+  if(!exists||bool(role.rolsuper)||bool(role.rolbypassrls)||bool(role.rolcreaterole)||bool(role.rolcreatedb)||memberships.length!==0||incomingMemberships!==0){
    throw new Error('MIGRATION_APP_ROLE_NOT_LEAST_PRIVILEGED');
   }
   return {status:'PASS',repairPending:false,roleExists:true};
