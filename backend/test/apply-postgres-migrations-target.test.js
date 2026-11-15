@@ -383,15 +383,18 @@ test('legacy opscore_app lockdown refuses to rewrite a role with active sessions
   );
 });
 
-test('legacy opscore_app must already be least-privileged after the one-time repair is applied', () => {
+test('locked legacy opscore_app is accepted only with no login, no inheritance and the single disclosed Neon-managed residual', () => {
   const role = {
     role_exists: true,
+    rolcanlogin: false,
+    rolinherit: false,
     rolsuper: false,
     rolbypassrls: false,
     rolcreaterole: false,
     rolcreatedb: false,
     active_sessions: 0,
     owned_objects: 0,
+    incoming_memberships: 0,
     memberships: []
   };
   assert.deepEqual(validateAppRolePreflight(role, false), {
@@ -399,8 +402,26 @@ test('legacy opscore_app must already be least-privileged after the one-time rep
     repairPending: false,
     roleExists: true
   });
+  assert.deepEqual(validateAppRolePreflight({ ...role, memberships: ['neon_superuser'] }, false), {
+    status: 'PASS_WITH_ADMIN_RESIDUAL',
+    repairPending: false,
+    roleExists: true,
+    administrativeResidual: 'opscore_app -> neon_superuser membership remains; role is NOLOGIN/NOINHERIT/NOBYPASSRLS and has no incoming memberships'
+  });
   assert.throws(
-    () => validateAppRolePreflight({ ...role, memberships: ['neon_superuser'] }, false),
+    () => validateAppRolePreflight({ ...role, rolcanlogin: true, memberships: ['neon_superuser'] }, false),
+    /MIGRATION_APP_ROLE_NOT_LEAST_PRIVILEGED/
+  );
+  assert.throws(
+    () => validateAppRolePreflight({ ...role, rolinherit: true, memberships: ['neon_superuser'] }, false),
+    /MIGRATION_APP_ROLE_NOT_LEAST_PRIVILEGED/
+  );
+  assert.throws(
+    () => validateAppRolePreflight({ ...role, incoming_memberships: 1 }, false),
+    /MIGRATION_APP_ROLE_NOT_LEAST_PRIVILEGED/
+  );
+  assert.throws(
+    () => validateAppRolePreflight({ ...role, memberships: ['neon_superuser', 'unrelated_role'] }, false),
     /MIGRATION_APP_ROLE_NOT_LEAST_PRIVILEGED/
   );
   assert.throws(
@@ -409,15 +430,16 @@ test('legacy opscore_app must already be least-privileged after the one-time rep
   );
 });
 
-test('migration plan includes exactly one legacy application-role lockdown migration', () => {
+test('migration plan includes one in-place lockdown and reports the Neon-managed membership residual', () => {
   const migrations = readMigrations();
   const repairs = migrations.filter(item => item.filename === '068_opscore_app_role_privilege_lockdown.sql');
   assert.equal(repairs.length, 1);
-  assert.match(repairs[0].content, /NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS/);
-  assert.match(repairs[0].content, /ALTER ROLE opscore_app RENAME TO opscore_app_quarantined_20261115/);
-  assert.match(repairs[0].content, /CREATE ROLE opscore_app NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS/);
+  assert.match(repairs[0].content, /ALTER ROLE opscore_app[\\s\\S]*?NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS/);
+  assert.doesNotMatch(repairs[0].content, /ALTER ROLE opscore_app RENAME TO/);
+  assert.doesNotMatch(repairs[0].content, /CREATE ROLE opscore_app/);
   assert.match(repairs[0].content, /OPSC_LEGACY_APP_ROLE_HAS_ACTIVE_SESSIONS/);
   assert.match(repairs[0].content, /OPSC_LEGACY_APP_ROLE_OWNS_OBJECTS/);
   assert.match(repairs[0].content, /OPSC_LEGACY_APP_ROLE_HAS_INCOMING_MEMBERSHIPS/);
-  assert.match(repairs[0].content, /ADMIN OPTION on neon_superuser/);
+  assert.match(repairs[0].content, /neon_superuser/);
+  assert.match(repairs[0].content, /This residual must remain disclosed/);
 });
