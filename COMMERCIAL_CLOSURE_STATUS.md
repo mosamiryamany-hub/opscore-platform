@@ -1,6 +1,6 @@
 # OpsCore — Technical and Commercial Closure Status
 
-**Technical classification:** `PASS_WITH_BUYER_RESIDUALS` for the exact seller-reference candidate only.  
+**Technical classification:** `HOLD_FOR_PRODUCTION_EVIDENCE_REVALIDATION` — current seller-reference isolation evidence is not verified for the active Production commit and Neon branch.  
 **Commercial license status:** **NO LICENSE GRANTED — COMMERCIAL MODEL PENDING**.  
 **Distribution status:** **HOLD — DO NOT SELL OR DISTRIBUTE**.
 
