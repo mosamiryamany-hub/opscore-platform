@@ -99,8 +99,24 @@ async function withSignedTenantClient(pool, principal, fn) {
     throw error;
   } finally {
     if (transactionOpen) {
-      try { await client.query('ROLLBACK'); }
-      catch (_) { destroy = true; }
+      try {
+        await client.query('ROLLBACK');
+        transactionOpen = false;
+      } catch (_) {
+        destroy = true;
+      }
+    }
+    if (!destroy && !transactionOpen) {
+      try {
+        // Clear signed claims and legacy tenant GUCs before reusing this pool
+        // connection. SET LOCAL expires at transaction end; this also removes
+        // any previous session-level tenant context on a reused connection.
+        await client.query(
+          "SELECT set_config('app.tenant_id','',false), set_config('app.user_id','',false), set_config('app.access_mode','',false), set_config('app.signed_context_payload','',false), set_config('app.signed_context_signature','',false)"
+        );
+      } catch (_) {
+        destroy = true;
+      }
     }
     try { client.release(destroy || transactionOpen); }
     catch (_) { /* the pg client may already have destroyed itself */ }
