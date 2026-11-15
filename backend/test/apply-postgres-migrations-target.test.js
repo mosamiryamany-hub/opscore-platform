@@ -142,16 +142,18 @@ test('runner requires a least-privilege runtime role before migration work', () 
 
 
 test('runner strips only the outer transaction wrapper so migration SQL and its ledger row commit atomically', () => {
-  const migration = \`-- migration header
-BEGIN;
-CREATE TABLE public.atomic_example(id integer);
-DO $body$
-BEGIN
-  PERFORM 1;
-END
-$body$;
-COMMIT;
-\`;
+  const migration = [
+    '-- migration header',
+    'BEGIN;',
+    'CREATE TABLE public.atomic_example(id integer);',
+    'DO $body$',
+    'BEGIN',
+    '  PERFORM 1;',
+    'END',
+    '$body$;',
+    'COMMIT;',
+    ''
+  ].join('\n');
   const unwrapped = unwrapOuterTransaction(migration, '063_test.sql');
   assert.match(unwrapped, /^-- migration header\n/);
   assert.match(unwrapped, /CREATE TABLE public\.atomic_example/);
