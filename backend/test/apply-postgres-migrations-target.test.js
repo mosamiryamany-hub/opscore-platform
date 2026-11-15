@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { assertTarget, readMigrations, unwrapOuterTransaction } = require('../scripts/apply-postgres-migrations');
+const { assertTarget, extractNeonEndpointId, readMigrations, unwrapOuterTransaction, verifyNeonEndpointIdentity } = require('../scripts/apply-postgres-migrations');
 
 const database = 'opscore_acceptance';
 const projectId = 'summer-leaf-18448271';
@@ -11,6 +11,27 @@ const host = 'ep-prod-example.c-16.us-east-1.aws.neon.tech';
 
 function connection(targetHost = host) {
   return new URL('postgresql://neondb_owner:never-print-this@' + targetHost + '/' + database);
+}
+
+
+function fakeNeonResponse(endpointOverrides={}) {
+  return async (url,options) => {
+    assert.match(url,/^https:\/\/console\.neon\.tech\/api\/v2\/projects\//);
+    assert.equal(options.method,'GET');
+    assert.equal(options.headers.accept,'application/json');
+    assert.equal(options.headers.authorization,'Bearer test-neon-api-key');
+    return {
+      ok:true,
+      json:async()=>({endpoints:[{
+        id:'ep-prod-example',
+        project_id:projectId,
+        branch_id:branchId,
+        host,
+        type:'read_write',
+        ...endpointOverrides
+      }]})
+    };
+  };
 }
 
 function envFor(targetClass, overrides = {}) {
@@ -155,6 +176,81 @@ test('runner safely unwraps every checked-in migration transaction before adding
     }
   }
   assert.ok(wrapped.length >= 10, 'expected existing transaction-wrapped migrations to be covered');
+});
+
+
+test('Neon endpoint identity is independently resolved from the project API before non-test migrations', async () => {
+  const env = {...envFor('preview'), NEON_API_KEY:'test-neon-api-key'};
+  const identity = await verifyNeonEndpointIdentity(connection(), env, fakeNeonResponse());
+  assert.deepEqual(identity, {
+    verified:true,
+    endpointId:'ep-prod-example',
+    projectId,
+    branchId,
+    host,
+    endpointType:'read_write'
+  });
+});
+
+test('Neon endpoint identity fails closed when API credentials or endpoint metadata are missing', async () => {
+  await assert.rejects(
+    () => verifyNeonEndpointIdentity(connection(), envFor('preview'), fakeNeonResponse()),
+    /MIGRATION_NEON_API_KEY_REQUIRED/
+  );
+  await assert.rejects(
+    () => verifyNeonEndpointIdentity(connection(), {...envFor('preview'),NEON_API_KEY:'test-neon-api-key'},
+      async()=>({ok:true,json:async()=>({endpoints:[]})})),
+    /MIGRATION_NEON_ENDPOINT_NOT_UNIQUELY_RESOLVED/
+  );
+  const duplicate=async()=>({ok:true,json:async()=>({endpoints:[
+    {id:'ep-prod-example',project_id:projectId,branch_id:branchId,host,type:'read_write'},
+    {id:'ep-prod-example',project_id:projectId,branch_id:branchId,host,type:'read_write'}
+  ]})});
+  await assert.rejects(
+    () => verifyNeonEndpointIdentity(connection(), {...envFor('preview'),NEON_API_KEY:'test-neon-api-key'},duplicate),
+    /MIGRATION_NEON_ENDPOINT_NOT_UNIQUELY_RESOLVED/
+  );
+});
+
+test('Neon endpoint identity rejects project, branch, hostname and endpoint type mismatches', async () => {
+  const env={...envFor('preview'),NEON_API_KEY:'test-neon-api-key'};
+  await assert.rejects(
+    () => verifyNeonEndpointIdentity(connection(),env,fakeNeonResponse({project_id:'wrong-project'})),
+    /MIGRATION_NEON_PROJECT_IDENTITY_MISMATCH/
+  );
+  await assert.rejects(
+    () => verifyNeonEndpointIdentity(connection(),env,fakeNeonResponse({branch_id:'br-wrong-branch'})),
+    /MIGRATION_NEON_BRANCH_IDENTITY_MISMATCH/
+  );
+  await assert.rejects(
+    () => verifyNeonEndpointIdentity(connection(),env,fakeNeonResponse({host:'ep-other.c-16.us-east-1.aws.neon.tech'})),
+    /MIGRATION_NEON_ENDPOINT_HOST_IDENTITY_MISMATCH/
+  );
+  await assert.rejects(
+    () => verifyNeonEndpointIdentity(connection(),env,fakeNeonResponse({type:'read_only'})),
+    /MIGRATION_NEON_READ_WRITE_ENDPOINT_REQUIRED/
+  );
+});
+
+test('Neon API errors and malformed JSON fail closed without exposing credentials', async () => {
+  const env={...envFor('preview'),NEON_API_KEY:'do-not-print-this'};
+  await assert.rejects(
+    () => verifyNeonEndpointIdentity(connection(),env,async()=>({ok:false,status:401})),
+    /MIGRATION_NEON_IDENTITY_API_REJECTED/
+  );
+  await assert.rejects(
+    () => verifyNeonEndpointIdentity(connection(),env,async()=>({ok:true,json:async()=>{throw new Error('private response details')}})),
+    error=>error.message==='MIGRATION_NEON_IDENTITY_RESPONSE_INVALID'&&!error.message.includes(env.NEON_API_KEY)
+  );
+  await assert.rejects(
+    () => verifyNeonEndpointIdentity(connection(),env,async()=>{throw new Error('private network details');}),
+    error=>error.message==='MIGRATION_NEON_IDENTITY_API_UNAVAILABLE'&&!error.message.includes(env.NEON_API_KEY)
+  );
+});
+
+test('local test target deliberately skips Neon API identity lookup', async () => {
+  const result=await verifyNeonEndpointIdentity(connection('127.0.0.1'),envFor('test'));
+  assert.deepEqual(result,{verified:false,skipped:true,reason:'loopback-test-target'});
 });
 
 test('runner strips only the outer transaction wrapper so migration SQL and its ledger row commit atomically', () => {
