@@ -358,35 +358,6 @@ jobs:
           })().catch(e => { console.error(e); process.exit(1); });
           NODE
 
-      - name: Stamp production behavioral evidence with deploy candidate commit
-        run: |
-          set -euo pipefail
-          node <<'NODE'
-          const fs = require('fs');
-          const path = require('path');
-          const commit = String(process.env.GITHUB_SHA || '').trim().toLowerCase();
-          if (!/^[a-f0-9]{40}$/.test(commit)) throw new Error('GITHUB_SHA_INVALID');
-          for (const rel of [
-            ['backend','docs','verification','PRODUCTION_SESSION_ISOLATION.json'],
-            ['backend','docs','verification','PRODUCTION_RECOVERY_POINT.json']
-          ]) {
-            const file = path.join(...rel);
-            const data = JSON.parse(fs.readFileSync(file, 'utf8'));
-            if (data.status !== 'PASS') throw new Error('BEHAVIORAL_EVIDENCE_NOT_PASS:' + file);
-            const prev = data.sourceCommitHint || null;
-            data.sourceCommitHint = commit;
-            data.evidenceRebind = Object.assign({}, data.evidenceRebind || {}, {
-              kind: 'schema_compatible_candidate_rebind',
-              fromCommit: prev,
-              toCommit: commit,
-              stampedAtDeploy: true,
-              probesReexecuted: false
-            });
-            fs.writeFileSync(file, JSON.stringify(data, null, 2) + '\n');
-            console.log('STAMPED', file, 'from', prev, 'to', commit);
-          }
-          NODE
-
       - name: Resolve production isolation certification from behavioral evidence
         id: isolation_cert
         run: |
