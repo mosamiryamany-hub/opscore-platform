@@ -285,6 +285,7 @@ async function main() {
       PUBLIC_ORIGIN: 'http://127.0.0.1:' + port,
       AUTH_MODE: 'local',
       VERCEL_ENV: 'preview',
+      OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'true',
       OPSC_TENANT_CONTEXT_PROOF_ENABLED: 'true',
       OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_ENABLED: 'true',
       OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_WRITE_ENABLED: 'true',
