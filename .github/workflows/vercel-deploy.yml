@@ -494,6 +494,12 @@ jobs:
             echo "EMBEDDED $f"
           done
 
+      - name: Re-pull Vercel production env after identity publish
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
       - name: Build Vercel output
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:
