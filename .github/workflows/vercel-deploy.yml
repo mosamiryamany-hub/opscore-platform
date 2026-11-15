@@ -335,7 +335,7 @@ jobs:
               OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: hash,
               OPSC_PRODUCTION_ISOLATION_CERTIFICATION: isolation,
               OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE: behavioralPass() ? 'true' : 'false',
-              OPSC_RELEASE_VERIFIED: 'true'
+              OPSC_RELEASE_VERIFIED: behavioralPass() ? 'true' : 'false'
             };
             console.log('ISOLATION_CERTIFICATION_TARGET', isolation);
             for (const [key, value] of Object.entries(want)) {
