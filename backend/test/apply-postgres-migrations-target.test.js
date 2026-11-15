@@ -173,3 +173,23 @@ test('runner preserves migration files that do not declare an outer transaction'
   const migration = '-- plain migration\nCREATE INDEX ix_example ON public.atomic_example(id);\n';
   assert.equal(unwrapOuterTransaction(migration, 'plain.sql'), migration);
 });
+
+
+test('runner rejects transaction wrapper syntax it cannot safely unwrap', () => {
+  assert.throws(
+    () => unwrapOuterTransaction('BEGIN TRANSACTION;\nCREATE TABLE public.atomic_example(id integer);\nCOMMIT;', 'unsupported.sql'),
+    /MIGRATION_TRANSACTION_WRAPPER_UNSUPPORTED/
+  );
+});
+
+test('runner writes migration ledger before committing the runner-owned transaction', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const source = fs.readFileSync(path.join(__dirname, '../scripts/apply-postgres-migrations.js'), 'utf8');
+  const loopStart = source.indexOf('const applied=[];');
+  const begin = source.indexOf("await client.query('BEGIN');", loopStart);
+  const migration = source.indexOf('await client.query(unwrapOuterTransaction(migration.content,migration.filename));', begin);
+  const ledger = source.indexOf("await client.query('INSERT INTO public.schema_migrations", migration);
+  const commit = source.indexOf("await client.query('COMMIT')", ledger);
+  assert.ok(loopStart >= 0 && begin > loopStart && migration > begin && ledger > migration && commit > ledger);
+});
