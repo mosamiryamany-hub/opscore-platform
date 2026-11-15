@@ -307,6 +307,14 @@ test('production behavioral evidence must carry the exact release commit hint', 
     assert.equal(readProductionSessionIsolationEvidence(sessionPath, env).status, 'PASS');
     assert.equal(readProductionRecoveryPointEvidence(recoveryPath, env).status, 'PASS');
 
+    for (const malformedRebind of ['tampered', true, 1]) {
+      fs.writeFileSync(sessionPath, JSON.stringify({ ...freshSession, evidenceRebind: malformedRebind }));
+      fs.writeFileSync(recoveryPath, JSON.stringify({ ...freshRecovery, evidenceRebind: malformedRebind }));
+      assert.equal(readProductionSessionIsolationEvidence(sessionPath, env).status, 'NOT_VERIFIED');
+      assert.equal(readProductionRecoveryPointEvidence(recoveryPath, env).status, 'NOT_VERIFIED');
+    }
+
+
     assert.equal(readProductionSessionIsolationEvidence(sessionPath, {
       ...env, OPSC_PRODUCTION_NEON_BRANCH_ID: ''
     }).status, 'NOT_VERIFIED');
