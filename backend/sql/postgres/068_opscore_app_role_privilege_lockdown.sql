@@ -110,7 +110,26 @@ GRANT USAGE ON SCHEMA public TO opscore_app;
 REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM opscore_app;
 REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM opscore_app;
 
+-- Drop any residual incoming memberships (roles granted opscore_app).
+-- Neon may attach managed grants during CREATE ROLE; they must not remain.
+DO $revoke_incoming$
+DECLARE
+  r record;
+BEGIN
+  FOR r IN
+    SELECT member_role.rolname AS member_name
+    FROM pg_catalog.pg_auth_members membership
+    JOIN pg_catalog.pg_roles member_role ON member_role.oid = membership.member
+    JOIN pg_catalog.pg_roles target ON target.oid = membership.roleid
+    WHERE target.rolname = 'opscore_app'
+  LOOP
+    EXECUTE format('REVOKE opscore_app FROM %I', r.member_name);
+  END LOOP;
+END
+$revoke_incoming$;
+
 -- Minimal control-plane contract retained for source-controlled RLS gate checks.
+
 GRANT SELECT, INSERT, UPDATE
   ON TABLE public.feature_flags, public.safe_mode_states
   TO opscore_app;
