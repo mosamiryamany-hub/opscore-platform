@@ -201,12 +201,17 @@ function readProductionSessionIsolationEvidence(filePath = path.join(__dirname, 
   const checks = evidence.checks || {};
   const required = ['dualLogin','ownAssetCreate','tenantListIsolation','crossTenantAssetDenied','crossTenantWriteDenied','unauthenticatedDenied','cleanupComplete'];
   const allPass = evidence.status === 'PASS' && required.every((k) => checks[k] === 'PASS');
+  const expectedCommit = normalizedSha(env.OPSC_RELEASE_CI_COMMIT || env.CI_COMMIT_SHA || env.OPSC_SOURCE_COMMIT_SHA);
+  const evidenceCommit = normalizedSha(evidence.sourceCommitHint);
+  const commitBound = !expectedCommit || evidenceCommit === expectedCommit;
   return {
-    status: allPass ? 'PASS' : 'FAIL',
+    status: allPass && commitBound ? 'PASS' : 'NOT_VERIFIED',
     testedAt: evidence.testedAt || null,
     checks,
     httpBase: evidence.httpBase || null,
-    evidenceClass: evidence.evidenceClass || null
+    evidenceClass: evidence.evidenceClass || null,
+    sourceCommitHint: evidenceCommit || null,
+    commitBound
   };
 }
 
@@ -220,19 +225,25 @@ function readProductionRecoveryPointEvidence(filePath = path.join(__dirname, '..
   if (evidence.schemaVersion !== 'opscore.production-recovery-point.v1') {
     return { status: 'NOT_VERIFIED', testedAt: null };
   }
+  const expectedCommit = normalizedSha(env.OPSC_RELEASE_CI_COMMIT || env.CI_COMMIT_SHA || env.OPSC_SOURCE_COMMIT_SHA);
+  const evidenceCommit = normalizedSha(evidence.sourceCommitHint);
+  const commitBound = !expectedCommit || evidenceCommit === expectedCommit;
   const ok = evidence.status === 'PASS' &&
     evidence.coreTenantTablesMatch === true &&
     Number(evidence.tableCountCompared) >= 130 &&
     Number(evidence.mismatchCount) === 0 &&
-    typeof evidence.recoveryBranchId === 'string' && evidence.recoveryBranchId.length > 0;
+    typeof evidence.recoveryBranchId === 'string' && evidence.recoveryBranchId.length > 0 &&
+    commitBound;
   return {
-    status: ok ? 'PASS' : 'FAIL',
+    status: ok ? 'PASS' : 'NOT_VERIFIED',
     testedAt: evidence.testedAt || null,
     recoveryBranchId: evidence.recoveryBranchId || null,
     tableCountCompared: evidence.tableCountCompared || null,
     mismatchCount: evidence.mismatchCount,
     historyRetentionSeconds: evidence.historyRetentionSeconds || null,
-    evidenceClass: evidence.evidenceClass || null
+    evidenceClass: evidence.evidenceClass || null,
+    sourceCommitHint: evidenceCommit || null,
+    commitBound
   };
 }
 

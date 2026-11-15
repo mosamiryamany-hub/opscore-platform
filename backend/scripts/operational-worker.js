@@ -8,6 +8,13 @@ const {purgeExpired}=require('../src/data-purger');
 const {purgeExpiredRateBuckets}=require('../src/firewall');
 const {WorkerResourceGuard}=require('../src/worker-guard');
 const workerGuard=new WorkerResourceGuard();
+
+// This worker currently uses node:sqlite directly. Refuse PostgreSQL deployments rather than
+// silently processing a second, unrelated SQLite database beside the production Postgres runtime.
+if (String(config.databaseEngine || 'sqlite').trim().toLowerCase() === 'postgres') {
+  process.stderr.write('OPSC_POSTGRES_WORKER_NOT_IMPLEMENTED\n');
+  process.exit(1);
+}
 function purgeForOrg(organizationId){ try { const result=purgeExpired(store.db,{repositoryPath:process.env.OPSC_REPOSITORY_PATH||'./data/files'}); store.db.prepare('INSERT INTO privacy_purge_runs(id,organization_id,summary_json,created_at) VALUES (?,?,?,?)').run(`purge_${Date.now()}_${organizationId}`,organizationId,JSON.stringify({...result,organizationId}),new Date().toISOString()); return {...result,organizationId}; } catch(e){ return {error:e.message,organizationId}; } }
 const queues=String(process.env.OPSC_WORKER_QUEUES||'support,billing,incident,general').split(',').map(x=>x.trim()).filter((x,i,a)=>x&&a.indexOf(x)===i);
 const once=String(process.env.OPSC_WORKER_ONCE||'false').toLowerCase()==='true';

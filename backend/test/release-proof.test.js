@@ -6,7 +6,13 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { createPublicReleaseProof, hasVerifiedProductionRelease, readProductionAcceptanceEvidence } = require('../src/release-proof');
+const {
+  createPublicReleaseProof,
+  hasVerifiedProductionRelease,
+  readProductionAcceptanceEvidence,
+  readProductionSessionIsolationEvidence,
+  readProductionRecoveryPointEvidence
+} = require('../src/release-proof');
 
 const SHA = 'bbbee88e34a9b7e1847571367904fa96a3166bcc';
 const SHA256_COMMIT = '59bd4c8bd4ab8227bd6dce02cb6c9b67d77dd8feafa77658e4ed849df2cce8e1';
@@ -259,6 +265,57 @@ test('release proof does not grant PASS_PRODUCTION from timestamps alone without
   assert.equal(proof.gates.productionIsolationCertification, 'NOT_CERTIFIED');
 });
 
+test('production behavioral evidence must carry the exact release commit hint', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-production-behavioral-binding-'));
+  const sessionPath = path.join(dir, 'session.json');
+  const recoveryPath = path.join(dir, 'recovery.json');
+  const env = {
+    OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE: 'true',
+    OPSC_RELEASE_CI_COMMIT: SHA
+  };
+  const session = {
+    schemaVersion: 'opscore.production-session-isolation.v1',
+    status: 'PASS',
+    testedAt: '2026-10-23T00:00:00.000Z',
+    sourceCommitHint: SHA,
+    checks: {
+      dualLogin: 'PASS',
+      ownAssetCreate: 'PASS',
+      tenantListIsolation: 'PASS',
+      crossTenantAssetDenied: 'PASS',
+      crossTenantWriteDenied: 'PASS',
+      unauthenticatedDenied: 'PASS',
+      cleanupComplete: 'PASS'
+    }
+  };
+  const recovery = {
+    schemaVersion: 'opscore.production-recovery-point.v1',
+    status: 'PASS',
+    testedAt: '2026-10-23T00:00:00.000Z',
+    sourceCommitHint: SHA,
+    recoveryBranchId: 'br-test-recovery',
+    tableCountCompared: 134,
+    mismatchCount: 0,
+    coreTenantTablesMatch: true
+  };
+  try {
+    fs.writeFileSync(sessionPath, JSON.stringify(session));
+    fs.writeFileSync(recoveryPath, JSON.stringify(recovery));
+    assert.equal(readProductionSessionIsolationEvidence(sessionPath, env).status, 'PASS');
+    assert.equal(readProductionRecoveryPointEvidence(recoveryPath, env).status, 'PASS');
+
+    fs.writeFileSync(sessionPath, JSON.stringify({ ...session, sourceCommitHint: '0'.repeat(40) }));
+    fs.writeFileSync(recoveryPath, JSON.stringify({ ...recovery, sourceCommitHint: '0'.repeat(40) }));
+    assert.equal(readProductionSessionIsolationEvidence(sessionPath, env).status, 'NOT_VERIFIED');
+    assert.equal(readProductionRecoveryPointEvidence(recoveryPath, env).status, 'NOT_VERIFIED');
+
+    fs.writeFileSync(sessionPath, JSON.stringify({ ...session, sourceCommitHint: undefined }));
+    assert.equal(readProductionSessionIsolationEvidence(sessionPath, env).status, 'NOT_VERIFIED');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test('release proof fails closed when CI, package, or production acceptance belongs to another commit', () => {
   const proof = createPublicReleaseProof(deploymentEnv({
     OPSC_RELEASE_CI_COMMIT: '0'.repeat(40),
@@ -457,7 +514,6 @@ test('functionalApiRouteAcceptance flips to PASS_CONTRACT_SCOPE only with commit
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
-
 
 
 

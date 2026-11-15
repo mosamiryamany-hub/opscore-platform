@@ -5,6 +5,7 @@ const crypto = require('node:crypto');
 const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
+const { createSignedTenantContext } = require('./signed-tenant-context');
 
 const requestStorage = new AsyncLocalStorage();
 const fallbackRequestId = '__opscore_background__';
@@ -16,6 +17,12 @@ let transportFailure = null;
 let configuredConnectionString = null;
 let configuredPoolMax = null;
 let nextMessageId = 0;
+
+function resolveWorkerSslMode(env = process.env) {
+  const configured = String(env.OPSC_PG_SSL_MODE || '').trim();
+  if (configured) return configured;
+  return String(env.NODE_ENV || '').trim().toLowerCase() === 'production' ? 'verify-full' : 'require';
+}
 
 function waitBriefly() {
   Atomics.wait(sleepCell, 0, 0, 2);
@@ -132,16 +139,26 @@ function getTransport(connectionString, poolMax) {
     process.env.NODE_PATH || ''
   ].filter(Boolean).join(path.delimiter);
 
+  // The PostgreSQL worker is a database transport only. Do not copy the
+  // application environment wholesale: signing material and unrelated service
+  // credentials must remain in the trusted parent Node process.
+  const workerEnv = {
+    PATH: process.env.PATH || '/usr/bin:/bin',
+    HOME: process.env.HOME || '',
+    ...(process.env.NODE_ENV ? { NODE_ENV: process.env.NODE_ENV } : {}),
+    DATABASE_URL: connectionString,
+    NODE_PATH: nodePath,
+    OPSC_PG_POOL_MAX: String(poolMax),
+    OPSC_PG_SSL_MODE: resolveWorkerSslMode(process.env),
+    OPSC_PG_SSL_REJECT_UNAUTHORIZED: process.env.OPSC_PG_SSL_REJECT_UNAUTHORIZED || 'true',
+    ...(process.env.OPSC_PG_CA_CERT ? { OPSC_PG_CA_CERT: process.env.OPSC_PG_CA_CERT } : {}),
+    ...(process.env.OPSC_PG_STATEMENT_TIMEOUT_MS ? { OPSC_PG_STATEMENT_TIMEOUT_MS: process.env.OPSC_PG_STATEMENT_TIMEOUT_MS } : {}),
+    ...(process.env.OPSC_PG_IDLE_IN_TRANSACTION_TIMEOUT_MS ? { OPSC_PG_IDLE_IN_TRANSACTION_TIMEOUT_MS: process.env.OPSC_PG_IDLE_IN_TRANSACTION_TIMEOUT_MS } : {}),
+    ...(process.env.OPSC_PG_KEEPALIVE_INITIAL_DELAY_MS ? { OPSC_PG_KEEPALIVE_INITIAL_DELAY_MS: process.env.OPSC_PG_KEEPALIVE_INITIAL_DELAY_MS } : {})
+  };
   const child = spawn(process.execPath, [workerPath], {
     stdio: ['pipe', 'pipe', 'inherit'],
-    env: {
-      ...process.env,
-      DATABASE_URL: connectionString,
-      NODE_PATH: nodePath,
-      OPSC_PG_POOL_MAX: String(poolMax),
-      OPSC_PG_SSL_MODE: process.env.OPSC_PG_SSL_MODE || 'require',
-      OPSC_PG_SSL_REJECT_UNAUTHORIZED: process.env.OPSC_PG_SSL_REJECT_UNAUTHORIZED || 'true'
-    }
+    env: workerEnv
   });
 
   if (child.stdout && typeof child.stdout.pause === 'function') child.stdout.pause();
@@ -197,7 +214,9 @@ function sendCommand(type, sql, params, requestId, options = {}) {
     requestId: requestId || fallbackRequestId,
     tenantId: options.tenantId,
     userId: options.userId,
-    accessMode: options.accessMode
+    accessMode: options.accessMode,
+    signedContextPayload: options.signedContextPayload,
+    signedContextSignature: options.signedContextSignature
   });
   if (!response.ok) {
     const error = new Error(String(response.error || 'PG_QUERY_FAILED'));
@@ -244,7 +263,11 @@ function runWithRequest(fn, req, res, options = {}) {
   }
 
   try {
-    const result = requestStorage.run({ requestId }, fn);
+    const result = requestStorage.run({
+      requestId,
+      verifiedPrincipal: null,
+      lastVerifiedTransactionId: null
+    }, fn);
     if (result && typeof result.then === 'function') {
       return result.catch((error) => {
         finish();
@@ -261,6 +284,30 @@ function runWithRequest(fn, req, res, options = {}) {
 function currentRequestId() {
   const context = requestStorage.getStore();
   return context && context.requestId ? context.requestId : fallbackRequestId;
+}
+
+function setVerifiedPrincipal(principal) {
+  const context = requestStorage.getStore();
+  if (!context) throw makeError('TENANT_CONTEXT_REQUEST_REQUIRED', 'A request scope is required for signed tenant context');
+  if (!principal || typeof principal !== 'object') throw makeError('TENANT_CONTEXT_PRINCIPAL_REQUIRED');
+  const next = {
+    sessionId: String(principal.sessionId || '').trim(),
+    userId: String(principal.userId || '').trim(),
+    tenantId: String(principal.tenantId || '').trim()
+  };
+  for (const value of Object.values(next)) {
+    if (!value || value.length > 128 || /[\u0000-\u001f\u007f]/.test(value)) {
+      throw makeError('TENANT_CONTEXT_PRINCIPAL_INVALID', 'Authenticated session principal is incomplete');
+    }
+  }
+  if (context.verifiedPrincipal) {
+    const prior = context.verifiedPrincipal;
+    if (prior.sessionId !== next.sessionId || prior.userId !== next.userId || prior.tenantId !== next.tenantId) {
+      throw makeError('TENANT_CONTEXT_PRINCIPAL_IMMUTABLE', 'A request cannot change its authenticated session principal');
+    }
+    return;
+  }
+  context.verifiedPrincipal = Object.freeze(next);
 }
 
 function openPgDatabaseSync(connectionString, { max = Number(process.env.OPSC_PG_POOL_MAX || 10) } = {}) {
@@ -322,6 +369,40 @@ function openPgDatabaseSync(connectionString, { max = Number(process.env.OPSC_PG
         accessMode: accessMode || 'field'
       });
     },
+    setVerifiedPrincipal,
+    activateVerifiedTenantContext() {
+      const context = requestStorage.getStore();
+      if (!context || !context.verifiedPrincipal) {
+        throw makeError('TENANT_CONTEXT_PRINCIPAL_REQUIRED', 'An authenticated session principal must be attached first');
+      }
+      const state = getTransport(connectionString, poolMax);
+      const requestId = currentRequestId();
+      const identityResponse = sendCommand('transactionIdentity', '', [], requestId, { state });
+      const identity = identityResponse.row || {};
+      const transactionId = String(identity.transactionId || '');
+      if (!Number.isSafeInteger(Number(identity.backendPid)) || Number(identity.backendPid) < 1 || !/^[0-9]{1,20}$/.test(transactionId)) {
+        throw makeError('TENANT_CONTEXT_TRANSACTION_IDENTITY_INVALID');
+      }
+      if (context.lastVerifiedTransactionId === transactionId) {
+        throw makeError('TENANT_CONTEXT_ALREADY_BOUND_FOR_TRANSACTION');
+      }
+      const assertion = createSignedTenantContext({
+        principal: context.verifiedPrincipal,
+        backendPid: Number(identity.backendPid),
+        transactionId
+      });
+      sendCommand('bindSignedContext', '', [], requestId, {
+        state,
+        signedContextPayload: assertion.payload,
+        signedContextSignature: assertion.signature
+      });
+      context.lastVerifiedTransactionId = transactionId;
+      return Object.freeze({
+        backendPid: Number(identity.backendPid),
+        transactionId,
+        expiresAt: assertion.expiresAt
+      });
+    },
 
     prepare(sql) {
       return {
@@ -365,5 +446,7 @@ process.on('exit', () => {
 module.exports = {
   openPgDatabaseSync,
   runWithRequest,
-  currentRequestId
+  currentRequestId,
+  setVerifiedPrincipal,
+  resolveWorkerSslMode
 };
