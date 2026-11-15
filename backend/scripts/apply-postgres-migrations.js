@@ -186,6 +186,8 @@ async function verifyControlPlane053Catalog(client){
   note:'Catalog-equivalence proof only; it does not establish byte-for-byte identity of the historical migration payload or behavioral Tenant A/B acceptance.'
  };
 }
+const tenantPolicyExprValid=x=>{const value=String(x||'').toLowerCase();return value.includes('organization_id')&&(value.includes('opscore_current_tenant()')||(value.includes("current_setting('app.tenant_id'")&&value.includes('nullif(')));};
+
 async function main(){
  const raw=String(process.env.OPSC_MIGRATION_DATABASE_URL||'').trim();if(!raw)throw new Error('OPSC_MIGRATION_DATABASE_URL_REQUIRED');
  let url;try{url=new URL(raw);}catch{throw new Error('OPSC_MIGRATION_DATABASE_URL_INVALID');}
@@ -360,8 +362,7 @@ SELECT
   const controlPlaneTables=['feature_flags','safe_mode_states','control_plane_runs'];
   const controlPlanePolicyRows=(await client.query(`SELECT c.relname AS table_name,p.polname AS policy_name,p.polpermissive AS permissive,pg_get_expr(p.polqual,p.polrelid) AS using_expr,pg_get_expr(p.polwithcheck,p.polrelid) AS check_expr FROM pg_policy p JOIN pg_class c ON c.oid=p.polrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname=ANY($1::text[])`,[controlPlaneTables])).rows;
   const controlPlaneRlsRows=(await client.query(`SELECT c.relname AS table_name,c.relrowsecurity AS rls_enabled,c.relforcerowsecurity AS force_rls FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname=ANY($1::text[])`,[controlPlaneTables])).rows;
-  const tenantPolicyExprValid=x=>{const value=String(x||'').toLowerCase();return value.includes('organization_id')&&(value.includes('opscore_current_tenant()')||(value.includes("current_setting('app.tenant_id'")&&value.includes('nullif(')));};
-  const controlPlanePolicyResults=controlPlaneTables.map(tableName=>{
+    const controlPlanePolicyResults=controlPlaneTables.map(tableName=>{
     const rows=controlPlanePolicyRows.filter(x=>x.table_name===tableName);
     const rls=controlPlaneRlsRows.find(x=>x.table_name===tableName);
     const permissive=rows.filter(x=>x.policy_name==='opscore_tenant_permissive'&&x.permissive===true&&tenantPolicyExprValid(x.using_expr)&&tenantPolicyExprValid(x.check_expr));
