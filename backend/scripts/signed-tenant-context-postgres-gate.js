@@ -8,6 +8,8 @@ const os = require('node:os');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
 const { Client } = require('pg');
+const { createPostgresPool } = require('../src/adapters/postgres');
+const { withSignedTenantClient } = require('../src/postgres-runtime');
 const { hashToken } = require('../src/security');
 const { createSignedTenantContext } = require('../src/signed-tenant-context');
 
@@ -132,6 +134,7 @@ async function main() {
   let serverOutput = '';
   let clientA = null;
   let clientB = null;
+  let signedContextPool = null;
   let activeVerifierRole = false;
   let evidenceRoot = null;
   let evidenceRollbackTriggerInstalled = false;
@@ -236,6 +239,34 @@ async function main() {
       'INSERT INTO opscore_security.context_probe_rows(id,organization_id,probe_value) VALUES($1,$2,$3),($4,$5,$6)',
       ['row-' + sessionA, tenantA, 'proof:' + tenantA, 'row-' + sessionB, tenantB, 'proof:' + tenantB]
     );
+
+    // The knowledge service uses a secondary node-postgres Pool, not the main
+    // synchronous bridge. Prove that this independent connection also binds a
+    // signed principal to its own backend/xid and ignores forged legacy GUCs.
+    signedContextPool = createPostgresPool({ connectionString: runtimeUrl, max: 2 });
+    const secondaryPoolProof = {};
+    for (const [label, principal, expectedTenant, foreignTenant] of [
+      ['tenantA', { sessionId: sessionA, userId: userA, tenantId: tenantA }, tenantA, tenantB],
+      ['tenantB', { sessionId: sessionB, userId: userB, tenantId: tenantB }, tenantB, tenantA]
+    ]) {
+      const rows = await withSignedTenantClient(signedContextPool, principal, async (client) => {
+        await client.query(
+          "SELECT set_config('app.tenant_id',$1,true), set_config('app.user_id',$2,true), set_config('app.access_mode',$3,true)",
+          [foreignTenant, 'forged-secondary-pool-user', 'backoffice']
+        );
+        return (await client.query(
+          'SELECT id, organization_id, probe_value FROM opscore_security.context_probe_rows ORDER BY id'
+        )).rows;
+      });
+      if (rows.length !== 1 || rows[0].organization_id !== expectedTenant
+          || rows[0].id !== 'row-' + (label === 'tenantA' ? sessionA : sessionB)) {
+        throw new Error('SIGNED_SECONDARY_POOL_TENANT_BOUNDARY_FAILED:' + JSON.stringify({
+          label, returnedTenants: rows.map(row => row.organization_id), returnedIds: rows.map(row => row.id)
+        }));
+      }
+      secondaryPoolProof[label] = 'PASS';
+    }
+    secondaryPoolProof.rawGucTamperingIgnored = 'PASS';
 
     const port = await choosePort();
     evidenceRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-signed-evidence-root-'));
@@ -1559,6 +1590,7 @@ async function main() {
         tenantAHttpSession: 'PASS',
         tenantBHttpSession: 'PASS',
         signedAuthenticatedSessionRoutes: signedSessionAutobindHttpProof,
+        signedSecondaryPoolTenantRoutes: secondaryPoolProof,
         signedWorkOrdersTenantA: 'PASS',
         signedWorkOrdersTenantB: 'PASS',
         signedWorkOrderDetailTenantA: 'PASS',
@@ -1593,6 +1625,7 @@ async function main() {
       try { await owner.query('RESET ROLE'); } catch (_) {}
       activeVerifierRole = false;
     }
+    if (signedContextPool) { try { await signedContextPool.end(); } catch (_) {} }
     if (clientA) { try { await clientA.end(); } catch (_) {} }
     if (clientB) { try { await clientB.end(); } catch (_) {} }
     if (serverProcess && serverProcess.exitCode === null) {
