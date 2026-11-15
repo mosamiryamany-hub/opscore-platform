@@ -182,12 +182,11 @@ jobs:
           DROP ROLE IF EXISTS neondb_owner;
           CREATE ROLE neondb_owner LOGIN PASSWORD :'owner_password'
             NOSUPERUSER CREATEDB CREATEROLE INHERIT BYPASSRLS;
-          -- Model Neon-managed role membership without giving the disposable
-          -- CI environment a real superuser role.
-          CREATE ROLE neon_superuser NOLOGIN NOSUPERUSER CREATEDB CREATEROLE BYPASSRLS;
-          CREATE ROLE opscore_app LOGIN PASSWORD 'app_test_pw'
-            NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT BYPASSRLS;
-          GRANT neon_superuser TO opscore_app;
+          -- This disposable acceptance cluster uses a clean, non-login RLS probe.
+          -- The real Neon Preview legacy role is separately fail-closed by the
+          -- migration runner unless the current role has ADMIN OPTION on it.
+          CREATE ROLE opscore_app NOLOGIN
+            NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
           CREATE ROLE opscore_runtime NOLOGIN
             NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
           ALTER ROLE opscore_runtime WITH LOGIN PASSWORD :'runtime_password' INHERIT;
