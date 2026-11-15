@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { assertTarget, extractNeonEndpointId, readMigrations, unwrapOuterTransaction, verifyNeonEndpointIdentity, tenantPolicyExprValid } = require('../scripts/apply-postgres-migrations');
+const { assertTarget, extractNeonEndpointId, readMigrations, unwrapOuterTransaction, verifyNeonEndpointIdentity, tenantPolicyExprValid, validateAppRolePreflight } = require('../scripts/apply-postgres-migrations');
 
 const database = 'opscore_acceptance';
 const projectId = 'summer-leaf-18448271';
@@ -318,4 +318,88 @@ test('runner writes migration ledger before committing the runner-owned transact
   const ledger = source.indexOf("await client.query('INSERT INTO public.schema_migrations", migration);
   const commit = source.indexOf("await client.query('COMMIT')", ledger);
   assert.ok(loopStart >= 0 && begin > loopStart && migration > begin && ledger > migration && commit > ledger);
+});
+
+test('legacy opscore_app repair is allowed only for an inactive, unowned role with no unexpected elevated memberships', () => {
+  const role = {
+    role_exists: true,
+    rolsuper: false,
+    rolbypassrls: true,
+    rolcreaterole: true,
+    rolcreatedb: true,
+    active_sessions: '0',
+    owned_objects: '0',
+    memberships: ['neon_superuser']
+  };
+  assert.deepEqual(validateAppRolePreflight(role, true), {
+    status: 'REPAIR_PENDING',
+    repairPending: true,
+    roleExists: true,
+    removableMemberships: ['neon_superuser']
+  });
+});
+
+test('legacy opscore_app lockdown refuses to rewrite a role with active sessions or owned objects', () => {
+  const base = {
+    role_exists: true,
+    rolsuper: false,
+    rolbypassrls: true,
+    rolcreaterole: true,
+    rolcreatedb: true,
+    active_sessions: 0,
+    owned_objects: 0,
+    memberships: ['neon_superuser']
+  };
+  assert.throws(
+    () => validateAppRolePreflight({ ...base, active_sessions: 1 }, true),
+    /MIGRATION_APP_ROLE_REPAIR_HAS_ACTIVE_SESSIONS/
+  );
+  assert.throws(
+    () => validateAppRolePreflight({ ...base, owned_objects: 1 }, true),
+    /MIGRATION_APP_ROLE_REPAIR_OWNS_OBJECTS/
+  );
+  assert.throws(
+    () => validateAppRolePreflight({ ...base, memberships: ['neon_superuser', 'unrelated_admin'] }, true),
+    /MIGRATION_APP_ROLE_REPAIR_UNEXPECTED_MEMBERSHIPS/
+  );
+  assert.throws(
+    () => validateAppRolePreflight({ ...base, rolsuper: true }, true),
+    /MIGRATION_APP_ROLE_REPAIR_SUPERUSER_FORBIDDEN/
+  );
+});
+
+test('legacy opscore_app must already be least-privileged after the one-time repair is applied', () => {
+  const role = {
+    role_exists: true,
+    rolsuper: false,
+    rolbypassrls: false,
+    rolcreaterole: false,
+    rolcreatedb: false,
+    active_sessions: 0,
+    owned_objects: 0,
+    memberships: []
+  };
+  assert.deepEqual(validateAppRolePreflight(role, false), {
+    status: 'PASS',
+    repairPending: false,
+    roleExists: true
+  });
+  assert.throws(
+    () => validateAppRolePreflight({ ...role, memberships: ['neon_superuser'] }, false),
+    /MIGRATION_APP_ROLE_NOT_LEAST_PRIVILEGED/
+  );
+  assert.throws(
+    () => validateAppRolePreflight({ ...role, role_exists: false }, false),
+    /MIGRATION_APP_ROLE_NOT_LEAST_PRIVILEGED/
+  );
+});
+
+test('migration plan includes exactly one legacy application-role lockdown migration', () => {
+  const migrations = readMigrations();
+  const repairs = migrations.filter(item => item.filename === '068_opscore_app_role_privilege_lockdown.sql');
+  assert.equal(repairs.length, 1);
+  assert.match(repairs[0].content, /NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS/);
+  assert.match(repairs[0].content, /REVOKE neon_superuser FROM opscore_app/);
+  assert.match(repairs[0].content, /OPSC_LEGACY_APP_ROLE_HAS_ACTIVE_SESSIONS/);
+  assert.match(repairs[0].content, /OPSC_LEGACY_APP_ROLE_OWNS_OBJECTS/);
 });
