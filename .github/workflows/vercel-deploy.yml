@@ -391,7 +391,7 @@ jobs:
           console.log('ISOLATION_CERT', ok ? 'CERTIFIED' : 'NOT_CERTIFIED');
           NODE
 
-      - name: Republish release identity and certification env after evidence stamp
+      - name: Publish release identity and certification env after evidence validation
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
