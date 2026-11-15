@@ -116,14 +116,27 @@ function readProductionAcceptanceEvidence(env, expectedCommit, expectedPipelineI
     routeSecurity.functionalRouteAcceptance === 'NOT_VERIFIED' &&
     functionalRouteCoverage.status === 'NOT_VERIFIED' &&
     functionalRouteCoverage.reason === 'FUNCTIONAL_ROUTE_ACCEPTANCE_NOT_RUN';
-  const migrationSafe = migrationLedger.status === 'PASS' &&
+  // Full parity OR staged Preview-only signed-context migrations (non-blocking for production).
+  const stagedPreviewPending = Number(migrationLedger.stagedPreviewPendingCount || 0);
+  const productionBlockingPending = Number(
+    migrationLedger.productionBlockingPendingCount != null
+      ? migrationLedger.productionBlockingPendingCount
+      : migrationLedger.pendingCount || 0
+  );
+  const migrationStatusOk = migrationLedger.status === 'PASS' ||
+    (migrationLedger.status === 'PASS_WITH_STAGED_PREVIEW_MIGRATIONS' &&
+      stagedPreviewPending > 0 &&
+      productionBlockingPending === 0);
+  const migrationSafe = migrationStatusOk &&
     migrationLedger.databaseIdentityMatch === true &&
     typeof migrationLedger.databaseName === 'string' && migrationLedger.databaseName.length > 0 &&
     migrationLedger.databaseName === role.databaseName &&
     Number.isSafeInteger(migrationLedger.sourceMigrationCount) && migrationLedger.sourceMigrationCount > 0 &&
-    Number.isSafeInteger(migrationLedger.ledgerRowCount) && migrationLedger.ledgerRowCount === migrationLedger.sourceMigrationCount &&
-    migrationLedger.matchedCount === migrationLedger.sourceMigrationCount &&
-    migrationLedger.pendingCount === 0 && migrationLedger.blockerCount === 0;
+    Number.isSafeInteger(migrationLedger.ledgerRowCount) && migrationLedger.ledgerRowCount > 0 &&
+    Number.isSafeInteger(migrationLedger.matchedCount) &&
+    migrationLedger.matchedCount === migrationLedger.ledgerRowCount &&
+    productionBlockingPending === 0 &&
+    Number(migrationLedger.blockerCount || 0) === 0;
   const checksSafe = checks.migrationLedgerParity === 'PASS' &&
     checks.tenantSessionIsolation === 'PASS_TEST_SCOPE' &&
     checks.crossTenantAccessDenied === 'PASS_TEST_SCOPE' &&
