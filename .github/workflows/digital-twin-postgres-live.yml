@@ -37,6 +37,7 @@ on:
       - 'backend/src/store.js'
       - 'backend/test/postgres-auth-helper-fail-closed.test.js'
       - 'backend/src/database-security-proof.js'
+      - 'backend/src/release-proof.js'
       - 'backend/test/database-security-proof.test.js'
       - 'backend/test/postgres-runtime-policy-grants.test.js'
       - 'backend/scripts/postgres-live-rls-gate.js'
