@@ -233,6 +233,7 @@ jobs:
         run: node scripts/write-vercel-release-identity.js
         env:
           OPSC_RELEASE_PACKAGE_SHA256: ${{ steps.package_fp.outputs.sha }}
+          OPSC_PRODUCTION_NEON_BRANCH_ID: ${{ vars.OPSC_PRODUCTION_NEON_BRANCH_ID }}
           OPSC_RELEASE_PACKAGE_COMMIT: ${{ github.sha }}
       - name: Generate scoped production acceptance v2 evidence (read-only live DB + bound CI proofs)
         id: generate_acceptance
@@ -290,6 +291,7 @@ jobs:
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_RUN_ID: ${{ github.run_id }}
           OPSC_RELEASE_PACKAGE_SHA256: ${{ steps.package_fp.outputs.sha }}
+          OPSC_PRODUCTION_NEON_BRANCH_ID: ${{ vars.OPSC_PRODUCTION_NEON_BRANCH_ID }}
         run: |
           set -euo pipefail
           node <<'NODE'
@@ -327,9 +329,11 @@ jobs:
                 const session = JSON.parse(fs.readFileSync(path.join('backend','docs','verification','PRODUCTION_SESSION_ISOLATION.json'),'utf8'));
                 const recovery = JSON.parse(fs.readFileSync(path.join('backend','docs','verification','PRODUCTION_RECOVERY_POINT.json'),'utf8'));
                 const expectedCommit = String(process.env.GITHUB_SHA || '').trim().toLowerCase();
+                const expectedBranch = String(process.env.OPSC_PRODUCTION_NEON_BRANCH_ID || '').trim();
                 const sourceCommitMatches = (evidence) => expectedCommit.length === 40 && String(evidence.sourceCommitHint || '').trim().toLowerCase() === expectedCommit;
-                const sOk = session.schemaVersion === 'opscore.production-session-isolation.v1' && session.status === 'PASS' && sourceCommitMatches(session);
-                const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v1' && recovery.status === 'PASS' && recovery.coreTenantTablesMatch === true && Number(recovery.mismatchCount) === 0 && sourceCommitMatches(recovery);
+                const sourceBranchMatches = (evidence) => Boolean(expectedBranch) && String(evidence.parentBranchId || '').trim() === expectedBranch;
+                const sOk = session.schemaVersion === 'opscore.production-session-isolation.v1' && session.status === 'PASS' && sourceCommitMatches(session) && sourceBranchMatches(session);
+                const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v1' && recovery.status === 'PASS' && recovery.coreTenantTablesMatch === true && Number(recovery.mismatchCount) === 0 && sourceCommitMatches(recovery) && sourceBranchMatches(recovery);
                 return sOk && rOk;
               } catch { return false; }
             }
@@ -370,9 +374,11 @@ jobs:
               const session = JSON.parse(fs.readFileSync(path.join('backend','docs','verification','PRODUCTION_SESSION_ISOLATION.json'),'utf8'));
               const recovery = JSON.parse(fs.readFileSync(path.join('backend','docs','verification','PRODUCTION_RECOVERY_POINT.json'),'utf8'));
               const expectedCommit = String(process.env.GITHUB_SHA || '').trim().toLowerCase();
+              const expectedBranch = String(process.env.OPSC_PRODUCTION_NEON_BRANCH_ID || '').trim();
               const sourceCommitMatches = (evidence) => expectedCommit.length === 40 && String(evidence.sourceCommitHint || '').trim().toLowerCase() === expectedCommit;
-              const sOk = session.schemaVersion === 'opscore.production-session-isolation.v1' && session.status === 'PASS' && sourceCommitMatches(session);
-              const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v1' && recovery.status === 'PASS' && recovery.coreTenantTablesMatch === true && Number(recovery.mismatchCount) === 0 && sourceCommitMatches(recovery);
+              const sourceBranchMatches = (evidence) => Boolean(expectedBranch) && String(evidence.parentBranchId || '').trim() === expectedBranch;
+              const sOk = session.schemaVersion === 'opscore.production-session-isolation.v1' && session.status === 'PASS' && sourceCommitMatches(session) && sourceBranchMatches(session);
+              const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v1' && recovery.status === 'PASS' && recovery.coreTenantTablesMatch === true && Number(recovery.mismatchCount) === 0 && sourceCommitMatches(recovery) && sourceBranchMatches(recovery);
               return sOk && rOk;
             } catch { return false; }
           }
@@ -391,8 +397,10 @@ jobs:
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_RUN_ID: ${{ github.run_id }}
           OPSC_RELEASE_PACKAGE_SHA256: ${{ steps.package_fp.outputs.sha }}
+          OPSC_PRODUCTION_NEON_BRANCH_ID: ${{ vars.OPSC_PRODUCTION_NEON_BRANCH_ID }}
           ISOLATION_CERT: ${{ steps.isolation_cert.outputs.certified }}
           BEHAVIORAL: ${{ steps.isolation_cert.outputs.behavioral }}
+          OPSC_PRODUCTION_NEON_BRANCH_ID: ${{ vars.OPSC_PRODUCTION_NEON_BRANCH_ID }}
         run: |
           set -euo pipefail
           node <<'NODE'
@@ -483,6 +491,7 @@ jobs:
           OPSC_SOURCE_COMMIT_SHA: ${{ github.sha }}
           OPSC_RELEASE_CI_REF: ${{ github.ref_name }}
           OPSC_RELEASE_PACKAGE_SHA256: ${{ steps.package_fp.outputs.sha }}
+          OPSC_PRODUCTION_NEON_BRANCH_ID: ${{ vars.OPSC_PRODUCTION_NEON_BRANCH_ID }}
           OPSC_RELEASE_PACKAGE_COMMIT: ${{ github.sha }}
           OPSC_PRODUCTION_ISOLATION_CERTIFICATION: ${{ steps.isolation_cert.outputs.certified }}
           OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE: ${{ steps.isolation_cert.outputs.behavioral }}
@@ -551,6 +560,7 @@ jobs:
           OPSC_SOURCE_COMMIT_SHA: ${{ github.sha }}
           OPSC_RELEASE_CI_REF: ${{ github.ref_name }}
           OPSC_RELEASE_PACKAGE_SHA256: ${{ steps.package_fp.outputs.sha }}
+          OPSC_PRODUCTION_NEON_BRANCH_ID: ${{ vars.OPSC_PRODUCTION_NEON_BRANCH_ID }}
           OPSC_RELEASE_PACKAGE_COMMIT: ${{ github.sha }}
           OPSC_PRODUCTION_ISOLATION_CERTIFICATION: ${{ steps.isolation_cert.outputs.certified }}
           OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE: ${{ steps.isolation_cert.outputs.behavioral }}
