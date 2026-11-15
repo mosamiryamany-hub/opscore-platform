@@ -26,7 +26,7 @@ The exact release identity is generated for each successful exact-head GitHub Ac
 
 ## Verification boundary
 
-The public production proof identifies the current seller-reference deployment and reports its health, release status, database catalog status, and seller-reference production isolation certification. These claims are limited to that exact seller environment and its bound evidence. They do not certify a buyer environment or all possible functional business flows.
+The Vercel Production deployment is READY, but the current stored session-isolation and recovery evidence is NOT_VERIFIED: both records carry a rebind marker with probesReexecuted=false, and the recovery record references a previous Neon branch. Do not claim seller-reference production isolation certification until new dual-tenant and recovery probes are bound to the exact active application commit and Neon Production branch and independently reviewed. Buyer environments remain NOT CERTIFIED; deployment readiness and database catalog checks do not certify all business flows.
 
 The production recovery evidence currently described as a branch-point pass is not a full PITR/RPO/RTO certification. Tenant route-security coverage and functional API route acceptance have narrower CI/contract scopes and must not be upgraded to full business-flow certification.
 
