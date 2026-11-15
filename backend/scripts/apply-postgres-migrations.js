@@ -273,6 +273,8 @@ async function main(){
     (SELECT count(*) FROM pg_stat_activity WHERE usename='opscore_app') AS active_sessions,
     (SELECT count(*) FROM pg_shdepend WHERE refclassid='pg_catalog.pg_authid'::pg_catalog.regclass
       AND refobjid=(SELECT oid FROM app) AND deptype='o') AS owned_objects,
+    (SELECT count(*) FROM pg_auth_members membership CROSS JOIN app
+      WHERE membership.roleid=app.oid) AS incoming_memberships,
     COALESCE((SELECT array_agg(granted.rolname ORDER BY granted.rolname)
       FROM pg_auth_members membership
       JOIN pg_roles granted ON granted.oid=membership.roleid
