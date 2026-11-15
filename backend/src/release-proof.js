@@ -223,14 +223,25 @@ function readProductionSessionIsolationEvidence(filePath = embeddedEvidencePath(
   const expectedCommit = normalizedSha(env.OPSC_RELEASE_CI_COMMIT || env.CI_COMMIT_SHA || env.OPSC_SOURCE_COMMIT_SHA);
   const evidenceCommit = normalizedSha(evidence.sourceCommitHint);
   const commitBound = !expectedCommit || evidenceCommit === expectedCommit;
+  const evidenceRebind = evidence.evidenceRebind && typeof evidence.evidenceRebind === 'object'
+    ? evidence.evidenceRebind
+    : null;
+  const rebindVerified = !evidenceRebind || evidenceRebind.probesReexecuted === true;
   return {
-    status: allPass && commitBound ? 'PASS' : 'NOT_VERIFIED',
+    status: allPass && commitBound && rebindVerified ? 'PASS' : 'NOT_VERIFIED',
     testedAt: evidence.testedAt || null,
     checks,
     httpBase: evidence.httpBase || null,
     evidenceClass: evidence.evidenceClass || null,
     sourceCommitHint: evidenceCommit || null,
-    commitBound
+    commitBound,
+    rebindVerified,
+    evidenceRebind: evidenceRebind ? {
+      kind: evidenceRebind.kind || null,
+      fromCommit: normalizedSha(evidenceRebind.fromCommit),
+      toCommit: normalizedSha(evidenceRebind.toCommit),
+      probesReexecuted: evidenceRebind.probesReexecuted === true
+    } : null
   };
 }
 
@@ -247,12 +258,19 @@ function readProductionRecoveryPointEvidence(filePath = embeddedEvidencePath('PR
   const expectedCommit = normalizedSha(env.OPSC_RELEASE_CI_COMMIT || env.CI_COMMIT_SHA || env.OPSC_SOURCE_COMMIT_SHA);
   const evidenceCommit = normalizedSha(evidence.sourceCommitHint);
   const commitBound = !expectedCommit || evidenceCommit === expectedCommit;
+  const expectedParentBranchId = String(env.OPSC_PRODUCTION_NEON_BRANCH_ID || '').trim();
+  const parentBranchBound = !expectedParentBranchId ||
+    String(evidence.parentBranchId || '').trim() === expectedParentBranchId;
+  const evidenceRebind = evidence.evidenceRebind && typeof evidence.evidenceRebind === 'object'
+    ? evidence.evidenceRebind
+    : null;
+  const rebindVerified = !evidenceRebind || evidenceRebind.probesReexecuted === true;
   const ok = evidence.status === 'PASS' &&
     evidence.coreTenantTablesMatch === true &&
     Number(evidence.tableCountCompared) >= 130 &&
     Number(evidence.mismatchCount) === 0 &&
     typeof evidence.recoveryBranchId === 'string' && evidence.recoveryBranchId.length > 0 &&
-    commitBound;
+    commitBound && parentBranchBound && rebindVerified;
   return {
     status: ok ? 'PASS' : 'NOT_VERIFIED',
     testedAt: evidence.testedAt || null,
@@ -262,7 +280,15 @@ function readProductionRecoveryPointEvidence(filePath = embeddedEvidencePath('PR
     historyRetentionSeconds: evidence.historyRetentionSeconds || null,
     evidenceClass: evidence.evidenceClass || null,
     sourceCommitHint: evidenceCommit || null,
-    commitBound
+    commitBound,
+    parentBranchBound,
+    rebindVerified,
+    evidenceRebind: evidenceRebind ? {
+      kind: evidenceRebind.kind || null,
+      fromCommit: normalizedSha(evidenceRebind.fromCommit),
+      toCommit: normalizedSha(evidenceRebind.toCommit),
+      probesReexecuted: evidenceRebind.probesReexecuted === true
+    } : null
   };
 }
 
