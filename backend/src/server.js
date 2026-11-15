@@ -7,6 +7,7 @@ const { resolveMapTileOrigin } = require('./map-tile-security');
 const config = require('./config');
 const {assertRuntimeConfiguration} = require('./runtime-contract');
 const {openDatabase} = require('./db-open');
+const authenticatedRequestContexts = new WeakMap();
 const {runWithRequest} = require('./pg-database-sync');
 const { createDeploymentProof } = require('./deployment-proof');
 const { createPublicReleaseProof, readEmbeddedBuildIdentity } = require('./release-proof');
@@ -933,6 +934,13 @@ function sessionTokenFromRequest(req) {
 }
 function ctx(req) {
   authProviderGate();
+  // A request can pass through more than one route-level requireCtx guard.
+  // Reuse the already authenticated principal only for this exact IncomingMessage;
+  // a new HTTP request always resolves its session again.
+  if (req && typeof req === 'object') {
+    const cached = authenticatedRequestContexts.get(req);
+    if (cached) return cached;
+  }
   const raw = sessionTokenFromRequest(req);
   if (!raw)
     return null;
@@ -942,7 +950,10 @@ function ctx(req) {
     catch (error) { warn('postgres_identity_context_bind_failed', { error }); return null; }
   }
   const out = store.session(raw) || store.authenticateApiKey(raw);
-  if (out) out.correlationId = null;
+  if (out) {
+    out.correlationId = null;
+    if (req && typeof req === 'object') authenticatedRequestContexts.set(req, out);
+  }
   return out;
 }
 function requireScope(c, scope) {
