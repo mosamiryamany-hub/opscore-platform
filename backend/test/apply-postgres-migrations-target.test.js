@@ -336,7 +336,7 @@ test('legacy opscore_app repair is allowed only for an inactive, unowned role wi
     status: 'REPAIR_PENDING',
     repairPending: true,
     roleExists: true,
-    removableMemberships: ['neon_superuser']
+    quarantinedOutgoingMemberships: ['neon_superuser']
   });
   assert.deepEqual(validateAppRolePreflight({
     ...role,
@@ -345,7 +345,7 @@ test('legacy opscore_app repair is allowed only for an inactive, unowned role wi
     status: 'REPAIR_PENDING',
     repairPending: true,
     roleExists: true,
-    removableMemberships: ['neon_superuser']
+    quarantinedOutgoingMemberships: ['neon_superuser']
   });
 });
 
