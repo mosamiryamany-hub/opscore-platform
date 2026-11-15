@@ -377,6 +377,20 @@ test('production behavioral evidence rejects a candidate rebind unless probes we
     assert.equal(readProductionSessionIsolationEvidence(sessionPath, env).status, 'PASS');
     assert.equal(readProductionRecoveryPointEvidence(recoveryPath, env).status, 'PASS');
 
+    fs.writeFileSync(sessionPath, JSON.stringify({
+      ...executedSession,
+      evidenceRebind: { ...executedSession.evidenceRebind, toCommit: '0'.repeat(40) }
+    }));
+    assert.equal(readProductionSessionIsolationEvidence(sessionPath, env).status, 'NOT_VERIFIED');
+
+    assert.equal(readProductionSessionIsolationEvidence(sessionPath, {
+      OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE: 'true'
+    }).status, 'NOT_VERIFIED');
+    assert.equal(readProductionRecoveryPointEvidence(recoveryPath, {
+      OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE: 'true'
+    }).status, 'NOT_VERIFIED');
+
+    fs.writeFileSync(sessionPath, JSON.stringify(executedSession));
     fs.writeFileSync(recoveryPath, JSON.stringify({ ...executedRecovery, parentBranchId: 'br-old-production' }));
     assert.equal(readProductionRecoveryPointEvidence(recoveryPath, env).status, 'NOT_VERIFIED');
   } finally {
