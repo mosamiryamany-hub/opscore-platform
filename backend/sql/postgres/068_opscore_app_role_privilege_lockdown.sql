@@ -1,22 +1,21 @@
 -- 068_opscore_app_role_privilege_lockdown.sql
--- Replace the legacy login role with a new, clean NOLOGIN/NOBYPASSRLS test role.
+-- Disable the legacy elevated application probe role in place.
 --
--- Neon does not grant the migration owner ADMIN OPTION on its managed
--- neon_superuser role. Therefore this migration cannot revoke a legacy
--- opscore_app -> neon_superuser membership. The old role is quarantined under
--- a new name, disabled, stripped of public-object grants, and required to have
--- no incoming memberships. The new opscore_app role is created from scratch
--- with no elevated attributes or role memberships.
+-- Do not rename or drop this role: Neon-managed role membership does not give
+-- the migration owner ADMIN OPTION on opscore_app. A role rename therefore
+-- fails even when the migration owner has CREATEROLE.
 --
--- Full removal of the quarantined role still requires a Neon administrator
--- with ADMIN OPTION on neon_superuser; do not report that residual as closed.
+-- The sole allowed residual is the existing opscore_app -> neon_superuser
+-- membership. This migration makes that membership inert by disabling login
+-- and inheritance, removing all incoming memberships, and setting every
+-- elevated role attribute to false. Only a Neon role administrator can
+-- remove the managed membership itself. This residual must remain disclosed.
 
 BEGIN;
 
-DO $quarantine$
+DO $lockdown$
 DECLARE
   app_role_oid oid;
-  quarantine_role_oid oid;
   active_sessions bigint;
   owned_objects bigint;
   incoming_memberships bigint;
@@ -30,14 +29,7 @@ BEGIN
 
   IF app_role_oid IS NOT NULL THEN
     IF app_is_superuser THEN
-      RAISE EXCEPTION 'OPSC_LEGACY_APP_ROLE_SUPERUSER_CANNOT_BE_QUARANTINED';
-    END IF;
-
-    IF EXISTS (
-      SELECT 1 FROM pg_catalog.pg_roles
-      WHERE rolname = 'opscore_app_quarantined_20261115'
-    ) THEN
-      RAISE EXCEPTION 'OPSC_LEGACY_APP_QUARANTINE_NAME_ALREADY_EXISTS';
+      RAISE EXCEPTION 'OPSC_LEGACY_APP_ROLE_SUPERUSER_CANNOT_BE_LOCKED_DOWN';
     END IF;
 
     SELECT count(*) INTO active_sessions
@@ -58,7 +50,7 @@ BEGIN
       RAISE EXCEPTION 'OPSC_LEGACY_APP_ROLE_OWNS_OBJECTS';
     END IF;
 
-    -- No existing role may be able to SET ROLE into the elevated legacy role.
+    -- No other role may be able to SET ROLE into this probe identity.
     SELECT count(*) INTO incoming_memberships
     FROM pg_catalog.pg_auth_members
     WHERE roleid = app_role_oid;
@@ -68,77 +60,37 @@ BEGIN
     END IF;
 
     SELECT COALESCE(
-      array_agg(elevated.rolname ORDER BY elevated.rolname),
+      array_agg(granted.rolname ORDER BY granted.rolname),
       ARRAY[]::text[]
     )
       INTO unexpected_memberships
     FROM pg_catalog.pg_auth_members membership
-    JOIN pg_catalog.pg_roles elevated ON elevated.oid = membership.roleid
+    JOIN pg_catalog.pg_roles granted ON granted.oid = membership.roleid
     WHERE membership.member = app_role_oid
-      AND elevated.rolname <> 'neon_superuser';
+      AND granted.rolname <> 'neon_superuser';
 
     IF cardinality(unexpected_memberships) <> 0 THEN
       RAISE EXCEPTION 'OPSC_LEGACY_APP_ROLE_HAS_UNEXPECTED_ROLE_MEMBERSHIP';
     END IF;
 
-    EXECUTE 'ALTER ROLE opscore_app RENAME TO opscore_app_quarantined_20261115';
-    EXECUTE 'ALTER ROLE opscore_app_quarantined_20261115 WITH NOLOGIN NOCREATEDB NOCREATEROLE NOINHERIT';
-
-    SELECT oid INTO quarantine_role_oid
-    FROM pg_catalog.pg_roles
-    WHERE rolname = 'opscore_app_quarantined_20261115';
-
-    IF quarantine_role_oid IS NULL THEN
-      RAISE EXCEPTION 'OPSC_LEGACY_APP_ROLE_QUARANTINE_RENAME_FAILED';
-    END IF;
-
-    -- Remove the old role's ordinary database/schema/table access. The
-    -- managed neon_superuser membership itself is intentionally retained
-    -- only as an explicitly reported administrative residual.
-    EXECUTE pg_catalog.format(
-      'REVOKE CONNECT, CREATE, TEMPORARY ON DATABASE %I FROM %I',
-      pg_catalog.current_database(),
-      'opscore_app_quarantined_20261115'
-    );
-    REVOKE ALL PRIVILEGES ON SCHEMA public FROM opscore_app_quarantined_20261115;
-    REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM opscore_app_quarantined_20261115;
-    REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM opscore_app_quarantined_20261115;
-
-    IF EXISTS (
-      SELECT 1
-      FROM pg_catalog.pg_auth_members
-      WHERE roleid = quarantine_role_oid
-    ) THEN
-      RAISE EXCEPTION 'OPSC_LEGACY_APP_QUARANTINE_HAS_INCOMING_MEMBERSHIPS';
-    END IF;
-
-    IF EXISTS (
-      SELECT 1 FROM pg_catalog.pg_roles
-      WHERE oid = quarantine_role_oid
-        AND (rolcanlogin OR rolinherit OR rolcreatedb OR rolcreaterole)
-    ) THEN
-      RAISE EXCEPTION 'OPSC_LEGACY_APP_QUARANTINE_ATTRIBUTES_INVALID';
-    END IF;
-  END IF;
-
-  -- A fresh identity is used for the rollback-only RLS gate. Never reuse the
-  -- legacy role OID or its elevated role memberships.
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'opscore_app'
-  ) THEN
-    EXECUTE 'CREATE ROLE opscore_app NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS';
+    -- PostgreSQL CREATEROLE can harden non-superuser attributes without
+    -- requiring ADMIN OPTION on the managed Neon role. The role name/OID stays
+    -- stable for the rollback-only RLS probe; it cannot authenticate.
+    ALTER ROLE opscore_app
+      WITH NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
   END IF;
 END
-$quarantine$;
+$lockdown$;
 
-DO $new_role_acl$
+DO $database_acl$
 BEGIN
   EXECUTE pg_catalog.format(
     'REVOKE CONNECT, CREATE, TEMPORARY ON DATABASE %I FROM opscore_app',
     pg_catalog.current_database()
   );
 END
-$new_role_acl$;
+$database_acl$;
+
 REVOKE ALL PRIVILEGES ON SCHEMA public FROM opscore_app;
 GRANT USAGE ON SCHEMA public TO opscore_app;
 
@@ -155,7 +107,8 @@ DO $verify$
 DECLARE
   app_role_oid oid;
   incoming_memberships bigint;
-  active_quarantine_sessions bigint;
+  outgoing_memberships bigint;
+  unexpected_memberships text[];
 BEGIN
   SELECT oid INTO app_role_oid
   FROM pg_catalog.pg_roles
@@ -171,7 +124,7 @@ BEGIN
       AND NOT rolcreatedb
       AND NOT rolinherit
   ) THEN
-    RAISE EXCEPTION 'OPSC_NEW_APP_ROLE_ATTRIBUTE_POSTCONDITION_FAILED';
+    RAISE EXCEPTION 'OPSC_LOCKED_APP_ROLE_ATTRIBUTE_POSTCONDITION_FAILED';
   END IF;
 
   SELECT count(*) INTO incoming_memberships
@@ -179,12 +132,31 @@ BEGIN
   WHERE roleid = app_role_oid;
 
   IF incoming_memberships <> 0 THEN
-    RAISE EXCEPTION 'OPSC_NEW_APP_ROLE_HAS_INCOMING_MEMBERSHIPS';
+    RAISE EXCEPTION 'OPSC_LOCKED_APP_ROLE_HAS_INCOMING_MEMBERSHIPS';
+  END IF;
+
+  SELECT count(*) INTO outgoing_memberships
+  FROM pg_catalog.pg_auth_members
+  WHERE member = app_role_oid;
+
+  SELECT COALESCE(
+    array_agg(granted.rolname ORDER BY granted.rolname),
+    ARRAY[]::text[]
+  )
+    INTO unexpected_memberships
+  FROM pg_catalog.pg_auth_members membership
+  JOIN pg_catalog.pg_roles granted ON granted.oid = membership.roleid
+  WHERE membership.member = app_role_oid
+    AND granted.rolname <> 'neon_superuser';
+
+  IF cardinality(unexpected_memberships) <> 0
+     OR outgoing_memberships > 1 THEN
+    RAISE EXCEPTION 'OPSC_LOCKED_APP_ROLE_MEMBERSHIP_POSTCONDITION_FAILED';
   END IF;
 
   IF pg_catalog.has_database_privilege('opscore_app', pg_catalog.current_database(), 'CREATE')
      OR pg_catalog.has_schema_privilege('opscore_app', 'public', 'CREATE') THEN
-    RAISE EXCEPTION 'OPSC_NEW_APP_ROLE_DATABASE_OR_SCHEMA_PRIVILEGE_REMAINS';
+    RAISE EXCEPTION 'OPSC_LOCKED_APP_ROLE_DATABASE_OR_SCHEMA_PRIVILEGE_REMAINS';
   END IF;
 
   IF NOT pg_catalog.has_schema_privilege('opscore_app', 'public', 'USAGE')
@@ -200,26 +172,7 @@ BEGIN
      OR pg_catalog.has_table_privilege('opscore_app', 'public.control_plane_runs', 'SELECT')
      OR pg_catalog.has_table_privilege('opscore_app', 'public.control_plane_runs', 'UPDATE')
      OR pg_catalog.has_table_privilege('opscore_app', 'public.control_plane_runs', 'DELETE') THEN
-    RAISE EXCEPTION 'OPSC_NEW_APP_ROLE_CONTROL_PLANE_GRANT_POSTCONDITION_FAILED';
-  END IF;
-
-  IF to_regrole('opscore_app_quarantined_20261115') IS NOT NULL THEN
-    SELECT count(*) INTO active_quarantine_sessions
-    FROM pg_catalog.pg_stat_activity
-    WHERE usename = 'opscore_app_quarantined_20261115';
-
-    IF active_quarantine_sessions <> 0
-       OR EXISTS (
-         SELECT 1 FROM pg_catalog.pg_auth_members membership
-         WHERE membership.roleid = 'opscore_app_quarantined_20261115'::pg_catalog.regrole
-       )
-       OR EXISTS (
-         SELECT 1 FROM pg_catalog.pg_roles
-         WHERE rolname = 'opscore_app_quarantined_20261115'
-           AND (rolcanlogin OR rolinherit OR rolcreatedb OR rolcreaterole)
-       ) THEN
-      RAISE EXCEPTION 'OPSC_LEGACY_APP_QUARANTINE_POSTCONDITION_FAILED';
-    END IF;
+    RAISE EXCEPTION 'OPSC_LOCKED_APP_ROLE_CONTROL_PLANE_GRANT_POSTCONDITION_FAILED';
   END IF;
 END
 $verify$;
