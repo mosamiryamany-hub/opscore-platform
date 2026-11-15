@@ -42,7 +42,7 @@ function validateAppRolePreflight(role, repairPending) {
  if(incomingMemberships!==0)throw new Error('MIGRATION_APP_ROLE_REPAIR_HAS_INCOMING_MEMBERSHIPS');
  const unexpected=memberships.filter(name=>name!=='neon_superuser');
  if(unexpected.length)throw new Error('MIGRATION_APP_ROLE_REPAIR_UNEXPECTED_MEMBERSHIPS');
- return {status:'REPAIR_PENDING',repairPending:true,roleExists:exists,removableMemberships:memberships};
+ return {status:'REPAIR_PENDING',repairPending:true,roleExists:exists,quarantinedOutgoingMemberships:memberships};
 }
 function readMigrations(){return fs.readdirSync(DIR).filter(parseMigrationFilename).sort(compareMigrationFilenames).map(filename=>{const content=fs.readFileSync(path.join(DIR,filename),'utf8');return{filename,content,sha256:hash(content)};});}
 function unwrapOuterTransaction(content, filename='unknown') {
