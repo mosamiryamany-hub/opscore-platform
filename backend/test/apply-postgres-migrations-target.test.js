@@ -329,6 +329,7 @@ test('legacy opscore_app repair is allowed only for an inactive, unowned role wi
     rolcreatedb: true,
     active_sessions: '0',
     owned_objects: '0',
+    incoming_memberships: '0',
     memberships: ['neon_superuser']
   };
   assert.deepEqual(validateAppRolePreflight(role, true), {
@@ -357,6 +358,7 @@ test('legacy opscore_app lockdown refuses to rewrite a role with active sessions
     rolcreatedb: true,
     active_sessions: 0,
     owned_objects: 0,
+    incoming_memberships: 0,
     memberships: ['neon_superuser']
   };
   assert.throws(
@@ -366,6 +368,10 @@ test('legacy opscore_app lockdown refuses to rewrite a role with active sessions
   assert.throws(
     () => validateAppRolePreflight({ ...base, owned_objects: 1 }, true),
     /MIGRATION_APP_ROLE_REPAIR_OWNS_OBJECTS/
+  );
+  assert.throws(
+    () => validateAppRolePreflight({ ...base, incoming_memberships: 1 }, true),
+    /MIGRATION_APP_ROLE_REPAIR_HAS_INCOMING_MEMBERSHIPS/
   );
   assert.throws(
     () => validateAppRolePreflight({ ...base, memberships: ['neon_superuser', 'unrelated_admin'] }, true),
@@ -408,7 +414,10 @@ test('migration plan includes exactly one legacy application-role lockdown migra
   const repairs = migrations.filter(item => item.filename === '068_opscore_app_role_privilege_lockdown.sql');
   assert.equal(repairs.length, 1);
   assert.match(repairs[0].content, /NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS/);
-  assert.match(repairs[0].content, /REVOKE neon_superuser FROM opscore_app/);
+  assert.match(repairs[0].content, /ALTER ROLE opscore_app RENAME TO opscore_app_quarantined_20261115/);
+  assert.match(repairs[0].content, /CREATE ROLE opscore_app NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS/);
   assert.match(repairs[0].content, /OPSC_LEGACY_APP_ROLE_HAS_ACTIVE_SESSIONS/);
   assert.match(repairs[0].content, /OPSC_LEGACY_APP_ROLE_OWNS_OBJECTS/);
+  assert.match(repairs[0].content, /OPSC_LEGACY_APP_ROLE_HAS_INCOMING_MEMBERSHIPS/);
+  assert.match(repairs[0].content, /ADMIN OPTION on neon_superuser/);
 });
