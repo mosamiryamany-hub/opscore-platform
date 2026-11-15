@@ -1,5 +1,6 @@
 'use strict';
 const { createPostgresPool, pingPostgres } = require('./adapters/postgres');
+const { createSignedTenantContext } = require('./signed-tenant-context');
 
 let pool = null;
 /** Per-tenant lightweight counters for statement budgeting (process-local). */
@@ -42,6 +43,68 @@ function getPool(config) {
     client.query('SET idle_in_transaction_session_timeout = 15000').catch(() => {});
   });
   return pool;
+}
+
+
+/**
+ * Execute tenant data work on a dedicated pg Pool client with a transaction-bound
+ * HMAC assertion. This is for secondary Pool consumers; the signing key never
+ * leaves the application process and the client is destroyed if transaction
+ * cleanup cannot be proven.
+ */
+async function withSignedTenantClient(pool, principal, fn) {
+  if (!pool || typeof pool.connect !== 'function') throw new Error('POSTGRES_POOL_INVALID');
+  if (typeof fn !== 'function') throw new Error('POSTGRES_SIGNED_CONTEXT_CALLBACK_REQUIRED');
+  const client = await pool.connect();
+  let transactionOpen = false;
+  let commitAttempted = false;
+  let destroy = false;
+  try {
+    await client.query('BEGIN');
+    transactionOpen = true;
+    const identityResult = await client.query(
+      'SELECT pg_backend_pid() AS backend_pid, pg_current_xact_id()::text AS transaction_id'
+    );
+    const identity = identityResult.rows && identityResult.rows[0] || {};
+    const backendPid = Number(identity.backend_pid);
+    const transactionId = String(identity.transaction_id || '');
+    if (!Number.isSafeInteger(backendPid) || backendPid < 1 || !/^[0-9]{1,20}$/.test(transactionId)) {
+      throw Object.assign(new Error('TENANT_CONTEXT_TRANSACTION_IDENTITY_INVALID'), {
+        code: 'TENANT_CONTEXT_TRANSACTION_IDENTITY_INVALID'
+      });
+    }
+    const assertion = createSignedTenantContext({ principal, backendPid, transactionId });
+    await client.query(
+      "SELECT set_config('app.signed_context_payload',$1,true), set_config('app.signed_context_signature',$2,true)",
+      [assertion.payload, assertion.signature]
+    );
+    const result = await fn(client);
+    commitAttempted = true;
+    await client.query('COMMIT');
+    transactionOpen = false;
+    return result;
+  } catch (error) {
+    if (transactionOpen && !commitAttempted) {
+      try {
+        await client.query('ROLLBACK');
+        transactionOpen = false;
+      } catch (rollbackError) {
+        destroy = true;
+        error.rollbackCode = String(rollbackError && (rollbackError.code || rollbackError.message) || 'ROLLBACK_FAILED');
+      }
+    } else if (commitAttempted) {
+      // Commit outcome is ambiguous. Never return this connection to the pool.
+      destroy = true;
+    }
+    throw error;
+  } finally {
+    if (transactionOpen) {
+      try { await client.query('ROLLBACK'); }
+      catch (_) { destroy = true; }
+    }
+    try { client.release(destroy || transactionOpen); }
+    catch (_) { /* the pg client may already have destroyed itself */ }
+  }
 }
 
 function _budgetKey(organizationId) {
@@ -155,6 +218,7 @@ module.exports = {
   getLimits,
   acquireTenantQuerySlot,
   withTenantQuery,
+  withSignedTenantClient,
   jitteredBackoff,
   withOptimisticRetry
 };
