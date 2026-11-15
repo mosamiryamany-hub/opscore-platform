@@ -16,6 +16,7 @@ function validateAppRolePreflight(role, repairPending) {
  const exists=bool(role&&role.role_exists);
  const activeSessions=Number(role&&role.active_sessions||0);
  const ownedObjects=Number(role&&role.owned_objects||0);
+ const incomingMemberships=Number(role&&role.incoming_memberships||0);
  let memberships=role&&role.memberships||[];
  if(typeof memberships==='string'){
   try{memberships=JSON.parse(memberships);}
