@@ -321,10 +321,10 @@ function openPgDatabaseSync(connectionString, { max = Number(process.env.OPSC_PG
   function classifyTransactionCommand(sql) {
     const normalized = String(sql || '').trim();
     return {
-      begin: /^(?:BEGIN|START\\s+TRANSACTION)\\b/i.test(normalized),
-      end: /^(?:COMMIT|END)\\b/i.test(normalized)
-        || (/^ROLLBACK\\b/i.test(normalized) && !/^ROLLBACK\\s+TO\\b/i.test(normalized)),
-      savepoint: /^(?:SAVEPOINT|RELEASE\\s+SAVEPOINT|ROLLBACK\\s+TO\\s+SAVEPOINT)\\b/i.test(normalized)
+      begin: /^(?:BEGIN|START\s+TRANSACTION)\b/i.test(normalized),
+      end: /^(?:COMMIT|END)\b/i.test(normalized)
+        || (/^ROLLBACK\b/i.test(normalized) && !/^ROLLBACK\s+TO\b/i.test(normalized)),
+      savepoint: /^(?:SAVEPOINT|RELEASE\s+SAVEPOINT|ROLLBACK\s+TO\s+SAVEPOINT)\b/i.test(normalized)
     };
   }
 
@@ -359,7 +359,7 @@ function openPgDatabaseSync(connectionString, { max = Number(process.env.OPSC_PG
         continue;
       }
       if (source.startsWith('--', i)) {
-        const newline = source.indexOf('\\n', i + 2);
+        const newline = source.indexOf('\n', i + 2);
         i = newline < 0 ? source.length : newline;
         continue;
       }
@@ -367,7 +367,7 @@ function openPgDatabaseSync(connectionString, { max = Number(process.env.OPSC_PG
       if (ch === "'") { quote = 'single'; continue; }
       if (ch === '"') { quote = 'double'; continue; }
       if (ch === '$') {
-        const tag = /^\\$[A-Za-z_][A-Za-z0-9_]*\\$|^\\$\\$/.exec(source.slice(i));
+        const tag = /^\$[A-Za-z_][A-Za-z0-9_]*\$|^\$\$/.exec(source.slice(i));
         if (tag) {
           dollarTag = tag[0];
           i += dollarTag.length - 1;
@@ -375,7 +375,7 @@ function openPgDatabaseSync(connectionString, { max = Number(process.env.OPSC_PG
         }
       }
       if (ch === ';') {
-        const tail = source.slice(i + 1).replace(/--[^\\n]*|\\/\\*[\\s\\S]*?\\*\\//g, '').trim();
+        const tail = source.slice(i + 1).replace(/--[^\n]*|\/\*[\s\S]*?\*\//g, '').trim();
         if (tail) return true;
       }
     }
