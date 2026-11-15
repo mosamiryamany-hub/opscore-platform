@@ -4,7 +4,7 @@ Candidate branch: use the active pull-request branch shown by GitHub; do not tre
 Candidate CI/package status: PASS_WITH_BUYER_RESIDUALS only when the exact-head GitHub Actions Secure Release workflow succeeds. Clean extracted-install and matching Preview acceptance are separate handover gates.
 Main: the current branch head is authoritative; this runbook intentionally stores no fixed commit or pipeline identity.
 Overall buyer/product qualification: NOT ESTABLISHED; seller-reference production evidence has a narrower, exact-target scope.
-Production isolation certification: CERTIFIED for the current seller reference only when confirmed by the live exact-deployment proof; buyer environments remain NOT CERTIFIED.
+Production isolation certification: NOT_VERIFIED for the current seller reference until fresh dual-tenant and recovery probes are bound to the exact active application commit and Neon Production branch; buyer environments remain NOT CERTIFIED.
 
 ## 1. Release identity and no-stale-evidence rule
 
