@@ -47,11 +47,12 @@ BEGIN
 
   SELECT COALESCE(array_agg(elevated.rolname ORDER BY elevated.rolname), ARRAY[]::text[])
     INTO unexpected_elevated_memberships
-  FROM pg_catalog.pg_roles elevated
-  WHERE (elevated.rolsuper OR elevated.rolbypassrls
+  FROM pg_catalog.pg_auth_members membership
+  JOIN pg_catalog.pg_roles elevated ON elevated.oid = membership.roleid
+  WHERE membership.member = app_role_oid
+    AND (elevated.rolsuper OR elevated.rolbypassrls
          OR elevated.rolcreaterole OR elevated.rolcreatedb)
-    AND elevated.rolname <> 'neon_superuser'
-    AND pg_catalog.pg_has_role('opscore_app', elevated.oid, 'MEMBER');
+    AND elevated.rolname <> 'neon_superuser';
 
   IF cardinality(unexpected_elevated_memberships) <> 0 THEN
     RAISE EXCEPTION 'OPSC_LEGACY_APP_ROLE_HAS_UNEXPECTED_ELEVATED_MEMBERSHIP';
