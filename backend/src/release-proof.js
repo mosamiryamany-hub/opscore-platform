@@ -223,6 +223,9 @@ function readProductionSessionIsolationEvidence(filePath = embeddedEvidencePath(
   const expectedCommit = normalizedSha(env.OPSC_RELEASE_CI_COMMIT || env.CI_COMMIT_SHA || env.OPSC_SOURCE_COMMIT_SHA);
   const evidenceCommit = normalizedSha(evidence.sourceCommitHint);
   const commitBound = /^[a-f0-9]{40}$/.test(expectedCommit || '') && evidenceCommit === expectedCommit;
+  const expectedParentBranchId = String(env.OPSC_PRODUCTION_NEON_BRANCH_ID || '').trim();
+  const parentBranchBound = Boolean(expectedParentBranchId) &&
+    String(evidence.parentBranchId || '').trim() === expectedParentBranchId;
   const evidenceRebind = evidence.evidenceRebind && typeof evidence.evidenceRebind === 'object'
     ? evidence.evidenceRebind
     : null;
@@ -233,13 +236,14 @@ function readProductionSessionIsolationEvidence(filePath = embeddedEvidencePath(
     normalizedSha(evidenceRebind.fromCommit) !== expectedCommit
   );
   return {
-    status: allPass && commitBound && rebindVerified ? 'PASS' : 'NOT_VERIFIED',
+    status: allPass && commitBound && parentBranchBound && rebindVerified ? 'PASS' : 'NOT_VERIFIED',
     testedAt: evidence.testedAt || null,
     checks,
     httpBase: evidence.httpBase || null,
     evidenceClass: evidence.evidenceClass || null,
     sourceCommitHint: evidenceCommit || null,
     commitBound,
+    parentBranchBound,
     rebindVerified,
     evidenceRebind: evidenceRebind ? {
       kind: evidenceRebind.kind || null,
@@ -264,7 +268,7 @@ function readProductionRecoveryPointEvidence(filePath = embeddedEvidencePath('PR
   const evidenceCommit = normalizedSha(evidence.sourceCommitHint);
   const commitBound = /^[a-f0-9]{40}$/.test(expectedCommit || '') && evidenceCommit === expectedCommit;
   const expectedParentBranchId = String(env.OPSC_PRODUCTION_NEON_BRANCH_ID || '').trim();
-  const parentBranchBound = !expectedParentBranchId ||
+  const parentBranchBound = Boolean(expectedParentBranchId) &&
     String(evidence.parentBranchId || '').trim() === expectedParentBranchId;
   const evidenceRebind = evidence.evidenceRebind && typeof evidence.evidenceRebind === 'object'
     ? evidence.evidenceRebind
