@@ -9,6 +9,12 @@ const SHA_RE = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
 const HASH_RE = /^[a-f0-9]{64}$/;
 const PIPELINE_RE = /^[1-9][0-9]{0,14}$/;
 const IDENTITY_SCHEMA = 'opscore.vercel-release-identity.v1';
+function embeddedEvidencePath(fileName) {
+  const embedded = path.join(__dirname, 'embedded-evidence', fileName);
+  if (fs.existsSync(embedded)) return embedded;
+  return path.join(__dirname, '..', 'docs', 'verification', fileName);
+}
+
 function normalizedReleaseTag(value) {
   const raw = String(value || '').trim();
   return /^[A-Za-z0-9][A-Za-z0-9._+-]{0,99}$/.test(raw) ? raw : null;
@@ -30,7 +36,7 @@ function normalizedGithubRunUrl(value, repository, pipelineId) {
   return url.toString();
 }
 
-function readCurrentPostgresHttpAcceptance(env, filePath = path.join(__dirname, '..', 'docs', 'verification', 'POSTGRES_HTTP_ACCEPTANCE_RESULT.json')) {
+function readCurrentPostgresHttpAcceptance(env, filePath = embeddedEvidencePath('POSTGRES_HTTP_ACCEPTANCE_RESULT.json')) {
   let evidence;
   try {
     evidence = JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -67,7 +73,7 @@ function readCurrentPostgresHttpAcceptance(env, filePath = path.join(__dirname, 
   };
 }
 
-function readProductionAcceptanceEvidence(env, expectedCommit, expectedPipelineId, evidencePath = path.join(__dirname, '..', 'docs', 'verification', 'PRODUCTION_ACCEPTANCE_RESULT.json'), now = () => new Date()) {
+function readProductionAcceptanceEvidence(env, expectedCommit, expectedPipelineId, evidencePath = embeddedEvidencePath('PRODUCTION_ACCEPTANCE_RESULT.json'), now = () => new Date()) {
   let raw;
   let evidence;
   try {
@@ -188,7 +194,7 @@ function readEmbeddedBuildIdentity(identityPath = path.join(__dirname, 'opscore-
 }
 
 
-function readProductionSessionIsolationEvidence(filePath = path.join(__dirname, '..', 'docs', 'verification', 'PRODUCTION_SESSION_ISOLATION.json'), env = process.env) {
+function readProductionSessionIsolationEvidence(filePath = embeddedEvidencePath('PRODUCTION_SESSION_ISOLATION.json'), env = process.env) {
   if (String(env.OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE || '').trim().toLowerCase() !== 'true') {
     return { status: 'NOT_VERIFIED', testedAt: null, checks: null };
   }
@@ -215,7 +221,7 @@ function readProductionSessionIsolationEvidence(filePath = path.join(__dirname, 
   };
 }
 
-function readProductionRecoveryPointEvidence(filePath = path.join(__dirname, '..', 'docs', 'verification', 'PRODUCTION_RECOVERY_POINT.json'), env = process.env) {
+function readProductionRecoveryPointEvidence(filePath = embeddedEvidencePath('PRODUCTION_RECOVERY_POINT.json'), env = process.env) {
   if (String(env.OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE || '').trim().toLowerCase() !== 'true') {
     return { status: 'NOT_VERIFIED', testedAt: null };
   }
@@ -247,7 +253,7 @@ function readProductionRecoveryPointEvidence(filePath = path.join(__dirname, '..
   };
 }
 
-function createPublicReleaseProof(env = process.env, now = () => new Date(), identityPath, productionAcceptanceEvidencePath, postgresHttpAcceptancePath, apiRouteAcceptancePath = path.join(__dirname, '..', 'docs', 'verification', 'API_ROUTE_ACCEPTANCE_RESULT.json')) {
+function createPublicReleaseProof(env = process.env, now = () => new Date(), identityPath, productionAcceptanceEvidencePath, postgresHttpAcceptancePath, apiRouteAcceptancePath = embeddedEvidencePath('API_ROUTE_ACCEPTANCE_RESULT.json')) {
   const identity = readEmbeddedBuildIdentity(identityPath);
   const proofEnv = identity ? {
     ...env,
@@ -380,7 +386,7 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
   };
 };
 
-function hasVerifiedProductionRelease(env = process.env, identityPath, productionAcceptanceEvidencePath, postgresHttpAcceptancePath, apiRouteAcceptancePath = path.join(__dirname, '..', 'docs', 'verification', 'API_ROUTE_ACCEPTANCE_RESULT.json')) {
+function hasVerifiedProductionRelease(env = process.env, identityPath, productionAcceptanceEvidencePath, postgresHttpAcceptancePath, apiRouteAcceptancePath = embeddedEvidencePath('API_ROUTE_ACCEPTANCE_RESULT.json')) {
   const identity = readEmbeddedBuildIdentity(identityPath);
   if (!identity) return false;
   const proof = createPublicReleaseProof(env, () => new Date(), identityPath, productionAcceptanceEvidencePath, postgresHttpAcceptancePath, apiRouteAcceptancePath);
@@ -401,7 +407,7 @@ function hasVerifiedProductionRelease(env = process.env, identityPath, productio
     ['NOT_CERTIFIED', 'CERTIFIED'].includes(proof.gates.productionIsolationCertification);
 }
 
-function readCurrentApiRouteAcceptance(env = process.env, filePath = path.join(__dirname, '..', 'docs', 'verification', 'API_ROUTE_ACCEPTANCE_RESULT.json')) {
+function readCurrentApiRouteAcceptance(env = process.env, filePath = embeddedEvidencePath('API_ROUTE_ACCEPTANCE_RESULT.json')) {
   let evidence;
   try {
     evidence = JSON.parse(fs.readFileSync(filePath, 'utf8'));

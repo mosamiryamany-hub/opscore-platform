@@ -401,6 +401,23 @@ jobs:
           console.log('ISOLATION_CERT', ok ? 'CERTIFIED' : 'NOT_CERTIFIED');
           NODE
 
+      - name: Embed acceptance and behavioral evidence into serverless bundle
+        run: |
+          set -euo pipefail
+          mkdir -p backend/src/embedded-evidence
+          for f in \
+            PRODUCTION_ACCEPTANCE_RESULT.json \
+            POSTGRES_HTTP_ACCEPTANCE_RESULT.json \
+            API_ROUTE_ACCEPTANCE_RESULT.json \
+            PRODUCTION_SESSION_ISOLATION.json \
+            PRODUCTION_RECOVERY_POINT.json
+          do
+            src="backend/docs/verification/$f"
+            test -s "$src" || { echo "MISSING_EVIDENCE:$src" >&2; exit 1; }
+            cp "$src" "backend/src/embedded-evidence/$f"
+            echo "EMBEDDED $f"
+          done
+
       - name: Build Vercel output
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:
