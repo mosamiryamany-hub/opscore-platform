@@ -35,8 +35,8 @@ function unwrapOuterTransaction(content, filename='unknown') {
   break;
  }
  const firstStatement=source.slice(offset);
- if(!/^BEGIN\\b/i.test(firstStatement))return source;
- const begin=/^BEGIN\\s*;/i.exec(firstStatement);
+ if(!/^BEGIN\b/i.test(firstStatement))return source;
+ const begin=/^BEGIN\s*;/i.exec(firstStatement);
  if(!begin)throw new Error('MIGRATION_TRANSACTION_WRAPPER_UNSUPPORTED:'+filename);
  const trimmed=source.trimEnd();
  const commit=/COMMIT\s*;$/i.exec(trimmed);
