@@ -2410,7 +2410,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
     try {
       const hostname=url.searchParams.get('hostname')||req.headers.host||'';
       const hit=store.resolveTenantByHost(hostname.split(':')[0]);
-      const authenticated=ctx(req);
+      const authenticated=c;
       const sameTenant=authenticated && hit && authenticated.organizationId===hit.organization_id;
       return json(res,200,{schemaVersion:'opscore.custom-domain-resolution.v2',resolved:Boolean(hit),tenant:sameTenant?hit:null});
     } catch(e){ return fail(res,e); }
