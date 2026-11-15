@@ -165,12 +165,11 @@ jobs:
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import json, os, urllib.request
-
+          import json, os, pathlib, urllib.error, urllib.request
           token = os.environ["VERCEL_TOKEN"]
           project = os.environ["VERCEL_PROJECT_ID"]
           key_id = os.environ["KEY_ID"]
-          key_hex = open(os.environ["RUNNER_TEMP"] + "/key.hex", "r", encoding="utf-8").read().strip()
+          key_hex = pathlib.Path(os.environ["RUNNER_TEMP"], "key.hex").read_text(encoding="utf-8").read().strip() if False else pathlib.Path(os.environ["RUNNER_TEMP"], "key.hex").read_text(encoding="utf-8").strip()
           key_json = json.dumps({"key_id": key_id, "secret_hex": key_hex}, separators=(",", ":"))
           assert len(key_hex) == 64
 
@@ -180,42 +179,50 @@ jobs:
                   "Authorization": "Bearer " + token,
                   "Content-Type": "application/json",
               })
-              with urllib.request.urlopen(request) as resp:
-                  return json.load(resp)
+              try:
+                  with urllib.request.urlopen(request) as resp:
+                      raw = resp.read().decode()
+                      return json.loads(raw) if raw else {}
+              except urllib.error.HTTPError as e:
+                  detail = e.read().decode(errors="replace")
+                  raise RuntimeError(f"{method} {url} -> {e.code}: {detail[:800]}") from None
 
-          envs = req("GET", f"https://api.vercel.com/v9/projects/{project}/env").get("envs", [])
+          def list_envs():
+              return req("GET", f"https://api.vercel.com/v9/projects/{project}/env").get("envs", [])
 
           def upsert(key, value):
+              envs = list_envs()
               existing = [
                   e for e in envs
                   if e.get("key") == key and set(e.get("target") or []) == {"preview"}
               ]
+              payload = {
+                  "value": value,
+                  "type": "encrypted",
+                  "target": ["preview"],
+              }
               if existing:
                   eid = existing[0]["id"]
-                  req("PATCH", f"https://api.vercel.com/v9/projects/{project}/env/{eid}", {
-                      "value": value,
-                      "type": "encrypted",
-                      "target": ["preview"],
-                  })
+                  req("PATCH", f"https://api.vercel.com/v9/projects/{project}/env/{eid}", payload)
                   print(f"updated {key} preview")
               else:
                   req("POST", f"https://api.vercel.com/v10/projects/{project}/env", {
+                      **payload,
                       "key": key,
-                      "value": value,
-                      "type": "encrypted",
-                      "target": ["preview"],
                   })
                   print(f"created {key} preview")
 
           upsert("OPSC_TENANT_CONTEXT_KEY_JSON", key_json)
           upsert("OPSC_TENANT_CONTEXT_HMAC_KEY", key_hex)
           upsert("OPSC_TENANT_CONTEXT_KEY_ID", key_id)
-          verify_envs = req("GET", f"https://api.vercel.com/v9/projects/{project}/env").get("envs", [])
-          key_config = [e for e in verify_envs if e.get("key") == "OPSC_TENANT_CONTEXT_KEY_JSON" and set(e.get("target") or []) == {"preview"}]
-          if len(key_config) != 1:
-              raise RuntimeError("PREVIEW_ATOMIC_KEY_CONFIG_NOT_UNIQUE")
+          verify_envs = list_envs()
+          for key in ("OPSC_TENANT_CONTEXT_KEY_JSON", "OPSC_TENANT_CONTEXT_HMAC_KEY", "OPSC_TENANT_CONTEXT_KEY_ID"):
+              matches = [e for e in verify_envs if e.get("key") == key and set(e.get("target") or []) == {"preview"}]
+              if len(matches) != 1:
+                  raise RuntimeError(f"PREVIEW_ENV_NOT_UNIQUE:{key}:{len(matches)}")
           print("vercel_preview_atomic_key_config_synced; signed-context enforcement flag unchanged")
           print("vercel_preview_env_synced")
+
           PY
 
       - name: Summary (no secrets)
