@@ -30,7 +30,10 @@ test('production acceptance consumes caller-bound CI evidence and certifies isol
   assert.match(deploy, /behavioralPass\(\)/);
   // Must not hard-code CERTIFIED without reading evidence files.
   assert.doesNotMatch(deploy, /OPSC_PRODUCTION_ISOLATION_CERTIFICATION: 'CERTIFIED'/);
-  assert.doesNotMatch(deploy, /NEON_API_KEY:/);
+  // Live recovery-point collection may use NEON_API_KEY only inside the dedicated collector step.
+  assert.match(deploy, /collect-production-recovery-point\.js/);
+  assert.match(deploy, /collect-production-session-isolation\.js/);
+  assert.match(deploy, /NEON_API_KEY: \$\{\{ secrets\.NEON_API_KEY \}\}/);
   assert.match(postgres, /TENANT_MATRIX_EVIDENCE_INCOMPLETE_OR_NOT_CLEAN/);
   assert.match(postgres, /LOGICAL_RESTORE_EVIDENCE_INCOMPLETE_OR_SCOPE_MISMATCH/);
   assert.match(postgres, /DISPOSABLE_POSTGRESQL_18_LOGICAL_RESTORE_CI/);

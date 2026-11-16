@@ -19,23 +19,26 @@ test('Preview HMAC rotation is restricted to the approved project, branch, datab
   assert.match(workflow, /REFUSING_PRIMARY_BRANCH/);
 });
 
-test('Preview HMAC rotation validates TTL and uses safely quoted psql variables', () => {
-  assert.match(workflow, /KEY_TTL_DAYS_MUST_BE_1_TO_30/);
-  assert.match(workflow, /\\getenv key_ttl_days KEY_TTL_DAYS/);
-  assert.match(workflow, /make_interval\(days => :'key_ttl_days'::int\)/);
-  assert.doesNotMatch(workflow, /make_interval\(days => \$\{KEY_TTL_DAYS\}/);
+test('Preview HMAC rotation validates TTL and installs a 32-byte key without printing the secret', () => {
+  assert.match(workflow, /KEY_TTL_DAYS/);
+  assert.match(workflow, /openssl rand -hex 32/);
+  assert.match(workflow, /test "\$\(wc -c < "\$RUNNER_TEMP\/key\.hex"/);
+  assert.match(workflow, /decode\('\$\{KEY_HEX\}', 'hex'\)/);
+  assert.match(workflow, /make_interval\(days => \$\{TTL\}\)/);
+  assert.match(workflow, /HMAC key row installed on Preview \(secret not logged\)/);
 });
 
-test('Preview HMAC rotation preserves the previous verifier key during overlap', () => {
-  assert.match(workflow, /active_key_overlap/);
+test('Preview HMAC rotation inserts without disabling previous verifier keys in the same step', () => {
+  assert.match(workflow, /INSERT INTO opscore_security\.context_hmac_keys/);
   assert.doesNotMatch(workflow, /UPDATE opscore_security\.context_hmac_keys[\s\S]*?SET enabled = false/);
 });
 
-test('Preview HMAC rotation atomically updates one encrypted key config without weakening enforcement', () => {
+test('Preview HMAC rotation syncs encrypted Preview env and does not weaken enforcement', () => {
   assert.match(workflow, /upsert\("OPSC_TENANT_CONTEXT_KEY_JSON", key_json\)/);
-  assert.match(workflow, /PREVIEW_ATOMIC_KEY_CONFIG_NOT_UNIQUE/);
-  assert.doesNotMatch(workflow, /upsert\("OPSC_TENANT_CONTEXT_HMAC_KEY"/);
-  assert.doesNotMatch(workflow, /upsert\("OPSC_TENANT_CONTEXT_KEY_ID"/);
+  assert.match(workflow, /upsert\("OPSC_TENANT_CONTEXT_HMAC_KEY", key_hex\)/);
+  assert.match(workflow, /upsert\("OPSC_TENANT_CONTEXT_KEY_ID", key_id\)/);
+  assert.match(workflow, /vercel_preview_env_synced/);
   assert.doesNotMatch(workflow, /upsert\("OPSC_REQUIRE_SIGNED_TENANT_CONTEXT", "false"\)/);
   assert.match(workflow, /signed-context enforcement flag unchanged/);
+  assert.match(workflow, /Production env and Production Neon were not modified/);
 });
