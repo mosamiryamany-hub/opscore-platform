@@ -131,6 +131,9 @@ test('production hold and missing production acceptance proof block promotion', 
   payload.environment.productionHoldConfiguredFalse = false;
   payload.environment.productionHoldEffectiveActive = true;
   payload.environment.releaseProofVerified = false;
+  payload.environment.releaseVerifiedEffective = false;
+  payload.environment.releaseVerifiedConfiguredTrue = false;
+  payload.deployment.commitSha = 'b'.repeat(40);
   payload.environment.isolationCertification = 'NOT_CERTIFIED';
   const result = evaluateRuntimeDiagnostic(payload, 200, 'a'.repeat(40), '123456789');
   assert.equal(result.status, 'BLOCKED');

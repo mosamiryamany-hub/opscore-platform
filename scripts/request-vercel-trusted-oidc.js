@@ -49,18 +49,11 @@ function validateRequestUrl(raw) {
   try { url = new URL(String(raw || '')); }
   catch { throw new Error('GITHUB_OIDC_REQUEST_URL_INVALID'); }
   const host = url.hostname.toLowerCase();
-  // GitHub-hosted runners historically used pipelines.*; keep a tight allowlist of
-  // actions.githubusercontent.com request endpoints only (not arbitrary hosts).
-  const allowedHosts = new Set([
-    'pipelines.actions.githubusercontent.com',
-    'results-receiver.actions.githubusercontent.com',
-    'token.actions.githubusercontent.com'
-  ]);
-  const allowedSuffix = '.actions.githubusercontent.com';
-  const hostAllowed = allowedHosts.has(host) || (host.endsWith(allowedSuffix) && host.indexOf('.') === host.lastIndexOf('.') - (allowedSuffix.length - allowedSuffix.indexOf('.')));
-  // Prefer explicit allowlist; also accept any https host under actions.githubusercontent.com without userinfo/hash
-  const isActionsGh = host === 'actions.githubusercontent.com' || host.endsWith('.actions.githubusercontent.com');
-  if (url.protocol !== 'https:' || !isActionsGh || url.username || url.password || url.hash) {
+  // Allow only GitHub Actions OIDC request hosts under actions.githubusercontent.com.
+  // Exact host names change over time (pipelines.*, results-receiver.*, regional variants).
+  // Require a subdomain under actions.githubusercontent.com (pipelines.*, token.*, etc.).
+  const allowedHost = /^[a-z0-9-]+(?:\.[a-z0-9-]+)*\.actions\.githubusercontent\.com$/.test(host);
+  if (url.protocol !== 'https:' || !allowedHost || url.username || url.password || url.hash) {
     throw new Error('GITHUB_OIDC_REQUEST_URL_NOT_ALLOWED');
   }
   return url;

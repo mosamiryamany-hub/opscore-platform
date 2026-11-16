@@ -1,0 +1,252 @@
+name: Rotate Preview tenant HMAC key
+
+# Preview-only operational rotation. Does not touch Production Neon or Production Vercel env.
+on:
+  workflow_dispatch:
+    inputs:
+      neon_project_id:
+        description: Neon project id
+        required: false
+        default: 'summer-leaf-18448271'
+      neon_branch_id_or_name:
+        description: Preview branch id or name (empty = auto-detect preview/vercel/dev non-primary)
+        required: false
+        default: 'opscore-signed-context-063-065-20261114'
+      database_name:
+        description: Database name on the Preview branch
+        required: false
+        default: 'opscore_acceptance'
+      role_name:
+        description: Admin role used only to write opscore_security.context_hmac_keys
+        required: false
+        default: 'neondb_owner'
+      key_ttl_days:
+        description: Key validity window in days
+        required: false
+        default: '30'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rotate-preview-tenant-hmac
+  cancel-in-progress: false
+
+jobs:
+  rotate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Preconditions
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          PROJECT_ID: ${{ inputs.neon_project_id }}
+          DATABASE_NAME: ${{ inputs.database_name }}
+          ROLE_NAME: ${{ inputs.role_name }}
+          KEY_TTL_DAYS: ${{ inputs.key_ttl_days }}
+        run: |
+          set -euo pipefail
+          test -n "${NEON_API_KEY:-}" || { echo "NEON_API_KEY_MISSING"; exit 1; }
+          test -n "${VERCEL_TOKEN:-}" || { echo "VERCEL_TOKEN_MISSING"; exit 1; }
+          test "$VERCEL_PROJECT_ID" = "prj_8jMqBt0l6OALicWSwQ3ECQTn8yPe" || { echo "UNAPPROVED_VERCEL_PROJECT"; exit 1; }
+          test "$PROJECT_ID" = "summer-leaf-18448271" || { echo "UNAPPROVED_NEON_PROJECT"; exit 1; }
+          test "$DATABASE_NAME" = "opscore_acceptance" || { echo "UNAPPROVED_PREVIEW_DATABASE"; exit 1; }
+          test "$ROLE_NAME" = "neondb_owner" || { echo "UNAPPROVED_PREVIEW_ADMIN_ROLE"; exit 1; }
+          python3 -c 'import os; v=os.environ["KEY_TTL_DAYS"]; assert v.isdecimal() and 1 <= int(v) <= 30, "KEY_TTL_DAYS_MUST_BE_1_TO_30"'
+
+      - name: Resolve Preview branch and connection URI
+        id: neon
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          PROJECT_ID: ${{ inputs.neon_project_id }}
+          BRANCH_INPUT: ${{ inputs.neon_branch_id_or_name }}
+          DATABASE_NAME: ${{ inputs.database_name }}
+          ROLE_NAME: ${{ inputs.role_name }}
+          KEY_TTL_DAYS: ${{ inputs.key_ttl_days }}
+        run: |
+          set -euo pipefail
+          AUTH_H=(-H "Authorization: Bearer ${NEON_API_KEY}" -H "Accept: application/json")
+          curl -fsS "${AUTH_H[@]}" \
+            "https://console.neon.tech/api/v2/projects/${PROJECT_ID}/branches" \
+            > "$RUNNER_TEMP/branches.json"
+
+          BRANCH_INPUT="$BRANCH_INPUT" python3 - <<'PY'
+          import json, os, pathlib
+          data = json.load(open(pathlib.Path(os.environ["RUNNER_TEMP"]) / "branches.json", encoding="utf-8"))
+          branches = data.get("branches") or []
+          branch_input = (os.environ.get("BRANCH_INPUT") or "").strip()
+          chosen = None
+          if branch_input:
+              for b in branches:
+                  if b.get("id") == branch_input or b.get("name") == branch_input:
+                      chosen = b
+                      break
+              if not chosen:
+                  raise SystemExit("PREVIEW_BRANCH_NOT_FOUND:" + branch_input)
+          else:
+              ranked = []
+              for b in branches:
+                  name = str(b.get("name") or "")
+                  primary = bool(b.get("primary") or b.get("default"))
+                  if primary:
+                      continue
+                  score = 0
+                  lname = name.lower()
+                  if "preview" in lname or "vercel" in lname or "dev" in lname:
+                      score += 10
+                  if str(b.get("current_state") or b.get("state") or "").lower() == "ready":
+                      score += 1
+                  ranked.append((score, name, b))
+              ranked.sort(key=lambda x: x[0], reverse=True)
+              if not ranked or ranked[0][0] < 10:
+                  raise SystemExit("PREVIEW_BRANCH_AUTODETECT_FAILED")
+              chosen = ranked[0][2]
+          if bool(chosen.get("primary") or chosen.get("default")):
+              raise SystemExit("REFUSING_PRIMARY_BRANCH")
+          if chosen.get("name") != "opscore-signed-context-063-065-20261114":
+              raise SystemExit("PREVIEW_BRANCH_NOT_APPROVED")
+          out = {
+              "id": chosen.get("id"),
+              "name": chosen.get("name"),
+              "primary": bool(chosen.get("primary") or chosen.get("default")),
+          }
+          pathlib.Path(os.environ["RUNNER_TEMP"], "branch.json").write_text(json.dumps(out), encoding="utf-8")
+          print("resolved", out["name"], out["id"])
+          PY
+
+          BRANCH_ID=$(python3 -c 'import json,os;print(json.load(open(os.environ["RUNNER_TEMP"]+"/branch.json"))["id"])')
+          BRANCH_NAME=$(python3 -c 'import json,os;print(json.load(open(os.environ["RUNNER_TEMP"]+"/branch.json"))["name"])')
+          echo "branch_id=${BRANCH_ID}" >> "$GITHUB_OUTPUT"
+          echo "branch_name=${BRANCH_NAME}" >> "$GITHUB_OUTPUT"
+
+          curl -fsS -G "${AUTH_H[@]}" \
+            --data-urlencode "branch_id=${BRANCH_ID}" \
+            --data-urlencode "database_name=${DATABASE_NAME}" \
+            --data-urlencode "role_name=${ROLE_NAME}" \
+            --data-urlencode "pooled=false" \
+            "https://console.neon.tech/api/v2/projects/${PROJECT_ID}/connection_uri" \
+            > "$RUNNER_TEMP/uri.json"
+          python3 -c 'import json,os;u=json.load(open(os.environ["RUNNER_TEMP"]+"/uri.json"))["uri"];assert u.startswith("postgres");open(os.environ["RUNNER_TEMP"]+"/preview.uri","w").write(u)'
+          chmod 600 "$RUNNER_TEMP/preview.uri"
+          echo "connection_uri_resolved=true"
+
+      - name: Generate and install Preview HMAC key
+        id: key
+        env:
+          KEY_TTL_DAYS: ${{ inputs.key_ttl_days }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq postgresql-client
+          KEY_ID="preview-$(date -u +%Y%m%d)-$(openssl rand -hex 3)"
+          openssl rand -hex 32 | tr -d '\n' > "$RUNNER_TEMP/key.hex"
+          chmod 600 "$RUNNER_TEMP/key.hex"
+          test "$(wc -c < "$RUNNER_TEMP/key.hex" | tr -d ' ')" -eq 64
+          echo "key_id=${KEY_ID}" >> "$GITHUB_OUTPUT"
+
+          URI=$(cat "$RUNNER_TEMP/preview.uri")
+          KEY_HEX=$(cat "$RUNNER_TEMP/key.hex")
+          # Values are generated hex/id only; never log KEY_HEX.
+          case "$KEY_ID" in preview-[0-9a-f-]* ) ;; *) echo "KEY_ID_INVALID"; exit 1 ;; esac
+          case "$KEY_HEX" in [0-9a-f][0-9a-f]* ) test "${#KEY_HEX}" -eq 64 ;; *) echo "KEY_HEX_INVALID"; exit 1 ;; esac
+          TTL="${KEY_TTL_DAYS:-30}"
+          case "$TTL" in ''|*[!0-9]* ) TTL=30 ;; esac
+          # Prefer table-owner role when membership allows; otherwise use connection role.
+          psql "$URI" -v ON_ERROR_STOP=1 -c "BEGIN"             -c "DO \$\$ BEGIN BEGIN EXECUTE 'SET LOCAL ROLE opscore_auth_definer'; EXCEPTION WHEN OTHERS THEN RAISE NOTICE 'role_switch_skipped'; END; END \$\$;"             -c "INSERT INTO opscore_security.context_hmac_keys (key_id, secret, enabled, not_before, not_after) VALUES ('${KEY_ID}', decode('${KEY_HEX}', 'hex'), true, now(), now() + make_interval(days => ${TTL})) RETURNING key_id, enabled, octet_length(secret) AS secret_len;"             -c "COMMIT"
+          echo "HMAC key row installed on Preview (secret not logged)"
+
+      - name: Sync Vercel Preview env only
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          KEY_ID: ${{ steps.key.outputs.key_id }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, pathlib, urllib.error, urllib.request
+          token = os.environ["VERCEL_TOKEN"]
+          project = os.environ["VERCEL_PROJECT_ID"]
+          key_id = os.environ["KEY_ID"]
+          key_hex = pathlib.Path(os.environ["RUNNER_TEMP"], "key.hex").read_text(encoding="utf-8").read().strip() if False else pathlib.Path(os.environ["RUNNER_TEMP"], "key.hex").read_text(encoding="utf-8").strip()
+          key_json = json.dumps({"key_id": key_id, "secret_hex": key_hex}, separators=(",", ":"))
+          assert len(key_hex) == 64
+
+          def req(method, url, body=None):
+              data = None if body is None else json.dumps(body).encode()
+              request = urllib.request.Request(url, data=data, method=method, headers={
+                  "Authorization": "Bearer " + token,
+                  "Content-Type": "application/json",
+              })
+              try:
+                  with urllib.request.urlopen(request) as resp:
+                      raw = resp.read().decode()
+                      return json.loads(raw) if raw else {}
+              except urllib.error.HTTPError as e:
+                  detail = e.read().decode(errors="replace")
+                  raise RuntimeError(f"{method} {url} -> {e.code}: {detail[:800]}") from None
+
+          def list_envs():
+              return req("GET", f"https://api.vercel.com/v9/projects/{project}/env").get("envs", [])
+
+          def upsert(key, value):
+              envs = list_envs()
+              existing = [
+                  e for e in envs
+                  if e.get("key") == key and set(e.get("target") or []) == {"preview"}
+              ]
+              payload = {
+                  "value": value,
+                  "type": "encrypted",
+                  "target": ["preview"],
+              }
+              if existing:
+                  eid = existing[0]["id"]
+                  # Sensitive env vars cannot change type via PATCH; replace in place.
+                  env_type = existing[0].get("type") or "encrypted"
+                  try:
+                      req("PATCH", f"https://api.vercel.com/v9/projects/{project}/env/{eid}", {
+                          "value": value,
+                          "target": ["preview"],
+                      })
+                      print(f"updated {key} preview")
+                  except RuntimeError as err:
+                      if "cannot change the type" in str(err) or "BAD_REQUEST" in str(err):
+                          req("DELETE", f"https://api.vercel.com/v9/projects/{project}/env/{eid}")
+                          req("POST", f"https://api.vercel.com/v10/projects/{project}/env", {
+                              "key": key,
+                              "value": value,
+                              "type": env_type if env_type in ("encrypted", "sensitive") else "encrypted",
+                              "target": ["preview"],
+                          })
+                          print(f"replaced {key} preview")
+                      else:
+                          raise
+              else:
+                  req("POST", f"https://api.vercel.com/v10/projects/{project}/env", {
+                      **payload,
+                      "key": key,
+                  })
+                  print(f"created {key} preview")
+
+          upsert("OPSC_TENANT_CONTEXT_KEY_JSON", key_json)
+          upsert("OPSC_TENANT_CONTEXT_HMAC_KEY", key_hex)
+          upsert("OPSC_TENANT_CONTEXT_KEY_ID", key_id)
+          verify_envs = list_envs()
+          for key in ("OPSC_TENANT_CONTEXT_KEY_JSON", "OPSC_TENANT_CONTEXT_HMAC_KEY", "OPSC_TENANT_CONTEXT_KEY_ID"):
+              matches = [e for e in verify_envs if e.get("key") == key and set(e.get("target") or []) == {"preview"}]
+              if len(matches) != 1:
+                  raise RuntimeError(f"PREVIEW_ENV_NOT_UNIQUE:{key}:{len(matches)}")
+          print("vercel_preview_atomic_key_config_synced; signed-context enforcement flag unchanged")
+          print("vercel_preview_env_synced")
+
+          PY
+
+      - name: Summary (no secrets)
+        run: |
+          set -euo pipefail
+          echo "Preview branch: ${{ steps.neon.outputs.branch_name }} (${{ steps.neon.outputs.branch_id }})"
+          echo "Installed key_id: ${{ steps.key.outputs.key_id }}"
+          echo "Vercel Preview atomic key config synced; enforcement flag unchanged."
+          echo "Production env and Production Neon were not modified."

@@ -8,6 +8,31 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '../..');
 const read = (relativePath) => fs.readFileSync(path.join(root, relativePath), 'utf8');
 
+test('commercial-facing documents fail closed while current seller production evidence is not verified', () => {
+  const files = [
+    'COMMERCIAL_CLOSURE_STATUS.md',
+    'COMMERCIAL_RELEASE_STATUS.md',
+    'CLIENT_INSPECTION_PACKAGE_STATUS.md',
+    'CLOSEOUT_EXECUTION_RUNBOOK.md',
+    'BUYER_DELIVERY.md',
+    'SALES_README.md',
+    'SALES_KIT.md',
+    'docs/release/RELEASE_SCOPE.md',
+    'docs/COMMERCIAL_HANDOFF.md'
+  ];
+  for (const file of files) {
+    const doc = read(file);
+    assert.match(doc, /NOT_VERIFIED/);
+    assert.doesNotMatch(doc, /productionIsolationCertification=CERTIFIED/);
+    assert.doesNotMatch(doc, /reports seller-reference production isolation as CERTIFIED/i);
+  }
+  const scope = JSON.parse(read('INTEGRATED_RELEASE_SCOPE.json'));
+  assert.equal(
+    scope.production.productionIsolationCertification,
+    'NOT_VERIFIED_PENDING_FRESH_COMMIT_AND_BRANCH_BOUND_PROBES'
+  );
+});
+
 test('commercial closeout documents agree on candidate identity and certification boundary', () => {
   const docs = [
     read('COMMERCIAL_CLOSURE_STATUS.md'),
@@ -17,10 +42,17 @@ test('commercial closeout documents agree on candidate identity and certificatio
   ];
 
   for (const doc of docs) {
-    assert.match(doc, /NOT_ESTABLISHED/);
-    assert.match(doc, /NOT_CERTIFIED/);
-    // Accept either the pre-merge candidate branch name or the production main commit identity.
-    assert.ok(doc.includes('security/mobile-dependency-remediation-2026-11-01') || /PASS_WITH_BUYER_RESIDUALS|source commit/i.test(doc));
+    // Buyer-environment production certification remains not established.
+    assert.match(doc, /NOT_ESTABLISHED|buyer environment|بيئة العميل|buyer-environment/i);
+    // Either legacy formal NOT_CERTIFIED wording, or explicit seller-reference CERTIFIED
+    // paired with buyer residual / non-transfer of buyer certification.
+    assert.ok(
+      /NOT_CERTIFIED/.test(doc) ||
+        (/CERTIFIED/.test(doc) && /PASS_WITH_BUYER_RESIDUALS/.test(doc) && /buyer|customer|residual/i.test(doc)) ||
+        /NO LICENSE GRANT|NO COMMERCIAL LICENSE/i.test(doc),
+      'doc must keep a clear certification boundary'
+    );
+    assert.ok(doc.includes('security/mobile-dependency-remediation-2026-11-01') || /PASS_WITH_BUYER_RESIDUALS|source commit|4ef126/i.test(doc));
     assert.match(doc, /buyer|customer/i);
     assert.match(doc, /translation|ترجمة/i);
     assert.match(doc, /mobile|الهاتف/i);
@@ -35,6 +67,7 @@ test('handover sources do not hard-code a superseded candidate ZIP digest', () =
     'COMMERCIAL_CLOSURE_STATUS.md',
     'CLOSEOUT_EXECUTION_RUNBOOK.md',
     'BUYER_DELIVERY.md',
+    'DELIVERY_MANIFEST.md',
     'INTEGRATED_RELEASE_SCOPE.json'
   ].map(read);
 
@@ -202,4 +235,71 @@ test('GitHub verification and production pre-deploy jobs validate recorded relea
       'recorded evidence verification must run after tests and before dependency audits/deploy');
   }
 
+});
+
+
+test('commercial release grants no license and forbids distribution pending rights decision', () => {
+  const notice = read('NO_LICENSE_GRANT_NOTICE.txt');
+  const buyer = read('BUYER_DELIVERY.md');
+  const closure = read('COMMERCIAL_CLOSURE_STATUS.md');
+  const manifest = read('DELIVERY_MANIFEST.md');
+  const packageBuilder = read('scripts/package-release.js');
+  assert.equal(fs.existsSync(path.join(root, 'PROPRIETARY_LICENSE.txt')), false);
+  for (const doc of [notice, buyer, closure, manifest]) {
+    assert.match(doc, /NO LICENSE GRANT/i);
+    assert.match(doc, /rights holder/i);
+    assert.match(doc, /signed/i);
+  }
+  assert.match(packageBuilder, /licenseGrant: 'NONE_PENDING_RIGHTS_HOLDER_DECISION'/);
+  assert.match(packageBuilder, /distributionAuthorized: false/);
+  assert.match(packageBuilder, /NO LICENSE GRANT/);
+});
+
+test('current-facing release documents do not pin superseded candidate identities or bundled license grants', () => {
+  const sourceDocs = [
+    'DELIVERY_MANIFEST.md',
+    'BUYER_DELIVERY.md',
+    'COMMERCIAL_CLOSURE_STATUS.md',
+    'CLOSEOUT_EXECUTION_RUNBOOK.md',
+    'docs/release/RELEASE_SCOPE.md',
+    'COMMERCIAL_RELEASE_STATUS.md',
+    'SALES_KIT.md',
+    'SALES_README.md',
+    'docs/COMMERCIAL_HANDOFF.md',
+    'BUYER_FIRST.md',
+    'CLIENT_INSPECTION_PACKAGE_STATUS.md',
+    'INTEGRATED_RELEASE_SCOPE.json',
+    'docs/release/COMMERCIAL_RELEASE_STATEMENT.json'
+  ].map(read);
+
+  const supersededIdentity = /4ef126ccd59f23cebeead30224d1bcf7199535ab|43588278472|43308699094|dpl_5nx3dRRu9WuYmpqR9deiSeCqHwF3|d940152d1428d82d9bb0c57695d929099a648ac3|3014428936|30bf29aa1a995a476f40a37600e869772c086ece9f3148da5e9140766806bbf6/;
+  const withdrawnLicenseGrant = /bundled license grants internal-use|upon full payment[\s\S]{0,120}purchaser receives/i;
+  for (const doc of sourceDocs) {
+    assert.doesNotMatch(doc, supersededIdentity);
+    assert.doesNotMatch(doc, withdrawnLicenseGrant);
+    assert.match(doc, /NO LICENSE GRANT|NO COMMERCIAL DISTRIBUTION/i);
+  }
+});
+
+test('external release attestation statement includes explicit no-license fields', () => {
+  const attestation = read('scripts/write-release-attestation.js');
+  assert.match(attestation, /licenseGrant:\s*'NONE_PENDING_RIGHTS_HOLDER_DECISION'/);
+  assert.match(attestation, /distributionAuthorized:\s*false/);
+});
+
+test('handover docs do not advertise a bundled proprietary or use-only license file', () => {
+  const files = [
+    'README.md',
+    'docs/commercial/COMMERCIAL_TRANSFER_CHECKLIST.md',
+    'backend/docs/COMMERCIAL_HANDOFF.md',
+    'BUYER_DELIVERY.md',
+    'DELIVERY_MANIFEST.md',
+    'COMMERCIAL_CLOSURE_STATUS.md'
+  ];
+  for (const file of files) {
+    const doc = read(file);
+    assert.doesNotMatch(doc, /PROPRIETARY_LICENSE\.txt/);
+    assert.doesNotMatch(doc, /bundled license file is not a substitute/i);
+    assert.doesNotMatch(doc, /proprietary internal-use license/i);
+  }
 });

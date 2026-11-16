@@ -1,0 +1,114 @@
+name: redeploy-preview
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Git ref to deploy as Preview
+        required: false
+        default: "main"
+permissions:
+  contents: read
+jobs:
+  redeploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Create Vercel Preview deployment
+        id: deploy
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          REF: ${{ github.event.inputs.ref }}
+          GITHUB_REPO_ID: "1452803785"
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, time, urllib.error, urllib.request
+          token=os.environ["VERCEL_TOKEN"]
+          project=os.environ["VERCEL_PROJECT_ID"]
+          team=os.environ.get("VERCEL_ORG_ID") or ""
+          ref=os.environ.get("REF") or "main"
+
+          def req(method, url, body=None):
+            data=None if body is None else json.dumps(body).encode()
+            r=urllib.request.Request(url, data=data, method=method, headers={
+              "Authorization": "Bearer "+token,
+              "Content-Type": "application/json",
+            })
+            try:
+              with urllib.request.urlopen(r) as resp:
+                raw=resp.read().decode()
+                return json.loads(raw) if raw else {}
+            except urllib.error.HTTPError as e:
+              raise SystemExit(f"{method} {url} -> {e.code}: {e.read().decode()[:800]}")
+
+          # Resolve project + latest production deployment's git repo linkage
+          q = f"?teamId={team}" if team else ""
+          proj = req("GET", f"https://api.vercel.com/v9/projects/{project}{q}")
+          print("project", proj.get("name"), proj.get("id"))
+          link = (proj.get("link") or {})
+          # Prefer linked repoId; fall back to known GitHub repository id for this project.
+          repo_id = link.get("repoId") or os.environ.get("GITHUB_REPO_ID") or "1452803785"
+          print("git_link", link)
+          print("repo_id", repo_id)
+
+          body = {
+            "name": proj.get("name") or "opscore-platform",
+            "project": project,
+            
+            "gitSource": {
+              "type": "github",
+              "repoId": int(str(repo_id)),
+              "ref": ref,
+            },
+          }
+
+          dep = req("POST", f"https://api.vercel.com/v13/deployments{q}", body)
+          dep_id = dep.get("id") or dep.get("uid")
+          url = dep.get("url")
+          print("deployment_id", dep_id)
+          print("deployment_url", url)
+          if dep_id:
+            open(os.environ["GITHUB_OUTPUT"], "a").write(f"deployment_id={dep_id}\n")
+          if url:
+            open(os.environ["GITHUB_OUTPUT"], "a").write(f"deployment_host={url}\n")
+
+          # Wait for READY
+          for i in range(60):
+            time.sleep(10)
+            st = req("GET", f"https://api.vercel.com/v13/deployments/{dep_id}{q}")
+            state = st.get("readyState") or st.get("status")
+            print(i, state, st.get("url"))
+            if state in ("READY", "ERROR", "CANCELED"):
+              print("final_state", state)
+              print("final_url", st.get("url"))
+              if state != "READY":
+                raise SystemExit(f"PREVIEW_DEPLOY_{state}")
+              break
+          else:
+            raise SystemExit("PREVIEW_DEPLOY_TIMEOUT")
+          PY
+
+      - name: Smoke Preview health + proof gate surface
+        env:
+          HOST: ${{ steps.deploy.outputs.deployment_host }}
+        run: |
+          set -euo pipefail
+          test -n "${HOST:-}"
+          BASE="https://${HOST}"
+          echo "BASE=$BASE"
+          curl -fsS -m 30 "$BASE/api/health" | tee /tmp/health.json
+          # Unauthenticated proof must not succeed as PASS
+          CODE=$(curl -sS -m 20 -o /tmp/proof.json -w "%{http_code}" "$BASE/api/v1/_internal/tenant-context-proof" || true)
+          echo "proof_http=$CODE"
+          cat /tmp/proof.json || true
+          # Expect 401/404 without session; 200 PASS would be a security bug
+          python3 - <<'PY'
+          import json,os
+          code=int(os.environ.get("CODE") or open("/tmp/code","w").write("") or 0)
+          PY
+          if [ "$CODE" = "200" ]; then
+            echo "UNEXPECTED_PROOF_PASS_WITHOUT_SESSION"; exit 1
+          fi
+          echo "PREVIEW_REDEPLOY_SMOKE=PASS"

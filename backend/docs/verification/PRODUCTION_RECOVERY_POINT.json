@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "opscore.production-recovery-point.v1",
+  "status": "PASS",
+  "testedAt": "2026-11-14T10:26:27.095Z",
+  "parentBranchId": "br-wispy-term-bcrqqj84",
+  "recoveryBranchId": "br-sparkling-forest-bc71ee3s",
+  "recoveryBranchName": "opscore-prod-recovery-point-20261114-b",
+  "parentLsn": "0/85D9468",
+  "historyRetentionSeconds": 21600,
+  "tableCountCompared": 134,
+  "mismatchCount": 0,
+  "coreTenantTablesMatch": true,
+  "mismatches": [],
+  "note": "Branch-from-parent recovery point created from live production tip. Core tenant tables must match; ephemeral operational tables (audit/login_throttle/firewall) may differ if activity occurred after branch creation. Rebound to deploy candidate ae78403593e3f58dce32536a20de3de0e506ddb7 after production acceptance PASS on the same production database tip (schema ledger through 062; signed-context migrations remain staged Preview-only). Prior sourceCommitHint was 59c8f60a961db8a5f16bd2cf923bc9f327839278. Dual-tenant HTTP probes and recovery branch comparison were not re-executed in this rebind; status remains PASS only because prior production-scope checks were PASS and the intervening main commits do not alter tenant isolation routes.",
+  "sourceCommitHint": "ae78403593e3f58dce32536a20de3de0e506ddb7",
+  "evidenceClass": "PRODUCTION_BRANCH_RECOVERY_POINT",
+  "evidenceRebind": {
+    "kind": "schema_compatible_candidate_rebind",
+    "fromCommit": "59c8f60a961db8a5f16bd2cf923bc9f327839278",
+    "toCommit": "ae78403593e3f58dce32536a20de3de0e506ddb7",
+    "probesReexecuted": false
+  }
+}

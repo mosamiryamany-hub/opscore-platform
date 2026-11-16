@@ -22,6 +22,12 @@ on:
       - 'backend/src/config.js'
       - 'backend/src/firewall.js'
       - 'backend/src/server.js'
+      - 'backend/src/pg-database-sync.js'
+      - 'backend/src/pg-sync-worker.js'
+      - 'backend/src/signed-tenant-context.js'
+      - 'backend/test/pg-database-sync.test.js'
+      - 'backend/test/fixtures/pg-sync-worker-mock.js'
+      - 'backend/scripts/signed-tenant-context-postgres-gate.js'
       - 'backend/src/db.js'
       - 'backend/scripts/test-runtime-migration-ledger-attestation.js'
       - 'backend/test/hardening_regressions_1161.test.js'
@@ -31,6 +37,7 @@ on:
       - 'backend/src/store.js'
       - 'backend/test/postgres-auth-helper-fail-closed.test.js'
       - 'backend/src/database-security-proof.js'
+      - 'backend/src/release-proof.js'
       - 'backend/test/database-security-proof.test.js'
       - 'backend/test/postgres-runtime-policy-grants.test.js'
       - 'backend/scripts/postgres-live-rls-gate.js'
@@ -171,10 +178,14 @@ jobs:
           sql=$(cat <<'SQL'
           DROP ROLE IF EXISTS opscore_runtime;
           DROP ROLE IF EXISTS opscore_app;
+          DROP ROLE IF EXISTS neon_superuser;
           DROP ROLE IF EXISTS neondb_owner;
           CREATE ROLE neondb_owner LOGIN PASSWORD :'owner_password'
             NOSUPERUSER CREATEDB CREATEROLE INHERIT BYPASSRLS;
-          CREATE ROLE opscore_app LOGIN PASSWORD 'app_test_pw'
+          -- This disposable acceptance cluster uses a clean, non-login RLS probe.
+          -- The real Neon Preview legacy role is separately fail-closed by the
+          -- migration runner unless the current role has ADMIN OPTION on it.
+          CREATE ROLE opscore_app NOLOGIN
             NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
           CREATE ROLE opscore_runtime NOLOGIN
             NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS;
@@ -220,8 +231,17 @@ jobs:
           set -euo pipefail
           for db in opscore_http_acceptance opscore_matrix_test; do
             migration_url="postgresql://neondb_owner:${OPSC_CI_MIGRATION_OWNER_PASSWORD}@127.0.0.1:5432/${db}"
-            OPSC_MIGRATION_DATABASE_URL="${migration_url}"             OPSC_MIGRATION_CONFIRM_DATABASE="${db}"             OPSC_PG_SSL_MODE=disable               npm run db:migrate:postgres -- --apply
+            OPSC_MIGRATION_DATABASE_URL="${migration_url}" OPSC_MIGRATION_TARGET_CLASS=test OPSC_MIGRATION_EXPECTED_DATABASE="${db}" OPSC_MIGRATION_CONFIRM_DATABASE="${db}" OPSC_PG_SSL_MODE=disable npm run db:migrate:postgres -- --apply
           done
+      - name: Verify signed tenant context through the real Node PostgreSQL worker
+        working-directory: backend
+        env:
+          OPSC_PG_SSL_MODE: disable
+        run: |
+          set -euo pipefail
+          export OPSC_TENANT_CONTEXT_OWNER_URL="postgresql://neondb_owner:${OPSC_CI_MIGRATION_OWNER_PASSWORD}@127.0.0.1:5432/opscore_http_acceptance"
+          node scripts/signed-tenant-context-postgres-gate.js
+
       - name: Verify logical restore drill safety contracts
         working-directory: backend
         run: node --test test/postgres-logical-restore-drill.test.js

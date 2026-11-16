@@ -53,6 +53,8 @@ function main() {
     pipelineId,
     pipelineUrl,
     commercialClosure: ciAttested ? 'PASS_WITH_BUYER_RESIDUALS' : 'NOT_ATTESTED',
+    licenseGrant: 'NONE_PENDING_RIGHTS_HOLDER_DECISION',
+    distributionAuthorized: false,
     productionCertification: false,
     productionAcceptance: {
       status: productionAcceptanceVerified ? 'PASS' : 'NOT_VERIFIED_AT_BUILD',
@@ -75,6 +77,8 @@ function main() {
     sourceCommit,
     pipelineId,
     productionCertification: false,
+    licenseGrant: 'NONE_PENDING_RIGHTS_HOLDER_DECISION',
+    distributionAuthorized: false,
     output: outputPath
   }, null, 2) + '\n');
 }

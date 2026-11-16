@@ -80,6 +80,28 @@ function collect(dir, rel = '') {
   }
   return out.sort();
 }
+
+const firstPartyLicenseFilePattern = /(^|\/)(?:LICENSE|LICENCE)(?:\.[^/]*)?$/i;
+function assertNoLicenseGrantFiles(dir, phase) {
+  const licenseFiles = collect(dir).filter(relativePath => firstPartyLicenseFilePattern.test(relativePath));
+  if (licenseFiles.length) {
+    throw new Error(`NO_LICENSE_GRANT_VIOLATION:${phase} contains first-party license files: ${licenseFiles.join(', ')}`);
+  }
+  const noticePath = path.join(dir, 'NO_LICENSE_GRANT_NOTICE.txt');
+  if (!fs.existsSync(noticePath)) throw new Error(`NO_LICENSE_GRANT_NOTICE_MISSING:${phase}`);
+  const notice = fs.readFileSync(noticePath, 'utf8');
+  if (!notice.includes('NO LICENSE GRANT') ||
+      !/grants no permission or rights/i.test(notice) ||
+      !/No sale, delivery, redistribution, resale, sublicensing/i.test(notice)) {
+    throw new Error(`NO_LICENSE_GRANT_NOTICE_INVALID:${phase}`);
+  }
+  const packagePath = path.join(dir, 'backend', 'package.json');
+  const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+  if (packageJson.license !== 'UNLICENSED') {
+    throw new Error(`PACKAGE_LICENSE_METADATA_NOT_UNLICENSED:${phase}`);
+  }
+}
+
 // Tests are allowed to create runtime attachment files. Clean the actual backend path explicitly,
 // then require a fail-closed gate before staging. The gate itself remains active in verify-integrated.
 run('clean generated demo attachments', 'require(\'./backend/scripts/clean-demo-data.js\')', root, {
@@ -96,6 +118,7 @@ fs.rmSync(releaseDir, {
   force: true
 });
 fs.mkdirSync(releaseDir, { recursive: true });
+assertNoLicenseGrantFiles(root, 'source tree');
 const files = collect(root);
 const supersededVerificationSnapshots = new Set([
   'backend/docs/verification/COMMERCIAL_CLOSURE_DECISION.json',
@@ -181,6 +204,8 @@ const releaseStatement = {
   pipelineId,
   pipelineUrl,
   commercialClosure: isCommercialCi ? 'PASS_WITH_BUYER_RESIDUALS' : 'NOT_ATTESTED',
+  licenseGrant: 'NONE_PENDING_RIGHTS_HOLDER_DECISION',
+  distributionAuthorized: false,
   productionCertification: false,
   mobileDependencyAudit: { status: summarizeAuditStatus(mobileAuditSummary), sourceArtifact: 'mobile/mobile-dependency-audit.json', summary: mobileAuditSummary, findings: mobileAdvisories },
   rootRuntimeDependencyAudit: { status: summarizeAuditStatus(rootAuditSummary), sourceArtifact: 'root-dependency-audit.json', summary: rootAuditSummary, findings: rootAdvisories },
@@ -190,6 +215,7 @@ const releaseStatement = {
   officialRepo: String(process.env.CI_PROJECT_PATH || process.env.GITHUB_REPOSITORY || 'mosamiryamany-hub/opscore-platform'),
   generatedAt: new Date().toISOString(),
   residuals: [
+    'NO LICENSE GRANT: all rights reserved; sale, resale, redistribution, sublicensing and buyer delivery are prohibited until a separate written agreement is approved and signed by the rights holder.',
     'Production session, tenant-boundary and recovery acceptance is evaluated after deployment against this exact source commit; NOT_VERIFIED_AT_BUILD is not a claim about the later live endpoint.',
     'Production isolation is not certified merely by isolated-schema RLS tests.',
     describeAuditResidual('Mobile', mobileAuditSummary),
@@ -207,7 +233,8 @@ const statusSnapshot = [
   '> Build-generated evidence index. This is not a security certification, warranty, or guarantee of defect-free operation.',
   '',
   '**Package version:** ' + version,
-  '**CI closure:** ' + releaseStatement.commercialClosure,
+  '**CI technical closure:** ' + releaseStatement.commercialClosure,
+  '**Commercial license:** NONE - RIGHTS DECISION PENDING; DISTRIBUTION NOT AUTHORIZED',
   '**Mobile dependency audit:** ' + summarizeAuditStatus(mobileAuditSummary) + ' — ' + JSON.stringify(mobileAuditSummary),
   '**Root PostgreSQL runtime dependency audit:** ' + summarizeAuditStatus(rootAuditSummary) + ' — ' + JSON.stringify(rootAuditSummary),
   '**Source commit:** ' + (sourceCommit || 'UNVERIFIED'),
@@ -223,6 +250,12 @@ const statusSnapshot = [
   '- Vercel database security catalog: https://opscore-platform.vercel.app/api/verify/database-security',
   '',
   'The Vercel endpoint URLs above are locations to check after deployment; this build job does not assert that those live responses passed.',
+  '',
+  '## Commercial rights hold',
+  '',
+  '- NO LICENSE GRANT. ALL RIGHTS RESERVED.',
+  '- Sale, resale, redistribution, sublicensing and buyer delivery are not authorized pending a separate written agreement signed by the rights holder.',
+  '- This archive is for internal technical verification only and must not be distributed.',
   '',
   '## Security and buyer boundaries',
   '',
@@ -347,6 +380,7 @@ try {
   const roots = fs.readdirSync(verifyRoot);
   if (roots.length !== 1 || roots[0] !== path.basename(releaseDir)) throw new Error('ARCHIVE_ROOT_LAYOUT_MISMATCH');
   const extractedRoot = path.join(verifyRoot, roots[0]);
+  assertNoLicenseGrantFiles(extractedRoot, 'round-trip archive');
   const extractedManifest = JSON.parse(fs.readFileSync(path.join(extractedRoot, 'INTEGRATED_PACKAGE_MANIFEST.json'), 'utf8'));
   const extractedSums = path.join(extractedRoot, 'INTEGRATED_SHA256SUMS.txt');
   const expected = extractedManifest.files.map(entry => entry.path).concat(['INTEGRATED_PACKAGE_MANIFEST.json', 'INTEGRATED_SHA256SUMS.txt']).sort();

@@ -9,6 +9,12 @@ const SHA_RE = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
 const HASH_RE = /^[a-f0-9]{64}$/;
 const PIPELINE_RE = /^[1-9][0-9]{0,14}$/;
 const IDENTITY_SCHEMA = 'opscore.vercel-release-identity.v1';
+function embeddedEvidencePath(fileName) {
+  const embedded = path.join(__dirname, 'embedded-evidence', fileName);
+  if (fs.existsSync(embedded)) return embedded;
+  return path.join(__dirname, '..', 'docs', 'verification', fileName);
+}
+
 function normalizedReleaseTag(value) {
   const raw = String(value || '').trim();
   return /^[A-Za-z0-9][A-Za-z0-9._+-]{0,99}$/.test(raw) ? raw : null;
@@ -30,7 +36,7 @@ function normalizedGithubRunUrl(value, repository, pipelineId) {
   return url.toString();
 }
 
-function readCurrentPostgresHttpAcceptance(env, filePath = path.join(__dirname, '..', 'docs', 'verification', 'POSTGRES_HTTP_ACCEPTANCE_RESULT.json')) {
+function readCurrentPostgresHttpAcceptance(env, filePath = embeddedEvidencePath('POSTGRES_HTTP_ACCEPTANCE_RESULT.json')) {
   let evidence;
   try {
     evidence = JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -67,7 +73,7 @@ function readCurrentPostgresHttpAcceptance(env, filePath = path.join(__dirname, 
   };
 }
 
-function readProductionAcceptanceEvidence(env, expectedCommit, expectedPipelineId, evidencePath = path.join(__dirname, '..', 'docs', 'verification', 'PRODUCTION_ACCEPTANCE_RESULT.json'), now = () => new Date()) {
+function readProductionAcceptanceEvidence(env, expectedCommit, expectedPipelineId, evidencePath = embeddedEvidencePath('PRODUCTION_ACCEPTANCE_RESULT.json'), now = () => new Date()) {
   let raw;
   let evidence;
   try {
@@ -110,14 +116,27 @@ function readProductionAcceptanceEvidence(env, expectedCommit, expectedPipelineI
     routeSecurity.functionalRouteAcceptance === 'NOT_VERIFIED' &&
     functionalRouteCoverage.status === 'NOT_VERIFIED' &&
     functionalRouteCoverage.reason === 'FUNCTIONAL_ROUTE_ACCEPTANCE_NOT_RUN';
-  const migrationSafe = migrationLedger.status === 'PASS' &&
+  // Full parity OR staged Preview-only signed-context migrations (non-blocking for production).
+  const stagedPreviewPending = Number(migrationLedger.stagedPreviewPendingCount || 0);
+  const productionBlockingPending = Number(
+    migrationLedger.productionBlockingPendingCount != null
+      ? migrationLedger.productionBlockingPendingCount
+      : migrationLedger.pendingCount || 0
+  );
+  const migrationStatusOk = migrationLedger.status === 'PASS' ||
+    (migrationLedger.status === 'PASS_WITH_STAGED_PREVIEW_MIGRATIONS' &&
+      stagedPreviewPending > 0 &&
+      productionBlockingPending === 0);
+  const migrationSafe = migrationStatusOk &&
     migrationLedger.databaseIdentityMatch === true &&
     typeof migrationLedger.databaseName === 'string' && migrationLedger.databaseName.length > 0 &&
     migrationLedger.databaseName === role.databaseName &&
     Number.isSafeInteger(migrationLedger.sourceMigrationCount) && migrationLedger.sourceMigrationCount > 0 &&
-    Number.isSafeInteger(migrationLedger.ledgerRowCount) && migrationLedger.ledgerRowCount === migrationLedger.sourceMigrationCount &&
-    migrationLedger.matchedCount === migrationLedger.sourceMigrationCount &&
-    migrationLedger.pendingCount === 0 && migrationLedger.blockerCount === 0;
+    Number.isSafeInteger(migrationLedger.ledgerRowCount) && migrationLedger.ledgerRowCount > 0 &&
+    Number.isSafeInteger(migrationLedger.matchedCount) &&
+    migrationLedger.matchedCount === migrationLedger.ledgerRowCount &&
+    productionBlockingPending === 0 &&
+    Number(migrationLedger.blockerCount || 0) === 0;
   const checksSafe = checks.migrationLedgerParity === 'PASS' &&
     checks.tenantSessionIsolation === 'PASS_TEST_SCOPE' &&
     checks.crossTenantAccessDenied === 'PASS_TEST_SCOPE' &&
@@ -187,7 +206,97 @@ function readEmbeddedBuildIdentity(identityPath = path.join(__dirname, 'opscore-
   };
 }
 
-function createPublicReleaseProof(env = process.env, now = () => new Date(), identityPath, productionAcceptanceEvidencePath, postgresHttpAcceptancePath, apiRouteAcceptancePath = path.join(__dirname, '..', 'docs', 'verification', 'API_ROUTE_ACCEPTANCE_RESULT.json')) {
+
+function readProductionSessionIsolationEvidence(filePath = embeddedEvidencePath('PRODUCTION_SESSION_ISOLATION.json'), env = process.env) {
+  if (String(env.OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE || '').trim().toLowerCase() !== 'true') {
+    return { status: 'NOT_VERIFIED', testedAt: null, checks: null };
+  }
+  let evidence;
+  try { evidence = JSON.parse(fs.readFileSync(filePath, 'utf8')); }
+  catch { return { status: 'NOT_VERIFIED', testedAt: null, checks: null }; }
+  if (evidence.schemaVersion !== 'opscore.production-session-isolation.v1') {
+    return { status: 'NOT_VERIFIED', testedAt: null, checks: null };
+  }
+  const checks = evidence.checks || {};
+  const required = ['dualLogin','ownAssetCreate','tenantListIsolation','crossTenantAssetDenied','crossTenantWriteDenied','unauthenticatedDenied','cleanupComplete'];
+  const allPass = evidence.status === 'PASS' && required.every((k) => checks[k] === 'PASS');
+  const expectedCommit = normalizedSha(env.OPSC_RELEASE_CI_COMMIT || env.CI_COMMIT_SHA || env.OPSC_SOURCE_COMMIT_SHA);
+  const evidenceCommit = normalizedSha(evidence.sourceCommitHint);
+  const commitBound = /^[a-f0-9]{40}$/.test(expectedCommit || '') && evidenceCommit === expectedCommit;
+  const expectedParentBranchId = String(env.OPSC_PRODUCTION_NEON_BRANCH_ID || '').trim();
+  const parentBranchBound = /^[a-z0-9-]{8,80}$/.test(expectedParentBranchId) &&
+    String(evidence.parentBranchId || '').trim() === expectedParentBranchId;
+  const evidenceRebind = evidence.evidenceRebind && typeof evidence.evidenceRebind === 'object'
+    ? evidence.evidenceRebind
+    : null;
+  const rebindVerified = evidence.evidenceRebind === undefined || evidence.evidenceRebind === null;
+  return {
+    status: allPass && commitBound && parentBranchBound && rebindVerified ? 'PASS' : 'NOT_VERIFIED',
+    testedAt: evidence.testedAt || null,
+    checks,
+    httpBase: evidence.httpBase || null,
+    evidenceClass: evidence.evidenceClass || null,
+    sourceCommitHint: evidenceCommit || null,
+    commitBound,
+    parentBranchBound,
+    rebindVerified,
+    evidenceRebind: evidenceRebind ? {
+      kind: evidenceRebind.kind || null,
+      fromCommit: normalizedSha(evidenceRebind.fromCommit),
+      toCommit: normalizedSha(evidenceRebind.toCommit),
+      probesReexecuted: evidenceRebind.probesReexecuted === true
+    } : null
+  };
+}
+
+function readProductionRecoveryPointEvidence(filePath = embeddedEvidencePath('PRODUCTION_RECOVERY_POINT.json'), env = process.env) {
+  if (String(env.OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE || '').trim().toLowerCase() !== 'true') {
+    return { status: 'NOT_VERIFIED', testedAt: null };
+  }
+  let evidence;
+  try { evidence = JSON.parse(fs.readFileSync(filePath, 'utf8')); }
+  catch { return { status: 'NOT_VERIFIED', testedAt: null }; }
+  if (evidence.schemaVersion !== 'opscore.production-recovery-point.v1') {
+    return { status: 'NOT_VERIFIED', testedAt: null };
+  }
+  const expectedCommit = normalizedSha(env.OPSC_RELEASE_CI_COMMIT || env.CI_COMMIT_SHA || env.OPSC_SOURCE_COMMIT_SHA);
+  const evidenceCommit = normalizedSha(evidence.sourceCommitHint);
+  const commitBound = /^[a-f0-9]{40}$/.test(expectedCommit || '') && evidenceCommit === expectedCommit;
+  const expectedParentBranchId = String(env.OPSC_PRODUCTION_NEON_BRANCH_ID || '').trim();
+  const parentBranchBound = /^[a-z0-9-]{8,80}$/.test(expectedParentBranchId) &&
+    String(evidence.parentBranchId || '').trim() === expectedParentBranchId;
+  const evidenceRebind = evidence.evidenceRebind && typeof evidence.evidenceRebind === 'object'
+    ? evidence.evidenceRebind
+    : null;
+  const rebindVerified = evidence.evidenceRebind === undefined || evidence.evidenceRebind === null;
+  const ok = evidence.status === 'PASS' &&
+    evidence.coreTenantTablesMatch === true &&
+    Number(evidence.tableCountCompared) >= 130 &&
+    Number(evidence.mismatchCount) === 0 &&
+    typeof evidence.recoveryBranchId === 'string' && evidence.recoveryBranchId.length > 0 &&
+    commitBound && parentBranchBound && rebindVerified;
+  return {
+    status: ok ? 'PASS' : 'NOT_VERIFIED',
+    testedAt: evidence.testedAt || null,
+    recoveryBranchId: evidence.recoveryBranchId || null,
+    tableCountCompared: evidence.tableCountCompared || null,
+    mismatchCount: evidence.mismatchCount,
+    historyRetentionSeconds: evidence.historyRetentionSeconds || null,
+    evidenceClass: evidence.evidenceClass || null,
+    sourceCommitHint: evidenceCommit || null,
+    commitBound,
+    parentBranchBound,
+    rebindVerified,
+    evidenceRebind: evidenceRebind ? {
+      kind: evidenceRebind.kind || null,
+      fromCommit: normalizedSha(evidenceRebind.fromCommit),
+      toCommit: normalizedSha(evidenceRebind.toCommit),
+      probesReexecuted: evidenceRebind.probesReexecuted === true
+    } : null
+  };
+}
+
+function createPublicReleaseProof(env = process.env, now = () => new Date(), identityPath, productionAcceptanceEvidencePath, postgresHttpAcceptancePath, apiRouteAcceptancePath = embeddedEvidencePath('API_ROUTE_ACCEPTANCE_RESULT.json')) {
   const identity = readEmbeddedBuildIdentity(identityPath);
   const proofEnv = identity ? {
     ...env,
@@ -232,6 +341,33 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
     acceptanceVerified
   );
 
+  const sessionIsolation = readProductionSessionIsolationEvidence(undefined, proofEnv);
+  const recoveryPoint = readProductionRecoveryPointEvidence(undefined, proofEnv);
+  const isolationCertified = sessionIsolation.status === 'PASS' && recoveryPoint.status === 'PASS' && acceptanceVerified && String(proofEnv.OPSC_PRODUCTION_ISOLATION_CERTIFICATION || '').trim().toUpperCase() === 'CERTIFIED';
+  const sessionGate = sessionIsolation.status === 'PASS' ? 'PASS_PRODUCTION' : (acceptanceVerified ? 'PASS_TEST_SCOPE' : 'NOT_VERIFIED');
+  const recoveryGate = recoveryPoint.status === 'PASS' ? 'PASS_PRODUCTION' : (acceptanceVerified ? 'PASS_TEST_SCOPE' : 'NOT_VERIFIED');
+  const pitrGate = recoveryPoint.status === 'PASS' ? 'PASS_BRANCH_POINT' : 'NOT_VERIFIED';
+  const noteParts = [
+    'Release evidence is bound to the source commit reported by the running Vercel deployment.'
+  ];
+  if (sessionIsolation.status === 'PASS') {
+    noteParts.push('Production session tenant boundary is PASS_PRODUCTION based on dual-tenant HTTP login/session probes against the live production surface with cleanup.');
+  } else {
+    noteParts.push('Tenant session boundary remains test-scope unless production dual-tenant HTTP session evidence is present and activated.');
+  }
+  if (recoveryPoint.status === 'PASS') {
+    noteParts.push('Production recovery bundle is PASS_PRODUCTION based on a Neon branch recovery point compared to the live tip (table-count parity). History retention is plan-limited; this is branch-point recovery evidence, not a full RPO/RTO certification.');
+  } else {
+    noteParts.push('PostgreSQL logical restore in CI remains test-scope only until a production recovery-point evidence file validates.');
+  }
+  if (isolationCertified) {
+    noteParts.push('productionIsolationCertification is CERTIFIED because production session isolation evidence, production recovery-point evidence, commit-bound acceptance, and OPSC_PRODUCTION_ISOLATION_CERTIFICATION=CERTIFIED are all satisfied together. An environment flag alone is not sufficient.');
+  } else {
+    noteParts.push('productionIsolationCertification remains NOT_CERTIFIED until production session isolation evidence, recovery-point evidence, commit-bound acceptance, and the certification env flag are all satisfied together.');
+  }
+  noteParts.push('Tenant route security coverage and functional API route acceptance remain separately scoped (CI fixtures / contract-scope) and are not full business-flow certification. Signed mobile binaries, native-speaker localization review, and a licensed street-map provider remain buyer-owned.');
+  const releaseNote = noteParts.join(' ');
+
   return {
     schemaVersion: 'opscore.public-release-proof.v2',
     product: 'OpsCore',
@@ -258,12 +394,12 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
     gates: {
       commercialClosure: releaseVerified ? 'PASS_WITH_BUYER_RESIDUALS' : 'UNVERIFIED',
       livePostgresRls: ciVerified ? 'PASS_TEST_SCOPE' : 'UNVERIFIED',
-      productionSessionTenantBoundary: acceptanceVerified ? 'PASS_TEST_SCOPE' : 'NOT_VERIFIED',
-      productionRecoveryBundle: acceptanceVerified ? 'PASS_TEST_SCOPE' : 'NOT_VERIFIED',
+      productionSessionTenantBoundary: sessionGate,
+      productionRecoveryBundle: recoveryGate,
       tenantRouteSecurityCoverage: acceptanceVerified ? 'PASS_TEST_SCOPE' : 'NOT_VERIFIED',
       functionalApiRouteAcceptance: apiRouteAcceptance.status,
-      neonPointInTimeRecovery: 'NOT_VERIFIED',
-      productionIsolationCertification: 'NOT_CERTIFIED',
+      neonPointInTimeRecovery: pitrGate,
+      productionIsolationCertification: isolationCertified ? 'CERTIFIED' : 'NOT_CERTIFIED',
       mobileStoreArtifacts: 'REMAINING_BUYER',
       nativeTranslationReview: 'REMAINING_BUYER',
       licensedStreetMap: 'REMAINING_BUYER',
@@ -275,7 +411,11 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
       pipelineId: acceptanceVerified ? productionAcceptance.pipelineId : null,
       checkedAt: acceptanceVerified ? productionAcceptance.testedAt : null,
       evidenceSha256: acceptanceVerified ? productionAcceptance.evidenceSha256 : null,
-      evidenceNote: acceptanceVerified ? 'SHA-256 was recomputed and matched. Production DB checks were read-only; tenant/API tests and logical restore were run on disposable PostgreSQL 18 CI. This is not production tenant certification or Neon PITR.' : null
+      evidenceNote: acceptanceVerified ? (
+        sessionIsolation.status === 'PASS' && recoveryPoint.status === 'PASS'
+          ? 'SHA-256 was recomputed and matched. CI acceptance remains read-only/test-scoped for disposable PostgreSQL; production dual-tenant HTTP session isolation and branch recovery-point parity were separately verified and bound as production-scope evidence.'
+          : 'SHA-256 was recomputed and matched. Production DB checks were read-only; tenant/API tests and logical restore were run on disposable PostgreSQL 18 CI. This is not production tenant certification or Neon PITR.'
+      ) : null
     },
     postgresHttpAcceptance,
     packageFingerprint: {
@@ -285,11 +425,11 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
       sourceCommit: packageVerified ? packageCommit : null
     },
     checkedAt: now().toISOString(),
-    note: 'Release evidence is bound to the source commit reported by the running Vercel deployment. Tenant route security coverage is limited to unauthenticated-denial, foreign-ID-denial, and cross-tenant fixture probes on disposable PostgreSQL 18 CI; it is not functional acceptance of every API route and does not certify production isolation. PostgreSQL logical restore is also CI test-scope only. Functional API route acceptance is contract-scope only (existence + auth contract + no unhandled 5xx across all inventory routes; PASS_CONTRACT_SCOPE requires commit-and-pipeline-bound evidence with zero failures) and never a business-flow certification. Neon point-in-time restore and production tenant isolation certification remain NOT_VERIFIED. Live production DB checks are read-only and require the runtime and migration-owner connections to identify the same database. A Vercel environment flag alone can never certify these items. Signed mobile binaries, native-speaker localization review, and a licensed street-map provider remain buyer-owned.'
+    note: releaseNote
   };
 };
 
-function hasVerifiedProductionRelease(env = process.env, identityPath, productionAcceptanceEvidencePath, postgresHttpAcceptancePath, apiRouteAcceptancePath = path.join(__dirname, '..', 'docs', 'verification', 'API_ROUTE_ACCEPTANCE_RESULT.json')) {
+function hasVerifiedProductionRelease(env = process.env, identityPath, productionAcceptanceEvidencePath, postgresHttpAcceptancePath, apiRouteAcceptancePath = embeddedEvidencePath('API_ROUTE_ACCEPTANCE_RESULT.json')) {
   const identity = readEmbeddedBuildIdentity(identityPath);
   if (!identity) return false;
   const proof = createPublicReleaseProof(env, () => new Date(), identityPath, productionAcceptanceEvidencePath, postgresHttpAcceptancePath, apiRouteAcceptancePath);
@@ -302,15 +442,15 @@ function hasVerifiedProductionRelease(env = process.env, identityPath, productio
     proof.sourceCommitIdentitySource === 'github-actions-cli-assertion' &&
     proof.postgresHttpAcceptance.status === 'PASS' &&
     proof.productionAcceptance.status === 'PASS' &&
-    proof.gates.productionSessionTenantBoundary === 'PASS_TEST_SCOPE' &&
-    proof.gates.productionRecoveryBundle === 'PASS_TEST_SCOPE' &&
+    ['PASS_TEST_SCOPE', 'PASS_PRODUCTION'].includes(proof.gates.productionSessionTenantBoundary) &&
+    ['PASS_TEST_SCOPE', 'PASS_PRODUCTION'].includes(proof.gates.productionRecoveryBundle) &&
     proof.gates.tenantRouteSecurityCoverage === 'PASS_TEST_SCOPE' &&
     ['NOT_VERIFIED', 'PASS_CONTRACT_SCOPE'].includes(proof.gates.functionalApiRouteAcceptance) &&
-    proof.gates.neonPointInTimeRecovery === 'NOT_VERIFIED' &&
-    proof.gates.productionIsolationCertification === 'NOT_CERTIFIED';
+    ['NOT_VERIFIED', 'PASS_BRANCH_POINT'].includes(proof.gates.neonPointInTimeRecovery) &&
+    ['NOT_CERTIFIED', 'CERTIFIED'].includes(proof.gates.productionIsolationCertification);
 }
 
-function readCurrentApiRouteAcceptance(env = process.env, filePath = path.join(__dirname, '..', 'docs', 'verification', 'API_ROUTE_ACCEPTANCE_RESULT.json')) {
+function readCurrentApiRouteAcceptance(env = process.env, filePath = embeddedEvidencePath('API_ROUTE_ACCEPTANCE_RESULT.json')) {
   let evidence;
   try {
     evidence = JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -349,4 +489,5 @@ function readCurrentApiRouteAcceptance(env = process.env, filePath = path.join(_
   };
 }
 
-module.exports = { createPublicReleaseProof, hasVerifiedProductionRelease, readEmbeddedBuildIdentity, readProductionAcceptanceEvidence };
+module.exports = { createPublicReleaseProof, hasVerifiedProductionRelease, readEmbeddedBuildIdentity, readProductionAcceptanceEvidence, readProductionSessionIsolationEvidence, readProductionRecoveryPointEvidence };
+

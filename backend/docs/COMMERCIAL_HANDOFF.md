@@ -19,4 +19,4 @@ External providers and accounts, licenses, credentials, webhooks, maps, KMS, clo
 Production PostgreSQL/RLS, full backup/restore, KMS, TLS/WAF, live identity/providers, native app release and production-wide isolation remain environment-specific. `NOT_ESTABLISHED` / `NOT_CERTIFIED` is the production certification state.
 
 ## Licensing
-The bundled license file is not a substitute for a signed commercial transfer. Third-party rights remain with their owners.
+No bundled license grant is included. NO_LICENSE_GRANT_NOTICE.txt reserves all rights until a separate signed commercial transfer/agreement exists. Third-party rights remain with their owners.

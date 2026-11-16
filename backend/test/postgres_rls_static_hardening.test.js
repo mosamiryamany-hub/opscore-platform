@@ -167,7 +167,9 @@ test('PostgreSQL runtime binds tenant, user and access mode atomically and fails
   assert.match(sync, /setSession\(\{ tenantId = '', userId = '', accessMode = 'field' \} = \{\}/);
   assert.match(sync, /userId: userId == null \? '' : String\(userId\)/);
   assert.match(sync, /userId: options\.userId/);
-  assert.match(worker, /set_config\('app\.tenant_id', \$1, false\), set_config\('app\.user_id', \$2, false\), set_config\('app\.access_mode', \$3, false\)/);
+  assert.match(worker, /const isLocal = session\.inTransaction === true/);
+  assert.match(worker, /set_config\('app\.tenant_id', \$1, \$4\), set_config\('app\.user_id', \$2, \$4\), set_config\('app\.access_mode', \$3, \$4\)/);
+  assert.match(worker, /RESET ALL/);
   assert.match(server, /tenantId: c\.organizationId, userId: c\.userId \|\| '', accessMode: 'field'/);
   assert.match(server, /DATABASE_SECURITY_CONTEXT_FAILED/);
   assert.match(server, /userId: out\.userId \|\| out\.user\?\.id \|\| '', accessMode: 'field'/);

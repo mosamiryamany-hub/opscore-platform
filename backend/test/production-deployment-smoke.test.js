@@ -118,9 +118,40 @@ test('database security v2 proves the PostGIS read-only exception and all runtim
   assert.throws(() => validateEndpoint('/api/verify/database-security', 200, {
     ...valid, runtimeRole: { ...valid.runtimeRole, bypassRls: true }
   }, commit), /DATABASE_SECURITY_CATALOG_NOT_ACCEPTABLE/);
-  assert.throws(() => validateEndpoint('/api/verify/database-security', 200, {
+  // CERTIFIED is allowed on the database-security surface when the catalog is hardened;
+  // release-proof still requires matching PASS_PRODUCTION behavioral gates for consistency.
+  assert.equal(validateEndpoint('/api/verify/database-security', 200, {
     ...valid, productionIsolationCertification: 'CERTIFIED'
-  }, commit), /DATABASE_SECURITY_CATALOG_NOT_ACCEPTABLE/);
+  }, commit), true);
+});
+
+
+test('release proof accepts PASS_PRODUCTION session/recovery and consistent CERTIFIED isolation', () => {
+  const pipelineId = 42949619029;
+  const valid = {
+    schemaVersion: 'opscore.public-release-proof.v2',
+    status: 'PASS_WITH_BUYER_RESIDUALS',
+    sourceCommit: commit,
+    sourceCommitIdentitySource: 'github-actions-cli-assertion',
+    ci: { status: 'PASS', commitSha: commit, pipelineId },
+    deployment: { status: 'identified', environment: 'production', id: 'dpl_123abc', ref: 'main' },
+    postgresHttpAcceptance: { status: 'PASS', evidenceCommit: commit, evidencePipelineId: String(pipelineId), currentCandidateMatch: true },
+    productionAcceptance: { status: 'PASS', commitSha: commit, pipelineId: String(pipelineId), evidenceSha256: 'a'.repeat(64) },
+    gates: {
+      productionSessionTenantBoundary: 'PASS_PRODUCTION',
+      productionRecoveryBundle: 'PASS_PRODUCTION',
+      tenantRouteSecurityCoverage: 'PASS_TEST_SCOPE',
+      functionalApiRouteAcceptance: 'PASS_CONTRACT_SCOPE',
+      neonPointInTimeRecovery: 'PASS_BRANCH_POINT',
+      productionIsolationCertification: 'CERTIFIED'
+    },
+    packageFingerprint: { status: 'PUBLISHED', sourceCommit: commit, value: 'b'.repeat(64) }
+  };
+  assert.equal(validateEndpoint('/api/verify/release', 200, valid, commit), true);
+  assert.throws(() => validateEndpoint('/api/verify/release', 200, {
+    ...valid,
+    gates: { ...valid.gates, productionSessionTenantBoundary: 'PASS_TEST_SCOPE' }
+  }, commit), /RELEASE_EVIDENCE_NOT_BOUND_TO_DEPLOYMENT/);
 });
 
 test('release proof v2 binds CI, staged production identity, candidate evidence and package while preserving honest residuals', () => {

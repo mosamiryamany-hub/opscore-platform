@@ -2,10 +2,26 @@
 const configModule = require('./config');
 const { openPgDatabaseSync } = require('./pg-database-sync');
 
-function resolveEngine(cfg = configModule) {
-  const engine = String(cfg.databaseEngine || process.env.DATABASE_ENGINE || 'sqlite').toLowerCase();
+function resolveDatabaseUrl(cfg = configModule, env = process.env) {
+  const production = String(env.NODE_ENV || cfg.nodeEnv || '').trim().toLowerCase() === 'production';
+  if (production) {
+    // Never fall back to platform-injected DATABASE_URL or an injected config URL.
+    // Production must use the explicitly scoped least-privilege runtime credential.
+    const runtimeUrl = String(env.OPSC_DATABASE_URL || '').trim();
+    if (!runtimeUrl) throw new Error('OPSC_DATABASE_URL_REQUIRED');
+    return runtimeUrl;
+  }
+
+  const url = String(cfg.databaseUrl || env.OPSC_DATABASE_URL || env.DATABASE_URL || '').trim();
+  if (!url) throw new Error('DATABASE_URL_REQUIRED');
+  return url;
+}
+
+function resolveEngine(cfg = configModule, env = process.env) {
+  const engine = String(cfg.databaseEngine || env.DATABASE_ENGINE || 'sqlite').toLowerCase();
   if (engine === 'postgres') {
-    if (!cfg.databaseUrl && !process.env.OPSC_DATABASE_URL && !process.env.DATABASE_URL) throw new Error('DATABASE_URL_REQUIRED');
+    // Validate the selected identity before initializing the database transport.
+    resolveDatabaseUrl(cfg, env);
     return 'postgres';
   }
   return 'sqlite';
@@ -14,7 +30,7 @@ function resolveEngine(cfg = configModule) {
 function openDatabase(cfg = configModule) {
   const engine = resolveEngine(cfg);
   if (engine === 'postgres') {
-    const url = cfg.databaseUrl || process.env.OPSC_DATABASE_URL || process.env.DATABASE_URL;
+    const url = resolveDatabaseUrl(cfg);
     const db = openPgDatabaseSync(url, { max: Number(process.env.OPSC_PG_POOL_MAX || 4) });
     return { engine: 'postgres', db, postgresRuntimeWired: true };
   }
@@ -24,4 +40,4 @@ function openDatabase(cfg = configModule) {
   return { engine: 'sqlite', db: openDb(cfg.sqlitePath), postgresRuntimeWired: false };
 }
 
-module.exports = { openDatabase, resolveEngine };
+module.exports = { openDatabase, resolveEngine, resolveDatabaseUrl };
