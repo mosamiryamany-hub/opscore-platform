@@ -59,6 +59,28 @@ async function main() {
 
   const parentUri = await connectionUri(projectId, parentBranchId, database, role);
   const parentLsn = psql(parentUri, "SELECT pg_current_wal_lsn()::text;");
+
+  // Prune prior recovery-point branches to stay under Neon branch limits.
+  try {
+    const listed = await neon(`/projects/${projectId}/branches`);
+    const branches = listed.branches || listed || [];
+    for (const b of branches) {
+      const n = String(b.name || '');
+      const id = b.id;
+      if (!id || id === parentBranchId) continue;
+      if (/^opscore-prod-recovery/i.test(n) || /recovery-point/i.test(n)) {
+        try {
+          await neon(`/projects/${projectId}/branches/${id}`, { method: 'DELETE' });
+          console.log('pruned_branch', n, id);
+        } catch (e) {
+          console.log('prune_skip', n, String(e.message || e).slice(0, 120));
+        }
+      }
+    }
+  } catch (e) {
+    console.log('prune_list_failed', String(e.message || e).slice(0, 200));
+  }
+
   const name = 'opscore-prod-recovery-' + new Date().toISOString().replace(/[-:]/g, '').slice(0, 15).toLowerCase();
   const created = await neon(`/projects/${projectId}/branches`, {
     method: 'POST',
