@@ -282,6 +282,32 @@ jobs:
           echo "evidence_sha=$HASH" >> "$GITHUB_OUTPUT"
           echo "PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256=$HASH"
 
+      - name: Collect live production recovery-point evidence (no rebind)
+        if: ${{ github.ref == 'refs/heads/main' }}
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: summer-leaf-18448271
+          OPSC_PRODUCTION_NEON_BRANCH_ID: br-proud-salad-bcshhdap
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq postgresql-client
+          node backend/scripts/collect-production-recovery-point.js
+
+      - name: Collect live production session-isolation evidence (no rebind)
+        if: ${{ github.ref == 'refs/heads/main' }}
+        env:
+          OPSC_OWNER_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          OPSC_PRODUCTION_HTTP_BASE: https://opscore-platform.vercel.app
+          OPSC_PRODUCTION_NEON_BRANCH_ID: br-proud-salad-bcshhdap
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq postgresql-client
+          node backend/scripts/collect-production-session-isolation.js
+
       - name: Publish acceptance evidence hash to Vercel production env
         if: ${{ steps.generate_acceptance.outputs.evidence_sha != '' }}
         env:
@@ -362,32 +388,6 @@ jobs:
             }
           })().catch(e => { console.error(e); process.exit(1); });
           NODE
-
-      - name: Collect live production recovery-point evidence (no rebind)
-        if: ${{ github.ref == 'refs/heads/main' }}
-        env:
-          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
-          NEON_PROJECT_ID: summer-leaf-18448271
-          OPSC_PRODUCTION_NEON_BRANCH_ID: br-proud-salad-bcshhdap
-          GITHUB_SHA: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-          sudo apt-get update -qq
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq postgresql-client
-          node backend/scripts/collect-production-recovery-point.js
-
-      - name: Collect live production session-isolation evidence (no rebind)
-        if: ${{ github.ref == 'refs/heads/main' }}
-        env:
-          OPSC_OWNER_DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          OPSC_PRODUCTION_HTTP_BASE: https://opscore-platform.vercel.app
-          OPSC_PRODUCTION_NEON_BRANCH_ID: br-proud-salad-bcshhdap
-          GITHUB_SHA: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-          sudo apt-get update -qq
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq postgresql-client
-          node backend/scripts/collect-production-session-isolation.js
 
       - name: Resolve production isolation certification from behavioral evidence
         id: isolation_cert
