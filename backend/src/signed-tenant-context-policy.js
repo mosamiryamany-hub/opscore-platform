@@ -84,8 +84,8 @@ function isSignedTenantContextRouteDefinition(method, route, operation) {
   // This prevents a self-consistent but unsupported manifest from certifying
   // routes that never enter the signed transaction wrappers.
   const concretePath = inventoryPath
-    .replace(/\\{[^/]+\\}/g, 'signed-route-id')
-    .replace(/\\(\\\\d\\+\\)/g, '0');
+    .replace(/\{[^/]+\}/g, 'signed-route-id')
+    .replace(/\(\\d\+\)/g, '0');
   if (concretePath.includes('{') || concretePath.includes('}')) return false;
   const req = { method: normalizedMethod, url: concretePath };
   const env = {
