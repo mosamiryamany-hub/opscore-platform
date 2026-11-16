@@ -20,8 +20,31 @@ function setVisible(id,visible=true){const el=$(id.startsWith('#')?id:`#${id}`);
 function showAuth(id){['#setupPanel','#loginPanel'].forEach(x=>setVisible(x,false)); setVisible(id,true); $(id).scrollIntoView({behavior:'smooth',block:'center'});}
 function setMsg(id,msg){$(id).textContent=msg||'';}
 
-function applyUiLocale(mode){const rtl=mode==='ar';document.documentElement.dir=rtl?'rtl':'ltr';document.documentElement.lang=rtl?'ar':'en';document.documentElement.dataset.locale=rtl?'ar':'en';const b=$('#rtlToggle');if(b)b.textContent=rtl?'English / LTR':'العربية / RTL';}
-(function(){const saved=localStorage.getItem('opscore_locale');const preferred=saved||((navigator.language||'').toLowerCase().startsWith('ar')?'ar':'en');applyUiLocale(preferred);const b=$('#rtlToggle');if(b)b.onclick=()=>{const next=document.documentElement.dataset.locale==='ar'?'en':'ar';localStorage.setItem('opscore_locale',next);applyUiLocale(next);};})();
+function applyUiLocale(mode){
+  // Prefer the shared i18n loader (all languages + machine-translation notice) when present.
+  if (window.OpsCoreI18n && typeof window.OpsCoreI18n.setLocale === 'function') {
+    window.OpsCoreI18n.setLocale(mode);
+    return;
+  }
+  const rtl = mode === 'ar';
+  document.documentElement.dir = rtl ? 'rtl' : 'ltr';
+  document.documentElement.lang = rtl ? 'ar' : 'en';
+  document.documentElement.dataset.locale = rtl ? 'ar' : 'en';
+  const b = $('#rtlToggle');
+  if (b) b.textContent = rtl ? 'English / LTR' : 'العربية / RTL';
+}
+(function () {
+  if (document.getElementById('interfaceLanguageSelect') && window.OpsCoreI18n) return;
+  const saved = localStorage.getItem('opscore_locale');
+  const preferred = saved || ((navigator.language || '').toLowerCase().startsWith('ar') ? 'ar' : 'en');
+  applyUiLocale(preferred);
+  const b = $('#rtlToggle');
+  if (b) b.onclick = () => {
+    const next = document.documentElement.dataset.locale === 'ar' ? 'en' : 'ar';
+    localStorage.setItem('opscore_locale', next);
+    applyUiLocale(next);
+  };
+})();
 ['openSetup','heroSetup'].forEach(id=>{const el=$(`#${id}`);if(el)el.onclick=()=>showAuth('#setupPanel')});
 ['openLogin','heroLogin'].forEach(id=>{const el=$(`#${id}`);if(el)el.onclick=()=>showAuth('#loginPanel')});
 $$('[data-close]').forEach(b=>b.onclick=()=>setVisible(`#${b.dataset.close}`,false));
