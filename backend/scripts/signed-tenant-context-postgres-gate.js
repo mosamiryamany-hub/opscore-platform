@@ -1789,6 +1789,86 @@ async function main() {
     signedSessionAutobindHttpProof.appointmentRescheduleMemberDenied = 'PASS';
     signedSessionAutobindHttpProof.appointmentRescheduleDenialNoMutation = 'PASS';
 
+
+    // Positive reschedule path: elevate only the disposable Tenant B membership
+    // for this one HTTP call, then restore and verify the original member role.
+    // The separate member-denial test above remains a distinct assertion.
+    const managerRescheduleKey = 'signed-context-appointment-manager-reschedule-' + keyId;
+    synthetic.idempotencyKeys.push(managerRescheduleKey);
+    const memberRoleBeforeReschedule = await owner.query(
+      'SELECT role FROM public.memberships WHERE user_id=$1 AND organization_id=$2',
+      [userB, tenantB]
+    );
+    if (memberRoleBeforeReschedule.rows[0]?.role !== 'member') {
+      throw new Error('SIGNED_CONTEXT_APPOINTMENT_MANAGER_FIXTURE_ROLE_NOT_MEMBER:' + JSON.stringify({
+        role: memberRoleBeforeReschedule.rows[0]?.role || null
+      }));
+    }
+    const promoteResult = await owner.query(
+      "UPDATE public.memberships SET role='manager' WHERE user_id=$1 AND organization_id=$2 AND role='member'",
+      [userB, tenantB]
+    );
+    if (promoteResult.rowCount !== 1) {
+      throw new Error('SIGNED_CONTEXT_APPOINTMENT_MANAGER_TEMPORARY_PROMOTION_FAILED:' + JSON.stringify({
+        rowCount: promoteResult.rowCount
+      }));
+    }
+    let managerRescheduleResponse = null;
+    let roleRestoreResult = null;
+    try {
+      const managerStartAt = new Date(appointmentBase + 300 * 60 * 1000).toISOString();
+      const managerEndAt = new Date(appointmentBase + 360 * 60 * 1000).toISOString();
+      managerRescheduleResponse = await queryHttp(
+        port,
+        '/api/v1/appointments/' + encodeURIComponent(createAppointmentB.body.id) + '/reschedule',
+        tokenB,
+        {
+          method: 'POST',
+          headers: { 'idempotency-key': managerRescheduleKey },
+          body: {
+            reason: 'CI manager-authorized reschedule',
+            startAt: managerStartAt,
+            endAt: managerEndAt
+          }
+        }
+      );
+      if (managerRescheduleResponse.status !== 200
+          || managerRescheduleResponse.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+          || managerRescheduleResponse.body?.auditStatus !== 'persisted'
+          || managerRescheduleResponse.body?.reason !== 'CI manager-authorized reschedule'
+          || managerRescheduleResponse.body?.appointment?.id !== createAppointmentB.body.id
+          || managerRescheduleResponse.body?.appointment?.organization_id !== tenantB
+          || managerRescheduleResponse.body?.appointment?.work_order_id !== synthetic.workOrderIds[1]
+          || managerRescheduleResponse.body?.appointment?.technician_id !== userB
+          || managerRescheduleResponse.body?.appointment?.status !== 'confirmed'
+          || managerRescheduleResponse.body?.appointment?.start_at !== managerStartAt
+          || managerRescheduleResponse.body?.appointment?.end_at !== managerEndAt) {
+        throw new Error('SIGNED_CONTEXT_APPOINTMENT_MANAGER_RESCHEDULE_FAILED:' + JSON.stringify({
+          status: managerRescheduleResponse.status,
+          body: managerRescheduleResponse.body,
+          signedHeader: managerRescheduleResponse.headers?.['x-opscore-signed-tenant-context'] || null
+        }));
+      }
+      signedSessionAutobindHttpProof.appointmentRescheduleManagerTenantB = 'PASS';
+      signedSessionAutobindHttpProof.appointmentRescheduleAuditPersistedTenantB = 'PASS';
+    } finally {
+      roleRestoreResult = await owner.query(
+        "UPDATE public.memberships SET role='member' WHERE user_id=$1 AND organization_id=$2 AND role='manager'",
+        [userB, tenantB]
+      );
+      const restoredRole = await owner.query(
+        'SELECT role FROM public.memberships WHERE user_id=$1 AND organization_id=$2',
+        [userB, tenantB]
+      );
+      if (roleRestoreResult.rowCount !== 1 || restoredRole.rows[0]?.role !== 'member') {
+        throw new Error('SIGNED_CONTEXT_APPOINTMENT_MANAGER_FIXTURE_ROLE_RESTORE_FAILED:' + JSON.stringify({
+          updateCount: roleRestoreResult.rowCount,
+          role: restoredRole.rows[0]?.role || null
+        }));
+      }
+      signedSessionAutobindHttpProof.appointmentRescheduleManagerRoleRestored = 'PASS';
+    }
+
     const onWayA = await queryHttp(
       port,
       '/api/v1/appointments/' + encodeURIComponent(createAppointmentA.body.id) + '/on-my-way',
