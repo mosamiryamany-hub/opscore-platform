@@ -8,7 +8,7 @@ const backendRoot = path.resolve(__dirname, '..');
 const script = `
 const { createPostgresPool } = require('./src/adapters/postgres');
 const pool = createPostgresPool({ connectionString: 'postgresql://user:pass@127.0.0.1:5432/opscore_ssl_policy_test?sslmode=verify-full&sslrootcert=%2Ftmp%2Flegacy-ca.pem&application_name=opscore_ssl_policy_test' });
-if (!pool.options.ssl || pool.options.ssl.rejectUnauthorized !== true) {
+if (!pool.options.ssl || pool.options.ssl.rejectUnauthorized !== true || pool.options.ssl.ca !== process.env.OPSC_PG_CA_CERT) {
   process.stderr.write('POSTGRES_TLS_VERIFICATION_NOT_ENFORCED');
   process.exitCode = 9;
   pool.end().catch(() => {});
@@ -29,7 +29,7 @@ if (!pool.options.ssl || pool.options.ssl.rejectUnauthorized !== true) {
 `;
 
 function run(mode, rejectUnauthorized = 'true') {
-  const env = { ...process.env, NODE_ENV: 'production', OPSC_PG_SSL_REJECT_UNAUTHORIZED: rejectUnauthorized };
+  const env = { ...process.env, NODE_ENV: 'production', OPSC_PG_SSL_REJECT_UNAUTHORIZED: rejectUnauthorized, OPSC_PG_CA_CERT: 'TEST_CA_CERTIFICATE' };
   if (mode === null) delete env.OPSC_PG_SSL_MODE;
   else env.OPSC_PG_SSL_MODE = mode;
   delete env.NODE_OPTIONS;
