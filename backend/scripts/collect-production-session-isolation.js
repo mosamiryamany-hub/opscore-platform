@@ -136,6 +136,8 @@ async function main() {
   const httpUrl = new URL(httpBase);
   if (httpUrl.protocol !== 'https:' || httpUrl.hostname !== 'opscore-platform.vercel.app') throw new Error('PRODUCTION_HTTP_ORIGIN_NOT_APPROVED');
   const parentBranchId = target.branchId;
+  const pipelineId = String(process.env.GITHUB_RUN_ID || '').trim();
+  if (!/^[1-9][0-9]{0,14}$/.test(pipelineId)) throw new Error('SOURCE_PIPELINE_ID_REQUIRED');
 
   const stamp = Date.now().toString(36) + crypto.randomBytes(4).toString('hex');
   const password = 'OpsCore-Probe-' + crypto.randomBytes(18).toString('hex') + '-x';
@@ -314,6 +316,7 @@ async function main() {
     cleanup: { status: checks.cleanupComplete, details: cleanupDetails, retainedAuditPrincipalsDisabled: true },
     note: 'Live HTTP probes tested both tenant principals, own asset creation/read, own asset event write, cross-tenant asset read denial, cross-tenant event write denial confirmed by unchanged database row count, unauthenticated denial, and verified fixture cleanup. Users are disabled and probe organizations retained under archived names to keep immutable audit actor references resolvable. No evidence rebind.',
     sourceCommitHint: commit,
+    pipelineId,
     parentBranchId,
     evidenceClass: 'PRODUCTION_DUAL_TENANT_HTTP'
   };
