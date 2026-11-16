@@ -114,10 +114,10 @@ let supportedCodes = [];
 let registryCodes = [];
 let localeCodes = [];
 
-round('01_INVENTORY_AND_JSON_INTEGRITY', '114 locale files parse without duplicate keys', () => {
+round('01_INVENTORY_AND_JSON_INTEGRITY', '105 locale files parse without duplicate keys', () => {
   localeFiles = fs.readdirSync(localeDir).filter(x => x.endsWith('.json') && x !== 'manifest.json').sort();
   localeCodes = localeFiles.map(x => x.slice(0, -5)).sort();
-  assert(localeFiles.length === 114, 'LOCALE_FILE_COUNT=' + localeFiles.length);
+  assert(localeFiles.length === 105, 'LOCALE_FILE_COUNT=' + localeFiles.length);
   assert(new Set(localeCodes).size === localeCodes.length, 'DUPLICATE_LOCALE_FILENAME');
   const duplicateKeys = [];
   for (const file of localeFiles) {
@@ -172,7 +172,7 @@ round('03_REGISTRY_AND_PROVENANCE_ALIGNMENT', 'Server catalogue, loader, manifes
     if (!localeCodes.includes(code)) acc.unknownCodes = (acc.unknownCodes || 0) + 1;
     return acc;
   }, {});
-  assert(Object.keys(register.locales || {}).length === 114, 'REGISTER_LOCALE_COUNT_MISMATCH');
+  assert(Object.keys(register.locales || {}).length === 105, 'REGISTER_LOCALE_COUNT_MISMATCH');
   assert(counts.source === 1 && counts.draft_translation_pending_native_review === 109 && counts.english_fallback_pending === 4, 'PROVENANCE_COUNTS_MISMATCH=' + JSON.stringify(counts));
   assert(manifest.keyCount === 89, 'MANIFEST_KEY_COUNT=' + manifest.keyCount);
   const expectedMachine=109;
@@ -200,7 +200,7 @@ const report = {
   passedRounds: rounds.filter(x => x.status === 'PASS').length,
   failedRounds: rounds.filter(x => x.status === 'FAIL').length,
   status: rounds.length === 4 && rounds.every(x => x.status === 'PASS') ? 'PASS' : 'FAIL',
-  localeFiles: 114,
+  localeFiles: 105,
   productionQualifiedLocales: 0,
   rounds
 };

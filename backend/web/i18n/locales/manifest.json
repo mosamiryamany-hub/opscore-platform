@@ -1,11 +1,11 @@
 {
   "schemaVersion": "opscore.contact-center-i18n-manifest.v1",
-  "localeCount": 114,
+  "localeCount": 105,
   "baseLocale": "en",
   "keyCount": 89,
   "translationProvenance": "machine_assisted_draft",
   "nativeReviewStatus": "not_native_reviewed",
-  "note": "114 selectable Contact Center locales: 1 English source locale, 109 machine-assisted draft translations, and 4 explicit English-fallback locales (din, nus, pau, ch). All display a machine-translation notice. Four structural/integrity audit rounds are enforced in release CI; this is not native-speaker review. 0/114 locales are production-qualified.",
+  "note": "105 selectable Contact Center locales: 1 English source locale, 100 machine-assisted draft translations, and 4 explicit English-fallback locales (din, nus, pau, ch). All show a machine-translation notice. Nine previously flagged locales (ms, sw, hy, uz, my, ml, es, sr, te) are withdrawn from runtime selection pending linguistic remediation and native-speaker review. Four structural/integrity audit rounds do not establish linguistic approval. 0/105 locales are production-qualified.",
   "locales": [
     {
       "code": "af",
@@ -155,13 +155,6 @@
       "status": "source"
     },
     {
-      "code": "es",
-      "englishName": "Spanish",
-      "nativeName": "Español",
-      "dir": "ltr",
-      "status": "machine_draft"
-    },
-    {
       "code": "et",
       "englishName": "Estonian",
       "nativeName": "Eesti",
@@ -242,13 +235,6 @@
       "code": "hu",
       "englishName": "Hungarian",
       "nativeName": "Magyar",
-      "dir": "ltr",
-      "status": "machine_draft"
-    },
-    {
-      "code": "hy",
-      "englishName": "Armenian",
-      "nativeName": "Հայերեն",
       "dir": "ltr",
       "status": "machine_draft"
     },
@@ -393,13 +379,6 @@
       "status": "machine_draft"
     },
     {
-      "code": "ml",
-      "englishName": "Malayalam",
-      "nativeName": "മലയാളം",
-      "dir": "ltr",
-      "status": "machine_draft"
-    },
-    {
       "code": "mn",
       "englishName": "Mongolian",
       "nativeName": "Монгол",
@@ -410,20 +389,6 @@
       "code": "mr",
       "englishName": "Marathi",
       "nativeName": "मराठी",
-      "dir": "ltr",
-      "status": "machine_draft"
-    },
-    {
-      "code": "ms",
-      "englishName": "Malay",
-      "nativeName": "Bahasa Melayu",
-      "dir": "ltr",
-      "status": "machine_draft"
-    },
-    {
-      "code": "my",
-      "englishName": "Burmese",
-      "nativeName": "မြန်မာ",
       "dir": "ltr",
       "status": "machine_draft"
     },
@@ -610,13 +575,6 @@
       "status": "machine_draft"
     },
     {
-      "code": "sr",
-      "englishName": "Serbian",
-      "nativeName": "Српски",
-      "dir": "ltr",
-      "status": "machine_draft"
-    },
-    {
       "code": "ss",
       "englishName": "Swazi",
       "nativeName": "siSwati",
@@ -638,23 +596,9 @@
       "status": "machine_draft"
     },
     {
-      "code": "sw",
-      "englishName": "Swahili",
-      "nativeName": "Kiswahili",
-      "dir": "ltr",
-      "status": "machine_draft"
-    },
-    {
       "code": "ta",
       "englishName": "Tamil",
       "nativeName": "தமிழ்",
-      "dir": "ltr",
-      "status": "machine_draft"
-    },
-    {
-      "code": "te",
-      "englishName": "Telugu",
-      "nativeName": "తెలుగు",
       "dir": "ltr",
       "status": "machine_draft"
     },
@@ -740,13 +684,6 @@
       "englishName": "Urdu",
       "nativeName": "اردو",
       "dir": "rtl",
-      "status": "machine_draft"
-    },
-    {
-      "code": "uz",
-      "englishName": "Uzbek",
-      "nativeName": "Oʻzbekcha",
-      "dir": "ltr",
       "status": "machine_draft"
     },
     {

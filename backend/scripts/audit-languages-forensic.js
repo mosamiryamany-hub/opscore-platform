@@ -1,5 +1,5 @@
 'use strict';
-// Forensic audit: 114-language pack. Fails on any structural, lexical or UI defect.
+// Forensic audit: 105-language pack. Fails on any structural, lexical or UI defect.
 const fs=require('node:fs'),path=require('node:path'),cp=require('node:child_process');
 const B=path.resolve(__dirname,'..'),L=path.join(B,'web','i18n','locales');
 const CAT=require(path.join(B,'src','contact-center-languages.js'));
@@ -12,29 +12,29 @@ const ok=[];
 
 // 1. catalogue integrity
 const codes=CATALOGUE.map(x=>x.code);
-if(CATALOGUE.length!==114) fail.push(`catalogue=${CATALOGUE.length}, expected 114`);
-if(new Set(codes).size!==114) fail.push('duplicate codes in catalogue');
-else ok.push('catalogue: 114 unique codes');
+if(CATALOGUE.length!==105) fail.push(`catalogue=${CATALOGUE.length}, expected 105`);
+if(new Set(codes).size!==105) fail.push('duplicate codes in catalogue');
+else ok.push('catalogue: 105 unique codes');
 const missingMeta=CATALOGUE.filter(x=>!x.name||!x.nativeName||!['ltr','rtl'].includes(x.dir));
 if(missingMeta.length) fail.push('catalogue entries missing name/nativeName/dir: '+missingMeta.map(x=>x.code).join(','));
-else ok.push('catalogue: name+nativeName+dir present for all 114');
+else ok.push('catalogue: name+nativeName+dir present for all 105');
 
 // 2. file / manifest / loader parity
 const files=fs.readdirSync(L).filter(f=>f.endsWith('.json')&&f!=='manifest.json').map(f=>f.slice(0,-5)).sort();
 const a=files.join(','),b=[...codes].sort().join(',');
 if(a!==b) fail.push('locale files != catalogue');
-else ok.push('files: 114 locale JSON = catalogue codes');
+else ok.push('files: 105 locale JSON = catalogue codes');
 const man=rd('manifest.json');
-if(man.localeCount!==114||man.locales.length!==114) fail.push('manifest localeCount/length != 114');
-if(new Set(man.locales.map(x=>x.code)).size!==114) fail.push('manifest duplicate codes');
+if(man.localeCount!==105||man.locales.length!==105) fail.push('manifest localeCount/length != 105');
+if(new Set(man.locales.map(x=>x.code)).size!==105) fail.push('manifest duplicate codes');
 if(man.locales.some(x=>!x.nativeName||!x.nativeName.trim())) fail.push('manifest entry without nativeName');
-else ok.push('manifest: 114 entries, unique codes, nativeNames');
+else ok.push('manifest: 105 entries, unique codes, nativeNames');
 const loader=fs.readFileSync(path.join(B,'web','i18n','i18n-loader.js'),'utf8');
 const lm=/const SUPPORTED = \[([^\]]+)\]/.exec(loader);
 const loaderCodes=(lm?lm[1].match(/'([^']+)'/g):[]).map(s=>s.slice(1,-1));
-if(loaderCodes.length!==114||new Set(loaderCodes).size!==114) fail.push('loader SUPPORTED != 114 unique');
+if(loaderCodes.length!==105||new Set(loaderCodes).size!==105) fail.push('loader SUPPORTED != 105 unique');
 if(loaderCodes.slice().sort().join(',')!==b) fail.push('loader codes != catalogue');
-else ok.push('loader: 114 codes aligned');
+else ok.push('loader: 105 codes aligned');
 const rtlExpected=CATALOGUE.filter(x=>x.dir==='rtl').map(x=>x.code).sort().join(',');
 const rtlFound=((/const RTL = new Set\(\[([^\]]*)\]\)/.exec(loader)||[])[1]||'').match(/'([^']+)'/g)||[];
 const rtlCodes=rtlFound.map(s=>s.slice(1,-1)).sort().join(',');
@@ -68,11 +68,11 @@ for(const code of files){
     }
   }
 }
-ok.push(`structure: 114 × ${keys.length} keys, no empties, placeholders intact`);
+ok.push(`structure: 105 × ${keys.length} keys, no empties, placeholders intact`);
 
 // 4. nativeName matches catalogue
 for(const x of CATALOGUE){ const j=rd(x.code+'.json'); if(j.nativeName!==x.nativeName) fail.push(`${x.code}: nativeName "${j.nativeName}" != catalogue "${x.nativeName}"`); }
-ok.push('nativeName: file = catalogue for all 114');
+ok.push('nativeName: file = catalogue for all 105');
 
 // 5. dead / orphan files
 const webFiles=[];(function w(d){for(const e of fs.readdirSync(d,{withFileTypes:true})){const p=path.join(d,e.name);e.isDirectory()?w(p):webFiles.push(p)}})(path.join(B,'web'));
@@ -120,4 +120,4 @@ console.log('== FORENSIC LANGUAGE-PACK AUDIT ==');
 ok.forEach(x=>console.log('PASS  '+x));
 warn.forEach(x=>console.log('WARN  '+x));
 if(fail.length){ console.log(`FAIL  ${fail.length} finding(s)`); fail.slice(0,40).forEach(x=>console.log('  - '+x)); process.exitCode=1; }
-else console.log(`\nRESULT: PASS — 114/114 locales, 0 defects`);
+else console.log(`\nRESULT: PASS — 105/105 locales, 0 defects`);

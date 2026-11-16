@@ -3,10 +3,10 @@
   "baseLocale": "en",
   "keyCount": 89,
   "dataKeyCount": 88,
-  "catalogueLanguages": 114,
+  "catalogueLanguages": 105,
   "translationProvenance": "machine_assisted_draft",
   "nativeReviewStatus": "not_native_reviewed",
-  "note": "Canonical coverage: 1 English source locale, 109 machine-assisted draft translations, 4 explicit English fallback locales. All 114 are selectable in Contact Center and show a machine-translation notice. Four structural/integrity rounds are enforced in CI; no language is native-speaker reviewed or production-qualified.",
+  "note": "Canonical coverage: 1 English source locale, 100 machine-assisted draft translations, 4 explicit English fallback locales. All 105 remaining locales are selectable in Contact Center and show a machine-translation notice. Four structural/integrity rounds are enforced in CI. None is native-speaker reviewed or production-qualified. Nine locales (ms, sw, hy, uz, my, ml, es, sr, te) were withdrawn from the supported runtime scope pending complete linguistic remediation and native-speaker review.",
   "locales": {
     "ar": {
       "englishName": "Arabic",
@@ -55,17 +55,6 @@
     "am": {
       "englishName": "Amharic",
       "nativeName": "አማርኛ",
-      "dir": "ltr",
-      "status": "draft_translation_pending_native_review",
-      "englishFallbackKeys": [],
-      "englishFallbackCount": 0,
-      "translationProvenance": "machine_assisted_draft",
-      "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true
-    },
-    "sw": {
-      "englishName": "Swahili",
-      "nativeName": "Kiswahili",
       "dir": "ltr",
       "status": "draft_translation_pending_native_review",
       "englishFallbackKeys": [],
@@ -681,17 +670,6 @@
       "nativeReviewStatus": "not_native_reviewed",
       "approvalRequired": true
     },
-    "te": {
-      "englishName": "Telugu",
-      "nativeName": "తెలుగు",
-      "dir": "ltr",
-      "status": "draft_translation_pending_native_review",
-      "englishFallbackKeys": [],
-      "englishFallbackCount": 0,
-      "translationProvenance": "machine_assisted_draft",
-      "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true
-    },
     "mr": {
       "englishName": "Marathi",
       "nativeName": "मराठी",
@@ -706,17 +684,6 @@
     "gu": {
       "englishName": "Gujarati",
       "nativeName": "ગુજરાતી",
-      "dir": "ltr",
-      "status": "draft_translation_pending_native_review",
-      "englishFallbackKeys": [],
-      "englishFallbackCount": 0,
-      "translationProvenance": "machine_assisted_draft",
-      "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true
-    },
-    "ml": {
-      "englishName": "Malayalam",
-      "nativeName": "മലയാളം",
       "dir": "ltr",
       "status": "draft_translation_pending_native_review",
       "englishFallbackKeys": [],
@@ -824,17 +791,6 @@
       "nativeReviewStatus": "not_native_reviewed",
       "approvalRequired": true
     },
-    "ms": {
-      "englishName": "Malay",
-      "nativeName": "Bahasa Melayu",
-      "dir": "ltr",
-      "status": "draft_translation_pending_native_review",
-      "englishFallbackKeys": [],
-      "englishFallbackCount": 0,
-      "translationProvenance": "machine_assisted_draft",
-      "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true
-    },
     "id": {
       "englishName": "Indonesian",
       "nativeName": "Bahasa Indonesia",
@@ -890,17 +846,6 @@
       "nativeReviewStatus": "not_native_reviewed",
       "approvalRequired": true
     },
-    "my": {
-      "englishName": "Burmese",
-      "nativeName": "မြန်မာ",
-      "dir": "ltr",
-      "status": "draft_translation_pending_native_review",
-      "englishFallbackKeys": [],
-      "englishFallbackCount": 0,
-      "translationProvenance": "machine_assisted_draft",
-      "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true
-    },
     "tl": {
       "englishName": "Tagalog",
       "nativeName": "Filipino",
@@ -915,17 +860,6 @@
     "az": {
       "englishName": "Azerbaijani",
       "nativeName": "Azərbaycan dili",
-      "dir": "ltr",
-      "status": "draft_translation_pending_native_review",
-      "englishFallbackKeys": [],
-      "englishFallbackCount": 0,
-      "translationProvenance": "machine_assisted_draft",
-      "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true
-    },
-    "hy": {
-      "englishName": "Armenian",
-      "nativeName": "Հայերեն",
       "dir": "ltr",
       "status": "draft_translation_pending_native_review",
       "englishFallbackKeys": [],
@@ -969,17 +903,6 @@
     "fr": {
       "englishName": "French",
       "nativeName": "Français",
-      "dir": "ltr",
-      "status": "draft_translation_pending_native_review",
-      "englishFallbackKeys": [],
-      "englishFallbackCount": 0,
-      "translationProvenance": "machine_assisted_draft",
-      "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true
-    },
-    "es": {
-      "englishName": "Spanish",
-      "nativeName": "Español",
       "dir": "ltr",
       "status": "draft_translation_pending_native_review",
       "englishFallbackKeys": [],
@@ -1057,17 +980,6 @@
     "sq": {
       "englishName": "Albanian",
       "nativeName": "Shqip",
-      "dir": "ltr",
-      "status": "draft_translation_pending_native_review",
-      "englishFallbackKeys": [],
-      "englishFallbackCount": 0,
-      "translationProvenance": "machine_assisted_draft",
-      "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true
-    },
-    "sr": {
-      "englishName": "Serbian",
-      "nativeName": "Српски",
       "dir": "ltr",
       "status": "draft_translation_pending_native_review",
       "englishFallbackKeys": [],
@@ -1288,17 +1200,6 @@
     "kk": {
       "englishName": "Kazakh",
       "nativeName": "Қазақ тілі",
-      "dir": "ltr",
-      "status": "draft_translation_pending_native_review",
-      "englishFallbackKeys": [],
-      "englishFallbackCount": 0,
-      "translationProvenance": "machine_assisted_draft",
-      "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true
-    },
-    "uz": {
-      "englishName": "Uzbek",
-      "nativeName": "Oʻzbekcha",
       "dir": "ltr",
       "status": "draft_translation_pending_native_review",
       "englishFallbackKeys": [],
@@ -1628,7 +1529,7 @@
       "ur"
     ],
     "englishFallbackLocales": 4,
-    "draftTranslationLocales": 109,
+    "draftTranslationLocales": 100,
     "draftTranslationLocaleCodes": [
       "af",
       "am",
@@ -1648,7 +1549,6 @@
       "de",
       "dv",
       "el",
-      "es",
       "et",
       "fa",
       "ff",
@@ -1661,7 +1561,6 @@
       "hi",
       "hr",
       "hu",
-      "hy",
       "id",
       "ig",
       "is",
@@ -1682,11 +1581,8 @@
       "mg",
       "mi",
       "mk",
-      "ml",
       "mn",
       "mr",
-      "ms",
-      "my",
       "ne",
       "nl",
       "no",
@@ -1711,13 +1607,10 @@
       "sn",
       "so",
       "sq",
-      "sr",
       "ss",
       "st",
       "sv",
-      "sw",
       "ta",
-      "te",
       "tg",
       "th",
       "ti",
@@ -1730,7 +1623,6 @@
       "ts",
       "uk",
       "ur",
-      "uz",
       "ve",
       "vi",
       "wo",
@@ -1740,8 +1632,8 @@
       "zh",
       "zu"
     ],
-    "catalogue": 114,
-    "machineDrafted": 109,
+    "catalogue": 105,
+    "machineDrafted": 100,
     "untranslated": 4,
     "productionQualified": 0
   },
@@ -1751,7 +1643,7 @@
     "status": "REQUIRES_CURRENT_CI_REPORT",
     "resultPath": "backend/docs/verification/I18N_FORENSIC_AUDIT_RESULT.json",
     "roundsDescription": [
-      "all 114 locale files: strict JSON and duplicate-key integrity",
+      "all 105 locale files: strict JSON and duplicate-key integrity",
       "exact 89-key parity, non-empty string leaves, and placeholder parity",
       "server catalogue, loader allow-list, manifest, and provenance-register reconciliation",
       "visible notice wiring, script order, textContent rendering, and no innerHTML assignment"
@@ -1761,5 +1653,61 @@
       "speech recognition/synthesis qualification",
       "production certification"
     ]
-  }
+  },
+  "withdrawnLocales": [
+    {
+      "code": "ms",
+      "englishName": "Malay",
+      "status": "withdrawn_pending_native_review",
+      "finding": "No decisive semantic defect confirmed in the inspected high-risk sample. Withdrawn to enforce the requested 105-locale release scope; native-speaker review remains outstanding."
+    },
+    {
+      "code": "sw",
+      "englishName": "Swahili",
+      "status": "withdrawn_pending_native_review",
+      "finding": "Confirmed meaning defects in customer.eyebrow, customer.consentText, customer.setupHint, queue.description, boundaries.automateTitle and boundaries.humanBody; examples include a mistranslated customer-experience label and a queue state rendered as a sliding action."
+    },
+    {
+      "code": "hy",
+      "englishName": "Armenian",
+      "status": "withdrawn_pending_native_review",
+      "finding": "messages.qualificationNotice confuses speech accent/emphasis and escalation with acceleration; complete 89-key native review is still required."
+    },
+    {
+      "code": "uz",
+      "englishName": "Uzbek",
+      "status": "withdrawn_pending_native_review",
+      "finding": "messages.qualificationNotice uses a strengthening term for escalation; boundaries.humanBody renders critical risk as decisive risk."
+    },
+    {
+      "code": "my",
+      "englishName": "Burmese",
+      "status": "withdrawn_pending_native_review",
+      "finding": "messages.qualificationNotice renders speech accent as voice position and escalation as level-up testing; operational meaning is not reliable."
+    },
+    {
+      "code": "ml",
+      "englishName": "Malayalam",
+      "status": "withdrawn_pending_native_review",
+      "finding": "messages.qualificationNotice renders accent as pronunciation rather than accent/dialect qualification; full native-speaker review remains outstanding."
+    },
+    {
+      "code": "es",
+      "englishName": "Spanish",
+      "status": "withdrawn_pending_native_review",
+      "finding": "No decisive semantic defect confirmed in the inspected high-risk sample. Withdrawn to enforce the requested 105-locale release scope; native-speaker review remains outstanding."
+    },
+    {
+      "code": "sr",
+      "englishName": "Serbian",
+      "status": "withdrawn_pending_native_review",
+      "finding": "AI provider is translated as an artificial supplier in customer consent/setup text; a spelling error and mixed Latin/Cyrillic text also occur in qualification notice."
+    },
+    {
+      "code": "te",
+      "englishName": "Telugu",
+      "status": "withdrawn_pending_native_review",
+      "finding": "messages.qualificationNotice renders accent as pronunciation; speech-quality meaning needs native-speaker correction and review."
+    }
+  ]
 }

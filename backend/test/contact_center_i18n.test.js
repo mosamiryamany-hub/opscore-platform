@@ -95,7 +95,7 @@ test('browser locale detection, RTL, translations, placeholder substitution and 
   assert.equal(harness.staticNode.textContent,'مركز الاتصال بالذكاء الاصطناعي');
   assert.match(harness.dynamicNode.textContent,/MISSING_KEY/);
   assert.equal(harness.placeholderNode.getAttribute('placeholder'),'اكتب رسالة…');
-  assert.equal(harness.picker.children.length,114);
+  assert.equal(harness.picker.children.length,105);
   assert.equal(harness.picker.value,'ar');
   assert.ok(harness.picker.children.some(option=>option.value==='ar' && option.textContent.includes('العربية')));
 });
@@ -153,9 +153,9 @@ test('BCP-47 browser tags map onto package locale codes (zh-CN, zh-TW, fil, nb, 
   }
 });
 
-test('every one of the 114 locales loads, carries a localized machine notice or declared English notice, and sets direction', async () => {
+test('every one of the 105 locales loads, carries a localized machine notice or declared English notice, and sets direction', async () => {
   const manifest = JSON.parse(fs.readFileSync(path.join(localeRoot, 'manifest.json'), 'utf8'));
-  assert.equal(manifest.locales.length, 114);
+  assert.equal(manifest.locales.length, 105);
   for (const entry of manifest.locales) {
     const harness = makeHarness({ languages: ['en-US'] });
     await harness.window.OpsCoreI18n.ready;
