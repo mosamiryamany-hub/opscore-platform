@@ -25,7 +25,8 @@ test('pull requests run the verification job without invoking the production dep
   assert.match(verifyHeader, /github\.event_name == 'pull_request' \|\| github\.ref == 'refs\/heads\/main'/);
   const deployHeader = deploy.slice(0, deploy.indexOf('      - uses: actions/checkout'));
   assert.match(deployHeader, /needs: \[verify, postgres-acceptance\]/);
-  assert.match(deployHeader, /github\.event_name == 'workflow_dispatch' && github\.ref == 'refs\/heads\/main'/);\n  assert.match(deployHeader, /confirm_production_deployment == 'I_AUTHORIZE_PRODUCTION_DEPLOYMENT'/);
+  assert.match(deployHeader, /github\.event_name == 'workflow_dispatch' && github\.ref == 'refs\/heads\/main'/);
+  assert.match(deployHeader, /confirm_production_deployment == 'I_AUTHORIZE_PRODUCTION_DEPLOYMENT'/);
   const acceptanceStart = workflow.indexOf('  postgres-acceptance:' + String.fromCharCode(10));
   const acceptanceEnd = workflow.indexOf('  deploy:' + String.fromCharCode(10), acceptanceStart);
   assert.ok(acceptanceStart >= 0 && acceptanceEnd > acceptanceStart);
