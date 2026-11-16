@@ -1,6 +1,6 @@
 # Buyer residuals (explicit — not seller-certified)
 
-These items are **out of seller certification** for the current commercial close. Include or exclude them explicitly in each signed License Schedule.
+These items are **out of seller certification** for the current commercial close. Include or exclude them explicitly in each signed License Schedule. A future buyer-specific License Schedule is a transaction document, not a seller-side release or marketing residual; it is prepared only after a prospective buyer is identified and must be executed before that buyer receives licensed rights or delivery.
 
 | Residual | Status | Notes |
 |---|---|---|
@@ -12,7 +12,6 @@ These items are **out of seller certification** for the current commercial close
 | Production 67-route signed-session HTTP matrix | REMAINING_ENGINEERING | Preview/CI partial coverage only; not a Production signed-route certificate |
 | Dual-tenant Preview HTTP for `/api/v1/assets` under SSO | REMAINING_OPS | Requires Protection Bypass or auth policy change |
 | Buyer-environment isolation certification | NOT_ESTABLISHED | Seller-reference CERTIFIED does not transfer |
-| First signed License Schedule | REMAINING_COMMERCIAL | Template: `docs/commercial/LICENSE_SCHEDULE_TEMPLATE.md` |
 
 ## Official product stance on languages
 
