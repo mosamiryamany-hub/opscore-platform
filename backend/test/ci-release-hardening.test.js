@@ -64,13 +64,13 @@ test('acceptance database validation requires one exact allowlisted host and dat
   assert.throws(() => validatePostgresAcceptanceTarget({ urlText, expectedHost: '' }), /OPSC_PG_ACCEPTANCE_HOST_REQUIRED/);
 });
 
-test('production Vercel deploy is main-only, waits on the mobile high-severity audit, and embeds run identity', () => {
+test('production Vercel deploy requires explicit main dispatch, waits on mobile audit, and embeds run identity', () => {
   const workflow = read('.github/workflows/vercel-deploy.yml');
   assert.match(workflow, /verify:\s*\n\s+name: vercel-contract-verify\s*\n\s+if: github\.event_name == 'pull_request' \|\| github\.ref == 'refs\/heads\/main'/);
-  assert.match(workflow, /postgres-acceptance:\s*\n\s+name: deploy-bound-postgres-18-acceptance\s*\n\s+if: github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'\s*\n\s+uses: \.\/\.github\/workflows\/digital-twin-postgres-live\.yml/);
-  assert.match(workflow, /deploy:\s*\n\s+needs: \[verify, postgres-acceptance\]\s*\n(?:\s+#.*\n)*\s+if: github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' && vars\.OPSC_PRODUCTION_AUTODEPLOY_ENABLED == 'true'/);
+  assert.match(workflow, /postgres-acceptance:\s*\n\s+name: deploy-bound-postgres-18-acceptance\s*\n\s+if: \(github\.event_name == 'push' \|\| github\.event_name == 'workflow_dispatch'\) && github\.ref == 'refs\/heads\/main'\s*\n\s+uses: \.\/\.github\/workflows\/digital-twin-postgres-live\.yml/);
+  assert.match(workflow, /deploy:\s*\n\s+needs: \[verify, postgres-acceptance\]\s*\n(?:\s+#.*\n)*\s+if: github\.event_name == 'workflow_dispatch' && github\.ref == 'refs\/heads\/main' && github\.event\.inputs\.confirm_production_deployment == 'I_AUTHORIZE_PRODUCTION_DEPLOYMENT' && vars\.OPSC_PRODUCTION_AUTODEPLOY_ENABLED == 'true'/);
   assert.match(workflow, /OPSC_PRODUCTION_AUTODEPLOY_ENABLED == 'true'/);
-  assert.doesNotMatch(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /confirm_production_deployment:[\\s\\S]+I_AUTHORIZE_PRODUCTION_DEPLOYMENT/);
   assert.match(workflow, /working-directory: mobile\s+run: npm audit --omit=dev --audit-level=high/);
   assert.match(workflow, /node scripts\/write-vercel-release-identity\.js/);
   assert.match(workflow, /Verify Vercel output contains the current release identity/);
