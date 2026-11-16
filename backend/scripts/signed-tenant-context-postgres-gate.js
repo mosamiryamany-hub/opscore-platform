@@ -159,6 +159,7 @@ async function main() {
   const siteCleanupErrors = [];
   const geofenceCleanupErrors = [];
   const appointmentCleanupErrors = [];
+  const trailCleanupErrors = [];
   const technicianCleanupErrors = [];
   const assetCleanupErrors = [];
   let syntheticAssetEventIds = [];
@@ -174,6 +175,8 @@ async function main() {
     geofenceIds: [],
     serviceLineIds: ['tc_line_a_' + crypto.randomUUID().replace(/-/g, ''), 'tc_line_b_' + crypto.randomUUID().replace(/-/g, '')],
     appointmentIds: [],
+    trailPointIds: [],
+    trailClientEventIds: [],
     assetIds: ['tc_asset_a_' + crypto.randomUUID().replace(/-/g, ''), 'tc_asset_b_' + crypto.randomUUID().replace(/-/g, '')],
     idempotencyKeys: [],
     bulkJobIds: [],
@@ -1335,6 +1338,163 @@ async function main() {
     }
     signedSessionAutobindHttpProof.technicianAvailabilityTenantA = 'PASS';
     signedSessionAutobindHttpProof.technicianAvailabilityTenantB = 'PASS';
+
+
+    // PostgreSQL trail storage is migration-backed (069) and must be present
+    // before this signed read transaction. Exercise insert/list/GeoJSON per tenant.
+    const trailClientEventA = 'signed-context-trail-a-' + keyId;
+    const trailClientEventB = 'signed-context-trail-b-' + keyId;
+    const trailIdempotencyKeyA = 'signed-context-trail-write-a-' + keyId;
+    const trailIdempotencyKeyB = 'signed-context-trail-write-b-' + keyId;
+    synthetic.trailClientEventIds.push(trailClientEventA, trailClientEventB);
+    synthetic.idempotencyKeys.push(trailIdempotencyKeyA, trailIdempotencyKeyB);
+    const trailRecordedAtA = new Date(Date.now() + 1000).toISOString();
+    const trailRecordedAtB = new Date(Date.now() + 2000).toISOString();
+
+    const trailWriteA = await queryHttp(port, '/api/v1/technicians/trail', tokenA, {
+      method: 'POST',
+      headers: { 'idempotency-key': trailIdempotencyKeyA },
+      body: {
+        technicianId: userA,
+        latitude: 30.0444,
+        longitude: 31.2357,
+        accuracyMeters: 8,
+        recordedAt: trailRecordedAtA,
+        appointmentId: createAppointmentA.body.id,
+        workOrderId: synthetic.workOrderIds[0],
+        source: 'device',
+        clientEventId: trailClientEventA
+      }
+    });
+    if (trailWriteA.body?.point?.id) synthetic.trailPointIds.push(trailWriteA.body.point.id);
+    if (trailWriteA.status !== 201
+        || trailWriteA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || trailWriteA.body?.point?.organization_id !== tenantA
+        || trailWriteA.body?.point?.technician_id !== userA
+        || trailWriteA.body?.point?.appointment_id !== createAppointmentA.body.id
+        || trailWriteA.body?.point?.work_order_id !== synthetic.workOrderIds[0]
+        || trailWriteA.body?.point?.client_event_id !== trailClientEventA
+        || Number(trailWriteA.body?.point?.accuracy_m) !== 8) {
+      throw new Error('SIGNED_CONTEXT_TECHNICIAN_TRAIL_WRITE_TENANT_A_FAILED:' + JSON.stringify({
+        status: trailWriteA.status,
+        body: trailWriteA.body,
+        signedHeader: trailWriteA.headers?.['x-opscore-signed-tenant-context'] || null,
+        serverOutput: serverOutput.slice(-3000)
+      }));
+    }
+
+    const trailWriteB = await queryHttp(port, '/api/v1/technicians/trail', tokenB, {
+      method: 'POST',
+      headers: { 'idempotency-key': trailIdempotencyKeyB },
+      body: {
+        technicianId: userB,
+        latitude: 29.9765,
+        longitude: 31.1313,
+        accuracyMeters: 9,
+        recordedAt: trailRecordedAtB,
+        appointmentId: createAppointmentB.body.id,
+        workOrderId: synthetic.workOrderIds[1],
+        source: 'device',
+        clientEventId: trailClientEventB
+      }
+    });
+    if (trailWriteB.body?.point?.id) synthetic.trailPointIds.push(trailWriteB.body.point.id);
+    if (trailWriteB.status !== 201
+        || trailWriteB.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || trailWriteB.body?.point?.organization_id !== tenantB
+        || trailWriteB.body?.point?.technician_id !== userB
+        || trailWriteB.body?.point?.appointment_id !== createAppointmentB.body.id
+        || trailWriteB.body?.point?.work_order_id !== synthetic.workOrderIds[1]
+        || trailWriteB.body?.point?.client_event_id !== trailClientEventB
+        || Number(trailWriteB.body?.point?.accuracy_m) !== 9) {
+      throw new Error('SIGNED_CONTEXT_TECHNICIAN_TRAIL_WRITE_TENANT_B_FAILED:' + JSON.stringify({
+        status: trailWriteB.status,
+        body: trailWriteB.body,
+        signedHeader: trailWriteB.headers?.['x-opscore-signed-tenant-context'] || null,
+        serverOutput: serverOutput.slice(-3000)
+      }));
+    }
+    signedSessionAutobindHttpProof.technicianTrailWriteTenantA = 'PASS';
+    signedSessionAutobindHttpProof.technicianTrailWriteTenantB = 'PASS';
+
+    const trailReadA = await queryHttp(
+      port,
+      '/api/v1/technicians/trail?technicianId=' + encodeURIComponent(userA) + '&limit=20',
+      tokenA
+    );
+    const trailReadB = await queryHttp(
+      port,
+      '/api/v1/technicians/trail?technicianId=' + encodeURIComponent(userB) + '&limit=20',
+      tokenB
+    );
+    const crossTenantTrailReadA = await queryHttp(
+      port,
+      '/api/v1/technicians/trail?technicianId=' + encodeURIComponent(userB) + '&limit=20',
+      tokenA
+    );
+    for (const [label, response, expectedTenant, expectedUser, expectedClientEvent] of [
+      ['tenantA', trailReadA, tenantA, userA, trailClientEventA],
+      ['tenantB', trailReadB, tenantB, userB, trailClientEventB]
+    ]) {
+      if (response.status !== 200
+          || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+          || response.body?.organizationId !== expectedTenant
+          || response.body?.technicianId !== expectedUser
+          || response.body?.count !== 1
+          || !Array.isArray(response.body?.points)
+          || response.body.points[0]?.client_event_id !== expectedClientEvent
+          || response.body.points[0]?.organization_id !== expectedTenant) {
+        throw new Error('SIGNED_CONTEXT_TECHNICIAN_TRAIL_READ_TENANT_BOUNDARY_FAILED:' + JSON.stringify({
+          label, status: response.status, body: response.body
+        }));
+      }
+    }
+    if (crossTenantTrailReadA.status !== 200
+        || crossTenantTrailReadA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || crossTenantTrailReadA.body?.organizationId !== tenantA
+        || crossTenantTrailReadA.body?.technicianId !== userB
+        || crossTenantTrailReadA.body?.count !== 0
+        || crossTenantTrailReadA.body?.points?.length !== 0) {
+      throw new Error('SIGNED_CONTEXT_TECHNICIAN_TRAIL_CROSS_TENANT_READ_EXPOSED:' + JSON.stringify({
+        status: crossTenantTrailReadA.status,
+        body: crossTenantTrailReadA.body
+      }));
+    }
+    signedSessionAutobindHttpProof.technicianTrailReadTenantA = 'PASS';
+    signedSessionAutobindHttpProof.technicianTrailReadTenantB = 'PASS';
+    signedSessionAutobindHttpProof.technicianTrailCrossTenantHidden = 'PASS';
+
+    const trailGeoJsonA = await queryHttp(
+      port,
+      '/api/v1/technicians/trail.geojson?technicianId=' + encodeURIComponent(userA) + '&limit=20',
+      tokenA
+    );
+    const trailGeoJsonB = await queryHttp(
+      port,
+      '/api/v1/technicians/trail.geojson?technicianId=' + encodeURIComponent(userB) + '&limit=20',
+      tokenB
+    );
+    for (const [label, response, expectedUser, expectedCoordinates] of [
+      ['tenantA', trailGeoJsonA, userA, [31.2357, 30.0444]],
+      ['tenantB', trailGeoJsonB, userB, [31.1313, 29.9765]]
+    ]) {
+      const feature = response.body?.features?.[0];
+      if (response.status !== 200
+          || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+          || response.body?.type !== 'FeatureCollection'
+          || response.body?.count !== 1
+          || response.body?.features?.length !== 1
+          || feature?.properties?.technicianId !== expectedUser
+          || feature?.geometry?.type !== 'Point'
+          || feature?.geometry?.coordinates?.[0] !== expectedCoordinates[0]
+          || feature?.geometry?.coordinates?.[1] !== expectedCoordinates[1]) {
+        throw new Error('SIGNED_CONTEXT_TECHNICIAN_TRAIL_GEOJSON_TENANT_BOUNDARY_FAILED:' + JSON.stringify({
+          label, status: response.status, body: response.body
+        }));
+      }
+    }
+    signedSessionAutobindHttpProof.technicianTrailGeoJsonTenantA = 'PASS';
+    signedSessionAutobindHttpProof.technicianTrailGeoJsonTenantB = 'PASS';
 
 
     // Tenant-specific geofences: each shape is a real persisted Polygon row,
@@ -2907,6 +3067,34 @@ async function main() {
     try { await owner.query('DELETE FROM public.workflow_transition_log WHERE organization_id = ANY($1::text[]) AND entity_id = ANY($2::text[])', [synthetic.tenantIds, synthetic.workOrderIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.idempotency_records WHERE organization_id = ANY($1::text[]) AND idempotency_key = ANY($2::text[])', [synthetic.tenantIds, synthetic.idempotencyKeys]); } catch (_) {}
     try { await owner.query('DELETE FROM public.operation_envelopes WHERE organization_id = ANY($1::text[]) AND idempotency_key = ANY($2::text[])', [synthetic.tenantIds, synthetic.idempotencyKeys]); } catch (_) {}
+    try {
+      await owner.query(
+        'DELETE FROM public.technician_location_trail WHERE id = ANY($1::text[]) OR (organization_id = ANY($2::text[]) AND (technician_id = ANY($3::text[]) OR client_event_id = ANY($4::text[])))',
+        [synthetic.trailPointIds, synthetic.tenantIds, synthetic.userIds, synthetic.trailClientEventIds]
+      );
+    } catch (cleanupError) {
+      trailCleanupErrors.push('technician_location_trail:' + String(cleanupError.code || cleanupError.message || cleanupError));
+    }
+    try {
+      const residue = await owner.query(
+        'SELECT COUNT(*)::int AS trail_rows FROM public.technician_location_trail WHERE id = ANY($1::text[]) OR (organization_id = ANY($2::text[]) AND (technician_id = ANY($3::text[]) OR client_event_id = ANY($4::text[])))',
+        [synthetic.trailPointIds, synthetic.tenantIds, synthetic.userIds, synthetic.trailClientEventIds]
+      );
+      const remaining = Number(residue.rows[0]?.trail_rows || 0);
+      if (trailCleanupErrors.length || remaining !== 0) {
+        process.stderr.write('SIGNED_CONTEXT_TECHNICIAN_TRAIL_FIXTURE_CLEANUP_FAILED:' + JSON.stringify({
+          errors: trailCleanupErrors,
+          remaining
+        }) + '\\n');
+        process.exitCode = 1;
+      } else {
+        process.stdout.write('SIGNED_CONTEXT_TECHNICIAN_TRAIL_FIXTURE_CLEANUP=PASS\\n');
+      }
+    } catch (cleanupError) {
+      process.stderr.write('SIGNED_CONTEXT_TECHNICIAN_TRAIL_FIXTURE_CLEANUP_VERIFICATION_FAILED:' +
+        String(cleanupError.code || cleanupError.message || cleanupError).slice(0, 500) + '\\n');
+      process.exitCode = 1;
+    }
     try {
       await owner.query('DELETE FROM public.appointments WHERE id = ANY($1::text[]) OR (organization_id = ANY($2::text[]) AND work_order_id = ANY($3::text[]))', [synthetic.appointmentIds, synthetic.tenantIds, synthetic.workOrderIds]);
     } catch (cleanupError) {
