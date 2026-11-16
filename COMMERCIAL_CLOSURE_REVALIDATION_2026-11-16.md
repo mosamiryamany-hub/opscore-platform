@@ -169,6 +169,14 @@ A request to protect the Neon Production branch `br-proud-salad-bcshhdap` was re
 
 **Current decision remains HOLD.** PR #163's passing CI does not create the absent 67-route signed-tenant Production proof, PITR/RPO/RTO, WAF block enforcement, paid-plan entitlements, buyer artifacts, or signed commercial rights.
 
+### Latest Production and Firewall read-back
+
+After the PR #163 merge was rejected:
+- The latest Vercel Production deployment is still `dpl_Hy9ymDff1oChGpBAxmAjr4cfwyyG`, `READY`, source SHA `4017497068defa9c1d0761fcb07bc746925e002a`. No PR #163 deployment was created or promoted.
+- Neon Production branch `br-proud-salad-bcshhdap` remains primary/default and `protected=false`; a protect attempt failed with HTTP 422 due to the current plan's protected-branch limit.
+- Vercel Firewall remains version 3, last config update `2026-11-13T11:22:17.693Z`; Generic, RCE, SQLi, XSS, Bot, and the login rate-limit observation remain `log`.
+- The live Vercel active-attack status endpoint returned `anomalies: []` for its default last-day window. This reports no active anomaly records in that response; it is not proof that blocking has no false positives or that the logged rules have been validated in deny mode. No WAF action was changed.
+
 ## Gate ledger
 
 | Gate | Status | Evidence / blocking condition |
