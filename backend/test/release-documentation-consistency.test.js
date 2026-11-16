@@ -277,7 +277,7 @@ test('current-facing release documents do not pin superseded candidate identitie
   for (const doc of sourceDocs) {
     assert.doesNotMatch(doc, supersededIdentity);
     assert.doesNotMatch(doc, withdrawnLicenseGrant);
-    assert.match(doc, /NO LICENSE GRANT|NO COMMERCIAL DISTRIBUTION/i);
+    assert.match(doc, /NO LICENSE GRANT|NO BUYER LICENSE GRANT|NO COMMERCIAL DISTRIBUTION/i);
   }
 });
 
@@ -333,6 +333,6 @@ test('seller offer may be marketed before buyer identification while buyer right
   assert.doesNotMatch(closeout, /- \[ \] First signed License Schedule with a named buyer/i);
 
   const gate = read('backend/scripts/release-hardening-gate.js');
-  assert.match(gate, /does not grant a buyer any rights/i);
+  assert.match(gate, /do not grant a buyer any rights/i);
   assert.match(gate, /pins the exact deliverable/i);
 });
