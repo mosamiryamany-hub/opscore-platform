@@ -93,17 +93,20 @@ test('Production release flags fail closed when isolation evidence is not certif
   assert.match(deploy, /OPSC_PRODUCTION_HOLD: releaseVerified \? 'false' : 'true'/);
 });
 
-test('Production release flags fail closed in both evidence publication and build environments', () => {
-  const publish = step('Publish acceptance evidence hash to Vercel production env');
-  const build = step('Build Vercel output');
+test('Production environment is not mutated before current-commit evidence and isolation certification pass', () => {
   const earlyGate = step('Require current-commit production evidence before creating staged deployment');
-  assert.match(publish, /OPSC_RELEASE_VERIFIED:\s*behavioralPass\(\)\s*\?\s*'true'\s*:\s*'false'/);
-  assert.doesNotMatch(publish, /OPSC_RELEASE_VERIFIED:\s*'true'/);
-  assert.match(build, /steps\.isolation_cert\.outputs\.certified == 'CERTIFIED'/);
-  assert.match(build, /steps\.isolation_cert\.outputs\.behavioral == 'true'/);
+  const publish = step('Publish release identity and certification env after evidence validation');
+  const build = step('Build Vercel output');
+  assert.doesNotMatch(deploy, /Publish acceptance evidence hash to Vercel production env/);
+  assert.ok(deploy.indexOf(earlyGate) < deploy.indexOf(publish));
   assert.match(earlyGate, /PRODUCTION_ACCEPTANCE_EVIDENCE_MISSING_OR_INVALID/);
   assert.match(earlyGate, /PRODUCTION_ISOLATION_NOT_CERTIFIED/);
   assert.match(earlyGate, /PRODUCTION_BEHAVIORAL_EVIDENCE_NOT_VERIFIED/);
+  assert.match(publish, /OPSC_RELEASE_VERIFIED:\s*releaseVerified\s*\?\s*'true'\s*:\s*'false'/);
+  assert.match(publish, /OPSC_PRODUCTION_HOLD:\s*releaseVerified\s*\?\s*'false'\s*:\s*'true'/);
+  assert.match(build, /steps\.isolation_cert\.outputs\.certified == 'CERTIFIED'/);
+  assert.match(build, /steps\.isolation_cert\.outputs\.behavioral == 'true'/);
+  assert.ok(deploy.indexOf(publish) < deploy.indexOf(build));
   assert.ok(deploy.indexOf(earlyGate) < deploy.indexOf(step('Create staged production deployment without changing the live domain')));
 });
 
@@ -120,17 +123,18 @@ test('Runtime diagnostic requires explicit read-only zero-write and full product
 });
 
 
-test('Production promotion requires exact 67-route signed-session coverage, not only the narrower asset probes', () => {
-  const publish = step('Publish acceptance evidence hash to Vercel production env');
+test('Production promotion requires exact 67-route signed-session evidence before any Vercel environment mutation', () => {
   const certification = step('Resolve production isolation certification from behavioral evidence');
+  const earlyGate = step('Require current-commit production evidence before creating staged deployment');
+  const publish = step('Publish release identity and certification env after evidence validation');
   const proof = fs.readFileSync(path.join(__dirname, '..', 'src', 'release-proof.js'), 'utf8');
-  assert.ok(publish.includes('SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE.json'));
   assert.ok(certification.includes('SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE.json'));
-  assert.ok(publish.includes('routeRows.length === 67'));
   assert.ok(certification.includes('routeRows.length === 67'));
-  assert.ok(publish.includes('session.pipelineId'));
-  assert.ok(publish.includes('recovery.pipelineId'));
+  assert.ok(certification.includes('session.pipelineId'));
+  assert.ok(certification.includes('recovery.pipelineId'));
   assert.ok(proof.includes('readProductionSignedTenantRouteCoverageEvidence'));
   assert.ok(proof.includes("productionIsolationCertification === 'CERTIFIED'"));
   assert.ok(!proof.includes("'NOT_CERTIFIED', 'CERTIFIED'"));
+  assert.ok(deploy.indexOf(certification) < deploy.indexOf(earlyGate));
+  assert.ok(deploy.indexOf(earlyGate) < deploy.indexOf(publish));
 });
