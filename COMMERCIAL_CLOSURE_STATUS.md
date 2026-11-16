@@ -2,9 +2,11 @@
 
 **Technical classification (seller-reference, git-stored evidence):** `NOT_VERIFIED` — repository copies of `PRODUCTION_SESSION_ISOLATION.json` / `PRODUCTION_RECOVERY_POINT.json` that still carry `evidenceRebind` with `probesReexecuted=false` must not be cited as certification of the live tip.
 
-**Commercial license status:** **NO LICENSE GRANT** by default. All rights reserved by the **rights holder**. Commercial sales require a **signed** License Schedule under `docs/commercial/LICENSE_FRAMEWORK.md` (tiers: Use / Use+Modify / Use+Modify+Distribute). **No list prices** in-repo; terms negotiated per buyer with the rights holder.
+**Seller offer status:** **OPEN FOR MARKETING AND COMMERCIAL NEGOTIATION.** A named buyer or buyer-signed License Schedule is not a prerequisite to prepare, publish, present, or negotiate the offer. No buyer commitment is implied.
 
-**Distribution status:** **HOLD** until a Schedule is **signed** by the rights holder and the named buyer for a pinned deliverable (source commit and/or package digest). Evaluation or delivery without a Schedule is not authorized by this repository.
+**License grant status:** **NO LICENSE GRANT** by default. All rights remain reserved by the rights holder until a transaction-specific License Schedule is executed by both the rights holder and the named buyer and pins the exact deliverable (source commit and/or package digest). The schedule is a per-transaction closing document, not a seller launch/marketing gate. No list prices are stored in-repo; commercial terms are negotiated per buyer.
+
+**Delivery / use status:** **NOT AUTHORIZED before the applicable License Schedule is fully executed.** Do not treat an offer, listing, demonstration, technical report, public repository, or release artifact as a grant of rights. Delivery must be limited to the artifact and rights recorded in the signed Schedule.
 
 ## Live deployment pointer (not a license)
 
@@ -24,20 +26,20 @@ Template: `docs/commercial/LICENSE_SCHEDULE_TEMPLATE.md`.
 
 See `docs/BUYER_RESIDUALS.md`. Summary:
 
-- Mobile store artifacts — REMAINING_BUYER  
-- Native translation review — REMAINING_BUYER (UI: all languages + machine-translation notice)  
-- Licensed street map — REMAINING_BUYER  
-- Neon capacity / multi-day PITR / extra protected branches — plan upgrade (Launch+)  
-- 67-route Production signed-session matrix — REMAINING_ENGINEERING  
+- Mobile store artifacts — REMAINING_BUYER
+- Native translation review — REMAINING_BUYER (UI: all languages + machine-translation notice)
+- Licensed street map — REMAINING_BUYER
+- Neon capacity / multi-day PITR / extra protected branches — paid-plan dependency
+- 67-route Production signed-session matrix — REMAINING_ENGINEERING
 - Mobile dependency remediation notes: `security/mobile-dependency-remediation-2026-11-01`
 
 ## Deploy policy (post PR #170 / #171)
 
-- Production deploy requires explicit `workflow_dispatch` confirmation input and owner enable flag (not automatic on push).  
+- Production deploy requires explicit `workflow_dispatch` confirmation input and owner enable flag (not automatic on push).
 - Vercel Git: main excluded from automatic production; previews allowed for other branches when the project is linked.
 
 ## Engineering honesty
 
-- Seller-reference proofs do not transfer to the buyer environment.  
-- Branch-point recovery is not full PITR/RPO/RTO certification.  
+- Seller-reference proofs do not transfer to the buyer environment.
+- Branch-point recovery is not full PITR/RPO/RTO certification.
 - Do not report seller-reference production isolation from rebind-era git JSON as verified.
