@@ -64,7 +64,6 @@ test('no-license grant is enforced across first-party package files and release 
   assert.deepEqual(licenseFiles, []);
   assert.match(notice, /NO LICENSE GRANT/);
   assert.match(notice, /seller-side activities do not grant a buyer any rights/i);
-  assert.match(notice, /seller-side activities do not grant a buyer any rights/i);
   assert.match(notice, /before a buyer is identified/i);
   assert.match(notice, /until the rights holder and that named buyer execute\s+a\s+written License Schedule/i);
   assert.match(notice, /pins the exact deliverable/i);
