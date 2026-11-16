@@ -307,6 +307,7 @@ async function main() {
       OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_WRITE_ENABLED: 'true',
       OPSC_SIGNED_TENANT_CONTEXT_ASSETS_READ_ENABLED: 'true',
       OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_READ_ENABLED: 'true',
+      OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_WRITE_ENABLED: 'true',
       OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED: 'true',
       OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_TAMPER_TEST: 'true',
       OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_TAMPER_TEST: 'true',
@@ -391,6 +392,136 @@ async function main() {
     signedSessionAutobindHttpProof.sitesTenantB = 'PASS';
     signedSessionAutobindHttpProof.sitesCustomerJoinTenantScoped = 'PASS';
     signedSessionAutobindHttpProof.sitesRawGucTamperingIgnored = 'PASS';
+
+
+    // Test signed POST/PATCH site routes for both tenants, including cross-tenant
+    // write denial. The CI-only worker probe also forges legacy GUC values.
+    const createSiteA = await queryHttp(port, '/api/v1/sites', tokenA, {
+      method: 'POST',
+      body: {
+        name: 'Signed Context Created Site A',
+        customerId: synthetic.customerIds[0],
+        organizationId: tenantB
+      }
+    });
+    if (createSiteA.body?.id) synthetic.siteIds.push(createSiteA.body.id);
+    if (createSiteA.status !== 201
+        || createSiteA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || createSiteA.body?.organization_id !== tenantA
+        || createSiteA.body?.customer_id !== synthetic.customerIds[0]
+        || createSiteA.body?.name !== 'Signed Context Created Site A') {
+      throw new Error('SIGNED_CONTEXT_SITES_CREATE_TENANT_A_FAILED:' + JSON.stringify({
+        status: createSiteA.status,
+        body: createSiteA.body,
+        signedHeader: createSiteA.headers?.['x-opscore-signed-tenant-context'] || null,
+        serverOutput: serverOutput.slice(-3000)
+      }));
+    }
+
+    const createSiteB = await queryHttp(port, '/api/v1/sites', tokenB, {
+      method: 'POST',
+      body: {
+        name: 'Signed Context Created Site B',
+        customerId: synthetic.customerIds[1],
+        organizationId: tenantA
+      }
+    });
+    if (createSiteB.body?.id) synthetic.siteIds.push(createSiteB.body.id);
+    if (createSiteB.status !== 201
+        || createSiteB.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || createSiteB.body?.organization_id !== tenantB
+        || createSiteB.body?.customer_id !== synthetic.customerIds[1]
+        || createSiteB.body?.name !== 'Signed Context Created Site B') {
+      throw new Error('SIGNED_CONTEXT_SITES_CREATE_TENANT_B_FAILED:' + JSON.stringify({
+        status: createSiteB.status,
+        body: createSiteB.body,
+        signedHeader: createSiteB.headers?.['x-opscore-signed-tenant-context'] || null,
+        serverOutput: serverOutput.slice(-3000)
+      }));
+    }
+    signedSessionAutobindHttpProof.sitesCreateTenantA = 'PASS';
+    signedSessionAutobindHttpProof.sitesCreateTenantB = 'PASS';
+    signedSessionAutobindHttpProof.sitesCreateIgnoresClientTenantClaim = 'PASS';
+
+    // A valid Tenant A session knows the foreign ID but cannot update Tenant B's row.
+    const foreignSitePatch = await queryHttp(
+      port,
+      '/api/v1/sites/' + encodeURIComponent(createSiteB.body.id),
+      tokenA,
+      { method: 'PATCH', body: { name: 'FORGED-CROSS-TENANT-SITE-UPDATE' } }
+    );
+    if (foreignSitePatch.status !== 404
+        || foreignSitePatch.body?.error?.code !== 'NOT_FOUND'
+        || foreignSitePatch.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_SITES_CROSS_TENANT_UPDATE_NOT_DENIED:' + JSON.stringify({
+        status: foreignSitePatch.status,
+        body: foreignSitePatch.body,
+        signedHeader: foreignSitePatch.headers?.['x-opscore-signed-tenant-context'] || null
+      }));
+    }
+    signedSessionAutobindHttpProof.sitesCrossTenantUpdateDenied = 'PASS';
+
+    const updateSiteA = await queryHttp(
+      port,
+      '/api/v1/sites/' + encodeURIComponent(createSiteA.body.id),
+      tokenA,
+      { method: 'PATCH', body: { name: 'Signed Context Updated Site A', address: 'Tenant A verified update' } }
+    );
+    const updateSiteB = await queryHttp(
+      port,
+      '/api/v1/sites/' + encodeURIComponent(createSiteB.body.id),
+      tokenB,
+      { method: 'PATCH', body: { name: 'Signed Context Updated Site B', address: 'Tenant B verified update' } }
+    );
+    for (const [label, response, expectedId, expectedTenant, expectedName, expectedAddress] of [
+      ['tenantA', updateSiteA, createSiteA.body.id, tenantA, 'Signed Context Updated Site A', 'Tenant A verified update'],
+      ['tenantB', updateSiteB, createSiteB.body.id, tenantB, 'Signed Context Updated Site B', 'Tenant B verified update']
+    ]) {
+      if (response.status !== 200
+          || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+          || response.body?.id !== expectedId
+          || response.body?.organization_id !== expectedTenant
+          || response.body?.name !== expectedName
+          || response.body?.address !== expectedAddress) {
+        throw new Error('SIGNED_CONTEXT_SITES_UPDATE_TENANT_BOUNDARY_FAILED:' + JSON.stringify({
+          label,
+          status: response.status,
+          body: response.body,
+          signedHeader: response.headers?.['x-opscore-signed-tenant-context'] || null,
+          serverOutput: serverOutput.slice(-3000)
+        }));
+      }
+    }
+    signedSessionAutobindHttpProof.sitesUpdateTenantA = 'PASS';
+    signedSessionAutobindHttpProof.sitesUpdateTenantB = 'PASS';
+
+    // Verify the writes are visible to their owner only after the update transactions.
+    const sitesAfterWriteA = await queryHttp(port, '/api/v1/sites', tokenA);
+    const sitesAfterWriteB = await queryHttp(port, '/api/v1/sites', tokenB);
+    for (const [label, response, ownTenant, ownSiteId, foreignSiteId, updatedName] of [
+      ['tenantA', sitesAfterWriteA, tenantA, createSiteA.body.id, createSiteB.body.id, 'Signed Context Updated Site A'],
+      ['tenantB', sitesAfterWriteB, tenantB, createSiteB.body.id, createSiteA.body.id, 'Signed Context Updated Site B']
+    ]) {
+      const rows = response.body;
+      if (response.status !== 200
+          || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+          || !Array.isArray(rows)
+          || rows.length !== 2
+          || !rows.some(row => row.id === ownSiteId && row.organization_id === ownTenant && row.name === updatedName)
+          || rows.some(row => row.id === foreignSiteId || row.organization_id !== ownTenant)) {
+        throw new Error('SIGNED_CONTEXT_SITES_POST_WRITE_READ_ISOLATION_FAILED:' + JSON.stringify({
+          label,
+          status: response.status,
+          rows: Array.isArray(rows) ? rows.map(row => ({
+            id: row.id,
+            organization_id: row.organization_id,
+            name: row.name
+          })) : null,
+          serverOutput: serverOutput.slice(-3000)
+        }));
+      }
+    }
+    signedSessionAutobindHttpProof.sitesPostWriteReadIsolation = 'PASS';
 
     // Dedicated signed vertical slice outside work-orders. Each tenant's real GET
     // list operation must run in a read-only signed transaction, ignore forged raw
