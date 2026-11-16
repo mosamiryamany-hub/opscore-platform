@@ -6,6 +6,15 @@ deliverable (source commit and/or package SHA-256), no license is granted to use
 install, run, modify, copy, distribute, resell, sublicense, host, or commercially
 exploit this software or any accompanying materials.
 
+This notice grants no permission or rights, whether express or implied, to use,
+install, run, modify, copy, host, distribute, resell, sublicense, or commercially
+exploit this software except to the extent expressly granted in a fully executed
+License Schedule for the exact deliverable.
+
+No sale, delivery, redistribution, resale, sublicensing, or other commercial
+distribution is authorized until the rights holder and the named buyer have both
+signed the License Schedule for the pinned deliverable.
+
 Commercial tiers (Use / Use+Modify / Use+Modify+Distribute) are described only in
 docs/commercial/LICENSE_FRAMEWORK.md. That framework does not itself grant rights.
 Prices are not published in this repository; they are agreed per buyer in the Schedule.
