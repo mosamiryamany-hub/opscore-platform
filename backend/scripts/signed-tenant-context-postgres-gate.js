@@ -1125,7 +1125,9 @@ async function main() {
 
     // Create real appointments against the two seeded tenant-owned work orders.
     // They are intentionally separated in time to avoid unrelated resource conflicts.
-    const appointmentBase = Date.now() + 48 * 60 * 60 * 1000;
+    const appointmentDay = new Date(Date.now() + 48 * 60 * 60 * 1000);
+    appointmentDay.setUTCHours(9, 0, 0, 0);
+    const appointmentBase = appointmentDay.getTime();
     const appointmentStartA = new Date(appointmentBase).toISOString();
     const appointmentEndA = new Date(appointmentBase + 60 * 60 * 1000).toISOString();
     const appointmentStartB = new Date(appointmentBase + 3 * 60 * 60 * 1000).toISOString();
@@ -2667,14 +2669,14 @@ async function main() {
     try { await owner.query('DELETE FROM public.idempotency_records WHERE organization_id = ANY($1::text[]) AND idempotency_key = ANY($2::text[])', [synthetic.tenantIds, synthetic.idempotencyKeys]); } catch (_) {}
     try { await owner.query('DELETE FROM public.operation_envelopes WHERE organization_id = ANY($1::text[]) AND idempotency_key = ANY($2::text[])', [synthetic.tenantIds, synthetic.idempotencyKeys]); } catch (_) {}
     try {
-      await owner.query('DELETE FROM public.appointments WHERE id = ANY($1::text[])', [synthetic.appointmentIds]);
+      await owner.query('DELETE FROM public.appointments WHERE id = ANY($1::text[]) OR (organization_id = ANY($2::text[]) AND work_order_id = ANY($3::text[]))', [synthetic.appointmentIds, synthetic.tenantIds, synthetic.workOrderIds]);
     } catch (cleanupError) {
       appointmentCleanupErrors.push('appointments:' + String(cleanupError.code || cleanupError.message || cleanupError));
     }
     try {
       const residue = await owner.query(
-        'SELECT COUNT(*)::int AS appointment_rows FROM public.appointments WHERE id = ANY($1::text[])',
-        [synthetic.appointmentIds]
+        'SELECT COUNT(*)::int AS appointment_rows FROM public.appointments WHERE id = ANY($1::text[]) OR (organization_id = ANY($2::text[]) AND work_order_id = ANY($3::text[]))',
+        [synthetic.appointmentIds, synthetic.tenantIds, synthetic.workOrderIds]
       );
       const remaining = Number(residue.rows[0]?.appointment_rows || 0);
       if (appointmentCleanupErrors.length || remaining !== 0) {
