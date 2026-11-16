@@ -11,17 +11,28 @@ const server = fs.readFileSync(path.join(__dirname, '..', 'src', 'server.js'), '
 const apiInventory = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'docs', 'API_INVENTORY.json'), 'utf8'));
 
 test('signed route evidence policy is derived from actual Preview runtime allowlists', () => {
+  const readPostPaths = new Set([
+    'POST /api/v1/faults/classify',
+    'POST /api/v1/geofences/assert-access',
+    'POST /api/v1/geofences/evaluate'
+  ]);
   const covered = apiInventory.routes.filter((route) => policy.isSignedTenantContextRouteDefinition(
     route.method,
     route.route,
-    route.method === 'GET' ? 'read' : 'write'
+    route.method === 'GET' || readPostPaths.has(route.method + ' ' + route.route) ? 'read' : 'write'
   ));
-  assert.equal(covered.length, 28, 'only the 27 signed work-order/evidence inventory entries and GET /assets are presently source-covered');
+  assert.equal(covered.length, 67, '67 route inventory rows must be admitted by the real Preview runtime signed policy');
   assert.equal(policy.isSignedTenantContextRouteDefinition('GET', '/api/v1/assets', 'read'), true);
-  assert.equal(policy.isSignedTenantContextRouteDefinition('GET', '/api/v1/customers', 'read'), false);
-  assert.equal(policy.isSignedTenantContextRouteDefinition('POST', '/api/v1/work-orders/{id}', 'write'), false);
+  assert.equal(policy.isSignedTenantContextRouteDefinition('GET', '/api/v1/customers', 'read'), true);
+  assert.equal(policy.isSignedTenantContextRouteDefinition('POST', '/api/v1/faults/classify', 'read'), true);
+  assert.equal(policy.isSignedTenantContextRouteDefinition('POST', '/api/v1/geofences/evaluate', 'read'), true);
+  assert.equal(policy.isSignedTenantContextRouteDefinition('POST', '/api/v1/customers', 'write'), true);
+  assert.equal(policy.isSignedTenantContextRouteDefinition('PATCH', '/api/v1/assets/{id}', 'write'), true);
+  assert.equal(policy.isSignedTenantContextRouteDefinition('POST', '/api/v1/technicians/trail', 'write'), true);
   assert.equal(policy.isSignedTenantContextRouteDefinition('GET', '/api/v1/work-orders/{id}/evidence-package', 'read'), false);
-  assert.equal(policy.isSignedTenantContextRouteDefinition('PUT', '/api/v1/evidence-uploads/{id}/chunks/(\\d+)', 'write'), true);
+  assert.equal(policy.isSignedTenantContextRouteDefinition('POST', '/api/v1/faults/offline-sync', 'write'), false);
+  assert.equal(policy.isSignedTenantContextRouteDefinition('GET', '/api/v1/autopilot/decision-memory', 'read'), false);
+  assert.equal(policy.isSignedTenantContextRouteDefinition('PUT', '/api/v1/evidence-uploads/{id}/chunks/(\\\\d+)', 'write'), true);
 });
 
 
