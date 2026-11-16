@@ -313,9 +313,13 @@ function readProductionSignedTenantRouteCoverageEvidence(filePath = embeddedEvid
   let routeResultsValid = routes.length === 67;
 
   for (const route of routes) {
-    const method = String(route && route.method || '').toUpperCase();
-    const pathname = String(route && route.path || '');
-    const operation = String(route && route.operation || '');
+    if (!route || typeof route !== 'object' || Array.isArray(route)) {
+      routeResultsValid = false;
+      continue;
+    }
+    const method = String(route.method || '').toUpperCase();
+    const pathname = String(route.path || '');
+    const operation = String(route.operation || '');
     const key = method + ' ' + pathname;
     const commonPass = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(method)
       && pathname.startsWith('/api/')
