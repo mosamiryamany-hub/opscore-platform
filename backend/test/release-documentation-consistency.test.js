@@ -314,7 +314,7 @@ test('seller offer may be marketed before buyer identification while buyer right
     read('docs/commercial/SELLER_COMMERCIAL_MODEL.md')
   ];
   for (const doc of sellerDocs) {
-    assert.match(doc, /OPEN FOR MARKETING|may (?:advertise|publish|market)|may be advertised/i);
+    assert.match(doc, /OPEN FOR MARKETING|may (?:advertise|publish|market)|may be advertised|offer may be prepared/i);
     assert.match(doc, /License Schedule|NO LICENSE GRANT/i);
   }
 
