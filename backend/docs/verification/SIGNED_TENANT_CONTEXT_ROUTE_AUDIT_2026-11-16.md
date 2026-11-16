@@ -137,8 +137,11 @@ This is schema/role evidence only; it does not establish the Vercel Preview depl
 
 ### Verification boundary at this update
 
-The code changes are committed to the PR branch and CI was started for exact head 3126dfa36414b9e03d5995077e93d19b69eed094. The OpsCore CI, PostgreSQL 18 signed/RLS gate, and Vercel contract workflow were still running at the time of this update.
+The code changes are committed to PR #163. The final PR head 97ef3390acd9d2440f364728c1f69c021307bcc4 passed all three workflows: OpsCore CI run 43870279772 (success), PostgreSQL 18 isolated RLS/HTTP acceptance run 43870279792 (success), and Vercel contract workflow run 43870279888 (contract verification success). The Vercel workflow's deploy-bound acceptance and deploy jobs were explicitly SKIPPED, not executed. The PostgreSQL 18 job completed the real Node PostgreSQL worker signed-context gate, isolated tenant-isolation gate, real HTTP acceptance as opscore_runtime, and route isolation matrix.
 
 **Live Preview HTTP execution is not yet performed.** Access to the Vercel team scope was denied with HTTP 403 and the Vercel authorization flow returned a single-use consent link. The user must approve that team access before Preview environment metadata can be re-read and a branch-scoped Preview deployment can be initiated. No Preview environment variable was read/decrypted/changed; no Neon data or schema was changed; no Production system was touched.
 
 Therefore this is an implemented source/CI vertical-slice candidate, **not yet a successful Preview vertical slice**. Do not mark the route certified until the actual Preview deployment and route tests pass with the Preview runtime role and configured signing key.
+
+
+Follow-up verification: a Vercel deployment-history query for project opscore-platform, branch hardening/integrated-commercial-gates-20261116, target preview returned zero deployments. This confirms no live Preview deployment was created by these CI runs. A fresh Vercel team authorization request returned a single-use consent URL; the user must open and approve it before team-scoped Preview operations can continue. No team-scoped env access was forced or bypassed.
