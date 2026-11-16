@@ -3,6 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 
 const root = path.resolve(__dirname, '..');
 const collector = fs.readFileSync(path.join(root, 'scripts', 'collect-production-session-isolation.js'), 'utf8');
@@ -49,4 +50,20 @@ test('release certification refuses stale v1 or incomplete session-isolation evi
   assert.match(workflow, /crossTenantWriteDenied/);
   assert.match(workflow, /cleanupComplete/);
   assert.match(workflow, /session\.databaseName === 'opscore_acceptance'/);
+});
+
+
+test('production session collector obtains the owner connection for the exact configured Neon branch and database', () => {
+  assert.match(collector, /connection_uri\\?'+query/);
+  assert.match(collector, /branch_id: branchId/);
+  assert.match(collector, /database_name: databaseName/);
+  assert.match(collector, /role_name: roleName/);
+  assert.doesNotMatch(collector, /OPSC_OWNER_DATABASE_URL/);
+  assert.doesNotMatch(collector, /process\\.env\\.DATABASE_URL/);
+});
+
+test('production session collector parses as a Node.js program', () => {
+  const file = path.join(root, 'scripts', 'collect-production-session-isolation.js');
+  const result = spawnSync(process.execPath, ['--check', file], { encoding: 'utf8', timeout: 10000 });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
 });
