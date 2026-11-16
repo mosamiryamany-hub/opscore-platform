@@ -103,6 +103,21 @@ A manual snapshot and a branch-clone row-count comparison do not establish sched
 - The login observation rule `rule_ops_core_auth_endpoint_rate_limit_observation_Q1ONsO` is configured as rate-limit with exceed action `log`; it does not prove an effective blocking rate limit.
 - The protected release verification endpoint returned `login_required` to the unauthenticated fetch. No bypass, SSO, domain, deployment, or Firewall configuration was changed.
 
+## Additional read-only Production SQL security audit
+
+Target: Neon project `summer-leaf-18448271`, Production branch `br-proud-salad-bcshhdap`, database `opscore_acceptance`.
+
+- `public` contains 135 non-partitioned base tables; 134 have both RLS and FORCE RLS. The only exception is `public.spatial_ref_sys`.
+- Eleven `SECURITY DEFINER` functions were found in `public`; all eleven are owned by `neondb_owner`. None is owned by `opscore_auth_definer`.
+- `opscore_auth_definer` is `NOLOGIN`, `NOBYPASSRLS=false` in role attributes (it has `BYPASSRLS=true`), and owns zero `SECURITY DEFINER` functions in this database. It has six explicit table-grant rows across five public relations, limited to SELECT/DELETE in the queried inventory.
+- The eleven definer functions grant EXECUTE to `opscore_runtime`; none grants EXECUTE to PUBLIC. Their configured search path is `pg_catalog, public, pg_temp`. Both `opscore_runtime` and `opscore_app_least` have USAGE but not CREATE on `public`.
+- Two of the eleven functions set `row_security=off`: `opscore_attest_migration_056` and `opscore_create_password_reset_token`. Their source and caller/tenant checks need independent review; this query is not a proof of their complete call-path safety.
+- `opscore_runtime` has table-grant metadata for 136 public relations and CRUD privileges (522 grant rows). `opscore_app_least` has CRUD grant metadata for 134 public relations (536 grant rows). The role name `opscore_app_least` therefore does not, by itself, demonstrate least-privilege relation grants. Its actual production use and connection history must be established before any revoke/disable action.
+- A sample restrictive policy on `public.appointments` still references `current_setting('app.tenant_id', true)`; the general tenant-boundary guard also exists. This is not proof of an exploit, but it reinforces that the full signed-session route cutover must be independently proven rather than inferred from the presence of RLS.
+- `neondb_owner` is a login-capable BYPASSRLS role with database CREATE privilege. Its ownership of all eleven definer functions is a material privilege-concentration concern.
+
+**Decision:** this is a security-hardening gate, not a verified incident. Do not transfer function ownership, revoke relation grants, alter `opscore_app_least`, or change any Production role in this closeout pass. A dedicated definer-owner migration must first be designed and tested on an isolated PostgreSQL 18 database, with exact EXECUTE/underlying table privileges and call-path tests, then independently reviewed before any Preview rollout. Production remains untouched.
+
 ## Commercial and buyer gates
 
 The repository's `COMMERCIAL_CLOSURE_STATUS.md` and `NO_LICENSE_GRANT_NOTICE.txt` continue to state:
