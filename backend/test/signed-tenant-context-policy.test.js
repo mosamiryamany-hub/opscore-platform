@@ -45,6 +45,66 @@ const previewWrite = {
   OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_WRITE_ENABLED: 'true'
 };
 
+
+test('all 39 operational extensions route through the signed read or write transaction wrapper', () => {
+  const contracts = [
+    ["if (req.method === 'GET' && url.pathname === '/api/v1/customers')", 'sendWorkOrderRead', false],
+    ["if (req.method === 'GET' && url.pathname === '/api/v1/sites')", 'sendWorkOrderRead', false],
+    ["if (req.method === 'GET' && url.pathname === '/api/v1/appointments')", 'sendWorkOrderRead', false],
+    ["const apt = url.pathname.match", 'sendWorkOrderRead', true],
+    ["if(req.method==='GET'&&url.pathname==='/api/v1/geofences')", 'sendWorkOrderRead', false],
+    ["if (req.method === 'GET' && url.pathname === '/api/v1/technicians')", 'sendWorkOrderRead', false],
+    ["if (req.method === 'GET' && url.pathname === '/api/v1/technicians/availability')", 'sendWorkOrderRead', false],
+    ["if (req.method === 'GET' && url.pathname === '/api/v1/technicians/skills')", 'sendWorkOrderRead', false],
+    ["const gtl=url.pathname.match", 'sendWorkOrderRead', true],
+    ["if (req.method === 'GET' && url.pathname === '/api/v1/technicians/trail')", 'sendWorkOrderRead', false],
+    ["if (req.method === 'GET' && url.pathname === '/api/v1/technicians/trail.geojson')", 'sendWorkOrderRead', false],
+    ["if (req.method === 'GET' && url.pathname === '/api/v1/geofences/role-polygons')", 'sendWorkOrderRead', false],
+    ["if (req.method === 'GET' && url.pathname === '/api/v1/map/viewport')", 'sendWorkOrderRead', false],
+    ["const csl=url.pathname.match", 'sendWorkOrderRead', true],
+    ["if (req.method === 'POST' && url.pathname === '/api/v1/faults/classify')", 'sendWorkOrderRead', false],
+    ["if (req.method === 'POST' && url.pathname === '/api/v1/geofences/assert-access')", 'sendWorkOrderRead', false],
+    ["if(req.method==='POST'&&url.pathname==='/api/v1/geofences/evaluate')", 'sendWorkOrderRead', false],
+    ["if (req.method === 'POST' && url.pathname === '/api/v1/assets')", 'runSignedRouteWrite', false],
+    ["const asr = url.pathname.match", 'runSignedRouteWrite', true],
+    ["const ae = url.pathname.match", 'runSignedRouteWrite', true],
+    ["if (req.method === 'POST' && url.pathname === '/api/v1/customers')", 'runSignedRouteWrite', false],
+    ["const cur = url.pathname.match", 'runSignedRouteWrite', true],
+    ["const csl=url.pathname.match", 'runSignedRouteWrite', true],
+    ["if (req.method === 'POST' && url.pathname === '/api/v1/sites')", 'runSignedRouteWrite', false],
+    ["const sir = url.pathname.match", 'runSignedRouteWrite', true],
+    ["if (req.method === 'POST' && url.pathname === '/api/v1/faults')", 'runSignedRouteWrite', false],
+    ["const ftrans = url.pathname.match", 'runSignedRouteWrite', true],
+    ["const funr = url.pathname.match", 'runSignedRouteWrite', true],
+    ["if (req.method === 'POST' && url.pathname === '/api/v1/appointments')", 'runSignedRouteWrite', false],
+    ["if (apt && req.method === 'PATCH')", 'runSignedRouteWrite', false],
+    ["const aw = url.pathname.match", 'runSignedRouteWrite', true],
+    ["const apptReschedule = url.pathname.match", 'runSignedRouteWrite', true],
+    ["if (req.method === 'POST' && aun)", 'runSignedRouteWrite', false],
+    ["if(req.method==='POST'&&url.pathname==='/api/v1/geofences')", 'runSignedRouteWrite', false],
+    ["const gta=url.pathname.match", 'runSignedRouteWrite', true],
+    ["if(req.method==='POST'&&url.pathname==='/api/v1/geofences/dynamic-events')", 'runSignedRouteWrite', false],
+    ["if (req.method === 'POST' && url.pathname === '/api/v1/technicians')", 'runSignedRouteWrite', false],
+    ["if (req.method === 'POST' && url.pathname === '/api/v1/technicians/skills')", 'runSignedRouteWrite', false],
+    ["if (req.method === 'POST' && url.pathname === '/api/v1/technicians/trail')", 'runSignedRouteWrite', false]
+  ];
+
+  const sectionAfter = (anchor, isDynamic) => {
+    const start = server.indexOf(anchor);
+    assert.notEqual(start, -1, 'missing route source anchor: ' + anchor);
+    const next = isDynamic
+      ? server.indexOf('\n  const ', start + anchor.length)
+      : server.indexOf('\n  if ', start + anchor.length);
+    return server.slice(start, next < 0 ? Math.min(server.length, start + 2600) : next);
+  };
+
+  assert.equal(contracts.length, 39);
+  for (const [anchor, wrapper, isDynamic] of contracts) {
+    const section = sectionAfter(anchor, isDynamic);
+    assert.ok(section.includes(wrapper), anchor + ' must use ' + wrapper);
+  }
+});
+
 test('signed work-order GET allowlist remains Preview-only and method-specific', () => {
   assert.equal(policy.signedWorkOrdersReadEnabled({ method: 'GET', url: '/api/v1/work-orders' }, previewRead), true);
   assert.equal(policy.signedWorkOrdersReadEnabled({ method: 'GET', url: '/api/v1/work-orders/wo_123/timeline' }, previewRead), true);
