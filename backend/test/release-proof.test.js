@@ -668,7 +668,7 @@ test('functionalApiRouteAcceptance flips to PASS_CONTRACT_SCOPE only with commit
 
 
 
-test('Production signed-session route validator binds every result to the approved inventory and manifest', () => {
+test('Production signed-session route validator rejects structurally consistent manifests without runtime signed-route coverage', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-production-signed-route-coverage-'));
   const file = path.join(dir, 'SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE.json');
   const manifestPath = path.join(dir, 'SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST.json');
@@ -736,7 +736,7 @@ test('Production signed-session route validator binds every result to the approv
     fs.writeFileSync(inventoryPath, inventoryBytes);
     fs.writeFileSync(manifestPath, manifestBytes);
     fs.writeFileSync(file, JSON.stringify(evidence));
-    assert.equal(validate().status, 'PASS');
+    assert.equal(validate().status, 'NOT_VERIFIED', 'inventory and evidence agreement cannot certify routes absent from the runtime signed-route policy');
 
     const duplicate = { ...evidence, routes: [...routes.slice(0, 66), routes[0]] };
     fs.writeFileSync(file, JSON.stringify(duplicate));

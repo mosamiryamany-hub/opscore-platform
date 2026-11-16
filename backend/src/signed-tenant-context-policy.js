@@ -72,6 +72,36 @@ function signedTenantContextRouteError(req, env = process.env) {
     : null;
 }
 
+function isSignedTenantContextRouteDefinition(method, route, operation) {
+  const normalizedMethod = String(method || '').trim().toUpperCase();
+  const inventoryPath = String(route || '').trim();
+  if (!['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(normalizedMethod)
+      || !inventoryPath.startsWith('/api/')
+      || inventoryPath.includes('?')) return false;
+
+  // Convert API_INVENTORY's parameter templates into concrete representative
+  // paths, then ask the same Preview-only policy functions used by the server.
+  // This prevents a self-consistent but unsupported manifest from certifying
+  // routes that never enter the signed transaction wrappers.
+  const concretePath = inventoryPath
+    .replace(/\{[^/]+\}/g, 'signed-route-id')
+    .replace(/\(\\d\+\)/g, '0');
+  if (concretePath.includes('{') || concretePath.includes('}')) return false;
+  const req = { method: normalizedMethod, url: concretePath };
+  const env = {
+    VERCEL_ENV: 'preview',
+    OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_ENABLED: 'true',
+    OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_WRITE_ENABLED: 'true',
+    OPSC_SIGNED_TENANT_CONTEXT_ASSETS_READ_ENABLED: 'true'
+  };
+
+  if (operation === 'read') {
+    return signedWorkOrdersReadEnabled(req, env) || signedAssetsReadEnabled(req, env);
+  }
+  if (operation === 'write') return signedWorkOrdersWriteEnabled(req, env);
+  return false;
+}
+
 module.exports = {
   isPreview,
   signedWorkOrdersReadEnabled,
@@ -81,5 +111,6 @@ module.exports = {
   signedSessionAutobindEnabled,
   signedTenantContextRequired,
   signedContextRequested,
-  signedTenantContextRouteError
+  signedTenantContextRouteError,
+  isSignedTenantContextRouteDefinition
 };

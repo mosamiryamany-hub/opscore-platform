@@ -8,6 +8,23 @@ const path = require('node:path');
 const policy = require('../src/signed-tenant-context-policy');
 const server = fs.readFileSync(path.join(__dirname, '..', 'src', 'server.js'), 'utf8');
 
+const apiInventory = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'docs', 'API_INVENTORY.json'), 'utf8'));
+
+test('signed route evidence policy is derived from actual Preview runtime allowlists', () => {
+  const covered = apiInventory.routes.filter((route) => policy.isSignedTenantContextRouteDefinition(
+    route.method,
+    route.route,
+    route.method === 'GET' ? 'read' : 'write'
+  ));
+  assert.equal(covered.length, 28, 'only the 27 signed work-order/evidence inventory entries and GET /assets are presently source-covered');
+  assert.equal(policy.isSignedTenantContextRouteDefinition('GET', '/api/v1/assets', 'read'), true);
+  assert.equal(policy.isSignedTenantContextRouteDefinition('GET', '/api/v1/customers', 'read'), false);
+  assert.equal(policy.isSignedTenantContextRouteDefinition('POST', '/api/v1/work-orders/{id}', 'write'), false);
+  assert.equal(policy.isSignedTenantContextRouteDefinition('GET', '/api/v1/work-orders/{id}/evidence-package', 'read'), false);
+  assert.equal(policy.isSignedTenantContextRouteDefinition('PUT', '/api/v1/evidence-uploads/{id}/chunks/(\\d+)', 'write'), true);
+});
+
+
 const previewRead = {
   VERCEL_ENV: 'preview',
   OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_ENABLED: 'true'
