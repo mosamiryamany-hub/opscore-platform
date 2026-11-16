@@ -27,6 +27,25 @@ test('signed work-order GET allowlist remains Preview-only and method-specific',
   ), false);
 });
 
+test('signed assets list read is exact-path, GET-only, and Preview-only', () => {
+  const enabled = {
+    VERCEL_ENV: 'preview',
+    OPSC_SIGNED_TENANT_CONTEXT_ASSETS_READ_ENABLED: 'true'
+  };
+  assert.equal(policy.signedAssetsReadEnabled({ method: 'GET', url: '/api/v1/assets' }, enabled), true);
+  assert.equal(policy.signedAssetsReadEnabled({ method: 'POST', url: '/api/v1/assets' }, enabled), false);
+  assert.equal(policy.signedAssetsReadEnabled({ method: 'GET', url: '/api/v1/assets?limit=10' }, enabled), true);
+  assert.equal(policy.signedAssetsReadEnabled({ method: 'GET', url: '/api/v1/assets/ast_123' }, enabled), false);
+  assert.equal(policy.signedAssetsReadEnabled(
+    { method: 'GET', url: '/api/v1/assets' },
+    { ...enabled, VERCEL_ENV: 'production' }
+  ), false);
+  assert.equal(policy.signedTenantContextRouteError(
+    { method: 'GET', url: '/api/v1/assets' },
+    { ...enabled, OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'true' }
+  ), null);
+});
+
 test('signed work-order and evidence writes require the separate Preview write flag', () => {
   assert.equal(policy.signedWorkOrdersWriteEnabled({ method: 'POST', url: '/api/v1/work-orders' }, previewRead), false);
   assert.equal(policy.signedWorkOrdersWriteEnabled({ method: 'POST', url: '/api/v1/work-orders' }, previewWrite), true);
@@ -81,4 +100,5 @@ test('server checks the route gate before its legacy unsigned field-context fall
   assert.ok(guardAt >= 0, 'server must call the signed route guard');
   assert.ok(unsignedBindAt > guardAt, 'signed route guard must run before legacy unsigned field binding');
   assert.match(server, /SIGNED_TENANT_CONTEXT_ROUTE_NOT_ENABLED/);
+  assert.match(server, /if \(signedAssetsReadEnabled\(req\)\)\s*\{\s*return runSignedWorkOrdersRead\(res, c, \(\) => store\.listAssets\(c\)\);/);
 });
