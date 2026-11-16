@@ -157,6 +157,7 @@ async function main() {
   const tokenB = crypto.randomBytes(32).toString('hex');
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
   const siteCleanupErrors = [];
+  const customerCleanupErrors = [];
   const synthetic = {
     tenantIds: [tenantA, tenantB],
     userIds: [userA, userB],
@@ -361,6 +362,133 @@ async function main() {
     signedSessionAutobindHttpProof.customersTenantA = 'PASS';
     signedSessionAutobindHttpProof.customersTenantB = 'PASS';
     signedSessionAutobindHttpProof.rawGucTamperingIgnored = 'PASS';
+
+
+    // Exercise signed customer create/update routes and cross-tenant write denial.
+    const createCustomerA = await queryHttp(port, '/api/v1/customers', tokenA, {
+      method: 'POST',
+      body: {
+        name: 'Signed Context Created Customer A',
+        email: 'signed-context-created-a@customer.invalid',
+        organizationId: tenantB
+      }
+    });
+    if (createCustomerA.body?.id) synthetic.customerIds.push(createCustomerA.body.id);
+    if (createCustomerA.status !== 201
+        || createCustomerA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || createCustomerA.body?.organization_id !== tenantA
+        || createCustomerA.body?.name !== 'Signed Context Created Customer A'
+        || createCustomerA.body?.email !== 'signed-context-created-a@customer.invalid') {
+      throw new Error('SIGNED_CONTEXT_CUSTOMERS_CREATE_TENANT_A_FAILED:' + JSON.stringify({
+        status: createCustomerA.status,
+        body: createCustomerA.body,
+        signedHeader: createCustomerA.headers?.['x-opscore-signed-tenant-context'] || null,
+        serverOutput: serverOutput.slice(-3000)
+      }));
+    }
+
+    const createCustomerB = await queryHttp(port, '/api/v1/customers', tokenB, {
+      method: 'POST',
+      body: {
+        name: 'Signed Context Created Customer B',
+        email: 'signed-context-created-b@customer.invalid',
+        organizationId: tenantA
+      }
+    });
+    if (createCustomerB.body?.id) synthetic.customerIds.push(createCustomerB.body.id);
+    if (createCustomerB.status !== 201
+        || createCustomerB.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || createCustomerB.body?.organization_id !== tenantB
+        || createCustomerB.body?.name !== 'Signed Context Created Customer B'
+        || createCustomerB.body?.email !== 'signed-context-created-b@customer.invalid') {
+      throw new Error('SIGNED_CONTEXT_CUSTOMERS_CREATE_TENANT_B_FAILED:' + JSON.stringify({
+        status: createCustomerB.status,
+        body: createCustomerB.body,
+        signedHeader: createCustomerB.headers?.['x-opscore-signed-tenant-context'] || null,
+        serverOutput: serverOutput.slice(-3000)
+      }));
+    }
+    signedSessionAutobindHttpProof.customersCreateTenantA = 'PASS';
+    signedSessionAutobindHttpProof.customersCreateTenantB = 'PASS';
+    signedSessionAutobindHttpProof.customersCreateIgnoresClientTenantClaim = 'PASS';
+
+    const foreignCustomerPatch = await queryHttp(
+      port,
+      '/api/v1/customers/' + encodeURIComponent(createCustomerB.body.id),
+      tokenA,
+      { method: 'PATCH', body: { name: 'FORGED-CROSS-TENANT-CUSTOMER-UPDATE' } }
+    );
+    if (foreignCustomerPatch.status !== 404
+        || foreignCustomerPatch.body?.error?.code !== 'NOT_FOUND'
+        || foreignCustomerPatch.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_CUSTOMERS_CROSS_TENANT_UPDATE_NOT_DENIED:' + JSON.stringify({
+        status: foreignCustomerPatch.status,
+        body: foreignCustomerPatch.body,
+        signedHeader: foreignCustomerPatch.headers?.['x-opscore-signed-tenant-context'] || null
+      }));
+    }
+    signedSessionAutobindHttpProof.customersCrossTenantUpdateDenied = 'PASS';
+
+    const updateCustomerA = await queryHttp(
+      port,
+      '/api/v1/customers/' + encodeURIComponent(createCustomerA.body.id),
+      tokenA,
+      { method: 'PATCH', body: { name: 'Signed Context Updated Customer A', email: 'signed-context-updated-a@customer.invalid' } }
+    );
+    const updateCustomerB = await queryHttp(
+      port,
+      '/api/v1/customers/' + encodeURIComponent(createCustomerB.body.id),
+      tokenB,
+      { method: 'PATCH', body: { name: 'Signed Context Updated Customer B', email: 'signed-context-updated-b@customer.invalid' } }
+    );
+    for (const [label, response, expectedId, expectedTenant, expectedName, expectedEmail] of [
+      ['tenantA', updateCustomerA, createCustomerA.body.id, tenantA, 'Signed Context Updated Customer A', 'signed-context-updated-a@customer.invalid'],
+      ['tenantB', updateCustomerB, createCustomerB.body.id, tenantB, 'Signed Context Updated Customer B', 'signed-context-updated-b@customer.invalid']
+    ]) {
+      if (response.status !== 200
+          || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+          || response.body?.id !== expectedId
+          || response.body?.organization_id !== expectedTenant
+          || response.body?.name !== expectedName
+          || response.body?.email !== expectedEmail) {
+        throw new Error('SIGNED_CONTEXT_CUSTOMERS_UPDATE_TENANT_BOUNDARY_FAILED:' + JSON.stringify({
+          label,
+          status: response.status,
+          body: response.body,
+          signedHeader: response.headers?.['x-opscore-signed-tenant-context'] || null,
+          serverOutput: serverOutput.slice(-3000)
+        }));
+      }
+    }
+    signedSessionAutobindHttpProof.customersUpdateTenantA = 'PASS';
+    signedSessionAutobindHttpProof.customersUpdateTenantB = 'PASS';
+
+    const customersAfterWriteA = await queryHttp(port, '/api/v1/customers', tokenA);
+    const customersAfterWriteB = await queryHttp(port, '/api/v1/customers', tokenB);
+    for (const [label, response, ownTenant, ownCustomerId, foreignCustomerId, updatedName] of [
+      ['tenantA', customersAfterWriteA, tenantA, createCustomerA.body.id, createCustomerB.body.id, 'Signed Context Updated Customer A'],
+      ['tenantB', customersAfterWriteB, tenantB, createCustomerB.body.id, createCustomerA.body.id, 'Signed Context Updated Customer B']
+    ]) {
+      const rows = response.body;
+      if (response.status !== 200
+          || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+          || !Array.isArray(rows)
+          || rows.length !== 2
+          || !rows.some(row => row.id === ownCustomerId && row.organization_id === ownTenant && row.name === updatedName)
+          || rows.some(row => row.id === foreignCustomerId || row.organization_id !== ownTenant)) {
+        throw new Error('SIGNED_CONTEXT_CUSTOMERS_POST_WRITE_READ_ISOLATION_FAILED:' + JSON.stringify({
+          label,
+          status: response.status,
+          rows: Array.isArray(rows) ? rows.map(row => ({
+            id: row.id,
+            organization_id: row.organization_id,
+            name: row.name
+          })) : null,
+          serverOutput: serverOutput.slice(-3000)
+        }));
+      }
+    }
+    signedSessionAutobindHttpProof.customersPostWriteReadIsolation = 'PASS';
 
     // Exercise the authenticated sites list through its real signed read wrapper.
     // The response must include only the caller's site and its tenant-owned customer join.
@@ -1941,7 +2069,50 @@ async function main() {
         String(cleanupError.code || cleanupError.message || cleanupError).slice(0, 500) + '\\n');
       process.exitCode = 1;
     }
-    try { await owner.query('DELETE FROM public.customers WHERE id = ANY($1::text[])', [synthetic.customerIds]); } catch (_) {}
+    try {
+      await owner.query(
+        "DELETE FROM public.activity_log WHERE organization_id = ANY($1::text[]) AND entity_type='customer' AND entity_id = ANY($2::text[])",
+        [synthetic.tenantIds, synthetic.customerIds]
+      );
+    } catch (cleanupError) {
+      customerCleanupErrors.push('activity_log:' + String(cleanupError.code || cleanupError.message || cleanupError));
+    }
+    try {
+      await owner.query(
+        "DELETE FROM public.audit_log WHERE organization_id = ANY($1::text[]) AND resource_type='customer' AND resource_id = ANY($2::text[])",
+        [synthetic.tenantIds, synthetic.customerIds]
+      );
+    } catch (cleanupError) {
+      customerCleanupErrors.push('audit_log:' + String(cleanupError.code || cleanupError.message || cleanupError));
+    }
+    try { await owner.query('DELETE FROM public.customers WHERE id = ANY($1::text[])', [synthetic.customerIds]); }
+    catch (cleanupError) {
+      customerCleanupErrors.push('customers:' + String(cleanupError.code || cleanupError.message || cleanupError));
+    }
+    try {
+      const residue = await owner.query(
+        "SELECT " +
+        "(SELECT COUNT(*)::int FROM public.customers WHERE id = ANY($1::text[])) AS customer_rows, " +
+        "(SELECT COUNT(*)::int FROM public.activity_log WHERE organization_id = ANY($2::text[]) AND entity_type='customer' AND entity_id = ANY($1::text[])) AS activity_rows, " +
+        "(SELECT COUNT(*)::int FROM public.audit_log WHERE organization_id = ANY($2::text[]) AND resource_type='customer' AND resource_id = ANY($1::text[])) AS audit_rows",
+        [synthetic.customerIds, synthetic.tenantIds]
+      );
+      const remaining = residue.rows[0] || {};
+      if (customerCleanupErrors.length || Number(remaining.customer_rows) !== 0
+          || Number(remaining.activity_rows) !== 0 || Number(remaining.audit_rows) !== 0) {
+        process.stderr.write('SIGNED_CONTEXT_CUSTOMER_FIXTURE_CLEANUP_FAILED:' + JSON.stringify({
+          errors: customerCleanupErrors,
+          remaining
+        }) + '\\n');
+        process.exitCode = 1;
+      } else {
+        process.stdout.write('SIGNED_CONTEXT_CUSTOMER_FIXTURE_CLEANUP=PASS\\n');
+      }
+    } catch (cleanupError) {
+      process.stderr.write('SIGNED_CONTEXT_CUSTOMER_FIXTURE_CLEANUP_VERIFICATION_FAILED:' +
+        String(cleanupError.code || cleanupError.message || cleanupError).slice(0, 500) + '\\n');
+      process.exitCode = 1;
+    }
     try { await owner.query('DELETE FROM public.sessions WHERE id = ANY($1::text[])', [synthetic.sessionIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.memberships WHERE user_id = ANY($1::text[])', [synthetic.userIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.organization_governance WHERE organization_id = ANY($1::text[])', [synthetic.tenantIds]); } catch (_) {}
