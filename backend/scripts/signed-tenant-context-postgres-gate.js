@@ -156,6 +156,7 @@ async function main() {
   const tokenA = crypto.randomBytes(32).toString('hex');
   const tokenB = crypto.randomBytes(32).toString('hex');
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  const siteCleanupErrors = [];
   const synthetic = {
     tenantIds: [tenantA, tenantB],
     userIds: [userA, userB],
@@ -1896,7 +1897,50 @@ async function main() {
     try { await owner.query('DELETE FROM public.operation_envelopes WHERE organization_id = ANY($1::text[]) AND idempotency_key = ANY($2::text[])', [synthetic.tenantIds, synthetic.idempotencyKeys]); } catch (_) {}
     try { await owner.query('DELETE FROM public.work_orders WHERE id = ANY($1::text[])', [synthetic.workOrderIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.assets WHERE id = ANY($1::text[])', [synthetic.assetIds]); } catch (_) {}
-    try { await owner.query('DELETE FROM public.sites WHERE id = ANY($1::text[])', [synthetic.siteIds]); } catch (_) {}
+    try {
+      await owner.query(
+        "DELETE FROM public.activity_log WHERE organization_id = ANY($1::text[]) AND entity_type='site' AND entity_id = ANY($2::text[])",
+        [synthetic.tenantIds, synthetic.siteIds]
+      );
+    } catch (cleanupError) {
+      siteCleanupErrors.push('activity_log:' + String(cleanupError.code || cleanupError.message || cleanupError));
+    }
+    try {
+      await owner.query(
+        "DELETE FROM public.audit_log WHERE organization_id = ANY($1::text[]) AND resource_type='site' AND resource_id = ANY($2::text[])",
+        [synthetic.tenantIds, synthetic.siteIds]
+      );
+    } catch (cleanupError) {
+      siteCleanupErrors.push('audit_log:' + String(cleanupError.code || cleanupError.message || cleanupError));
+    }
+    try { await owner.query('DELETE FROM public.sites WHERE id = ANY($1::text[])', [synthetic.siteIds]); }
+    catch (cleanupError) {
+      siteCleanupErrors.push('sites:' + String(cleanupError.code || cleanupError.message || cleanupError));
+    }
+    try {
+      const residue = await owner.query(
+        "SELECT " +
+        "(SELECT COUNT(*)::int FROM public.sites WHERE id = ANY($1::text[])) AS site_rows, " +
+        "(SELECT COUNT(*)::int FROM public.activity_log WHERE organization_id = ANY($2::text[]) AND entity_type='site' AND entity_id = ANY($1::text[])) AS activity_rows, " +
+        "(SELECT COUNT(*)::int FROM public.audit_log WHERE organization_id = ANY($2::text[]) AND resource_type='site' AND resource_id = ANY($1::text[])) AS audit_rows",
+        [synthetic.siteIds, synthetic.tenantIds]
+      );
+      const remaining = residue.rows[0] || {};
+      if (siteCleanupErrors.length || Number(remaining.site_rows) !== 0
+          || Number(remaining.activity_rows) !== 0 || Number(remaining.audit_rows) !== 0) {
+        process.stderr.write('SIGNED_CONTEXT_SITE_FIXTURE_CLEANUP_FAILED:' + JSON.stringify({
+          errors: siteCleanupErrors,
+          remaining
+        }) + '\\n');
+        process.exitCode = 1;
+      } else {
+        process.stdout.write('SIGNED_CONTEXT_SITE_FIXTURE_CLEANUP=PASS\\n');
+      }
+    } catch (cleanupError) {
+      process.stderr.write('SIGNED_CONTEXT_SITE_FIXTURE_CLEANUP_VERIFICATION_FAILED:' +
+        String(cleanupError.code || cleanupError.message || cleanupError).slice(0, 500) + '\\n');
+      process.exitCode = 1;
+    }
     try { await owner.query('DELETE FROM public.customers WHERE id = ANY($1::text[])', [synthetic.customerIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.sessions WHERE id = ANY($1::text[])', [synthetic.sessionIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.memberships WHERE user_id = ANY($1::text[])', [synthetic.userIds]); } catch (_) {}
