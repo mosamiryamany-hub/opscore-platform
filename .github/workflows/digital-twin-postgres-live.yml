@@ -25,6 +25,8 @@ on:
       - 'backend/src/server.js'
       - 'backend/src/pg-database-sync.js'
       - 'backend/src/pg-sync-worker.js'
+      - 'backend/scripts/collect-production-recovery-point.js'
+      - 'backend/scripts/collect-production-session-isolation.js'
       - 'backend/src/signed-tenant-context.js'
       - 'backend/test/pg-database-sync.test.js'
       - 'backend/test/fixtures/pg-sync-worker-mock.js'
