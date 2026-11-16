@@ -2,6 +2,7 @@
 
 **Product:** Multi-Sector Operational Source Kit — web console, HTTP API and Expo mobile source.  
 **Sale type:** source-code handoff, not a hosted SaaS subscription. Transaction price is agreed separately in writing.
+**Seller offer status:** May be advertised, presented and negotiated before a buyer is identified. A buyer signature is not a prerequisite to publish or market this offer; the transaction-specific License Schedule is executed only when a sale proceeds.
 
 ## What the source contains
 
