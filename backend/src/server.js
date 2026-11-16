@@ -12,6 +12,7 @@ const {runWithRequest} = require('./pg-database-sync');
 const {
   signedWorkOrdersReadEnabled,
   signedWorkOrdersWriteEnabled,
+  signedAssetsReadEnabled,
   signedSessionAutobindEnabled,
   signedTenantContextRouteError,
   signedContextRequested: isSignedContextRequested
@@ -3072,8 +3073,12 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
       return runSignedWorkOrderWrite(res, c, write, (record, headers) => idemJson(res, record, 201, headers));
     }).catch(e => fail(res, e));
   }
-  if (req.method === 'GET' && url.pathname === '/api/v1/assets')
+  if (req.method === 'GET' && url.pathname === '/api/v1/assets') {
+    if (signedAssetsReadEnabled(req)) {
+      return runSignedWorkOrdersRead(res, c, () => store.listAssets(c));
+    }
     return json(res, 200, store.listAssets(c));
+  }
   const ai = url.pathname.match(/^\/api\/v1\/assets\/([^/]+)\/intelligence$/);
   if (ai && req.method === 'GET')
     return json(res, 200, store.getAssetIntelligence(c, ai[1]));
