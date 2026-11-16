@@ -164,6 +164,7 @@ async function main() {
     customerIds: ['tc_customer_a_' + crypto.randomUUID().replace(/-/g, ''), 'tc_customer_b_' + crypto.randomUUID().replace(/-/g, '')],
     siteIds: ['tc_site_a_' + crypto.randomUUID().replace(/-/g, ''), 'tc_site_b_' + crypto.randomUUID().replace(/-/g, '')],
     assetIds: ['tc_asset_a_' + crypto.randomUUID().replace(/-/g, ''), 'tc_asset_b_' + crypto.randomUUID().replace(/-/g, '')],
+    serviceLineIds: ['tc_line_a_' + crypto.randomUUID().replace(/-/g, ''), 'tc_line_b_' + crypto.randomUUID().replace(/-/g, '')],
     idempotencyKeys: [],
     bulkJobIds: [],
     evidenceUploadIds: [],
@@ -221,7 +222,7 @@ async function main() {
       [userA, userA + '@tenant-context.invalid', 'not-a-password-hash', userB, userB + '@tenant-context.invalid', 'not-a-password-hash']
     );
     await owner.query(
-      'INSERT INTO public.memberships(user_id,organization_id,role,created_at) VALUES($1,$2,\'member\',now()::text),($3,$4,\'member\',now()::text)',
+      'INSERT INTO public.memberships(user_id,organization_id,role,created_at) VALUES($1,$2,\'manager\',now()::text),($3,$4,\'manager\',now()::text)',
       [userA, tenantA, userB, tenantB]
     );
     await owner.query(
@@ -258,6 +259,11 @@ async function main() {
       'INSERT INTO public.assets(id,organization_id,name,asset_type,external_ref,status,site_id,created_at,updated_at) VALUES($1,$2,$3,$4,NULL,$5,$6,now()::text,now()::text),($7,$8,$9,$10,NULL,$11,$12,now()::text,now()::text)',
       [synthetic.assetIds[0], tenantA, 'Signed Context Asset A', 'network_asset', 'active', synthetic.siteIds[0],
        synthetic.assetIds[1], tenantB, 'Signed Context Asset B', 'network_asset', 'active', synthetic.siteIds[1]]
+    );
+    await owner.query(
+      'INSERT INTO public.service_lines(id,organization_id,code,name,service_ref,active,created_by,created_at,updated_at) VALUES($1,$2,$3,$4,$5,1,$6,now()::text,now()::text),($7,$8,$9,$10,$11,1,$12,now()::text,now()::text)',
+      [synthetic.serviceLineIds[0], tenantA, 'TC-A-' + keyId, 'Signed Context Line A', 'tc-service-a-' + keyId, userA,
+       synthetic.serviceLineIds[1], tenantB, 'TC-B-' + keyId, 'Signed Context Line B', 'tc-service-b-' + keyId, userB]
     );
 
     // The knowledge service uses a secondary node-postgres Pool, not the main
@@ -306,6 +312,8 @@ async function main() {
       OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_ENABLED: 'true',
       OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_WRITE_ENABLED: 'true',
       OPSC_SIGNED_TENANT_CONTEXT_ASSETS_READ_ENABLED: 'true',
+      OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_READ_ENABLED: 'true',
+      OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_WRITE_ENABLED: 'true',
       OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED: 'true',
       OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_TAMPER_TEST: 'true',
       OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_TAMPER_TEST: 'true',
