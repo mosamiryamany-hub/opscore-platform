@@ -38,3 +38,25 @@ Do not report seller-reference Production isolation as certified until new dual-
 **Final commercial decision:** PENDING.  
 **Current permission to sell/distribute:** NONE.  
 **Buyer-environment certification:** NOT ESTABLISHED.
+
+
+## Live revalidation addendum — 2026-11-16
+
+The latest live cross-platform evidence is recorded in `COMMERCIAL_CLOSURE_REVALIDATION_2026-11-16.md`. The commercial decision remains **HOLD — DO NOT SELL OR DISTRIBUTE**.
+
+Key corrections and confirmations:
+- The latest Production Vercel deployment `dpl_Hy9ymDff1oChGpBAxmAjr4cfwyyG` is `READY` and uses the same SHA as `main`: `4017497068defa9c1d0761fcb07bc746925e002a`. This confirms deployment alignment only.
+- Run `43827648670` records `productionIsolationCertification=false` in the Production acceptance artifact. A later legacy workflow log line printed `ISOLATION_CERT CERTIFIED`, but its v1 evidence check did not prove the required `opscore_acceptance` database identity or signed-session route coverage.
+- The current `main` session collector hard-codes the cross-tenant write-denial result as PASS. The current recovery collector falls back across database names; the observed run selected `opscore_http_acceptance` rather than proving recovery of `opscore_acceptance`.
+- The current `main` recovery collector deleted an existing recovery branch in run `43827648670`. PR #161 removes automatic branch deletion and fails closed on capacity, but remains open and Draft.
+- PR #160 and PR #161 have successful reported pull-request CI, but both remain unmerged and have no independent review recorded. Their deployment jobs were skipped on PR events.
+- Preview has migrations 063–068; Production has migration 068 with matching checksum. Signed tenant-context variables remain Preview-only, and the required 67-route Production proof is not verified.
+- Neon automatic snapshot schedule is empty. A manual snapshot is not PITR, a scheduled backup, or measured RPO/RTO.
+- Active Vercel Firewall managed rules and the login observation rule use `log`, not blocking actions.
+- Vercel plan metadata reports `Hobby`; commercial plan suitability remains an owner/billing decision.
+
+The live revalidation intentionally does not rebind old evidence files, generate a synthetic PASS report, enable Production signed-session flags, publish Firewall changes, alter Neon roles/settings, apply migrations, or promote a deployment. Historical evidence files remain historical.
+
+The full evidence, exact identifiers, source limitations, gate-by-gate status, and prohibited claims are documented in `COMMERCIAL_CLOSURE_REVALIDATION_2026-11-16.md`.
+
+**No commercial license is granted by this addendum.** A separate written agreement approved and signed by the rights holder remains mandatory before sale, distribution, resale, sublicensing, hosting, or buyer source delivery.
