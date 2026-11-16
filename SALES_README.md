@@ -1,3 +1,4 @@
+<!-- Commercial tiers: docs/commercial/LICENSE_FRAMEWORK.md — no in-repo prices; signed Schedule required. -->
 # OpsCore v0.11.62 — Sales Package
 
 > **STATUS: INTERNAL TECHNICAL REFERENCE ONLY — NO LICENSE GRANT — NO COMMERCIAL DISTRIBUTION AUTHORIZED.**

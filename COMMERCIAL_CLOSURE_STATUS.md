@@ -1,40 +1,34 @@
 # OpsCore — Technical and Commercial Closure Status
 
-**Technical classification:** `HOLD_FOR_PRODUCTION_EVIDENCE_REVALIDATION` — current seller-reference isolation evidence is not verified for the active Production commit and Neon branch.  
-**Commercial license status:** **NO LICENSE GRANTED — COMMERCIAL MODEL PENDING**.  
-**Distribution status:** **HOLD — DO NOT SELL OR DISTRIBUTE**.
+**Technical classification (seller-reference, git-stored evidence):** `NOT_VERIFIED` — repository copies of `PRODUCTION_SESSION_ISOLATION.json` / `PRODUCTION_RECOVERY_POINT.json` that still carry `evidenceRebind` with `probesReexecuted=false` must not be cited as certification of the live tip.
 
-The exact source commit, pipeline, artifact, archive digest, SBOM, and attestation are generated per Secure Release run. This repository document deliberately avoids fixed candidate identifiers; use only the release statement and artifact from the same successful exact-head run.
+**Commercial license status:** **NO LICENSE GRANT** by default. All rights reserved by the **rights holder**. Commercial sales require a **signed** License Schedule under `docs/commercial/LICENSE_FRAMEWORK.md` (tiers: Use / Use+Modify / Use+Modify+Distribute). **No list prices** in-repo; terms negotiated per buyer with the rights holder.
 
-## Commercial rights hold
+**Distribution status:** **HOLD** until a Schedule is **signed** by the rights holder and the named buyer for a pinned deliverable (source commit and/or package digest). Evaluation or delivery without a Schedule is not authorized by this repository.
 
-The former use-only source license is withdrawn. This notice grants no right to use, install, run, inspect, modify, copy, distribute, resell, sublicense, host, or otherwise commercially exploit the source package. All rights are reserved. A future grant requires a separate written agreement approved and signed by the rights holder.
+## Live deployment pointer (not a license)
 
-The authoritative package notice is `NO_LICENSE_GRANT_NOTICE.txt`. Package metadata remains `UNLICENSED`; the package must contain no first-party `LICENSE` or `LICENCE` grant file. CI success, production deployment, archive, fingerprint, SBOM, or attestation does not create a license or imply permission to distribute.
+See `backend/docs/verification/LIVE_EVIDENCE_AUTHORITY.md`. Observe runtime proof at `GET /api/verify/release`. Buyer-environment certification remains **NOT_ESTABLISHED** for customer deployments. Runtime may report `PASS_WITH_BUYER_RESIDUALS` for the seller-operated deployment; that does not transfer certification to a buyer environment.
 
-## Seller-reference technical evidence
+## Framework (ready for any buyer type)
 
-The current stored Production session-isolation and recovery evidence is `NOT_VERIFIED`: both records contain an evidence-rebind marker with `probesReexecuted=false`, and the recovery record refers to a previous Neon branch rather than the active Production branch. The evidence commit therefore cannot certify the current deployment/database pair. Vercel Production metadata still contains certification/release values that conflict with those embedded records; treat those values as stale, not as proof.
+| Tier | Intent |
+|---|---|
+| A — Use | Operate for the buyer’s own business |
+| B — Use + Modify | Internal adaptation; no third-party distribution |
+| C — Use + Modify + Distribute | Agreed redistribution / OEM / hosted offering |
 
-Do not report seller-reference Production isolation as certified until new dual-tenant Production probes and a real recovery-point comparison are rerun against the exact current application commit and active Neon Production branch, with independent review. A `READY` Vercel deployment or successful CI run is not a substitute. Buyer environments remain NOT CERTIFIED.
+Template: `docs/commercial/LICENSE_SCHEDULE_TEMPLATE.md`.
 
-## Remaining engineering and buyer-environment work
+## Buyer residuals
 
-1. Signed tenant-context cutover remains incomplete: Preview-only signed-context work is under review; production migrations and the remaining authentication, system/background, Knowledge-pool and route-purpose paths are not yet proven end-to-end. Do not claim complete trust-boundary coverage.
-2. WAF enforcement must be proven in blocking mode; logging-only rules are not blocking protection.
-3. Neon PITR/restore must be validated with a real restore drill and measured RPO/RTO.
-4. Mobile source is included, but signed Android/iOS store artifacts, buyer-specific signing, physical-device QA, and store publication remain outstanding.
-5. Native-speaker/domain translation review remains outstanding.
-6. Licensed maps/road-routing and buyer-specific external providers, credentials, contracts, and live acceptance remain outstanding.
-7. Buyer-environment installation, migration, isolation, backup/restore, and operational acceptance remain buyer-environment gates.
+- Mobile store artifacts — REMAINING_BUYER  
+- Native translation review — REMAINING_BUYER  
+- Licensed street map — REMAINING_BUYER  
+- Mobile dependency remediation notes: `security/mobile-dependency-remediation-2026-11-01`
 
-## Release integrity
+## Engineering honesty
 
-- Every source change invalidates the previous package identity.
-- Secure Release artifacts are for internal technical verification only while the rights hold is active; they must not be distributed.
-- No archive, checksum, SBOM, or attestation overrides this rights hold.
-- Do not create a sale listing or buyer delivery until the commercial model and signed rights agreement are approved.
-
-**Final commercial decision:** PENDING.  
-**Current permission to sell/distribute:** NONE.  
-**Buyer-environment certification:** NOT ESTABLISHED.
+- Seller-reference proofs do not transfer to the buyer environment.  
+- Branch-point recovery is not full PITR/RPO/RTO certification.  
+- Do not report seller-reference production isolation from rebind-era git JSON as verified.
