@@ -288,6 +288,9 @@ jobs:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
           NEON_PROJECT_ID: summer-leaf-18448271
           OPSC_PRODUCTION_NEON_BRANCH_ID: br-proud-salad-bcshhdap
+          OPSC_PRODUCTION_DATABASE_NAME: opscore_acceptance
+          OPSC_PRODUCTION_OWNER_ROLE: neondb_owner
+          OPSC_NEON_BRANCH_LIMIT: ${{ vars.OPSC_NEON_BRANCH_LIMIT || '10' }}
           GITHUB_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
@@ -299,6 +302,10 @@ jobs:
         if: ${{ github.ref == 'refs/heads/main' }}
         env:
           OPSC_OWNER_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: summer-leaf-18448271
+          OPSC_PRODUCTION_DATABASE_NAME: opscore_acceptance
+          OPSC_PRODUCTION_OWNER_ROLE: neondb_owner
           OPSC_PRODUCTION_HTTP_BASE: https://opscore-platform.vercel.app
           OPSC_PRODUCTION_NEON_BRANCH_ID: br-proud-salad-bcshhdap
           GITHUB_SHA: ${{ github.sha }}
@@ -359,8 +366,10 @@ jobs:
                 const sourceCommitMatches = (evidence) => expectedCommit.length === 40 && String(evidence.sourceCommitHint || '').trim().toLowerCase() === expectedCommit;
                 const sourceBranchMatches = (evidence) => Boolean(expectedBranch) && String(evidence.parentBranchId || '').trim() === expectedBranch;
                 const noEvidenceRebind = (evidence) => evidence.evidenceRebind == null;
-                const sOk = session.schemaVersion === 'opscore.production-session-isolation.v1' && session.status === 'PASS' && sourceCommitMatches(session) && sourceBranchMatches(session) && noEvidenceRebind(session);
-                const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v1' && recovery.status === 'PASS' && recovery.coreTenantTablesMatch === true && Number(recovery.mismatchCount) === 0 && sourceCommitMatches(recovery) && sourceBranchMatches(recovery) && noEvidenceRebind(recovery);
+                const requiredSessionChecks = ['dualLogin','tenantPrincipalBinding','ownAssetCreate','ownAssetRead','tenantListIsolation','crossTenantAssetReadDenied','ownAssetEventWrite','crossTenantWriteDenied','unauthenticatedDenied','cleanupComplete'];
+                const sessionChecksPass = requiredSessionChecks.every(key => session.checks && session.checks[key] === 'PASS');
+                const sOk = session.schemaVersion === 'opscore.production-session-isolation.v2' && session.status === 'PASS' && session.verificationScope === 'dual-tenant-http-asset-create-read-event-write-denial-and-cleanup' && sessionChecksPass && session.databaseName === 'opscore_acceptance' && sourceCommitMatches(session) && sourceBranchMatches(session) && noEvidenceRebind(session);
+                const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v2' && recovery.status === 'PASS' && recovery.coreTenantTableRowCountsMatch === true && recovery.verificationScope === 'branch-clone-public-table-count-and-core-tenant-row-counts-only' && recovery.databaseName === 'opscore_acceptance' && Number(recovery.mismatchCount) === 0 && sourceCommitMatches(recovery) && sourceBranchMatches(recovery) && noEvidenceRebind(recovery);
                 return sOk && rOk;
               } catch { return false; }
             }
@@ -409,8 +418,10 @@ jobs:
               const sourceCommitMatches = (evidence) => expectedCommit.length === 40 && String(evidence.sourceCommitHint || '').trim().toLowerCase() === expectedCommit;
               const sourceBranchMatches = (evidence) => Boolean(expectedBranch) && String(evidence.parentBranchId || '').trim() === expectedBranch;
                 const noEvidenceRebind = (evidence) => evidence.evidenceRebind == null;
-              const sOk = session.schemaVersion === 'opscore.production-session-isolation.v1' && session.status === 'PASS' && sourceCommitMatches(session) && sourceBranchMatches(session) && noEvidenceRebind(session);
-              const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v1' && recovery.status === 'PASS' && recovery.coreTenantTablesMatch === true && Number(recovery.mismatchCount) === 0 && sourceCommitMatches(recovery) && sourceBranchMatches(recovery) && noEvidenceRebind(recovery);
+              const requiredSessionChecks = ['dualLogin','tenantPrincipalBinding','ownAssetCreate','ownAssetRead','tenantListIsolation','crossTenantAssetReadDenied','ownAssetEventWrite','crossTenantWriteDenied','unauthenticatedDenied','cleanupComplete'];
+                const sessionChecksPass = requiredSessionChecks.every(key => session.checks && session.checks[key] === 'PASS');
+                const sOk = session.schemaVersion === 'opscore.production-session-isolation.v2' && session.status === 'PASS' && session.verificationScope === 'dual-tenant-http-asset-create-read-event-write-denial-and-cleanup' && sessionChecksPass && session.databaseName === 'opscore_acceptance' && sourceCommitMatches(session) && sourceBranchMatches(session) && noEvidenceRebind(session);
+              const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v2' && recovery.status === 'PASS' && recovery.coreTenantTableRowCountsMatch === true && recovery.verificationScope === 'branch-clone-public-table-count-and-core-tenant-row-counts-only' && recovery.databaseName === 'opscore_acceptance' && Number(recovery.mismatchCount) === 0 && sourceCommitMatches(recovery) && sourceBranchMatches(recovery) && noEvidenceRebind(recovery);
               return sOk && rOk;
             } catch { return false; }
           }
