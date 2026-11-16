@@ -1,12 +1,12 @@
 # OpsCore v0.11.62 — Commercial Handoff
 
-**Status: INTERNAL TECHNICAL REFERENCE ONLY. NO LICENSE GRANT. NO SALE OR DISTRIBUTION AUTHORIZED.**
+**Seller offer status: OPEN FOR MARKETING AND NEGOTIATION BEFORE A BUYER IS IDENTIFIED.** No buyer license grant or delivery authorization exists until the transaction-specific Schedule is executed.
 
 The commercial classification `PASS_WITH_BUYER_RESIDUALS` describes technical evidence only. The source commit, workflow run, artifact ID, archive filename/size/SHA-256, SBOM and provenance attestation must be obtained from one successful exact-head Secure Release run. This document intentionally pins no candidate-specific identifiers.
 
 ## 1. Rights boundary
 
-The repository, this document, a deployment, release artifact, checksum, SBOM or attestation grants no right to access, use, install, run, inspect, copy, modify, distribute, sell, resell, sublicense, host, rent, transfer or commercially exploit OpsCore source. All rights are reserved. The former use-only source license is withdrawn. A future grant requires a separate written agreement approved and signed by the rights holder. Package metadata must remain `UNLICENSED`; no first-party `LICENSE` or `LICENCE` grant file may ship while this hold is active.
+The rights holder may advertise, list, present and negotiate the offer before a buyer is identified. This does not authorize any buyer to access, use, install, run, inspect, copy, modify, distribute, sell, resell, sublicense, host, rent, transfer or commercially exploit OpsCore source. All rights are reserved until a separate transaction-specific License Schedule is approved and executed by the rights holder and named buyer for the exact pinned deliverable. Package metadata must remain `UNLICENSED`; no first-party `LICENSE` or `LICENCE` grant file may ship while no grant exists.
 
 ## 2. Release identity and evidence
 
@@ -48,6 +48,6 @@ The seller remains responsible for fixable defects in delivered source, internal
 - Do not claim 114 human-reviewed languages.
 - Do not claim vulnerability-free dependencies.
 - Do not describe seller Production or Preview evidence as buyer-environment certification.
-- Do not distribute the archive while the rights hold is active.
+- Do not distribute or deliver the package to a buyer before the applicable License Schedule is executed.
 
-**Final commercial decision: PENDING. Current permission to sell/distribute: NONE. Buyer-environment certification: NOT ESTABLISHED.**
+**Seller-side offer: OPEN. Buyer use/license/delivery: NOT AUTHORIZED until a named-buyer Schedule is executed. Buyer-environment certification: NOT ESTABLISHED.**
