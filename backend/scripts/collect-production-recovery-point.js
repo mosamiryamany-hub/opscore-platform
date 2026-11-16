@@ -52,13 +52,29 @@ function psql(uri, sql) {
 async function main() {
   const projectId = process.env.NEON_PROJECT_ID || 'summer-leaf-18448271';
   const parentBranchId = process.env.OPSC_PRODUCTION_NEON_BRANCH_ID || 'br-proud-salad-bcshhdap';
-  const database = process.env.OPSC_PRODUCTION_DATABASE_NAME || 'neondb';
+  const database = process.env.OPSC_PRODUCTION_DATABASE_NAME || 'opscore';
   const role = process.env.OPSC_PRODUCTION_OWNER_ROLE || 'neondb_owner';
   const commit = sha();
   if (!/^[a-f0-9]{40}$/.test(commit)) throw new Error('SOURCE_COMMIT_SHA_REQUIRED');
 
-  const parentUri = await connectionUri(projectId, parentBranchId, database, role);
+  const candidateDbs = [database, 'opscore', 'neondb', 'opscore_production', 'opscore_http_acceptance'];
+  let parentUri = null;
+  let databaseName = database;
+  const tried = [];
+  for (const db of [...new Set(candidateDbs)]) {
+    tried.push(db);
+    try {
+      const u = await connectionUri(projectId, parentBranchId, db, role);
+      psql(u, "SELECT 1 FROM organizations LIMIT 1;");
+      parentUri = u; databaseName = db; break;
+    } catch (e) {
+      console.log('db_try_fail', db, String(e.message || e).slice(0, 100));
+    }
+  }
+  if (!parentUri) throw new Error('PRODUCTION_APP_DATABASE_NOT_FOUND:' + tried.join(','));
+  console.log('using_database', databaseName);
   const parentLsn = psql(parentUri, "SELECT pg_current_wal_lsn()::text;");
+
 
   // Prune prior recovery-point branches to stay under Neon branch limits.
   try {
@@ -99,7 +115,7 @@ async function main() {
     if (st === 'ready') break;
     await new Promise((r) => setTimeout(r, 3000));
   }
-  const recoveryUri = await connectionUri(projectId, recoveryBranchId, database, role);
+  const recoveryUri = await connectionUri(projectId, recoveryBranchId, databaseName, role);
 
   const coreTables = [
     'organizations', 'users', 'memberships', 'sessions', 'assets', 'sites', 'work_orders', 'customers'
