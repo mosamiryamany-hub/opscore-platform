@@ -7,13 +7,24 @@ const path = require('node:path');
 const backendRoot = path.resolve(__dirname, '..');
 const script = `
 const { createPostgresPool } = require('./src/adapters/postgres');
-const pool = createPostgresPool({ connectionString: 'postgresql://user:pass@127.0.0.1:5432/opscore_ssl_policy_test?sslmode=verify-full' });
+const pool = createPostgresPool({ connectionString: 'postgresql://user:pass@127.0.0.1:5432/opscore_ssl_policy_test?sslmode=verify-full&sslrootcert=%2Ftmp%2Flegacy-ca.pem&application_name=opscore_ssl_policy_test' });
 if (!pool.options.ssl || pool.options.ssl.rejectUnauthorized !== true) {
   process.stderr.write('POSTGRES_TLS_VERIFICATION_NOT_ENFORCED');
   process.exitCode = 9;
   pool.end().catch(() => {});
 } else {
-  pool.end().then(() => process.stdout.write('TLS_VERIFIED'));
+  const url = new URL(pool.options.connectionString);
+  if (['sslmode', 'sslcert', 'sslkey', 'sslrootcert'].some((key) => url.searchParams.has(key))) {
+    process.stderr.write('POSTGRES_URL_SSL_OPTIONS_NOT_REMOVED');
+    process.exitCode = 10;
+    pool.end().catch(() => {});
+  } else if (url.searchParams.get('application_name') !== 'opscore_ssl_policy_test') {
+    process.stderr.write('POSTGRES_CONNECTION_OPTIONS_NOT_PRESERVED');
+    process.exitCode = 11;
+    pool.end().catch(() => {});
+  } else {
+    pool.end().then(() => process.stdout.write('TLS_VERIFIED'));
+  }
 }
 `;
 
