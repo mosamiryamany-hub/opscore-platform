@@ -1,17 +1,24 @@
 # OpsCore — Technical and Commercial Closure Status
 
-**Technical classification (seller-reference, git-stored evidence):** `NOT_VERIFIED` — current repository `PRODUCTION_SESSION_ISOLATION.json` / `PRODUCTION_RECOVERY_POINT.json` still carry `evidenceRebind` with `probesReexecuted=false` and must not be cited as certification of the live tip.
+**Technical classification (seller-reference, git-stored evidence):** `NOT_VERIFIED` — repository copies of `PRODUCTION_SESSION_ISOLATION.json` / `PRODUCTION_RECOVERY_POINT.json` that still carry `evidenceRebind` with `probesReexecuted=false` must not be cited as certification of the live tip.
 
-**Commercial license status:** **NO LICENSE GRANTED — COMMERCIAL MODEL PENDING**.  
-**Distribution status:** **HOLD — DO NOT SELL OR DISTRIBUTE**.
+**Commercial license status:** **NO LICENSE GRANTED BY DEFAULT** — commercial sales use a **signed License Schedule** under `docs/commercial/LICENSE_FRAMEWORK.md` (tiers: Use / Use+Modify / Use+Modify+Distribute). **No list prices** in-repo; terms negotiated per buyer.
 
-A future commercial grant requires a separate written agreement signed by the rights holder. CI success, production deployment, package fingerprint, SBOM, or attestation does not create a license.
+**Distribution status:** **HOLD** until a Schedule is signed for a named buyer and a pinned deliverable. Evaluation or delivery without a Schedule is not authorized by this repository.
 
 ## Live deployment pointer (not a license)
 
-See `backend/docs/verification/LIVE_EVIDENCE_AUTHORITY.md` for the measured production commit identity and package fingerprint. Runtime release proof is observed at `GET /api/verify/release`. Buyer-environment certification remains **NOT_ESTABLISHED** for any customer deployment.
+See `backend/docs/verification/LIVE_EVIDENCE_AUTHORITY.md`. Observe runtime proof at `GET /api/verify/release`. Buyer-environment certification remains **NOT_ESTABLISHED** for customer deployments.
 
-Do not treat git-stored rebind-era JSON as authority for the live tip. Do not report seller-reference production isolation from those files as verified until fresh commit-and-branch-bound probes replace them in the repository tree without rebind markers.
+## Framework (ready for any buyer type)
+
+| Tier | Intent |
+|---|---|
+| A — Use | Operate for the buyer’s own business |
+| B — Use + Modify | Internal adaptation; no third-party distribution |
+| C — Use + Modify + Distribute | Agreed redistribution / OEM / hosted offering |
+
+Template: `docs/commercial/LICENSE_SCHEDULE_TEMPLATE.md`.
 
 ## Buyer residuals
 
@@ -19,11 +26,8 @@ Do not treat git-stored rebind-era JSON as authority for the live tip. Do not re
 - Native translation review — REMAINING_BUYER  
 - Licensed street map — REMAINING_BUYER  
 
-## Open ops
+## Engineering honesty
 
-1. Independent PR review culture (CODEOWNERS / second account).  
-2. Vercel commercial plan confirmation.  
-3. Neon multi-day PITR plan + branch hygiene.  
-4. Confirm Production `DATABASE_URL` database name path (diagnostics use `opscore_acceptance`).  
-5. Preview SSO policy for automation.  
-6. Signed-context route coverage gate (Preview-scoped).  
+- Seller-reference proofs do not transfer to the buyer environment.  
+- Branch-point recovery is not full PITR/RPO/RTO certification.  
+- Do not report seller-reference production isolation from rebind-era git JSON as verified.
