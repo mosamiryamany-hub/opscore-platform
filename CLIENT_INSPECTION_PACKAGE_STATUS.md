@@ -1,6 +1,6 @@
 # OpsCore v0.11.62 — Client Inspection Package Status
 
-**Status: INTERNAL TECHNICAL INSPECTION ONLY — NO LICENSE GRANT — NO DISTRIBUTION AUTHORIZED.**
+**Seller offer: MAY BE MARKETED — NO BUYER LICENSE GRANT OR DISTRIBUTION UNTIL SCHEDULE EXECUTION.**
 
 This static record does not identify a current archive. The source commit, Secure Release run, artifact ID, archive byte count/SHA-256, SBOM, attestation and test evidence must be read from one successful exact-head GitHub Actions Secure Release run. Any later source, release-tooling or package change invalidates prior candidate identity.
 
