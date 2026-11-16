@@ -56,7 +56,7 @@ check(
 check(
   'no-license-grant-notice-present',
   noLicenseNotice.includes('NO LICENSE GRANT') &&
-    /does not grant a buyer any rights/i.test(noLicenseNotice) &&
+    /do not grant a buyer any rights/i.test(noLicenseNotice) &&
     /until the rights holder and that named buyer execute a/i.test(noLicenseNotice) &&
     /pins the exact deliverable/i.test(noLicenseNotice) &&
     pkg.license === 'UNLICENSED' &&
