@@ -376,7 +376,8 @@ jobs:
               OPSC_SOURCE_COMMIT_SHA: String(process.env.GITHUB_SHA || '').toLowerCase(),
               OPSC_RELEASE_DEPLOYMENT_SOURCE: 'github-actions-cli',
               OPSC_RELEASE_PACKAGE_SHA256: String(process.env.OPSC_RELEASE_PACKAGE_SHA256 || ''),
-              OPSC_RELEASE_PACKAGE_COMMIT: String(process.env.GITHUB_SHA || '').toLowerCase()
+              OPSC_RELEASE_PACKAGE_COMMIT: String(process.env.GITHUB_SHA || '').toLowerCase(),
+              OPSC_PRODUCTION_NEON_BRANCH_ID: String(process.env.OPSC_PRODUCTION_NEON_BRANCH_ID || 'br-proud-salad-bcshhdap').trim()
             };
             console.log('ISOLATION_CERTIFICATION_TARGET', isolation);
             console.log('RELEASE_CI_IDENTITY', want.OPSC_RELEASE_CI_COMMIT, want.OPSC_RELEASE_CI_PIPELINE_ID);
@@ -483,6 +484,7 @@ jobs:
               OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: process.env.EVIDENCE_SHA,
               OPSC_PRODUCTION_ISOLATION_CERTIFICATION: process.env.ISOLATION_CERT || 'NOT_CERTIFIED',
               OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE: process.env.BEHAVIORAL === 'true' ? 'true' : 'false',
+              OPSC_PRODUCTION_NEON_BRANCH_ID: String(process.env.OPSC_PRODUCTION_NEON_BRANCH_ID || 'br-proud-salad-bcshhdap').trim(),
               OPSC_RELEASE_VERIFIED: releaseVerified ? 'true' : 'false',
               OPSC_RELEASE_CI_COMMIT: String(process.env.GITHUB_SHA || '').toLowerCase(),
               OPSC_RELEASE_CI_PIPELINE_ID: String(process.env.GITHUB_RUN_ID || ''),
