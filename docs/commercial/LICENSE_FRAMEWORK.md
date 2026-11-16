@@ -1,7 +1,8 @@
 # OpsCore — Commercial License Framework (no fixed prices)
 
 **Status:** Framework only. **No license is granted by this document alone.**  
-**Authority:** A license exists only when the rights holder and the buyer both sign a **License Schedule** that references this framework and identifies the exact deliverable (source commit and/or package SHA-256).
+**Offer publication:** The rights holder may advertise, list, present and negotiate the offer before a buyer is identified; no buyer signature is required to publish or market the offer.  
+**Authority:** A buyer license exists only when the rights holder and the named buyer both sign a **License Schedule** that references this framework and identifies the exact deliverable (source commit and/or package SHA-256). The Schedule is a transaction-closing requirement before buyer rights or delivery, not a seller marketing gate.
 
 Prices, payment terms, support level, and territory are **negotiated per buyer** and recorded only in that Schedule. This repository does not publish list prices.
 
