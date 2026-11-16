@@ -92,6 +92,30 @@ Project network settings observed: empty IP allow-list, `protected_branches_only
 
 A manual snapshot and a branch-clone row-count comparison do not establish scheduled backups, native PITR availability for a required retention window, a complete restore drill, or measured RPO/RTO. No snapshot schedule was changed and no restore was attempted.
 
+### Supplemental read-only comparison of an existing recovery branch
+
+A read-only comparison was performed against an already-existing Neon branch, without creating or deleting any branch:
+
+| Item | Production | Existing recovery branch |
+|---|---|---|
+| Branch ID | `br-proud-salad-bcshhdap` | `br-icy-mountain-bc0gzsc7` |
+| Database | `opscore_acceptance` | `opscore_acceptance` |
+| Current LSN at query time | `0/9E6ECD0` | `0/9BC32E8` |
+| Recovery branch parent | — | Production branch `br-proud-salad-bcshhdap` |
+| Recovery branch creation | — | `2026-11-16T08:01:17Z` |
+| Parent timestamp recorded by Neon | — | `2026-11-16T08:00:48Z` |
+
+The following nine core tables had matching row counts and matching ordered-content MD5 digests between Production and the existing recovery branch: `organizations`, `users`, `memberships`, `sessions`, `assets`, `sites`, `work_orders`, `customers`, and `asset_events`. The non-empty tables had these matching digests:
+- `organizations`: 2 rows, `8cd536d737882f61ddf9998eb510d167`
+- `users`: 2 rows, `3db472c866333ece3a36d5ce990a5054`
+- `memberships`: 2 rows, `ac736b25249ac6aae2a70e44dd432855`
+
+All six remaining comparisons were empty on both branches and therefore produced the same empty-set digest. This is a **partial read-only data-consistency check on nine named tables**, not a full database restore drill, not proof that every table or large object matches, and not an exact same-LSN recovery point. The differing current LSNs explicitly prevent claiming a full point-in-time match. No new branch, snapshot, migration, or database write was performed.
+
+### Neon plan and backup-schedule constraint
+
+The live project owner is on Neon `free_v3` / Free, with `history_retention_seconds=21600` (6 hours) and a 10-branch limit. Neon API documentation states automatic snapshot schedules require a paid plan; current Neon documentation caps Free history at 6 hours and Launch history at up to 7 days. Therefore a 7-day PITR target and automatic snapshot schedule require a paid-plan decision and cannot be enabled on the observed Free subscription in this pass. See [Neon snapshot schedule API](https://api-docs.neon.tech/reference/setsnapshotschedule) and [Neon history window documentation](https://neon.com/docs/postgres/backup-restore/history-window).
+
 ## Vercel deployment and Firewall
 
 - Vercel project: `opscore-platform`, project ID `prj_8jMqBt0l6OALicWSwQ3ECQTn8yPe`.
