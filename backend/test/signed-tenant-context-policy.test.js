@@ -4,6 +4,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const os = require('node:os');
+const crypto = require('node:crypto');
 
 const policy = require('../src/signed-tenant-context-policy');
 const server = fs.readFileSync(path.join(__dirname, '..', 'src', 'server.js'), 'utf8');
@@ -47,6 +49,58 @@ const previewWrite = {
   OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_WRITE_ENABLED: 'true'
 };
 
+
+
+test('67-route source manifest is inventory-bound while Production route evidence remains unverified', () => {
+  const manifestPath = path.join(__dirname, '..', 'docs', 'verification', 'SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST.json');
+  const inventoryPath = path.join(__dirname, '..', 'docs', 'API_INVENTORY.json');
+  const productionEvidencePath = path.join(__dirname, '..', 'docs', 'verification', 'SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE.json');
+  const embeddedEvidencePath = path.join(__dirname, '..', 'src', 'embedded-evidence', 'SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE.json');
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  const inventoryBytes = fs.readFileSync(inventoryPath);
+  const inventoryHash = crypto.createHash('sha256').update(inventoryBytes).digest('hex');
+
+  assert.equal(manifest.schemaVersion, 'opscore.signed-tenant-context-route-manifest.v1');
+  assert.equal(manifest.routeCount, 67);
+  assert.equal(manifest.routes.length, 67);
+  assert.equal(manifest.routeInventorySha256, inventoryHash);
+  assert.equal(manifest.sourceCommit, 'ade02bd8bcd2739ff9bc8ab6c360e761713d0d14');
+  assert.equal(new Set(manifest.routes.map((route) => route.method + ' ' + route.path)).size, 67);
+
+  for (const route of manifest.routes) {
+    const inventoryRow = apiInventory.routes.find((candidate) => candidate.method === route.method && candidate.route === route.path);
+    assert.ok(inventoryRow, route.method + ' ' + route.path + ' must exist in API inventory');
+    assert.notEqual(inventoryRow.auth, 'public', route.method + ' ' + route.path + ' must require authentication');
+    assert.ok(policy.isSignedTenantContextRouteDefinition(route.method, route.path, route.operation));
+  }
+
+  assert.equal(fs.existsSync(productionEvidencePath), false, 'no fabricated Production coverage file may be checked in');
+  assert.equal(fs.existsSync(embeddedEvidencePath), false, 'no embedded Production coverage file may be checked in');
+
+  const temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-signed-route-manifest-'));
+  try {
+    const evidencePath = path.join(temporaryDirectory, 'evidence.json');
+    fs.writeFileSync(evidencePath, JSON.stringify({
+      schemaVersion: 'opscore.signed-tenant-context-production-coverage.v1',
+      sourceCommitHint: manifest.sourceCommit,
+      pipelineId: '123456789',
+      parentBranchId: 'br-proud-salad-bcshhdap',
+      routes: []
+    }));
+    const { readProductionSignedTenantRouteCoverageEvidence } = require('../src/release-proof');
+    const result = readProductionSignedTenantRouteCoverageEvidence(evidencePath, {
+      OPSC_RELEASE_CI_COMMIT: manifest.sourceCommit,
+      OPSC_RELEASE_CI_PIPELINE_ID: '123456789',
+      OPSC_PRODUCTION_NEON_BRANCH_ID: 'br-proud-salad-bcshhdap'
+    }, manifestPath, inventoryPath);
+    assert.equal(result.manifestBound, true, 'the 67-route manifest must validate against source policy and inventory');
+    assert.equal(result.inventoryBound, true);
+    assert.equal(result.routeResultsValid, false);
+    assert.equal(result.status, 'NOT_VERIFIED', 'a source manifest alone must never certify Production');
+  } finally {
+    fs.rmSync(temporaryDirectory, { recursive: true, force: true });
+  }
+});
 
 test('all 39 operational extensions route through the signed read or write transaction wrapper', () => {
   const contracts = [
