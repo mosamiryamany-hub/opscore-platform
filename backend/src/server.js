@@ -9,6 +9,14 @@ const {assertRuntimeConfiguration} = require('./runtime-contract');
 const {openDatabase} = require('./db-open');
 const authenticatedRequestContexts = new WeakMap();
 const {runWithRequest} = require('./pg-database-sync');
+const {
+  signedWorkOrdersReadEnabled,
+  signedWorkOrdersWriteEnabled,
+  signedAssetsReadEnabled,
+  signedSessionAutobindEnabled,
+  signedTenantContextRouteError,
+  signedContextRequested: isSignedContextRequested
+} = require('./signed-tenant-context-policy');
 const { createDeploymentProof } = require('./deployment-proof');
 const { createPublicReleaseProof, readEmbeddedBuildIdentity } = require('./release-proof');
 const { readDatabaseSecurityProof } = require('./database-security-proof');
@@ -982,43 +990,6 @@ function auditSafeAi(store,c,workOrderId,out){
     throw new Error('AI_AUDIT_EVIDENCE_REQUIRED');
   }
 }
-function signedWorkOrdersReadEnabled(req) {
-  const pathname = String(req.url || '').split('?')[0];
-  const supportedReadPath = pathname === '/api/v1/work-orders'
-    || /^\/api\/v1\/work-orders\/[^/]+$/.test(pathname)
-    || /^\/api\/v1\/work-orders\/[^/]+\/(?:completion-package|timeline|handoff|operational-risk|comments|attachments|dispatch-candidates|parts|signoffs|why-blocked|changelog|verified-job-record|work-pack|completion-assurance|time-summary|first-time-right)$/.test(pathname);
-  return process.env.VERCEL_ENV === 'preview'
-    && String(process.env.OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_ENABLED || '').toLowerCase() === 'true'
-    && String(req.method || '').toUpperCase() === 'GET'
-    && supportedReadPath;
-}
-function signedWorkOrdersWriteEnabled(req) {
-  const pathname = String(req.url || '').split('?')[0];
-  const method = String(req.method || '').toUpperCase();
-  const workOrderIdPath = /^\/api\/v1\/work-orders\/[^/]+$/;
-  const supportedWritePath = (method === 'POST' && pathname === '/api/v1/work-orders')
-    || (method === 'POST' && pathname === '/api/v1/work-orders/bulk')
-    || (method === 'PATCH' && workOrderIdPath.test(pathname))
-    || (method === 'POST' && /^\/api\/v1\/work-orders\/[^/]+\/comments$/.test(pathname))
-    || (method === 'POST' && /^\/api\/v1\/work-orders\/[^/]+\/transition$/.test(pathname))
-    || (method === 'DELETE' && workOrderIdPath.test(pathname))
-    || (method === 'POST' && /^\/api\/v1\/work-orders\/[^/]+\/restore$/.test(pathname))
-    || (method === 'POST' && /^\/api\/v1\/work-orders\/[^/]+\/evidence-uploads$/.test(pathname))
-    || (method === 'PUT' && /^\/api\/v1\/evidence-uploads\/[^/]+\/chunks\/\d+$/.test(pathname))
-    || (method === 'POST' && /^\/api\/v1\/evidence-uploads\/[^/]+\/complete$/.test(pathname))
-    || (method === 'POST' && /^\/api\/v1\/work-orders\/[^/]+\/attachments$/.test(pathname));
-  return process.env.VERCEL_ENV === 'preview'
-    && String(process.env.OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_WRITE_ENABLED || '').toLowerCase() === 'true'
-    && supportedWritePath;
-}
-function signedWorkOrdersContextEnabled(req) {
-  return signedWorkOrdersReadEnabled(req) || signedWorkOrdersWriteEnabled(req);
-}
-
-function signedSessionAutobindEnabled() {
-  return process.env.VERCEL_ENV === 'preview'
-    && String(process.env.OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED || '').trim().toLowerCase() === 'true';
-}
 function runSignedWorkOrdersRead(res, c, reader, responseHeaders = {}) {
   if (c.apiKeyId || !c.sessionId || !store.db || store.db.engine !== 'postgres'
       || typeof store.db.activateVerifiedTenantContext !== 'function') {
@@ -1161,7 +1132,11 @@ function requireCtx(req, res) {
   // Preview session auto-bind and the narrower work-order allowlist both require
   // a real session principal. Once either gate is enabled, never fall back to raw GUCs.
   try {
-    const signedContextRequested = signedSessionAutobindEnabled() || signedWorkOrdersContextEnabled(req);
+    const routeError = signedTenantContextRouteError(req);
+    if (routeError) {
+      throw Object.assign(new Error(routeError), { code: routeError });
+    }
+    const signedContextRequested = isSignedContextRequested(req);
     if (signedContextRequested) {
       if (c.apiKeyId
           || !c.sessionId
@@ -1184,7 +1159,10 @@ function requireCtx(req, res) {
     }
   } catch (sessionError) {
     warn('postgres_tenant_session_bind_failed', { organizationId: c.organizationId, error: sessionError });
-    json(res, 503, { error: { code: 'DATABASE_SECURITY_CONTEXT_FAILED' } });
+    const errorCode = sessionError && sessionError.code === 'SIGNED_TENANT_CONTEXT_ROUTE_NOT_ENABLED'
+      ? sessionError.code
+      : 'DATABASE_SECURITY_CONTEXT_FAILED';
+    json(res, 503, { error: { code: errorCode } });
     return null;
   }
   c.correlationId = res.getHeader('x-correlation-id') || null;
@@ -3095,8 +3073,12 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
       return runSignedWorkOrderWrite(res, c, write, (record, headers) => idemJson(res, record, 201, headers));
     }).catch(e => fail(res, e));
   }
-  if (req.method === 'GET' && url.pathname === '/api/v1/assets')
+  if (req.method === 'GET' && url.pathname === '/api/v1/assets') {
+    if (signedAssetsReadEnabled(req)) {
+      return runSignedWorkOrdersRead(res, c, () => store.listAssets(c));
+    }
     return json(res, 200, store.listAssets(c));
+  }
   const ai = url.pathname.match(/^\/api\/v1\/assets\/([^/]+)\/intelligence$/);
   if (ai && req.method === 'GET')
     return json(res, 200, store.getAssetIntelligence(c, ai[1]));
