@@ -11,7 +11,8 @@ const {
   hasVerifiedProductionRelease,
   readProductionAcceptanceEvidence,
   readProductionSessionIsolationEvidence,
-  readProductionRecoveryPointEvidence
+  readProductionRecoveryPointEvidence,
+  readProductionSignedTenantRouteCoverageEvidence
 } = require('../src/release-proof');
 
 const SHA = 'bbbee88e34a9b7e1847571367904fa96a3166bcc';
@@ -272,34 +273,44 @@ test('production behavioral evidence must carry the exact release commit hint', 
   const env = {
     OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE: 'true',
     OPSC_RELEASE_CI_COMMIT: SHA,
+    OPSC_RELEASE_CI_PIPELINE_ID: '2978538209',
     OPSC_PRODUCTION_NEON_BRANCH_ID: 'br-current-production'
   };
   const session = {
-    schemaVersion: 'opscore.production-session-isolation.v1',
+    schemaVersion: 'opscore.production-session-isolation.v2',
     status: 'PASS',
     testedAt: '2026-10-23T00:00:00.000Z',
     sourceCommitHint: SHA,
+    pipelineId: '2978538209',
+    databaseName: 'opscore_acceptance',
+    verificationScope: 'dual-tenant-http-asset-create-read-event-write-denial-and-cleanup',
     parentBranchId: 'br-current-production',
     checks: {
       dualLogin: 'PASS',
+      tenantPrincipalBinding: 'PASS',
       ownAssetCreate: 'PASS',
+      ownAssetRead: 'PASS',
       tenantListIsolation: 'PASS',
-      crossTenantAssetDenied: 'PASS',
+      crossTenantAssetReadDenied: 'PASS',
+      ownAssetEventWrite: 'PASS',
       crossTenantWriteDenied: 'PASS',
       unauthenticatedDenied: 'PASS',
       cleanupComplete: 'PASS'
     }
   };
   const recovery = {
-    schemaVersion: 'opscore.production-recovery-point.v1',
+    schemaVersion: 'opscore.production-recovery-point.v2',
     status: 'PASS',
     testedAt: '2026-10-23T00:00:00.000Z',
     sourceCommitHint: SHA,
+    pipelineId: '2978538209',
     parentBranchId: 'br-current-production',
+    databaseName: 'opscore_acceptance',
+    verificationScope: 'branch-clone-public-table-count-and-core-tenant-row-counts-only',
     recoveryBranchId: 'br-test-recovery',
     tableCountCompared: 134,
     mismatchCount: 0,
-    coreTenantTablesMatch: true
+    coreTenantTableRowCountsMatch: true
   };
   try {
     fs.writeFileSync(sessionPath, JSON.stringify(session));
@@ -536,12 +547,12 @@ test('embedded GitHub Actions identity gates production release only with signed
     assert.equal(proof.ci.pipelineUrl, identity.runUrl);
     assert.equal(proof.ci.runAttempt, 1);
     assert.equal(proof.packageFingerprint.status, 'PUBLISHED');
-    assert.equal(proof.status, 'PASS_WITH_BUYER_RESIDUALS');
+    assert.equal(proof.status, 'UNVERIFIED');
     assert.equal(proof.postgresHttpAcceptance.status, 'PASS');
     assert.equal(proof.productionAcceptance.status, 'PASS');
     assert.equal(proof.gates.productionIsolationCertification, 'NOT_CERTIFIED');
     assert.equal(proof.gates.neonPointInTimeRecovery, 'NOT_VERIFIED');
-    assert.equal(hasVerifiedProductionRelease(staleEnv, identityPath, acceptance.path, postgresHttp.path), true);
+    assert.equal(hasVerifiedProductionRelease(staleEnv, identityPath, acceptance.path, postgresHttp.path), false);
 
     fs.writeFileSync(identityPath, JSON.stringify({ ...identity, commitSha: 'invalid' }));
     assert.equal(hasVerifiedProductionRelease(staleEnv, identityPath, acceptance.path, postgresHttp.path), false);
@@ -612,14 +623,14 @@ test('functionalApiRouteAcceptance flips to PASS_CONTRACT_SCOPE only with commit
     fs.writeFileSync(identityPath, JSON.stringify(identity));
     const proof = createPublicReleaseProof(env, fixedNow, identityPath, acceptance.path, postgresHttp.path, route.path);
     assert.equal(proof.gates.functionalApiRouteAcceptance, 'PASS_CONTRACT_SCOPE');
-    assert.equal(hasVerifiedProductionRelease(env, identityPath, acceptance.path, postgresHttp.path, route.path), true);
+    assert.equal(hasVerifiedProductionRelease(env, identityPath, acceptance.path, postgresHttp.path, route.path), false);
 
     const staleRoute = writeJsonEvidence(dir, 'stale-route.json', {
       schemaVersion: 'opscore.api-route-acceptance.v1', engine: 'sqlite', status: 'PASS', commitSha: '0'.repeat(40), pipelineId, testedRoutes: 358, inventoryRouteCount: 358, passed: 358, failed: 0
     });
     const staleProof = createPublicReleaseProof(env, fixedNow, identityPath, acceptance.path, postgresHttp.path, staleRoute.path);
     assert.equal(staleProof.gates.functionalApiRouteAcceptance, 'NOT_VERIFIED');
-    assert.equal(hasVerifiedProductionRelease(env, identityPath, acceptance.path, postgresHttp.path, staleRoute.path), true);
+    assert.equal(hasVerifiedProductionRelease(env, identityPath, acceptance.path, postgresHttp.path, staleRoute.path), false);
 
     const incompleteRoute = writeJsonEvidence(dir, 'incomplete-route.json', {
       schemaVersion: 'opscore.api-route-acceptance.v1', engine: 'sqlite', status: 'PASS',
@@ -638,3 +649,60 @@ test('functionalApiRouteAcceptance flips to PASS_CONTRACT_SCOPE only with commit
 
 
 
+
+
+test('Production signed-session route certification requires all 67 distinct route proofs bound to the exact commit, pipeline, database and branch', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-production-signed-route-coverage-'));
+  const file = path.join(dir, 'SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE.json');
+  const env = {
+    OPSC_RELEASE_CI_COMMIT: SHA,
+    OPSC_RELEASE_CI_PIPELINE_ID: '3099988776',
+    OPSC_PRODUCTION_NEON_BRANCH_ID: 'br-current-production'
+  };
+  const routes = Array.from({ length: 67 }, (_, index) => ({
+    method: index < 34 ? 'GET' : 'POST',
+    path: '/api/v1/signed-route-' + String(index + 1),
+    operation: index < 34 ? 'read' : 'write',
+    status: 'PASS',
+    signedContextBound: true,
+    sessionBound: true,
+    transactionBound: true,
+    rawGucTamperDenied: true,
+    ...(index < 34
+      ? { tenantARead: true, tenantBRead: true, crossTenantReadDenied: true }
+      : { tenantAWrite: true, tenantBWrite: true, crossTenantWriteDenied: true })
+  }));
+  const evidence = {
+    schemaVersion: 'opscore.signed-tenant-context-production-coverage.v1',
+    environment: 'production',
+    status: 'PASS',
+    databaseName: 'opscore_acceptance',
+    sourceCommitHint: SHA,
+    pipelineId: '3099988776',
+    parentBranchId: 'br-current-production',
+    expectedRouteCount: 67,
+    coveredRouteCount: 67,
+    failedRouteCount: 0,
+    testedAt: '2026-11-16T09:00:00.000Z',
+    routes
+  };
+  try {
+    fs.writeFileSync(file, JSON.stringify(evidence));
+    assert.equal(readProductionSignedTenantRouteCoverageEvidence(file, env).status, 'PASS');
+
+    const duplicate = { ...evidence, routes: [...routes.slice(0, 66), routes[0]] };
+    fs.writeFileSync(file, JSON.stringify(duplicate));
+    assert.equal(readProductionSignedTenantRouteCoverageEvidence(file, env).status, 'NOT_VERIFIED');
+
+    fs.writeFileSync(file, JSON.stringify({ ...evidence, pipelineId: '3099988777' }));
+    assert.equal(readProductionSignedTenantRouteCoverageEvidence(file, env).status, 'NOT_VERIFIED');
+
+    fs.writeFileSync(file, JSON.stringify({ ...evidence, coveredRouteCount: 66 }));
+    assert.equal(readProductionSignedTenantRouteCoverageEvidence(file, env).status, 'NOT_VERIFIED');
+
+    fs.writeFileSync(file, JSON.stringify({ ...evidence, databaseName: 'opscore_http_acceptance' }));
+    assert.equal(readProductionSignedTenantRouteCoverageEvidence(file, env).status, 'NOT_VERIFIED');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
