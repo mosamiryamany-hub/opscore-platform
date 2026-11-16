@@ -511,6 +511,15 @@ function writeReport(report) {
   fs.writeFileSync(RESULT_PATH + '.sha256', digest + '  ' + path.basename(EVIDENCE_PATH) + '\n', {
     encoding: 'utf8', mode: 0o600
   });
+  const failDetail = report.status === 'PASS' ? null : {
+    checks: report.checks || null,
+    migrationLedger: report.migrationLedger || null,
+    runtimeRole: report.runtimeRole || null,
+    tenantTableCoverage: report.tenantTableCoverage || (report.runtime && report.runtime.tenantTableCoverage) || null,
+    tenantRouteSecurityCoverage: report.tenantRouteSecurityCoverage || null,
+    productionRecovery: report.productionRecovery || null,
+    errorClass: report.errorClass || null
+  };
   process.stdout.write(JSON.stringify({
     schemaVersion: report.schemaVersion,
     status: report.status,
@@ -518,8 +527,9 @@ function writeReport(report) {
     sourceCommit: report.sourceCommit,
     pipelineId: report.pipelineId,
     evidenceSha256: digest,
-    productionDatabaseAccess: report.generator.productionDatabaseAccess,
-    productionIsolationCertification: report.productionIsolationCertification
+    productionDatabaseAccess: report.generator && report.generator.productionDatabaseAccess,
+    productionIsolationCertification: report.productionIsolationCertification,
+    failDetail
   }, null, 2) + '\n');
 }
 
