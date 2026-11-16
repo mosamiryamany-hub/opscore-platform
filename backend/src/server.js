@@ -2251,25 +2251,23 @@ function route(req, res) {
     return body(req).then(b => json(res, 201, store.createPasswordReset(c, b.userId))).catch(e => fail(res, e));
   }
   if (req.method === 'GET' && url.pathname === '/api/v1/technicians')
-    return json(res, 200, store.listTechnicians(c));
+    return sendWorkOrderRead(req, res, c, () => store.listTechnicians(c));
   if (req.method === 'POST' && url.pathname === '/api/v1/technicians') {
-    try {
-      requireScope(c, 'write');
-    } catch (e) {
-      return fail(res, e);
-    }
-    return body(req).then(b => json(res, 201, store.upsertTechnician(c, b))).catch(e => fail(res, e));
+    try { requireScope(c, 'write'); } catch (e) { return fail(res, e); }
+    return body(req).then(b => runSignedRouteWrite(
+      req, res, c, () => store.upsertTechnician(c, b),
+      (result, headers) => json(res, 201, result, headers)
+    )).catch(e => fail(res, e));
   }
   if (req.method === 'POST' && url.pathname === '/api/v1/technicians/skills') {
-    try {
-      requireScope(c, 'write');
-    } catch (e) {
-      return fail(res, e);
-    }
-    return body(req).then(b => json(res, 201, store.addTechnicianSkill(c, b))).catch(e => fail(res, e));
+    try { requireScope(c, 'write'); } catch (e) { return fail(res, e); }
+    return body(req).then(b => runSignedRouteWrite(
+      req, res, c, () => store.addTechnicianSkill(c, b),
+      (result, headers) => json(res, 201, result, headers)
+    )).catch(e => fail(res, e));
   }
   if (req.method === 'GET' && url.pathname === '/api/v1/technicians/skills')
-    return json(res, 200, store.listSkills(c));
+    return sendWorkOrderRead(req, res, c, () => store.listSkills(c));
   if (req.method === 'GET' && url.pathname === '/api/v1/sla-policies')
     return json(res, 200, store.listSlaPolicies(c));
   if (req.method === 'POST' && url.pathname === '/api/v1/sla-policies') {
@@ -2486,7 +2484,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
   if (req.method === 'GET' && url.pathname === '/api/v1/technicians/availability') {
     try {
       requireScope(c, 'read');
-      return json(res, 200, store.findTechnicianAvailability(c, {
+      return sendWorkOrderRead(req, res, c, () => store.findTechnicianAvailability(c, {
         technicianId: url.searchParams.get('technicianId'),
         date: url.searchParams.get('date') || undefined,
         windowStartHour: url.searchParams.get('windowStartHour') || undefined,
@@ -2835,14 +2833,15 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
 
   if (req.method === 'POST' && url.pathname === '/api/v1/technicians/trail') {
     try { requireScope(c, 'write'); } catch (e) { return fail(res, e); }
-    return body(req).then(b => {
-      const k = idempotencyKey(req);
-      return json(res, 201, store.idempotentWrite(c, 'technician_trail_point', k, b, () => store.recordTechnicianTrailPoint(c, b)).payload);
-    }).catch(e => fail(res, e));
+    return body(req).then(b => runSignedRouteWrite(
+      req, res, c,
+      () => store.idempotentWrite(c, 'technician_trail_point', idempotencyKey(req), b, () => store.recordTechnicianTrailPoint(c, b)),
+      (record, headers) => json(res, 201, record.payload, headers)
+    )).catch(e => fail(res, e));
   }
   if (req.method === 'GET' && url.pathname === '/api/v1/technicians/trail') {
     try { requireScope(c, 'read'); } catch (e) { return fail(res, e); }
-    return json(res, 200, store.listTechnicianTrail(c, {
+    return sendWorkOrderRead(req, res, c, () => store.listTechnicianTrail(c, {
       technicianId: url.searchParams.get('technicianId') || undefined,
       from: url.searchParams.get('from') || undefined,
       to: url.searchParams.get('to') || undefined,
@@ -2851,7 +2850,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
   }
   if (req.method === 'GET' && url.pathname === '/api/v1/technicians/trail.geojson') {
     try { requireScope(c, 'read'); } catch (e) { return fail(res, e); }
-    return json(res, 200, store.getTechnicianTrailGeoJSON(c, {
+    return sendWorkOrderRead(req, res, c, () => store.getTechnicianTrailGeoJSON(c, {
       technicianId: url.searchParams.get('technicianId') || undefined,
       from: url.searchParams.get('from') || undefined,
       to: url.searchParams.get('to') || undefined,
@@ -2883,11 +2882,11 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
 
   if (req.method === 'POST' && url.pathname === '/api/v1/geofences/assert-access') {
     try { requireScope(c, 'read'); } catch (e) { return fail(res, e); }
-    return body(req).then(b => json(res, 200, store.assertGeoAccess(c, b.longitude, b.latitude, { enforceIfEmpty: Boolean(b.enforceIfEmpty) }))).catch(e => fail(res, e));
+    return body(req).then(b => sendWorkOrderRead(req, res, c, () => store.assertGeoAccess(c, b.longitude, b.latitude, { enforceIfEmpty: Boolean(b.enforceIfEmpty) }))).catch(e => fail(res, e));
   }
   if (req.method === 'GET' && url.pathname === '/api/v1/geofences/role-polygons') {
     try { requireScope(c, 'read'); } catch (e) { return fail(res, e); }
-    try { return json(res, 200, store.listRoleIsolationPolygons(c)); } catch (e) { return fail(res, e); }
+    try { return sendWorkOrderRead(req, res, c, () => store.listRoleIsolationPolygons(c)); } catch (e) { return fail(res, e); }
   }
   if (req.method === 'GET' && url.pathname === '/api/v1/circuits') {
     try { requireScope(c, 'admin'); } catch (e) { return fail(res, e); }
@@ -2900,7 +2899,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
   if (req.method === 'GET' && url.pathname === '/api/v1/map/viewport') {
     try { requireScope(c, 'read'); } catch (e) { return fail(res, e); }
     try {
-      return json(res, 200, store.listMapViewport(c, {
+      return sendWorkOrderRead(req, res, c, () => store.listMapViewport(c, {
         west: url.searchParams.get('west'),
         south: url.searchParams.get('south'),
         east: url.searchParams.get('east'),
@@ -3196,15 +3195,46 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
   if(req.method==='POST'&&url.pathname==='/api/v1/security/tenant-field/protect'){try{requireScope(c,'write')}catch(e){return fail(res,e)}return body(req).then(b=>idemJson(res,store.idempotentWrite(c,'tenant_field_protect',idempotencyKey(req),b,()=>store.protectTenantField(c,b)),200)).catch(e=>fail(res,e));}
   if(req.method==='POST'&&url.pathname==='/api/v1/security/tenant-field/reveal'){try{requireScope(c,'admin')}catch(e){return fail(res,e)}return body(req).then(b=>json(res,200,store.revealTenantField(c,b))).catch(e=>fail(res,e));}
   if(req.method==='GET'&&url.pathname==='/api/v1/operations/closure-sheets/chunked-preview'){try{requireScope(c,'read')}catch(e){return fail(res,e)}return json(res,200,store.chunkedClosureSheetPreview(c,{date:url.searchParams.get('date'),chunkSize:url.searchParams.get('chunkSize'),maxItems:url.searchParams.get('maxItems')}));}
-  if(req.method==='POST'&&url.pathname==='/api/v1/geofences'){try{requireScope(c,'write')}catch(e){return fail(res,e)}return body(req).then(b=>idemJson(res,store.idempotentWrite(c,'geofence_create',idempotencyKey(req),b,()=>store.createGeofence(c,b)),201)).catch(e=>fail(res,e));}
-   const gta=url.pathname.match(/^\/api\/v1\/geofences\/([^/]+)\/technicians$/); if(gta&&req.method==='POST'){const c=requireCtx(req,res);if(!c)return;requireScope(c,'write');return body(req).then(b=>idemJson(res,store.idempotentWrite(c,'geofence_technician_assign',idempotencyKey(req),{...b,geofenceId:gta[1]},()=>store.assignTechnicianToGeofence(c,{...b,geofenceId:gta[1]})),200)).catch(e=>fail(res,e));}
-   const gtl=url.pathname.match(/^\/api\/v1\/technicians\/([^/]+)\/geofences$/); if(gtl&&req.method==='GET'){const c=requireCtx(req,res);if(!c)return;requireScope(c,'read');try{return json(res,200,store.listTechnicianGeofences(c,gtl[1]))}catch(e){return fail(res,e)}}
+  if(req.method==='POST'&&url.pathname==='/api/v1/geofences'){
+    try{requireScope(c,'write')}catch(e){return fail(res,e)}
+    return body(req).then(b=>runSignedRouteWrite(
+      req,res,c,
+      ()=>store.idempotentWrite(c,'geofence_create',idempotencyKey(req),b,()=>store.createGeofence(c,b)),
+      (record,headers)=>idemJson(res,record,201,headers)
+    )).catch(e=>fail(res,e));
+  }
+   const gta=url.pathname.match(/^\/api\/v1\/geofences\/([^/]+)\/technicians$/);
+   if(gta&&req.method==='POST'){
+     const c=requireCtx(req,res);if(!c)return;
+     try{requireScope(c,'write')}catch(e){return fail(res,e)}
+     return body(req).then(b=>runSignedRouteWrite(
+       req,res,c,
+       ()=>store.idempotentWrite(c,'geofence_technician_assign',idempotencyKey(req),{...b,geofenceId:gta[1]},()=>store.assignTechnicianToGeofence(c,{...b,geofenceId:gta[1]})),
+       (record,headers)=>idemJson(res,record,200,headers)
+     )).catch(e=>fail(res,e));
+   }
+   const gtl=url.pathname.match(/^\/api\/v1\/technicians\/([^/]+)\/geofences$/);
+   if(gtl&&req.method==='GET'){
+     const c=requireCtx(req,res);if(!c)return;
+     try{requireScope(c,'read');return sendWorkOrderRead(req,res,c,()=>store.listTechnicianGeofences(c,gtl[1]));}
+     catch(e){return fail(res,e)}
+   }
    if(req.method==='POST'&&url.pathname==='/api/v1/security/signature-chain/seal'){try{requireScope(c,'write')}catch(e){return fail(res,e)}return body(req).then(b=>idemJson(res,store.idempotentWrite(c,'signature_chain_seal',idempotencyKey(req),b,()=>store.sealSignatureChain(c,b)),200)).catch(e=>fail(res,e));}
 
-  if(req.method==='GET'&&url.pathname==='/api/v1/geofences'){try{requireScope(c,'read')}catch(e){return fail(res,e)}return json(res,200,store.listGeofences(c));}
+  if(req.method==='GET'&&url.pathname==='/api/v1/geofences'){
+    try{requireScope(c,'read')}catch(e){return fail(res,e)}
+    return sendWorkOrderRead(req,res,c,()=>store.listGeofences(c));
+  }
   const fdf=url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/field-duration-forecast$/);
   if(fdf&&req.method==='GET'){try{requireScope(c,'read');return json(res,200,store.predictFieldDuration(c,fdf[1],{limit:url.searchParams.get('limit')}));}catch(e){return fail(res,e)}}
-  if(req.method==='POST'&&url.pathname==='/api/v1/geofences/dynamic-events'){try{requireScope(c,'write')}catch(e){return fail(res,e)}return body(req).then(b=>idemJson(res,store.idempotentWrite(c,'geofence_dynamic_event',idempotencyKey(req),b,()=>store.recordDynamicGeofenceEvent(c,b)),201)).catch(e=>fail(res,e));}
+  if(req.method==='POST'&&url.pathname==='/api/v1/geofences/dynamic-events'){
+    try{requireScope(c,'write')}catch(e){return fail(res,e)}
+    return body(req).then(b=>runSignedRouteWrite(
+      req,res,c,
+      ()=>store.idempotentWrite(c,'geofence_dynamic_event',idempotencyKey(req),b,()=>store.recordDynamicGeofenceEvent(c,b)),
+      (record,headers)=>idemJson(res,record,201,headers)
+    )).catch(e=>fail(res,e));
+  }
   if(req.method==='POST'&&url.pathname==='/api/v1/geofences/dynamic-evaluate'){try{requireScope(c,'read')}catch(e){return fail(res,e)}return body(req).then(b=>json(res,200,store.evaluateDynamicGeofence(c,b))).catch(e=>fail(res,e));}
   const fsc=url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/signoff-assurance\/challenge$/);
   if(fsc&&req.method==='POST'){try{requireScope(c,'write')}catch(e){return fail(res,e)}return body(req).then(b=>json(res,201,store.issueFieldSignoffChallenge(c,{workOrderId:fsc[1],documentSha256:b.documentSha256}))).catch(e=>fail(res,e));}
@@ -3215,7 +3245,10 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
   const fb=url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/field-invoice$/);
   if(fb&&req.method==='POST'){try{requireScope(c,'write')}catch(e){return fail(res,e)}return body(req).then(b=>idemJson(res,store.idempotentWrite(c,'field_invoice',idempotencyKey(req),{...b,workOrderId:fb[1]},()=>store.createFieldInvoiceFromWork(c,{...b,workOrderId:fb[1]})),201)).catch(e=>fail(res,e));}
   if(req.method==='GET'&&url.pathname==='/api/v1/field/live-snapshot'){try{requireScope(c,'read');return json(res,200,store.liveFieldOperationsSnapshot(c));}catch(e){return fail(res,e)}}
-  if(req.method==='POST'&&url.pathname==='/api/v1/geofences/evaluate'){try{requireScope(c,'read')}catch(e){return fail(res,e)}return body(req).then(b=>json(res,200,store.evaluateGeofences(c,b))).catch(e=>fail(res,e));}
+  if(req.method==='POST'&&url.pathname==='/api/v1/geofences/evaluate'){
+    try{requireScope(c,'read')}catch(e){return fail(res,e)}
+    return body(req).then(b=>sendWorkOrderRead(req,res,c,()=>store.evaluateGeofences(c,b))).catch(e=>fail(res,e));
+  }
   if(req.method==='GET'&&url.pathname==='/api/v1/security/signature-chain/levels'){try{requireScope(c,'read')}catch(e){return fail(res,e)}return json(res,200,{schemaVersion:'opscore.signature-chain-policy.v1',levels:[{level:1,minimumRole:'member'},{level:2,minimumRole:'manager'},{level:3,minimumRole:'admin'}]});}
   if(req.method==='GET'&&url.pathname==='/api/v1/security/gateway-circuit'){try{requireScope(c,'read')}catch(e){return fail(res,e)}return json(res,200,store.gatewayCircuitSnapshot(c));}
   if(req.method==='POST'&&url.pathname==='/api/v1/security/privacy-purge'){try{requireScope(c,'admin')}catch(e){return fail(res,e)}return body(req).then(b=>idemJson(res,store.idempotentWrite(c,'privacy_purge',idempotencyKey(req),b,()=>store.runPrivacyPurge(c,b)),200)).catch(e=>fail(res,e));}
