@@ -172,7 +172,7 @@ jobs:
           URI=$(cat "$RUNNER_TEMP/preview.uri")
           psql "$URI" -v ON_ERROR_STOP=1 <<'SQL'
           SELECT 'users' AS kind, count(*)::text AS n FROM users WHERE email LIKE 'synth.%@preview.opscore.invalid';
-          SELECT 'sessions' AS kind, count(*)::text AS n FROM sessions WHERE expires_at > now();
+          SELECT 'sessions' AS kind, count(*)::text AS n FROM sessions WHERE expires_at::timestamptz > now();
           SELECT CASE WHEN count(*) >= 1 THEN 'HMAC_KEYS_PRESENT' ELSE 'HMAC_KEYS_MISSING' END AS hmac
           FROM opscore_security.context_hmac_keys
           WHERE enabled = true AND not_before <= now() AND (not_after IS NULL OR not_after > now());
