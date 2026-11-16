@@ -40,12 +40,23 @@ jobs:
 
       - name: Verify release tag matches package version
         if: github.ref_type == 'tag'
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
         run: |
           set -euo pipefail
           test "$GITHUB_REF_TYPE" = "tag"
-          expected_tag="v$(node -p "require('./backend/package.json').version")"
-          test "$GITHUB_REF_NAME" = "$expected_tag"
-
+          node - <<'NODE'
+          const version = require('./backend/package.json').version;
+          const tag = process.env.RELEASE_TAG || '';
+          const parts = version.split('.');
+          if (parts.length !== 3 || parts.some(part => !/^[0-9]+$/.test(part))) throw new Error('PACKAGE_VERSION_NOT_SEMVER: ' + version);
+          const exact = 'v' + version;
+          const commercial = new RegExp('^v' + parts.join('[.]') + '[.][0-9]+-[a-z0-9]+([.-][a-z0-9]+)*$');
+          if (tag !== exact && !commercial.test(tag)) {
+            throw new Error('RELEASE_TAG_VERSION_MISMATCH: expected ' + exact + ' or a numbered commercial closure suffix; received ' + tag);
+          }
+          console.log('RELEASE_TAG_VERSION_MATCH: ' + tag + ' -> ' + version);
+          NODE
       - name: Verify manually dispatched source is main
         if: github.event_name == 'workflow_dispatch'
         run: test "$GITHUB_REF" = "refs/heads/main"
