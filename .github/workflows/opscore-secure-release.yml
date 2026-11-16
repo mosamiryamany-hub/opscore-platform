@@ -40,11 +40,69 @@ jobs:
 
       - name: Verify release tag matches package version
         if: github.ref_type == 'tag'
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_TYPE" = "tag"
+          node - <<'NODE'
+          const version = require('./backend/package.json').version;
+          const tag = process.env.RELEASE_TAG || '';
+          const exact = `v${version}`;
+          const escaped = version.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\      - name: Verify release tag matches package version
+        if: github.ref_type == 'tag'
         run: |
           set -euo pipefail
           test "$GITHUB_REF_TYPE" = "tag"
           expected_tag="v$(node -p "require('./backend/package.json').version")"
           test "$GITHUB_REF_NAME" = "$expected_tag"
+');
+          const commercial = new RegExp(`^v${escaped}\\.[0-9]+-[a-z0-9]+(?:[.-][a-z0-9]+)*name: OpsCore secure release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+
+concurrency:
+  group: opscore-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify-and-release:
+    if: >-
+      (github.ref_type == 'tag' && startsWith(github.ref_name, 'v')) ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22.23.4'
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            mobile/package-lock.json
+
+);
+          if (tag !== exact && !commercial.test(tag)) {
+            throw new Error(`RELEASE_TAG_VERSION_MISMATCH: expected ${exact} or a numbered commercial closure suffix; received ${tag}`);
+          }
+          console.log(`RELEASE_TAG_VERSION_MATCH: ${tag} -> ${version}`);
+          NODE
 
       - name: Verify manually dispatched source is main
         if: github.event_name == 'workflow_dispatch'
