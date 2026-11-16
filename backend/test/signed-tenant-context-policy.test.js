@@ -238,7 +238,10 @@ test('operational signed routes pass the required-context gate only when their P
   assert.equal(policy.signedContextRequested({ method: 'POST', url: '/api/v1/customers' }, previewWrite), true);
   assert.equal(policy.signedTenantContextRouteError({ method: 'POST', url: '/api/v1/customers' }, previewWrite), null);
   assert.equal(
-    policy.signedTenantContextRouteError({ method: 'GET', url: '/api/v1/customers' }, previewRead),
+    policy.signedTenantContextRouteError(
+      { method: 'GET', url: '/api/v1/customers' },
+      { ...previewRead, OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_READ_ENABLED: 'false' }
+    ),
     'SIGNED_TENANT_CONTEXT_ROUTE_NOT_ENABLED'
   );
   assert.equal(
