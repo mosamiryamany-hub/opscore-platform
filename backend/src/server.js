@@ -1228,6 +1228,11 @@ function safeDatabaseErrorCode(error) {
   if (/PG_SYNC_/.test(message)) return 'PG_SYNC_FAILURE';
   return 'UNCLASSIFIED';
 }
+function runSignedRouteWrite(req, res, c, writer, responder) {
+  if (!signedWorkOrdersWriteEnabled(req)) return responder(writer(), {});
+  return runSignedWorkOrderWrite(res, c, writer, responder);
+}
+
 function route(req, res) {
   const firewallInfo=inspectRequest(req, config);
   const firewallRate=firewallRateLimit(req);
@@ -2032,14 +2037,15 @@ function route(req, res) {
   const apptReschedule = url.pathname.match(/^\/api\/v1\/appointments\/([^/]+)\/reschedule$/);
   if (req.method === 'POST' && apptReschedule) {
     try {
-      return body(req).then((b) => {
-        const key = req.headers['idempotency-key'] || req.headers['x-idempotency-key'];
-        const record = store.idempotentWrite(c, 'appointment_reschedule', key, b, () => store.rescheduleAppointment(c, decodeURIComponent(apptReschedule[1]), b));
-        return json(res, 200, record.payload, {
+      return body(req).then((b) => runSignedRouteWrite(
+        req, res, c,
+        () => store.idempotentWrite(c, 'appointment_reschedule', idempotencyKey(req), b, () => store.rescheduleAppointment(c, decodeURIComponent(apptReschedule[1]), b)),
+        (record, headers) => json(res, 200, record.payload, {
+          ...headers,
           'x-correlation-id': correlationId,
           'x-idempotency-replayed': record.__idempotent ? 'true' : 'false'
-        });
-      }).catch((e) => fail(res, e));
+        })
+      )).catch((e) => fail(res, e));
     } catch (e) { return fail(res, e); }
   }
   const woPack = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/work-pack$/);
@@ -2245,25 +2251,23 @@ function route(req, res) {
     return body(req).then(b => json(res, 201, store.createPasswordReset(c, b.userId))).catch(e => fail(res, e));
   }
   if (req.method === 'GET' && url.pathname === '/api/v1/technicians')
-    return json(res, 200, store.listTechnicians(c));
+    return sendWorkOrderRead(req, res, c, () => store.listTechnicians(c));
   if (req.method === 'POST' && url.pathname === '/api/v1/technicians') {
-    try {
-      requireScope(c, 'write');
-    } catch (e) {
-      return fail(res, e);
-    }
-    return body(req).then(b => json(res, 201, store.upsertTechnician(c, b))).catch(e => fail(res, e));
+    try { requireScope(c, 'write'); } catch (e) { return fail(res, e); }
+    return body(req).then(b => runSignedRouteWrite(
+      req, res, c, () => store.upsertTechnician(c, b),
+      (result, headers) => json(res, 201, result, headers)
+    )).catch(e => fail(res, e));
   }
   if (req.method === 'POST' && url.pathname === '/api/v1/technicians/skills') {
-    try {
-      requireScope(c, 'write');
-    } catch (e) {
-      return fail(res, e);
-    }
-    return body(req).then(b => json(res, 201, store.addTechnicianSkill(c, b))).catch(e => fail(res, e));
+    try { requireScope(c, 'write'); } catch (e) { return fail(res, e); }
+    return body(req).then(b => runSignedRouteWrite(
+      req, res, c, () => store.addTechnicianSkill(c, b),
+      (result, headers) => json(res, 201, result, headers)
+    )).catch(e => fail(res, e));
   }
   if (req.method === 'GET' && url.pathname === '/api/v1/technicians/skills')
-    return json(res, 200, store.listSkills(c));
+    return sendWorkOrderRead(req, res, c, () => store.listSkills(c));
   if (req.method === 'GET' && url.pathname === '/api/v1/sla-policies')
     return json(res, 200, store.listSlaPolicies(c));
   if (req.method === 'POST' && url.pathname === '/api/v1/sla-policies') {
@@ -2480,7 +2484,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
   if (req.method === 'GET' && url.pathname === '/api/v1/technicians/availability') {
     try {
       requireScope(c, 'read');
-      return json(res, 200, store.findTechnicianAvailability(c, {
+      return sendWorkOrderRead(req, res, c, () => store.findTechnicianAvailability(c, {
         technicianId: url.searchParams.get('technicianId'),
         date: url.searchParams.get('date') || undefined,
         windowStartHour: url.searchParams.get('windowStartHour') || undefined,
@@ -2490,53 +2494,47 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
     } catch (e) { return fail(res, e); }
   }
   if (req.method === 'GET' && url.pathname === '/api/v1/appointments')
-    return json(res, 200, store.listAppointments(c, {
+    return sendWorkOrderRead(req, res, c, () => store.listAppointments(c, {
       from: url.searchParams.get('from'),
       to: url.searchParams.get('to'),
       technicianId: url.searchParams.get('technicianId')
     }));
   if (req.method === 'POST' && url.pathname === '/api/v1/appointments') {
-    try {
-      requireScope(c, 'write');
-    } catch (e) {
-      return fail(res, e);
-    }
-    return body(req).then(b => {
-      const k = req.headers['idempotency-key'] || req.headers['x-idempotency-key'];
-      return json(res, 201, store.idempotentWrite(c, 'appointment_create', k, b, () => store.createAppointment(c, b)).payload);
-    }).catch(e => fail(res, e));
+    try { requireScope(c, 'write'); } catch (e) { return fail(res, e); }
+    return body(req).then(b => runSignedRouteWrite(
+      req, res, c,
+      () => store.idempotentWrite(c, 'appointment_create', idempotencyKey(req), b, () => store.createAppointment(c, b)),
+      (record, headers) => json(res, 201, record.payload, headers)
+    )).catch(e => fail(res, e));
   }
   const aw = url.pathname.match(/^\/api\/v1\/appointments\/([^/]+)\/on-my-way$/);
   if (aw && req.method === 'POST') {
-    try {
-      requireScope(c, 'write');
-    } catch (e) {
-      return fail(res, e);
-    }
-    const k = req.headers['idempotency-key'] || req.headers['x-idempotency-key'];
-    return json(res, 200, store.idempotentWrite(c, 'appointment_on_my_way', k, {}, () => store.onMyWay(c, aw[1])).payload);
+    try { requireScope(c, 'write'); } catch (e) { return fail(res, e); }
+    return runSignedRouteWrite(
+      req, res, c,
+      () => store.idempotentWrite(c, 'appointment_on_my_way', idempotencyKey(req), {}, () => store.onMyWay(c, aw[1])),
+      (record, headers) => json(res, 200, record.payload, headers)
+    );
   }
   const aun = url.pathname.match(/^\/api\/v1\/appointments\/([^/]+)\/unreachable$/);
   if (req.method === 'POST' && aun) {
     try { requireScope(c, 'write'); } catch (e) { return fail(res, e); }
-    return body(req).then(b => {
-      const k = idempotencyKey(req);
-      return json(res, 200, store.idempotentWrite(c, 'appointment_unreachable', k, { appointmentId: aun[1], ...b }, () => store.markAppointmentUnreachable(c, decodeURIComponent(aun[1]), b)).payload);
-    }).catch(e => fail(res, e));
+    return body(req).then(b => runSignedRouteWrite(
+      req, res, c,
+      () => store.idempotentWrite(c, 'appointment_unreachable', idempotencyKey(req), { appointmentId: aun[1], ...b }, () => store.markAppointmentUnreachable(c, decodeURIComponent(aun[1]), b)),
+      (record, headers) => json(res, 200, record.payload, headers)
+    )).catch(e => fail(res, e));
   }
   const apt = url.pathname.match(/^\/api\/v1\/appointments\/([^/]+)$/);
   if (apt && req.method === 'GET')
-    return json(res, 200, store.getAppointment(c, apt[1]));
+    return sendWorkOrderRead(req, res, c, () => store.getAppointment(c, apt[1]));
   if (apt && req.method === 'PATCH') {
-    try {
-      requireScope(c, 'write');
-    } catch (e) {
-      return fail(res, e);
-    }
-    return body(req).then(b => {
-      const k = req.headers['idempotency-key'] || req.headers['x-idempotency-key'];
-      return json(res, 200, store.idempotentWrite(c, 'appointment_update', k, b, () => store.updateAppointment(c, apt[1], b)).payload);
-    }).catch(e => fail(res, e));
+    try { requireScope(c, 'write'); } catch (e) { return fail(res, e); }
+    return body(req).then(b => runSignedRouteWrite(
+      req, res, c,
+      () => store.idempotentWrite(c, 'appointment_update', idempotencyKey(req), b, () => store.updateAppointment(c, apt[1], b)),
+      (record, headers) => json(res, 200, record.payload, headers)
+    )).catch(e => fail(res, e));
   }
   const cand = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/dispatch-candidates$/);
   if (cand && req.method === 'GET')
@@ -2776,51 +2774,54 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
     return body(req).then(b => json(res, 201, store.inviteMember(c, b))).catch(e => fail(res, e));
   }
   if (req.method === 'GET' && url.pathname === '/api/v1/customers')
-    return json(res, 200, store.listCustomers(c));
+    return sendWorkOrderRead(req, res, c, () => store.listCustomers(c));
   if (req.method === 'POST' && url.pathname === '/api/v1/customers') {
-    try {
-      requireScope(c, 'write');
-    } catch (e) {
-      return fail(res, e);
-    }
-    return body(req).then(b => json(res, 201, store.createCustomer(c, b))).catch(e => fail(res, e));
+    try { requireScope(c, 'write'); } catch (e) { return fail(res, e); }
+    return body(req).then(b => runSignedRouteWrite(
+      req, res, c,
+      () => store.createCustomer(c, b),
+      (result, headers) => json(res, 201, result, headers)
+    )).catch(e => fail(res, e));
   }
   if (req.method === 'GET' && url.pathname === '/api/v1/sites')
-    return json(res, 200, store.listSites(c));
+    return sendWorkOrderRead(req, res, c, () => store.listSites(c));
   if (req.method === 'POST' && url.pathname === '/api/v1/sites') {
-    try {
-      requireScope(c, 'write');
-    } catch (e) {
-      return fail(res, e);
-    }
-    return body(req).then(b => json(res, 201, store.createSite(c, b))).catch(e => fail(res, e));
+    try { requireScope(c, 'write'); } catch (e) { return fail(res, e); }
+    return body(req).then(b => runSignedRouteWrite(
+      req, res, c,
+      () => store.createSite(c, b),
+      (result, headers) => json(res, 201, result, headers)
+    )).catch(e => fail(res, e));
   }
   if (req.method === 'POST' && url.pathname === '/api/v1/faults/classify') {
     try { requireScope(c, 'read'); } catch (e) { return fail(res, e); }
-    return body(req).then(b => json(res, 200, store.classifyFaultInfrastructure(c, b))).catch(e => fail(res, e));
+    return body(req).then(b => sendWorkOrderRead(req, res, c, () => store.classifyFaultInfrastructure(c, b))).catch(e => fail(res, e));
   }
   if (req.method === 'POST' && url.pathname === '/api/v1/faults') {
     try { requireScope(c, 'write'); } catch (e) { return fail(res, e); }
-    return body(req).then(b => {
-      const k = idempotencyKey(req);
-      return json(res, 201, store.idempotentWrite(c, 'fault_ticket_create', k, b, () => store.createFaultTicket(c, b)).payload);
-    }).catch(e => fail(res, e));
+    return body(req).then(b => runSignedRouteWrite(
+      req, res, c,
+      () => store.idempotentWrite(c, 'fault_ticket_create', idempotencyKey(req), b, () => store.createFaultTicket(c, b)),
+      (record, headers) => json(res, 201, record.payload, headers)
+    )).catch(e => fail(res, e));
   }
   const ftrans = url.pathname.match(/^\/api\/v1\/faults\/([^/]+)\/transition$/);
   if (ftrans && req.method === 'POST') {
     try { requireScope(c, 'write'); } catch (e) { return fail(res, e); }
-    return body(req).then(b => {
-      const k = idempotencyKey(req);
-      return json(res, 200, store.idempotentWrite(c, 'fault_status_transition', k, { workOrderId: ftrans[1], ...b }, () => store.transitionFaultStatus(c, decodeURIComponent(ftrans[1]), b)).payload);
-    }).catch(e => fail(res, e));
+    return body(req).then(b => runSignedRouteWrite(
+      req, res, c,
+      () => store.idempotentWrite(c, 'fault_status_transition', idempotencyKey(req), { workOrderId: ftrans[1], ...b }, () => store.transitionFaultStatus(c, decodeURIComponent(ftrans[1]), b)),
+      (record, headers) => json(res, 200, record.payload, headers)
+    )).catch(e => fail(res, e));
   }
   const funr = url.pathname.match(/^\/api\/v1\/faults\/([^/]+)\/unreachable$/);
   if (funr && req.method === 'POST') {
     try { requireScope(c, 'write'); } catch (e) { return fail(res, e); }
-    return body(req).then(b => {
-      const k = idempotencyKey(req);
-      return json(res, 200, store.idempotentWrite(c, 'fault_unreachable', k, { workOrderId: funr[1], ...b }, () => store.markFaultUnreachable(c, decodeURIComponent(funr[1]), b)).payload);
-    }).catch(e => fail(res, e));
+    return body(req).then(b => runSignedRouteWrite(
+      req, res, c,
+      () => store.idempotentWrite(c, 'fault_unreachable', idempotencyKey(req), { workOrderId: funr[1], ...b }, () => store.markFaultUnreachable(c, decodeURIComponent(funr[1]), b)),
+      (record, headers) => json(res, 200, record.payload, headers)
+    )).catch(e => fail(res, e));
   }
   if (req.method === 'POST' && url.pathname === '/api/v1/faults/offline-sync') {
     try { requireScope(c, 'write'); } catch (e) { return fail(res, e); }
@@ -2832,14 +2833,15 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
 
   if (req.method === 'POST' && url.pathname === '/api/v1/technicians/trail') {
     try { requireScope(c, 'write'); } catch (e) { return fail(res, e); }
-    return body(req).then(b => {
-      const k = idempotencyKey(req);
-      return json(res, 201, store.idempotentWrite(c, 'technician_trail_point', k, b, () => store.recordTechnicianTrailPoint(c, b)).payload);
-    }).catch(e => fail(res, e));
+    return body(req).then(b => runSignedRouteWrite(
+      req, res, c,
+      () => store.idempotentWrite(c, 'technician_trail_point', idempotencyKey(req), b, () => store.recordTechnicianTrailPoint(c, b)),
+      (record, headers) => json(res, 201, record.payload, headers)
+    )).catch(e => fail(res, e));
   }
   if (req.method === 'GET' && url.pathname === '/api/v1/technicians/trail') {
     try { requireScope(c, 'read'); } catch (e) { return fail(res, e); }
-    return json(res, 200, store.listTechnicianTrail(c, {
+    return sendWorkOrderRead(req, res, c, () => store.listTechnicianTrail(c, {
       technicianId: url.searchParams.get('technicianId') || undefined,
       from: url.searchParams.get('from') || undefined,
       to: url.searchParams.get('to') || undefined,
@@ -2848,7 +2850,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
   }
   if (req.method === 'GET' && url.pathname === '/api/v1/technicians/trail.geojson') {
     try { requireScope(c, 'read'); } catch (e) { return fail(res, e); }
-    return json(res, 200, store.getTechnicianTrailGeoJSON(c, {
+    return sendWorkOrderRead(req, res, c, () => store.getTechnicianTrailGeoJSON(c, {
       technicianId: url.searchParams.get('technicianId') || undefined,
       from: url.searchParams.get('from') || undefined,
       to: url.searchParams.get('to') || undefined,
@@ -2880,11 +2882,11 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
 
   if (req.method === 'POST' && url.pathname === '/api/v1/geofences/assert-access') {
     try { requireScope(c, 'read'); } catch (e) { return fail(res, e); }
-    return body(req).then(b => json(res, 200, store.assertGeoAccess(c, b.longitude, b.latitude, { enforceIfEmpty: Boolean(b.enforceIfEmpty) }))).catch(e => fail(res, e));
+    return body(req).then(b => sendWorkOrderRead(req, res, c, () => store.assertGeoAccess(c, b.longitude, b.latitude, { enforceIfEmpty: Boolean(b.enforceIfEmpty) }))).catch(e => fail(res, e));
   }
   if (req.method === 'GET' && url.pathname === '/api/v1/geofences/role-polygons') {
     try { requireScope(c, 'read'); } catch (e) { return fail(res, e); }
-    try { return json(res, 200, store.listRoleIsolationPolygons(c)); } catch (e) { return fail(res, e); }
+    try { return sendWorkOrderRead(req, res, c, () => store.listRoleIsolationPolygons(c)); } catch (e) { return fail(res, e); }
   }
   if (req.method === 'GET' && url.pathname === '/api/v1/circuits') {
     try { requireScope(c, 'admin'); } catch (e) { return fail(res, e); }
@@ -2897,7 +2899,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
   if (req.method === 'GET' && url.pathname === '/api/v1/map/viewport') {
     try { requireScope(c, 'read'); } catch (e) { return fail(res, e); }
     try {
-      return json(res, 200, store.listMapViewport(c, {
+      return sendWorkOrderRead(req, res, c, () => store.listMapViewport(c, {
         west: url.searchParams.get('west'),
         south: url.searchParams.get('south'),
         east: url.searchParams.get('east'),
@@ -3084,24 +3086,21 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
     return json(res, 200, store.getAssetIntelligence(c, ai[1]));
   const ae = url.pathname.match(/^\/api\/v1\/assets\/([^/]+)\/events$/);
   if (ae && req.method === 'POST') {
-    try {
-      requireScope(c, 'write');
-    } catch (e) {
-      return fail(res, e);
-    }
-    return body(req).then(b => json(res, 201, store.recordAssetEvent(c, {
-      ...b,
-      assetId: ae[1]
-    }))).catch(e => fail(res, e));
+    try { requireScope(c, 'write'); } catch (e) { return fail(res, e); }
+    return body(req).then(b => runSignedRouteWrite(
+      req, res, c,
+      () => store.recordAssetEvent(c, { ...b, assetId: ae[1] }),
+      (result, headers) => json(res, 201, result, headers)
+    )).catch(e => fail(res, e));
   }
   const ah=url.pathname.match(/^\/api\/v1\/assets\/([^/]+)\/health$/); if(ah && req.method==='GET'){const c=requireCtx(req,res);if(!c)return;try{requireScope(c,'read');return json(res,200,store.evaluateAssetHealth(c,ah[1]));}catch(e){return fail(res,e);}}
   if (req.method === 'POST' && url.pathname === '/api/v1/assets') {
-    try {
-      requireScope(c, 'write');
-    } catch (e) {
-      return fail(res, e);
-    }
-    return body(req).then(b => json(res, 201, store.createAsset(c, b))).catch(e => fail(res, e));
+    try { requireScope(c, 'write'); } catch (e) { return fail(res, e); }
+    return body(req).then(b => runSignedRouteWrite(
+      req, res, c,
+      () => store.createAsset(c, b),
+      (result, headers) => json(res, 201, result, headers)
+    )).catch(e => fail(res, e));
   }
   if (req.method === 'GET' && url.pathname === '/api/v1/locations')
     return json(res, 200, store.listLocations(c));
@@ -3172,7 +3171,16 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
   const oj=url.pathname.match(/^\/api\/v1\/operational-jobs\/([^/]+)$/); if(oj&&req.method==='GET') return json(res,200,store.getOperationalJob(c,oj[1]));
   if(req.method==='GET'&&url.pathname==='/api/v1/service-lines')return json(res,200,store.listServiceLines(c));
   if(req.method==='POST'&&url.pathname==='/api/v1/service-lines'){try{requireScope(c,'write')}catch(e){return fail(res,e)}return body(req).then(b=>idemJson(res,store.idempotentWrite(c,'service_line_create',idempotencyKey(req),b,()=>store.createServiceLine(c,b)),201)).catch(e=>fail(res,e));}
-  const csl=url.pathname.match(/^\/api\/v1\/customers\/([^/]+)\/service-line$/); if(csl&&req.method==='GET')return json(res,200,store.getCustomerServiceLine(c,csl[1])); if(csl&&req.method==='POST'){try{requireScope(c,'write')}catch(e){return fail(res,e)}return body(req).then(b=>idemJson(res,store.idempotentWrite(c,'customer_service_line_assign',idempotencyKey(req),{customerId:csl[1],lineId:b.lineId},()=>store.assignCustomerServiceLine(c,csl[1],b.lineId)),200)).catch(e=>fail(res,e));}
+  const csl=url.pathname.match(/^\/api\/v1\/customers\/([^/]+)\/service-line$/);
+  if(csl&&req.method==='GET')return sendWorkOrderRead(req,res,c,()=>store.getCustomerServiceLine(c,csl[1]));
+  if(csl&&req.method==='POST'){
+    try{requireScope(c,'write')}catch(e){return fail(res,e)}
+    return body(req).then(b=>runSignedRouteWrite(
+      req,res,c,
+      ()=>store.idempotentWrite(c,'customer_service_line_assign',idempotencyKey(req),{customerId:csl[1],lineId:b.lineId},()=>store.assignCustomerServiceLine(c,csl[1],b.lineId)),
+      (record,headers)=>idemJson(res,record,200,headers)
+    )).catch(e=>fail(res,e));
+  }
   if(req.method==='POST'&&url.pathname==='/api/v1/service-line-migrations/preflight'){try{requireScope(c,'write')}catch(e){return fail(res,e)}return body(req).then(b=>idemJson(res,store.idempotentWrite(c,'service_line_migration_preflight',idempotencyKey(req),{customerId:b.customerId,toLineId:b.toLineId},()=>store.preflightLineMigration(c,b.customerId,b.toLineId)),201)).catch(e=>fail(res,e));}
   const lm=url.pathname.match(/^\/api\/v1\/service-line-migrations\/([^/]+)$/); if(lm&&req.method==='GET')return json(res,200,store.getLineMigration(c,lm[1])); if(lm&&req.method==='POST'){try{requireScope(c,'write')}catch(e){return fail(res,e)}return idemJson(res,store.idempotentWrite(c,'service_line_migration_execute',idempotencyKey(req),{migrationId:lm[1]},()=>store.executeLineMigration(c,lm[1])),200);}
   const lmr=url.pathname.match(/^\/api\/v1\/service-line-migrations\/([^/]+)\/rollback$/); if(lmr&&req.method==='POST'){try{requireScope(c,'admin')}catch(e){return fail(res,e)}return idemJson(res,store.idempotentWrite(c,'service_line_migration_rollback',idempotencyKey(req),{migrationId:lmr[1]},()=>store.rollbackLineMigration(c,lmr[1])),200);}
@@ -3187,15 +3195,46 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
   if(req.method==='POST'&&url.pathname==='/api/v1/security/tenant-field/protect'){try{requireScope(c,'write')}catch(e){return fail(res,e)}return body(req).then(b=>idemJson(res,store.idempotentWrite(c,'tenant_field_protect',idempotencyKey(req),b,()=>store.protectTenantField(c,b)),200)).catch(e=>fail(res,e));}
   if(req.method==='POST'&&url.pathname==='/api/v1/security/tenant-field/reveal'){try{requireScope(c,'admin')}catch(e){return fail(res,e)}return body(req).then(b=>json(res,200,store.revealTenantField(c,b))).catch(e=>fail(res,e));}
   if(req.method==='GET'&&url.pathname==='/api/v1/operations/closure-sheets/chunked-preview'){try{requireScope(c,'read')}catch(e){return fail(res,e)}return json(res,200,store.chunkedClosureSheetPreview(c,{date:url.searchParams.get('date'),chunkSize:url.searchParams.get('chunkSize'),maxItems:url.searchParams.get('maxItems')}));}
-  if(req.method==='POST'&&url.pathname==='/api/v1/geofences'){try{requireScope(c,'write')}catch(e){return fail(res,e)}return body(req).then(b=>idemJson(res,store.idempotentWrite(c,'geofence_create',idempotencyKey(req),b,()=>store.createGeofence(c,b)),201)).catch(e=>fail(res,e));}
-   const gta=url.pathname.match(/^\/api\/v1\/geofences\/([^/]+)\/technicians$/); if(gta&&req.method==='POST'){const c=requireCtx(req,res);if(!c)return;requireScope(c,'write');return body(req).then(b=>idemJson(res,store.idempotentWrite(c,'geofence_technician_assign',idempotencyKey(req),{...b,geofenceId:gta[1]},()=>store.assignTechnicianToGeofence(c,{...b,geofenceId:gta[1]})),200)).catch(e=>fail(res,e));}
-   const gtl=url.pathname.match(/^\/api\/v1\/technicians\/([^/]+)\/geofences$/); if(gtl&&req.method==='GET'){const c=requireCtx(req,res);if(!c)return;requireScope(c,'read');try{return json(res,200,store.listTechnicianGeofences(c,gtl[1]))}catch(e){return fail(res,e)}}
+  if(req.method==='POST'&&url.pathname==='/api/v1/geofences'){
+    try{requireScope(c,'write')}catch(e){return fail(res,e)}
+    return body(req).then(b=>runSignedRouteWrite(
+      req,res,c,
+      ()=>store.idempotentWrite(c,'geofence_create',idempotencyKey(req),b,()=>store.createGeofence(c,b)),
+      (record,headers)=>idemJson(res,record,201,headers)
+    )).catch(e=>fail(res,e));
+  }
+   const gta=url.pathname.match(/^\/api\/v1\/geofences\/([^/]+)\/technicians$/);
+   if(gta&&req.method==='POST'){
+     const c=requireCtx(req,res);if(!c)return;
+     try{requireScope(c,'write')}catch(e){return fail(res,e)}
+     return body(req).then(b=>runSignedRouteWrite(
+       req,res,c,
+       ()=>store.idempotentWrite(c,'geofence_technician_assign',idempotencyKey(req),{...b,geofenceId:gta[1]},()=>store.assignTechnicianToGeofence(c,{...b,geofenceId:gta[1]})),
+       (record,headers)=>idemJson(res,record,200,headers)
+     )).catch(e=>fail(res,e));
+   }
+   const gtl=url.pathname.match(/^\/api\/v1\/technicians\/([^/]+)\/geofences$/);
+   if(gtl&&req.method==='GET'){
+     const c=requireCtx(req,res);if(!c)return;
+     try{requireScope(c,'read');return sendWorkOrderRead(req,res,c,()=>store.listTechnicianGeofences(c,gtl[1]));}
+     catch(e){return fail(res,e)}
+   }
    if(req.method==='POST'&&url.pathname==='/api/v1/security/signature-chain/seal'){try{requireScope(c,'write')}catch(e){return fail(res,e)}return body(req).then(b=>idemJson(res,store.idempotentWrite(c,'signature_chain_seal',idempotencyKey(req),b,()=>store.sealSignatureChain(c,b)),200)).catch(e=>fail(res,e));}
 
-  if(req.method==='GET'&&url.pathname==='/api/v1/geofences'){try{requireScope(c,'read')}catch(e){return fail(res,e)}return json(res,200,store.listGeofences(c));}
+  if(req.method==='GET'&&url.pathname==='/api/v1/geofences'){
+    try{requireScope(c,'read')}catch(e){return fail(res,e)}
+    return sendWorkOrderRead(req,res,c,()=>store.listGeofences(c));
+  }
   const fdf=url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/field-duration-forecast$/);
   if(fdf&&req.method==='GET'){try{requireScope(c,'read');return json(res,200,store.predictFieldDuration(c,fdf[1],{limit:url.searchParams.get('limit')}));}catch(e){return fail(res,e)}}
-  if(req.method==='POST'&&url.pathname==='/api/v1/geofences/dynamic-events'){try{requireScope(c,'write')}catch(e){return fail(res,e)}return body(req).then(b=>idemJson(res,store.idempotentWrite(c,'geofence_dynamic_event',idempotencyKey(req),b,()=>store.recordDynamicGeofenceEvent(c,b)),201)).catch(e=>fail(res,e));}
+  if(req.method==='POST'&&url.pathname==='/api/v1/geofences/dynamic-events'){
+    try{requireScope(c,'write')}catch(e){return fail(res,e)}
+    return body(req).then(b=>runSignedRouteWrite(
+      req,res,c,
+      ()=>store.idempotentWrite(c,'geofence_dynamic_event',idempotencyKey(req),b,()=>store.recordDynamicGeofenceEvent(c,b)),
+      (record,headers)=>idemJson(res,record,201,headers)
+    )).catch(e=>fail(res,e));
+  }
   if(req.method==='POST'&&url.pathname==='/api/v1/geofences/dynamic-evaluate'){try{requireScope(c,'read')}catch(e){return fail(res,e)}return body(req).then(b=>json(res,200,store.evaluateDynamicGeofence(c,b))).catch(e=>fail(res,e));}
   const fsc=url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/signoff-assurance\/challenge$/);
   if(fsc&&req.method==='POST'){try{requireScope(c,'write')}catch(e){return fail(res,e)}return body(req).then(b=>json(res,201,store.issueFieldSignoffChallenge(c,{workOrderId:fsc[1],documentSha256:b.documentSha256}))).catch(e=>fail(res,e));}
@@ -3206,7 +3245,10 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
   const fb=url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/field-invoice$/);
   if(fb&&req.method==='POST'){try{requireScope(c,'write')}catch(e){return fail(res,e)}return body(req).then(b=>idemJson(res,store.idempotentWrite(c,'field_invoice',idempotencyKey(req),{...b,workOrderId:fb[1]},()=>store.createFieldInvoiceFromWork(c,{...b,workOrderId:fb[1]})),201)).catch(e=>fail(res,e));}
   if(req.method==='GET'&&url.pathname==='/api/v1/field/live-snapshot'){try{requireScope(c,'read');return json(res,200,store.liveFieldOperationsSnapshot(c));}catch(e){return fail(res,e)}}
-  if(req.method==='POST'&&url.pathname==='/api/v1/geofences/evaluate'){try{requireScope(c,'read')}catch(e){return fail(res,e)}return body(req).then(b=>json(res,200,store.evaluateGeofences(c,b))).catch(e=>fail(res,e));}
+  if(req.method==='POST'&&url.pathname==='/api/v1/geofences/evaluate'){
+    try{requireScope(c,'read')}catch(e){return fail(res,e)}
+    return body(req).then(b=>sendWorkOrderRead(req,res,c,()=>store.evaluateGeofences(c,b))).catch(e=>fail(res,e));
+  }
   if(req.method==='GET'&&url.pathname==='/api/v1/security/signature-chain/levels'){try{requireScope(c,'read')}catch(e){return fail(res,e)}return json(res,200,{schemaVersion:'opscore.signature-chain-policy.v1',levels:[{level:1,minimumRole:'member'},{level:2,minimumRole:'manager'},{level:3,minimumRole:'admin'}]});}
   if(req.method==='GET'&&url.pathname==='/api/v1/security/gateway-circuit'){try{requireScope(c,'read')}catch(e){return fail(res,e)}return json(res,200,store.gatewayCircuitSnapshot(c));}
   if(req.method==='POST'&&url.pathname==='/api/v1/security/privacy-purge'){try{requireScope(c,'admin')}catch(e){return fail(res,e)}return body(req).then(b=>idemJson(res,store.idempotentWrite(c,'privacy_purge',idempotencyKey(req),b,()=>store.runPrivacyPurge(c,b)),200)).catch(e=>fail(res,e));}
@@ -3292,11 +3334,29 @@ if(req.method==='POST'&&url.pathname==='/api/v1/reconciliation/run'){try{require
     return body(req).then(b => json(res, 201, store.importCustomersJSON(c, b))).catch(e => fail(res, e));
   }
   const cur = url.pathname.match(/^\/api\/v1\/customers\/([^/]+)$/);
-  if (cur && req.method === 'PATCH') { try { requireScope(c,'write'); } catch(e){return fail(res,e);} return body(req).then(b=>json(res,200,store.updateCustomer(c,cur[1],b))).catch(e=>fail(res,e)); }
+  if (cur && req.method === 'PATCH') {
+    try { requireScope(c, 'write'); } catch (e) { return fail(res, e); }
+    return body(req).then(b => runSignedRouteWrite(
+      req, res, c, () => store.updateCustomer(c, cur[1], b),
+      (result, headers) => json(res, 200, result, headers)
+    )).catch(e => fail(res, e));
+  }
   const sir = url.pathname.match(/^\/api\/v1\/sites\/([^/]+)$/);
-  if (sir && req.method === 'PATCH') { try { requireScope(c,'write'); } catch(e){return fail(res,e);} return body(req).then(b=>json(res,200,store.updateSite(c,sir[1],b))).catch(e=>fail(res,e)); }
+  if (sir && req.method === 'PATCH') {
+    try { requireScope(c, 'write'); } catch (e) { return fail(res, e); }
+    return body(req).then(b => runSignedRouteWrite(
+      req, res, c, () => store.updateSite(c, sir[1], b),
+      (result, headers) => json(res, 200, result, headers)
+    )).catch(e => fail(res, e));
+  }
   const asr = url.pathname.match(/^\/api\/v1\/assets\/([^/]+)$/);
-  if (asr && req.method === 'PATCH') { try { requireScope(c,'write'); } catch(e){return fail(res,e);} return body(req).then(b=>json(res,200,store.updateAsset(c,asr[1],b))).catch(e=>fail(res,e)); }
+  if (asr && req.method === 'PATCH') {
+    try { requireScope(c, 'write'); } catch (e) { return fail(res, e); }
+    return body(req).then(b => runSignedRouteWrite(
+      req, res, c, () => store.updateAsset(c, asr[1], b),
+      (result, headers) => json(res, 200, result, headers)
+    )).catch(e => fail(res, e));
+  }
   const ar = url.pathname.match(/^\/api\/v1\/attachments\/([^/]+)$/);
   if (ar && req.method === 'GET') {
     try {
