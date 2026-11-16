@@ -105,3 +105,40 @@ New unit tests in `backend/test/signed-tenant-context-policy.test.js` cover Prev
 
 This repair improves the failure mode; it does not add new routes to the signed allowlist and does not close the 67-route gate. CI for the current PR head must pass before the change can be considered merged. Production isolation and commercial closure remain **HOLD**.
 
+
+
+## Non-work-orders vertical slice — assets list (2026-11-16)
+
+### Source-selected operation and relational scope
+
+The next vertical slice is the exact authenticated operation **GET /api/v1/assets**. It is outside the work-orders domain and uses the existing Store.listAssets(ctx) query:
+
+`assets a LEFT JOIN sites s ON s.id=a.site_id WHERE a.organization_id=? ORDER BY a.updated_at DESC LIMIT 500`
+
+The returned site_name comes from the joined sites row. On the inspected Neon Preview branch br-fragrant-king-bcr9928f / database opscore_acceptance:
+
+- Both public.assets and public.sites have RLS enabled and FORCE ROW LEVEL SECURITY.
+- Both tables have tenant-boundary policies based on opscore_current_tenant().
+- assets.site_id references sites(id, organization_id); sites.customer_id references customers(id, organization_id). These are composite tenant-aware foreign keys.
+- The Preview migration ledger contains migrations 063–068, including the signed verifier and RLS accessor alignment.
+- The database has active HMAC key metadata rows. Secret material was not queried.
+- The opscore_runtime role is LOGIN, NOSUPERUSER, NOBYPASSRLS; opscore_auth_definer is NOLOGIN, NOSUPERUSER, BYPASSRLS.
+
+This is schema/role evidence only; it does not establish the Vercel Preview deployment's runtime secret/key alignment.
+
+### Source changes added to PR #163
+
+- Added exact Preview-only GET /api/v1/assets gate OPSC_SIGNED_TENANT_CONTEXT_ASSETS_READ_ENABLED=true.
+- The route now uses the signed read-only transaction wrapper when this gate is enabled: BEGIN READ ONLY → obtain backend/xid → bind HMAC assertion → execute the existing joined Store query → COMMIT. Failure rolls back and returns no signed-success marker.
+- The feature is exact-path and GET-only; it cannot enable asset writes, other asset subroutes, or Production.
+- Added policy tests for the Preview-only gate, method/path matching, and signed route admission.
+- Extended the real PostgreSQL 18 signed-context CI gate to seed one asset and one site per tenant and exercise the actual GET /api/v1/assets route for Tenant A and Tenant B. Assertions require the signed response marker, exactly one own-tenant asset, correct own-tenant site_name join, no foreign asset, and raw-GUC tampering ignored. The gate already includes unsigned-GUC denial, invalid HMAC denial, same-backend next-transaction replay denial, and different-backend replay denial.
+- Cleanup removes only the synthetic asset/site fixtures created by this gate.
+
+### Verification boundary at this update
+
+The code changes are committed to the PR branch and CI was started for exact head 3126dfa36414b9e03d5995077e93d19b69eed094. The OpsCore CI, PostgreSQL 18 signed/RLS gate, and Vercel contract workflow were still running at the time of this update.
+
+**Live Preview HTTP execution is not yet performed.** Access to the Vercel team scope was denied with HTTP 403 and the Vercel authorization flow returned a single-use consent link. The user must approve that team access before Preview environment metadata can be re-read and a branch-scoped Preview deployment can be initiated. No Preview environment variable was read/decrypted/changed; no Neon data or schema was changed; no Production system was touched.
+
+Therefore this is an implemented source/CI vertical-slice candidate, **not yet a successful Preview vertical slice**. Do not mark the route certified until the actual Preview deployment and route tests pass with the Preview runtime role and configured signing key.
