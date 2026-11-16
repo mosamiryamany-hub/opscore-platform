@@ -1,82 +1,160 @@
-name: apply-production-migration-068
-# Applies only 068_opscore_app_role_privilege_lockdown.sql on Production when pending.
-# Fail-closed. Does not apply signed-context Preview-only migrations.
+name: verify-production-migration-068
+# Read-only replacement for the retired one-off apply workflow.
+# It verifies the recorded migration and role state without executing SQL writes.
 on:
   workflow_dispatch:
+
 permissions:
   contents: read
+
+concurrency:
+  group: verify-production-migration-068
+  cancel-in-progress: false
+
 jobs:
-  apply:
+  verify:
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
           node-version: '22.23.4'
-      - name: Install backend deps and psql
+      - name: Install pinned backend dependencies
         working-directory: backend
-        run: |
-          set -euo pipefail
-          npm ci --ignore-scripts
-          sudo apt-get update -qq
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq postgresql-client
-      - name: Inspect production ledger and apply 068 if pending
+        run: npm ci --ignore-scripts
+      - name: Verify Production target, runtime identity, TLS, and migration 068 ledger (read-only)
         working-directory: backend
         env:
           OPSC_OWNER_DATABASE_URL: ${{ secrets.DATABASE_URL }}
           OPSC_PRODUCTION_RUNTIME_URL: ${{ secrets.OPSC_DATABASE_URL }}
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
         run: |
           set -euo pipefail
-          test -n "${OPSC_OWNER_DATABASE_URL:-}"
           node <<'NODE'
-          const fs = require('fs');
-          const crypto = require('crypto');
+          const fs = require('node:fs');
+          const crypto = require('node:crypto');
           const { Client } = require('pg');
-          const { execFileSync } = require('child_process');
-          const path = require('path');
 
-          function sha256File(filePath) {
-            return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
+          const expectedProjectId = 'summer-leaf-18448271';
+          const expectedBranchId = 'br-proud-salad-bcshhdap';
+          const expectedDatabase = 'opscore_acceptance';
+          const migrationFile = 'sql/postgres/068_opscore_app_role_privilege_lockdown.sql';
+
+          function safeConnection(raw, expectedUser, label) {
+            if (!raw) throw new Error(label + '_DATABASE_URL_REQUIRED');
+            const url = new URL(raw);
+            if (!['postgres:', 'postgresql:'].includes(url.protocol)) throw new Error(label + '_DATABASE_URL_PROTOCOL_INVALID');
+            if (!url.hostname || url.hostname.includes('-pooler')) throw new Error(label + '_DIRECT_NEON_ENDPOINT_REQUIRED');
+            const username = decodeURIComponent(url.username);
+            const database = decodeURIComponent(url.pathname.replace(/^\//, ''));
+            if (username !== expectedUser) throw new Error(label + '_DATABASE_ROLE_MISMATCH');
+            if (database !== expectedDatabase) throw new Error(label + '_DATABASE_NAME_MISMATCH');
+            url.searchParams.set('sslmode', 'verify-full');
+            return { url, username, database, hostname: url.hostname.toLowerCase() };
+          }
+
+          async function verifyEndpoint(hostname) {
+            const apiKey = String(process.env.NEON_API_KEY || '').trim();
+            if (!apiKey) throw new Error('NEON_API_KEY_REQUIRED');
+            const match = /^(ep-[a-z0-9-]+)\./.exec(hostname);
+            if (!match) throw new Error('NEON_ENDPOINT_ID_INVALID');
+            const response = await fetch(
+              'https://console.neon.tech/api/v2/projects/' + encodeURIComponent(expectedProjectId) + '/endpoints?limit=100',
+              {
+                method: 'GET',
+                headers: { accept: 'application/json', authorization: 'Bearer ' + apiKey },
+                signal: AbortSignal.timeout(10000)
+              }
+            );
+            if (!response.ok) throw new Error('NEON_ENDPOINT_IDENTITY_API_REJECTED');
+            const payload = await response.json();
+            const matches = (Array.isArray(payload.endpoints) ? payload.endpoints : [])
+              .filter(e => String(e.id || '') === match[1]);
+            if (matches.length !== 1) throw new Error('NEON_ENDPOINT_NOT_UNIQUELY_RESOLVED');
+            const endpoint = matches[0];
+            const apiHost = String(endpoint.host || endpoint.hosts?.read_write_host || '').trim().toLowerCase();
+            if (String(endpoint.project_id || '') !== expectedProjectId) throw new Error('NEON_PROJECT_IDENTITY_MISMATCH');
+            if (String(endpoint.branch_id || '') !== expectedBranchId) throw new Error('NEON_BRANCH_IDENTITY_MISMATCH');
+            if (apiHost !== hostname) throw new Error('NEON_ENDPOINT_HOST_IDENTITY_MISMATCH');
+            if (String(endpoint.type || '').toLowerCase() !== 'read_write') throw new Error('NEON_READ_WRITE_ENDPOINT_REQUIRED');
+            return { endpointId: match[1], projectId: expectedProjectId, branchId: expectedBranchId, endpointType: 'read_write' };
+          }
+
+          async function connect(target, label) {
+            const client = new Client({
+              connectionString: target.url.toString(),
+              ssl: { rejectUnauthorized: true },
+              connectionTimeoutMillis: 10000,
+              application_name: 'opscore-prod-068-readonly-verifier'
+            });
+            await client.connect();
+            return { client, label };
           }
 
           (async () => {
-            const owner = new Client({ connectionString: process.env.OPSC_OWNER_DATABASE_URL, ssl: { rejectUnauthorized: false } });
-            await owner.connect();
-            const db = (await owner.query('SELECT current_database() AS d, current_user AS u')).rows[0];
-            console.log('connected', db);
-            const ledger = (await owner.query('SELECT filename, sha256 FROM schema_migrations ORDER BY filename')).rows;
-            console.log('ledger_count', ledger.length);
-            const pending = [];
-            const dir = path.join('sql', 'postgres');
-            const files = fs.readdirSync(dir).filter(f => /^\d{3}_.+\.sql$/.test(f)).sort();
-            const byName = new Map(ledger.map(r => [r.filename, r.sha256]));
-            for (const f of files) {
-              const h = sha256File(path.join(dir, f));
-              if (!byName.has(f)) pending.push({ f, h, reason: 'missing' });
-              else if (String(byName.get(f)).toLowerCase() !== h) pending.push({ f, h, reason: 'checksum_mismatch', ledger: byName.get(f) });
+            const ownerTarget = safeConnection(process.env.OPSC_OWNER_DATABASE_URL, 'neondb_owner', 'OWNER');
+            const runtimeTarget = safeConnection(process.env.OPSC_PRODUCTION_RUNTIME_URL, 'opscore_runtime', 'RUNTIME');
+            if (ownerTarget.hostname !== runtimeTarget.hostname || ownerTarget.database !== runtimeTarget.database) {
+              throw new Error('OWNER_RUNTIME_DATABASE_TARGET_MISMATCH');
             }
-            console.log('pending', JSON.stringify(pending.map(p => p.f + ':' + p.reason)));
-            const target = '068_opscore_app_role_privilege_lockdown.sql';
-            const hit = pending.find(p => p.f === target);
-            if (!hit) {
-              console.log('068_ALREADY_APPLIED_OR_MATCHED');
-              await owner.end();
-              return;
+            const endpoint = await verifyEndpoint(ownerTarget.hostname);
+            const [owner, runtime] = await Promise.all([
+              connect(ownerTarget, 'owner'),
+              connect(runtimeTarget, 'runtime')
+            ]);
+            try {
+              const [ownerIdentity, runtimeIdentity] = await Promise.all([
+                owner.client.query("SELECT current_database() AS database, current_user AS role, current_setting('server_version_num')::int AS server_version_num"),
+                runtime.client.query("SELECT current_database() AS database, current_user AS role, current_setting('row_security') AS row_security")
+              ]);
+              const o = ownerIdentity.rows[0], r = runtimeIdentity.rows[0];
+              if (o.database !== expectedDatabase || r.database !== expectedDatabase) throw new Error('DATABASE_IDENTITY_MISMATCH');
+              if (o.role !== 'neondb_owner' || r.role !== 'opscore_runtime') throw new Error('DATABASE_ROLE_IDENTITY_MISMATCH');
+              if (Number(o.server_version_num) < 180000) throw new Error('POSTGRES_18_REQUIRED');
+              if (r.row_security !== 'on') throw new Error('RUNTIME_ROW_SECURITY_NOT_ON');
+
+              const migrationSha = crypto.createHash('sha256').update(fs.readFileSync(migrationFile)).digest('hex');
+              const ledger = await owner.client.query(
+                'SELECT sha256 FROM public.schema_migrations WHERE filename = $1',
+                ['068_opscore_app_role_privilege_lockdown.sql']
+              );
+              if (ledger.rowCount !== 1 || String(ledger.rows[0].sha256).toLowerCase() !== migrationSha) {
+                throw new Error('PRODUCTION_MIGRATION_068_LEDGER_CHECKSUM_MISMATCH');
+              }
+
+              const role = await owner.client.query(
+                "SELECT rolcanlogin, rolsuper, rolbypassrls, rolcreatedb, rolcreaterole, rolinherit FROM pg_catalog.pg_roles WHERE rolname = 'opscore_app'"
+              );
+              let legacyRole = 'absent';
+              if (role.rowCount === 1) {
+                const v = role.rows[0];
+                const safe = !v.rolcanlogin && !v.rolsuper && !v.rolbypassrls && !v.rolcreatedb && !v.rolcreaterole && !v.rolinherit;
+                if (!safe) throw new Error('PRODUCTION_LEGACY_APP_ROLE_NOT_LOCKED');
+                const sessions = await owner.client.query("SELECT count(*)::int AS count FROM pg_catalog.pg_stat_activity WHERE usename = 'opscore_app'");
+                if (Number(sessions.rows[0].count) !== 0) throw new Error('PRODUCTION_LEGACY_APP_ROLE_HAS_ACTIVE_SESSIONS');
+                legacyRole = 'present-but-locked';
+              }
+
+              console.log(JSON.stringify({
+                status: 'PASS_READ_ONLY',
+                projectId: endpoint.projectId,
+                branchId: endpoint.branchId,
+                endpointType: endpoint.endpointType,
+                database: expectedDatabase,
+                postgresMajor: 18,
+                ownerRoleVerified: true,
+                runtimeRoleVerified: true,
+                runtimeRowSecurity: 'on',
+                migration068Sha256: migrationSha,
+                legacyAppRole: legacyRole,
+                writesPerformed: 0
+              }, null, 2));
+            } finally {
+              await Promise.allSettled([owner.client.end(), runtime.client.end()]);
             }
-            if (hit.reason === 'checksum_mismatch') {
-              console.error('068_CHECKSUM_MISMATCH_REFUSING');
-              process.exit(2);
-            }
-            const sql = fs.readFileSync(path.join(dir, target), 'utf8');
-            // Migration file contains its own BEGIN/COMMIT.
-            await owner.query(sql);
-            await owner.query(
-              'INSERT INTO schema_migrations(filename, sha256, applied_at) VALUES ($1,$2,clock_timestamp()) ON CONFLICT (filename) DO NOTHING',
-              [target, hit.h]
-            );
-            const role = await owner.query("SELECT count(*)::int AS n FROM pg_roles WHERE rolname='opscore_app'");
-            console.log('068_APPLIED', { opscore_app_roles: role.rows[0].n });
-            await owner.end();
-          })().catch((e) => { console.error(String(e && e.stack || e)); process.exit(1); });
+          })().catch(error => {
+            console.error('PRODUCTION_068_READ_ONLY_VERIFICATION_FAILED', String(error && error.message || error));
+            process.exit(1);
+          });
           NODE
