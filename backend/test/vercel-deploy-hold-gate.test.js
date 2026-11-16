@@ -79,8 +79,13 @@ test('deploy workflow never rebinds stale production behavioral evidence to a ne
   assert.doesNotMatch(deploy, /Stamp production behavioral evidence with deploy candidate commit/);
   assert.doesNotMatch(deploy, /data\.sourceCommitHint\s*=\s*commit/);
   assert.doesNotMatch(deploy, /probesReexecuted:\s*false/);
-  assert.equal((deploy.match(/noEvidenceRebind\(recovery\)/g) || []).length, 2);
-  assert.equal((deploy.match(/noEvidenceRebind\(session\)/g) || []).length, 2);
+  // PR161 consolidates behavioral evidence validation into a single behavioralPass()
+  // evaluator (stronger than main's two duplicated sites: it adds pipelineId binding,
+  // databaseName, verificationScope and ten named session checks at the same place).
+  // The guard therefore requires exactly one call site, and exactly one consumer.
+  assert.equal((deploy.match(/noEvidenceRebind\(recovery\)/g) || []).length, 1);
+  assert.equal((deploy.match(/noEvidenceRebind\(session\)/g) || []).length, 1);
+  assert.equal((deploy.match(/const ok = behavioralPass\(\);/g) || []).length, 1);
   const certification = step('Resolve production isolation certification from behavioral evidence');
   assert.match(certification, /sourceCommitMatches/);
   assert.match(certification, /CERTIFIED/);
