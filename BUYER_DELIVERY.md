@@ -2,7 +2,7 @@
 
 **Delivery status: HOLD — NO LICENSE GRANT — NO DISTRIBUTION AUTHORIZED.**
 
-This repository, this record, a deployment, a checksum, an SBOM, an attestation, or any generated archive grants no permission to access, use, install, run, inspect, copy, modify, host, publish, distribute, sell, resell, sublicense, rent, transfer, or commercially exploit the OpsCore source. All rights are reserved pending a separate written decision and signed agreement by the rights holder.
+This repository, this record, a deployment, a checksum, an SBOM, an attestation, or any generated archive grants no permission to a buyer to access, use, install, run, inspect, copy, modify, host, publish, distribute, sell, resell, sublicense, rent, transfer, or commercially exploit the OpsCore source. All rights are reserved until a separate written License Schedule is executed by the rights holder and the named buyer.
 
 ## Candidate identity
 
@@ -30,9 +30,9 @@ The recovery proof is a branch-point comparison. It must not be represented as a
 ## Required before any future buyer delivery
 
 1. Rights holder selects the commercial model and scope of rights.
-2. A separate written agreement is approved and signed.
+2. The rights holder and named buyer execute the transaction-specific written Schedule for the exact deliverable.
 3. The no-license notice, package metadata, full archive contents, manifests, and agreement are reconciled.
 4. A new exact-head release and all fingerprints/attestations are independently verified.
 5. Buyer-environment installation, database isolation, restore, WAF/TLS, integrations, mobile signing, and language acceptance are completed or explicitly assigned.
 
-Until then, do not market, sell, transfer, or deliver the source as a licensed product. **NO COMMERCIAL DISTRIBUTION / NO LICENSE GRANT.**
+Seller advertising, listings, demonstrations and negotiations may happen before a buyer is known. They do not authorize buyer use, license, distribution or delivery. **NO BUYER LICENSE GRANT / NO DELIVERY BEFORE EXECUTED SCHEDULE.**
