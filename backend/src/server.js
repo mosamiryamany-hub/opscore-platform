@@ -1159,7 +1159,10 @@ function requireCtx(req, res) {
     }
   } catch (sessionError) {
     warn('postgres_tenant_session_bind_failed', { organizationId: c.organizationId, error: sessionError });
-    json(res, 503, { error: { code: 'DATABASE_SECURITY_CONTEXT_FAILED' } });
+    const errorCode = sessionError && sessionError.code === 'SIGNED_TENANT_CONTEXT_ROUTE_NOT_ENABLED'
+      ? sessionError.code
+      : 'DATABASE_SECURITY_CONTEXT_FAILED';
+    json(res, 503, { error: { code: errorCode } });
     return null;
   }
   c.correlationId = res.getHeader('x-correlation-id') || null;
