@@ -2039,7 +2039,7 @@ function route(req, res) {
     try {
       return body(req).then((b) => runSignedRouteWrite(
         req, res, c,
-        () => store.idempotentWrite(c, 'appointment_reschedule', idempotencyKey(req), b, () => store.rescheduleAppointment(c, decodeURIComponent(apptReschedule[1]))),
+        () => store.idempotentWrite(c, 'appointment_reschedule', idempotencyKey(req), b, () => store.rescheduleAppointment(c, decodeURIComponent(apptReschedule[1]), b)),
         (record, headers) => json(res, 200, record.payload, {
           ...headers,
           'x-correlation-id': correlationId,
