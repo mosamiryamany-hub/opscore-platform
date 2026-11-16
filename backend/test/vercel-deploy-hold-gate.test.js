@@ -143,3 +143,11 @@ test('Production promotion requires exact 67-route signed-session evidence befor
   assert.ok(deploy.indexOf(certification) < deploy.indexOf(earlyGate));
   assert.ok(deploy.indexOf(earlyGate) < deploy.indexOf(publish));
 });
+
+
+test('Production deploy stays disabled until an owner explicitly enables the GitHub release gate', () => {
+  const deployHeader = deploy.slice(0, deploy.indexOf('      - uses: actions/checkout'));
+  assert.match(deployHeader, /vars\\.OPSC_PRODUCTION_AUTODEPLOY_ENABLED == 'true'/);
+  assert.match(deployHeader, /github\\.event_name == 'push'/);
+  assert.match(deployHeader, /refs\\/heads\\/main/);
+});
