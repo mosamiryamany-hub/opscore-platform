@@ -65,3 +65,14 @@ The full evidence, exact identifiers, source limitations, gate-by-gate status, a
 ### Additional read-only Production SQL audit
 
 The live audit of `opscore_acceptance` found 134/135 public base tables with RLS and FORCE RLS; eleven `SECURITY DEFINER` functions are owned by `neondb_owner`, not `opscore_auth_definer`; no function is owned by `opscore_auth_definer`. The functions grant EXECUTE to `opscore_runtime`, not PUBLIC, and `public` is not CREATE-writable by either runtime role. However, `opscore_app_least` still has CRUD grant metadata on 134 public relations, and `opscore_runtime` on 136. Two definer functions set `row_security=off`. These are hardening/review items; no role, grant, schema, or function was modified. Detailed SQL findings and limits are in `COMMERCIAL_CLOSURE_REVALIDATION_2026-11-16.md`.
+
+
+### Integrated PR #163 — final CI and merge outcome (2026-11-16)
+
+PR #163 at head `360067dd1aac25932a8fcb92e26af947033ee3b3` passed OpsCore CI run `43865467244`, PostgreSQL 18 isolated RLS/HTTP acceptance run `43865467363`, and Vercel contract verification run `43865467227`. Production deploy jobs were skipped on the PR event. Production deploy is now manual-only: it requires `workflow_dispatch` on `main`, input `I_AUTHORIZE_PRODUCTION_DEPLOYMENT`, and `OPSC_PRODUCTION_AUTODEPLOY_ENABLED=true`; a push to `main` cannot deploy.
+
+GitHub rejected the squash merge with HTTP 405 requiring approval from someone other than the last pusher. PR #163 remains open/unmerged. `main` remains `4017497068defa9c1d0761fcb07bc746925e002a`, and Production deployment `dpl_Hy9ymDff1oChGpBAxmAjr4cfwyyG` remains on that SHA.
+
+A Neon Production branch protection attempt was rejected with HTTP 422 because the current Free plan has reached its maximum protected-branch allowance. Ten branches are present; zero are protected. No branch was deleted or unprotected.
+
+The commercial decision remains **HOLD — DO NOT SELL OR DISTRIBUTE**. The remaining 67-route Production proof, backup/PITR entitlement and measured recovery targets, WAF blocking validation, buyer artifacts, and rights-holder agreement remain unclosed.
