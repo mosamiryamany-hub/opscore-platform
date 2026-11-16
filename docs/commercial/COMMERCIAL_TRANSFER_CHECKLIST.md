@@ -1,6 +1,6 @@
 # OpsCore v0.11.62 — Commercial and IP Transfer Checklist
 
-This operational checklist does not replace legal advice. The parties must sign a written transfer/assignment covering source-code rights, modification/distribution rights, repository/history scope, brand/domains if included, third-party dependencies/licenses, excluded assets, support, and responsibility allocation. There is no bundled license grant. NO_LICENSE_GRANT_NOTICE.txt states that all rights are reserved until a separate written agreement is signed by the rights holder.
+This operational checklist does not replace legal advice. The rights holder may publish and negotiate the offer before a buyer is identified; this is separate from granting rights. Before buyer use, modification, distribution or delivery, the parties must sign a written transfer/assignment or License Schedule covering source-code rights, modification/distribution rights, repository/history scope, brand/domains if included, third-party dependencies/licenses, excluded assets, support, and responsibility allocation. There is no bundled license grant. NO_LICENSE_GRANT_NOTICE.txt states that all rights are reserved until a separate written agreement is signed by the rights holder and named buyer.
 
 ## Repository visibility and source confidentiality
 
@@ -24,4 +24,4 @@ The buyer/hosting owner must separately accept PostgreSQL/PostGIS schema and run
 
 ## Handover evidence
 
-Use the same GitHub Actions Secure Release run's outer artifact, nested `OpsCore-release.zip`, external `COMMERCIAL_RELEASE_STATEMENT.json`, JUnit/step results, `I18N_FORENSIC_AUDIT_RESULT.json`, mobile dependency audit JSON, root PostgreSQL runtime dependency audit JSON and SHA-256 evidence. For the current verified candidate, run ID is 43308699094 and its artifact is `opscore-release-43308699094`. Older artifacts are historical only. Neither a green backend closure gate nor a source archive implies production certification.
+Use only one successful exact-head GitHub Actions Secure Release run's outer artifact, nested `OpsCore-release.zip`, external `COMMERCIAL_RELEASE_STATEMENT.json`, JUnit/step results, `I18N_FORENSIC_AUDIT_RESULT.json`, mobile dependency audit JSON, root PostgreSQL runtime dependency audit JSON and SHA-256 evidence. Do not copy historical run IDs or artifact names into current handoff materials. Any source change invalidates the prior package identity. Neither a green backend closure gate nor a source archive implies production certification.
