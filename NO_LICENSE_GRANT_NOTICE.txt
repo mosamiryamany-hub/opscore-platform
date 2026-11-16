@@ -1,5 +1,7 @@
 NO LICENSE GRANT BY DEFAULT — ALL RIGHTS RESERVED
 
+This notice grants no permission or rights to any party. No sale, delivery, redistribution, resale, sublicensing, hosting or commercial exploitation is authorized until the rights holder executes a written License Schedule with the named buyer.
+
 The rights holder may advertise, list, present and demonstrate the software and
 negotiate a potential sale or license before a buyer is identified or signs a
 License Schedule. These seller-side activities do not grant a buyer any rights.
