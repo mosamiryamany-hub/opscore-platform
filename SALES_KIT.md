@@ -1,6 +1,6 @@
-# OpsCore v0.11.62 — Commercial Sales Kit
+# OpsCore v0.11.62 — Seller Sales Kit
 
-> **INACTIVE — NO LICENSE GRANT — NO SALE OR DISTRIBUTION AUTHORIZED.** This file is product information only, not an offer, license, or delivery authorization.
+> **OFFER OPEN FOR MARKETING AND NEGOTIATION — NO LICENSE GRANT UNTIL A BUYER-SPECIFIC SCHEDULE IS EXECUTED.** This material describes the seller's offer; it does not itself grant software rights or authorize buyer delivery.
 
 ## Product
 
@@ -30,8 +30,10 @@ Source correctness, internal adapters, authorization, database migrations, RLS, 
 
 The current stored seller-reference production isolation evidence is NOT_VERIFIED: it contains a rebind marker showing probes were not re-executed and a recovery record tied to a previous Neon branch. Do not claim certification until fresh dual-tenant and recovery probes are bound to the exact active Production commit and Neon branch and independently reviewed. This does not certify buyer environments, all business flows, full PITR/RPO/RTO, or external integrations. The technical classification is valid only for its exact verified evidence scope.
 
-## Commercial rights hold
+## Commercial offer and rights
 
-**NO LICENSE GRANT. ALL RIGHTS RESERVED.** No access, use, installation, execution, inspection, copying, modification, hosting, publication, distribution, sale, resale, sublicensing, rental, transfer, or commercial exploitation is authorized. The commercial model is pending a separate decision by the rights holder. A future grant requires a separate written agreement approved and signed by the rights holder. No technical test, deployment, archive, checksum, SBOM, or attestation creates or implies a license.
+The seller may advertise, present and negotiate this source-code offer before any buyer is known. Price and transaction terms are agreed privately. A named buyer is not required to publish this sales kit.
 
-Do not use this sales kit to market or sell OpsCore while the hold remains active.
+No license or use/distribution right is granted by this sales kit. Before buyer installation, execution, modification, hosting, resale, sublicensing or delivery, both the rights holder and named buyer must execute a License Schedule that pins the exact deliverable and states the permitted rights. All ungranted rights remain reserved.
+
+No technical test, deployment, archive, checksum, SBOM or attestation creates or implies a license.
