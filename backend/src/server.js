@@ -12,7 +12,6 @@ const {runWithRequest} = require('./pg-database-sync');
 const {
   signedWorkOrdersReadEnabled,
   signedWorkOrdersWriteEnabled,
-  signedWorkOrdersContextEnabled,
   signedSessionAutobindEnabled,
   signedTenantContextRouteError,
   signedContextRequested: isSignedContextRequested
