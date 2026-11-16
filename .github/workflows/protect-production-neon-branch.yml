@@ -1,0 +1,28 @@
+name: protect-production-neon-branch
+# Marks the configured Production branch as protected in Neon (no delete via API casual use).
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  protect:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Protect production branch
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: summer-leaf-18448271
+          OPSC_PRODUCTION_NEON_BRANCH_ID: br-proud-salad-bcshhdap
+        run: |
+          set -euo pipefail
+          test -n "${NEON_API_KEY:-}"
+          CODE=$(curl -sS -o /tmp/neon_protect.json -w "%{http_code}" -X PATCH \
+            -H "Authorization: Bearer $NEON_API_KEY" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json" \
+            "https://console.neon.tech/api/v2/projects/${NEON_PROJECT_ID}/branches/${OPSC_PRODUCTION_NEON_BRANCH_ID}" \
+            -d '{"branch":{"protected":true}}')
+          echo "HTTP $CODE"
+          cat /tmp/neon_protect.json | head -c 800
+          echo
+          test "$CODE" = "200" -o "$CODE" = "201"
