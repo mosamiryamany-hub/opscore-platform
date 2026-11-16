@@ -303,3 +303,36 @@ test('handover docs do not advertise a bundled proprietary or use-only license f
     assert.doesNotMatch(doc, /proprietary internal-use license/i);
   }
 });
+
+test('seller offer may be marketed before buyer identification while buyer rights and delivery remain gated', () => {
+  const sellerDocs = [
+    read('COMMERCIAL_CLOSURE_STATUS.md'),
+    read('COMMERCIAL_RELEASE_STATUS.md'),
+    read('SALES_KIT.md'),
+    read('SALES_README.md'),
+    read('docs/COMMERCIAL_HANDOFF.md'),
+    read('docs/commercial/SELLER_COMMERCIAL_MODEL.md')
+  ];
+  for (const doc of sellerDocs) {
+    assert.match(doc, /OPEN FOR MARKETING|may (?:advertise|publish|market)|may be advertised/i);
+    assert.match(doc, /License Schedule|NO LICENSE GRANT/i);
+  }
+
+  const notice = read('NO_LICENSE_GRANT_NOTICE.txt');
+  assert.match(notice, /before a buyer is identified/i);
+  assert.match(notice, /until the rights holder and that named buyer execute/i);
+  assert.match(notice, /pins the exact deliverable/i);
+
+  const buyerDelivery = read('BUYER_DELIVERY.md');
+  assert.match(buyerDelivery, /Delivery status: HOLD/);
+  assert.match(buyerDelivery, /NO BUYER LICENSE GRANT \/ NO DELIVERY BEFORE EXECUTED SCHEDULE/);
+  assert.match(buyerDelivery, /Seller advertising, listings, demonstrations and negotiations may happen before a buyer is known/i);
+
+  const closeout = read('docs/commercial/REMAINING_CLOSEOUT_CHECKLIST.md');
+  assert.match(closeout, /not a seller launch or marketing gate/i);
+  assert.doesNotMatch(closeout, /- \[ \] First signed License Schedule with a named buyer/i);
+
+  const gate = read('backend/scripts/release-hardening-gate.js');
+  assert.match(gate, /does not grant a buyer any rights/i);
+  assert.match(gate, /pins the exact deliverable/i);
+});
