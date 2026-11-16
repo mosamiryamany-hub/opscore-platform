@@ -366,14 +366,16 @@ jobs:
                 const sourceCommitMatches = (evidence) => expectedCommit.length === 40 && String(evidence.sourceCommitHint || '').trim().toLowerCase() === expectedCommit;
                 const sourceBranchMatches = (evidence) => Boolean(expectedBranch) && String(evidence.parentBranchId || '').trim() === expectedBranch;
                 const routeRows = Array.isArray(signedRoutes.routes) ? signedRoutes.routes : [];
-                const routeKeys = new Set(routeRows.map(route => String(route.method || '').toUpperCase() + ' ' + String(route.path || '')));
-                const routeAssertionsPass = routeRows.length === 67 && routeKeys.size === 67 && routeRows.every(route =>
-                  route.status === 'PASS' && route.signedContextBound === true && route.sessionBound === true
-                  && route.transactionBound === true && route.rawGucTamperDenied === true
-                  && (route.operation === 'read'
-                    ? route.tenantARead === true && route.tenantBRead === true && route.crossTenantReadDenied === true
-                    : route.operation === 'write' && route.tenantAWrite === true && route.tenantBWrite === true && route.crossTenantWriteDenied === true)
-                );
+                const routeKeys = new Set(routeRows.map(route => route && String(route.method || '').toUpperCase() + ' ' + String(route.path || '')));
+                const routeAssertionsPass = routeRows.length === 67 && routeKeys.size === 67 && routeRows.every(route => {
+                  if (!route || !['GET','POST','PUT','PATCH','DELETE'].includes(String(route.method || '').toUpperCase())
+                      || !String(route.path || '').startsWith('/api/') || String(route.path || '').includes('?')
+                      || route.status !== 'PASS' || route.signedContextBound !== true || route.sessionBound !== true
+                      || route.transactionBound !== true || route.rawGucTamperDenied !== true) return false;
+                  if (route.operation === 'read') return route.tenantARead === true && route.tenantBRead === true && route.crossTenantReadDenied === true;
+                  if (route.operation === 'write') return route.tenantAWrite === true && route.tenantBWrite === true && route.crossTenantWriteDenied === true;
+                  return false;
+                });
                 const signedRoutesOk = signedRoutes.schemaVersion === 'opscore.signed-tenant-context-production-coverage.v1'
                   && signedRoutes.environment === 'production' && signedRoutes.status === 'PASS'
                   && signedRoutes.databaseName === 'opscore_acceptance'
@@ -385,11 +387,11 @@ jobs:
                   && String(signedRoutes.parentBranchId || '').trim() === expectedBranch
                   && signedRoutes.evidenceRebind == null && routeAssertionsPass;
                 
-                                const noEvidenceRebind = (evidence) => evidence.evidenceRebind == null;
+const noEvidenceRebind = (evidence) => evidence.evidenceRebind == null;
                 const requiredSessionChecks = ['dualLogin','tenantPrincipalBinding','ownAssetCreate','ownAssetRead','tenantListIsolation','crossTenantAssetReadDenied','ownAssetEventWrite','crossTenantWriteDenied','unauthenticatedDenied','cleanupComplete'];
                 const sessionChecksPass = requiredSessionChecks.every(key => session.checks && session.checks[key] === 'PASS');
-                const sOk = session.schemaVersion === 'opscore.production-session-isolation.v2' && session.status === 'PASS' && session.verificationScope === 'dual-tenant-http-asset-create-read-event-write-denial-and-cleanup' && sessionChecksPass && session.databaseName === 'opscore_acceptance' && sourceCommitMatches(session) && sourceBranchMatches(session) && noEvidenceRebind(session);
-                const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v2' && recovery.status === 'PASS' && recovery.coreTenantTableRowCountsMatch === true && recovery.verificationScope === 'branch-clone-public-table-count-and-core-tenant-row-counts-only' && recovery.databaseName === 'opscore_acceptance' && Number(recovery.mismatchCount) === 0 && sourceCommitMatches(recovery) && sourceBranchMatches(recovery) && noEvidenceRebind(recovery);
+                const sOk = session.schemaVersion === 'opscore.production-session-isolation.v2' && session.status === 'PASS' && session.verificationScope === 'dual-tenant-http-asset-create-read-event-write-denial-and-cleanup' && sessionChecksPass && session.databaseName === 'opscore_acceptance' && String(session.pipelineId || '') === String(process.env.GITHUB_RUN_ID || '') && sourceCommitMatches(session) && sourceBranchMatches(session) && noEvidenceRebind(session);
+                const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v2' && recovery.status === 'PASS' && recovery.coreTenantTableRowCountsMatch === true && recovery.verificationScope === 'branch-clone-public-table-count-and-core-tenant-row-counts-only' && recovery.databaseName === 'opscore_acceptance' && String(recovery.pipelineId || '') === String(process.env.GITHUB_RUN_ID || '') && Number(recovery.mismatchCount) === 0 && sourceCommitMatches(recovery) && sourceBranchMatches(recovery) && noEvidenceRebind(recovery);
                 return sOk && rOk && signedRoutesOk;
               } catch { return false; }
             }
@@ -439,14 +441,16 @@ jobs:
               const sourceCommitMatches = (evidence) => expectedCommit.length === 40 && String(evidence.sourceCommitHint || '').trim().toLowerCase() === expectedCommit;
               const sourceBranchMatches = (evidence) => Boolean(expectedBranch) && String(evidence.parentBranchId || '').trim() === expectedBranch;
                 const routeRows = Array.isArray(signedRoutes.routes) ? signedRoutes.routes : [];
-                const routeKeys = new Set(routeRows.map(route => String(route.method || '').toUpperCase() + ' ' + String(route.path || '')));
-                const routeAssertionsPass = routeRows.length === 67 && routeKeys.size === 67 && routeRows.every(route =>
-                  route.status === 'PASS' && route.signedContextBound === true && route.sessionBound === true
-                  && route.transactionBound === true && route.rawGucTamperDenied === true
-                  && (route.operation === 'read'
-                    ? route.tenantARead === true && route.tenantBRead === true && route.crossTenantReadDenied === true
-                    : route.operation === 'write' && route.tenantAWrite === true && route.tenantBWrite === true && route.crossTenantWriteDenied === true)
-                );
+                const routeKeys = new Set(routeRows.map(route => route && String(route.method || '').toUpperCase() + ' ' + String(route.path || '')));
+                const routeAssertionsPass = routeRows.length === 67 && routeKeys.size === 67 && routeRows.every(route => {
+                  if (!route || !['GET','POST','PUT','PATCH','DELETE'].includes(String(route.method || '').toUpperCase())
+                      || !String(route.path || '').startsWith('/api/') || String(route.path || '').includes('?')
+                      || route.status !== 'PASS' || route.signedContextBound !== true || route.sessionBound !== true
+                      || route.transactionBound !== true || route.rawGucTamperDenied !== true) return false;
+                  if (route.operation === 'read') return route.tenantARead === true && route.tenantBRead === true && route.crossTenantReadDenied === true;
+                  if (route.operation === 'write') return route.tenantAWrite === true && route.tenantBWrite === true && route.crossTenantWriteDenied === true;
+                  return false;
+                });
                 const signedRoutesOk = signedRoutes.schemaVersion === 'opscore.signed-tenant-context-production-coverage.v1'
                   && signedRoutes.environment === 'production' && signedRoutes.status === 'PASS'
                   && signedRoutes.databaseName === 'opscore_acceptance'
@@ -458,11 +462,11 @@ jobs:
                   && String(signedRoutes.parentBranchId || '').trim() === expectedBranch
                   && signedRoutes.evidenceRebind == null && routeAssertionsPass;
                 
-                                const noEvidenceRebind = (evidence) => evidence.evidenceRebind == null;
+const noEvidenceRebind = (evidence) => evidence.evidenceRebind == null;
               const requiredSessionChecks = ['dualLogin','tenantPrincipalBinding','ownAssetCreate','ownAssetRead','tenantListIsolation','crossTenantAssetReadDenied','ownAssetEventWrite','crossTenantWriteDenied','unauthenticatedDenied','cleanupComplete'];
                 const sessionChecksPass = requiredSessionChecks.every(key => session.checks && session.checks[key] === 'PASS');
-                const sOk = session.schemaVersion === 'opscore.production-session-isolation.v2' && session.status === 'PASS' && session.verificationScope === 'dual-tenant-http-asset-create-read-event-write-denial-and-cleanup' && sessionChecksPass && session.databaseName === 'opscore_acceptance' && sourceCommitMatches(session) && sourceBranchMatches(session) && noEvidenceRebind(session);
-              const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v2' && recovery.status === 'PASS' && recovery.coreTenantTableRowCountsMatch === true && recovery.verificationScope === 'branch-clone-public-table-count-and-core-tenant-row-counts-only' && recovery.databaseName === 'opscore_acceptance' && Number(recovery.mismatchCount) === 0 && sourceCommitMatches(recovery) && sourceBranchMatches(recovery) && noEvidenceRebind(recovery);
+                const sOk = session.schemaVersion === 'opscore.production-session-isolation.v2' && session.status === 'PASS' && session.verificationScope === 'dual-tenant-http-asset-create-read-event-write-denial-and-cleanup' && sessionChecksPass && session.databaseName === 'opscore_acceptance' && String(session.pipelineId || '') === String(process.env.GITHUB_RUN_ID || '') && sourceCommitMatches(session) && sourceBranchMatches(session) && noEvidenceRebind(session);
+              const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v2' && recovery.status === 'PASS' && recovery.coreTenantTableRowCountsMatch === true && recovery.verificationScope === 'branch-clone-public-table-count-and-core-tenant-row-counts-only' && recovery.databaseName === 'opscore_acceptance' && String(recovery.pipelineId || '') === String(process.env.GITHUB_RUN_ID || '') && Number(recovery.mismatchCount) === 0 && sourceCommitMatches(recovery) && sourceBranchMatches(recovery) && noEvidenceRebind(recovery);
               return sOk && rOk && signedRoutesOk;
             } catch { return false; }
           }
