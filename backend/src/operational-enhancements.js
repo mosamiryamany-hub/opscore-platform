@@ -301,7 +301,7 @@ p.markFaultUnreachable=function(ctx,workOrderId,d={}){
   const jobId=id('job');
   this.db.prepare("INSERT INTO operational_jobs(id,organization_id,queue_name,job_type,entity_type,entity_id,payload_json,status,attempts,max_attempts,available_at,lease_until,last_error,result_json,created_by,created_at,updated_at,completed_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
     .run(jobId,ctx.organizationId,'incident','fault_unreachable','work_order',workOrderId,JSON.stringify({reasonCode,detail:text(d.detail||''),registeredBy:ctx.userId,registeredAt:t}),'queued',0,5,t,null,reasonCode,null,ctx.userId,t,t,null);
-  const hasConfigs=this.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='operational_configs'").get();
+  const hasConfigs=this._tableExists('operational_configs');
   if(hasConfigs){
     const cfgId=id('cfg');
     this.db.prepare('INSERT INTO operational_configs (id,organization_id,config_key,config_value_json,version,status,created_by,description,reason,created_at,activated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)')

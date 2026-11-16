@@ -16,7 +16,13 @@ p.listTechnicianGeofences=function(ctx,technicianId){requireRole(ctx.role,'read'
 p.checkTechnicianWithinGeofence=function(ctx,d={}){requireRole(ctx.role,'read');const technicianId=clean(d.technicianId||ctx.userId);const lng=Number(d.longitude),lat=Number(d.latitude);if(!Number.isFinite(lng)||!Number.isFinite(lat))throw new Error('GEOFENCE_POINT_INVALID');const rows=this.listTechnicianGeofences(ctx,technicianId);const matches=rows.filter(g=>coversPoint(g.geometry,[lng,lat])).map(g=>({id:g.id,name:g.name,inside:true}));return {schemaVersion:'opscore.technician-geofence.v1',organizationId:ctx.organizationId,technicianId,point:{longitude:lng,latitude:lat},matches,insideAny:matches.length>0}};
 /** Technician breadcrumb trail — org-scoped GPS points for field path (multi-sector). */
 function ensureTrailTable(db){
-  if (db.engine === 'postgres') return;
+  if (db.engine === 'postgres') {
+    const relation = db.prepare("SELECT pg_catalog.to_regclass('public.technician_location_trail') AS relation").get();
+    if (!relation || !relation.relation) {
+      throw new Error('TECHNICIAN_LOCATION_TRAIL_SCHEMA_MISSING');
+    }
+    return;
+  }
   db.exec(`CREATE TABLE IF NOT EXISTS technician_location_trail (
     id TEXT PRIMARY KEY,
     organization_id TEXT NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
@@ -215,16 +221,13 @@ p.listMapViewport=function(ctx,d={}){
        AND a.checkin_longitude>=? AND a.checkin_longitude<=? AND a.checkin_latitude>=? AND a.checkin_latitude<=?
      ORDER BY a.checked_in_at DESC LIMIT ?`
   ).all(ctx.organizationId, west, east, south, north, limit);
-  let trail=[];
-  try{
-    ensureTrailTable(this.db);
-    trail=this.db.prepare(
-      `SELECT id,technician_id,latitude,longitude,accuracy_m,recorded_at,work_order_id
-       FROM technician_location_trail
-       WHERE organization_id=? AND longitude>=? AND longitude<=? AND latitude>=? AND latitude<=?
-       ORDER BY recorded_at DESC LIMIT ?`
-    ).all(ctx.organizationId, west, east, south, north, limit);
-  }catch(_){ trail=[]; }
+  ensureTrailTable(this.db);
+  const trail=this.db.prepare(
+    `SELECT id,technician_id,latitude,longitude,accuracy_m,recorded_at,work_order_id
+     FROM technician_location_trail
+     WHERE organization_id=? AND longitude>=? AND longitude<=? AND latitude>=? AND latitude<=?
+     ORDER BY recorded_at DESC LIMIT ?`
+  ).all(ctx.organizationId, west, east, south, north, limit);
   // Optional geo-scope filter for non-admin
   let payload={sites,checkins,trail};
   if(ctx.role!=='admin'&&ctx.role!=='owner'){
