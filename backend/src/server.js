@@ -2037,14 +2037,15 @@ function route(req, res) {
   const apptReschedule = url.pathname.match(/^\/api\/v1\/appointments\/([^/]+)\/reschedule$/);
   if (req.method === 'POST' && apptReschedule) {
     try {
-      return body(req).then((b) => {
-        const key = req.headers['idempotency-key'] || req.headers['x-idempotency-key'];
-        const record = store.idempotentWrite(c, 'appointment_reschedule', key, b, () => store.rescheduleAppointment(c, decodeURIComponent(apptReschedule[1]), b));
-        return json(res, 200, record.payload, {
+      return body(req).then((b) => runSignedRouteWrite(
+        req, res, c,
+        () => store.idempotentWrite(c, 'appointment_reschedule', idempotencyKey(req), b, () => store.rescheduleAppointment(c, decodeURIComponent(apptReschedule[1]))),
+        (record, headers) => json(res, 200, record.payload, {
+          ...headers,
           'x-correlation-id': correlationId,
           'x-idempotency-replayed': record.__idempotent ? 'true' : 'false'
-        });
-      }).catch((e) => fail(res, e));
+        })
+      )).catch((e) => fail(res, e));
     } catch (e) { return fail(res, e); }
   }
   const woPack = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/work-pack$/);
@@ -3086,24 +3087,21 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
     return json(res, 200, store.getAssetIntelligence(c, ai[1]));
   const ae = url.pathname.match(/^\/api\/v1\/assets\/([^/]+)\/events$/);
   if (ae && req.method === 'POST') {
-    try {
-      requireScope(c, 'write');
-    } catch (e) {
-      return fail(res, e);
-    }
-    return body(req).then(b => json(res, 201, store.recordAssetEvent(c, {
-      ...b,
-      assetId: ae[1]
-    }))).catch(e => fail(res, e));
+    try { requireScope(c, 'write'); } catch (e) { return fail(res, e); }
+    return body(req).then(b => runSignedRouteWrite(
+      req, res, c,
+      () => store.recordAssetEvent(c, { ...b, assetId: ae[1] }),
+      (result, headers) => json(res, 201, result, headers)
+    )).catch(e => fail(res, e));
   }
   const ah=url.pathname.match(/^\/api\/v1\/assets\/([^/]+)\/health$/); if(ah && req.method==='GET'){const c=requireCtx(req,res);if(!c)return;try{requireScope(c,'read');return json(res,200,store.evaluateAssetHealth(c,ah[1]));}catch(e){return fail(res,e);}}
   if (req.method === 'POST' && url.pathname === '/api/v1/assets') {
-    try {
-      requireScope(c, 'write');
-    } catch (e) {
-      return fail(res, e);
-    }
-    return body(req).then(b => json(res, 201, store.createAsset(c, b))).catch(e => fail(res, e));
+    try { requireScope(c, 'write'); } catch (e) { return fail(res, e); }
+    return body(req).then(b => runSignedRouteWrite(
+      req, res, c,
+      () => store.createAsset(c, b),
+      (result, headers) => json(res, 201, result, headers)
+    )).catch(e => fail(res, e));
   }
   if (req.method === 'GET' && url.pathname === '/api/v1/locations')
     return json(res, 200, store.listLocations(c));
@@ -3174,7 +3172,16 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
   const oj=url.pathname.match(/^\/api\/v1\/operational-jobs\/([^/]+)$/); if(oj&&req.method==='GET') return json(res,200,store.getOperationalJob(c,oj[1]));
   if(req.method==='GET'&&url.pathname==='/api/v1/service-lines')return json(res,200,store.listServiceLines(c));
   if(req.method==='POST'&&url.pathname==='/api/v1/service-lines'){try{requireScope(c,'write')}catch(e){return fail(res,e)}return body(req).then(b=>idemJson(res,store.idempotentWrite(c,'service_line_create',idempotencyKey(req),b,()=>store.createServiceLine(c,b)),201)).catch(e=>fail(res,e));}
-  const csl=url.pathname.match(/^\/api\/v1\/customers\/([^/]+)\/service-line$/); if(csl&&req.method==='GET')return json(res,200,store.getCustomerServiceLine(c,csl[1])); if(csl&&req.method==='POST'){try{requireScope(c,'write')}catch(e){return fail(res,e)}return body(req).then(b=>idemJson(res,store.idempotentWrite(c,'customer_service_line_assign',idempotencyKey(req),{customerId:csl[1],lineId:b.lineId},()=>store.assignCustomerServiceLine(c,csl[1],b.lineId)),200)).catch(e=>fail(res,e));}
+  const csl=url.pathname.match(/^\/api\/v1\/customers\/([^/]+)\/service-line$/);
+  if(csl&&req.method==='GET')return sendWorkOrderRead(req,res,c,()=>store.getCustomerServiceLine(c,csl[1]));
+  if(csl&&req.method==='POST'){
+    try{requireScope(c,'write')}catch(e){return fail(res,e)}
+    return body(req).then(b=>runSignedRouteWrite(
+      req,res,c,
+      ()=>store.idempotentWrite(c,'customer_service_line_assign',idempotencyKey(req),{customerId:csl[1],lineId:b.lineId},()=>store.assignCustomerServiceLine(c,csl[1],b.lineId)),
+      (record,headers)=>idemJson(res,record,200,headers)
+    )).catch(e=>fail(res,e));
+  }
   if(req.method==='POST'&&url.pathname==='/api/v1/service-line-migrations/preflight'){try{requireScope(c,'write')}catch(e){return fail(res,e)}return body(req).then(b=>idemJson(res,store.idempotentWrite(c,'service_line_migration_preflight',idempotencyKey(req),{customerId:b.customerId,toLineId:b.toLineId},()=>store.preflightLineMigration(c,b.customerId,b.toLineId)),201)).catch(e=>fail(res,e));}
   const lm=url.pathname.match(/^\/api\/v1\/service-line-migrations\/([^/]+)$/); if(lm&&req.method==='GET')return json(res,200,store.getLineMigration(c,lm[1])); if(lm&&req.method==='POST'){try{requireScope(c,'write')}catch(e){return fail(res,e)}return idemJson(res,store.idempotentWrite(c,'service_line_migration_execute',idempotencyKey(req),{migrationId:lm[1]},()=>store.executeLineMigration(c,lm[1])),200);}
   const lmr=url.pathname.match(/^\/api\/v1\/service-line-migrations\/([^/]+)\/rollback$/); if(lmr&&req.method==='POST'){try{requireScope(c,'admin')}catch(e){return fail(res,e)}return idemJson(res,store.idempotentWrite(c,'service_line_migration_rollback',idempotencyKey(req),{migrationId:lmr[1]},()=>store.rollbackLineMigration(c,lmr[1])),200);}
@@ -3294,11 +3301,29 @@ if(req.method==='POST'&&url.pathname==='/api/v1/reconciliation/run'){try{require
     return body(req).then(b => json(res, 201, store.importCustomersJSON(c, b))).catch(e => fail(res, e));
   }
   const cur = url.pathname.match(/^\/api\/v1\/customers\/([^/]+)$/);
-  if (cur && req.method === 'PATCH') { try { requireScope(c,'write'); } catch(e){return fail(res,e);} return body(req).then(b=>json(res,200,store.updateCustomer(c,cur[1],b))).catch(e=>fail(res,e)); }
+  if (cur && req.method === 'PATCH') {
+    try { requireScope(c, 'write'); } catch (e) { return fail(res, e); }
+    return body(req).then(b => runSignedRouteWrite(
+      req, res, c, () => store.updateCustomer(c, cur[1], b),
+      (result, headers) => json(res, 200, result, headers)
+    )).catch(e => fail(res, e));
+  }
   const sir = url.pathname.match(/^\/api\/v1\/sites\/([^/]+)$/);
-  if (sir && req.method === 'PATCH') { try { requireScope(c,'write'); } catch(e){return fail(res,e);} return body(req).then(b=>json(res,200,store.updateSite(c,sir[1],b))).catch(e=>fail(res,e)); }
+  if (sir && req.method === 'PATCH') {
+    try { requireScope(c, 'write'); } catch (e) { return fail(res, e); }
+    return body(req).then(b => runSignedRouteWrite(
+      req, res, c, () => store.updateSite(c, sir[1], b),
+      (result, headers) => json(res, 200, result, headers)
+    )).catch(e => fail(res, e));
+  }
   const asr = url.pathname.match(/^\/api\/v1\/assets\/([^/]+)$/);
-  if (asr && req.method === 'PATCH') { try { requireScope(c,'write'); } catch(e){return fail(res,e);} return body(req).then(b=>json(res,200,store.updateAsset(c,asr[1],b))).catch(e=>fail(res,e)); }
+  if (asr && req.method === 'PATCH') {
+    try { requireScope(c, 'write'); } catch (e) { return fail(res, e); }
+    return body(req).then(b => runSignedRouteWrite(
+      req, res, c, () => store.updateAsset(c, asr[1], b),
+      (result, headers) => json(res, 200, result, headers)
+    )).catch(e => fail(res, e));
+  }
   const ar = url.pathname.match(/^\/api\/v1\/attachments\/([^/]+)$/);
   if (ar && req.method === 'GET') {
     try {
