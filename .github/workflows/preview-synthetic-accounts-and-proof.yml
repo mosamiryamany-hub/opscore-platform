@@ -127,15 +127,16 @@ jobs:
           BASE="https://${HOST}"
           echo "BASE=$BASE"
           set +e
-          vercel curl --token "$VERCEL_TOKEN" "$BASE/api/health" >"$RUNNER_TEMP/health.raw" 2>"$RUNNER_TEMP/health.err"
+          vercel curl --token "$VERCEL_TOKEN" "$BASE/api/health" >"$RUNNER_TEMP/health.raw" 2>&1
           echo "health_exit=$?"
           vercel curl --token "$VERCEL_TOKEN" -H "Authorization: Bearer ${TOKEN_A}" \
-            "$BASE/api/v1/me" >"$RUNNER_TEMP/me.raw" 2>"$RUNNER_TEMP/me.err"
+            "$BASE/api/v1/me" >"$RUNNER_TEMP/me.raw" 2>&1
           echo "me_exit=$?"
           vercel curl --token "$VERCEL_TOKEN" -H "Authorization: Bearer ${TOKEN_A}" \
-            "$BASE/api/v1/_internal/tenant-context-proof" >"$RUNNER_TEMP/proof.raw" 2>"$RUNNER_TEMP/proof.err"
+            "$BASE/api/v1/_internal/tenant-context-proof" >"$RUNNER_TEMP/proof.raw" 2>&1
           echo "proof_exit=$?"
           set -e
+          wc -c "$RUNNER_TEMP/health.raw" "$RUNNER_TEMP/me.raw" "$RUNNER_TEMP/proof.raw" || true
           python3 - <<'PY'
           import json, re, os
           def extract_json(path):
