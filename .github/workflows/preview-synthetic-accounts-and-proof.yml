@@ -155,6 +155,7 @@ jobs:
               print(label, "keys", list(data.keys())[:15] if isinstance(data, dict) else None)
               if label == "proof" and isinstance(data, dict):
                   print("proof_status", data.get("status"), "ok", data.get("ok"), "error", data.get("error"))
+                  print("proof_full", json.dumps(data)[:1500])
                   status = str(data.get("status") or (data.get("error") or {}).get("code") or "UNKNOWN")
           open(os.environ["RUNNER_TEMP"] + "/proof_status.txt", "w").write(status)
           PY
