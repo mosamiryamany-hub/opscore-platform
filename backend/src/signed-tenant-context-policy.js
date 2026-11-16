@@ -43,6 +43,14 @@ function signedWorkOrdersContextEnabled(req, env = process.env) {
   return signedWorkOrdersReadEnabled(req, env) || signedWorkOrdersWriteEnabled(req, env);
 }
 
+function signedAssetsReadEnabled(req, env = process.env) {
+  const pathname = String(req && req.url || '').split('?')[0];
+  return isPreview(env)
+    && enabled(env.OPSC_SIGNED_TENANT_CONTEXT_ASSETS_READ_ENABLED)
+    && String(req && req.method || '').toUpperCase() === 'GET'
+    && pathname === '/api/v1/assets';
+}
+
 function signedSessionAutobindEnabled(env = process.env) {
   return isPreview(env) && enabled(env.OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED);
 }
@@ -52,7 +60,7 @@ function signedTenantContextRequired(env = process.env) {
 }
 
 function signedContextRequested(req, env = process.env) {
-  return signedSessionAutobindEnabled(env) || signedWorkOrdersContextEnabled(req, env);
+  return signedSessionAutobindEnabled(env) || signedWorkOrdersContextEnabled(req, env) || signedAssetsReadEnabled(req, env);
 }
 
 // The worker rejects unsigned field-mode setSession calls when the hard cutover
@@ -69,6 +77,7 @@ module.exports = {
   signedWorkOrdersReadEnabled,
   signedWorkOrdersWriteEnabled,
   signedWorkOrdersContextEnabled,
+  signedAssetsReadEnabled,
   signedSessionAutobindEnabled,
   signedTenantContextRequired,
   signedContextRequested,
