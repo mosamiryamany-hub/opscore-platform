@@ -359,6 +359,38 @@ async function main() {
     signedSessionAutobindHttpProof.customersTenantB = 'PASS';
     signedSessionAutobindHttpProof.rawGucTamperingIgnored = 'PASS';
 
+    // Exercise the authenticated sites list through its real signed read wrapper.
+    // The response must include only the caller's site and its tenant-owned customer join.
+    const signedSitesA = await queryHttp(port, '/api/v1/sites', tokenA);
+    const signedSitesB = await queryHttp(port, '/api/v1/sites', tokenB);
+    for (const [label, response, ownSiteId, foreignSiteId, ownTenant, ownCustomerName] of [
+      ['tenantA', signedSitesA, synthetic.siteIds[0], synthetic.siteIds[1], tenantA, 'Signed Context Customer A'],
+      ['tenantB', signedSitesB, synthetic.siteIds[1], synthetic.siteIds[0], tenantB, 'Signed Context Customer B']
+    ]) {
+      const rows = response.body;
+      if (response.status !== 200
+          || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+          || !Array.isArray(rows)
+          || rows.length !== 1
+          || rows[0].id !== ownSiteId
+          || rows[0].organization_id !== ownTenant
+          || rows[0].customer_name !== ownCustomerName
+          || rows.some(row => row.id === foreignSiteId)) {
+        throw new Error('SIGNED_CONTEXT_SITES_ROUTE_TENANT_BOUNDARY_FAILED:' + JSON.stringify({
+          label, status: response.status,
+          signedHeader: response.headers?.['x-opscore-signed-tenant-context'] || null,
+          rows: Array.isArray(rows) ? rows.map(row => ({
+            id: row.id, organization_id: row.organization_id, customer_name: row.customer_name
+          })) : null,
+          serverOutput: serverOutput.slice(-3000)
+        }));
+      }
+    }
+    signedSessionAutobindHttpProof.sitesTenantA = 'PASS';
+    signedSessionAutobindHttpProof.sitesTenantB = 'PASS';
+    signedSessionAutobindHttpProof.sitesCustomerJoinTenantScoped = 'PASS';
+    signedSessionAutobindHttpProof.sitesRawGucTamperingIgnored = 'PASS';
+
     // Dedicated signed vertical slice outside work-orders. Each tenant's real GET
     // list operation must run in a read-only signed transaction, ignore forged raw
     // GUCs, and preserve the tenant-scoped assets -> sites join.
