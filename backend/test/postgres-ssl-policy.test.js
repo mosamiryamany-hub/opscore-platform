@@ -30,7 +30,7 @@ if (!pool.options.ssl || pool.options.ssl.rejectUnauthorized !== true) {
     process.stderr.write('POSTGRES_CONNECTION_OPTIONS_NOT_PRESERVED');
     process.exitCode = 11;
     pool.end().catch(() => {});
-  } else if (pool.options.ssl.ca !== process.env.OPSC_PG_CA_CERT || pool.options.ssl.cert.toString() !== 'URL_CLIENT_CERT' || pool.options.ssl.key.toString() !== 'URL_CLIENT_KEY') {
+  } else if (String(pool.options.ssl.ca) !== String(process.env.OPSC_PG_CA_CERT || 'URL_ROOT_CA') || pool.options.ssl.cert.toString() !== 'URL_CLIENT_CERT' || pool.options.ssl.key.toString() !== 'URL_CLIENT_KEY') {
     process.stderr.write('POSTGRES_TLS_FILE_OPTIONS_NOT_PRESERVED');
     process.exitCode = 12;
     pool.end().catch(() => {});
