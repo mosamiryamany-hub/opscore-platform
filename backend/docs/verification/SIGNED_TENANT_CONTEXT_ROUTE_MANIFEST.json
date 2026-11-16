@@ -1,0 +1,343 @@
+{
+  "schemaVersion": "opscore.signed-tenant-context-route-manifest.v1",
+  "routeCount": 67,
+  "sourceCommit": "ade02bd8bcd2739ff9bc8ab6c360e761713d0d14",
+  "routeInventorySha256": "6021c2ce002d05eea0f30c46008edf1bfdf7dfdd7515d518e1acbec5340ea6e8",
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/api/v1/appointments",
+      "operation": "read"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/appointments",
+      "operation": "write"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/appointments/{id}",
+      "operation": "read"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/appointments/{id}",
+      "operation": "write"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/appointments/{id}/on-my-way",
+      "operation": "write"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/appointments/{id}/reschedule",
+      "operation": "write"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/appointments/{id}/unreachable",
+      "operation": "write"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/assets",
+      "operation": "read"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/assets",
+      "operation": "write"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/assets/{id}",
+      "operation": "write"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/assets/{id}/events",
+      "operation": "write"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customers",
+      "operation": "read"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/customers",
+      "operation": "write"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/customers/{id}",
+      "operation": "write"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/customers/{id}/service-line",
+      "operation": "read"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/customers/{id}/service-line",
+      "operation": "write"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/v1/evidence-uploads/{id}/chunks/(\\d+)",
+      "operation": "write"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/evidence-uploads/{id}/complete",
+      "operation": "write"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/faults",
+      "operation": "write"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/faults/{id}/transition",
+      "operation": "write"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/faults/{id}/unreachable",
+      "operation": "write"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/faults/classify",
+      "operation": "read"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/geofences",
+      "operation": "read"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/geofences",
+      "operation": "write"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/geofences/{id}/technicians",
+      "operation": "write"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/geofences/assert-access",
+      "operation": "read"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/geofences/dynamic-events",
+      "operation": "write"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/geofences/evaluate",
+      "operation": "read"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/geofences/role-polygons",
+      "operation": "read"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/map/viewport",
+      "operation": "read"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/sites",
+      "operation": "read"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/sites",
+      "operation": "write"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/sites/{id}",
+      "operation": "write"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/technicians",
+      "operation": "read"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/technicians",
+      "operation": "write"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/technicians/{id}/geofences",
+      "operation": "read"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/technicians/availability",
+      "operation": "read"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/technicians/skills",
+      "operation": "read"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/technicians/skills",
+      "operation": "write"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/technicians/trail",
+      "operation": "read"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/technicians/trail",
+      "operation": "write"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/technicians/trail.geojson",
+      "operation": "read"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/work-orders",
+      "operation": "read"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/work-orders",
+      "operation": "write"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/work-orders/{id}",
+      "operation": "read"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/v1/work-orders/{id}",
+      "operation": "write"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/work-orders/{id}/attachments",
+      "operation": "read"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/work-orders/{id}/attachments",
+      "operation": "write"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/work-orders/{id}/changelog",
+      "operation": "read"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/work-orders/{id}/comments",
+      "operation": "read"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/work-orders/{id}/comments",
+      "operation": "write"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/work-orders/{id}/completion-assurance",
+      "operation": "read"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/work-orders/{id}/completion-package",
+      "operation": "read"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/work-orders/{id}/dispatch-candidates",
+      "operation": "read"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/work-orders/{id}/evidence-uploads",
+      "operation": "write"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/work-orders/{id}/first-time-right",
+      "operation": "read"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/work-orders/{id}/handoff",
+      "operation": "read"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/work-orders/{id}/operational-risk",
+      "operation": "read"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/work-orders/{id}/parts",
+      "operation": "read"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/work-orders/{id}/signoffs",
+      "operation": "read"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/work-orders/{id}/time-summary",
+      "operation": "read"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/work-orders/{id}/timeline",
+      "operation": "read"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/work-orders/{id}/transition",
+      "operation": "write"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/work-orders/{id}/verified-job-record",
+      "operation": "read"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/work-orders/{id}/why-blocked",
+      "operation": "read"
+    },
+    {
+      "method": "GET",
+      "path": "/api/v1/work-orders/{id}/work-pack",
+      "operation": "read"
+    },
+    {
+      "method": "POST",
+      "path": "/api/v1/work-orders/bulk",
+      "operation": "write"
+    }
+  ]
+}

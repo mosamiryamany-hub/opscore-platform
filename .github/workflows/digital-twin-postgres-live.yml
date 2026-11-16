@@ -74,6 +74,8 @@ on:
       - 'backend/docs/contact-center/I18N_COMPLETION_REGISTER.json'
       - 'backend/test/*i18n*'
       - 'backend/scripts/*i18n*'
+      - 'backend/docs/verification/SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST.json'
+      - 'backend/test/signed-tenant-context-policy.test.js'
       - 'backend/docs/API_INVENTORY.json'
       - 'backend/package.json'
       - 'backend/package-lock.json'
