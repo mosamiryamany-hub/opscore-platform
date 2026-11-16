@@ -107,6 +107,12 @@
 <body>
   <div class="shell">
     <header class="topbar">
+      <div class="lang-bar" style="display:flex;flex-wrap:wrap;align-items:center;gap:10px;width:100%;justify-content:flex-end;margin-bottom:8px">
+        <label for="interfaceLanguageSelect" style="font-size:.72rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase">All languages</label>
+        <select id="interfaceLanguageSelect" class="locale-switch" aria-label="Interface language — all supported languages" style="max-width:min(100%,280px);padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--text)"></select>
+        <span data-i18n-machine-notice class="pill" style="max-width:42ch;line-height:1.35">Machine translation — not yet reviewed by a native speaker.</span>
+      </div>
+
       <div class="brand">
         <div class="mark" aria-hidden="true"></div>
         <div>
@@ -184,5 +190,6 @@
     </footer>
   </div>
     <script src="/home-fabric.js" defer></script>
+  <script src="/i18n/i18n-loader.js"></script>
 </body>
 </html>

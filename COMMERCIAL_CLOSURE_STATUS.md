@@ -8,7 +8,7 @@
 
 ## Live deployment pointer (not a license)
 
-See `backend/docs/verification/LIVE_EVIDENCE_AUTHORITY.md`. Observe runtime proof at `GET /api/verify/release`. Buyer-environment certification remains **NOT_ESTABLISHED** for customer deployments. Runtime may report `PASS_WITH_BUYER_RESIDUALS` for the seller-operated deployment; that does not transfer certification to a buyer environment.
+See `backend/docs/verification/LIVE_EVIDENCE_AUTHORITY.md` and `docs/release/LIVE_RELEASE_STATEMENT_2026-11-16.md`. Observe runtime proof at `GET /api/verify/release`. Buyer-environment certification remains **NOT_ESTABLISHED**. Runtime may report `PASS_WITH_BUYER_RESIDUALS` for the seller-operated deployment; that does not transfer certification to a buyer environment.
 
 ## Framework (ready for any buyer type)
 
@@ -20,12 +20,21 @@ See `backend/docs/verification/LIVE_EVIDENCE_AUTHORITY.md`. Observe runtime proo
 
 Template: `docs/commercial/LICENSE_SCHEDULE_TEMPLATE.md`.
 
-## Buyer residuals
+## Buyer residuals (authoritative list)
+
+See `docs/BUYER_RESIDUALS.md`. Summary:
 
 - Mobile store artifacts — REMAINING_BUYER  
-- Native translation review — REMAINING_BUYER  
+- Native translation review — REMAINING_BUYER (UI: all languages + machine-translation notice)  
 - Licensed street map — REMAINING_BUYER  
+- Neon capacity / multi-day PITR / extra protected branches — plan upgrade (Launch+)  
+- 67-route Production signed-session matrix — REMAINING_ENGINEERING  
 - Mobile dependency remediation notes: `security/mobile-dependency-remediation-2026-11-01`
+
+## Deploy policy (post PR #170 / #171)
+
+- Production deploy requires explicit `workflow_dispatch` confirmation input and owner enable flag (not automatic on push).  
+- Vercel Git: main excluded from automatic production; previews allowed for other branches when the project is linked.
 
 ## Engineering honesty
 
