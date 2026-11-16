@@ -6,9 +6,17 @@ const path = require('node:path');
 
 const backendRoot = path.resolve(__dirname, '..');
 const script = `
+const fs = require('node:fs');
 const { createPostgresPool } = require('./src/adapters/postgres');
-const pool = createPostgresPool({ connectionString: 'postgresql://user:pass@127.0.0.1:5432/opscore_ssl_policy_test?sslmode=verify-full&sslrootcert=%2Ftmp%2Flegacy-ca.pem&application_name=opscore_ssl_policy_test' });
-if (!pool.options.ssl || pool.options.ssl.rejectUnauthorized !== true || pool.options.ssl.ca !== process.env.OPSC_PG_CA_CERT) {
+const rootCa = '/tmp/opscore-url-root-ca.pem';
+const clientCert = '/tmp/opscore-url-client.crt';
+const clientKey = '/tmp/opscore-url-client.key';
+fs.writeFileSync(rootCa, 'URL_ROOT_CA');
+fs.writeFileSync(clientCert, 'URL_CLIENT_CERT');
+fs.writeFileSync(clientKey, 'URL_CLIENT_KEY');
+const query = new URLSearchParams({ sslmode: 'verify-full', sslrootcert: rootCa, sslcert: clientCert, sslkey: clientKey, application_name: 'opscore_ssl_policy_test' });
+const pool = createPostgresPool({ connectionString: 'postgresql://user:pass@127.0.0.1:5432/opscore_ssl_policy_test?' + query.toString() });
+if (!pool.options.ssl || pool.options.ssl.rejectUnauthorized !== true) {
   process.stderr.write('POSTGRES_TLS_VERIFICATION_NOT_ENFORCED');
   process.exitCode = 9;
   pool.end().catch(() => {});
@@ -22,14 +30,20 @@ if (!pool.options.ssl || pool.options.ssl.rejectUnauthorized !== true || pool.op
     process.stderr.write('POSTGRES_CONNECTION_OPTIONS_NOT_PRESERVED');
     process.exitCode = 11;
     pool.end().catch(() => {});
+  } else if (pool.options.ssl.ca !== process.env.OPSC_PG_CA_CERT || pool.options.ssl.cert.toString() !== 'URL_CLIENT_CERT' || pool.options.ssl.key.toString() !== 'URL_CLIENT_KEY') {
+    process.stderr.write('POSTGRES_TLS_FILE_OPTIONS_NOT_PRESERVED');
+    process.exitCode = 12;
+    pool.end().catch(() => {});
   } else {
     pool.end().then(() => process.stdout.write('TLS_VERIFIED'));
   }
 }
 `;
 
-function run(mode, rejectUnauthorized = 'true') {
-  const env = { ...process.env, NODE_ENV: 'production', OPSC_PG_SSL_REJECT_UNAUTHORIZED: rejectUnauthorized, OPSC_PG_CA_CERT: 'TEST_CA_CERTIFICATE' };
+function run(mode, rejectUnauthorized = 'true', configuredCa = 'TEST_CA_CERTIFICATE') {
+  const env = { ...process.env, NODE_ENV: 'production', OPSC_PG_SSL_REJECT_UNAUTHORIZED: rejectUnauthorized };
+  if (configuredCa === null) delete env.OPSC_PG_CA_CERT;
+  else env.OPSC_PG_CA_CERT = configuredCa;
   if (mode === null) delete env.OPSC_PG_SSL_MODE;
   else env.OPSC_PG_SSL_MODE = mode;
   delete env.NODE_OPTIONS;
@@ -62,6 +76,12 @@ test('production rejects disabled certificate verification', () => {
 
 test('production accepts verify-full with certificate verification enabled', () => {
   const result = run('verify-full');
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.match(result.stdout, /TLS_VERIFIED/);
+});
+
+test('production preserves file-backed URL client certificates and CA when no explicit CA overrides them', () => {
+  const result = run('verify-full', 'true', null);
   assert.equal(result.status, 0, result.stderr || result.stdout);
   assert.match(result.stdout, /TLS_VERIFIED/);
 });
