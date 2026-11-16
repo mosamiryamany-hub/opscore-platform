@@ -439,13 +439,13 @@ test('migration plan includes one in-place lockdown and reports the Neon-managed
   const migrations = readMigrations();
   const repairs = migrations.filter(item => item.filename === '068_opscore_app_role_privilege_lockdown.sql');
   assert.equal(repairs.length, 1);
-  assert.match(repairs[0].content, /ALTER ROLE opscore_app[\s\S]*?NOLOGIN NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS/);
+  assert.match(repairs[0].content, /OPSC_LEGACY_APP_ROLE_ABSENT_TREATED_AS_LOCKED/);
+  assert.doesNotMatch(repairs[0].content, /CREATE ROLE opscore_app/);
   assert.doesNotMatch(repairs[0].content, /ALTER ROLE opscore_app RENAME TO/);
-  assert.match(repairs[0].content, /CREATE ROLE opscore_app NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS/);
+  assert.match(repairs[0].content, /ALTER ROLE opscore_app[\s\S]*?NOLOGIN NOCREATEDB NOCREATEROLE NOINHERIT NOBYPASSRLS/);
   assert.match(repairs[0].content, /OPSC_LEGACY_APP_ROLE_HAS_ACTIVE_SESSIONS/);
   assert.match(repairs[0].content, /OPSC_LEGACY_APP_ROLE_OWNS_OBJECTS/);
-  assert.match(repairs[0].content, /OPSC_LEGACY_APP_ROLE_HAS_INCOMING_MEMBERSHIPS/);
+  assert.match(repairs[0].content, /OPSC_LOCKED_APP_ROLE_MEMBERSHIP_POSTCONDITION_FAILED/);
   assert.match(repairs[0].content, /neon_superuser/);
-  assert.match(repairs[0].content, /This residual must remain disclosed/);
   assert.match(repairs[0].content, /OPSC_LEGACY_APP_ROLE_ADMIN_OPTION_REQUIRED/);
 });
