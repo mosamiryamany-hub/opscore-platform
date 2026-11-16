@@ -1,9 +1,9 @@
-<!-- Commercial tiers: docs/commercial/LICENSE_FRAMEWORK.md — no in-repo prices; signed Schedule required. -->
+<!-- Commercial tiers: docs/commercial/LICENSE_FRAMEWORK.md — no in-repo prices; buyer-specific Schedule required before rights/delivery. -->
 # OpsCore v0.11.62 — Sales Package
 
-> **STATUS: INTERNAL TECHNICAL REFERENCE ONLY — NO LICENSE GRANT — NO COMMERCIAL DISTRIBUTION AUTHORIZED.**
+> **SELLER OFFER OPEN FOR MARKETING AND NEGOTIATION — NO BUYER LICENSE GRANT UNTIL A TRANSACTION-SPECIFIC SCHEDULE IS EXECUTED.**
 
-OpsCore is a multi-sector operational source package, not a hosted SaaS subscription. This file does not grant permission to access, use, install, run, inspect, copy, modify, host, publish, distribute, sell, resell, sublicense, rent, transfer, or commercially exploit the source. All rights are reserved pending a separate written agreement signed by the rights holder.
+OpsCore is a multi-sector operational source package, not a hosted SaaS subscription. The rights holder may advertise, list, present and negotiate this offer before a buyer is identified. This sales material does not grant any buyer permission to access, use, install, run, inspect, copy, modify, host, publish, distribute, sell, resell, sublicense, rent, transfer, or commercially exploit the source. A named buyer and executed License Schedule are required only when a transaction is ready to grant rights or deliver the pinned package; all rights remain reserved until then.
 
 ## Included
 
@@ -21,6 +21,6 @@ External provider accounts, credentials, licenses, setup and live acceptance inc
 
 Current seller-reference production isolation is NOT_VERIFIED: the stored session and recovery evidence was rebound to a later commit without rerunning probes and is not bound to the active Neon Production branch. Do not advertise a seller production isolation certificate until fresh dual-tenant and recovery probes are run against the exact current commit/branch and independently reviewed. Buyer environments remain NOT CERTIFIED. A seller-reference proof is never transferable and does not establish every business flow or full PITR/RPO/RTO.
 
-## Commercial rights hold
+## Commercial rights boundary
 
-**NO LICENSE GRANT. NO SALE OR DISTRIBUTION AUTHORIZED.** The commercial model and any future license grant are pending a separate decision by the rights holder. Do not issue buyer delivery or a sale listing until a separate written agreement is approved and signed. All rights are reserved. Technical test results, deployment status, release artifacts, hashes, SBOMs and attestations do not create or imply a license.
+The seller may publish and negotiate this offer before a buyer is known. No License Schedule is needed to advertise or discuss the product. No license or buyer use/distribution right is granted by this sales package. Before the named buyer receives the package or may install, run, modify, host, resell or sublicense it, the rights holder and that buyer must execute a License Schedule that pins the exact deliverable and defines the permitted rights and terms. Technical test results, deployment status, release artifacts, hashes, SBOMs and attestations do not create or imply a license.
