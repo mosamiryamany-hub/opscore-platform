@@ -21,7 +21,8 @@ test('Production migration 068 workflow is a read-only verifier, never a migrati
   assert.match(workflow, /rejectUnauthorized: true/);
   assert.match(workflow, /BEGIN READ ONLY/);
   assert.match(workflow, /NEON_BRANCH_IDENTITY_MISMATCH/);
-  assert.match(workflow, /RUNTIME_DATABASE_ROLE_MISMATCH|RUNTIME_ROLE_IDENTITY_MISMATCH/);
+  assert.match(workflow, /label \+ '_DATABASE_ROLE_MISMATCH'/);
+  assert.match(workflow, /r\.role !== 'opscore_runtime'/);
   assert.match(workflow, /PRODUCTION_MIGRATION_068_LEDGER_CHECKSUM_MISMATCH/);
   assert.match(workflow, /writesPerformed: 0/);
   assert.doesNotMatch(workflow, /ALTER ROLE|DROP ROLE|CREATE ROLE|INSERT INTO|UPDATE\s+public\.schema_migrations|DELETE FROM|owner\.client\.query\(sql\)/i);
