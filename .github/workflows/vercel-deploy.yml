@@ -369,7 +369,7 @@ jobs:
               OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: hash,
               OPSC_PRODUCTION_ISOLATION_CERTIFICATION: isolation,
               OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE: behavioralPass() ? 'true' : 'false',
-              OPSC_RELEASE_VERIFIED: 'true',
+              OPSC_RELEASE_VERIFIED: behavioralPass() ? 'true' : 'false',
               OPSC_RELEASE_CI_COMMIT: String(process.env.GITHUB_SHA || '').toLowerCase(),
               OPSC_RELEASE_CI_PIPELINE_ID: String(process.env.GITHUB_RUN_ID || ''),
               OPSC_RELEASE_CI_REF: 'main',
@@ -432,6 +432,17 @@ jobs:
           require('fs').appendFileSync(fsOut, `behavioral=${ok ? 'true' : 'false'}\n`);
           console.log('ISOLATION_CERT', ok ? 'CERTIFIED' : 'NOT_CERTIFIED');
           NODE
+
+      - name: Require commit-bound production acceptance and isolation before build
+        env:
+          ACCEPTANCE_SHA: ${{ steps.generate_acceptance.outputs.evidence_sha }}
+          ISOLATION_CERT: ${{ steps.isolation_cert.outputs.certified }}
+          BEHAVIORAL_EVIDENCE: ${{ steps.isolation_cert.outputs.behavioral }}
+        run: |
+          set -euo pipefail
+          test -n "$ACCEPTANCE_SHA" || { echo "::error::PRODUCTION_ACCEPTANCE_EVIDENCE_MISSING"; exit 1; }
+          test "$ISOLATION_CERT" = "CERTIFIED" || { echo "::error::PRODUCTION_ISOLATION_NOT_CERTIFIED"; exit 1; }
+          test "$BEHAVIORAL_EVIDENCE" = "true" || { echo "::error::PRODUCTION_BEHAVIORAL_EVIDENCE_NOT_VERIFIED"; exit 1; }
 
       - name: Publish release identity and certification env after evidence validation
         env:
