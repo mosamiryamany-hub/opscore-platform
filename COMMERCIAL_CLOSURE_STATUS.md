@@ -60,3 +60,8 @@ The live revalidation intentionally does not rebind old evidence files, generate
 The full evidence, exact identifiers, source limitations, gate-by-gate status, and prohibited claims are documented in `COMMERCIAL_CLOSURE_REVALIDATION_2026-11-16.md`.
 
 **No commercial license is granted by this addendum.** A separate written agreement approved and signed by the rights holder remains mandatory before sale, distribution, resale, sublicensing, hosting, or buyer source delivery.
+
+
+### Additional read-only Production SQL audit
+
+The live audit of `opscore_acceptance` found 134/135 public base tables with RLS and FORCE RLS; eleven `SECURITY DEFINER` functions are owned by `neondb_owner`, not `opscore_auth_definer`; no function is owned by `opscore_auth_definer`. The functions grant EXECUTE to `opscore_runtime`, not PUBLIC, and `public` is not CREATE-writable by either runtime role. However, `opscore_app_least` still has CRUD grant metadata on 134 public relations, and `opscore_runtime` on 136. Two definer functions set `row_security=off`. These are hardening/review items; no role, grant, schema, or function was modified. Detailed SQL findings and limits are in `COMMERCIAL_CLOSURE_REVALIDATION_2026-11-16.md`.
