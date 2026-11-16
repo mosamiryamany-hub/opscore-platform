@@ -1,0 +1,180 @@
+name: preview-synthetic-accounts-and-proof
+# Preview-only: seed synthetic tenants/users/sessions and exercise proof path.
+# Never touches Production Neon or Production Vercel env.
+on:
+  workflow_dispatch:
+    inputs:
+      deployment_host:
+        description: Preview host (no scheme)
+        required: false
+        default: "opscore-platform-fydp5bav0-mosamiryamany-1692.vercel.app"
+      neon_project_id:
+        required: false
+        default: "summer-leaf-18448271"
+      neon_branch_id:
+        required: false
+        default: "br-fragrant-king-bcr9928f"
+      database_name:
+        required: false
+        default: "opscore_acceptance"
+permissions:
+  contents: read
+jobs:
+  seed-and-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - name: Install tools
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq postgresql-client
+          npm i -g vercel@latest
+
+      - name: Resolve Preview connection URI
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          PROJECT: ${{ github.event.inputs.neon_project_id }}
+          BRANCH: ${{ github.event.inputs.neon_branch_id }}
+          DB: ${{ github.event.inputs.database_name }}
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Authorization: Bearer $NEON_API_KEY" \
+            "https://console.neon.tech/api/v2/projects/${PROJECT}/connection_uri?branch_id=${BRANCH}&database_name=${DB}&role_name=neondb_owner" \
+            > "$RUNNER_TEMP/uri.json"
+          python3 -c 'import json,os;u=json.load(open(os.environ["RUNNER_TEMP"]+"/uri.json"))["uri"];assert u.startswith("postgres");open(os.environ["RUNNER_TEMP"]+"/preview.uri","w").write(u)'
+          chmod 600 "$RUNNER_TEMP/preview.uri"
+
+      - name: Seed synthetic accounts + sessions (Preview only)
+        id: seed
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const crypto = require('crypto');
+          const { execFileSync } = require('child_process');
+          const fs = require('fs');
+          const uri = fs.readFileSync(process.env.RUNNER_TEMP + '/preview.uri', 'utf8').trim();
+
+          const SCRYPT_N = 131072, SCRYPT_R = 8, SCRYPT_P = 1;
+          function hashPassword(password) {
+            const salt = crypto.randomBytes(16);
+            const derived = crypto.scryptSync(password, salt, 64, { N: SCRYPT_N, r: SCRYPT_R, p: SCRYPT_P, maxmem: 256 * 1024 * 1024 });
+            return `scrypt$${SCRYPT_N}$${SCRYPT_R}$${SCRYPT_P}$${salt.toString('base64url')}$${derived.toString('base64url')}`;
+          }
+          function hashToken(token) {
+            return crypto.createHash('sha256').update(token).digest('hex');
+          }
+          function id(prefix) {
+            return `${prefix}_${crypto.randomUUID()}`;
+          }
+
+          const password = 'OpsCore-Synth-' + crypto.randomBytes(8).toString('hex') + '-2026';
+          const tokenA = crypto.randomBytes(32).toString('base64url');
+          const tokenB = crypto.randomBytes(32).toString('base64url');
+          const orgA = id('org');
+          const orgB = id('org');
+          const userA = id('usr');
+          const userB = id('usr');
+          const sesA = id('ses');
+          const sesB = id('ses');
+          const emailA = `synth.a.${Date.now()}@preview.opscore.invalid`;
+          const emailB = `synth.b.${Date.now()}@preview.opscore.invalid`;
+          const hashA = hashPassword(password);
+          const hashB = hashPassword(password);
+          const thA = hashToken(tokenA);
+          const thB = hashToken(tokenB);
+          const expires = new Date(Date.now() + 6 * 3600 * 1000).toISOString();
+          const now = new Date().toISOString();
+
+          // Write secrets to restricted files only (not logs)
+          fs.writeFileSync(process.env.RUNNER_TEMP + '/synth.json', JSON.stringify({
+            emailA, emailB, password, tokenA, tokenB, orgA, orgB, userA, userB, sesA, sesB
+          }), { mode: 0o600 });
+
+          const sql = `
+          BEGIN;
+          INSERT INTO organizations (id, name, created_at) VALUES
+            ('${orgA}', 'Synth Tenant A', '${now}'),
+            ('${orgB}', 'Synth Tenant B', '${now}')
+          ON CONFLICT (id) DO NOTHING;
+          INSERT INTO users (id, email, password_hash, status, created_at) VALUES
+            ('${userA}', '${emailA}', '${hashA}', 'active', '${now}'),
+            ('${userB}', '${emailB}', '${hashB}', 'active', '${now}')
+          ON CONFLICT (id) DO NOTHING;
+          INSERT INTO memberships (user_id, organization_id, role, created_at) VALUES
+            ('${userA}', '${orgA}', 'owner', '${now}'),
+            ('${userB}', '${orgB}', 'owner', '${now}')
+          ON CONFLICT (user_id, organization_id) DO NOTHING;
+          INSERT INTO sessions (id, user_id, organization_id, token_hash, expires_at, created_at) VALUES
+            ('${sesA}', '${userA}', '${orgA}', '${thA}', '${expires}', '${now}'),
+            ('${sesB}', '${userB}', '${orgB}', '${thB}', '${expires}', '${now}')
+          ON CONFLICT (id) DO NOTHING;
+          -- Ensure probe table exists for proof route (idempotent)
+          CREATE TABLE IF NOT EXISTS opscore_security.context_probe_rows (
+            id bigserial PRIMARY KEY,
+            organization_id text NOT NULL,
+            probe_value text NOT NULL,
+            created_at timestamptz NOT NULL DEFAULT now()
+          );
+          COMMIT;
+          SELECT 'seed_ok' AS status, count(*)::text AS orgs FROM organizations WHERE id IN ('${orgA}','${orgB}');
+          `;
+          fs.writeFileSync(process.env.RUNNER_TEMP + '/seed.sql', sql, { mode: 0o600 });
+          const out = execFileSync('psql', [uri, '-v', 'ON_ERROR_STOP=1', '-f', process.env.RUNNER_TEMP + '/seed.sql'], { encoding: 'utf8' });
+          console.log(out.split('\n').filter(l => !l.includes('scrypt')).join('\n'));
+          console.log('SYNTH_ACCOUNTS_SEEDED=true');
+          // Outputs (non-secret identifiers only)
+          const gh = process.env.GITHUB_OUTPUT;
+          fs.appendFileSync(gh, `email_a=${emailA}\n`);
+          fs.appendFileSync(gh, `email_b=${emailB}\n`);
+          fs.appendFileSync(gh, `org_a=${orgA}\n`);
+          fs.appendFileSync(gh, `org_b=${orgB}\n`);
+          NODE
+
+      - name: Try proof endpoint with synthetic session (Preview)
+        env:
+          HOST: ${{ github.event.inputs.deployment_host }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          set -euo pipefail
+          SYNTH=$(cat "$RUNNER_TEMP/synth.json")
+          TOKEN_A=$(python3 -c 'import json,os;print(json.load(open(os.environ["RUNNER_TEMP"]+"/synth.json"))["tokenA"])')
+          BASE="https://${HOST}"
+          echo "BASE=$BASE"
+
+          # Prefer automation bypass secret if present in project env (not printed)
+          set +e
+          # Method 1: vercel curl (latest)
+          vercel curl "${BASE}/api/health" --token "$VERCEL_TOKEN" > "$RUNNER_TEMP/health.txt" 2>"$RUNNER_TEMP/health.err"
+          HC=$?
+          set -e
+          echo "vercel_curl_health_exit=$HC"
+          head -c 400 "$RUNNER_TEMP/health.txt" || true
+          echo
+          head -c 200 "$RUNNER_TEMP/health.err" || true
+          echo
+
+          # Method 2: cookie session against proof path via vercel curl
+          set +e
+          vercel curl "${BASE}/api/v1/_internal/tenant-context-proof" \
+            --token "$VERCEL_TOKEN" \
+            -H "Cookie: __Host-opscore_session=${TOKEN_A}" \
+            > "$RUNNER_TEMP/proof.txt" 2>"$RUNNER_TEMP/proof.err"
+          PC=$?
+          set -e
+          echo "vercel_curl_proof_exit=$PC"
+          head -c 800 "$RUNNER_TEMP/proof.txt" || true
+          echo
+
+          # DB-level verification of seed (always runs; independent of Vercel SSO)
+          URI=$(cat "$RUNNER_TEMP/preview.uri")
+          psql "$URI" -v ON_ERROR_STOP=1 <<'SQL'
+          SELECT 'users' AS kind, count(*)::text AS n FROM users WHERE email LIKE 'synth.%@preview.opscore.invalid';
+          SELECT 'sessions' AS kind, count(*)::text AS n FROM sessions WHERE expires_at > now();
+          SELECT CASE WHEN count(*) >= 1 THEN 'HMAC_KEYS_PRESENT' ELSE 'HMAC_KEYS_MISSING' END AS hmac
+          FROM opscore_security.context_hmac_keys
+          WHERE enabled = true AND not_before <= now() AND (not_after IS NULL OR not_after > now());
+          SQL
+          echo "PREVIEW_SYNTH_SEED=PASS"
