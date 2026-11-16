@@ -173,9 +173,12 @@ round('03_REGISTRY_AND_PROVENANCE_ALIGNMENT', 'Server catalogue, loader, manifes
     return acc;
   }, {});
   assert(Object.keys(register.locales || {}).length === 105, 'REGISTER_LOCALE_COUNT_MISMATCH');
-  assert(counts.source === 1 && counts.draft_translation_pending_native_review === 109 && counts.english_fallback_pending === 4, 'PROVENANCE_COUNTS_MISMATCH=' + JSON.stringify(counts));
+  assert(counts.source === 1 && counts.draft_translation_pending_native_review === 100 && counts.english_fallback_pending === 4, 'PROVENANCE_COUNTS_MISMATCH=' + JSON.stringify(counts));
   assert(manifest.keyCount === 89, 'MANIFEST_KEY_COUNT=' + manifest.keyCount);
-  const expectedMachine=109;
+  const expectedMachine=100;
+  assert(counts.draft_translation_pending_native_review === expectedMachine, 'MACHINE_DRAFT_COUNT_MISMATCH');
+  assert(register.catalogueLanguages === 105 && register.summary.catalogue === 105, 'REGISTER_CATALOGUE_COUNT_MISMATCH');
+  assert(register.withdrawnLocales.map(item => item.code).sort().join(',') === ['es','hy','ml','ms','my','sr','sw','te','uz'].join(','), 'WITHDRAWN_LOCALE_REGISTER_MISMATCH');
   return { catalogueCodes: registryCodes.length, manifestCodes: manifestCodes.length, sourceLocales: counts.source, machineDrafts: counts.draft_translation_pending_native_review, englishFallbacks: counts.english_fallback_pending, nativeSpeakerReviewedLocales: 0, productionQualifiedLocales: 0 };
 });
 
