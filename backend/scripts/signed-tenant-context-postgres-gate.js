@@ -157,6 +157,8 @@ async function main() {
   const tokenB = crypto.randomBytes(32).toString('hex');
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
   const siteCleanupErrors = [];
+  const assetCleanupErrors = [];
+  let syntheticAssetEventIds = [];
   const customerCleanupErrors = [];
   const synthetic = {
     tenantIds: [tenantA, tenantB],
@@ -684,6 +686,191 @@ async function main() {
     signedSessionAutobindHttpProof.assetsTenantB = 'PASS';
     signedSessionAutobindHttpProof.assetsSiteJoinTenantScoped = 'PASS';
     signedSessionAutobindHttpProof.assetsRawGucTamperingIgnored = 'PASS';
+
+
+    // Exercise signed asset creation, update, and event writes for both tenants.
+    // Each create request also attempts to override organization ownership.
+    const createAssetA = await queryHttp(port, '/api/v1/assets', tokenA, {
+      method: 'POST',
+      body: {
+        name: 'Signed Context Created Asset A',
+        assetType: 'network_asset',
+        siteId: createSiteA.body.id,
+        organizationId: tenantB
+      }
+    });
+    if (createAssetA.body?.id) synthetic.assetIds.push(createAssetA.body.id);
+    if (createAssetA.status !== 201
+        || createAssetA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || createAssetA.body?.organization_id !== tenantA
+        || createAssetA.body?.site_id !== createSiteA.body.id
+        || createAssetA.body?.name !== 'Signed Context Created Asset A') {
+      throw new Error('SIGNED_CONTEXT_ASSETS_CREATE_TENANT_A_FAILED:' + JSON.stringify({
+        status: createAssetA.status,
+        body: createAssetA.body,
+        signedHeader: createAssetA.headers?.['x-opscore-signed-tenant-context'] || null,
+        serverOutput: serverOutput.slice(-3000)
+      }));
+    }
+
+    const createAssetB = await queryHttp(port, '/api/v1/assets', tokenB, {
+      method: 'POST',
+      body: {
+        name: 'Signed Context Created Asset B',
+        assetType: 'network_asset',
+        siteId: createSiteB.body.id,
+        organizationId: tenantA
+      }
+    });
+    if (createAssetB.body?.id) synthetic.assetIds.push(createAssetB.body.id);
+    if (createAssetB.status !== 201
+        || createAssetB.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || createAssetB.body?.organization_id !== tenantB
+        || createAssetB.body?.site_id !== createSiteB.body.id
+        || createAssetB.body?.name !== 'Signed Context Created Asset B') {
+      throw new Error('SIGNED_CONTEXT_ASSETS_CREATE_TENANT_B_FAILED:' + JSON.stringify({
+        status: createAssetB.status,
+        body: createAssetB.body,
+        signedHeader: createAssetB.headers?.['x-opscore-signed-tenant-context'] || null,
+        serverOutput: serverOutput.slice(-3000)
+      }));
+    }
+    signedSessionAutobindHttpProof.assetsCreateTenantA = 'PASS';
+    signedSessionAutobindHttpProof.assetsCreateTenantB = 'PASS';
+    signedSessionAutobindHttpProof.assetsCreateIgnoresClientTenantClaim = 'PASS';
+
+    const foreignAssetPatch = await queryHttp(
+      port,
+      '/api/v1/assets/' + encodeURIComponent(createAssetB.body.id),
+      tokenA,
+      { method: 'PATCH', body: { name: 'FORGED-CROSS-TENANT-ASSET-UPDATE' } }
+    );
+    if (foreignAssetPatch.status !== 404
+        || foreignAssetPatch.body?.error?.code !== 'NOT_FOUND'
+        || foreignAssetPatch.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_ASSETS_CROSS_TENANT_UPDATE_NOT_DENIED:' + JSON.stringify({
+        status: foreignAssetPatch.status,
+        body: foreignAssetPatch.body,
+        signedHeader: foreignAssetPatch.headers?.['x-opscore-signed-tenant-context'] || null
+      }));
+    }
+    signedSessionAutobindHttpProof.assetsCrossTenantUpdateDenied = 'PASS';
+
+    const updateAssetA = await queryHttp(
+      port,
+      '/api/v1/assets/' + encodeURIComponent(createAssetA.body.id),
+      tokenA,
+      { method: 'PATCH', body: { name: 'Signed Context Updated Asset A', status: 'active' } }
+    );
+    const updateAssetB = await queryHttp(
+      port,
+      '/api/v1/assets/' + encodeURIComponent(createAssetB.body.id),
+      tokenB,
+      { method: 'PATCH', body: { name: 'Signed Context Updated Asset B', status: 'active' } }
+    );
+    for (const [label, response, expectedId, expectedTenant, expectedSite, expectedName] of [
+      ['tenantA', updateAssetA, createAssetA.body.id, tenantA, createSiteA.body.id, 'Signed Context Updated Asset A'],
+      ['tenantB', updateAssetB, createAssetB.body.id, tenantB, createSiteB.body.id, 'Signed Context Updated Asset B']
+    ]) {
+      if (response.status !== 200
+          || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+          || response.body?.id !== expectedId
+          || response.body?.organization_id !== expectedTenant
+          || response.body?.site_id !== expectedSite
+          || response.body?.name !== expectedName
+          || response.body?.status !== 'active') {
+        throw new Error('SIGNED_CONTEXT_ASSETS_UPDATE_TENANT_BOUNDARY_FAILED:' + JSON.stringify({
+          label,
+          status: response.status,
+          body: response.body,
+          signedHeader: response.headers?.['x-opscore-signed-tenant-context'] || null,
+          serverOutput: serverOutput.slice(-3000)
+        }));
+      }
+    }
+    signedSessionAutobindHttpProof.assetsUpdateTenantA = 'PASS';
+    signedSessionAutobindHttpProof.assetsUpdateTenantB = 'PASS';
+
+    const eventAssetA = await queryHttp(
+      port,
+      '/api/v1/assets/' + encodeURIComponent(createAssetA.body.id) + '/events',
+      tokenA,
+      { method: 'POST', body: { eventType: 'inspection', details: { source: 'signed-context-ci', tenant: 'A' } } }
+    );
+    const eventAssetB = await queryHttp(
+      port,
+      '/api/v1/assets/' + encodeURIComponent(createAssetB.body.id) + '/events',
+      tokenB,
+      { method: 'POST', body: { eventType: 'inspection', details: { source: 'signed-context-ci', tenant: 'B' } } }
+    );
+    for (const [label, response, expectedId, expectedTenant, expectedMarker] of [
+      ['tenantA', eventAssetA, createAssetA.body.id, tenantA, 'A'],
+      ['tenantB', eventAssetB, createAssetB.body.id, tenantB, 'B']
+    ]) {
+      if (response.status !== 201
+          || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+          || response.body?.asset?.id !== expectedId
+          || response.body?.asset?.organization_id !== expectedTenant
+          || !Array.isArray(response.body?.events)
+          || !response.body.events.some(event => event.event_type === 'inspection'
+            && event.details?.source === 'signed-context-ci'
+            && event.details?.tenant === expectedMarker)) {
+        throw new Error('SIGNED_CONTEXT_ASSET_EVENT_TENANT_BOUNDARY_FAILED:' + JSON.stringify({
+          label,
+          status: response.status,
+          body: response.body,
+          signedHeader: response.headers?.['x-opscore-signed-tenant-context'] || null
+        }));
+      }
+    }
+    signedSessionAutobindHttpProof.assetsEventTenantA = 'PASS';
+    signedSessionAutobindHttpProof.assetsEventTenantB = 'PASS';
+
+    const foreignAssetEvent = await queryHttp(
+      port,
+      '/api/v1/assets/' + encodeURIComponent(createAssetB.body.id) + '/events',
+      tokenA,
+      { method: 'POST', body: { eventType: 'inspection', details: { source: 'cross-tenant-probe' } } }
+    );
+    if (foreignAssetEvent.status !== 404
+        || foreignAssetEvent.body?.error?.code !== 'NOT_FOUND'
+        || foreignAssetEvent.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_ASSET_EVENT_CROSS_TENANT_WRITE_NOT_DENIED:' + JSON.stringify({
+        status: foreignAssetEvent.status,
+        body: foreignAssetEvent.body,
+        signedHeader: foreignAssetEvent.headers?.['x-opscore-signed-tenant-context'] || null
+      }));
+    }
+    signedSessionAutobindHttpProof.assetsEventCrossTenantWriteDenied = 'PASS';
+
+    const assetsAfterWriteA = await queryHttp(port, '/api/v1/assets', tokenA);
+    const assetsAfterWriteB = await queryHttp(port, '/api/v1/assets', tokenB);
+    for (const [label, response, ownTenant, ownAssetId, foreignAssetId, ownSiteName, updatedName] of [
+      ['tenantA', assetsAfterWriteA, tenantA, createAssetA.body.id, createAssetB.body.id, 'Signed Context Updated Site A', 'Signed Context Updated Asset A'],
+      ['tenantB', assetsAfterWriteB, tenantB, createAssetB.body.id, createAssetA.body.id, 'Signed Context Updated Site B', 'Signed Context Updated Asset B']
+    ]) {
+      const rows = response.body;
+      if (response.status !== 200
+          || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+          || !Array.isArray(rows)
+          || rows.length !== 2
+          || !rows.some(row => row.id === ownAssetId && row.organization_id === ownTenant
+            && row.site_name === ownSiteName && row.name === updatedName)
+          || rows.some(row => row.id === foreignAssetId || row.organization_id !== ownTenant)) {
+        throw new Error('SIGNED_CONTEXT_ASSETS_POST_WRITE_READ_ISOLATION_FAILED:' + JSON.stringify({
+          label,
+          status: response.status,
+          rows: Array.isArray(rows) ? rows.map(row => ({
+            id: row.id,
+            organization_id: row.organization_id,
+            site_name: row.site_name,
+            name: row.name
+          })) : null,
+          serverOutput: serverOutput.slice(-3000)
+        }));
+      }
+    }
+    signedSessionAutobindHttpProof.assetsPostWriteReadIsolation = 'PASS';
 
     // This route previously called ctx(req) a second time after the global
     // requireCtx gate, which would attempt to downgrade a signed field principal
@@ -2024,7 +2211,69 @@ async function main() {
     try { await owner.query('DELETE FROM public.idempotency_records WHERE organization_id = ANY($1::text[]) AND idempotency_key = ANY($2::text[])', [synthetic.tenantIds, synthetic.idempotencyKeys]); } catch (_) {}
     try { await owner.query('DELETE FROM public.operation_envelopes WHERE organization_id = ANY($1::text[]) AND idempotency_key = ANY($2::text[])', [synthetic.tenantIds, synthetic.idempotencyKeys]); } catch (_) {}
     try { await owner.query('DELETE FROM public.work_orders WHERE id = ANY($1::text[])', [synthetic.workOrderIds]); } catch (_) {}
-    try { await owner.query('DELETE FROM public.assets WHERE id = ANY($1::text[])', [synthetic.assetIds]); } catch (_) {}
+    try {
+      const eventRows = await owner.query(
+        'SELECT id FROM public.asset_events WHERE organization_id = ANY($1::text[]) AND asset_id = ANY($2::text[])',
+        [synthetic.tenantIds, synthetic.assetIds]
+      );
+      syntheticAssetEventIds = eventRows.rows.map(row => row.id);
+    } catch (cleanupError) {
+      assetCleanupErrors.push('asset_events_select:' + String(cleanupError.code || cleanupError.message || cleanupError));
+    }
+    try {
+      await owner.query(
+        "DELETE FROM public.activity_log WHERE organization_id = ANY($1::text[]) AND entity_type='asset' AND entity_id = ANY($2::text[])",
+        [synthetic.tenantIds, synthetic.assetIds]
+      );
+    } catch (cleanupError) {
+      assetCleanupErrors.push('activity_log:' + String(cleanupError.code || cleanupError.message || cleanupError));
+    }
+    try {
+      await owner.query(
+        "DELETE FROM public.audit_log WHERE organization_id = ANY($1::text[]) AND ((resource_type='asset' AND resource_id = ANY($2::text[])) OR (resource_type='asset_event' AND resource_id = ANY($3::text[])))",
+        [synthetic.tenantIds, synthetic.assetIds, syntheticAssetEventIds]
+      );
+    } catch (cleanupError) {
+      assetCleanupErrors.push('audit_log:' + String(cleanupError.code || cleanupError.message || cleanupError));
+    }
+    try {
+      await owner.query(
+        'DELETE FROM public.asset_events WHERE organization_id = ANY($1::text[]) AND asset_id = ANY($2::text[])',
+        [synthetic.tenantIds, synthetic.assetIds]
+      );
+    } catch (cleanupError) {
+      assetCleanupErrors.push('asset_events:' + String(cleanupError.code || cleanupError.message || cleanupError));
+    }
+    try { await owner.query('DELETE FROM public.assets WHERE id = ANY($1::text[])', [synthetic.assetIds]); }
+    catch (cleanupError) {
+      assetCleanupErrors.push('assets:' + String(cleanupError.code || cleanupError.message || cleanupError));
+    }
+    try {
+      const residue = await owner.query(
+        "SELECT " +
+        "(SELECT COUNT(*)::int FROM public.assets WHERE id = ANY($1::text[])) AS asset_rows, " +
+        "(SELECT COUNT(*)::int FROM public.asset_events WHERE organization_id = ANY($2::text[]) AND asset_id = ANY($1::text[])) AS event_rows, " +
+        "(SELECT COUNT(*)::int FROM public.activity_log WHERE organization_id = ANY($2::text[]) AND entity_type='asset' AND entity_id = ANY($1::text[])) AS activity_rows, " +
+        "(SELECT COUNT(*)::int FROM public.audit_log WHERE organization_id = ANY($2::text[]) AND ((resource_type='asset' AND resource_id = ANY($1::text[])) OR (resource_type='asset_event' AND resource_id = ANY($3::text[]))) ) AS audit_rows",
+        [synthetic.assetIds, synthetic.tenantIds, syntheticAssetEventIds]
+      );
+      const remaining = residue.rows[0] || {};
+      if (assetCleanupErrors.length || Number(remaining.asset_rows) !== 0
+          || Number(remaining.event_rows) !== 0 || Number(remaining.activity_rows) !== 0
+          || Number(remaining.audit_rows) !== 0) {
+        process.stderr.write('SIGNED_CONTEXT_ASSET_FIXTURE_CLEANUP_FAILED:' + JSON.stringify({
+          errors: assetCleanupErrors,
+          remaining
+        }) + '\\n');
+        process.exitCode = 1;
+      } else {
+        process.stdout.write('SIGNED_CONTEXT_ASSET_FIXTURE_CLEANUP=PASS\\n');
+      }
+    } catch (cleanupError) {
+      process.stderr.write('SIGNED_CONTEXT_ASSET_FIXTURE_CLEANUP_VERIFICATION_FAILED:' +
+        String(cleanupError.code || cleanupError.message || cleanupError).slice(0, 500) + '\\n');
+      process.exitCode = 1;
+    }
     try {
       await owner.query(
         "DELETE FROM public.activity_log WHERE organization_id = ANY($1::text[]) AND entity_type='site' AND entity_id = ANY($2::text[])",
