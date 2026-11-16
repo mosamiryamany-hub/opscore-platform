@@ -1,0 +1,82 @@
+name: apply-production-migration-068
+# Applies only 068_opscore_app_role_privilege_lockdown.sql on Production when pending.
+# Fail-closed. Does not apply signed-context Preview-only migrations.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  apply:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.4'
+      - name: Install backend deps and psql
+        working-directory: backend
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq postgresql-client
+      - name: Inspect production ledger and apply 068 if pending
+        working-directory: backend
+        env:
+          OPSC_OWNER_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          OPSC_PRODUCTION_RUNTIME_URL: ${{ secrets.OPSC_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          test -n "${OPSC_OWNER_DATABASE_URL:-}"
+          node <<'NODE'
+          const fs = require('fs');
+          const crypto = require('crypto');
+          const { Client } = require('pg');
+          const { execFileSync } = require('child_process');
+          const path = require('path');
+
+          function sha256File(filePath) {
+            return crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
+          }
+
+          (async () => {
+            const owner = new Client({ connectionString: process.env.OPSC_OWNER_DATABASE_URL, ssl: { rejectUnauthorized: false } });
+            await owner.connect();
+            const db = (await owner.query('SELECT current_database() AS d, current_user AS u')).rows[0];
+            console.log('connected', db);
+            const ledger = (await owner.query('SELECT filename, sha256 FROM schema_migrations ORDER BY filename')).rows;
+            console.log('ledger_count', ledger.length);
+            const pending = [];
+            const dir = path.join('sql', 'postgres');
+            const files = fs.readdirSync(dir).filter(f => /^\d{3}_.+\.sql$/.test(f)).sort();
+            const byName = new Map(ledger.map(r => [r.filename, r.sha256]));
+            for (const f of files) {
+              const h = sha256File(path.join(dir, f));
+              if (!byName.has(f)) pending.push({ f, h, reason: 'missing' });
+              else if (String(byName.get(f)).toLowerCase() !== h) pending.push({ f, h, reason: 'checksum_mismatch', ledger: byName.get(f) });
+            }
+            console.log('pending', JSON.stringify(pending.map(p => p.f + ':' + p.reason)));
+            const target = '068_opscore_app_role_privilege_lockdown.sql';
+            const hit = pending.find(p => p.f === target);
+            if (!hit) {
+              console.log('068_ALREADY_APPLIED_OR_MATCHED');
+              await owner.end();
+              return;
+            }
+            if (hit.reason === 'checksum_mismatch') {
+              console.error('068_CHECKSUM_MISMATCH_REFUSING');
+              process.exit(2);
+            }
+            const sql = fs.readFileSync(path.join(dir, target), 'utf8');
+            // Migration file contains its own BEGIN/COMMIT.
+            await owner.query(sql);
+            await owner.query(
+              'INSERT INTO schema_migrations(filename, sha256, applied_at) VALUES ($1,$2,clock_timestamp()) ON CONFLICT (filename) DO NOTHING',
+              [target, hit.h]
+            );
+            const role = await owner.query("SELECT count(*)::int AS n FROM pg_roles WHERE rolname='opscore_app'");
+            console.log('068_APPLIED', { opscore_app_roles: role.rows[0].n });
+            await owner.end();
+          })().catch((e) => { console.error(String(e && e.stack || e)); process.exit(1); });
+          NODE
