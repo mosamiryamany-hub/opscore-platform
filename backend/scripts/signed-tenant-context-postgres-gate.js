@@ -159,6 +159,7 @@ async function main() {
   const siteCleanupErrors = [];
   const geofenceCleanupErrors = [];
   const appointmentCleanupErrors = [];
+  const businessCleanupErrors = [];
   const trailCleanupErrors = [];
   const technicianCleanupErrors = [];
   const assetCleanupErrors = [];
@@ -173,6 +174,9 @@ async function main() {
     customerIds: ['tc_customer_a_' + crypto.randomUUID().replace(/-/g, ''), 'tc_customer_b_' + crypto.randomUUID().replace(/-/g, '')],
     siteIds: ['tc_site_a_' + crypto.randomUUID().replace(/-/g, ''), 'tc_site_b_' + crypto.randomUUID().replace(/-/g, '')],
     geofenceIds: [],
+    dynamicGeofenceIds: [],
+    dynamicGeofenceSourceEventIds: [],
+    operationalConfigKeys: [],
     serviceLineIds: ['tc_line_a_' + crypto.randomUUID().replace(/-/g, ''), 'tc_line_b_' + crypto.randomUUID().replace(/-/g, '')],
     appointmentIds: [],
     trailPointIds: [],
@@ -1729,6 +1733,376 @@ async function main() {
     signedSessionAutobindHttpProof.mapViewportTenantA = 'PASS';
     signedSessionAutobindHttpProof.mapViewportTenantB = 'PASS';
 
+
+    // Complete the remaining declared appointment routes. The caller is a
+    // technician-member: on-my-way/unreachable are allowed for its own
+    // appointment; reschedule is manager-only and must be denied without mutation.
+    const appointmentOnWayKeyA = 'signed-context-appointment-on-way-a-' + keyId;
+    const appointmentOnWayKeyB = 'signed-context-appointment-on-way-b-' + keyId;
+    const appointmentRescheduleMemberKey = 'signed-context-appointment-reschedule-member-' + keyId;
+    const appointmentUnreachableKeyA = 'signed-context-appointment-unreachable-a-' + keyId;
+    const appointmentUnreachableKeyB = 'signed-context-appointment-unreachable-b-' + keyId;
+    synthetic.idempotencyKeys.push(
+      appointmentOnWayKeyA,
+      appointmentOnWayKeyB,
+      appointmentRescheduleMemberKey,
+      appointmentUnreachableKeyA,
+      appointmentUnreachableKeyB
+    );
+    const appointmentConfigKeyA = 'appointment_unreachable:' + createAppointmentA.body.id;
+    const appointmentConfigKeyB = 'appointment_unreachable:' + createAppointmentB.body.id;
+    synthetic.operationalConfigKeys.push(appointmentConfigKeyA, appointmentConfigKeyB);
+
+    const rescheduleMemberB = await queryHttp(
+      port,
+      '/api/v1/appointments/' + encodeURIComponent(createAppointmentB.body.id) + '/reschedule',
+      tokenB,
+      {
+        method: 'POST',
+        headers: { 'idempotency-key': appointmentRescheduleMemberKey },
+        body: {
+          reason: 'CI member role must not reschedule',
+          startAt: new Date(appointmentBase + 300 * 60 * 1000).toISOString(),
+          endAt: new Date(appointmentBase + 360 * 60 * 1000).toISOString()
+        }
+      }
+    );
+    if (rescheduleMemberB.status !== 403
+        || rescheduleMemberB.body?.error?.code !== 'FORBIDDEN'
+        || rescheduleMemberB.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_APPOINTMENT_RESCHEDULE_MEMBER_NOT_DENIED:' + JSON.stringify({
+        status: rescheduleMemberB.status,
+        body: rescheduleMemberB.body
+      }));
+    }
+    const appointmentAfterDeniedReschedule = await queryHttp(
+      port, '/api/v1/appointments/' + encodeURIComponent(createAppointmentB.body.id), tokenB
+    );
+    if (appointmentAfterDeniedReschedule.status !== 200
+        || appointmentAfterDeniedReschedule.body?.status !== 'confirmed'
+        || appointmentAfterDeniedReschedule.body?.start_at !== updateAppointmentB.body.start_at) {
+      throw new Error('SIGNED_CONTEXT_APPOINTMENT_RESCHEDULE_DENIAL_MUTATED_ROW:' + JSON.stringify({
+        status: appointmentAfterDeniedReschedule.status,
+        body: appointmentAfterDeniedReschedule.body
+      }));
+    }
+    signedSessionAutobindHttpProof.appointmentRescheduleMemberDenied = 'PASS';
+    signedSessionAutobindHttpProof.appointmentRescheduleDenialNoMutation = 'PASS';
+
+    const onWayA = await queryHttp(
+      port,
+      '/api/v1/appointments/' + encodeURIComponent(createAppointmentA.body.id) + '/on-my-way',
+      tokenA,
+      { method: 'POST', headers: { 'idempotency-key': appointmentOnWayKeyA } }
+    );
+    const onWayB = await queryHttp(
+      port,
+      '/api/v1/appointments/' + encodeURIComponent(createAppointmentB.body.id) + '/on-my-way',
+      tokenB,
+      { method: 'POST', headers: { 'idempotency-key': appointmentOnWayKeyB } }
+    );
+    for (const [label, response, expectedTenant, expectedId, expectedWorkOrder, expectedTech] of [
+      ['tenantA', onWayA, tenantA, createAppointmentA.body.id, synthetic.workOrderIds[0], userA],
+      ['tenantB', onWayB, tenantB, createAppointmentB.body.id, synthetic.workOrderIds[1], userB]
+    ]) {
+      if (response.status !== 200
+          || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+          || response.body?.id !== expectedId
+          || response.body?.organization_id !== expectedTenant
+          || response.body?.work_order_id !== expectedWorkOrder
+          || response.body?.technician_id !== expectedTech
+          || response.body?.status !== 'en_route') {
+        throw new Error('SIGNED_CONTEXT_APPOINTMENT_ON_MY_WAY_TENANT_BOUNDARY_FAILED:' + JSON.stringify({
+          label, status: response.status, body: response.body
+        }));
+      }
+    }
+    signedSessionAutobindHttpProof.appointmentOnMyWayTenantA = 'PASS';
+    signedSessionAutobindHttpProof.appointmentOnMyWayTenantB = 'PASS';
+
+    const unreachableA = await queryHttp(
+      port,
+      '/api/v1/appointments/' + encodeURIComponent(createAppointmentA.body.id) + '/unreachable',
+      tokenA,
+      {
+        method: 'POST',
+        headers: { 'idempotency-key': appointmentUnreachableKeyA },
+        body: { reasonCode: 'CI_FIELD_UNREACHABLE', detail: 'signed tenant route acceptance' }
+      }
+    );
+    const unreachableB = await queryHttp(
+      port,
+      '/api/v1/appointments/' + encodeURIComponent(createAppointmentB.body.id) + '/unreachable',
+      tokenB,
+      {
+        method: 'POST',
+        headers: { 'idempotency-key': appointmentUnreachableKeyB },
+        body: { reasonCode: 'CI_FIELD_UNREACHABLE', detail: 'signed tenant route acceptance' }
+      }
+    );
+    for (const [label, response, expectedId, expectedTenant, expectedWorkOrder] of [
+      ['tenantA', unreachableA, createAppointmentA.body.id, tenantA, synthetic.workOrderIds[0]],
+      ['tenantB', unreachableB, createAppointmentB.body.id, tenantB, synthetic.workOrderIds[1]]
+    ]) {
+      if (response.status !== 200
+          || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+          || response.body?.appointment?.id !== expectedId
+          || response.body?.appointment?.organization_id !== expectedTenant
+          || response.body?.appointment?.work_order_id !== expectedWorkOrder
+          || response.body?.appointment?.status !== 'no_show'
+          || response.body?.reasonCode !== 'CI_FIELD_UNREACHABLE'
+          || !response.body?.operationalJobId) {
+        throw new Error('SIGNED_CONTEXT_APPOINTMENT_UNREACHABLE_TENANT_BOUNDARY_FAILED:' + JSON.stringify({
+          label, status: response.status, body: response.body
+        }));
+      }
+    }
+    signedSessionAutobindHttpProof.appointmentUnreachableTenantA = 'PASS';
+    signedSessionAutobindHttpProof.appointmentUnreachableTenantB = 'PASS';
+
+    // Remaining fault routes: create, transition and unreachable. The resulting
+    // work orders, incident jobs, config entries and audit rows are all tracked
+    // for deterministic cleanup in this disposable database.
+    const faultCreateKeyA = 'signed-context-fault-create-a-' + keyId;
+    const faultCreateKeyB = 'signed-context-fault-create-b-' + keyId;
+    const faultTransitionKeyA = 'signed-context-fault-transition-a-' + keyId;
+    const faultTransitionKeyB = 'signed-context-fault-transition-b-' + keyId;
+    const faultUnreachableKeyA = 'signed-context-fault-unreachable-a-' + keyId;
+    const faultUnreachableKeyB = 'signed-context-fault-unreachable-b-' + keyId;
+    synthetic.idempotencyKeys.push(
+      faultCreateKeyA, faultCreateKeyB,
+      faultTransitionKeyA, faultTransitionKeyB,
+      faultUnreachableKeyA, faultUnreachableKeyB
+    );
+
+    const faultTicketA = await queryHttp(port, '/api/v1/faults', tokenA, {
+      method: 'POST',
+      headers: { 'idempotency-key': faultCreateKeyA },
+      body: {
+        title: 'Signed Context Fault Ticket A',
+        description: 'Synthetic PostgreSQL acceptance fault for tenant A',
+        priority: 'high',
+        customerId: synthetic.customerIds[0],
+        siteId: createSiteA.body.id,
+        assetId: createAssetA.body.id
+      }
+    });
+    if (faultTicketA.body?.workOrder?.id) synthetic.workOrderIds.push(faultTicketA.body.workOrder.id);
+    if (faultTicketA.status !== 201
+        || faultTicketA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || faultTicketA.body?.workOrder?.organization_id !== tenantA
+        || !String(faultTicketA.body?.workOrder?.title || '').startsWith('[FAULT] ')
+        || faultTicketA.body?.workOrder?.status !== 'open'
+        || faultTicketA.body?.classification?.organizationId !== tenantA) {
+      throw new Error('SIGNED_CONTEXT_FAULT_CREATE_TENANT_A_FAILED:' + JSON.stringify({
+        status: faultTicketA.status, body: faultTicketA.body
+      }));
+    }
+    const faultTicketB = await queryHttp(port, '/api/v1/faults', tokenB, {
+      method: 'POST',
+      headers: { 'idempotency-key': faultCreateKeyB },
+      body: {
+        title: 'Signed Context Fault Ticket B',
+        description: 'Synthetic PostgreSQL acceptance fault for tenant B',
+        priority: 'high',
+        customerId: synthetic.customerIds[1],
+        siteId: createSiteB.body.id,
+        assetId: createAssetB.body.id
+      }
+    });
+    if (faultTicketB.body?.workOrder?.id) synthetic.workOrderIds.push(faultTicketB.body.workOrder.id);
+    if (faultTicketB.status !== 201
+        || faultTicketB.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || faultTicketB.body?.workOrder?.organization_id !== tenantB
+        || !String(faultTicketB.body?.workOrder?.title || '').startsWith('[FAULT] ')
+        || faultTicketB.body?.workOrder?.status !== 'open'
+        || faultTicketB.body?.classification?.organizationId !== tenantB) {
+      throw new Error('SIGNED_CONTEXT_FAULT_CREATE_TENANT_B_FAILED:' + JSON.stringify({
+        status: faultTicketB.status, body: faultTicketB.body
+      }));
+    }
+    signedSessionAutobindHttpProof.faultCreateTenantA = 'PASS';
+    signedSessionAutobindHttpProof.faultCreateTenantB = 'PASS';
+
+    const faultTransitionA = await queryHttp(
+      port,
+      '/api/v1/faults/' + encodeURIComponent(faultTicketA.body.workOrder.id) + '/transition',
+      tokenA,
+      { method: 'POST', headers: { 'idempotency-key': faultTransitionKeyA }, body: { status: 'in_progress' } }
+    );
+    const faultTransitionB = await queryHttp(
+      port,
+      '/api/v1/faults/' + encodeURIComponent(faultTicketB.body.workOrder.id) + '/transition',
+      tokenB,
+      { method: 'POST', headers: { 'idempotency-key': faultTransitionKeyB }, body: { status: 'in_progress' } }
+    );
+    for (const [label, response, expectedTenant, expectedId] of [
+      ['tenantA', faultTransitionA, tenantA, faultTicketA.body.workOrder.id],
+      ['tenantB', faultTransitionB, tenantB, faultTicketB.body.workOrder.id]
+    ]) {
+      if (response.status !== 200
+          || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+          || response.body?.workOrder?.id !== expectedId
+          || response.body?.workOrder?.organization_id !== expectedTenant
+          || response.body?.workOrder?.status !== 'in_progress') {
+        throw new Error('SIGNED_CONTEXT_FAULT_TRANSITION_TENANT_BOUNDARY_FAILED:' + JSON.stringify({
+          label, status: response.status, body: response.body
+        }));
+      }
+    }
+    signedSessionAutobindHttpProof.faultTransitionTenantA = 'PASS';
+    signedSessionAutobindHttpProof.faultTransitionTenantB = 'PASS';
+
+    const faultConfigKeyA = 'fault_unreachable:' + faultTicketA.body.workOrder.id;
+    const faultConfigKeyB = 'fault_unreachable:' + faultTicketB.body.workOrder.id;
+    synthetic.operationalConfigKeys.push(
+      faultConfigKeyA, faultConfigKeyB
+    );
+    const faultUnreachableA = await queryHttp(
+      port,
+      '/api/v1/faults/' + encodeURIComponent(faultTicketA.body.workOrder.id) + '/unreachable',
+      tokenA,
+      {
+        method: 'POST',
+        headers: { 'idempotency-key': faultUnreachableKeyA },
+        body: { reasonCode: 'CI_FAULT_UNREACHABLE', detail: 'signed tenant route acceptance' }
+      }
+    );
+    const faultUnreachableB = await queryHttp(
+      port,
+      '/api/v1/faults/' + encodeURIComponent(faultTicketB.body.workOrder.id) + '/unreachable',
+      tokenB,
+      {
+        method: 'POST',
+        headers: { 'idempotency-key': faultUnreachableKeyB },
+        body: { reasonCode: 'CI_FAULT_UNREACHABLE', detail: 'signed tenant route acceptance' }
+      }
+    );
+    for (const [label, response, expectedTenant, expectedId] of [
+      ['tenantA', faultUnreachableA, tenantA, faultTicketA.body.workOrder.id],
+      ['tenantB', faultUnreachableB, tenantB, faultTicketB.body.workOrder.id]
+    ]) {
+      if (response.status !== 200
+          || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+          || response.body?.workOrder?.id !== expectedId
+          || response.body?.workOrder?.organization_id !== expectedTenant
+          || response.body?.workOrder?.status !== 'blocked'
+          || response.body?.reasonCode !== 'CI_FAULT_UNREACHABLE'
+          || !response.body?.operationalJobId) {
+        throw new Error('SIGNED_CONTEXT_FAULT_UNREACHABLE_TENANT_BOUNDARY_FAILED:' + JSON.stringify({
+          label, status: response.status, body: response.body
+        }));
+      }
+    }
+    signedSessionAutobindHttpProof.faultUnreachableTenantA = 'PASS';
+    signedSessionAutobindHttpProof.faultUnreachableTenantB = 'PASS';
+
+    // Signed geo-access assertion and dynamic-geofence event persistence.
+    const geoAccessA = await queryHttp(port, '/api/v1/geofences/assert-access', tokenA, {
+      method: 'POST', body: { longitude: 31.2357, latitude: 30.0444 }
+    });
+    const geoAccessB = await queryHttp(port, '/api/v1/geofences/assert-access', tokenB, {
+      method: 'POST', body: { longitude: 31.1313, latitude: 29.9765 }
+    });
+    for (const [label, response, expectedPoint] of [
+      ['tenantA', geoAccessA, { longitude: 31.2357, latitude: 30.0444 }],
+      ['tenantB', geoAccessB, { longitude: 31.1313, latitude: 29.9765 }]
+    ]) {
+      if (response.status !== 200
+          || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+          || response.body?.allow !== true
+          || response.body?.point?.longitude !== expectedPoint.longitude
+          || response.body?.point?.latitude !== expectedPoint.latitude) {
+        throw new Error('SIGNED_CONTEXT_GEOFENCE_ASSERT_ACCESS_FAILED:' + JSON.stringify({
+          label, status: response.status, body: response.body
+        }));
+      }
+    }
+    signedSessionAutobindHttpProof.geofenceAssertAccessTenantA = 'PASS';
+    signedSessionAutobindHttpProof.geofenceAssertAccessTenantB = 'PASS';
+
+    const dynamicGeofenceSourceA = 'signed-context-dynamic-geofence-a-' + keyId;
+    const dynamicGeofenceSourceB = 'signed-context-dynamic-geofence-b-' + keyId;
+    const dynamicGeofenceKeyA = 'signed-context-dynamic-geofence-write-a-' + keyId;
+    const dynamicGeofenceKeyB = 'signed-context-dynamic-geofence-write-b-' + keyId;
+    const dynamicGeofenceReplayKeyA = 'signed-context-dynamic-geofence-replay-a-' + keyId;
+    synthetic.dynamicGeofenceSourceEventIds.push(dynamicGeofenceSourceA, dynamicGeofenceSourceB);
+    synthetic.idempotencyKeys.push(dynamicGeofenceKeyA, dynamicGeofenceKeyB, dynamicGeofenceReplayKeyA);
+    const dynamicActiveFrom = new Date(Date.now() - 60 * 1000).toISOString();
+    const dynamicExpiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    const dynamicGeofenceEventA = {
+      source: 'signed-context-ci',
+      eventType: 'hazard',
+      severity: 'high',
+      latitude: 30.0444,
+      longitude: 31.2357,
+      radiusM: 300,
+      reason: 'Synthetic signed-tenant geofence hazard for tenant A',
+      sourceEventId: dynamicGeofenceSourceA,
+      activeFrom: dynamicActiveFrom,
+      expiresAt: dynamicExpiresAt,
+      geofenceId: createGeofenceA.body.id
+    };
+    const dynamicGeofenceEventB = {
+      source: 'signed-context-ci',
+      eventType: 'restriction',
+      severity: 'medium',
+      latitude: 29.9765,
+      longitude: 31.1313,
+      radiusM: 300,
+      reason: 'Synthetic signed-tenant restriction for tenant B',
+      sourceEventId: dynamicGeofenceSourceB,
+      activeFrom: dynamicActiveFrom,
+      expiresAt: dynamicExpiresAt,
+      geofenceId: createGeofenceB.body.id
+    };
+    const dynamicWriteA = await queryHttp(port, '/api/v1/geofences/dynamic-events', tokenA, {
+      method: 'POST',
+      headers: { 'idempotency-key': dynamicGeofenceKeyA },
+      body: dynamicGeofenceEventA
+    });
+    if (dynamicWriteA.body?.id) synthetic.dynamicGeofenceIds.push(dynamicWriteA.body.id);
+    if (dynamicWriteA.status !== 201
+        || dynamicWriteA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || dynamicWriteA.body?.organizationId !== tenantA
+        || dynamicWriteA.body?.sourceEventId !== dynamicGeofenceSourceA
+        || dynamicWriteA.body?.replayed !== false) {
+      throw new Error('SIGNED_CONTEXT_DYNAMIC_GEOFENCE_WRITE_TENANT_A_FAILED:' + JSON.stringify({
+        status: dynamicWriteA.status, body: dynamicWriteA.body
+      }));
+    }
+    const dynamicWriteB = await queryHttp(port, '/api/v1/geofences/dynamic-events', tokenB, {
+      method: 'POST',
+      headers: { 'idempotency-key': dynamicGeofenceKeyB },
+      body: dynamicGeofenceEventB
+    });
+    if (dynamicWriteB.body?.id) synthetic.dynamicGeofenceIds.push(dynamicWriteB.body.id);
+    if (dynamicWriteB.status !== 201
+        || dynamicWriteB.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || dynamicWriteB.body?.organizationId !== tenantB
+        || dynamicWriteB.body?.sourceEventId !== dynamicGeofenceSourceB
+        || dynamicWriteB.body?.replayed !== false) {
+      throw new Error('SIGNED_CONTEXT_DYNAMIC_GEOFENCE_WRITE_TENANT_B_FAILED:' + JSON.stringify({
+        status: dynamicWriteB.status, body: dynamicWriteB.body
+      }));
+    }
+    const dynamicReplayA = await queryHttp(port, '/api/v1/geofences/dynamic-events', tokenA, {
+      method: 'POST',
+      headers: { 'idempotency-key': dynamicGeofenceReplayKeyA },
+      body: dynamicGeofenceEventA
+    });
+    if (dynamicReplayA.status !== 201
+        || dynamicReplayA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || dynamicReplayA.body?.id !== dynamicWriteA.body.id
+        || dynamicReplayA.body?.replayed !== true) {
+      throw new Error('SIGNED_CONTEXT_DYNAMIC_GEOFENCE_DOMAIN_REPLAY_FAILED:' + JSON.stringify({
+        status: dynamicReplayA.status, body: dynamicReplayA.body
+      }));
+    }
+    signedSessionAutobindHttpProof.dynamicGeofenceWriteTenantA = 'PASS';
+    signedSessionAutobindHttpProof.dynamicGeofenceWriteTenantB = 'PASS';
+    signedSessionAutobindHttpProof.dynamicGeofenceSourceEventReplay = 'PASS';
+
     // This route previously called ctx(req) a second time after the global
     // requireCtx gate, which would attempt to downgrade a signed field principal
     // back to legacy auth-mode GUCs. It must reuse the already authenticated c.
@@ -3092,6 +3466,76 @@ async function main() {
       }
     } catch (cleanupError) {
       process.stderr.write('SIGNED_CONTEXT_TECHNICIAN_TRAIL_FIXTURE_CLEANUP_VERIFICATION_FAILED:' +
+        String(cleanupError.code || cleanupError.message || cleanupError).slice(0, 500) + '\\n');
+      process.exitCode = 1;
+    }
+    try {
+      await owner.query(
+        "DELETE FROM public.operational_jobs WHERE organization_id = ANY($1::text[]) AND ((entity_type='appointment' AND entity_id = ANY($2::text[])) OR (entity_type='work_order' AND entity_id = ANY($3::text[])))",
+        [synthetic.tenantIds, synthetic.appointmentIds, synthetic.workOrderIds]
+      );
+    } catch (cleanupError) {
+      businessCleanupErrors.push('operational_jobs:' + String(cleanupError.code || cleanupError.message || cleanupError));
+    }
+    try {
+      await owner.query(
+        'DELETE FROM public.operational_configs WHERE organization_id = ANY($1::text[]) AND config_key = ANY($2::text[])',
+        [synthetic.tenantIds, synthetic.operationalConfigKeys]
+      );
+    } catch (cleanupError) {
+      businessCleanupErrors.push('operational_configs:' + String(cleanupError.code || cleanupError.message || cleanupError));
+    }
+    try {
+      await owner.query(
+        "DELETE FROM public.dynamic_geofence_events WHERE id = ANY($1::text[]) OR (organization_id = ANY($2::text[]) AND source_event_id = ANY($3::text[]))",
+        [synthetic.dynamicGeofenceIds, synthetic.tenantIds, synthetic.dynamicGeofenceSourceEventIds]
+      );
+    } catch (cleanupError) {
+      businessCleanupErrors.push('dynamic_geofence_events:' + String(cleanupError.code || cleanupError.message || cleanupError));
+    }
+    try {
+      await owner.query(
+        "DELETE FROM public.activity_log WHERE organization_id = ANY($1::text[]) AND ((entity_type='work_order' AND entity_id = ANY($2::text[])) OR (entity_type='appointment' AND entity_id = ANY($3::text[])))",
+        [synthetic.tenantIds, synthetic.workOrderIds, synthetic.appointmentIds]
+      );
+    } catch (cleanupError) {
+      businessCleanupErrors.push('activity_log:' + String(cleanupError.code || cleanupError.message || cleanupError));
+    }
+    try {
+      await owner.query(
+        "DELETE FROM public.audit_log WHERE organization_id = ANY($1::text[]) AND ((resource_type='work_order' AND resource_id = ANY($2::text[])) OR (resource_type='appointment' AND resource_id = ANY($3::text[])) OR (resource_type='dynamic_geofence_event' AND resource_id = ANY($4::text[])))",
+        [synthetic.tenantIds, synthetic.workOrderIds, synthetic.appointmentIds, synthetic.dynamicGeofenceIds]
+      );
+    } catch (cleanupError) {
+      businessCleanupErrors.push('audit_log:' + String(cleanupError.code || cleanupError.message || cleanupError));
+    }
+    try {
+      const residue = await owner.query(
+        "SELECT " +
+        "(SELECT COUNT(*)::int FROM public.operational_jobs WHERE organization_id = ANY($1::text[]) AND ((entity_type='appointment' AND entity_id = ANY($2::text[])) OR (entity_type='work_order' AND entity_id = ANY($3::text[])))) AS job_rows, " +
+        "(SELECT COUNT(*)::int FROM public.operational_configs WHERE organization_id = ANY($1::text[]) AND config_key = ANY($4::text[])) AS config_rows, " +
+        "(SELECT COUNT(*)::int FROM public.dynamic_geofence_events WHERE id = ANY($5::text[]) OR (organization_id = ANY($1::text[]) AND source_event_id = ANY($6::text[]))) AS dynamic_event_rows, " +
+        "(SELECT COUNT(*)::int FROM public.activity_log WHERE organization_id = ANY($1::text[]) AND ((entity_type='work_order' AND entity_id = ANY($3::text[])) OR (entity_type='appointment' AND entity_id = ANY($2::text[])))) AS activity_rows, " +
+        "(SELECT COUNT(*)::int FROM public.audit_log WHERE organization_id = ANY($1::text[]) AND ((resource_type='work_order' AND resource_id = ANY($3::text[])) OR (resource_type='appointment' AND resource_id = ANY($2::text[])) OR (resource_type='dynamic_geofence_event' AND resource_id = ANY($5::text[])))) AS audit_rows",
+        [synthetic.tenantIds, synthetic.appointmentIds, synthetic.workOrderIds, synthetic.operationalConfigKeys, synthetic.dynamicGeofenceIds, synthetic.dynamicGeofenceSourceEventIds]
+      );
+      const remaining = residue.rows[0] || {};
+      if (businessCleanupErrors.length
+          || Number(remaining.job_rows) !== 0
+          || Number(remaining.config_rows) !== 0
+          || Number(remaining.dynamic_event_rows) !== 0
+          || Number(remaining.activity_rows) !== 0
+          || Number(remaining.audit_rows) !== 0) {
+        process.stderr.write('SIGNED_CONTEXT_BUSINESS_FIXTURE_CLEANUP_FAILED:' + JSON.stringify({
+          errors: businessCleanupErrors,
+          remaining
+        }) + '\\n');
+        process.exitCode = 1;
+      } else {
+        process.stdout.write('SIGNED_CONTEXT_BUSINESS_FIXTURE_CLEANUP=PASS\\n');
+      }
+    } catch (cleanupError) {
+      process.stderr.write('SIGNED_CONTEXT_BUSINESS_FIXTURE_CLEANUP_VERIFICATION_FAILED:' +
         String(cleanupError.code || cleanupError.message || cleanupError).slice(0, 500) + '\\n');
       process.exitCode = 1;
     }
