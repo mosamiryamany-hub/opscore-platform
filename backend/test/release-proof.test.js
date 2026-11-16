@@ -317,6 +317,13 @@ test('production behavioral evidence must carry the exact release commit hint', 
     fs.writeFileSync(recoveryPath, JSON.stringify(recovery));
     assert.equal(readProductionSessionIsolationEvidence(sessionPath, env).status, 'PASS');
     assert.equal(readProductionRecoveryPointEvidence(recoveryPath, env).status, 'PASS');
+    fs.writeFileSync(sessionPath, JSON.stringify({ ...session, schemaVersion: 'opscore.production-session-isolation.v1' }));
+    fs.writeFileSync(recoveryPath, JSON.stringify({ ...recovery, schemaVersion: 'opscore.production-recovery-point.v1' }));
+    assert.equal(readProductionSessionIsolationEvidence(sessionPath, env).status, 'NOT_VERIFIED');
+    assert.equal(readProductionRecoveryPointEvidence(recoveryPath, env).status, 'NOT_VERIFIED');
+    fs.writeFileSync(sessionPath, JSON.stringify(session));
+    fs.writeFileSync(recoveryPath, JSON.stringify(recovery));
+
 
 
 
