@@ -1,5 +1,7 @@
 # OpsCore v0.11.62 — Commercial Sales Kit
 
+**Seller offer:** May be advertised, listed, presented and negotiated before a buyer is identified. A buyer signature is not required to publish or market the offer; buyer rights and delivery remain withheld until a transaction-specific License Schedule is executed.
+
 Delivery: source-code package; archive name OPSCORE.zip.  
 Commercial class: PASS_WITH_BUYER_RESIDUALS.  
 Production certification: NOT_ESTABLISHED.
@@ -15,7 +17,7 @@ Production certification: NOT_ESTABLISHED.
 
 ## Mobile security
 
-Current source baseline: Expo SDK 58.0.23 / React Native 0.88.1 / React 19.3.0. Secure Release run 42949619029 recorded zero npm audit findings across all severities for the exact locked tree. This is point-in-time dependency evidence, not a guarantee against future advisories. The package contains mobile source only; signed native binaries and physical-device acceptance are not included.
+Current source baseline: Expo SDK 58.0.23 / React Native 0.88.1 / React 19.3.0. Dependency findings must be read from the full mobile audit JSON produced by the exact archive-producing pipeline; historical run IDs and audit counts are not current evidence. The package contains mobile source only; signed native binaries and physical-device acceptance are not included.
 
 ## Runtime dependency security
 The PostgreSQL runtime driver pg 8.23.1 is pinned in the repository root lockfile; the baseline root audit reported 0 findings. The exact archive pipeline includes the full root-dependency-audit.json.
@@ -24,4 +26,4 @@ The PostgreSQL runtime driver pg 8.23.1 is pinned in the repository root lockfil
 External provider accounts/licenses/credentials/live tests including external call-center/telephony; map/road-routing license, keys, attribution and quotas; Android/iOS EAS, signing, native builds, physical-device testing, store accounts/submission/distribution; post-handover dependency maintenance.
 
 ## Production honesty
-No formal production isolation certification (CERTIFIED) is claimed. Seller reference proofs and buyer-local verification are both required before production claims.
+Seller-reference Production isolation is NOT_VERIFIED for the current source tip pending fresh commit- and Neon-branch-bound probes. Buyer-local verification is separate and must be completed before buyer-environment production claims.
