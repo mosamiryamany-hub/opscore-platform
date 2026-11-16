@@ -9,6 +9,27 @@ const DEFAULTS = Object.freeze({
   idleInTransactionSessionTimeoutMs: 3000,
   keepAliveInitialDelayMs: 10000
 });
+const CONNECTION_STRING_SSL_OPTIONS = new Set(['sslmode', 'sslcert', 'sslkey', 'sslrootcert']);
+
+function normalizePostgresConnectionString(connectionString) {
+  let url;
+  try {
+    url = new URL(String(connectionString));
+  } catch {
+    throw new Error('POSTGRES_CONNECTION_STRING_INVALID');
+  }
+  if (!['postgres:', 'postgresql:'].includes(url.protocol)) {
+    throw new Error('POSTGRES_CONNECTION_STRING_PROTOCOL_INVALID');
+  }
+  // TLS is configured explicitly below. Leaving libpq SSL parameters in the URL
+  // makes pg-connection-string override the ssl object and emits deprecation
+  // warnings for legacy modes; it can also discard an explicitly supplied CA.
+  for (const key of [...url.searchParams.keys()]) {
+    if (CONNECTION_STRING_SSL_OPTIONS.has(key.toLowerCase())) url.searchParams.delete(key);
+  }
+  return url.toString();
+}
+
 function boundedInteger(value, fallback, min, max) {
   const n = Number(value);
   return Number.isInteger(n) && n >= min && n <= max ? n : fallback;
@@ -38,8 +59,9 @@ function createPostgresPool({
   if (isProduction && sslMode !== 'verify-full') throw new Error('POSTGRES_TLS_VERIFICATION_REQUIRED');
   if (isProduction && String(process.env.OPSC_PG_SSL_REJECT_UNAUTHORIZED || 'true').toLowerCase() !== 'true') throw new Error('POSTGRES_TLS_VERIFICATION_REQUIRED');
   const ssl = sslMode === 'disable' ? false : sslMode === 'verify-full' ? { rejectUnauthorized: true, ca: process.env.OPSC_PG_CA_CERT || undefined } : { rejectUnauthorized: true };
+  const normalizedConnectionString = normalizePostgresConnectionString(connectionString);
   return new Pool({
-    connectionString,
+    connectionString: normalizedConnectionString,
     ssl,
     max: boundedInteger(max, 10, 1, 200),
     application_name: 'opscore-starter',
@@ -128,6 +150,7 @@ async function withTenantClient(pool, organizationId, fn) {
 
 module.exports = {
   createPostgresPool,
+  normalizePostgresConnectionString,
   pingPostgres,
   DEFAULTS,
   acquireTenantClient,
