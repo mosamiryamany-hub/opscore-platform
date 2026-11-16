@@ -103,3 +103,23 @@ test('Runtime diagnostic requires explicit read-only zero-write and full product
   assert.match(runner, /isolationCertification/);
   assert.match(runner, /migration_056_hash/);
 });
+
+
+test('first production evidence publish keeps release verification false without behavioral proof', () => {
+  const firstPublish = step('Publish acceptance evidence hash to Vercel production env');
+  assert.match(firstPublish, /OPSC_RELEASE_VERIFIED:\s*behavioralPass\(\)\s*\?\s*'true'\s*:\s*'false'/);
+  assert.doesNotMatch(firstPublish, /OPSC_RELEASE_VERIFIED:\s*'true'/);
+});
+
+test('production build is blocked until commit-bound acceptance and behavioral isolation are certified', () => {
+  const certification = step('Resolve production isolation certification from behavioral evidence');
+  const gate = step('Require commit-bound production acceptance and isolation before build');
+  const releasePublish = step('Publish release identity and certification env after evidence validation');
+  const build = step('Build Vercel output');
+  assert.match(gate, /ACCEPTANCE_SHA/);
+  assert.match(gate, /ISOLATION_CERT.*CERTIFIED/);
+  assert.match(gate, /BEHAVIORAL_EVIDENCE.*true/);
+  assert.ok(deploy.indexOf(certification) < deploy.indexOf(gate));
+  assert.ok(deploy.indexOf(gate) < deploy.indexOf(releasePublish));
+  assert.ok(deploy.indexOf(gate) < deploy.indexOf(build));
+});
