@@ -125,11 +125,7 @@ function signedTenantContextRequired(env = process.env) {
 }
 
 function signedContextRequested(req, env = process.env) {
-  return signedSessionAutobindEnabled(env)
-    || signedWorkOrdersContextEnabled(req, env)
-    || signedAssetsReadEnabled(req, env)
-    || signedOperationalReadEnabled(req, env)
-    || signedOperationalWriteEnabled(req, env);
+  return signedSessionAutobindEnabled(env) || signedWorkOrdersContextEnabled(req, env) || signedAssetsReadEnabled(req, env);
 }
 
 // The worker rejects unsigned field-mode setSession calls when the hard cutover
