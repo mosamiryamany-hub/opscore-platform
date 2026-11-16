@@ -179,3 +179,39 @@ Do not claim:
 - buyer-environment certification.
 
 **Final status: HOLD — NOT APPROVED FOR SALE OR DISTRIBUTION.**
+
+
+## Execution follow-up — 2026-11-16
+
+### Existing recovery branch — exact database comparison
+
+The existing branch `br-icy-mountain-bc0gzsc7` was queried without creating or deleting any branch. In `opscore_acceptance`, these nine core tables matched Production by row count and ordered-content digest:
+- organizations: 2 / `8cd536d737882f61ddf9998eb510d167`
+- users: 2 / `3db472c866333ece3a36d5ce990a5054`
+- memberships: 2 / `ac736b25249ac6aae2a70e44dd432855`
+- sessions, assets, sites, work_orders, customers, asset_events: zero rows on both sides.
+
+Production branch `br-proud-salad-bcshhdap` reported LSN `0/9E6ECD0`; recovery branch reported `0/9BC32E8`. These are matching core-table contents at different LSNs, not a full restore certification or a measured RPO.
+
+### Production branch-protection attempt
+
+A request to set `protected=true` on the verified Production branch `br-proud-salad-bcshhdap` was rejected by Neon with HTTP 422: “You have reached the maximum number of protected branches for your current plan.” The branch list currently contains 10 branches and 0 marked protected. No other branch was unprotected or deleted to work around this plan restriction. Enabling Production branch protection is therefore **BLOCKED by plan entitlement**.
+
+### Integrated hardening PR
+
+PR #163 was opened from `hardening/integrated-commercial-gates-20261116` against `main`. It consolidates the Preview exact-target migration workflow, replaces the Production 068 applier with a read-only verifier, removes the standalone Preview 068 applier, adds workflow contract tests, and places a new explicit gate on the Production deploy job:
+
+`vars.OPSC_PRODUCTION_AUTODEPLOY_ENABLED == 'true'`
+
+This variable has not been set. The new branch therefore keeps Production evidence probes, environment mutation, builds, and promotion disabled by default after a merge. CI is still required before considering the PR mergeable. Its intended Production deploy job was skipped on the PR workflow event.
+
+### CI repair trail
+
+The first integrated CI run exposed:
+- one floating `actions/upload-artifact@v4` reference, pinned to immutable commit `cf430e030ddbb5b0abf93d22962f4752f3646cd9`;
+- over-escaped JavaScript regular expressions in the new deploy-gate test, corrected;
+- an old `ci-release-hardening.test.js` assertion that still expected the former unguarded Production deploy condition, updated to assert the explicit owner flag.
+
+Later CI attempt is running against commit `fd01c638566268de0b0ac2101ef775c04ec52c44`; record its final result from GitHub Actions before merge. The isolated PostgreSQL acceptance job passed on earlier integrated attempts; the latest result must be taken from the exact final PR head, not copied forward from an earlier SHA.
+
+**No Production deployment, database write, role/grant change, migration, WAF change, snapshot schedule change, or branch deletion was performed during this follow-up.**
