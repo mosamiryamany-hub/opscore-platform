@@ -27,13 +27,16 @@ function setup() {
   db.prepare('INSERT INTO memberships (user_id,organization_id,role,created_at) VALUES (?,?,?,?)').run('user_b','org_b','member',stamp);
   return { db, ctx:{organizationId:'org_a',userId:'user_a',role:'member'}, peer:{organizationId:'org_a',userId:'user_peer',role:'member'}, agent:{organizationId:'org_a',userId:'user_agent',role:'manager'}, other:{organizationId:'org_b',userId:'user_b',role:'member'} };
 }
-test('catalog has 114 unique target languages and never claims qualification without acceptance evidence', () => {
+test('catalog has 105 unique target languages and never claims qualification without acceptance evidence', () => {
   const summary = cc.languageSummary();
-  assert.equal(summary.sourceRows,114);
-  assert.equal(summary.uniqueLanguageCodes,114);
+  assert.equal(summary.sourceRows,105);
+  assert.equal(summary.uniqueLanguageCodes,105);
+  for (const code of ['ms','sw','hy','uz','my','ml','es','sr','te']) {
+    assert.equal(cc.getLanguage(code), null, `${code} must not be supported in the 105-locale runtime`);
+  }
   assert.deepEqual(summary.duplicateRows,[]);
   assert.equal(summary.qualifiedForProduction,0);
-  // The active 114-locale manifest uses canonical codes; do not assert legacy
+  // The active 105-locale manifest uses canonical codes; do not assert legacy
   // catalogue entries that are not shipped or exposed by the UI.
   assert.equal(cc.getLanguage('zh').name,'Mandarin Chinese');
   assert.equal(cc.getLanguage('zh').duplicateOf,null);

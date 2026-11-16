@@ -4,7 +4,7 @@
  */
 'use strict';
 (() => {
-  const SUPPORTED = ['ar','fa','tr','ku','am','sw','om','so','ti','ha','yo','ig','zu','xh','af','ff','wo','bm','mg','rw','rn','st','tn','ss','ts','ve','nr','sn','ny','ln','ktu','sg','tig','din','nus','ber','zh','yue','ja','ko','hi','ur','bn','pa','ta','te','mr','gu','ml','kn','as','or','sat','ks','ne','si','dv','ps','ms','id','th','vi','km','lo','my','tl','az','hy','ka','mn','en','fr','es','ru','de','it','pt','nl','el','sq','sr','hr','bs','mk','bg','ro','hu','cs','sk','pl','uk','be','lt','lv','et','fi','sv','no','da','is','kk','uz','tk','tg','qu','ay','gn','mi','fj','sm','to','bi','pau','ch'];
+  const SUPPORTED = ['ar','fa','tr','ku','am','om','so','ti','ha','yo','ig','zu','xh','af','ff','wo','bm','mg','rw','rn','st','tn','ss','ts','ve','nr','sn','ny','ln','ktu','sg','tig','din','nus','ber','zh','yue','ja','ko','hi','ur','bn','pa','ta','mr','gu','kn','as','or','sat','ks','ne','si','dv','ps','id','th','vi','km','lo','tl','az','ka','mn','en','fr','ru','de','it','pt','nl','el','sq','hr','bs','mk','bg','ro','hu','cs','sk','pl','uk','be','lt','lv','et','fi','sv','no','da','is','kk','tk','tg','qu','ay','gn','mi','fj','sm','to','bi','pau','ch'];
   const RTL = new Set(['ar','fa','ur','ks','dv','ps']);
   // Localized provenance notice. Machine translation must never look hand-approved.
   const MACHINE_NOTICE = {
@@ -13,7 +13,6 @@
     "tr": "Makine çevirisi — henüz ana dili konuşuru tarafından incelenmedi.",
     "ku": "Wergera makînê — hêj ji aliyê axêverekî zikmakî ve nehatiye venihêrtin.",
     "am": "የማሽን ትርጉም — እስካሁን በአፍ መፍቻ ተናጋሪ አልተገመገመም።",
-    "sw": "Tafsiri ya mashine — bado haijapitiliwa na mzungumzaji asilia.",
     "om": "Hiikkaa makinaa — hamma yeroo ammaa dubbataa dhalootaan hin ilaalamne.",
     "so": "Turjumaad mishiin — wali laguma hubin qof ku hadla afka hooyo.",
     "ti": "ትርጉም መሽን — ክሳብ ሕጂ ብተዛራቢ ወላዲ ኣይተረጋገጸን።",
@@ -53,10 +52,8 @@
     "bn": "মেশিন অনুবাদ — এখনও স্থানীয় ভাষাভাষীর দ্বারা পর্যালোচিত নয়।",
     "pa": "ਮਸ਼ੀਨ ਅਨੁਵਾਦ — ਹਾਲੇ ਮੂਲ ਬੋਲਣ ਵਾਲੇ ਵੱਲੋਂ ਸਮੀਖਿਆ ਨਹੀਂ ਹੋਈ।",
     "ta": "இயந்திர மொழிபெயர்ப்பு — சொந்த மொழி பேசுபவரால் இன்னும் சரிபார்க்கப்படவில்லை.",
-    "te": "యంత్ర అనువాదం — స్థానిక మాట్లాడే వారిచే ఇంకా సమీక్షించబడలేదు.",
     "mr": "मशीन भाषांतर — मूळ भाषिकांकडून अद्याप तपासले गेले नाही.",
     "gu": "મશીન અનુવાદ — હજી સ્થાનિક ભાષક દ્વારા સમીક્ષા થઈ નથી.",
-    "ml": "യന്ത്ര പരിഭാഷ — തദ്ദേശ ഭാഷക്കാരൻ ഇതുവരെ പരിശോധിച്ചിട്ടില്ല.",
     "kn": "ಯಂತ್ರ ಅನುವಾದ — ಸ್ಥಳೀಯ ಭಾಷಿಗರಿಂದ ಇನ್ನೂ ಪರಿಶೀಲಿಸಲಾಗಿಲ್ಲ.",
     "as": "মেচিন অনুবাদ — স্থানীয় ভাষীৰ দ্বাৰা এতিয়াও পৰ্যালোচনা হোৱা নাই।",
     "or": "ମେସିନ ଅନୁବାଦ — ସ୍ଥାନୀୟ ବକ୍ତାଙ୍କ ଦ୍ୱାରା ଏପର୍ଯ୍ୟନ୍ତ ସମୀକ୍ଷା ହୋଇନାହିଁ।",
@@ -66,21 +63,17 @@
     "si": "යන්ත්‍ර පරිවර්තනය — මව් භාෂකයෙකු විසින් තවම සමාලෝචනය කර නැත.",
     "dv": "މެޝިން ތަރުޖަމާ — ދިވެހި ބަހުން ވާހަކަދައްކާ މީހަކު އަދި ބައެއް ނުލައެވެ.",
     "ps": "ماشیني ژباړه — تر اوسه د اصلي ویونکي لخوا نه ده کتل شوې.",
-    "ms": "Terjemahan mesin — belum disemak oleh penutur asli.",
     "id": "Terjemahan mesin — belum ditinjau oleh penutur asli.",
     "th": "การแปลด้วยเครื่อง — ยังไม่ได้รับการตรวจทานโดยเจ้าของภาษา",
     "vi": "Bản dịch máy — chưa được người bản ngữ rà soát.",
     "km": "ការបកប្រែដោយម៉ាស៊ីន — មិនទាន់បានពិនិត្យដោយអ្នកនិយាយដើមភាសាទេ។",
     "lo": "ການແປດ້ວຍເຄື່ອງ — ຍັງບໍ່ໄດ້ກວດສອບໂດຍຜູ້ເວົ້າເດີມ.",
-    "my": "စက်ဖြင့်ဘာသာပြန်ခြင်း — မူရင်းဘာသာစကားပြောသူက မစစ်ဆေးရသေးပါ။",
     "tl": "Pagsasaling makina — hindi pa nasusuri ng katutubong tagapagsalita.",
     "az": "Maşın tərcüməsi — hələ ana dili daşıyıcısı tərəfindən yoxlanmayıb.",
-    "hy": "Մեքենայական թարգմանություն — դեռ չի ստուգվել մայրենի խոսողի կողմից։",
     "ka": "მანქანური თარგმანი — ჯერ არ შემოწმებულა მშობლიური მოსაუბრეს მიერ.",
     "mn": "Машины орчуулга — төрөлх хэлтэн хянаагүй байна.",
     "en": "Machine translation — not yet reviewed by a native speaker.",
     "fr": "Traduction automatique — pas encore relue par un locuteur natif.",
-    "es": "Traducción automática — aún no revisada por un hablante nativo.",
     "ru": "Машинный перевод — ещё не проверен носителем языка.",
     "de": "Maschinenübersetzung — noch nicht von einem Muttersprachler geprüft.",
     "it": "Traduzione automatica — non ancora rivista da un madrelingua.",
@@ -88,7 +81,6 @@
     "nl": "Machinevertaling — nog niet nagekeken door een moedertaalspreker.",
     "el": "Μηχανική μετάφραση — δεν έχει ακόμη ελεγχθεί από φυσικό ομιλητή.",
     "sq": "Përkthim makine — nuk është rishikuar ende nga një folës amtare.",
-    "sr": "Машински превод — још није прегледан од стране изворног говорника.",
     "hr": "Strojni prijevod — još nije pregledao izvorni govornik.",
     "bs": "Mašinski prijevod — još nije pregledao izvorni govornik.",
     "mk": "Машински превод — сè уште не е прегледан од мајчин говорник.",
@@ -109,7 +101,6 @@
     "da": "Maskinoversættelse — endnu ikke gennemgået af en modersmålstalende.",
     "is": "Vélþýðing — ekki enn yfirfarin af móðurmálshöfunda.",
     "kk": "Машиналық аударма — ана тілінде сөйлейтін адам әлі тексермеген.",
-    "uz": "Mashina tarjimasi — hali ona tilida so'zlashuvchi tomonidan ko'rib chiqilmagan.",
     "tk": "Maşyn terjime — ene dilinde gürleýän tarapyndan entek barlanmady.",
     "tg": "Тарҷумаи мошинӣ — ҳанӯз аз ҷониби бавуҷудзабон баррасӣ нашудааст.",
     "qu": "Antakuy makina — manaraq yachaq runap qhawasqanchu.",
@@ -181,7 +172,7 @@
       if (typeof candidate !== 'string') continue;
       const normalized = candidate.trim().toLowerCase();
       let code = null;
-      // Map BCP-47 browser tags onto the 114 package-owned codes (zh-CN/zh-TW -> zh, yue/zh-HK -> yue, fil -> tl, nb/nn -> no).
+      // Map BCP-47 browser tags onto the 105 package-owned codes (zh-CN/zh-TW -> zh, yue/zh-HK -> yue, fil -> tl, nb/nn -> no).
       if (normalized.startsWith('yue') || normalized.startsWith('zh-hk')) code = 'yue';
       else if (normalized.startsWith('zh')) code = 'zh';
       else if (normalized.startsWith('fil') || normalized === 'tl' || normalized.startsWith('tl-')) code = 'tl';
