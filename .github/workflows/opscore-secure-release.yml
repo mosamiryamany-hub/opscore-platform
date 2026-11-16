@@ -48,10 +48,10 @@ jobs:
           node - <<'NODE'
           const version = require('./backend/package.json').version;
           const tag = process.env.RELEASE_TAG || '';
-          if (!/^\\d+\\.\\d+\\.\\d+$/.test(version)) throw new Error('PACKAGE_VERSION_NOT_SEMVER: ' + version);
+          const parts = version.split('.');
+          if (parts.length !== 3 || parts.some(part => !/^[0-9]+$/.test(part))) throw new Error('PACKAGE_VERSION_NOT_SEMVER: ' + version);
           const exact = 'v' + version;
-          const versionPattern = version.split('.').join('\\\\.');
-          const commercial = new RegExp('^v' + versionPattern + '\\\\.[0-9]+-[a-z0-9]+(?:[.-][a-z0-9]+)*$');
+          const commercial = new RegExp('^v' + parts.join('[.]') + '[.][0-9]+-[a-z0-9]+([.-][a-z0-9]+)*$');
           if (tag !== exact && !commercial.test(tag)) {
             throw new Error('RELEASE_TAG_VERSION_MISMATCH: expected ' + exact + ' or a numbered commercial closure suffix; received ' + tag);
           }
