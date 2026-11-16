@@ -296,10 +296,30 @@ function readProductionRecoveryPointEvidence(filePath = embeddedEvidencePath('PR
   };
 }
 
-function readProductionSignedTenantRouteCoverageEvidence(filePath = embeddedEvidencePath('SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE.json'), env = process.env) {
-  let evidence;
-  try { evidence = JSON.parse(fs.readFileSync(filePath, 'utf8')); }
-  catch { return { status: 'NOT_VERIFIED', testedRoutes: 0, failedRoutes: null, reason: 'EVIDENCE_MISSING_OR_INVALID' }; }
+function readProductionSignedTenantRouteCoverageEvidence(
+  filePath = embeddedEvidencePath('SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE.json'),
+  env = process.env,
+  manifestPath = path.join(__dirname, '..', 'docs', 'verification', 'SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST.json'),
+  inventoryPath = path.join(__dirname, '..', 'docs', 'API_INVENTORY.json')
+) {
+  let evidence, manifest, inventory, manifestBytes, inventoryBytes;
+  try {
+    evidence = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  } catch {
+    return { status: 'NOT_VERIFIED', testedRoutes: 0, failedRoutes: null, reason: 'EVIDENCE_MISSING_OR_INVALID' };
+  }
+  try {
+    manifestBytes = fs.readFileSync(manifestPath);
+    manifest = JSON.parse(manifestBytes.toString('utf8'));
+  } catch {
+    return { status: 'NOT_VERIFIED', testedRoutes: Array.isArray(evidence.routes) ? evidence.routes.length : 0, failedRoutes: null, reason: 'APPROVED_ROUTE_MANIFEST_MISSING_OR_INVALID' };
+  }
+  try {
+    inventoryBytes = fs.readFileSync(inventoryPath);
+    inventory = JSON.parse(inventoryBytes.toString('utf8'));
+  } catch {
+    return { status: 'NOT_VERIFIED', testedRoutes: Array.isArray(evidence.routes) ? evidence.routes.length : 0, failedRoutes: null, reason: 'API_ROUTE_INVENTORY_MISSING_OR_INVALID' };
+  }
 
   const expectedCommit = normalizedSha(env.OPSC_RELEASE_CI_COMMIT || env.CI_COMMIT_SHA || env.OPSC_SOURCE_COMMIT_SHA);
   const evidenceCommit = normalizedSha(evidence.sourceCommitHint);
@@ -308,10 +328,67 @@ function readProductionSignedTenantRouteCoverageEvidence(filePath = embeddedEvid
   const pipelineBound = PIPELINE_RE.test(expectedPipelineId) && String(evidence.pipelineId || '') === expectedPipelineId;
   const expectedBranchId = String(env.OPSC_PRODUCTION_NEON_BRANCH_ID || '').trim();
   const branchBound = /^[a-z0-9-]{8,80}$/.test(expectedBranchId) && String(evidence.parentBranchId || '') === expectedBranchId;
-  const routes = Array.isArray(evidence.routes) ? evidence.routes : [];
-  const routeKeys = new Set();
-  let routeResultsValid = routes.length === 67;
 
+  const inventorySha256 = crypto.createHash('sha256').update(inventoryBytes).digest('hex');
+  const manifestSha256 = crypto.createHash('sha256').update(manifestBytes).digest('hex');
+  const inventoryRows = Array.isArray(inventory.routes) ? inventory.routes : [];
+  const excludedRoutes = new Set([
+    '/api/health',
+    '/api/openapi.json',
+    '/api/v1/billing/stripe/webhook',
+    '/api/verify/database',
+    '/api/verify/database-security',
+    '/api/verify/deployment',
+    '/metrics'
+  ]);
+  const eligibleInventoryKeys = new Set();
+  for (const row of inventoryRows) {
+    if (!row || typeof row !== 'object') continue;
+    const method = String(row.method || '').toUpperCase();
+    const pathname = String(row.route || '');
+    if (!['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(method)
+        || row.auth === 'public'
+        || pathname.startsWith('/api/v1/auth/')
+        || excludedRoutes.has(pathname)) continue;
+    eligibleInventoryKeys.add(method + ' ' + pathname);
+  }
+
+  const manifestRows = Array.isArray(manifest.routes) ? manifest.routes : [];
+  const expectedRoutes = new Map();
+  let manifestRoutesValid = manifestRows.length === 67
+    && Number(manifest.routeCount) === 67
+    && inventoryRows.length > 0
+    && Number(inventory.routeCount) === inventoryRows.length
+    && manifest.routeInventorySha256 === inventorySha256;
+  for (const row of manifestRows) {
+    if (!row || typeof row !== 'object' || Array.isArray(row)) {
+      manifestRoutesValid = false;
+      continue;
+    }
+    const method = String(row.method || '').toUpperCase();
+    const pathname = String(row.path || row.route || '');
+    const operation = String(row.operation || '');
+    const key = method + ' ' + pathname;
+    if (!['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(method)
+        || !pathname.startsWith('/api/')
+        || pathname.includes('?')
+        || !['read', 'write'].includes(operation)
+        || !eligibleInventoryKeys.has(key)
+        || expectedRoutes.has(key)) {
+      manifestRoutesValid = false;
+      continue;
+    }
+    expectedRoutes.set(key, operation);
+  }
+  const manifestBound = manifest.schemaVersion === 'opscore.signed-tenant-context-route-manifest.v1'
+    && manifestRoutesValid
+    && expectedRoutes.size === 67;
+  const inventoryBound = manifest.routeInventorySha256 === inventorySha256
+    && Number(inventory.routeCount) === inventoryRows.length;
+
+  const routes = Array.isArray(evidence.routes) ? evidence.routes : [];
+  const seen = new Set();
+  let routeResultsValid = routes.length === 67;
   for (const route of routes) {
     if (!route || typeof route !== 'object' || Array.isArray(route)) {
       routeResultsValid = false;
@@ -321,22 +398,23 @@ function readProductionSignedTenantRouteCoverageEvidence(filePath = embeddedEvid
     const pathname = String(route.path || '');
     const operation = String(route.operation || '');
     const key = method + ' ' + pathname;
-    const commonPass = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(method)
-      && pathname.startsWith('/api/')
-      && !pathname.includes('?')
+    const expectedOperation = expectedRoutes.get(key);
+    const commonPass = expectedRoutes.has(key)
+      && expectedOperation === operation
+      && ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(method)
       && route.status === 'PASS'
       && route.signedContextBound === true
       && route.sessionBound === true
       && route.transactionBound === true
       && route.rawGucTamperDenied === true
-      && !routeKeys.has(key);
+      && !seen.has(key);
     const operationPass = operation === 'read'
       ? route.tenantARead === true && route.tenantBRead === true && route.crossTenantReadDenied === true
       : operation === 'write'
         ? route.tenantAWrite === true && route.tenantBWrite === true && route.crossTenantWriteDenied === true
         : false;
     if (!commonPass || !operationPass) routeResultsValid = false;
-    routeKeys.add(key);
+    seen.add(key);
   }
 
   const exact = evidence.schemaVersion === 'opscore.signed-tenant-context-production-coverage.v1'
@@ -346,7 +424,11 @@ function readProductionSignedTenantRouteCoverageEvidence(filePath = embeddedEvid
     && Number(evidence.expectedRouteCount) === 67
     && Number(evidence.coveredRouteCount) === 67
     && Number(evidence.failedRouteCount) === 0
-    && routeKeys.size === 67
+    && evidence.routeManifestSha256 === manifestSha256
+    && evidence.routeInventorySha256 === inventorySha256
+    && manifestBound
+    && inventoryBound
+    && seen.size === 67
     && routeResultsValid
     && commitBound
     && pipelineBound
@@ -364,6 +446,8 @@ function readProductionSignedTenantRouteCoverageEvidence(filePath = embeddedEvid
     commitBound,
     pipelineBound,
     parentBranchBound: branchBound,
+    manifestBound,
+    inventoryBound,
     routeResultsValid
   };
 }
