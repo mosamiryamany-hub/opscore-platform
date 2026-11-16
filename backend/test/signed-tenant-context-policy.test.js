@@ -21,7 +21,7 @@ test('signed route evidence policy is derived from actual Preview runtime allowl
   assert.equal(policy.isSignedTenantContextRouteDefinition('GET', '/api/v1/customers', 'read'), false);
   assert.equal(policy.isSignedTenantContextRouteDefinition('POST', '/api/v1/work-orders/{id}', 'write'), false);
   assert.equal(policy.isSignedTenantContextRouteDefinition('GET', '/api/v1/work-orders/{id}/evidence-package', 'read'), false);
-  assert.equal(policy.isSignedTenantContextRouteDefinition('PUT', '/api/v1/evidence-uploads/{id}/chunks/(\\\\d+)', 'write'), true);
+  assert.equal(policy.isSignedTenantContextRouteDefinition('PUT', '/api/v1/evidence-uploads/{id}/chunks/(\\d+)', 'write'), true);
 });
 
 
