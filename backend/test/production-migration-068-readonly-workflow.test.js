@@ -19,6 +19,7 @@ test('Production migration 068 workflow is a read-only verifier, never a migrati
   assert.match(workflow, /expectedDatabase = 'opscore_acceptance'/);
   assert.match(workflow, /sslmode', 'verify-full'/);
   assert.match(workflow, /rejectUnauthorized: true/);
+  assert.match(workflow, /BEGIN READ ONLY/);
   assert.match(workflow, /NEON_BRANCH_IDENTITY_MISMATCH/);
   assert.match(workflow, /RUNTIME_DATABASE_ROLE_MISMATCH|RUNTIME_ROLE_IDENTITY_MISMATCH/);
   assert.match(workflow, /PRODUCTION_MIGRATION_068_LEDGER_CHECKSUM_MISMATCH/);
