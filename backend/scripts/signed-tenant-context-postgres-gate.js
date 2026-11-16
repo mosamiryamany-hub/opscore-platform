@@ -157,6 +157,8 @@ async function main() {
   const tokenB = crypto.randomBytes(32).toString('hex');
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
   const siteCleanupErrors = [];
+  const appointmentCleanupErrors = [];
+  const technicianCleanupErrors = [];
   const assetCleanupErrors = [];
   let syntheticAssetEventIds = [];
   const customerCleanupErrors = [];
@@ -169,6 +171,7 @@ async function main() {
     customerIds: ['tc_customer_a_' + crypto.randomUUID().replace(/-/g, ''), 'tc_customer_b_' + crypto.randomUUID().replace(/-/g, '')],
     siteIds: ['tc_site_a_' + crypto.randomUUID().replace(/-/g, ''), 'tc_site_b_' + crypto.randomUUID().replace(/-/g, '')],
     serviceLineIds: ['tc_line_a_' + crypto.randomUUID().replace(/-/g, ''), 'tc_line_b_' + crypto.randomUUID().replace(/-/g, '')],
+    appointmentIds: [],
     assetIds: ['tc_asset_a_' + crypto.randomUUID().replace(/-/g, ''), 'tc_asset_b_' + crypto.randomUUID().replace(/-/g, '')],
     idempotencyKeys: [],
     bulkJobIds: [],
@@ -1018,6 +1021,312 @@ async function main() {
     signedSessionAutobindHttpProof.faultClassificationTenantA = 'PASS';
     signedSessionAutobindHttpProof.faultClassificationTenantB = 'PASS';
     signedSessionAutobindHttpProof.faultClassificationForeignTenantHidden = 'PASS';
+
+
+    // Create tenant-owned technician profiles and skills through the real routes.
+    const technicianA = await queryHttp(port, '/api/v1/technicians', tokenA, {
+      method: 'POST',
+      body: { userId: userA, latitude: 30.0444, longitude: 31.2357, active: true }
+    });
+    const technicianB = await queryHttp(port, '/api/v1/technicians', tokenB, {
+      method: 'POST',
+      body: { userId: userB, latitude: 29.9765, longitude: 31.1313, active: true }
+    });
+    for (const [label, response, expectedUser, expectedTenant, expectedLat, expectedLon] of [
+      ['tenantA', technicianA, userA, tenantA, 30.0444, 31.2357],
+      ['tenantB', technicianB, userB, tenantB, 29.9765, 31.1313]
+    ]) {
+      if (response.status !== 201
+          || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+          || response.body?.user_id !== expectedUser
+          || response.body?.organization_id !== expectedTenant
+          || Number(response.body?.working_from_lat) !== expectedLat
+          || Number(response.body?.working_from_lon) !== expectedLon
+          || Number(response.body?.active) !== 1) {
+        throw new Error('SIGNED_CONTEXT_TECHNICIAN_PROFILE_WRITE_FAILED:' + JSON.stringify({
+          label, status: response.status, body: response.body,
+          signedHeader: response.headers?.['x-opscore-signed-tenant-context'] || null
+        }));
+      }
+    }
+    signedSessionAutobindHttpProof.technicianProfileTenantA = 'PASS';
+    signedSessionAutobindHttpProof.technicianProfileTenantB = 'PASS';
+
+    const technicianSkillA = 'ci-signed-skill-a-' + keyId;
+    const technicianSkillB = 'ci-signed-skill-b-' + keyId;
+    const skillA = await queryHttp(port, '/api/v1/technicians/skills', tokenA, {
+      method: 'POST',
+      body: { userId: userA, skill: technicianSkillA, level: 4 }
+    });
+    const skillB = await queryHttp(port, '/api/v1/technicians/skills', tokenB, {
+      method: 'POST',
+      body: { userId: userB, skill: technicianSkillB, level: 3 }
+    });
+    if (skillA.status !== 201
+        || skillA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || skillA.body?.organization_id !== tenantA
+        || skillA.body?.user_id !== userA
+        || skillA.body?.skill !== technicianSkillA
+        || Number(skillA.body?.level) !== 4
+        || skillB.status !== 201
+        || skillB.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || skillB.body?.organization_id !== tenantB
+        || skillB.body?.user_id !== userB
+        || skillB.body?.skill !== technicianSkillB
+        || Number(skillB.body?.level) !== 3) {
+      throw new Error('SIGNED_CONTEXT_TECHNICIAN_SKILL_WRITE_FAILED:' + JSON.stringify({
+        tenantA: { status: skillA.status, body: skillA.body },
+        tenantB: { status: skillB.status, body: skillB.body }
+      }));
+    }
+    signedSessionAutobindHttpProof.technicianSkillTenantA = 'PASS';
+    signedSessionAutobindHttpProof.technicianSkillTenantB = 'PASS';
+
+    const techniciansA = await queryHttp(port, '/api/v1/technicians', tokenA);
+    const techniciansB = await queryHttp(port, '/api/v1/technicians', tokenB);
+    const skillsA = await queryHttp(port, '/api/v1/technicians/skills', tokenA);
+    const skillsB = await queryHttp(port, '/api/v1/technicians/skills', tokenB);
+    for (const [label, response, ownUser, foreignUser, expectedSkill] of [
+      ['tenantA-technicians', techniciansA, userA, userB, technicianSkillA],
+      ['tenantB-technicians', techniciansB, userB, userA, technicianSkillB]
+    ]) {
+      if (response.status !== 200
+          || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+          || !Array.isArray(response.body)
+          || response.body.length !== 1
+          || response.body[0].user_id !== ownUser
+          || response.body.some(row => row.user_id === foreignUser)) {
+        throw new Error('SIGNED_CONTEXT_TECHNICIAN_LIST_TENANT_BOUNDARY_FAILED:' + JSON.stringify({
+          label, status: response.status, body: response.body
+        }));
+      }
+    }
+    for (const [label, response, ownTenant, ownUser, foreignUser, expectedSkill] of [
+      ['tenantA-skills', skillsA, tenantA, userA, userB, technicianSkillA],
+      ['tenantB-skills', skillsB, tenantB, userB, userA, technicianSkillB]
+    ]) {
+      if (response.status !== 200
+          || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+          || !Array.isArray(response.body)
+          || response.body.length !== 1
+          || response.body[0].organization_id !== ownTenant
+          || response.body[0].user_id !== ownUser
+          || response.body[0].skill !== expectedSkill
+          || response.body.some(row => row.user_id === foreignUser)) {
+        throw new Error('SIGNED_CONTEXT_TECHNICIAN_SKILL_LIST_TENANT_BOUNDARY_FAILED:' + JSON.stringify({
+          label, status: response.status, body: response.body
+        }));
+      }
+    }
+    signedSessionAutobindHttpProof.technicianListTenantA = 'PASS';
+    signedSessionAutobindHttpProof.technicianListTenantB = 'PASS';
+    signedSessionAutobindHttpProof.technicianSkillsListTenantA = 'PASS';
+    signedSessionAutobindHttpProof.technicianSkillsListTenantB = 'PASS';
+
+    // Create real appointments against the two seeded tenant-owned work orders.
+    // They are intentionally separated in time to avoid unrelated resource conflicts.
+    const appointmentBase = Date.now() + 48 * 60 * 60 * 1000;
+    const appointmentStartA = new Date(appointmentBase).toISOString();
+    const appointmentEndA = new Date(appointmentBase + 60 * 60 * 1000).toISOString();
+    const appointmentStartB = new Date(appointmentBase + 3 * 60 * 60 * 1000).toISOString();
+    const appointmentEndB = new Date(appointmentBase + 4 * 60 * 60 * 1000).toISOString();
+    const appointmentKeyA = 'signed-context-appointment-create-a-' + keyId;
+    const appointmentKeyB = 'signed-context-appointment-create-b-' + keyId;
+    const appointmentUpdateKeyA = 'signed-context-appointment-update-a-' + keyId;
+    const appointmentUpdateKeyB = 'signed-context-appointment-update-b-' + keyId;
+    const appointmentCrossKey = 'signed-context-appointment-cross-' + keyId;
+    synthetic.idempotencyKeys.push(
+      appointmentKeyA, appointmentKeyB, appointmentUpdateKeyA, appointmentUpdateKeyB, appointmentCrossKey
+    );
+
+    const createAppointmentA = await queryHttp(port, '/api/v1/appointments', tokenA, {
+      method: 'POST',
+      headers: { 'idempotency-key': appointmentKeyA },
+      body: {
+        workOrderId: synthetic.workOrderIds[0],
+        technicianId: userA,
+        startAt: appointmentStartA,
+        endAt: appointmentEndA
+      }
+    });
+    if (createAppointmentA.body?.id) synthetic.appointmentIds.push(createAppointmentA.body.id);
+    if (createAppointmentA.status !== 201
+        || createAppointmentA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || createAppointmentA.body?.organization_id !== tenantA
+        || createAppointmentA.body?.work_order_id !== synthetic.workOrderIds[0]
+        || createAppointmentA.body?.technician_id !== userA
+        || createAppointmentA.body?.status !== 'scheduled') {
+      throw new Error('SIGNED_CONTEXT_APPOINTMENT_CREATE_TENANT_A_FAILED:' + JSON.stringify({
+        status: createAppointmentA.status, body: createAppointmentA.body,
+        signedHeader: createAppointmentA.headers?.['x-opscore-signed-tenant-context'] || null,
+        serverOutput: serverOutput.slice(-3000)
+      }));
+    }
+
+    const createAppointmentB = await queryHttp(port, '/api/v1/appointments', tokenB, {
+      method: 'POST',
+      headers: { 'idempotency-key': appointmentKeyB },
+      body: {
+        workOrderId: synthetic.workOrderIds[1],
+        technicianId: userB,
+        startAt: appointmentStartB,
+        endAt: appointmentEndB
+      }
+    });
+    if (createAppointmentB.body?.id) synthetic.appointmentIds.push(createAppointmentB.body.id);
+    if (createAppointmentB.status !== 201
+        || createAppointmentB.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || createAppointmentB.body?.organization_id !== tenantB
+        || createAppointmentB.body?.work_order_id !== synthetic.workOrderIds[1]
+        || createAppointmentB.body?.technician_id !== userB
+        || createAppointmentB.body?.status !== 'scheduled') {
+      throw new Error('SIGNED_CONTEXT_APPOINTMENT_CREATE_TENANT_B_FAILED:' + JSON.stringify({
+        status: createAppointmentB.status, body: createAppointmentB.body,
+        signedHeader: createAppointmentB.headers?.['x-opscore-signed-tenant-context'] || null,
+        serverOutput: serverOutput.slice(-3000)
+      }));
+    }
+    signedSessionAutobindHttpProof.appointmentCreateTenantA = 'PASS';
+    signedSessionAutobindHttpProof.appointmentCreateTenantB = 'PASS';
+
+    const foreignAppointmentPatch = await queryHttp(
+      port,
+      '/api/v1/appointments/' + encodeURIComponent(createAppointmentB.body.id),
+      tokenA,
+      {
+        method: 'PATCH',
+        headers: { 'idempotency-key': appointmentCrossKey },
+        body: {
+          status: 'confirmed',
+          expectedUpdatedAt: createAppointmentB.body.updated_at
+        }
+      }
+    );
+    if (foreignAppointmentPatch.status !== 404
+        || foreignAppointmentPatch.body?.error?.code !== 'NOT_FOUND'
+        || foreignAppointmentPatch.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_APPOINTMENT_CROSS_TENANT_UPDATE_NOT_DENIED:' + JSON.stringify({
+        status: foreignAppointmentPatch.status,
+        body: foreignAppointmentPatch.body
+      }));
+    }
+    signedSessionAutobindHttpProof.appointmentCrossTenantUpdateDenied = 'PASS';
+
+    const updateAppointmentA = await queryHttp(
+      port,
+      '/api/v1/appointments/' + encodeURIComponent(createAppointmentA.body.id),
+      tokenA,
+      {
+        method: 'PATCH',
+        headers: { 'idempotency-key': appointmentUpdateKeyA },
+        body: {
+          status: 'confirmed',
+          expectedUpdatedAt: createAppointmentA.body.updated_at,
+          startAt: new Date(appointmentBase + 90 * 60 * 1000).toISOString(),
+          endAt: new Date(appointmentBase + 150 * 60 * 1000).toISOString()
+        }
+      }
+    );
+    const updateAppointmentB = await queryHttp(
+      port,
+      '/api/v1/appointments/' + encodeURIComponent(createAppointmentB.body.id),
+      tokenB,
+      {
+        method: 'PATCH',
+        headers: { 'idempotency-key': appointmentUpdateKeyB },
+        body: {
+          status: 'confirmed',
+          expectedUpdatedAt: createAppointmentB.body.updated_at,
+          startAt: new Date(appointmentBase + 210 * 60 * 1000).toISOString(),
+          endAt: new Date(appointmentBase + 270 * 60 * 1000).toISOString()
+        }
+      }
+    );
+    for (const [label, response, expectedId, expectedTenant, expectedTechnician, expectedWorkOrder] of [
+      ['tenantA', updateAppointmentA, createAppointmentA.body.id, tenantA, userA, synthetic.workOrderIds[0]],
+      ['tenantB', updateAppointmentB, createAppointmentB.body.id, tenantB, userB, synthetic.workOrderIds[1]]
+    ]) {
+      if (response.status !== 200
+          || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+          || response.body?.id !== expectedId
+          || response.body?.organization_id !== expectedTenant
+          || response.body?.technician_id !== expectedTechnician
+          || response.body?.work_order_id !== expectedWorkOrder
+          || response.body?.status !== 'confirmed') {
+        throw new Error('SIGNED_CONTEXT_APPOINTMENT_UPDATE_TENANT_BOUNDARY_FAILED:' + JSON.stringify({
+          label, status: response.status, body: response.body,
+          signedHeader: response.headers?.['x-opscore-signed-tenant-context'] || null,
+          serverOutput: serverOutput.slice(-3000)
+        }));
+      }
+    }
+    signedSessionAutobindHttpProof.appointmentUpdateTenantA = 'PASS';
+    signedSessionAutobindHttpProof.appointmentUpdateTenantB = 'PASS';
+
+    const readAppointmentA = await queryHttp(
+      port, '/api/v1/appointments/' + encodeURIComponent(createAppointmentA.body.id), tokenA
+    );
+    const readAppointmentB = await queryHttp(
+      port, '/api/v1/appointments/' + encodeURIComponent(createAppointmentB.body.id), tokenB
+    );
+    const listAppointmentsA = await queryHttp(port, '/api/v1/appointments', tokenA);
+    const listAppointmentsB = await queryHttp(port, '/api/v1/appointments', tokenB);
+    for (const [label, response, expectedId, expectedTenant, expectedWorkOrder, listed] of [
+      ['tenantA-detail', readAppointmentA, createAppointmentA.body.id, tenantA, synthetic.workOrderIds[0], listAppointmentsA],
+      ['tenantB-detail', readAppointmentB, createAppointmentB.body.id, tenantB, synthetic.workOrderIds[1], listAppointmentsB]
+    ]) {
+      if (response.status !== 200
+          || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+          || response.body?.id !== expectedId
+          || response.body?.organization_id !== expectedTenant
+          || response.body?.work_order_id !== expectedWorkOrder
+          || listed.status !== 200
+          || listed.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+          || !Array.isArray(listed.body)
+          || listed.body.length !== 1
+          || listed.body[0].id !== expectedId
+          || listed.body.some(row => row.organization_id !== expectedTenant)) {
+        throw new Error('SIGNED_CONTEXT_APPOINTMENT_READ_TENANT_BOUNDARY_FAILED:' + JSON.stringify({
+          label,
+          detail: { status: response.status, body: response.body },
+          list: { status: listed.status, body: listed.body }
+        }));
+      }
+    }
+    signedSessionAutobindHttpProof.appointmentDetailTenantA = 'PASS';
+    signedSessionAutobindHttpProof.appointmentDetailTenantB = 'PASS';
+    signedSessionAutobindHttpProof.appointmentListTenantA = 'PASS';
+    signedSessionAutobindHttpProof.appointmentListTenantB = 'PASS';
+
+    const availabilityA = await queryHttp(
+      port,
+      '/api/v1/technicians/availability?technicianId=' + encodeURIComponent(userA)
+        + '&date=' + encodeURIComponent(appointmentStartA.slice(0, 10)),
+      tokenA
+    );
+    const availabilityB = await queryHttp(
+      port,
+      '/api/v1/technicians/availability?technicianId=' + encodeURIComponent(userB)
+        + '&date=' + encodeURIComponent(appointmentStartB.slice(0, 10)),
+      tokenB
+    );
+    for (const [label, response, expectedTenant, expectedTech, expectedAppointment] of [
+      ['tenantA', availabilityA, tenantA, userA, createAppointmentA.body.id],
+      ['tenantB', availabilityB, tenantB, userB, createAppointmentB.body.id]
+    ]) {
+      if (response.status !== 200
+          || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+          || response.body?.organizationId !== expectedTenant
+          || response.body?.technicianId !== expectedTech
+          || !Array.isArray(response.body?.busyAppointments)
+          || !response.body.busyAppointments.some(row => row.id === expectedAppointment)) {
+        throw new Error('SIGNED_CONTEXT_TECHNICIAN_AVAILABILITY_TENANT_BOUNDARY_FAILED:' + JSON.stringify({
+          label, status: response.status, body: response.body
+        }));
+      }
+    }
+    signedSessionAutobindHttpProof.technicianAvailabilityTenantA = 'PASS';
+    signedSessionAutobindHttpProof.technicianAvailabilityTenantB = 'PASS';
 
     // This route previously called ctx(req) a second time after the global
     // requireCtx gate, which would attempt to downgrade a signed field principal
@@ -2357,6 +2666,31 @@ async function main() {
     try { await owner.query('DELETE FROM public.workflow_transition_log WHERE organization_id = ANY($1::text[]) AND entity_id = ANY($2::text[])', [synthetic.tenantIds, synthetic.workOrderIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.idempotency_records WHERE organization_id = ANY($1::text[]) AND idempotency_key = ANY($2::text[])', [synthetic.tenantIds, synthetic.idempotencyKeys]); } catch (_) {}
     try { await owner.query('DELETE FROM public.operation_envelopes WHERE organization_id = ANY($1::text[]) AND idempotency_key = ANY($2::text[])', [synthetic.tenantIds, synthetic.idempotencyKeys]); } catch (_) {}
+    try {
+      await owner.query('DELETE FROM public.appointments WHERE id = ANY($1::text[])', [synthetic.appointmentIds]);
+    } catch (cleanupError) {
+      appointmentCleanupErrors.push('appointments:' + String(cleanupError.code || cleanupError.message || cleanupError));
+    }
+    try {
+      const residue = await owner.query(
+        'SELECT COUNT(*)::int AS appointment_rows FROM public.appointments WHERE id = ANY($1::text[])',
+        [synthetic.appointmentIds]
+      );
+      const remaining = Number(residue.rows[0]?.appointment_rows || 0);
+      if (appointmentCleanupErrors.length || remaining !== 0) {
+        process.stderr.write('SIGNED_CONTEXT_APPOINTMENT_FIXTURE_CLEANUP_FAILED:' + JSON.stringify({
+          errors: appointmentCleanupErrors,
+          remaining
+        }) + '\\n');
+        process.exitCode = 1;
+      } else {
+        process.stdout.write('SIGNED_CONTEXT_APPOINTMENT_FIXTURE_CLEANUP=PASS\\n');
+      }
+    } catch (cleanupError) {
+      process.stderr.write('SIGNED_CONTEXT_APPOINTMENT_FIXTURE_CLEANUP_VERIFICATION_FAILED:' +
+        String(cleanupError.code || cleanupError.message || cleanupError).slice(0, 500) + '\\n');
+      process.exitCode = 1;
+    }
     try { await owner.query('DELETE FROM public.work_orders WHERE id = ANY($1::text[])', [synthetic.workOrderIds]); } catch (_) {}
     try {
       const eventRows = await owner.query(
@@ -2557,6 +2891,48 @@ async function main() {
     try { await owner.query('DELETE FROM public.sessions WHERE id = ANY($1::text[])', [synthetic.sessionIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.memberships WHERE user_id = ANY($1::text[])', [synthetic.userIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.organization_governance WHERE organization_id = ANY($1::text[])', [synthetic.tenantIds]); } catch (_) {}
+    try {
+      await owner.query(
+        "DELETE FROM public.activity_log WHERE organization_id = ANY($1::text[]) AND entity_type='technician' AND entity_id = ANY($2::text[])",
+        [synthetic.tenantIds, synthetic.userIds]
+      );
+    } catch (cleanupError) {
+      technicianCleanupErrors.push('activity_log:' + String(cleanupError.code || cleanupError.message || cleanupError));
+    }
+    try {
+      await owner.query('DELETE FROM public.technician_skills WHERE organization_id = ANY($1::text[]) AND user_id = ANY($2::text[])', [synthetic.tenantIds, synthetic.userIds]);
+    } catch (cleanupError) {
+      technicianCleanupErrors.push('technician_skills:' + String(cleanupError.code || cleanupError.message || cleanupError));
+    }
+    try {
+      await owner.query('DELETE FROM public.technician_profiles WHERE organization_id = ANY($1::text[]) AND user_id = ANY($2::text[])', [synthetic.tenantIds, synthetic.userIds]);
+    } catch (cleanupError) {
+      technicianCleanupErrors.push('technician_profiles:' + String(cleanupError.code || cleanupError.message || cleanupError));
+    }
+    try {
+      const residue = await owner.query(
+        "SELECT " +
+        "(SELECT COUNT(*)::int FROM public.technician_profiles WHERE organization_id = ANY($1::text[]) AND user_id = ANY($2::text[])) AS profile_rows, " +
+        "(SELECT COUNT(*)::int FROM public.technician_skills WHERE organization_id = ANY($1::text[]) AND user_id = ANY($2::text[])) AS skill_rows, " +
+        "(SELECT COUNT(*)::int FROM public.activity_log WHERE organization_id = ANY($1::text[]) AND entity_type='technician' AND entity_id = ANY($2::text[])) AS activity_rows",
+        [synthetic.tenantIds, synthetic.userIds]
+      );
+      const remaining = residue.rows[0] || {};
+      if (technicianCleanupErrors.length || Number(remaining.profile_rows) !== 0
+          || Number(remaining.skill_rows) !== 0 || Number(remaining.activity_rows) !== 0) {
+        process.stderr.write('SIGNED_CONTEXT_TECHNICIAN_FIXTURE_CLEANUP_FAILED:' + JSON.stringify({
+          errors: technicianCleanupErrors,
+          remaining
+        }) + '\\n');
+        process.exitCode = 1;
+      } else {
+        process.stdout.write('SIGNED_CONTEXT_TECHNICIAN_FIXTURE_CLEANUP=PASS\\n');
+      }
+    } catch (cleanupError) {
+      process.stderr.write('SIGNED_CONTEXT_TECHNICIAN_FIXTURE_CLEANUP_VERIFICATION_FAILED:' +
+        String(cleanupError.code || cleanupError.message || cleanupError).slice(0, 500) + '\\n');
+      process.exitCode = 1;
+    }
     try { await owner.query('DELETE FROM public.users WHERE id = ANY($1::text[])', [synthetic.userIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.organizations WHERE id = ANY($1::text[])', [synthetic.tenantIds]); } catch (_) {}
     try { await owner.query('DELETE FROM opscore_security.context_hmac_keys WHERE key_id=$1', [synthetic.keyId]); } catch (_) {}
