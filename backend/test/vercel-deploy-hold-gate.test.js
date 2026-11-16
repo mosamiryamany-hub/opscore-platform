@@ -25,12 +25,12 @@ test('pull requests run the verification job without invoking the production dep
   assert.match(verifyHeader, /github\.event_name == 'pull_request' \|\| github\.ref == 'refs\/heads\/main'/);
   const deployHeader = deploy.slice(0, deploy.indexOf('      - uses: actions/checkout'));
   assert.match(deployHeader, /needs: \[verify, postgres-acceptance\]/);
-  assert.match(deployHeader, /github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'/);
+  assert.match(deployHeader, /github\.event_name == 'workflow_dispatch' && github\.ref == 'refs\/heads\/main'/);\n  assert.match(deployHeader, /confirm_production_deployment == 'I_AUTHORIZE_PRODUCTION_DEPLOYMENT'/);
   const acceptanceStart = workflow.indexOf('  postgres-acceptance:' + String.fromCharCode(10));
   const acceptanceEnd = workflow.indexOf('  deploy:' + String.fromCharCode(10), acceptanceStart);
   assert.ok(acceptanceStart >= 0 && acceptanceEnd > acceptanceStart);
   const acceptanceHeader = workflow.slice(acceptanceStart, acceptanceEnd);
-  assert.match(acceptanceHeader, /if: github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'/);
+  assert.match(acceptanceHeader, /if: \(github\.event_name == 'push' \|\| github\.event_name == 'workflow_dispatch'\) && github\.ref == 'refs\/heads\/main'/);
   assert.match(acceptanceHeader, /uses: \.\/\.github\/workflows\/digital-twin-postgres-live\.yml/);
 });
 
@@ -145,9 +145,11 @@ test('Production promotion requires exact 67-route signed-session evidence befor
 });
 
 
-test('Production deploy stays disabled until an owner explicitly enables the GitHub release gate', () => {
+test('Production deploy requires an explicit one-shot workflow dispatch and owner enable flag', () => {
   const deployHeader = deploy.slice(0, deploy.indexOf('      - uses: actions/checkout'));
+  assert.match(deployHeader, /github\.event_name == 'workflow_dispatch'/);
+  assert.match(deployHeader, /confirm_production_deployment == 'I_AUTHORIZE_PRODUCTION_DEPLOYMENT'/);
   assert.match(deployHeader, /vars\.OPSC_PRODUCTION_AUTODEPLOY_ENABLED == 'true'/);
-  assert.match(deployHeader, /github\.event_name == 'push'/);
-  assert.match(deployHeader, /refs\/heads\/main/);
+  assert.doesNotMatch(deployHeader, /github\.event_name == 'push'/);
+  assert.match(workflow, /confirm_production_deployment:/);
 });
