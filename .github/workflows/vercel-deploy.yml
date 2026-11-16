@@ -360,16 +360,37 @@ jobs:
               try {
                 const session = JSON.parse(fs.readFileSync(path.join('backend','docs','verification','PRODUCTION_SESSION_ISOLATION.json'),'utf8'));
                 const recovery = JSON.parse(fs.readFileSync(path.join('backend','docs','verification','PRODUCTION_RECOVERY_POINT.json'),'utf8'));
+                const signedRoutes = JSON.parse(fs.readFileSync(path.join('backend','docs','verification','SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE.json'),'utf8'));
                 const expectedCommit = String(process.env.GITHUB_SHA || '').trim().toLowerCase();
                 const expectedBranch = String(process.env.OPSC_PRODUCTION_NEON_BRANCH_ID || '').trim();
                 const sourceCommitMatches = (evidence) => expectedCommit.length === 40 && String(evidence.sourceCommitHint || '').trim().toLowerCase() === expectedCommit;
                 const sourceBranchMatches = (evidence) => Boolean(expectedBranch) && String(evidence.parentBranchId || '').trim() === expectedBranch;
-                const noEvidenceRebind = (evidence) => evidence.evidenceRebind == null;
+                const routeRows = Array.isArray(signedRoutes.routes) ? signedRoutes.routes : [];
+                const routeKeys = new Set(routeRows.map(route => String(route.method || '').toUpperCase() + ' ' + String(route.path || '')));
+                const routeAssertionsPass = routeRows.length === 67 && routeKeys.size === 67 && routeRows.every(route =>
+                  route.status === 'PASS' && route.signedContextBound === true && route.sessionBound === true
+                  && route.transactionBound === true && route.rawGucTamperDenied === true
+                  && (route.operation === 'read'
+                    ? route.tenantARead === true && route.tenantBRead === true && route.crossTenantReadDenied === true
+                    : route.operation === 'write' && route.tenantAWrite === true && route.tenantBWrite === true && route.crossTenantWriteDenied === true)
+                );
+                const signedRoutesOk = signedRoutes.schemaVersion === 'opscore.signed-tenant-context-production-coverage.v1'
+                  && signedRoutes.environment === 'production' && signedRoutes.status === 'PASS'
+                  && signedRoutes.databaseName === 'opscore_acceptance'
+                  && Number(signedRoutes.expectedRouteCount) === 67
+                  && Number(signedRoutes.coveredRouteCount) === 67
+                  && Number(signedRoutes.failedRouteCount) === 0
+                  && String(signedRoutes.sourceCommitHint || '').trim().toLowerCase() === expectedCommit
+                  && String(signedRoutes.pipelineId || '') === String(process.env.GITHUB_RUN_ID || '')
+                  && String(signedRoutes.parentBranchId || '').trim() === expectedBranch
+                  && signedRoutes.evidenceRebind == null && routeAssertionsPass;
+                
+                                const noEvidenceRebind = (evidence) => evidence.evidenceRebind == null;
                 const requiredSessionChecks = ['dualLogin','tenantPrincipalBinding','ownAssetCreate','ownAssetRead','tenantListIsolation','crossTenantAssetReadDenied','ownAssetEventWrite','crossTenantWriteDenied','unauthenticatedDenied','cleanupComplete'];
                 const sessionChecksPass = requiredSessionChecks.every(key => session.checks && session.checks[key] === 'PASS');
                 const sOk = session.schemaVersion === 'opscore.production-session-isolation.v2' && session.status === 'PASS' && session.verificationScope === 'dual-tenant-http-asset-create-read-event-write-denial-and-cleanup' && sessionChecksPass && session.databaseName === 'opscore_acceptance' && sourceCommitMatches(session) && sourceBranchMatches(session) && noEvidenceRebind(session);
                 const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v2' && recovery.status === 'PASS' && recovery.coreTenantTableRowCountsMatch === true && recovery.verificationScope === 'branch-clone-public-table-count-and-core-tenant-row-counts-only' && recovery.databaseName === 'opscore_acceptance' && Number(recovery.mismatchCount) === 0 && sourceCommitMatches(recovery) && sourceBranchMatches(recovery) && noEvidenceRebind(recovery);
-                return sOk && rOk;
+                return sOk && rOk && signedRoutesOk;
               } catch { return false; }
             }
             const isolation = behavioralPass() ? 'CERTIFIED' : 'NOT_CERTIFIED';
@@ -412,16 +433,37 @@ jobs:
             try {
               const session = JSON.parse(fs.readFileSync(path.join('backend','docs','verification','PRODUCTION_SESSION_ISOLATION.json'),'utf8'));
               const recovery = JSON.parse(fs.readFileSync(path.join('backend','docs','verification','PRODUCTION_RECOVERY_POINT.json'),'utf8'));
+              const signedRoutes = JSON.parse(fs.readFileSync(path.join('backend','docs','verification','SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE.json'),'utf8'));
               const expectedCommit = String(process.env.GITHUB_SHA || '').trim().toLowerCase();
               const expectedBranch = String(process.env.OPSC_PRODUCTION_NEON_BRANCH_ID || '').trim();
               const sourceCommitMatches = (evidence) => expectedCommit.length === 40 && String(evidence.sourceCommitHint || '').trim().toLowerCase() === expectedCommit;
               const sourceBranchMatches = (evidence) => Boolean(expectedBranch) && String(evidence.parentBranchId || '').trim() === expectedBranch;
-                const noEvidenceRebind = (evidence) => evidence.evidenceRebind == null;
+                const routeRows = Array.isArray(signedRoutes.routes) ? signedRoutes.routes : [];
+                const routeKeys = new Set(routeRows.map(route => String(route.method || '').toUpperCase() + ' ' + String(route.path || '')));
+                const routeAssertionsPass = routeRows.length === 67 && routeKeys.size === 67 && routeRows.every(route =>
+                  route.status === 'PASS' && route.signedContextBound === true && route.sessionBound === true
+                  && route.transactionBound === true && route.rawGucTamperDenied === true
+                  && (route.operation === 'read'
+                    ? route.tenantARead === true && route.tenantBRead === true && route.crossTenantReadDenied === true
+                    : route.operation === 'write' && route.tenantAWrite === true && route.tenantBWrite === true && route.crossTenantWriteDenied === true)
+                );
+                const signedRoutesOk = signedRoutes.schemaVersion === 'opscore.signed-tenant-context-production-coverage.v1'
+                  && signedRoutes.environment === 'production' && signedRoutes.status === 'PASS'
+                  && signedRoutes.databaseName === 'opscore_acceptance'
+                  && Number(signedRoutes.expectedRouteCount) === 67
+                  && Number(signedRoutes.coveredRouteCount) === 67
+                  && Number(signedRoutes.failedRouteCount) === 0
+                  && String(signedRoutes.sourceCommitHint || '').trim().toLowerCase() === expectedCommit
+                  && String(signedRoutes.pipelineId || '') === String(process.env.GITHUB_RUN_ID || '')
+                  && String(signedRoutes.parentBranchId || '').trim() === expectedBranch
+                  && signedRoutes.evidenceRebind == null && routeAssertionsPass;
+                
+                                const noEvidenceRebind = (evidence) => evidence.evidenceRebind == null;
               const requiredSessionChecks = ['dualLogin','tenantPrincipalBinding','ownAssetCreate','ownAssetRead','tenantListIsolation','crossTenantAssetReadDenied','ownAssetEventWrite','crossTenantWriteDenied','unauthenticatedDenied','cleanupComplete'];
                 const sessionChecksPass = requiredSessionChecks.every(key => session.checks && session.checks[key] === 'PASS');
                 const sOk = session.schemaVersion === 'opscore.production-session-isolation.v2' && session.status === 'PASS' && session.verificationScope === 'dual-tenant-http-asset-create-read-event-write-denial-and-cleanup' && sessionChecksPass && session.databaseName === 'opscore_acceptance' && sourceCommitMatches(session) && sourceBranchMatches(session) && noEvidenceRebind(session);
               const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v2' && recovery.status === 'PASS' && recovery.coreTenantTableRowCountsMatch === true && recovery.verificationScope === 'branch-clone-public-table-count-and-core-tenant-row-counts-only' && recovery.databaseName === 'opscore_acceptance' && Number(recovery.mismatchCount) === 0 && sourceCommitMatches(recovery) && sourceBranchMatches(recovery) && noEvidenceRebind(recovery);
-              return sOk && rOk;
+              return sOk && rOk && signedRoutesOk;
             } catch { return false; }
           }
           const ok = behavioralPass();
@@ -536,7 +578,8 @@ jobs:
             POSTGRES_HTTP_ACCEPTANCE_RESULT.json \
             API_ROUTE_ACCEPTANCE_RESULT.json \
             PRODUCTION_SESSION_ISOLATION.json \
-            PRODUCTION_RECOVERY_POINT.json
+            PRODUCTION_RECOVERY_POINT.json \
+            SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE.json
           do
             src="backend/docs/verification/$f"
             test -s "$src" || { echo "MISSING_EVIDENCE:$src" >&2; exit 1; }
