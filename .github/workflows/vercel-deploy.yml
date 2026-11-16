@@ -391,6 +391,9 @@ jobs:
 
       - name: Resolve production isolation certification from behavioral evidence
         id: isolation_cert
+        env:
+          OPSC_PRODUCTION_NEON_BRANCH_ID: br-proud-salad-bcshhdap
+          GITHUB_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
           node <<'NODE'
@@ -411,6 +414,18 @@ jobs:
             } catch { return false; }
           }
           const ok = behavioralPass();
+          if (!ok) {
+            try {
+              const session = JSON.parse(fs.readFileSync(path.join('backend','docs','verification','PRODUCTION_SESSION_ISOLATION.json'),'utf8'));
+              const recovery = JSON.parse(fs.readFileSync(path.join('backend','docs','verification','PRODUCTION_RECOVERY_POINT.json'),'utf8'));
+              console.log('isolation_debug', JSON.stringify({
+                expectedCommit: String(process.env.GITHUB_SHA || '').trim().toLowerCase(),
+                expectedBranch: String(process.env.OPSC_PRODUCTION_NEON_BRANCH_ID || '').trim(),
+                sessionHint: session.sourceCommitHint, sessionParent: session.parentBranchId, sessionStatus: session.status, sessionRebind: session.evidenceRebind || null,
+                recoveryHint: recovery.sourceCommitHint, recoveryParent: recovery.parentBranchId, recoveryStatus: recovery.status, recoveryRebind: recovery.evidenceRebind || null
+              }));
+            } catch (e) { console.log('isolation_debug_error', String(e.message || e)); }
+          }
           const fsOut = process.env.GITHUB_OUTPUT;
           require('fs').appendFileSync(fsOut, `certified=${ok ? 'CERTIFIED' : 'NOT_CERTIFIED'}\n`);
           require('fs').appendFileSync(fsOut, `behavioral=${ok ? 'true' : 'false'}\n`);
