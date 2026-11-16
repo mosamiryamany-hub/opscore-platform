@@ -355,16 +355,22 @@ test('production behavioral evidence rejects any evidence rebind marker', () => 
     OPSC_PRODUCTION_NEON_BRANCH_ID: 'br-current-production'
   };
   const session = {
-    schemaVersion: 'opscore.production-session-isolation.v1',
+    schemaVersion: 'opscore.production-session-isolation.v2',
     status: 'PASS',
     testedAt: '2026-10-23T00:00:00.000Z',
     sourceCommitHint: SHA,
+    pipelineId: '2978538209',
+    databaseName: 'opscore_acceptance',
+    verificationScope: 'dual-tenant-http-asset-create-read-event-write-denial-and-cleanup',
     parentBranchId: 'br-current-production',
     checks: {
       dualLogin: 'PASS',
+      tenantPrincipalBinding: 'PASS',
       ownAssetCreate: 'PASS',
+      ownAssetRead: 'PASS',
       tenantListIsolation: 'PASS',
-      crossTenantAssetDenied: 'PASS',
+      crossTenantAssetReadDenied: 'PASS',
+      ownAssetEventWrite: 'PASS',
       crossTenantWriteDenied: 'PASS',
       unauthenticatedDenied: 'PASS',
       cleanupComplete: 'PASS'
@@ -377,15 +383,18 @@ test('production behavioral evidence rejects any evidence rebind marker', () => 
     }
   };
   const recovery = {
-    schemaVersion: 'opscore.production-recovery-point.v1',
+    schemaVersion: 'opscore.production-recovery-point.v2',
     status: 'PASS',
     testedAt: '2026-10-23T00:00:00.000Z',
     sourceCommitHint: SHA,
+    pipelineId: '2978538209',
     parentBranchId: 'br-current-production',
+    databaseName: 'opscore_acceptance',
+    verificationScope: 'branch-clone-public-table-count-and-core-tenant-row-counts-only',
     recoveryBranchId: 'br-test-recovery',
     tableCountCompared: 134,
     mismatchCount: 0,
-    coreTenantTablesMatch: true,
+    coreTenantTableRowCountsMatch: true,
     evidenceRebind: { ...session.evidenceRebind }
   };
   try {
