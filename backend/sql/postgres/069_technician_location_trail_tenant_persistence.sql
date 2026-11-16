@@ -31,6 +31,53 @@ BEGIN
 END
 $preflight$;
 
+-- 054 creates these composite parent keys when another child FK requires them.
+-- The GPS trail is the first consumer on some schema histories, so ensure the
+-- exact referenced keys exist without creating duplicate indexes.
+DO $parent_keys$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_index AS i
+    WHERE i.indrelid = 'public.appointments'::regclass
+      AND i.indisunique AND i.indisvalid AND i.indisready
+      AND i.indpred IS NULL AND i.indexprs IS NULL
+      AND i.indnkeyatts = 2
+      AND i.indkey[0] = (
+        SELECT attnum FROM pg_catalog.pg_attribute
+        WHERE attrelid='public.appointments'::regclass AND attname='id' AND NOT attisdropped
+      )
+      AND i.indkey[1] = (
+        SELECT attnum FROM pg_catalog.pg_attribute
+        WHERE attrelid='public.appointments'::regclass AND attname='organization_id' AND NOT attisdropped
+      )
+  ) THEN
+    CREATE UNIQUE INDEX technician_location_trail_appointments_tenant_ref_uq
+      ON public.appointments (id, organization_id);
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_catalog.pg_index AS i
+    WHERE i.indrelid = 'public.work_orders'::regclass
+      AND i.indisunique AND i.indisvalid AND i.indisready
+      AND i.indpred IS NULL AND i.indexprs IS NULL
+      AND i.indnkeyatts = 2
+      AND i.indkey[0] = (
+        SELECT attnum FROM pg_catalog.pg_attribute
+        WHERE attrelid='public.work_orders'::regclass AND attname='id' AND NOT attisdropped
+      )
+      AND i.indkey[1] = (
+        SELECT attnum FROM pg_catalog.pg_attribute
+        WHERE attrelid='public.work_orders'::regclass AND attname='organization_id' AND NOT attisdropped
+      )
+  ) THEN
+    CREATE UNIQUE INDEX technician_location_trail_work_orders_tenant_ref_uq
+      ON public.work_orders (id, organization_id);
+  END IF;
+END
+$parent_keys$;
+
 CREATE TABLE public.technician_location_trail (
   id text PRIMARY KEY,
   organization_id text NOT NULL
@@ -102,7 +149,13 @@ CREATE POLICY technician_location_trail_tenant_guard
   WITH CHECK (organization_id = public.opscore_current_tenant());
 
 REVOKE ALL PRIVILEGES ON TABLE public.technician_location_trail FROM PUBLIC;
-REVOKE ALL PRIVILEGES ON TABLE public.technician_location_trail FROM opscore_app;
+DO $legacy_role_revoke$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'opscore_app') THEN
+    REVOKE ALL PRIVILEGES ON TABLE public.technician_location_trail FROM opscore_app;
+  END IF;
+END
+$legacy_role_revoke$;
 GRANT SELECT, INSERT, UPDATE, DELETE
   ON TABLE public.technician_location_trail
   TO opscore_runtime;
