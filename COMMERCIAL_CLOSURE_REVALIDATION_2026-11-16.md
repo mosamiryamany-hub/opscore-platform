@@ -239,3 +239,32 @@ The first integrated CI run exposed:
 Later CI attempt is running against commit `fd01c638566268de0b0ac2101ef775c04ec52c44`; record its final result from GitHub Actions before merge. The isolated PostgreSQL acceptance job passed on earlier integrated attempts; the latest result must be taken from the exact final PR head, not copied forward from an earlier SHA.
 
 **No Production deployment, database write, role/grant change, migration, WAF change, snapshot schedule change, or branch deletion was performed during this follow-up.**
+
+
+## Signed-tenant route policy follow-up — 2026-11-16
+
+A source-only hardening repair was added to PR #163:
+- Centralized the existing Preview-only signed work-order read/write allowlists and session-autobind gate in `backend/src/signed-tenant-context-policy.js`.
+- Added an early request-context guard: when `OPSC_REQUIRE_SIGNED_TENANT_CONTEXT=true`, a route without an enabled signed-session path now fails explicitly with `503 SIGNED_TENANT_CONTEXT_ROUTE_NOT_ENABLED` before the legacy unsigned field-GUC bind is attempted.
+- Added `backend/test/signed-tenant-context-policy.test.js` to test Preview-only/method-specific read and write policies, separate write flag, Preview-only global autobind, required-but-unsupported route behavior, and guard ordering.
+- Recorded the source/inventory comparison in `backend/docs/verification/SIGNED_TENANT_CONTEXT_ROUTE_AUDIT_2026-11-16.md`.
+
+**Latest integrated PR head:** `d4ef367f76d84d660b507d14629f8fad722ebbea`
+
+Latest PR #163 checks:
+- OpsCore CI run `43868453565`: SUCCESS.
+- PostgreSQL 18 isolated RLS/HTTP acceptance run `43868453533`: SUCCESS.
+- Vercel contract run `43868453622`: SUCCESS.
+- `deploy-bound-postgres-18-acceptance` and `deploy`: SKIPPED on the PR event.
+
+Coverage interpretation:
+- Source allowlists currently match 18 read + 9 write route inventory entries (27 exact inventory entries).
+- The work-orders/evidence-upload inventory contains 40 entries.
+- The API inventory has 358 route entries and the release-proof eligibility filter yields 346 candidates. These figures have different meanings; none equals signed-session Production proof.
+- Historical disposable PostgreSQL 18 signed work-order CI proof is not the missing 67-route Production coverage artifact.
+- The approved 67-row route manifest and exact-commit/pipeline/branch-bound Production coverage JSON are still absent. No route was assigned PASS and no Production probe was run.
+
+PR #163 remains open/unmerged. The prior merge attempt was refused by GitHub HTTP 405 because approval from someone other than the last pusher is required. No bypass was attempted.
+
+No Preview or Production Vercel flag, signing key, database schema, role, grant, data, WAF rule, or deployment was changed by this route-policy repair. Commercial and Production isolation status remain **HOLD / NOT CERTIFIED**.
+
