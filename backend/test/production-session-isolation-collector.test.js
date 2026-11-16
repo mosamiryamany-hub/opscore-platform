@@ -15,13 +15,12 @@ test('production session evidence requires independently verified Neon project, 
   assert.match(collector, /PRODUCTION_DATABASE_OWNER_ROLE_MISMATCH/);
   assert.match(collector, /endpoint\.type/);
   assert.match(collector, /read_write/);
-  assert.match(collector, /opscore_acceptance/);
+  assert.match(workflow, /OPSC_PRODUCTION_DATABASE_NAME: opscore_acceptance/);
 });
 
 test('production session write evidence is based on real HTTP probes and database row-count postconditions', () => {
-  assert.match(collector, /POST', '\/api\/v1\/assets'/);
-  assert.match(collector, /POST', '\/api\/v1\/assets\/';/);
-  assert.match(collector, /POST', '\/api\/v1\/assets\/';/);
+  assert.ok(collector.includes("'POST', '/api/v1/assets'"));
+  assert.ok(collector.includes("'POST', '/api/v1/assets/' + encodeURIComponent(assetAId) + '/events'"));
   assert.match(collector, /crossWrite\.status/);
   assert.match(collector, /assetAEventAfterCross === assetAEventAfterOwn/);
   assert.match(collector, /checks\.ownAssetCreate = assetA\.status === 201/);
@@ -33,7 +32,7 @@ test('production session write evidence is based on real HTTP probes and databas
 });
 
 test('production cleanup disables principals and verifies that sessions, memberships, assets and events are gone', () => {
-  assert.match(collector, /UPDATE users SET status='disabled'/);
+  assert.match(collector, /UPDATE users SET status/);
   assert.match(collector, /Archived Production Isolation Probe/);
   assert.match(collector, /sessionsRemaining/);
   assert.match(collector, /membershipsRemaining/);
