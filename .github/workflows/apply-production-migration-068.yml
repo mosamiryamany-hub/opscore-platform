@@ -153,8 +153,8 @@ jobs:
             } finally {
               const clients = [owner, runtime].filter(Boolean);
               await Promise.allSettled(clients.map(async item => {
-                await item.client.query('ROLLBACK');
-                await item.client.end();
+                try { await item.client.query('ROLLBACK'); }
+                finally { await item.client.end(); }
               }));
             }
           })().catch(error => {
