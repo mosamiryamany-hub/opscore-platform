@@ -75,12 +75,21 @@ COMMIT;`;
   const checks = {};
   let tokenA = null; let tokenB = null;
   try {
-    const loginA = await httpJson(httpBase, 'POST', '/api/v1/auth/login', { body: { email: emailA, password, organizationId: orgA } });
-    probes.push({ phase: 'login', label: 'A', method: 'POST', path: '/api/v1/auth/login', status: loginA.status });
-    const loginB = await httpJson(httpBase, 'POST', '/api/v1/auth/login', { body: { email: emailB, password, organizationId: orgB } });
-    probes.push({ phase: 'login', label: 'B', method: 'POST', path: '/api/v1/auth/login', status: loginB.status });
+    const loginA = await httpJson(httpBase, 'POST', '/api/v1/auth/mobile-login', { body: { email: emailA, password, organizationId: orgA } });
+    probes.push({ phase: 'login', label: 'A', method: 'POST', path: '/api/v1/auth/mobile-login', status: loginA.status });
+    const loginB = await httpJson(httpBase, 'POST', '/api/v1/auth/mobile-login', { body: { email: emailB, password, organizationId: orgB } });
+    probes.push({ phase: 'login', label: 'B', method: 'POST', path: '/api/v1/auth/mobile-login', status: loginB.status });
     tokenA = loginA.data?.token || null;
     tokenB = loginB.data?.token || null;
+    if (!tokenA || !tokenB) {
+      throw new Error('LOGIN_TOKEN_MISSING:' + JSON.stringify({
+        aStatus: loginA.status, bStatus: loginB.status,
+        aKeys: loginA.data && Object.keys(loginA.data),
+        bKeys: loginB.data && Object.keys(loginB.data),
+        aCode: loginA.data?.error?.code || loginA.data?.error,
+        bCode: loginB.data?.error?.code || loginB.data?.error
+      }));
+    }
     checks.dualLogin = (loginA.status === 200 && loginB.status === 200 && tokenA && tokenB) ? 'PASS' : 'FAIL';
 
     const meA = await httpJson(httpBase, 'GET', '/api/v1/me', { token: tokenA });
