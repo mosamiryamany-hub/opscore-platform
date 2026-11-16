@@ -100,12 +100,45 @@ jobs:
             ('${sesA}', '${userA}', '${orgA}', '${thA}', '${expires}', '${now}'),
             ('${sesB}', '${userB}', '${orgB}', '${thB}', '${expires}', '${now}')
           ON CONFLICT (id) DO NOTHING;
+          -- Probe table must match signed-context gate contract: text id, RLS, one row per tenant.
           CREATE TABLE IF NOT EXISTS opscore_security.context_probe_rows (
-            id bigserial PRIMARY KEY,
+            id text PRIMARY KEY,
             organization_id text NOT NULL,
-            probe_value text NOT NULL,
-            created_at timestamptz NOT NULL DEFAULT now()
+            probe_value text NOT NULL
           );
+          -- If an older bigserial shape exists, rebuild (Preview only).
+          DO $fix$
+          BEGIN
+            IF EXISTS (
+              SELECT 1 FROM information_schema.columns
+              WHERE table_schema='opscore_security' AND table_name='context_probe_rows'
+                AND column_name='id' AND data_type='bigint'
+            ) THEN
+              DROP TABLE opscore_security.context_probe_rows;
+              CREATE TABLE opscore_security.context_probe_rows (
+                id text PRIMARY KEY,
+                organization_id text NOT NULL,
+                probe_value text NOT NULL
+              );
+            END IF;
+          END
+          $fix$;
+          ALTER TABLE opscore_security.context_probe_rows ENABLE ROW LEVEL SECURITY;
+          ALTER TABLE opscore_security.context_probe_rows FORCE ROW LEVEL SECURITY;
+          DROP POLICY IF EXISTS context_probe_rows_signed_tenant ON opscore_security.context_probe_rows;
+          CREATE POLICY context_probe_rows_signed_tenant ON opscore_security.context_probe_rows
+            FOR SELECT TO opscore_runtime
+            USING (organization_id = (opscore_security.verified_tenant_context()->>'tenant_id'));
+          GRANT SELECT ON TABLE opscore_security.context_probe_rows TO opscore_runtime;
+          -- Exactly one visible row per synthetic tenant under signed context.
+          DELETE FROM opscore_security.context_probe_rows WHERE organization_id IN ('${orgA}','${orgB}');
+          INSERT INTO opscore_security.context_probe_rows (id, organization_id, probe_value) VALUES
+            ('probe-${orgA}', '${orgA}', 'proof:${orgA}'),
+            ('probe-${orgB}', '${orgB}', 'proof:${orgB}');
+          -- Cross-tenant noise row must remain invisible under tenant A/B context.
+          INSERT INTO opscore_security.context_probe_rows (id, organization_id, probe_value)
+          VALUES ('probe-noise-other', 'org_noise_other', 'proof:org_noise_other')
+          ON CONFLICT (id) DO NOTHING;
           COMMIT;
           SELECT 'seed_ok' AS status, count(*)::text AS orgs FROM organizations WHERE id IN ('${orgA}','${orgB}');
           `;
