@@ -54,12 +54,12 @@ test('release certification refuses stale v1 or incomplete session-isolation evi
 
 
 test('production session collector obtains the owner connection for the exact configured Neon branch and database', () => {
-  assert.match(collector, /connection_uri\\?'+query/);
+  assert.ok(collector.includes("'/connection_uri?' + connectionQuery.toString()"));
   assert.match(collector, /branch_id: branchId/);
   assert.match(collector, /database_name: databaseName/);
   assert.match(collector, /role_name: roleName/);
   assert.doesNotMatch(collector, /OPSC_OWNER_DATABASE_URL/);
-  assert.doesNotMatch(collector, /process\\.env\\.DATABASE_URL/);
+  assert.doesNotMatch(collector, /process\.env\.DATABASE_URL/);
 });
 
 test('production session collector parses as a Node.js program', () => {
