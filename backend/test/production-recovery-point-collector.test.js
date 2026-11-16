@@ -3,6 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 
 const root = path.resolve(__dirname, '..');
 const collector = fs.readFileSync(path.join(root, 'scripts', 'collect-production-recovery-point.js'), 'utf8');
@@ -36,4 +37,17 @@ test('release certification requires the exact application database and explicit
   assert.match(workflow, /recovery\.databaseName === 'opscore_acceptance'/);
   assert.match(workflow, /recovery\.coreTenantTableRowCountsMatch === true/);
   assert.match(workflow, /branch-clone-public-table-count-and-core-tenant-row-counts-only/);
+});
+
+
+test('recovery collector parses as a Node.js program', () => {
+  const file = path.join(root, 'scripts', 'collect-production-recovery-point.js');
+  const result = spawnSync(process.execPath, ['--check', file], { encoding: 'utf8', timeout: 10000 });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+});
+
+test('recovery collector requires the parent branch to exist and be ready', () => {
+  assert.match(collector, /const parentBranch = branches\\.find/);
+  assert.match(collector, /PRODUCTION_PARENT_BRANCH_NOT_FOUND/);
+  assert.match(collector, /PRODUCTION_PARENT_BRANCH_NOT_READY/);
 });
