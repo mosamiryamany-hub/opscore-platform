@@ -1,5 +1,7 @@
 # OpsCore v0.11.62 — Sales Package
 
+**Seller offer:** May be advertised, listed, presented and negotiated before a buyer is identified. A buyer signature is not required to publish or market the offer; buyer rights and delivery remain withheld until a transaction-specific License Schedule is executed.
+
 OpsCore is a reusable multi-sector source-code operational kit, not a hosted SaaS subscription. It includes web/API source, operational workflows, Contact Center runtime and Expo Android/iOS source.
 
 ## Verified source scope
@@ -11,7 +13,7 @@ OpsCore is a reusable multi-sector source-code operational kit, not a hosted Saa
 
 ## Mobile security status
 
-Current source baseline: Expo SDK 58.0.23 / React Native 0.88.1 / React 19.3.0. Secure Release run 42949619029 recorded zero npm audit findings across all severities for the exact locked tree. This is a point-in-time dependency report, not a future guarantee. The archive includes Expo source only, not signed native binaries or physical-device acceptance.
+Current source baseline: Expo SDK 58.0.23 / React Native 0.88.1 / React 19.3.0. Dependency findings must be read from the full mobile audit JSON produced by the exact archive-producing pipeline; historical run IDs and audit counts are not current evidence. The archive includes Expo source only, not signed native binaries or physical-device acceptance.
 
 ## Runtime dependency security
 The PostgreSQL runtime driver pg 8.23.1 is pinned in the repository root lockfile; the baseline root audit reported 0 findings. The exact archive pipeline includes the full root-dependency-audit.json.
@@ -20,4 +22,4 @@ The PostgreSQL runtime driver pg 8.23.1 is pinned in the repository root lockfil
 External provider accounts, licenses, credentials and live tests (including call-center/telephony), map/road-routing provider licenses and keys, Android/iOS EAS setup, signing, native builds, physical-device QA, store accounts/submission/distribution, and post-handover maintenance.
 
 ## Production honesty
-Source CI and isolated database tests are not production certification. The Vercel production deployment is identified to the exact GitHub main commit and is READY. Production acceptance beyond the verified health endpoint and production-wide isolation certification remain NOT_VERIFIED / NOT_CERTIFIED.
+Source CI and isolated database tests are not production certification. Seller-reference Production isolation is NOT_VERIFIED for the current source tip pending fresh commit- and Neon-branch-bound probes. Buyer-environment production acceptance remains separate and NOT_ESTABLISHED.
