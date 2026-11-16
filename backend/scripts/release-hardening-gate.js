@@ -56,11 +56,12 @@ check(
 check(
   'no-license-grant-notice-present',
   noLicenseNotice.includes('NO LICENSE GRANT') &&
-    /grants no permission or rights/i.test(noLicenseNotice) &&
-    /No sale, delivery, redistribution, resale, sublicensing/i.test(noLicenseNotice) &&
+    /does not grant a buyer any rights/i.test(noLicenseNotice) &&
+    /until the rights holder and that named buyer execute a/i.test(noLicenseNotice) &&
+    /pins the exact deliverable/i.test(noLicenseNotice) &&
     pkg.license === 'UNLICENSED' &&
     !fs.existsSync(path.join(repoRoot, 'PROPRIETARY_LICENSE.txt')),
-  'explicit rights hold, package metadata UNLICENSED, and no conflicting first-party license file'
+  'seller marketing is permitted while buyer rights remain ungranted until an exact-deliverable schedule is executed'
 );
 
 const config = read('src/config.js');
