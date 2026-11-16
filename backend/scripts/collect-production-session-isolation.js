@@ -113,8 +113,24 @@ function writeReport(report) {
 async function main() {
   const commit = sourceCommit();
   if (!/^[a-f0-9]{40}$/.test(commit)) throw new Error('SOURCE_COMMIT_SHA_REQUIRED');
-  const ownerUri = String(process.env.OPSC_OWNER_DATABASE_URL || process.env.DATABASE_URL || '').trim();
-  if (!ownerUri) throw new Error('OWNER_DATABASE_URL_REQUIRED');
+  const projectId = String(process.env.NEON_PROJECT_ID || '').trim();
+  const branchId = String(process.env.OPSC_PRODUCTION_NEON_BRANCH_ID || '').trim();
+  const databaseName = String(process.env.OPSC_PRODUCTION_DATABASE_NAME || '').trim();
+  const roleName = String(process.env.OPSC_PRODUCTION_OWNER_ROLE || 'neondb_owner').trim();
+  if (!projectId || !branchId || !databaseName || !String(process.env.NEON_API_KEY || '').trim()) {
+    throw new Error('PRODUCTION_DATABASE_IDENTITY_EXPECTATIONS_REQUIRED');
+  }
+  const connectionQuery = new URLSearchParams({
+    branch_id: branchId,
+    database_name: databaseName,
+    role_name: roleName
+  });
+  const connection = await neonApi(
+    '/projects/' + encodeURIComponent(projectId) + '/connection_uri?' + connectionQuery.toString(),
+    String(process.env.NEON_API_KEY).trim()
+  );
+  const ownerUri = String(connection.uri || '').trim();
+  if (!ownerUri) throw new Error('PRODUCTION_OWNER_CONNECTION_URI_MISSING');
   const target = await verifyProductionDatabaseTarget(ownerUri);
   const httpBase = String(process.env.OPSC_PRODUCTION_HTTP_BASE || 'https://opscore-platform.vercel.app').replace(/\/+$/, '');
   const httpUrl = new URL(httpBase);
