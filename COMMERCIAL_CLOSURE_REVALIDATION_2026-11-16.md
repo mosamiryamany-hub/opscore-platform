@@ -153,6 +153,22 @@ Buyer residuals still include signed Android/iOS store artifacts and buyer-speci
 
 No technical action can substitute for the required signed rights agreement or buyer approvals.
 
+### Final integrated PR #163 verification and merge barrier
+
+The integrated hardening branch now carries head `360067dd1aac25932a8fcb92e26af947033ee3b3` in PR #163:
+- [PR #163](https://github.com/mosamiryamany-hub/opscore-platform/pull/163)
+- OpsCore CI run `43865467244`: completed successfully.
+- PostgreSQL 18 isolated RLS/HTTP acceptance run `43865467363`: completed successfully.
+- Vercel contract verification run `43865467227`: completed successfully; both Production deploy-related jobs were skipped on the PR event.
+
+The Production deploy job has been hardened further: **a push to `main` never starts Production deploy**. It now requires a manual `workflow_dispatch` on `main`, the exact input `I_AUTHORIZE_PRODUCTION_DEPLOYMENT`, and the separate repository variable `OPSC_PRODUCTION_AUTODEPLOY_ENABLED=true`. No manual Production dispatch was invoked.
+
+An attempted squash merge of PR #163 at expected head `360067dd1aac25932a8fcb92e26af947033ee3b3` was rejected by GitHub with HTTP 405: `New changes require approval from someone other than the last pusher.` The PR remains open and unmerged. No attempt was made to remove or bypass branch protection. A fresh read still showed `main` at `4017497068defa9c1d0761fcb07bc746925e002a`; the latest Production deployment remains `dpl_Hy9ymDff1oChGpBAxmAjr4cfwyyG` on that same SHA.
+
+A request to protect the Neon Production branch `br-proud-salad-bcshhdap` was rejected with HTTP 422 because the current Neon plan reached its maximum protected-branch allowance. The live branch listing showed 10 branches and zero protected; no branch was unprotected or deleted to work around the limit.
+
+**Current decision remains HOLD.** PR #163's passing CI does not create the absent 67-route signed-tenant Production proof, PITR/RPO/RTO, WAF block enforcement, paid-plan entitlements, buyer artifacts, or signed commercial rights.
+
 ## Gate ledger
 
 | Gate | Status | Evidence / blocking condition |
