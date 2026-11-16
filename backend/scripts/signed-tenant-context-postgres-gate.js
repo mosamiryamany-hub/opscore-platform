@@ -160,6 +160,7 @@ async function main() {
   const assetCleanupErrors = [];
   let syntheticAssetEventIds = [];
   const customerCleanupErrors = [];
+  const serviceLineCleanupErrors = [];
   const synthetic = {
     tenantIds: [tenantA, tenantB],
     userIds: [userA, userB],
@@ -167,6 +168,7 @@ async function main() {
     workOrderIds: ['tc_wo_a_' + crypto.randomUUID().replace(/-/g, ''), 'tc_wo_b_' + crypto.randomUUID().replace(/-/g, '')],
     customerIds: ['tc_customer_a_' + crypto.randomUUID().replace(/-/g, ''), 'tc_customer_b_' + crypto.randomUUID().replace(/-/g, '')],
     siteIds: ['tc_site_a_' + crypto.randomUUID().replace(/-/g, ''), 'tc_site_b_' + crypto.randomUUID().replace(/-/g, '')],
+    serviceLineIds: ['tc_line_a_' + crypto.randomUUID().replace(/-/g, ''), 'tc_line_b_' + crypto.randomUUID().replace(/-/g, '')],
     assetIds: ['tc_asset_a_' + crypto.randomUUID().replace(/-/g, ''), 'tc_asset_b_' + crypto.randomUUID().replace(/-/g, '')],
     idempotencyKeys: [],
     bulkJobIds: [],
@@ -244,6 +246,14 @@ async function main() {
     await owner.query(
       'INSERT INTO public.customers(id,organization_id,name,email,phone,external_ref,status,created_at,updated_at) VALUES($1,$2,$3,$4,$5,$6,\'active\',now()::text,now()::text),($7,$8,$9,$10,$11,$12,\'active\',now()::text,now()::text)',
       [synthetic.customerIds[0], tenantA, 'Signed Context Customer A', userA + '@customer.invalid', null, null, synthetic.customerIds[1], tenantB, 'Signed Context Customer B', userB + '@customer.invalid', null, null]
+    );
+    // Real service-line tenant fixtures. Created by the owner role in the disposable PostgreSQL DB.
+    await owner.query(
+      'INSERT INTO public.service_lines(id,organization_id,code,name,service_ref,active,created_by,created_at,updated_at) VALUES($1,$2,$3,$4,$5,1,$6,now()::text,now()::text),($7,$8,$9,$10,$11,1,$12,now()::text,now()::text)',
+      [
+        synthetic.serviceLineIds[0], tenantA, 'TC-A-' + keyId, 'Tenant A CI Service Line', 'tc-service-a-' + keyId, userA,
+        synthetic.serviceLineIds[1], tenantB, 'TC-B-' + keyId, 'Tenant B CI Service Line', 'tc-service-b-' + keyId, userB
+      ]
     );
     await owner.query(
       'INSERT INTO opscore_security.context_probe_rows(id,organization_id,probe_value) VALUES($1,$2,$3),($4,$5,$6)',
@@ -491,6 +501,86 @@ async function main() {
       }
     }
     signedSessionAutobindHttpProof.customersPostWriteReadIsolation = 'PASS';
+
+
+    // Assign a persisted service line to each tenant's own customer via the real API.
+    // Reusing an idempotency key is not required for the first execution but every
+    // write is supplied one because this route requires durable replay protection.
+    const serviceLineKeyA = 'signed-context-line-a-' + keyId;
+    const serviceLineKeyB = 'signed-context-line-b-' + keyId;
+    const serviceLineKeyCross = 'signed-context-line-cross-' + keyId;
+    synthetic.idempotencyKeys.push(serviceLineKeyA, serviceLineKeyB, serviceLineKeyCross);
+    const assignServiceLineA = await queryHttp(
+      port,
+      '/api/v1/customers/' + encodeURIComponent(synthetic.customerIds[0]) + '/service-line',
+      tokenA,
+      { method: 'POST', headers: { 'idempotency-key': serviceLineKeyA }, body: { lineId: synthetic.serviceLineIds[0] } }
+    );
+    const assignServiceLineB = await queryHttp(
+      port,
+      '/api/v1/customers/' + encodeURIComponent(synthetic.customerIds[1]) + '/service-line',
+      tokenB,
+      { method: 'POST', headers: { 'idempotency-key': serviceLineKeyB }, body: { lineId: synthetic.serviceLineIds[1] } }
+    );
+    for (const [label, response, expectedTenant, expectedCustomer, expectedLine, expectedCode] of [
+      ['tenantA', assignServiceLineA, tenantA, synthetic.customerIds[0], synthetic.serviceLineIds[0], 'TC-A-' + keyId],
+      ['tenantB', assignServiceLineB, tenantB, synthetic.customerIds[1], synthetic.serviceLineIds[1], 'TC-B-' + keyId]
+    ]) {
+      if (response.status !== 200
+          || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+          || response.body?.organization_id !== expectedTenant
+          || response.body?.customer_id !== expectedCustomer
+          || response.body?.line_id !== expectedLine
+          || response.body?.line_code !== expectedCode) {
+        throw new Error('SIGNED_CONTEXT_CUSTOMER_SERVICE_LINE_ASSIGNMENT_FAILED:' + JSON.stringify({
+          label, status: response.status, body: response.body,
+          signedHeader: response.headers?.['x-opscore-signed-tenant-context'] || null
+        }));
+      }
+    }
+    signedSessionAutobindHttpProof.customerServiceLineAssignTenantA = 'PASS';
+    signedSessionAutobindHttpProof.customerServiceLineAssignTenantB = 'PASS';
+
+    const crossServiceLineAssign = await queryHttp(
+      port,
+      '/api/v1/customers/' + encodeURIComponent(synthetic.customerIds[1]) + '/service-line',
+      tokenA,
+      { method: 'POST', headers: { 'idempotency-key': serviceLineKeyCross }, body: { lineId: synthetic.serviceLineIds[0] } }
+    );
+    if (crossServiceLineAssign.status !== 404
+        || crossServiceLineAssign.body?.error?.code !== 'NOT_FOUND'
+        || crossServiceLineAssign.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_CUSTOMER_SERVICE_LINE_CROSS_TENANT_ASSIGN_NOT_DENIED:' + JSON.stringify({
+        status: crossServiceLineAssign.status,
+        body: crossServiceLineAssign.body,
+        signedHeader: crossServiceLineAssign.headers?.['x-opscore-signed-tenant-context'] || null
+      }));
+    }
+    signedSessionAutobindHttpProof.customerServiceLineCrossTenantAssignDenied = 'PASS';
+
+    const readServiceLineA = await queryHttp(
+      port, '/api/v1/customers/' + encodeURIComponent(synthetic.customerIds[0]) + '/service-line', tokenA
+    );
+    const readServiceLineB = await queryHttp(
+      port, '/api/v1/customers/' + encodeURIComponent(synthetic.customerIds[1]) + '/service-line', tokenB
+    );
+    if (readServiceLineA.status !== 200
+        || readServiceLineA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || readServiceLineA.body?.organization_id !== tenantA
+        || readServiceLineA.body?.line_id !== synthetic.serviceLineIds[0]
+        || readServiceLineA.body?.line_code !== 'TC-A-' + keyId
+        || readServiceLineB.status !== 200
+        || readServiceLineB.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || readServiceLineB.body?.organization_id !== tenantB
+        || readServiceLineB.body?.line_id !== synthetic.serviceLineIds[1]
+        || readServiceLineB.body?.line_code !== 'TC-B-' + keyId) {
+      throw new Error('SIGNED_CONTEXT_CUSTOMER_SERVICE_LINE_READ_TENANT_BOUNDARY_FAILED:' + JSON.stringify({
+        tenantA: { status: readServiceLineA.status, body: readServiceLineA.body },
+        tenantB: { status: readServiceLineB.status, body: readServiceLineB.body }
+      }));
+    }
+    signedSessionAutobindHttpProof.customerServiceLineReadTenantA = 'PASS';
+    signedSessionAutobindHttpProof.customerServiceLineReadTenantB = 'PASS';
 
     // Exercise the authenticated sites list through its real signed read wrapper.
     // The response must include only the caller's site and its tenant-owned customer join.
@@ -871,6 +961,63 @@ async function main() {
       }
     }
     signedSessionAutobindHttpProof.assetsPostWriteReadIsolation = 'PASS';
+
+
+    // Classify faults using each tenant's persisted service line, site and asset.
+    // A Tenant A session querying Tenant B IDs must get no foreign linked records.
+    const classifyFaultA = await queryHttp(port, '/api/v1/faults/classify', tokenA, {
+      method: 'POST',
+      body: {
+        customerId: synthetic.customerIds[0],
+        assetId: createAssetA.body.id,
+        siteId: createSiteA.body.id
+      }
+    });
+    const classifyFaultB = await queryHttp(port, '/api/v1/faults/classify', tokenB, {
+      method: 'POST',
+      body: {
+        customerId: synthetic.customerIds[1],
+        assetId: createAssetB.body.id,
+        siteId: createSiteB.body.id
+      }
+    });
+    for (const [label, response, expectedTenant, expectedLine, expectedAsset, expectedSite] of [
+      ['tenantA', classifyFaultA, tenantA, synthetic.serviceLineIds[0], createAssetA.body.id, createSiteA.body.id],
+      ['tenantB', classifyFaultB, tenantB, synthetic.serviceLineIds[1], createAssetB.body.id, createSiteB.body.id]
+    ]) {
+      if (response.status !== 200
+          || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+          || response.body?.organizationId !== expectedTenant
+          || response.body?.serviceLine?.id !== expectedLine
+          || response.body?.asset?.id !== expectedAsset
+          || response.body?.site?.id !== expectedSite) {
+        throw new Error('SIGNED_CONTEXT_FAULT_CLASSIFICATION_TENANT_BOUNDARY_FAILED:' + JSON.stringify({
+          label, status: response.status, body: response.body,
+          signedHeader: response.headers?.['x-opscore-signed-tenant-context'] || null
+        }));
+      }
+    }
+    const foreignFaultClassification = await queryHttp(port, '/api/v1/faults/classify', tokenA, {
+      method: 'POST',
+      body: {
+        customerId: synthetic.customerIds[1],
+        assetId: createAssetB.body.id,
+        siteId: createSiteB.body.id
+      }
+    });
+    if (foreignFaultClassification.status !== 200
+        || foreignFaultClassification.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || foreignFaultClassification.body?.serviceLine !== null
+        || foreignFaultClassification.body?.asset !== null
+        || foreignFaultClassification.body?.site !== null) {
+      throw new Error('SIGNED_CONTEXT_FAULT_CLASSIFICATION_EXPOSED_FOREIGN_TENANT_DATA:' + JSON.stringify({
+        status: foreignFaultClassification.status,
+        body: foreignFaultClassification.body
+      }));
+    }
+    signedSessionAutobindHttpProof.faultClassificationTenantA = 'PASS';
+    signedSessionAutobindHttpProof.faultClassificationTenantB = 'PASS';
+    signedSessionAutobindHttpProof.faultClassificationForeignTenantHidden = 'PASS';
 
     // This route previously called ctx(req) a second time after the global
     // requireCtx gate, which would attempt to downgrade a signed field principal
@@ -2315,6 +2462,51 @@ async function main() {
       }
     } catch (cleanupError) {
       process.stderr.write('SIGNED_CONTEXT_SITE_FIXTURE_CLEANUP_VERIFICATION_FAILED:' +
+        String(cleanupError.code || cleanupError.message || cleanupError).slice(0, 500) + '\\n');
+      process.exitCode = 1;
+    }
+    try {
+      await owner.query(
+        'DELETE FROM public.customer_service_lines WHERE organization_id = ANY($1::text[]) AND (customer_id = ANY($2::text[]) OR line_id = ANY($3::text[]))',
+        [synthetic.tenantIds, synthetic.customerIds, synthetic.serviceLineIds]
+      );
+    } catch (cleanupError) {
+      serviceLineCleanupErrors.push('customer_service_lines:' + String(cleanupError.code || cleanupError.message || cleanupError));
+    }
+    try {
+      await owner.query(
+        "DELETE FROM public.audit_log WHERE organization_id = ANY($1::text[]) AND resource_type='service_line' AND resource_id = ANY($2::text[])",
+        [synthetic.tenantIds, synthetic.serviceLineIds]
+      );
+    } catch (cleanupError) {
+      serviceLineCleanupErrors.push('audit_log:' + String(cleanupError.code || cleanupError.message || cleanupError));
+    }
+    try {
+      await owner.query('DELETE FROM public.service_lines WHERE id = ANY($1::text[])', [synthetic.serviceLineIds]);
+    } catch (cleanupError) {
+      serviceLineCleanupErrors.push('service_lines:' + String(cleanupError.code || cleanupError.message || cleanupError));
+    }
+    try {
+      const residue = await owner.query(
+        "SELECT " +
+        "(SELECT COUNT(*)::int FROM public.service_lines WHERE id = ANY($1::text[])) AS line_rows, " +
+        "(SELECT COUNT(*)::int FROM public.customer_service_lines WHERE organization_id = ANY($2::text[]) AND (customer_id = ANY($3::text[]) OR line_id = ANY($1::text[]))) AS assignment_rows, " +
+        "(SELECT COUNT(*)::int FROM public.audit_log WHERE organization_id = ANY($2::text[]) AND resource_type='service_line' AND resource_id = ANY($1::text[])) AS audit_rows",
+        [synthetic.serviceLineIds, synthetic.tenantIds, synthetic.customerIds]
+      );
+      const remaining = residue.rows[0] || {};
+      if (serviceLineCleanupErrors.length || Number(remaining.line_rows) !== 0
+          || Number(remaining.assignment_rows) !== 0 || Number(remaining.audit_rows) !== 0) {
+        process.stderr.write('SIGNED_CONTEXT_SERVICE_LINE_FIXTURE_CLEANUP_FAILED:' + JSON.stringify({
+          errors: serviceLineCleanupErrors,
+          remaining
+        }) + '\\n');
+        process.exitCode = 1;
+      } else {
+        process.stdout.write('SIGNED_CONTEXT_SERVICE_LINE_FIXTURE_CLEANUP=PASS\\n');
+      }
+    } catch (cleanupError) {
+      process.stderr.write('SIGNED_CONTEXT_SERVICE_LINE_FIXTURE_CLEANUP_VERIFICATION_FAILED:' +
         String(cleanupError.code || cleanupError.message || cleanupError).slice(0, 500) + '\\n');
       process.exitCode = 1;
     }
