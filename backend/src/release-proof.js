@@ -4,6 +4,7 @@ const { createDeploymentProof } = require('./deployment-proof');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
+const signedTenantContextPolicy = require('./signed-tenant-context-policy');
 
 const SHA_RE = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
 const HASH_RE = /^[a-f0-9]{64}$/;
@@ -374,6 +375,7 @@ function readProductionSignedTenantRouteCoverageEvidence(
         || pathname.includes('?')
         || !['read', 'write'].includes(operation)
         || !eligibleInventoryKeys.has(key)
+        || !signedTenantContextPolicy.isSignedTenantContextRouteDefinition(method, pathname, operation)
         || expectedRoutes.has(key)) {
       manifestRoutesValid = false;
       continue;
