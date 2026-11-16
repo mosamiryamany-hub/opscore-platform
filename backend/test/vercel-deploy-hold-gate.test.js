@@ -93,6 +93,21 @@ test('Production release flags fail closed when isolation evidence is not certif
   assert.match(deploy, /OPSC_PRODUCTION_HOLD: releaseVerified \? 'false' : 'true'/);
 });
 
+test('Production release flags fail closed in both evidence publication and build environments', () => {
+  const publish = step('Publish acceptance evidence hash to Vercel production env');
+  const build = step('Build Vercel output');
+  const earlyGate = step('Require current-commit production evidence before creating staged deployment');
+  assert.match(publish, /OPSC_RELEASE_VERIFIED:\\s*behavioralPass\\(\\)\\s*\\?\\s*'true'\\s*:\\s*'false'/);
+  assert.doesNotMatch(publish, /OPSC_RELEASE_VERIFIED:\\s*'true'/);
+  assert.match(build, /steps\\.isolation_cert\\.outputs\\.certified == 'CERTIFIED'/);
+  assert.match(build, /steps\\.isolation_cert\\.outputs\\.behavioral == 'true'/);
+  assert.match(earlyGate, /PRODUCTION_ACCEPTANCE_EVIDENCE_MISSING_OR_INVALID/);
+  assert.match(earlyGate, /PRODUCTION_ISOLATION_NOT_CERTIFIED/);
+  assert.match(earlyGate, /PRODUCTION_BEHAVIORAL_EVIDENCE_NOT_VERIFIED/);
+  assert.ok(deploy.indexOf(earlyGate) < deploy.indexOf(step('Create staged production deployment without changing the live domain')));
+});
+
+
 test('Runtime diagnostic requires explicit read-only zero-write and full production evidence', () => {
   const runnerPath = path.join(__dirname, '..', '..', 'scripts', 'production-runtime-diagnostic.js');
   const runner = fs.readFileSync(runnerPath, 'utf8');
