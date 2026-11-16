@@ -89,6 +89,7 @@ jobs:
               application_name: 'opscore-prod-068-readonly-verifier'
             });
             await client.connect();
+            await client.query('BEGIN READ ONLY');
             return { client, label };
           }
 
@@ -99,11 +100,10 @@ jobs:
               throw new Error('OWNER_RUNTIME_DATABASE_TARGET_MISMATCH');
             }
             const endpoint = await verifyEndpoint(ownerTarget.hostname);
-            const [owner, runtime] = await Promise.all([
-              connect(ownerTarget, 'owner'),
-              connect(runtimeTarget, 'runtime')
-            ]);
+            const owner = await connect(ownerTarget, 'owner');
+            let runtime;
             try {
+              runtime = await connect(runtimeTarget, 'runtime');
               const [ownerIdentity, runtimeIdentity] = await Promise.all([
                 owner.client.query("SELECT current_database() AS database, current_user AS role, current_setting('server_version_num')::int AS server_version_num"),
                 runtime.client.query("SELECT current_database() AS database, current_user AS role, current_setting('row_security') AS row_security")
@@ -151,7 +151,11 @@ jobs:
                 writesPerformed: 0
               }, null, 2));
             } finally {
-              await Promise.allSettled([owner.client.end(), runtime.client.end()]);
+              const clients = [owner, runtime].filter(Boolean);
+              await Promise.allSettled(clients.map(async item => {
+                await item.client.query('ROLLBACK');
+                await item.client.end();
+              }));
             }
           })().catch(error => {
             console.error('PRODUCTION_068_READ_ONLY_VERIFICATION_FAILED', String(error && error.message || error));
