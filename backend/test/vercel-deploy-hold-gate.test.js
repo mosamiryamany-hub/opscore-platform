@@ -118,3 +118,19 @@ test('Runtime diagnostic requires explicit read-only zero-write and full product
   assert.match(runner, /isolationCertification/);
   assert.match(runner, /migration_056_hash/);
 });
+
+
+test('Production promotion requires exact 67-route signed-session coverage, not only the narrower asset probes', () => {
+  const publish = step('Publish acceptance evidence hash to Vercel production env');
+  const certification = step('Resolve production isolation certification from behavioral evidence');
+  const proof = fs.readFileSync(path.join(__dirname, '..', 'src', 'release-proof.js'), 'utf8');
+  assert.match(publish, /SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE\\.json/);
+  assert.match(certification, /SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE\\.json/);
+  assert.match(publish, /routeRows\\.length === 67/);
+  assert.match(certification, /routeRows\\.length === 67/);
+  assert.match(publish, /session\\.pipelineId/);
+  assert.match(publish, /recovery\\.pipelineId/);
+  assert.match(proof, /readProductionSignedTenantRouteCoverageEvidence/);
+  assert.match(proof, /productionIsolationCertification === 'CERTIFIED'/);
+  assert.doesNotMatch(proof, /'NOT_CERTIFIED', 'CERTIFIED'\\]\\.includes\\(proof\\.gates\\.productionIsolationCertification/);
+});
