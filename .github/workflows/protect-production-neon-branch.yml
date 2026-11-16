@@ -21,7 +21,7 @@ jobs:
             -H "Content-Type: application/json" \
             -H "Accept: application/json" \
             "https://console.neon.tech/api/v2/projects/${NEON_PROJECT_ID}/branches/${OPSC_PRODUCTION_NEON_BRANCH_ID}" \
-            -d '{"protected":true}')
+            -d '{"branch":{"protected":true}}')
           echo "HTTP $CODE"
           cat /tmp/neon_protect.json | head -c 800
           echo
