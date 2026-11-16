@@ -4,14 +4,20 @@
  * Install the buyer-approved compatible `pg` driver before using this module.
  * The adapter deliberately fails when `pg` is absent; there is no fake fallback.
  */
+const fs = require('node:fs');
 const DEFAULTS = Object.freeze({
   statementTimeoutMs: 5000,
   idleInTransactionSessionTimeoutMs: 3000,
   keepAliveInitialDelayMs: 10000
 });
-const CONNECTION_STRING_SSL_OPTIONS = new Set(['sslmode', 'sslcert', 'sslkey', 'sslrootcert']);
+const CONNECTION_STRING_SSL_OPTIONS = Object.freeze({
+  sslrootcert: 'ca',
+  sslcert: 'cert',
+  sslkey: 'key'
+});
+const CONNECTION_STRING_SSL_MODE = 'sslmode';
 
-function normalizePostgresConnectionString(connectionString) {
+function normalizePostgresConnectionString(connectionString, env = process.env) {
   let url;
   try {
     url = new URL(String(connectionString));
@@ -21,13 +27,26 @@ function normalizePostgresConnectionString(connectionString) {
   if (!['postgres:', 'postgresql:'].includes(url.protocol)) {
     throw new Error('POSTGRES_CONNECTION_STRING_PROTOCOL_INVALID');
   }
-  // TLS is configured explicitly below. Leaving libpq SSL parameters in the URL
-  // makes pg-connection-string override the ssl object and emits deprecation
-  // warnings for legacy modes; it can also discard an explicitly supplied CA.
-  for (const key of [...url.searchParams.keys()]) {
-    if (CONNECTION_STRING_SSL_OPTIONS.has(key.toLowerCase())) url.searchParams.delete(key);
+  const tls = {};
+  for (const [parameter, property] of Object.entries(CONNECTION_STRING_SSL_OPTIONS)) {
+    const filePath = url.searchParams.get(parameter);
+    if (filePath && !(parameter === 'sslrootcert' && String(env.OPSC_PG_CA_CERT || '').trim())) {
+      try {
+        tls[property] = fs.readFileSync(filePath);
+      } catch {
+        throw new Error('POSTGRES_TLS_CERTIFICATE_FILE_UNREADABLE:' + parameter);
+      }
+    }
+    url.searchParams.delete(parameter);
   }
-  return url.toString();
+  url.searchParams.delete(CONNECTION_STRING_SSL_MODE);
+  if (Boolean(tls.cert) !== Boolean(tls.key)) {
+    throw new Error('POSTGRES_TLS_CLIENT_CERTIFICATE_KEY_PAIR_REQUIRED');
+  }
+  // All TLS options are passed directly to pg. node-postgres documents that
+  // sslmode/sslcert/sslkey/sslrootcert in a connection URL replace the ssl object.
+  // Move file-backed settings to the explicit TLS object before removing them.
+  return { connectionString: url.toString(), tls };
 }
 
 function boundedInteger(value, fallback, min, max) {
@@ -59,10 +78,16 @@ function createPostgresPool({
   if (isProduction && sslMode !== 'verify-full') throw new Error('POSTGRES_TLS_VERIFICATION_REQUIRED');
   if (isProduction && String(process.env.OPSC_PG_SSL_REJECT_UNAUTHORIZED || 'true').toLowerCase() !== 'true') throw new Error('POSTGRES_TLS_VERIFICATION_REQUIRED');
   const ssl = sslMode === 'disable' ? false : sslMode === 'verify-full' ? { rejectUnauthorized: true, ca: process.env.OPSC_PG_CA_CERT || undefined } : { rejectUnauthorized: true };
-  const normalizedConnectionString = normalizePostgresConnectionString(connectionString);
+  const normalizedConnection = normalizePostgresConnectionString(connectionString);
+  const normalizedSsl = ssl === false ? false : {
+    ...ssl,
+    ca: process.env.OPSC_PG_CA_CERT || normalizedConnection.tls.ca || undefined,
+    cert: normalizedConnection.tls.cert || undefined,
+    key: normalizedConnection.tls.key || undefined
+  };
   return new Pool({
-    connectionString: normalizedConnectionString,
-    ssl,
+    connectionString: normalizedConnection.connectionString,
+    ssl: normalizedSsl,
     max: boundedInteger(max, 10, 1, 200),
     application_name: 'opscore-starter',
     statement_timeout: boundedInteger(statementTimeoutMs, DEFAULTS.statementTimeoutMs, 100, 120000),
