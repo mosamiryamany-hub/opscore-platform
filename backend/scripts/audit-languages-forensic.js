@@ -111,8 +111,11 @@ ok.push('sector-neutral: no fiber-only vocabulary in runtime or locales');
 const st=Object.values(register.locales).map(x=>x.status);
 if(register.locales.en.status!=='source') fail.push('register: en must be source');
 if(register.summary.productionQualified!==0) fail.push('register claims production qualification');
+if(register.catalogueLanguages!==105 || register.summary.catalogue!==105) fail.push('register catalogue count != 105');
+if(register.withdrawnLocales.map(x=>x.code).sort().join(',')!=='es,hy,ml,ms,my,sr,sw,te,uz') fail.push('withdrawn locale register mismatch');
 if(register.nativeReviewStatus!=='not_native_reviewed') fail.push('register must state not_native_reviewed');
 const draftCount=st.filter(x=>x==='draft_translation_pending_native_review').length;
+if(draftCount!==100) fail(`machine drafts=${draftCount}, expected 100`);
 if(register.summary.draftTranslationLocales!==draftCount) fail.push('register summary draft count stale');
 ok.push(`honesty: 0 production-qualified, ${draftCount} machine drafts, ${st.filter(x=>x==='english_fallback_pending').length} declared fallbacks`);
 
