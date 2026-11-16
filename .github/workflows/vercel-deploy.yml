@@ -2,6 +2,14 @@ name: vercel-deploy
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      confirm_production_deployment:
+        description: Explicitly authorize the Production release workflow and its evidence probes
+        required: true
+        type: choice
+        options:
+          - I_AUTHORIZE_PRODUCTION_DEPLOYMENT
   pull_request:
     branches: [main]
 
@@ -73,14 +81,13 @@ jobs:
 
   postgres-acceptance:
     name: deploy-bound-postgres-18-acceptance
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
     uses: ./.github/workflows/digital-twin-postgres-live.yml
 
   deploy:
     needs: [verify, postgres-acceptance]
-    # Keep Production probes, environment mutation, build, and promotion disabled
-    # until the owner explicitly enables this gate after all commit-bound proofs exist.
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.OPSC_PRODUCTION_AUTODEPLOY_ENABLED == 'true'
+    # Production deploy is never automatic on push. Require an explicit workflow_dispatch input and owner flag.
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.event.inputs.confirm_production_deployment == 'I_AUTHORIZE_PRODUCTION_DEPLOYMENT' && vars.OPSC_PRODUCTION_AUTODEPLOY_ENABLED == 'true'
     permissions:
       contents: read
       id-token: write
