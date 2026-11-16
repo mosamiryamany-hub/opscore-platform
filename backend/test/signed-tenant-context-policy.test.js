@@ -222,6 +222,41 @@ test('required signed context blocks routes that do not have a signed request pa
   );
 });
 
+
+test('operational signed routes pass the required-context gate only when their Preview policy is enabled', () => {
+  const previewRead = {
+    VERCEL_ENV: 'preview',
+    OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'true',
+    OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_READ_ENABLED: 'true'
+  };
+  const previewWrite = {
+    ...previewRead,
+    OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_WRITE_ENABLED: 'true'
+  };
+  assert.equal(policy.signedContextRequested({ method: 'GET', url: '/api/v1/customers' }, previewRead), true);
+  assert.equal(policy.signedTenantContextRouteError({ method: 'GET', url: '/api/v1/customers' }, previewRead), null);
+  assert.equal(policy.signedContextRequested({ method: 'POST', url: '/api/v1/customers' }, previewWrite), true);
+  assert.equal(policy.signedTenantContextRouteError({ method: 'POST', url: '/api/v1/customers' }, previewWrite), null);
+  assert.equal(
+    policy.signedTenantContextRouteError({ method: 'GET', url: '/api/v1/customers' }, previewRead),
+    'SIGNED_TENANT_CONTEXT_ROUTE_NOT_ENABLED'
+  );
+  assert.equal(
+    policy.signedTenantContextRouteError(
+      { method: 'GET', url: '/api/v1/customers' },
+      { ...previewRead, VERCEL_ENV: 'production' }
+    ),
+    'SIGNED_TENANT_CONTEXT_ROUTE_NOT_ENABLED'
+  );
+  assert.equal(
+    policy.signedTenantContextRouteError(
+      { method: 'GET', url: '/api/v1/autopilot/decision-memory' },
+      previewWrite
+    ),
+    'SIGNED_TENANT_CONTEXT_ROUTE_NOT_ENABLED'
+  );
+});
+
 test('global session autobind remains Preview-only and satisfies the route requirement only when enabled', () => {
   const enabled = {
     VERCEL_ENV: 'preview',
