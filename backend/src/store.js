@@ -1079,7 +1079,18 @@ class Store {
     const s = this._revokeSessionByTokenHash(hashToken(raw));
     if (!s)
       return { loggedOut: true };
+    // Bind tenant context from the revoked session row BEFORE audit insert.
+    // FORCE RLS on audit_log requires app.tenant_id; post-revoke empty context yields 42501.
     try {
+      if (this.db && typeof this.db.setSession === 'function' && s.organization_id) {
+        this.db.setSession({
+          tenantId: String(s.organization_id),
+          userId: String(s.user_id || ''),
+          accessMode: 'field'
+        });
+      } else if (typeof this._bindFieldContext === 'function' && s.organization_id) {
+        this._bindFieldContext(s.organization_id, s.user_id);
+      }
       audit(this.db, {
         organizationId: s.organization_id,
         actorUserId: s.user_id,
@@ -1088,8 +1099,9 @@ class Store {
         resourceId: s.session_id
       });
     } catch (auditError) {
-      // Session is already revoked; audit must not fail the logout contract under PostgreSQL.
-      try { warn('auth.logout_audit_failed', { error: auditError }); } catch (_) { /* ignore */ }
+      // Prefer durable signal over silent loss: logout still succeeds (session gone)
+      // but operators must see audit failure and retry path remains future work.
+      try { warn('auth.logout_audit_failed', { error: auditError, organizationId: s.organization_id, sessionId: s.session_id }); } catch (_) { /* ignore */ }
     }
     return { loggedOut: true };
   }
