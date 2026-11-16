@@ -3,15 +3,16 @@
 **Package version:** Read from `backend/package.json` and the exact-run release statement.  
 **Source commit, workflow run, artifact ID, archive SHA-256, and attestation:** Must be taken only from one successful exact-head GitHub Actions Secure Release run. This source document intentionally contains no fixed candidate identifiers.
 
-## Rights and distribution
+## Seller offer and rights boundary
 
-- **License grant:** **NO LICENSE GRANT** (`NONE_PENDING_RIGHTS_HOLDER_DECISION`).
-- **Distribution authorization:** `false`.
-- **Sale, resale, redistribution, sublicensing, hosting for third parties, transfer, and buyer delivery:** **NOT AUTHORIZED**.
+- **Seller offer:** The rights holder may advertise, list, present and negotiate the source-code offer before a buyer is identified.
+- **License grant:** **NO LICENSE GRANT** by default (`NONE_PENDING_RIGHTS_HOLDER_DECISION`).
+- **Distribution authorization:** `false` for buyer delivery or transfer of licensed rights until a transaction-specific Schedule is executed.
+- **Buyer use / modification / hosting / distribution / resale / sublicensing / delivery:** **NOT AUTHORIZED before execution of the named-buyer Schedule**.
 - **Rights:** All rights reserved. This manifest is not a license and does not transfer ownership or intellectual-property rights.
-- A future grant requires a separate written agreement approved and signed by the rights holder.
+- A License Schedule must be executed in writing by the rights holder and the named buyer, and must identify the exact deliverable (source commit and/or package SHA-256), applicable tier, permissions and conditions.
 
-The authoritative notice is `NO_LICENSE_GRANT_NOTICE.txt`. Package metadata must remain `UNLICENSED`. No first-party `LICENSE` or `LICENCE` file may be included in the package while this hold is active.
+The authoritative notice is `NO_LICENSE_GRANT_NOTICE.txt`. Package metadata must remain `UNLICENSED`. No first-party `LICENSE` or `LICENCE` file may be included in the package while no grant exists.
 
 ## Technical classification and boundaries
 
@@ -26,12 +27,12 @@ Production isolation evidence applies only to the exact seller deployment and ev
 - Contact-center locale resources and machine-assisted translation drafts; native-speaker/domain review remains outstanding.
 - External provider accounts, licenses, credentials, quotas, contracts, and live acceptance (including identity, messaging/telephony, storage, KMS/HSM, maps/road-routing, and cloud) remain environment-specific.
 
-## Mandatory gates before any future sale or delivery
+## Mandatory gates before licensed buyer delivery
 
-1. The rights holder decides the commercial model and exact rights to grant.
-2. A separate written agreement is approved and signed.
+1. The rights holder and named buyer agree the commercial model and exact rights.
+2. Both parties execute the transaction-specific written License Schedule for the pinned deliverable.
 3. Repository notices, package contents, metadata, manifests, and agreement are reconciled.
 4. A new exact-head release is built; archive digest, SBOM, and provenance attestation are verified.
 5. Buyer residuals and buyer-environment acceptance scope are explicitly acknowledged.
 
-Until every applicable gate passes, this manifest is technical evidence only and is not authorization to sell, distribute, or deliver the source package.
+Seller-side marketing and negotiation may happen before these transaction gates. Until the buyer-specific gates pass, no buyer license or delivery is authorized.
