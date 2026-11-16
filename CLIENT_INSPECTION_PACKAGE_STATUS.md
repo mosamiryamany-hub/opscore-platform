@@ -36,4 +36,4 @@ The seller remains responsible for fixable defects in delivered source, migratio
 
 ## Final prohibition
 
-Do not market, sell, transfer, publish, or deliver this source package while the rights hold remains active. Technical tests, Production health, release artifacts, hashes, SBOMs and attestations do not create a license.
+The rights holder may market, list, publish, present and negotiate the offer before a buyer is identified. This does not grant buyer rights or authorize delivery. Before a buyer may use, modify, distribute, resell, sublicense or receive the package, both the rights holder and that buyer must execute a transaction-specific License Schedule pinned to the exact deliverable. Technical tests, Production health, release artifacts, hashes, SBOMs and attestations do not create a license.
