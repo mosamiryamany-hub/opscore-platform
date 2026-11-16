@@ -58,6 +58,8 @@ async function main() {
   const commit = sourceCommit();
   if (!/^[a-f0-9]{40}$/.test(commit)) throw new Error('SOURCE_COMMIT_SHA_REQUIRED');
   if (!projectId || !parentBranchId || !databaseName) throw new Error('PRODUCTION_RECOVERY_TARGET_IDENTITY_REQUIRED');
+  const pipelineId = String(process.env.GITHUB_RUN_ID || '').trim();
+  if (!/^[1-9][0-9]{0,14}$/.test(pipelineId)) throw new Error('SOURCE_PIPELINE_ID_REQUIRED');
 
   // The application database is explicitly selected. A different acceptance or
   // system database is never used as a fallback when this exact database is missing.
@@ -143,6 +145,7 @@ async function main() {
     tableCounts,
     note: 'This is a branch-clone and row-count comparison for the explicitly configured application database only. It does not compare row contents, certify PITR, or establish RPO/RTO. No previous branch is deleted. A full restore drill remains separate.',
     sourceCommitHint: commit,
+    pipelineId,
     evidenceClass: 'PRODUCTION_BRANCH_RECOVERY_POINT'
   };
   writeReport(report);
