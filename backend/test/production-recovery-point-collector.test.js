@@ -47,7 +47,7 @@ test('recovery collector parses as a Node.js program', () => {
 });
 
 test('recovery collector requires the parent branch to exist and be ready', () => {
-  assert.match(collector, /const parentBranch = branches\\.find/);
+  assert.match(collector, /const parentBranch = branches\.find/);
   assert.match(collector, /PRODUCTION_PARENT_BRANCH_NOT_FOUND/);
   assert.match(collector, /PRODUCTION_PARENT_BRANCH_NOT_READY/);
 });
