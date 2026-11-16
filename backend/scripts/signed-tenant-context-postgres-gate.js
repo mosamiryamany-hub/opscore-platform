@@ -157,6 +157,7 @@ async function main() {
   const tokenB = crypto.randomBytes(32).toString('hex');
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
   const siteCleanupErrors = [];
+  const geofenceCleanupErrors = [];
   const appointmentCleanupErrors = [];
   const technicianCleanupErrors = [];
   const assetCleanupErrors = [];
@@ -170,6 +171,7 @@ async function main() {
     workOrderIds: ['tc_wo_a_' + crypto.randomUUID().replace(/-/g, ''), 'tc_wo_b_' + crypto.randomUUID().replace(/-/g, '')],
     customerIds: ['tc_customer_a_' + crypto.randomUUID().replace(/-/g, ''), 'tc_customer_b_' + crypto.randomUUID().replace(/-/g, '')],
     siteIds: ['tc_site_a_' + crypto.randomUUID().replace(/-/g, ''), 'tc_site_b_' + crypto.randomUUID().replace(/-/g, '')],
+    geofenceIds: [],
     serviceLineIds: ['tc_line_a_' + crypto.randomUUID().replace(/-/g, ''), 'tc_line_b_' + crypto.randomUUID().replace(/-/g, '')],
     appointmentIds: [],
     assetIds: ['tc_asset_a_' + crypto.randomUUID().replace(/-/g, ''), 'tc_asset_b_' + crypto.randomUUID().replace(/-/g, '')],
@@ -625,6 +627,8 @@ async function main() {
       body: {
         name: 'Signed Context Created Site A',
         customerId: synthetic.customerIds[0],
+        latitude: 30.0444,
+        longitude: 31.2357,
         organizationId: tenantB
       }
     });
@@ -647,6 +651,8 @@ async function main() {
       body: {
         name: 'Signed Context Created Site B',
         customerId: synthetic.customerIds[1],
+        latitude: 29.9765,
+        longitude: 31.1313,
         organizationId: tenantA
       }
     });
@@ -1329,6 +1335,239 @@ async function main() {
     }
     signedSessionAutobindHttpProof.technicianAvailabilityTenantA = 'PASS';
     signedSessionAutobindHttpProof.technicianAvailabilityTenantB = 'PASS';
+
+
+    // Tenant-specific geofences: each shape is a real persisted Polygon row,
+    // and assignment/evaluation must only resolve within the caller organization.
+    const geofenceKeyA = 'signed-context-geofence-create-a-' + keyId;
+    const geofenceKeyB = 'signed-context-geofence-create-b-' + keyId;
+    const geofenceAssignKeyA = 'signed-context-geofence-assign-a-' + keyId;
+    const geofenceAssignKeyB = 'signed-context-geofence-assign-b-' + keyId;
+    const geofenceCrossKey = 'signed-context-geofence-cross-' + keyId;
+    synthetic.idempotencyKeys.push(
+      geofenceKeyA, geofenceKeyB, geofenceAssignKeyA, geofenceAssignKeyB, geofenceCrossKey
+    );
+    const geofenceGeometryA = {
+      type: 'Polygon',
+      coordinates: [[[31.23,30.04],[31.24,30.04],[31.24,30.05],[31.23,30.05],[31.23,30.04]]]
+    };
+    const geofenceGeometryB = {
+      type: 'Polygon',
+      coordinates: [[[31.12,29.97],[31.14,29.97],[31.14,29.99],[31.12,29.99],[31.12,29.97]]]
+    };
+    const createGeofenceA = await queryHttp(port, '/api/v1/geofences', tokenA, {
+      method: 'POST',
+      headers: { 'idempotency-key': geofenceKeyA },
+      body: { name: 'Signed Context Geofence A', geometry: geofenceGeometryA, enabled: true }
+    });
+    if (createGeofenceA.body?.id) synthetic.geofenceIds.push(createGeofenceA.body.id);
+    if (createGeofenceA.status !== 201
+        || createGeofenceA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || createGeofenceA.body?.organizationId !== tenantA
+        || createGeofenceA.body?.name !== 'Signed Context Geofence A'
+        || createGeofenceA.body?.enabled !== true
+        || createGeofenceA.body?.geometry?.type !== 'Polygon') {
+      throw new Error('SIGNED_CONTEXT_GEOFENCE_CREATE_TENANT_A_FAILED:' + JSON.stringify({
+        status: createGeofenceA.status,
+        body: createGeofenceA.body,
+        signedHeader: createGeofenceA.headers?.['x-opscore-signed-tenant-context'] || null
+      }));
+    }
+    const createGeofenceB = await queryHttp(port, '/api/v1/geofences', tokenB, {
+      method: 'POST',
+      headers: { 'idempotency-key': geofenceKeyB },
+      body: { name: 'Signed Context Geofence B', geometry: geofenceGeometryB, enabled: true }
+    });
+    if (createGeofenceB.body?.id) synthetic.geofenceIds.push(createGeofenceB.body.id);
+    if (createGeofenceB.status !== 201
+        || createGeofenceB.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || createGeofenceB.body?.organizationId !== tenantB
+        || createGeofenceB.body?.name !== 'Signed Context Geofence B'
+        || createGeofenceB.body?.enabled !== true
+        || createGeofenceB.body?.geometry?.type !== 'Polygon') {
+      throw new Error('SIGNED_CONTEXT_GEOFENCE_CREATE_TENANT_B_FAILED:' + JSON.stringify({
+        status: createGeofenceB.status,
+        body: createGeofenceB.body,
+        signedHeader: createGeofenceB.headers?.['x-opscore-signed-tenant-context'] || null
+      }));
+    }
+    signedSessionAutobindHttpProof.geofenceCreateTenantA = 'PASS';
+    signedSessionAutobindHttpProof.geofenceCreateTenantB = 'PASS';
+
+    const geofencesA = await queryHttp(port, '/api/v1/geofences', tokenA);
+    const geofencesB = await queryHttp(port, '/api/v1/geofences', tokenB);
+    for (const [label, response, ownId, foreignId, ownTenant] of [
+      ['tenantA', geofencesA, createGeofenceA.body.id, createGeofenceB.body.id, tenantA],
+      ['tenantB', geofencesB, createGeofenceB.body.id, createGeofenceA.body.id, tenantB]
+    ]) {
+      if (response.status !== 200
+          || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+          || !Array.isArray(response.body)
+          || response.body.length !== 1
+          || response.body[0].id !== ownId
+          || response.body.some(row => row.id === foreignId)) {
+        throw new Error('SIGNED_CONTEXT_GEOFENCE_LIST_TENANT_BOUNDARY_FAILED:' + JSON.stringify({
+          label, status: response.status, body: response.body, expectedTenant: ownTenant
+        }));
+      }
+    }
+    signedSessionAutobindHttpProof.geofenceListTenantA = 'PASS';
+    signedSessionAutobindHttpProof.geofenceListTenantB = 'PASS';
+
+    const assignGeofenceA = await queryHttp(
+      port,
+      '/api/v1/geofences/' + encodeURIComponent(createGeofenceA.body.id) + '/technicians',
+      tokenA,
+      { method: 'POST', headers: { 'idempotency-key': geofenceAssignKeyA }, body: { technicianId: userA } }
+    );
+    const assignGeofenceB = await queryHttp(
+      port,
+      '/api/v1/geofences/' + encodeURIComponent(createGeofenceB.body.id) + '/technicians',
+      tokenB,
+      { method: 'POST', headers: { 'idempotency-key': geofenceAssignKeyB }, body: { technicianId: userB } }
+    );
+    for (const [label, response, expectedId] of [
+      ['tenantA', assignGeofenceA, createGeofenceA.body.id],
+      ['tenantB', assignGeofenceB, createGeofenceB.body.id]
+    ]) {
+      if (response.status !== 200
+          || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+          || !Array.isArray(response.body)
+          || response.body.length !== 1
+          || response.body[0].id !== expectedId) {
+        throw new Error('SIGNED_CONTEXT_GEOFENCE_TECHNICIAN_ASSIGN_FAILED:' + JSON.stringify({
+          label, status: response.status, body: response.body
+        }));
+      }
+    }
+    signedSessionAutobindHttpProof.geofenceAssignTechnicianTenantA = 'PASS';
+    signedSessionAutobindHttpProof.geofenceAssignTechnicianTenantB = 'PASS';
+
+    const crossGeofenceAssignment = await queryHttp(
+      port,
+      '/api/v1/geofences/' + encodeURIComponent(createGeofenceB.body.id) + '/technicians',
+      tokenA,
+      {
+        method: 'POST',
+        headers: { 'idempotency-key': geofenceCrossKey },
+        body: { technicianId: userA }
+      }
+    );
+    if (crossGeofenceAssignment.status !== 404
+        || crossGeofenceAssignment.body?.error?.code !== 'GEOFENCE_NOT_FOUND'
+        || crossGeofenceAssignment.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_GEOFENCE_CROSS_TENANT_ASSIGN_NOT_DENIED:' + JSON.stringify({
+        status: crossGeofenceAssignment.status,
+        body: crossGeofenceAssignment.body
+      }));
+    }
+    signedSessionAutobindHttpProof.geofenceCrossTenantAssignmentDenied = 'PASS';
+
+    const technicianGeofencesA = await queryHttp(
+      port, '/api/v1/technicians/' + encodeURIComponent(userA) + '/geofences', tokenA
+    );
+    const technicianGeofencesB = await queryHttp(
+      port, '/api/v1/technicians/' + encodeURIComponent(userB) + '/geofences', tokenB
+    );
+    for (const [label, response, ownId, foreignId] of [
+      ['tenantA', technicianGeofencesA, createGeofenceA.body.id, createGeofenceB.body.id],
+      ['tenantB', technicianGeofencesB, createGeofenceB.body.id, createGeofenceA.body.id]
+    ]) {
+      if (response.status !== 200
+          || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+          || !Array.isArray(response.body)
+          || response.body.length !== 1
+          || response.body[0].id !== ownId
+          || response.body.some(row => row.id === foreignId)) {
+        throw new Error('SIGNED_CONTEXT_TECHNICIAN_GEOFENCE_READ_TENANT_BOUNDARY_FAILED:' + JSON.stringify({
+          label, status: response.status, body: response.body
+        }));
+      }
+    }
+    signedSessionAutobindHttpProof.technicianGeofenceReadTenantA = 'PASS';
+    signedSessionAutobindHttpProof.technicianGeofenceReadTenantB = 'PASS';
+
+    const evaluateGeofenceA = await queryHttp(port, '/api/v1/geofences/evaluate', tokenA, {
+      method: 'POST',
+      body: { longitude: 31.2357, latitude: 30.0444 }
+    });
+    const evaluateGeofenceB = await queryHttp(port, '/api/v1/geofences/evaluate', tokenB, {
+      method: 'POST',
+      body: { longitude: 31.1313, latitude: 29.9765 }
+    });
+    const evaluateForeignPointA = await queryHttp(port, '/api/v1/geofences/evaluate', tokenA, {
+      method: 'POST',
+      body: { longitude: 31.1313, latitude: 29.9765 }
+    });
+    if (evaluateGeofenceA.status !== 200
+        || evaluateGeofenceA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || evaluateGeofenceA.body?.organizationId !== tenantA
+        || evaluateGeofenceA.body?.insideAny !== true
+        || !evaluateGeofenceA.body?.matches?.some(row => row.id === createGeofenceA.body.id)
+        || evaluateGeofenceB.status !== 200
+        || evaluateGeofenceB.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || evaluateGeofenceB.body?.organizationId !== tenantB
+        || evaluateGeofenceB.body?.insideAny !== true
+        || !evaluateGeofenceB.body?.matches?.some(row => row.id === createGeofenceB.body.id)
+        || evaluateForeignPointA.status !== 200
+        || evaluateForeignPointA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || evaluateForeignPointA.body?.organizationId !== tenantA
+        || evaluateForeignPointA.body?.insideAny !== false
+        || evaluateForeignPointA.body?.matches?.length !== 0) {
+      throw new Error('SIGNED_CONTEXT_GEOFENCE_EVALUATION_TENANT_BOUNDARY_FAILED:' + JSON.stringify({
+        tenantA: { status: evaluateGeofenceA.status, body: evaluateGeofenceA.body },
+        tenantB: { status: evaluateGeofenceB.status, body: evaluateGeofenceB.body },
+        foreignPointAsTenantA: { status: evaluateForeignPointA.status, body: evaluateForeignPointA.body }
+      }));
+    }
+    signedSessionAutobindHttpProof.geofenceEvaluationTenantA = 'PASS';
+    signedSessionAutobindHttpProof.geofenceEvaluationTenantB = 'PASS';
+    signedSessionAutobindHttpProof.geofenceEvaluationForeignTenantHidden = 'PASS';
+
+    const rolePolygonsA = await queryHttp(port, '/api/v1/geofences/role-polygons', tokenA);
+    const rolePolygonsB = await queryHttp(port, '/api/v1/geofences/role-polygons', tokenB);
+    if (rolePolygonsA.status !== 200
+        || rolePolygonsA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || rolePolygonsA.body?.organizationId !== tenantA
+        || !rolePolygonsA.body?.polygons?.some(row => row.id === createGeofenceA.body.id)
+        || rolePolygonsA.body?.polygons?.some(row => row.id === createGeofenceB.body.id)
+        || rolePolygonsB.status !== 200
+        || rolePolygonsB.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || rolePolygonsB.body?.organizationId !== tenantB
+        || !rolePolygonsB.body?.polygons?.some(row => row.id === createGeofenceB.body.id)
+        || rolePolygonsB.body?.polygons?.some(row => row.id === createGeofenceA.body.id)) {
+      throw new Error('SIGNED_CONTEXT_GEOFENCE_ROLE_POLYGONS_TENANT_BOUNDARY_FAILED:' + JSON.stringify({
+        tenantA: { status: rolePolygonsA.status, body: rolePolygonsA.body },
+        tenantB: { status: rolePolygonsB.status, body: rolePolygonsB.body }
+      }));
+    }
+    signedSessionAutobindHttpProof.geofenceRolePolygonsTenantA = 'PASS';
+    signedSessionAutobindHttpProof.geofenceRolePolygonsTenantB = 'PASS';
+
+    // Map viewport queries include both fixture coordinates in the same bbox;
+    // database scoping must return only the caller tenant's located site.
+    const viewportQuery = '?west=31.12&south=29.97&east=31.24&north=30.05&limit=20';
+    const mapViewportA = await queryHttp(port, '/api/v1/map/viewport' + viewportQuery, tokenA);
+    const mapViewportB = await queryHttp(port, '/api/v1/map/viewport' + viewportQuery, tokenB);
+    for (const [label, response, ownSiteId, foreignSiteId, expectedTenant] of [
+      ['tenantA', mapViewportA, createSiteA.body.id, createSiteB.body.id, tenantA],
+      ['tenantB', mapViewportB, createSiteB.body.id, createSiteA.body.id, tenantB]
+    ]) {
+      if (response.status !== 200
+          || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+          || response.body?.organizationId !== expectedTenant
+          || !Array.isArray(response.body?.sites)
+          || response.body.sites.length !== 1
+          || response.body.sites[0].id !== ownSiteId
+          || response.body.sites.some(row => row.id === foreignSiteId)
+          || response.body?.counts?.sites !== 1) {
+        throw new Error('SIGNED_CONTEXT_MAP_VIEWPORT_TENANT_BOUNDARY_FAILED:' + JSON.stringify({
+          label, status: response.status, body: response.body
+        }));
+      }
+    }
+    signedSessionAutobindHttpProof.mapViewportTenantA = 'PASS';
+    signedSessionAutobindHttpProof.mapViewportTenantB = 'PASS';
 
     // This route previously called ctx(req) a second time after the global
     // requireCtx gate, which would attempt to downgrade a signed field principal
@@ -2690,6 +2929,42 @@ async function main() {
       }
     } catch (cleanupError) {
       process.stderr.write('SIGNED_CONTEXT_APPOINTMENT_FIXTURE_CLEANUP_VERIFICATION_FAILED:' +
+        String(cleanupError.code || cleanupError.message || cleanupError).slice(0, 500) + '\\n');
+      process.exitCode = 1;
+    }
+    try {
+      await owner.query(
+        'DELETE FROM public.technician_geofences WHERE organization_id = ANY($1::text[]) AND geofence_id = ANY($2::text[])',
+        [synthetic.tenantIds, synthetic.geofenceIds]
+      );
+    } catch (cleanupError) {
+      geofenceCleanupErrors.push('technician_geofences:' + String(cleanupError.code || cleanupError.message || cleanupError));
+    }
+    try {
+      await owner.query('DELETE FROM public.geofences WHERE id = ANY($1::text[])', [synthetic.geofenceIds]);
+    } catch (cleanupError) {
+      geofenceCleanupErrors.push('geofences:' + String(cleanupError.code || cleanupError.message || cleanupError));
+    }
+    try {
+      const residue = await owner.query(
+        "SELECT " +
+        "(SELECT COUNT(*)::int FROM public.geofences WHERE id = ANY($1::text[])) AS geofence_rows, " +
+        "(SELECT COUNT(*)::int FROM public.technician_geofences WHERE organization_id = ANY($2::text[]) AND geofence_id = ANY($1::text[])) AS assignment_rows",
+        [synthetic.geofenceIds, synthetic.tenantIds]
+      );
+      const remaining = residue.rows[0] || {};
+      if (geofenceCleanupErrors.length || Number(remaining.geofence_rows) !== 0
+          || Number(remaining.assignment_rows) !== 0) {
+        process.stderr.write('SIGNED_CONTEXT_GEOFENCE_FIXTURE_CLEANUP_FAILED:' + JSON.stringify({
+          errors: geofenceCleanupErrors,
+          remaining
+        }) + '\\n');
+        process.exitCode = 1;
+      } else {
+        process.stdout.write('SIGNED_CONTEXT_GEOFENCE_FIXTURE_CLEANUP=PASS\\n');
+      }
+    } catch (cleanupError) {
+      process.stderr.write('SIGNED_CONTEXT_GEOFENCE_FIXTURE_CLEANUP_VERIFICATION_FAILED:' +
         String(cleanupError.code || cleanupError.message || cleanupError).slice(0, 500) + '\\n');
       process.exitCode = 1;
     }
