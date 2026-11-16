@@ -387,7 +387,7 @@ jobs:
                   && String(signedRoutes.parentBranchId || '').trim() === expectedBranch
                   && signedRoutes.evidenceRebind == null && routeAssertionsPass;
                 
-const noEvidenceRebind = (evidence) => evidence.evidenceRebind == null;
+                const noEvidenceRebind = (evidence) => evidence.evidenceRebind == null;
                 const requiredSessionChecks = ['dualLogin','tenantPrincipalBinding','ownAssetCreate','ownAssetRead','tenantListIsolation','crossTenantAssetReadDenied','ownAssetEventWrite','crossTenantWriteDenied','unauthenticatedDenied','cleanupComplete'];
                 const sessionChecksPass = requiredSessionChecks.every(key => session.checks && session.checks[key] === 'PASS');
                 const sOk = session.schemaVersion === 'opscore.production-session-isolation.v2' && session.status === 'PASS' && session.verificationScope === 'dual-tenant-http-asset-create-read-event-write-denial-and-cleanup' && sessionChecksPass && session.databaseName === 'opscore_acceptance' && String(session.pipelineId || '') === String(process.env.GITHUB_RUN_ID || '') && sourceCommitMatches(session) && sourceBranchMatches(session) && noEvidenceRebind(session);
@@ -462,7 +462,7 @@ const noEvidenceRebind = (evidence) => evidence.evidenceRebind == null;
                   && String(signedRoutes.parentBranchId || '').trim() === expectedBranch
                   && signedRoutes.evidenceRebind == null && routeAssertionsPass;
                 
-const noEvidenceRebind = (evidence) => evidence.evidenceRebind == null;
+              const noEvidenceRebind = (evidence) => evidence.evidenceRebind == null;
               const requiredSessionChecks = ['dualLogin','tenantPrincipalBinding','ownAssetCreate','ownAssetRead','tenantListIsolation','crossTenantAssetReadDenied','ownAssetEventWrite','crossTenantWriteDenied','unauthenticatedDenied','cleanupComplete'];
                 const sessionChecksPass = requiredSessionChecks.every(key => session.checks && session.checks[key] === 'PASS');
                 const sOk = session.schemaVersion === 'opscore.production-session-isolation.v2' && session.status === 'PASS' && session.verificationScope === 'dual-tenant-http-asset-create-read-event-write-denial-and-cleanup' && sessionChecksPass && session.databaseName === 'opscore_acceptance' && String(session.pipelineId || '') === String(process.env.GITHUB_RUN_ID || '') && sourceCommitMatches(session) && sourceBranchMatches(session) && noEvidenceRebind(session);
