@@ -668,9 +668,11 @@ test('functionalApiRouteAcceptance flips to PASS_CONTRACT_SCOPE only with commit
 
 
 
-test('Production signed-session route certification requires all 67 distinct route proofs bound to the exact commit, pipeline, database and branch', () => {
+test('Production signed-session route validator binds every result to the approved inventory and manifest', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-production-signed-route-coverage-'));
   const file = path.join(dir, 'SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE.json');
+  const manifestPath = path.join(dir, 'SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST.json');
+  const inventoryPath = path.join(dir, 'API_INVENTORY.json');
   const env = {
     OPSC_RELEASE_CI_COMMIT: SHA,
     OPSC_RELEASE_CI_PIPELINE_ID: '3099988776',
@@ -689,6 +691,28 @@ test('Production signed-session route certification requires all 67 distinct rou
       ? { tenantARead: true, tenantBRead: true, crossTenantReadDenied: true }
       : { tenantAWrite: true, tenantBWrite: true, crossTenantWriteDenied: true })
   }));
+  const inventory = {
+    routeCount: 67,
+    routes: routes.map(route => ({
+      method: route.method,
+      route: route.path,
+      auth: 'session'
+    }))
+  };
+  const inventoryBytes = Buffer.from(JSON.stringify(inventory, null, 2) + '\n');
+  const inventorySha256 = crypto.createHash('sha256').update(inventoryBytes).digest('hex');
+  const manifest = {
+    schemaVersion: 'opscore.signed-tenant-context-route-manifest.v1',
+    routeCount: 67,
+    routeInventorySha256: inventorySha256,
+    routes: routes.map(route => ({
+      method: route.method,
+      path: route.path,
+      operation: route.operation
+    }))
+  };
+  const manifestBytes = Buffer.from(JSON.stringify(manifest, null, 2) + '\n');
+  const manifestSha256 = crypto.createHash('sha256').update(manifestBytes).digest('hex');
   const evidence = {
     schemaVersion: 'opscore.signed-tenant-context-production-coverage.v1',
     environment: 'production',
@@ -700,25 +724,36 @@ test('Production signed-session route certification requires all 67 distinct rou
     expectedRouteCount: 67,
     coveredRouteCount: 67,
     failedRouteCount: 0,
+    routeManifestSha256: manifestSha256,
+    routeInventorySha256: inventorySha256,
     testedAt: '2026-11-16T09:00:00.000Z',
     routes
   };
+  const validate = () => readProductionSignedTenantRouteCoverageEvidence(
+    file, env, manifestPath, inventoryPath
+  );
   try {
+    fs.writeFileSync(inventoryPath, inventoryBytes);
+    fs.writeFileSync(manifestPath, manifestBytes);
     fs.writeFileSync(file, JSON.stringify(evidence));
-    assert.equal(readProductionSignedTenantRouteCoverageEvidence(file, env).status, 'PASS');
+    assert.equal(validate().status, 'PASS');
 
     const duplicate = { ...evidence, routes: [...routes.slice(0, 66), routes[0]] };
     fs.writeFileSync(file, JSON.stringify(duplicate));
-    assert.equal(readProductionSignedTenantRouteCoverageEvidence(file, env).status, 'NOT_VERIFIED');
+    assert.equal(validate().status, 'NOT_VERIFIED');
 
     fs.writeFileSync(file, JSON.stringify({ ...evidence, pipelineId: '3099988777' }));
-    assert.equal(readProductionSignedTenantRouteCoverageEvidence(file, env).status, 'NOT_VERIFIED');
+    assert.equal(validate().status, 'NOT_VERIFIED');
 
     fs.writeFileSync(file, JSON.stringify({ ...evidence, coveredRouteCount: 66 }));
-    assert.equal(readProductionSignedTenantRouteCoverageEvidence(file, env).status, 'NOT_VERIFIED');
+    assert.equal(validate().status, 'NOT_VERIFIED');
 
     fs.writeFileSync(file, JSON.stringify({ ...evidence, databaseName: 'opscore_http_acceptance' }));
-    assert.equal(readProductionSignedTenantRouteCoverageEvidence(file, env).status, 'NOT_VERIFIED');
+    assert.equal(validate().status, 'NOT_VERIFIED');
+
+    fs.writeFileSync(manifestPath, JSON.stringify({ ...manifest, routes: manifest.routes.slice(0, 66) }));
+    fs.writeFileSync(file, JSON.stringify(evidence));
+    assert.equal(validate().status, 'NOT_VERIFIED', 'the evidence cannot exceed the approved route manifest');
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
