@@ -276,7 +276,10 @@ async function main() {
         ')::text;'
       ].join('\n');
       const cleanupText = psql(ownerUri, cleanupSql);
-      cleanupDetails = JSON.parse(cleanupText);
+      // psql -c with multiple statements prints command tags (BEGIN, UPDATE n, COMMIT)
+      // before the json_build_object row. Parse only the JSON result line.
+      const cleanupJsonLine = cleanupText.split('\n').map(s => s.trim()).filter(s => s.startsWith('{')).pop();
+      cleanupDetails = JSON.parse(cleanupJsonLine || cleanupText);
       const cleanupOk = Number(cleanupDetails.organizationsRetained) === 2
         && Number(cleanupDetails.disabledUsers) === 2
         && Number(cleanupDetails.sessionsRemaining) === 0
