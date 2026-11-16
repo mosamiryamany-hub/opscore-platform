@@ -8,15 +8,79 @@ function isPreview(env = process.env) {
   return String(env.VERCEL_ENV || '') === 'preview';
 }
 
+const OPERATIONAL_SIGNED_READ_ROUTES = [
+  ['GET', /^\/api\/v1\/customers$/],
+  ['GET', /^\/api\/v1\/sites$/],
+  ['GET', /^\/api\/v1\/appointments$/],
+  ['GET', /^\/api\/v1\/appointments\/[^/]+$/],
+  ['GET', /^\/api\/v1\/geofences$/],
+  ['GET', /^\/api\/v1\/technicians$/],
+  ['GET', /^\/api\/v1\/technicians\/availability$/],
+  ['GET', /^\/api\/v1\/technicians\/skills$/],
+  ['GET', /^\/api\/v1\/technicians\/[^/]+\/geofences$/],
+  ['GET', /^\/api\/v1\/technicians\/trail$/],
+  ['GET', /^\/api\/v1\/technicians\/trail\.geojson$/],
+  ['GET', /^\/api\/v1\/geofences\/role-polygons$/],
+  ['GET', /^\/api\/v1\/map\/viewport$/],
+  ['GET', /^\/api\/v1\/customers\/[^/]+\/service-line$/],
+  ['POST', /^\/api\/v1\/faults\/classify$/],
+  ['POST', /^\/api\/v1\/geofences\/assert-access$/],
+  ['POST', /^\/api\/v1\/geofences\/evaluate$/]
+];
+
+const OPERATIONAL_SIGNED_WRITE_ROUTES = [
+  ['POST', /^\/api\/v1\/assets$/],
+  ['PATCH', /^\/api\/v1\/assets\/[^/]+$/],
+  ['POST', /^\/api\/v1\/assets\/[^/]+\/events$/],
+  ['POST', /^\/api\/v1\/customers$/],
+  ['PATCH', /^\/api\/v1\/customers\/[^/]+$/],
+  ['POST', /^\/api\/v1\/customers\/[^/]+\/service-line$/],
+  ['POST', /^\/api\/v1\/sites$/],
+  ['PATCH', /^\/api\/v1\/sites\/[^/]+$/],
+  ['POST', /^\/api\/v1\/faults$/],
+  ['POST', /^\/api\/v1\/faults\/[^/]+\/transition$/],
+  ['POST', /^\/api\/v1\/faults\/[^/]+\/unreachable$/],
+  ['POST', /^\/api\/v1\/appointments$/],
+  ['PATCH', /^\/api\/v1\/appointments\/[^/]+$/],
+  ['POST', /^\/api\/v1\/appointments\/[^/]+\/on-my-way$/],
+  ['POST', /^\/api\/v1\/appointments\/[^/]+\/reschedule$/],
+  ['POST', /^\/api\/v1\/appointments\/[^/]+\/unreachable$/],
+  ['POST', /^\/api\/v1\/geofences$/],
+  ['POST', /^\/api\/v1\/geofences\/[^/]+\/technicians$/],
+  ['POST', /^\/api\/v1\/geofences\/dynamic-events$/],
+  ['POST', /^\/api\/v1\/technicians$/],
+  ['POST', /^\/api\/v1\/technicians\/skills$/],
+  ['POST', /^\/api\/v1\/technicians\/trail$/]
+];
+
+function routeAllowed(req, routes) {
+  const method = String(req && req.method || '').toUpperCase();
+  const pathname = String(req && req.url || '').split('?')[0];
+  return routes.some(([expectedMethod, pattern]) => method === expectedMethod && pattern.test(pathname));
+}
+
+function signedOperationalReadEnabled(req, env = process.env) {
+  return isPreview(env)
+    && enabled(env.OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_READ_ENABLED)
+    && routeAllowed(req, OPERATIONAL_SIGNED_READ_ROUTES);
+}
+
+function signedOperationalWriteEnabled(req, env = process.env) {
+  return isPreview(env)
+    && enabled(env.OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_WRITE_ENABLED)
+    && routeAllowed(req, OPERATIONAL_SIGNED_WRITE_ROUTES);
+}
+
 function signedWorkOrdersReadEnabled(req, env = process.env) {
   const pathname = String(req && req.url || '').split('?')[0];
   const supportedReadPath = pathname === '/api/v1/work-orders'
     || /^\/api\/v1\/work-orders\/[^/]+$/.test(pathname)
     || /^\/api\/v1\/work-orders\/[^/]+\/(?:completion-package|timeline|handoff|operational-risk|comments|attachments|dispatch-candidates|parts|signoffs|why-blocked|changelog|verified-job-record|work-pack|completion-assurance|time-summary|first-time-right)$/.test(pathname);
-  return isPreview(env)
+  const workOrderRead = isPreview(env)
     && enabled(env.OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_ENABLED)
     && String(req && req.method || '').toUpperCase() === 'GET'
     && supportedReadPath;
+  return workOrderRead || signedOperationalReadEnabled(req, env);
 }
 
 function signedWorkOrdersWriteEnabled(req, env = process.env) {
@@ -34,9 +98,10 @@ function signedWorkOrdersWriteEnabled(req, env = process.env) {
     || (method === 'PUT' && /^\/api\/v1\/evidence-uploads\/[^/]+\/chunks\/\d+$/.test(pathname))
     || (method === 'POST' && /^\/api\/v1\/evidence-uploads\/[^/]+\/complete$/.test(pathname))
     || (method === 'POST' && /^\/api\/v1\/work-orders\/[^/]+\/attachments$/.test(pathname));
-  return isPreview(env)
+  const workOrderWrite = isPreview(env)
     && enabled(env.OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_WRITE_ENABLED)
     && supportedWritePath;
+  return workOrderWrite || signedOperationalWriteEnabled(req, env);
 }
 
 function signedWorkOrdersContextEnabled(req, env = process.env) {
@@ -92,7 +157,9 @@ function isSignedTenantContextRouteDefinition(method, route, operation) {
     VERCEL_ENV: 'preview',
     OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_ENABLED: 'true',
     OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_WRITE_ENABLED: 'true',
-    OPSC_SIGNED_TENANT_CONTEXT_ASSETS_READ_ENABLED: 'true'
+    OPSC_SIGNED_TENANT_CONTEXT_ASSETS_READ_ENABLED: 'true',
+    OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_READ_ENABLED: 'true',
+    OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_WRITE_ENABLED: 'true'
   };
 
   if (operation === 'read') {
