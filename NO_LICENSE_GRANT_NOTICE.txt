@@ -1,20 +1,17 @@
-NO LICENSE GRANT — ALL RIGHTS RESERVED
+NO LICENSE GRANT BY DEFAULT — ALL RIGHTS RESERVED
 
-OpsCore source package
-Copyright © 2026 OpsCore rights holder. All rights reserved.
+Unless the rights holder and a named buyer have both signed a written License
+Schedule that references docs/commercial/LICENSE_FRAMEWORK.md and pins an exact
+deliverable (source commit and/or package SHA-256), no license is granted to use,
+install, run, modify, copy, distribute, resell, sublicense, host, or commercially
+exploit this software or any accompanying materials.
 
-This notice is not a license and grants no permission or rights, whether express,
-implied, by estoppel, or otherwise, to access, use, install, run, inspect, copy,
-modify, create derivative works from, host, publish, distribute, sell, resell,
-sublicense, rent, transfer, or commercially exploit this source package.
+Commercial tiers (Use / Use+Modify / Use+Modify+Distribute) are described only in
+docs/commercial/LICENSE_FRAMEWORK.md. That framework does not itself grant rights.
+Prices are not published in this repository; they are agreed per buyer in the Schedule.
 
-The commercial model and any future license grant are pending a separate decision
-by the rights holder. No sale, delivery, redistribution, resale, sublicensing, or
-other commercial distribution is authorized until a separate written agreement
-is approved and signed by the rights holder.
+CI success, production health, isolation certification, recovery evidence, package
+fingerprints, SBOM, or attestation do not create a license.
 
-Third-party components remain subject to their respective upstream licenses.
-This notice does not grant rights to third-party components.
-
-For avoidance of doubt: CI success, deployment status, release artifacts, hashes,
-SBOMs, attestations, or buyer-delivery documents do not create or imply a license.
+Package metadata remains UNLICENSED. Do not add a first-party LICENSE grant file
+unless the rights holder intentionally publishes a public license text.
