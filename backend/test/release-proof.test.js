@@ -359,6 +359,7 @@ test('production behavioral evidence rejects any evidence rebind marker', () => 
   const env = {
     OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE: 'true',
     OPSC_RELEASE_CI_COMMIT: SHA,
+    OPSC_RELEASE_CI_PIPELINE_ID: '2978538209',
     OPSC_PRODUCTION_NEON_BRANCH_ID: 'br-current-production'
   };
   const session = {
