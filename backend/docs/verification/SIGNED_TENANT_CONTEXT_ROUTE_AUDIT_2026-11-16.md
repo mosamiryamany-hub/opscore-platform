@@ -66,3 +66,42 @@ For every route, the verifier requires signed-context, session, and transaction 
 5. Only after the Preview matrix passes, generate a manifest bound to the exact inventory SHA and obtain the required release authorization for a Production execution. Production coverage must be freshly generated on the exact commit and pipeline; Preview results cannot be promoted or rebound as Production evidence.
 
 **Commercial certification remains HOLD.**
+
+
+## Prior isolated CI evidence and its scope (read before treating counts as comparable)
+
+The repository already contains a historical report, `SIGNED_TENANT_CONTEXT_WORK_ORDERS_CI_VERIFICATION_2026-11-14.md`, documenting disposable PostgreSQL 18 CI evidence:
+- 18 signed work-order GET route patterns were tested, including all listed read subresources.
+- The write set included create, update, comments, transition, soft-delete, restore, and later bulk; evidence-upload chunk/complete paths are also guarded by the current Preview write allowlist.
+- The report records 48/48 read-subresource assertions and 26/26 write assertions for its then-current test suite.
+- A separate source-derived tenant route isolation matrix reported 346 route probes on disposable CI data.
+
+Those results are useful CI evidence, but **they are not the missing 67-route Production signed-session certificate**. The 346-route matrix validates its own tenant isolation test scope; it does not assert signed HMAC context binding, same-session/database transaction binding, raw-GUC tamper rejection, or Production source-commit/pipeline/branch identity for all 346 routes. Likewise, a Preview-only work-order route suite cannot be relabeled as Production evidence.
+
+## Current Preview environment metadata (values intentionally not read)
+
+Vercel's environment metadata was listed with `decrypt=false`. The Preview target lists:
+- `OPSC_TENANT_CONTEXT_KEY_JSON`
+- `OPSC_TENANT_CONTEXT_PROOF_ENABLED`
+- `OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_ENABLED`
+- `OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_WRITE_ENABLED`
+- `OPSC_REQUIRE_SIGNED_TENANT_CONTEXT`
+- `OPSC_TENANT_CONTEXT_KEY_ID`
+- `OPSC_TENANT_CONTEXT_HMAC_KEY`
+
+The metadata did **not** list `OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED`. Secret values were not decrypted, and no environment value was changed. Therefore this is a metadata-only prerequisite check; it does not establish whether `OPSC_REQUIRE_SIGNED_TENANT_CONTEXT` is currently true or false.
+
+The source passes `OPSC_REQUIRE_SIGNED_TENANT_CONTEXT` to the PostgreSQL worker, which rejects unsigned field-mode context when that flag is true. Before this follow-up, `server.js` only attached a verified session principal when Preview session-autobind or the narrower work-order allowlist was active; other routes would attempt the legacy field bind and receive the worker's generic rejection.
+
+## Fail-closed route-policy repair added in PR #163
+
+The integrated PR now extracts the existing Preview-only signed-route decisions into `backend/src/signed-tenant-context-policy.js` and checks `OPSC_REQUIRE_SIGNED_TENANT_CONTEXT` before the legacy unsigned field-context fallback:
+- If signed context is required but the current request has no enabled signed-session route path, the server returns `503 SIGNED_TENANT_CONTEXT_ROUTE_NOT_ENABLED`.
+- Enabled Preview work-order read/write paths continue through the existing signed principal and transaction-binding path.
+- Global session autobind remains Preview-only.
+- No Production route or flag was enabled and no runtime deployment was performed.
+
+New unit tests in `backend/test/signed-tenant-context-policy.test.js` cover Preview-only gates, method-specific route allowlists, the separate work-order write flag, the required-but-unsupported route failure, and the server's guard ordering before unsigned GUC binding.
+
+This repair improves the failure mode; it does not add new routes to the signed allowlist and does not close the 67-route gate. CI for the current PR head must pass before the change can be considered merged. Production isolation and commercial closure remain **HOLD**.
+
