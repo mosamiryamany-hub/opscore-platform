@@ -1,0 +1,39 @@
+'use strict';
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+
+const root = path.resolve(__dirname, '..');
+const collector = fs.readFileSync(path.join(root, 'scripts', 'collect-production-recovery-point.js'), 'utf8');
+const workflow = fs.readFileSync(path.join(root, '..', '.github', 'workflows', 'vercel-deploy.yml'), 'utf8');
+
+test('production recovery selects one explicit application database and never falls back to another database', () => {
+  assert.match(collector, /OPSC_PRODUCTION_DATABASE_NAME/);
+  assert.match(collector, /connectionUri\(projectId, parentBranchId, databaseName, roleName\)/);
+  assert.doesNotMatch(collector, /candidateDbs/);
+  assert.doesNotMatch(collector, /db_try_fail/);
+  assert.match(collector, /PRODUCTION_RECOVERY_DATABASE_IDENTITY_MISMATCH/);
+  assert.match(workflow, /OPSC_PRODUCTION_DATABASE_NAME: opscore_acceptance/);
+});
+
+test('recovery collector never deletes an existing Neon branch and fails closed at the branch limit', () => {
+  assert.match(collector, /NEON_BRANCH_CAPACITY_EXHAUSTED/);
+  assert.match(collector, /no existing recovery branch was deleted/);
+  assert.doesNotMatch(collector, /method:\s*['"]DELETE['"]/i);
+  assert.doesNotMatch(collector, /pruned_branch/);
+});
+
+test('recovery evidence declares its row-count-only scope and does not claim PITR or content equality', () => {
+  assert.match(collector, /coreTenantTableRowCountsMatch/);
+  assert.match(collector, /branch-clone-public-table-count-and-core-tenant-row-counts-only/);
+  assert.match(collector, /does not compare row contents, certify PITR, or establish RPO\/RTO/);
+  assert.match(collector, /opscore\.production-recovery-point\.v2/);
+});
+
+test('release certification requires the exact application database and explicit recovery scope', () => {
+  assert.match(workflow, /recovery\.schemaVersion === 'opscore\.production-recovery-point\.v2'/);
+  assert.match(workflow, /recovery\.databaseName === 'opscore_acceptance'/);
+  assert.match(workflow, /recovery\.coreTenantTableRowCountsMatch === true/);
+  assert.match(workflow, /branch-clone-public-table-count-and-core-tenant-row-counts-only/);
+});
