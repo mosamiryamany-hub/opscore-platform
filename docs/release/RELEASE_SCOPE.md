@@ -4,9 +4,11 @@
 
 The exact release identity is generated for each successful exact-head GitHub Actions Secure Release run. Use the same run's source commit, workflow run ID, artifact ID, archive filename, byte count, SHA-256, SBOM, and provenance attestation as one indivisible evidence set. This source document intentionally carries no fixed commit, pipeline, deployment, or digest values. Any source change invalidates the previous candidate identity.
 
-## Commercial rights hold
+## Seller offer and commercial rights
 
-**NO LICENSE GRANT — ALL RIGHTS RESERVED.** Distribution, sale, resale, redistribution, sublicensing, buyer delivery, and other commercial exploitation are not authorized. Package metadata remains `UNLICENSED`; the authoritative notice is `NO_LICENSE_GRANT_NOTICE.txt`. No first-party `LICENSE` or `LICENCE` file may be packaged while this hold is active. Technical evidence does not create or imply rights.
+The rights holder may advertise, list, present and negotiate the source-code offer before a buyer is identified. This seller-side offer activity does not grant rights to a buyer.
+
+**NO LICENSE GRANT — ALL RIGHTS RESERVED.** No buyer may install, run, modify, copy, host, distribute, resell, sublicense or receive the licensed deliverable until the rights holder and the named buyer execute a transaction-specific written License Schedule that pins the exact source commit/package SHA-256 and records the granted tier, rights and conditions. Package metadata remains `UNLICENSED`; the authoritative notice is `NO_LICENSE_GRANT_NOTICE.txt`. No first-party `LICENSE` or `LICENCE` file may be packaged while no grant exists. Technical evidence does not create or imply rights.
 
 ## Included source and seller-owned scope
 
@@ -22,7 +24,6 @@ The exact release identity is generated for each successful exact-head GitHub Ac
 - Native-speaker/domain review of machine-assisted translations is outstanding; no linguistic qualification is claimed.
 - Licensed maps/road-routing and required attribution, API keys, quota, and provider contracts are not included.
 - External provider accounts, licenses, credentials, setup, billing, quotas, and live acceptance for identity/OIDC/JWKS, email/SMS/WhatsApp/PSTN/SIP, external call-center/telephony, payments, webhooks, object storage, KMS/HSM, and cloud remain environment-specific.
-- Buyer-environment installation, migrations, database isolation, recovery, WAF/TLS, observability, and operational acceptance must be independently completed.
 
 ## Verification boundary
 
@@ -34,4 +35,4 @@ Signed tenant-context cutover remains incomplete: the Preview-only session-autob
 
 ## Release gate
 
-An archive can be considered a verified technical candidate only when the exact-head workflow succeeds, the no-license package gate passes, the package round-trip and manifests verify, and the archive digest matches the same-run external release statement. While the commercial rights hold remains active, such an archive is for internal technical verification only and is **NOT LICENSED FOR DISTRIBUTION**.
+An archive can be considered a verified technical candidate only when the exact-head workflow succeeds, the no-license package gate passes, the package round-trip and manifests verify, and the archive digest matches the same-run external release statement. A successful technical candidate may be marketed by the rights holder, but buyer use or delivery remains unauthorized until a transaction-specific License Schedule is executed.
