@@ -32,7 +32,9 @@ test('signed route evidence policy is derived from actual Preview runtime allowl
   assert.equal(policy.isSignedTenantContextRouteDefinition('GET', '/api/v1/work-orders/{id}/evidence-package', 'read'), false);
   assert.equal(policy.isSignedTenantContextRouteDefinition('POST', '/api/v1/faults/offline-sync', 'write'), false);
   assert.equal(policy.isSignedTenantContextRouteDefinition('GET', '/api/v1/autopilot/decision-memory', 'read'), false);
-  assert.equal(policy.isSignedTenantContextRouteDefinition('PUT', '/api/v1/evidence-uploads/{id}/chunks/(\\\\d+)', 'write'), true);
+  const evidenceChunkRoute = apiInventory.routes.find((route) => route.method === 'PUT' && route.route.includes('/evidence-uploads/') && route.route.includes('/chunks/'));
+  assert.ok(evidenceChunkRoute, 'the evidence chunk route must exist in the API inventory');
+  assert.equal(policy.isSignedTenantContextRouteDefinition('PUT', evidenceChunkRoute.route, 'write'), true);
 });
 
 
