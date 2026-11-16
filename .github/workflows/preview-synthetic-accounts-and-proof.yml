@@ -54,20 +54,14 @@ jobs:
           const { execFileSync } = require('child_process');
           const fs = require('fs');
           const uri = fs.readFileSync(process.env.RUNNER_TEMP + '/preview.uri', 'utf8').trim();
-
           const SCRYPT_N = 131072, SCRYPT_R = 8, SCRYPT_P = 1;
           function hashPassword(password) {
             const salt = crypto.randomBytes(16);
             const derived = crypto.scryptSync(password, salt, 64, { N: SCRYPT_N, r: SCRYPT_R, p: SCRYPT_P, maxmem: 256 * 1024 * 1024 });
             return `scrypt$${SCRYPT_N}$${SCRYPT_R}$${SCRYPT_P}$${salt.toString('base64url')}$${derived.toString('base64url')}`;
           }
-          function hashToken(token) {
-            return crypto.createHash('sha256').update(token).digest('hex');
-          }
-          function id(prefix) {
-            return `${prefix}_${crypto.randomUUID()}`;
-          }
-
+          function hashToken(token) { return crypto.createHash('sha256').update(token).digest('hex'); }
+          function id(prefix) { return `${prefix}_${crypto.randomUUID()}`; }
           const password = 'OpsCore-Synth-' + crypto.randomBytes(8).toString('hex') + '-2026';
           const tokenA = crypto.randomBytes(32).toString('base64url');
           const tokenB = crypto.randomBytes(32).toString('base64url');
@@ -85,12 +79,9 @@ jobs:
           const thB = hashToken(tokenB);
           const expires = new Date(Date.now() + 6 * 3600 * 1000).toISOString();
           const now = new Date().toISOString();
-
-          // Write secrets to restricted files only (not logs)
           fs.writeFileSync(process.env.RUNNER_TEMP + '/synth.json', JSON.stringify({
             emailA, emailB, password, tokenA, tokenB, orgA, orgB, userA, userB, sesA, sesB
           }), { mode: 0o600 });
-
           const sql = `
           BEGIN;
           INSERT INTO organizations (id, name, created_at) VALUES
@@ -109,7 +100,6 @@ jobs:
             ('${sesA}', '${userA}', '${orgA}', '${thA}', '${expires}', '${now}'),
             ('${sesB}', '${userB}', '${orgB}', '${thB}', '${expires}', '${now}')
           ON CONFLICT (id) DO NOTHING;
-          -- Ensure probe table exists for proof route (idempotent)
           CREATE TABLE IF NOT EXISTS opscore_security.context_probe_rows (
             id bigserial PRIMARY KEY,
             organization_id text NOT NULL,
@@ -121,14 +111,8 @@ jobs:
           `;
           fs.writeFileSync(process.env.RUNNER_TEMP + '/seed.sql', sql, { mode: 0o600 });
           const out = execFileSync('psql', [uri, '-v', 'ON_ERROR_STOP=1', '-f', process.env.RUNNER_TEMP + '/seed.sql'], { encoding: 'utf8' });
-          console.log(out.split('\n').filter(l => !l.includes('scrypt')).join('\n'));
+          console.log(out);
           console.log('SYNTH_ACCOUNTS_SEEDED=true');
-          // Outputs (non-secret identifiers only)
-          const gh = process.env.GITHUB_OUTPUT;
-          fs.appendFileSync(gh, `email_a=${emailA}\n`);
-          fs.appendFileSync(gh, `email_b=${emailB}\n`);
-          fs.appendFileSync(gh, `org_a=${orgA}\n`);
-          fs.appendFileSync(gh, `org_b=${orgB}\n`);
           NODE
 
       - name: Try proof endpoint with synthetic session (Preview)
@@ -139,36 +123,42 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: |
           set -euo pipefail
-          SYNTH=$(cat "$RUNNER_TEMP/synth.json")
           TOKEN_A=$(python3 -c 'import json,os;print(json.load(open(os.environ["RUNNER_TEMP"]+"/synth.json"))["tokenA"])')
           BASE="https://${HOST}"
           echo "BASE=$BASE"
-
-          # Prefer automation bypass secret if present in project env (not printed)
           set +e
-          # Method 1: vercel curl (latest)
-          vercel curl "${BASE}/api/health" --token "$VERCEL_TOKEN" > "$RUNNER_TEMP/health.txt" 2>"$RUNNER_TEMP/health.err"
-          HC=$?
+          vercel curl --token "$VERCEL_TOKEN" "$BASE/api/health" >"$RUNNER_TEMP/health.raw" 2>"$RUNNER_TEMP/health.err"
+          echo "health_exit=$?"
+          vercel curl --token "$VERCEL_TOKEN" -H "Authorization: Bearer ${TOKEN_A}" \
+            "$BASE/api/v1/me" >"$RUNNER_TEMP/me.raw" 2>"$RUNNER_TEMP/me.err"
+          echo "me_exit=$?"
+          vercel curl --token "$VERCEL_TOKEN" -H "Authorization: Bearer ${TOKEN_A}" \
+            "$BASE/api/v1/_internal/tenant-context-proof" >"$RUNNER_TEMP/proof.raw" 2>"$RUNNER_TEMP/proof.err"
+          echo "proof_exit=$?"
           set -e
-          echo "vercel_curl_health_exit=$HC"
-          head -c 400 "$RUNNER_TEMP/health.txt" || true
-          echo
-          head -c 200 "$RUNNER_TEMP/health.err" || true
-          echo
-
-          # Method 2: cookie session against proof path via vercel curl
-          set +e
-          vercel curl "${BASE}/api/v1/_internal/tenant-context-proof" \
-            --token "$VERCEL_TOKEN" \
-            -H "Cookie: __Host-opscore_session=${TOKEN_A}" \
-            > "$RUNNER_TEMP/proof.txt" 2>"$RUNNER_TEMP/proof.err"
-          PC=$?
-          set -e
-          echo "vercel_curl_proof_exit=$PC"
-          head -c 800 "$RUNNER_TEMP/proof.txt" || true
-          echo
-
-          # DB-level verification of seed (always runs; independent of Vercel SSO)
+          python3 - <<'PY'
+          import json, re, os
+          def extract_json(path):
+              raw = open(path, encoding="utf-8", errors="replace").read()
+              matches = list(re.finditer(r"\{[\s\S]*\}", raw))
+              if not matches:
+                  print(path, "NO_JSON", raw[:400].replace("\n", " "))
+                  return None
+              try:
+                  return json.loads(matches[-1].group(0))
+              except Exception as e:
+                  print(path, "JSON_PARSE_FAIL", e)
+                  print(raw[:400])
+                  return None
+          status = "MISSING"
+          for label, name in [("health", "health.raw"), ("me", "me.raw"), ("proof", "proof.raw")]:
+              data = extract_json(os.environ["RUNNER_TEMP"] + "/" + name)
+              print(label, "keys", list(data.keys())[:15] if isinstance(data, dict) else None)
+              if label == "proof" and isinstance(data, dict):
+                  print("proof_status", data.get("status"), "ok", data.get("ok"), "error", data.get("error"))
+                  status = str(data.get("status") or (data.get("error") or {}).get("code") or "UNKNOWN")
+          open(os.environ["RUNNER_TEMP"] + "/proof_status.txt", "w").write(status)
+          PY
           URI=$(cat "$RUNNER_TEMP/preview.uri")
           psql "$URI" -v ON_ERROR_STOP=1 <<'SQL'
           SELECT 'users' AS kind, count(*)::text AS n FROM users WHERE email LIKE 'synth.%@preview.opscore.invalid';
@@ -177,4 +167,11 @@ jobs:
           FROM opscore_security.context_hmac_keys
           WHERE enabled = true AND not_before <= now() AND (not_after IS NULL OR not_after > now());
           SQL
+          STATUS=$(cat "$RUNNER_TEMP/proof_status.txt" 2>/dev/null || echo MISSING)
+          echo "PROOF_STATUS=$STATUS"
+          if [ "$STATUS" = "PASS" ]; then
+            echo "PREVIEW_SIGNED_CONTEXT_PROOF=PASS"
+          else
+            echo "PREVIEW_SIGNED_CONTEXT_PROOF=NOT_PASS"
+          fi
           echo "PREVIEW_SYNTH_SEED=PASS"
