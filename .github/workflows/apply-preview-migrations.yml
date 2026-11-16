@@ -4,13 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       branch:
-        description: Preview branch id or name (empty = auto-detect non-primary)
-        required: false
+        description: Exact Neon Preview branch ID (primary, default, and protected branches are rejected)
+        required: true
         default: "br-fragrant-king-bcr9928f"
       database:
-        description: Target database name
-        required: false
-        default: "neondb"
+        description: Application database name (fixed to opscore_acceptance)
+        required: true
+        default: "opscore_acceptance"
 
 permissions:
   contents: read
@@ -21,16 +21,16 @@ concurrency:
 
 jobs:
   apply-preview-only:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with:
-          node-version: "20"
+          node-version: "22.23.4"
           cache: npm
           cache-dependency-path: backend/package-lock.json
 
@@ -56,24 +56,18 @@ jobs:
           branches=data.get("branches") or data
           want=(os.environ.get("INPUT_BRANCH") or "").strip()
           project_id="summer-leaf-18448271"
-          chosen=None
-          for b in branches:
-            bid=str(b.get("id") or "")
-            name=str(b.get("name") or "")
-            lname=name.lower()
-            primary=bool(b.get("primary") or b.get("default"))
-            if want:
-              if want in (bid, name):
-                chosen=b; break
-            else:
-              if primary: continue
-              if any(k in lname for k in ("preview","vercel","dev","fragrant","signed","accept")):
-                chosen=b
-                if "preview" in lname or "fragrant" in lname: break
-          if not chosen:
-            print("PREVIEW_BRANCH_NOT_FOUND", file=sys.stderr); sys.exit(1)
-          if chosen.get("primary") or chosen.get("default"):
-            print("REFUSING_PRIMARY_BRANCH", file=sys.stderr); sys.exit(1)
+          if not want.startswith("br-"):
+            print("EXACT_PREVIEW_BRANCH_ID_REQUIRED", file=sys.stderr); sys.exit(1)
+          matches=[b for b in branches if str(b.get("id") or "") == want]
+          if len(matches) != 1:
+            print("PREVIEW_BRANCH_NOT_UNIQUELY_RESOLVED", file=sys.stderr); sys.exit(1)
+          chosen=matches[0]
+          if chosen.get("primary") or chosen.get("default") or chosen.get("protected"):
+            print("REFUSING_PRIMARY_DEFAULT_OR_PROTECTED_BRANCH", file=sys.stderr); sys.exit(1)
+          if str(chosen.get("current_state") or "").lower() != "ready":
+            print("PREVIEW_BRANCH_NOT_READY", file=sys.stderr); sys.exit(1)
+          if os.environ.get("INPUT_DB") != "opscore_acceptance":
+            print("PREVIEW_APPLICATION_DATABASE_REQUIRED", file=sys.stderr); sys.exit(1)
           open(os.environ["RUNNER_TEMP"]+"/branch.json","w").write(json.dumps({
             "id": chosen["id"], "name": chosen.get("name"), "project_id": project_id
           }))
@@ -91,7 +85,18 @@ jobs:
             --data-urlencode "pooled=false" \
             "https://console.neon.tech/api/v2/projects/${PROJECT_ID}/connection_uri" \
             > "$RUNNER_TEMP/uri.json"
-          python3 -c 'import json,os;u=json.load(open(os.environ["RUNNER_TEMP"]+"/uri.json"))["uri"]; assert u.startswith("postgres"); assert "-pooler" not in u; open(os.environ["RUNNER_TEMP"]+"/preview.uri","w").write(u)'
+          python3 - <<'PY'
+          import json,os,sys
+          from urllib.parse import urlsplit,urlunsplit,parse_qsl,urlencode
+          u=json.load(open(os.environ["RUNNER_TEMP"]+"/uri.json"))["uri"]
+          p=urlsplit(u)
+          if p.scheme not in ("postgres","postgresql") or not p.hostname or "-pooler" in p.hostname:
+            print("PREVIEW_DIRECT_POSTGRES_ENDPOINT_REQUIRED", file=sys.stderr); sys.exit(1)
+          q=dict(parse_qsl(p.query, keep_blank_values=True))
+          q["sslmode"]="verify-full"
+          u=urlunsplit((p.scheme,p.netloc,p.path,urlencode(q),p.fragment))
+          open(os.environ["RUNNER_TEMP"]+"/preview.uri","w").write(u)
+          PY
           chmod 600 "$RUNNER_TEMP/preview.uri"
           HOST=$(python3 -c 'from urllib.parse import urlparse; print(urlparse(open("'"$RUNNER_TEMP"'/preview.uri").read()).hostname)')
           echo "host=$HOST" >> "$GITHUB_OUTPUT"
@@ -111,7 +116,7 @@ jobs:
         run: |
           set -euo pipefail
           export OPSC_MIGRATION_DATABASE_URL="$(cat "$RUNNER_TEMP/preview.uri")"
-          node scripts/apply-postgres-migrations.js | tee "$RUNNER_TEMP/dry-run.json" || true
+          node scripts/apply-postgres-migrations.js | tee "$RUNNER_TEMP/dry-run.json"
           python3 - <<'PY'
           import json,os,sys,re
           raw=open(os.environ["RUNNER_TEMP"]+"/dry-run.json").read()
@@ -170,14 +175,24 @@ jobs:
           psql "$URI" -v ON_ERROR_STOP=1 -c \
             "SELECT filename, left(sha256,12) AS sha12, applied_at
              FROM public.schema_migrations
-             WHERE filename LIKE '066%' OR filename LIKE '067%' OR filename LIKE '068%'
+             WHERE filename IN (
+               '063_signed_tenant_context_verifier.sql',
+               '064_signed_tenant_context_work_orders_routing.sql',
+               '065_signed_tenant_context_evidence_upload_chunks.sql',
+               '066_signed_tenant_context_verifier_search_path_hardening.sql',
+               '067_signed_tenant_context_rls_policy_accessor_alignment.sql',
+               '068_opscore_app_role_privilege_lockdown.sql'
+             )
              ORDER BY filename;"
           COUNT=$(psql "$URI" -Atc \
             "SELECT count(*) FROM public.schema_migrations
              WHERE filename IN (
+               '063_signed_tenant_context_verifier.sql',
+               '064_signed_tenant_context_work_orders_routing.sql',
+               '065_signed_tenant_context_evidence_upload_chunks.sql',
                '066_signed_tenant_context_verifier_search_path_hardening.sql',
                '067_signed_tenant_context_rls_policy_accessor_alignment.sql',
                '068_opscore_app_role_privilege_lockdown.sql'
              );")
-          test "$COUNT" = "3" || { echo "MIGRATION_VERIFY_COUNT=$COUNT"; exit 1; }
+          test "$COUNT" = "6" || { echo "MIGRATION_VERIFY_COUNT=$COUNT"; exit 1; }
           echo "PREVIEW_MIGRATIONS_066_068_VERIFIED=PASS"
