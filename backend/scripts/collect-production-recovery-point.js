@@ -73,9 +73,9 @@ async function main() {
   const branches = Array.isArray(listed.branches) ? listed.branches : [];
   const limitRaw = Number(process.env.OPSC_NEON_BRANCH_LIMIT || 10);
   if (!Number.isInteger(limitRaw) || limitRaw < 1 || limitRaw > 100) throw new Error('NEON_BRANCH_LIMIT_INVALID');
-  if (branches.some(branch => branch.id === parentBranchId && branch.current_state !== 'ready')) {
-    throw new Error('PRODUCTION_PARENT_BRANCH_NOT_READY');
-  }
+  const parentBranch = branches.find(branch => branch.id === parentBranchId);
+  if (!parentBranch) throw new Error('PRODUCTION_PARENT_BRANCH_NOT_FOUND');
+  if (parentBranch.current_state !== 'ready') throw new Error('PRODUCTION_PARENT_BRANCH_NOT_READY');
   if (branches.length >= limitRaw) {
     throw new Error('NEON_BRANCH_CAPACITY_EXHAUSTED:' + branches.length + '/' + limitRaw + '; no existing recovery branch was deleted');
   }
