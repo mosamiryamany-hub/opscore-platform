@@ -1860,143 +1860,6 @@ async function main() {
     signedSessionAutobindHttpProof.appointmentUnreachableTenantA = 'PASS';
     signedSessionAutobindHttpProof.appointmentUnreachableTenantB = 'PASS';
 
-    // Remaining fault routes: create, transition and unreachable. The resulting
-    // work orders, incident jobs, config entries and audit rows are all tracked
-    // for deterministic cleanup in this disposable database.
-    const faultCreateKeyA = 'signed-context-fault-create-a-' + keyId;
-    const faultCreateKeyB = 'signed-context-fault-create-b-' + keyId;
-    const faultTransitionKeyA = 'signed-context-fault-transition-a-' + keyId;
-    const faultTransitionKeyB = 'signed-context-fault-transition-b-' + keyId;
-    const faultUnreachableKeyA = 'signed-context-fault-unreachable-a-' + keyId;
-    const faultUnreachableKeyB = 'signed-context-fault-unreachable-b-' + keyId;
-    synthetic.idempotencyKeys.push(
-      faultCreateKeyA, faultCreateKeyB,
-      faultTransitionKeyA, faultTransitionKeyB,
-      faultUnreachableKeyA, faultUnreachableKeyB
-    );
-
-    const faultTicketA = await queryHttp(port, '/api/v1/faults', tokenA, {
-      method: 'POST',
-      headers: { 'idempotency-key': faultCreateKeyA },
-      body: {
-        title: 'Signed Context Fault Ticket A',
-        description: 'Synthetic PostgreSQL acceptance fault for tenant A',
-        priority: 'high',
-        customerId: synthetic.customerIds[0],
-        siteId: createSiteA.body.id,
-        assetId: createAssetA.body.id
-      }
-    });
-    if (faultTicketA.body?.workOrder?.id) synthetic.workOrderIds.push(faultTicketA.body.workOrder.id);
-    if (faultTicketA.status !== 201
-        || faultTicketA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
-        || faultTicketA.body?.workOrder?.organization_id !== tenantA
-        || !String(faultTicketA.body?.workOrder?.title || '').startsWith('[FAULT] ')
-        || faultTicketA.body?.workOrder?.status !== 'open'
-        || faultTicketA.body?.classification?.organizationId !== tenantA) {
-      throw new Error('SIGNED_CONTEXT_FAULT_CREATE_TENANT_A_FAILED:' + JSON.stringify({
-        status: faultTicketA.status, body: faultTicketA.body
-      }));
-    }
-    const faultTicketB = await queryHttp(port, '/api/v1/faults', tokenB, {
-      method: 'POST',
-      headers: { 'idempotency-key': faultCreateKeyB },
-      body: {
-        title: 'Signed Context Fault Ticket B',
-        description: 'Synthetic PostgreSQL acceptance fault for tenant B',
-        priority: 'high',
-        customerId: synthetic.customerIds[1],
-        siteId: createSiteB.body.id,
-        assetId: createAssetB.body.id
-      }
-    });
-    if (faultTicketB.body?.workOrder?.id) synthetic.workOrderIds.push(faultTicketB.body.workOrder.id);
-    if (faultTicketB.status !== 201
-        || faultTicketB.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
-        || faultTicketB.body?.workOrder?.organization_id !== tenantB
-        || !String(faultTicketB.body?.workOrder?.title || '').startsWith('[FAULT] ')
-        || faultTicketB.body?.workOrder?.status !== 'open'
-        || faultTicketB.body?.classification?.organizationId !== tenantB) {
-      throw new Error('SIGNED_CONTEXT_FAULT_CREATE_TENANT_B_FAILED:' + JSON.stringify({
-        status: faultTicketB.status, body: faultTicketB.body
-      }));
-    }
-    signedSessionAutobindHttpProof.faultCreateTenantA = 'PASS';
-    signedSessionAutobindHttpProof.faultCreateTenantB = 'PASS';
-
-    const faultTransitionA = await queryHttp(
-      port,
-      '/api/v1/faults/' + encodeURIComponent(faultTicketA.body.workOrder.id) + '/transition',
-      tokenA,
-      { method: 'POST', headers: { 'idempotency-key': faultTransitionKeyA }, body: { status: 'in_progress' } }
-    );
-    const faultTransitionB = await queryHttp(
-      port,
-      '/api/v1/faults/' + encodeURIComponent(faultTicketB.body.workOrder.id) + '/transition',
-      tokenB,
-      { method: 'POST', headers: { 'idempotency-key': faultTransitionKeyB }, body: { status: 'in_progress' } }
-    );
-    for (const [label, response, expectedTenant, expectedId] of [
-      ['tenantA', faultTransitionA, tenantA, faultTicketA.body.workOrder.id],
-      ['tenantB', faultTransitionB, tenantB, faultTicketB.body.workOrder.id]
-    ]) {
-      if (response.status !== 200
-          || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
-          || response.body?.workOrder?.id !== expectedId
-          || response.body?.workOrder?.organization_id !== expectedTenant
-          || response.body?.workOrder?.status !== 'in_progress') {
-        throw new Error('SIGNED_CONTEXT_FAULT_TRANSITION_TENANT_BOUNDARY_FAILED:' + JSON.stringify({
-          label, status: response.status, body: response.body
-        }));
-      }
-    }
-    signedSessionAutobindHttpProof.faultTransitionTenantA = 'PASS';
-    signedSessionAutobindHttpProof.faultTransitionTenantB = 'PASS';
-
-    const faultConfigKeyA = 'fault_unreachable:' + faultTicketA.body.workOrder.id;
-    const faultConfigKeyB = 'fault_unreachable:' + faultTicketB.body.workOrder.id;
-    synthetic.operationalConfigKeys.push(
-      faultConfigKeyA, faultConfigKeyB
-    );
-    const faultUnreachableA = await queryHttp(
-      port,
-      '/api/v1/faults/' + encodeURIComponent(faultTicketA.body.workOrder.id) + '/unreachable',
-      tokenA,
-      {
-        method: 'POST',
-        headers: { 'idempotency-key': faultUnreachableKeyA },
-        body: { reasonCode: 'CI_FAULT_UNREACHABLE', detail: 'signed tenant route acceptance' }
-      }
-    );
-    const faultUnreachableB = await queryHttp(
-      port,
-      '/api/v1/faults/' + encodeURIComponent(faultTicketB.body.workOrder.id) + '/unreachable',
-      tokenB,
-      {
-        method: 'POST',
-        headers: { 'idempotency-key': faultUnreachableKeyB },
-        body: { reasonCode: 'CI_FAULT_UNREACHABLE', detail: 'signed tenant route acceptance' }
-      }
-    );
-    for (const [label, response, expectedTenant, expectedId] of [
-      ['tenantA', faultUnreachableA, tenantA, faultTicketA.body.workOrder.id],
-      ['tenantB', faultUnreachableB, tenantB, faultTicketB.body.workOrder.id]
-    ]) {
-      if (response.status !== 200
-          || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
-          || response.body?.workOrder?.id !== expectedId
-          || response.body?.workOrder?.organization_id !== expectedTenant
-          || response.body?.workOrder?.status !== 'blocked'
-          || response.body?.reasonCode !== 'CI_FAULT_UNREACHABLE'
-          || !response.body?.operationalJobId) {
-        throw new Error('SIGNED_CONTEXT_FAULT_UNREACHABLE_TENANT_BOUNDARY_FAILED:' + JSON.stringify({
-          label, status: response.status, body: response.body
-        }));
-      }
-    }
-    signedSessionAutobindHttpProof.faultUnreachableTenantA = 'PASS';
-    signedSessionAutobindHttpProof.faultUnreachableTenantB = 'PASS';
-
     // Signed geo-access assertion and dynamic-geofence event persistence.
     const geoAccessA = await queryHttp(port, '/api/v1/geofences/assert-access', tokenA, {
       method: 'POST', body: { longitude: 31.2357, latitude: 30.0444 }
@@ -3293,6 +3156,144 @@ async function main() {
       }));
     }
     signedEvidenceRouteProof.attachmentListsTenantIsolated = 'PASS';
+
+    // Remaining fault routes: create, transition and unreachable. The resulting
+    // work orders, incident jobs, config entries and audit rows are all tracked
+    // for deterministic cleanup in this disposable database.
+    const faultCreateKeyA = 'signed-context-fault-create-a-' + keyId;
+    const faultCreateKeyB = 'signed-context-fault-create-b-' + keyId;
+    const faultTransitionKeyA = 'signed-context-fault-transition-a-' + keyId;
+    const faultTransitionKeyB = 'signed-context-fault-transition-b-' + keyId;
+    const faultUnreachableKeyA = 'signed-context-fault-unreachable-a-' + keyId;
+    const faultUnreachableKeyB = 'signed-context-fault-unreachable-b-' + keyId;
+    synthetic.idempotencyKeys.push(
+      faultCreateKeyA, faultCreateKeyB,
+      faultTransitionKeyA, faultTransitionKeyB,
+      faultUnreachableKeyA, faultUnreachableKeyB
+    );
+
+    const faultTicketA = await queryHttp(port, '/api/v1/faults', tokenA, {
+      method: 'POST',
+      headers: { 'idempotency-key': faultCreateKeyA },
+      body: {
+        title: 'Signed Context Fault Ticket A',
+        description: 'Synthetic PostgreSQL acceptance fault for tenant A',
+        priority: 'high',
+        customerId: synthetic.customerIds[0],
+        siteId: createSiteA.body.id,
+        assetId: createAssetA.body.id
+      }
+    });
+    if (faultTicketA.body?.workOrder?.id) synthetic.workOrderIds.push(faultTicketA.body.workOrder.id);
+    if (faultTicketA.status !== 201
+        || faultTicketA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || faultTicketA.body?.workOrder?.organization_id !== tenantA
+        || !String(faultTicketA.body?.workOrder?.title || '').startsWith('[FAULT] ')
+        || faultTicketA.body?.workOrder?.status !== 'open'
+        || faultTicketA.body?.classification?.organizationId !== tenantA) {
+      throw new Error('SIGNED_CONTEXT_FAULT_CREATE_TENANT_A_FAILED:' + JSON.stringify({
+        status: faultTicketA.status, body: faultTicketA.body
+      }));
+    }
+    const faultTicketB = await queryHttp(port, '/api/v1/faults', tokenB, {
+      method: 'POST',
+      headers: { 'idempotency-key': faultCreateKeyB },
+      body: {
+        title: 'Signed Context Fault Ticket B',
+        description: 'Synthetic PostgreSQL acceptance fault for tenant B',
+        priority: 'high',
+        customerId: synthetic.customerIds[1],
+        siteId: createSiteB.body.id,
+        assetId: createAssetB.body.id
+      }
+    });
+    if (faultTicketB.body?.workOrder?.id) synthetic.workOrderIds.push(faultTicketB.body.workOrder.id);
+    if (faultTicketB.status !== 201
+        || faultTicketB.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || faultTicketB.body?.workOrder?.organization_id !== tenantB
+        || !String(faultTicketB.body?.workOrder?.title || '').startsWith('[FAULT] ')
+        || faultTicketB.body?.workOrder?.status !== 'open'
+        || faultTicketB.body?.classification?.organizationId !== tenantB) {
+      throw new Error('SIGNED_CONTEXT_FAULT_CREATE_TENANT_B_FAILED:' + JSON.stringify({
+        status: faultTicketB.status, body: faultTicketB.body
+      }));
+    }
+    signedSessionAutobindHttpProof.faultCreateTenantA = 'PASS';
+    signedSessionAutobindHttpProof.faultCreateTenantB = 'PASS';
+
+    const faultTransitionA = await queryHttp(
+      port,
+      '/api/v1/faults/' + encodeURIComponent(faultTicketA.body.workOrder.id) + '/transition',
+      tokenA,
+      { method: 'POST', headers: { 'idempotency-key': faultTransitionKeyA }, body: { status: 'in_progress' } }
+    );
+    const faultTransitionB = await queryHttp(
+      port,
+      '/api/v1/faults/' + encodeURIComponent(faultTicketB.body.workOrder.id) + '/transition',
+      tokenB,
+      { method: 'POST', headers: { 'idempotency-key': faultTransitionKeyB }, body: { status: 'in_progress' } }
+    );
+    for (const [label, response, expectedTenant, expectedId] of [
+      ['tenantA', faultTransitionA, tenantA, faultTicketA.body.workOrder.id],
+      ['tenantB', faultTransitionB, tenantB, faultTicketB.body.workOrder.id]
+    ]) {
+      if (response.status !== 200
+          || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+          || response.body?.workOrder?.id !== expectedId
+          || response.body?.workOrder?.organization_id !== expectedTenant
+          || response.body?.workOrder?.status !== 'in_progress') {
+        throw new Error('SIGNED_CONTEXT_FAULT_TRANSITION_TENANT_BOUNDARY_FAILED:' + JSON.stringify({
+          label, status: response.status, body: response.body
+        }));
+      }
+    }
+    signedSessionAutobindHttpProof.faultTransitionTenantA = 'PASS';
+    signedSessionAutobindHttpProof.faultTransitionTenantB = 'PASS';
+
+    const faultConfigKeyA = 'fault_unreachable:' + faultTicketA.body.workOrder.id;
+    const faultConfigKeyB = 'fault_unreachable:' + faultTicketB.body.workOrder.id;
+    synthetic.operationalConfigKeys.push(
+      faultConfigKeyA, faultConfigKeyB
+    );
+    const faultUnreachableA = await queryHttp(
+      port,
+      '/api/v1/faults/' + encodeURIComponent(faultTicketA.body.workOrder.id) + '/unreachable',
+      tokenA,
+      {
+        method: 'POST',
+        headers: { 'idempotency-key': faultUnreachableKeyA },
+        body: { reasonCode: 'CI_FAULT_UNREACHABLE', detail: 'signed tenant route acceptance' }
+      }
+    );
+    const faultUnreachableB = await queryHttp(
+      port,
+      '/api/v1/faults/' + encodeURIComponent(faultTicketB.body.workOrder.id) + '/unreachable',
+      tokenB,
+      {
+        method: 'POST',
+        headers: { 'idempotency-key': faultUnreachableKeyB },
+        body: { reasonCode: 'CI_FAULT_UNREACHABLE', detail: 'signed tenant route acceptance' }
+      }
+    );
+    for (const [label, response, expectedTenant, expectedId] of [
+      ['tenantA', faultUnreachableA, tenantA, faultTicketA.body.workOrder.id],
+      ['tenantB', faultUnreachableB, tenantB, faultTicketB.body.workOrder.id]
+    ]) {
+      if (response.status !== 200
+          || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+          || response.body?.workOrder?.id !== expectedId
+          || response.body?.workOrder?.organization_id !== expectedTenant
+          || response.body?.workOrder?.status !== 'blocked'
+          || response.body?.reasonCode !== 'CI_FAULT_UNREACHABLE'
+          || !response.body?.operationalJobId) {
+        throw new Error('SIGNED_CONTEXT_FAULT_UNREACHABLE_TENANT_BOUNDARY_FAILED:' + JSON.stringify({
+          label, status: response.status, body: response.body
+        }));
+      }
+    }
+    signedSessionAutobindHttpProof.faultUnreachableTenantA = 'PASS';
+    signedSessionAutobindHttpProof.faultUnreachableTenantB = 'PASS';
+
 
     clientA = new Client({ connectionString: runtimeUrl });
     clientB = new Client({ connectionString: runtimeUrl });
