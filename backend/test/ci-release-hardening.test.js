@@ -68,7 +68,7 @@ test('production Vercel deploy is main-only, waits on the mobile high-severity a
   const workflow = read('.github/workflows/vercel-deploy.yml');
   assert.match(workflow, /verify:\s*\n\s+name: vercel-contract-verify\s*\n\s+if: github\.event_name == 'pull_request' \|\| github\.ref == 'refs\/heads\/main'/);
   assert.match(workflow, /postgres-acceptance:\s*\n\s+name: deploy-bound-postgres-18-acceptance\s*\n\s+if: github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'\s*\n\s+uses: \.\/\.github\/workflows\/digital-twin-postgres-live\.yml/);
-  assert.match(workflow, /deploy:\s*\n\s+needs: \[verify, postgres-acceptance\]\s*\n\s+# Keep Production probes, Vercel environment mutation, build, and promotion disabled\s*\n\s+# until the owner explicitly enables this gate after all commit-bound proofs exist\.\s*\n\s+if: github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' && vars\.OPSC_PRODUCTION_AUTODEPLOY_ENABLED == 'true'/);
+  assert.match(workflow, /deploy:\s*\n\s+needs: \[verify, postgres-acceptance\]\s*\n(?:\s+#.*\n)*\s+if: github\.event_name == 'push' && github\.ref == 'refs\/heads\/main' && vars\.OPSC_PRODUCTION_AUTODEPLOY_ENABLED == 'true'/);
   assert.match(workflow, /OPSC_PRODUCTION_AUTODEPLOY_ENABLED == 'true'/);
   assert.doesNotMatch(workflow, /workflow_dispatch:/);
   assert.match(workflow, /working-directory: mobile\s+run: npm audit --omit=dev --audit-level=high/);
