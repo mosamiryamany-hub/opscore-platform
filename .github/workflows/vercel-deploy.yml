@@ -296,6 +296,9 @@ jobs:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
           NEON_PROJECT_ID: summer-leaf-18448271
           OPSC_PRODUCTION_NEON_BRANCH_ID: br-proud-salad-bcshhdap
+          OPSC_PRODUCTION_DATABASE_NAME: opscore_acceptance
+          OPSC_PRODUCTION_OWNER_ROLE: neondb_owner
+          OPSC_NEON_BRANCH_LIMIT: ${{ vars.OPSC_NEON_BRANCH_LIMIT || '10' }}
           GITHUB_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
@@ -306,7 +309,10 @@ jobs:
       - name: Collect live production session-isolation evidence (no rebind)
         if: ${{ github.ref == 'refs/heads/main' }}
         env:
-          OPSC_OWNER_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: summer-leaf-18448271
+          OPSC_PRODUCTION_DATABASE_NAME: opscore_acceptance
+          OPSC_PRODUCTION_OWNER_ROLE: neondb_owner
           OPSC_PRODUCTION_HTTP_BASE: https://opscore-platform.vercel.app
           OPSC_PRODUCTION_NEON_BRANCH_ID: br-proud-salad-bcshhdap
           GITHUB_SHA: ${{ github.sha }}
@@ -315,88 +321,6 @@ jobs:
           sudo apt-get update -qq
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq postgresql-client
           node backend/scripts/collect-production-session-isolation.js
-
-      - name: Publish acceptance evidence hash to Vercel production env
-        if: ${{ steps.generate_acceptance.outputs.evidence_sha != '' }}
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          EVIDENCE_SHA: ${{ steps.generate_acceptance.outputs.evidence_sha }}
-          GITHUB_SHA: ${{ github.sha }}
-          GITHUB_RUN_ID: ${{ github.run_id }}
-          OPSC_RELEASE_PACKAGE_SHA256: ${{ steps.package_fp.outputs.sha }}
-          OPSC_PRODUCTION_NEON_BRANCH_ID: br-proud-salad-bcshhdap
-        run: |
-          set -euo pipefail
-          node <<'NODE'
-          const https = require('https');
-          const token = process.env.VERCEL_TOKEN;
-          const hash = process.env.EVIDENCE_SHA;
-          const projectId = process.env.VERCEL_PROJECT_ID;
-          function req(method, path, body) {
-            return new Promise((resolve, reject) => {
-              const data = body ? JSON.stringify(body) : null;
-              const r = https.request({
-                hostname: 'api.vercel.com', method, path,
-                headers: {
-                  Authorization: 'Bearer ' + token,
-                  'Content-Type': 'application/json',
-                  ...(data ? { 'Content-Length': Buffer.byteLength(data) } : {})
-                }
-              }, res => {
-                let b=''; res.on('data', d => b+=d); res.on('end', () => {
-                  if (res.statusCode >= 300) reject(new Error(method+' '+path+' '+res.statusCode+' '+b.slice(0,200)));
-                  else resolve(b ? JSON.parse(b) : {});
-                });
-              });
-              r.on('error', reject);
-              if (data) r.write(data);
-              r.end();
-            });
-          }
-          (async () => {
-            const envs = await req('GET', '/v9/projects/' + projectId + '/env');
-            const fs = require('fs');
-            const path = require('path');
-            function behavioralPass() {
-              try {
-                const session = JSON.parse(fs.readFileSync(path.join('backend','docs','verification','PRODUCTION_SESSION_ISOLATION.json'),'utf8'));
-                const recovery = JSON.parse(fs.readFileSync(path.join('backend','docs','verification','PRODUCTION_RECOVERY_POINT.json'),'utf8'));
-                const expectedCommit = String(process.env.GITHUB_SHA || '').trim().toLowerCase();
-                const expectedBranch = String(process.env.OPSC_PRODUCTION_NEON_BRANCH_ID || '').trim();
-                const sourceCommitMatches = (evidence) => expectedCommit.length === 40 && String(evidence.sourceCommitHint || '').trim().toLowerCase() === expectedCommit;
-                const sourceBranchMatches = (evidence) => Boolean(expectedBranch) && String(evidence.parentBranchId || '').trim() === expectedBranch;
-                const noEvidenceRebind = (evidence) => evidence.evidenceRebind == null;
-                const sOk = session.schemaVersion === 'opscore.production-session-isolation.v1' && session.status === 'PASS' && sourceCommitMatches(session) && sourceBranchMatches(session) && noEvidenceRebind(session);
-                const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v1' && recovery.status === 'PASS' && recovery.coreTenantTablesMatch === true && Number(recovery.mismatchCount) === 0 && sourceCommitMatches(recovery) && sourceBranchMatches(recovery) && noEvidenceRebind(recovery);
-                return sOk && rOk;
-              } catch { return false; }
-            }
-            const isolation = behavioralPass() ? 'CERTIFIED' : 'NOT_CERTIFIED';
-            const want = {
-              OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: hash,
-              OPSC_PRODUCTION_ISOLATION_CERTIFICATION: isolation,
-              OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE: behavioralPass() ? 'true' : 'false',
-              OPSC_RELEASE_VERIFIED: 'true',
-              OPSC_RELEASE_CI_COMMIT: String(process.env.GITHUB_SHA || '').toLowerCase(),
-              OPSC_RELEASE_CI_PIPELINE_ID: String(process.env.GITHUB_RUN_ID || ''),
-              OPSC_RELEASE_CI_REF: 'main',
-              OPSC_SOURCE_COMMIT_SHA: String(process.env.GITHUB_SHA || '').toLowerCase(),
-              OPSC_RELEASE_DEPLOYMENT_SOURCE: 'github-actions-cli',
-              OPSC_RELEASE_PACKAGE_SHA256: String(process.env.OPSC_RELEASE_PACKAGE_SHA256 || ''),
-              OPSC_RELEASE_PACKAGE_COMMIT: String(process.env.GITHUB_SHA || '').toLowerCase(),
-              OPSC_PRODUCTION_NEON_BRANCH_ID: String(process.env.OPSC_PRODUCTION_NEON_BRANCH_ID || 'br-proud-salad-bcshhdap').trim()
-            };
-            console.log('ISOLATION_CERTIFICATION_TARGET', isolation);
-            console.log('RELEASE_CI_IDENTITY', want.OPSC_RELEASE_CI_COMMIT, want.OPSC_RELEASE_CI_PIPELINE_ID);
-            for (const [key, value] of Object.entries(want)) {
-              const hit = (envs.envs||[]).find(e => e.key===key && (e.target||[]).includes('production'));
-              if (hit) await req('PATCH', '/v9/projects/' + projectId + '/env/' + hit.id, { value, type: 'encrypted', target: ['production'] });
-              else await req('POST', '/v10/projects/' + projectId + '/env', { key, value, type: 'encrypted', target: ['production'] });
-              console.log('ENV_OK', key);
-            }
-          })().catch(e => { console.error(e); process.exit(1); });
-          NODE
 
       - name: Resolve production isolation certification from behavioral evidence
         id: isolation_cert
@@ -412,14 +336,39 @@ jobs:
             try {
               const session = JSON.parse(fs.readFileSync(path.join('backend','docs','verification','PRODUCTION_SESSION_ISOLATION.json'),'utf8'));
               const recovery = JSON.parse(fs.readFileSync(path.join('backend','docs','verification','PRODUCTION_RECOVERY_POINT.json'),'utf8'));
+              const signedRoutes = JSON.parse(fs.readFileSync(path.join('backend','docs','verification','SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE.json'),'utf8'));
               const expectedCommit = String(process.env.GITHUB_SHA || '').trim().toLowerCase();
               const expectedBranch = String(process.env.OPSC_PRODUCTION_NEON_BRANCH_ID || '').trim();
               const sourceCommitMatches = (evidence) => expectedCommit.length === 40 && String(evidence.sourceCommitHint || '').trim().toLowerCase() === expectedCommit;
               const sourceBranchMatches = (evidence) => Boolean(expectedBranch) && String(evidence.parentBranchId || '').trim() === expectedBranch;
-                const noEvidenceRebind = (evidence) => evidence.evidenceRebind == null;
-              const sOk = session.schemaVersion === 'opscore.production-session-isolation.v1' && session.status === 'PASS' && sourceCommitMatches(session) && sourceBranchMatches(session) && noEvidenceRebind(session);
-              const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v1' && recovery.status === 'PASS' && recovery.coreTenantTablesMatch === true && Number(recovery.mismatchCount) === 0 && sourceCommitMatches(recovery) && sourceBranchMatches(recovery) && noEvidenceRebind(recovery);
-              return sOk && rOk;
+                const routeRows = Array.isArray(signedRoutes.routes) ? signedRoutes.routes : [];
+                const routeKeys = new Set(routeRows.map(route => route && String(route.method || '').toUpperCase() + ' ' + String(route.path || '')));
+                const routeAssertionsPass = routeRows.length === 67 && routeKeys.size === 67 && routeRows.every(route => {
+                  if (!route || !['GET','POST','PUT','PATCH','DELETE'].includes(String(route.method || '').toUpperCase())
+                      || !String(route.path || '').startsWith('/api/') || String(route.path || '').includes('?')
+                      || route.status !== 'PASS' || route.signedContextBound !== true || route.sessionBound !== true
+                      || route.transactionBound !== true || route.rawGucTamperDenied !== true) return false;
+                  if (route.operation === 'read') return route.tenantARead === true && route.tenantBRead === true && route.crossTenantReadDenied === true;
+                  if (route.operation === 'write') return route.tenantAWrite === true && route.tenantBWrite === true && route.crossTenantWriteDenied === true;
+                  return false;
+                });
+                const signedRoutesOk = signedRoutes.schemaVersion === 'opscore.signed-tenant-context-production-coverage.v1'
+                  && signedRoutes.environment === 'production' && signedRoutes.status === 'PASS'
+                  && signedRoutes.databaseName === 'opscore_acceptance'
+                  && Number(signedRoutes.expectedRouteCount) === 67
+                  && Number(signedRoutes.coveredRouteCount) === 67
+                  && Number(signedRoutes.failedRouteCount) === 0
+                  && String(signedRoutes.sourceCommitHint || '').trim().toLowerCase() === expectedCommit
+                  && String(signedRoutes.pipelineId || '') === String(process.env.GITHUB_RUN_ID || '')
+                  && String(signedRoutes.parentBranchId || '').trim() === expectedBranch
+                  && signedRoutes.evidenceRebind == null && routeAssertionsPass;
+                
+              const noEvidenceRebind = (evidence) => evidence.evidenceRebind == null;
+              const requiredSessionChecks = ['dualLogin','tenantPrincipalBinding','ownAssetCreate','ownAssetRead','tenantListIsolation','crossTenantAssetReadDenied','ownAssetEventWrite','crossTenantWriteDenied','unauthenticatedDenied','cleanupComplete'];
+                const sessionChecksPass = requiredSessionChecks.every(key => session.checks && session.checks[key] === 'PASS');
+                const sOk = session.schemaVersion === 'opscore.production-session-isolation.v2' && session.status === 'PASS' && session.verificationScope === 'dual-tenant-http-asset-create-read-event-write-denial-and-cleanup' && sessionChecksPass && session.databaseName === 'opscore_acceptance' && String(session.pipelineId || '') === String(process.env.GITHUB_RUN_ID || '') && sourceCommitMatches(session) && sourceBranchMatches(session) && noEvidenceRebind(session);
+              const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v2' && recovery.status === 'PASS' && recovery.coreTenantTableRowCountsMatch === true && recovery.verificationScope === 'branch-clone-public-table-count-and-core-tenant-row-counts-only' && recovery.databaseName === 'opscore_acceptance' && String(recovery.pipelineId || '') === String(process.env.GITHUB_RUN_ID || '') && Number(recovery.mismatchCount) === 0 && sourceCommitMatches(recovery) && sourceBranchMatches(recovery) && noEvidenceRebind(recovery);
+              return sOk && rOk && signedRoutesOk;
             } catch { return false; }
           }
           const ok = behavioralPass();
@@ -440,6 +389,18 @@ jobs:
           require('fs').appendFileSync(fsOut, `behavioral=${ok ? 'true' : 'false'}\n`);
           console.log('ISOLATION_CERT', ok ? 'CERTIFIED' : 'NOT_CERTIFIED');
           NODE
+
+      - name: Require current-commit production evidence before creating staged deployment
+        env:
+          ACCEPTANCE_SHA: ${{ steps.generate_acceptance.outputs.evidence_sha }}
+          ISOLATION_CERT: ${{ steps.isolation_cert.outputs.certified }}
+          BEHAVIORAL_EVIDENCE: ${{ steps.isolation_cert.outputs.behavioral }}
+        run: |
+          set -euo pipefail
+          [[ "$ACCEPTANCE_SHA" =~ ^[a-f0-9]{64}$ ]] || { echo "::error::PRODUCTION_ACCEPTANCE_EVIDENCE_MISSING_OR_INVALID"; exit 1; }
+          [[ "$GITHUB_SHA" =~ ^[a-f0-9]{40}$ ]] || { echo "::error::PRODUCTION_COMMIT_IDENTITY_INVALID"; exit 1; }
+          test "$ISOLATION_CERT" = "CERTIFIED" || { echo "::error::PRODUCTION_ISOLATION_NOT_CERTIFIED"; exit 1; }
+          test "$BEHAVIORAL_EVIDENCE" = "true" || { echo "::error::PRODUCTION_BEHAVIORAL_EVIDENCE_NOT_VERIFIED"; exit 1; }
 
       - name: Publish release identity and certification env after evidence validation
         env:
@@ -522,7 +483,8 @@ jobs:
             POSTGRES_HTTP_ACCEPTANCE_RESULT.json \
             API_ROUTE_ACCEPTANCE_RESULT.json \
             PRODUCTION_SESSION_ISOLATION.json \
-            PRODUCTION_RECOVERY_POINT.json
+            PRODUCTION_RECOVERY_POINT.json \
+            SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE.json
           do
             src="backend/docs/verification/$f"
             test -s "$src" || { echo "MISSING_EVIDENCE:$src" >&2; exit 1; }
@@ -552,7 +514,7 @@ jobs:
           OPSC_RELEASE_PACKAGE_COMMIT: ${{ github.sha }}
           OPSC_PRODUCTION_ISOLATION_CERTIFICATION: ${{ steps.isolation_cert.outputs.certified }}
           OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE: ${{ steps.isolation_cert.outputs.behavioral }}
-          OPSC_RELEASE_VERIFIED: ${{ steps.generate_acceptance.outputs.evidence_sha != '' && 'true' || 'false' }}
+          OPSC_RELEASE_VERIFIED: ${{ steps.generate_acceptance.outputs.evidence_sha != '' && steps.isolation_cert.outputs.certified == 'CERTIFIED' && steps.isolation_cert.outputs.behavioral == 'true' && 'true' || 'false' }}
           OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: ${{ steps.generate_acceptance.outputs.evidence_sha }}
       - name: Verify Vercel output contains the current release identity
         run: |
@@ -621,7 +583,7 @@ jobs:
           OPSC_RELEASE_PACKAGE_COMMIT: ${{ github.sha }}
           OPSC_PRODUCTION_ISOLATION_CERTIFICATION: ${{ steps.isolation_cert.outputs.certified }}
           OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE: ${{ steps.isolation_cert.outputs.behavioral }}
-          OPSC_RELEASE_VERIFIED: ${{ steps.generate_acceptance.outputs.evidence_sha != '' && 'true' || 'false' }}
+          OPSC_RELEASE_VERIFIED: ${{ steps.generate_acceptance.outputs.evidence_sha != '' && steps.isolation_cert.outputs.certified == 'CERTIFIED' && steps.isolation_cert.outputs.behavioral == 'true' && 'true' || 'false' }}
           OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: ${{ steps.generate_acceptance.outputs.evidence_sha }}
       - name: Request scoped GitHub Actions OIDC identity for Vercel Trusted Sources
         id: vercel_oidc

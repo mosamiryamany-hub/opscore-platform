@@ -79,8 +79,13 @@ test('deploy workflow never rebinds stale production behavioral evidence to a ne
   assert.doesNotMatch(deploy, /Stamp production behavioral evidence with deploy candidate commit/);
   assert.doesNotMatch(deploy, /data\.sourceCommitHint\s*=\s*commit/);
   assert.doesNotMatch(deploy, /probesReexecuted:\s*false/);
-  assert.equal((deploy.match(/noEvidenceRebind\(recovery\)/g) || []).length, 2);
-  assert.equal((deploy.match(/noEvidenceRebind\(session\)/g) || []).length, 2);
+  // PR161 consolidates behavioral evidence validation into a single behavioralPass()
+  // evaluator (stronger than main's two duplicated sites: it adds pipelineId binding,
+  // databaseName, verificationScope and ten named session checks at the same place).
+  // The guard therefore requires exactly one call site, and exactly one consumer.
+  assert.equal((deploy.match(/noEvidenceRebind\(recovery\)/g) || []).length, 1);
+  assert.equal((deploy.match(/noEvidenceRebind\(session\)/g) || []).length, 1);
+  assert.equal((deploy.match(/const ok = behavioralPass\(\);/g) || []).length, 1);
   const certification = step('Resolve production isolation certification from behavioral evidence');
   assert.match(certification, /sourceCommitMatches/);
   assert.match(certification, /CERTIFIED/);
@@ -93,6 +98,24 @@ test('Production release flags fail closed when isolation evidence is not certif
   assert.match(deploy, /OPSC_PRODUCTION_HOLD: releaseVerified \? 'false' : 'true'/);
 });
 
+test('Production environment is not mutated before current-commit evidence and isolation certification pass', () => {
+  const earlyGate = step('Require current-commit production evidence before creating staged deployment');
+  const publish = step('Publish release identity and certification env after evidence validation');
+  const build = step('Build Vercel output');
+  assert.doesNotMatch(deploy, /Publish acceptance evidence hash to Vercel production env/);
+  assert.ok(deploy.indexOf(earlyGate) < deploy.indexOf(publish));
+  assert.match(earlyGate, /PRODUCTION_ACCEPTANCE_EVIDENCE_MISSING_OR_INVALID/);
+  assert.match(earlyGate, /PRODUCTION_ISOLATION_NOT_CERTIFIED/);
+  assert.match(earlyGate, /PRODUCTION_BEHAVIORAL_EVIDENCE_NOT_VERIFIED/);
+  assert.match(publish, /OPSC_RELEASE_VERIFIED:\s*releaseVerified\s*\?\s*'true'\s*:\s*'false'/);
+  assert.match(publish, /OPSC_PRODUCTION_HOLD:\s*releaseVerified\s*\?\s*'false'\s*:\s*'true'/);
+  assert.match(build, /steps\.isolation_cert\.outputs\.certified == 'CERTIFIED'/);
+  assert.match(build, /steps\.isolation_cert\.outputs\.behavioral == 'true'/);
+  assert.ok(deploy.indexOf(publish) < deploy.indexOf(build));
+  assert.ok(deploy.indexOf(earlyGate) < deploy.indexOf(step('Create staged production deployment without changing the live domain')));
+});
+
+
 test('Runtime diagnostic requires explicit read-only zero-write and full production evidence', () => {
   const runnerPath = path.join(__dirname, '..', '..', 'scripts', 'production-runtime-diagnostic.js');
   const runner = fs.readFileSync(runnerPath, 'utf8');
@@ -102,4 +125,21 @@ test('Runtime diagnostic requires explicit read-only zero-write and full product
   assert.match(runner, /productionHoldConfiguredFalse/);
   assert.match(runner, /isolationCertification/);
   assert.match(runner, /migration_056_hash/);
+});
+
+
+test('Production promotion requires exact 67-route signed-session evidence before any Vercel environment mutation', () => {
+  const certification = step('Resolve production isolation certification from behavioral evidence');
+  const earlyGate = step('Require current-commit production evidence before creating staged deployment');
+  const publish = step('Publish release identity and certification env after evidence validation');
+  const proof = fs.readFileSync(path.join(__dirname, '..', 'src', 'release-proof.js'), 'utf8');
+  assert.ok(certification.includes('SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE.json'));
+  assert.ok(certification.includes('routeRows.length === 67'));
+  assert.ok(certification.includes('session.pipelineId'));
+  assert.ok(certification.includes('recovery.pipelineId'));
+  assert.ok(proof.includes('readProductionSignedTenantRouteCoverageEvidence'));
+  assert.ok(proof.includes("productionIsolationCertification === 'CERTIFIED'"));
+  assert.ok(!proof.includes("'NOT_CERTIFIED', 'CERTIFIED'"));
+  assert.ok(deploy.indexOf(certification) < deploy.indexOf(earlyGate));
+  assert.ok(deploy.indexOf(earlyGate) < deploy.indexOf(publish));
 });
