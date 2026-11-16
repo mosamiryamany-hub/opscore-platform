@@ -78,7 +78,9 @@ jobs:
 
   deploy:
     needs: [verify, postgres-acceptance]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # Keep Production probes, environment mutation, build, and promotion disabled
+    # until the owner explicitly enables this gate after all commit-bound proofs exist.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.OPSC_PRODUCTION_AUTODEPLOY_ENABLED == 'true'
     permissions:
       contents: read
       id-token: write
