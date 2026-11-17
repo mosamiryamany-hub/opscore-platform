@@ -7,7 +7,7 @@
 - [ ] Resolve or formally disposition GHSA-fc5q-39xc-vjpf / CVE-2026-112366 for the exact mobile SDK 58 dependency tree. No unreviewed upstream patch, silent audit suppression, or forced major downgrade.
 - [ ] Complete the source/data-flow threat review for build-time glob patterns and retain full + production-only npm audit JSONs from the exact candidate run.
 - [ ] Complete PR #222 candidate verification on its latest head; merge only after every required check passes and independent review is recorded.
-- [ ] Rebase and review the integrated security-hardening PR #163 lineage; merge only after exact-head CI passes.
+- [x] Integrated signed-tenant security-hardening lineage: superseding PR #174 is already merged. Verify its behavior remains covered by current-main regression tests; do not reopen superseded PR #163.
 - [ ] Complete and verify the approved 67-route signed-session coverage matrix; do not substitute inventory counts or CI-only route contracts.
 - [ ] Generate the final exact-head Secure Release artifact, SBOM, provenance, test reports and checksum statement from one successful pipeline.
 - [ ] Reconcile all seller-facing offer and handoff documentation to the exact release statement, source commit and package digest.
