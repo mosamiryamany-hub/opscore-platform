@@ -56,9 +56,27 @@ GitHub Actions run **44152872774** tested candidate commit `851b31fb20f47e17d58a
 
 Exact evidence artifact: `mobile-sdk58-current-main-evidence-44152872774`, artifact ID `14359762064`, SHA-256 `e28ff52c887b66dc6f05cada7a40599e5384bb79e7782985b340691c1dce1bdf`.
 
-The prior read-only predecessor run 44152511359 reported the reverse 25/26 count split across full and omit-dev. The committed lockfile SHA and package versions were identical in both artifacts. Therefore do not treat the one-count difference as a fixed vulnerability or a reduction in risk. For current qualification use the latest run's 26 High full-audit / 25 High omit-dev figures, and preserve both raw JSON reports. The same root advisory GHSA-fc5q-39xc-vjpf remains present. Package-level High counts are transitive audit records, not 26 separate CVEs.
+The prior read-only predecessor run 44152511359 reported the reverse 25/26 count split across full and omit-dev. The committed lockfile SHA and package versions were identical in both artifacts. Therefore do not treat the one-count difference as a fixed vulnerability or a reduction in risk. At that point in the history, the latest run was 44152872774 (26 High full / 25 High omit-dev). A later exact-head run is recorded below; use the newest same-head evidence for current qualification. The same root advisory GHSA-fc5q-39xc-vjpf remains present. Package-level High counts are transitive audit records, not 26 separate CVEs.
 
 The read-only workflow now has `contents: read`, checkout credentials disabled and no branch-push step. Its intentional final failure is the unresolved audit gate, not a write conflict.
+
+## Latest exact-head validation — 2026-11-17 19:16Z
+
+GitHub Actions run **44156497177** tested the current PR #222 head `6a0df56fe4ae647379646460c1ea76de71e8062f`.
+
+| Check | Result |
+|---|---|
+| SDK58 alignment and mobile source verification | PASS |
+| Expo Doctor | 20/20 |
+| Android / iOS / Web exports | PASS |
+| Scanned picomatch signatures in client bundles | Not found in all three exports |
+| Full mobile `npm audit --json` | **25 High, 0 Critical** |
+| Mobile `npm audit --omit=dev --json` | **25 High, 0 Critical** |
+| Fail-closed High/Critical release condition | **FAIL — correctly blocks release** |
+
+Evidence artifact: `mobile-sdk58-current-main-evidence-44156497177`, artifact ID `14361381790`, SHA-256 `8c64e388b4db141e91ca94cbd5b491e38003f1f6b31ded43321ade06e14dc044`.
+
+This exact-head run supersedes the 44152872774 count split for current reporting. The audit now reports 25 High in both modes; this one-count change is not evidence of a fix. The same GHSA remains attached to picomatch in the installed Expo/Metro dependency tree, and no fixed upstream npm release is published as of this check. Expo Doctor and exports passing do not override the unresolved advisory or the fail-closed result.
 
 ## Current authoritative and disputed public evidence
 
