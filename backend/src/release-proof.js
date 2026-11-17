@@ -222,7 +222,7 @@ function readProductionSessionIsolationEvidence(filePath = embeddedEvidencePath(
     'tenantListIsolation', 'crossTenantAssetReadDenied', 'ownAssetEventWrite',
     'crossTenantWriteDenied', 'unauthenticatedDenied', 'cleanupComplete'
   ];
-  const scopeValid = evidence.schemaVersion === 'opscore.production-session-isolation.v2'
+  const scopeValid = evidence.schemaVersion === 'opscore.production-session-isolation.v3'
     && evidence.status === 'PASS'
     && evidence.verificationScope === 'dual-tenant-http-asset-create-read-event-write-denial-and-cleanup'
     && evidence.databaseName === 'opscore_acceptance'
@@ -235,9 +235,12 @@ function readProductionSessionIsolationEvidence(filePath = embeddedEvidencePath(
   const expectedParentBranchId = String(env.OPSC_PRODUCTION_NEON_BRANCH_ID || '').trim();
   const parentBranchBound = /^[a-z0-9-]{8,80}$/.test(expectedParentBranchId)
     && String(evidence.parentBranchId || '').trim() === expectedParentBranchId;
+  const expectedDeploymentId = String(env.VERCEL_DEPLOYMENT_ID || '').trim();
+  const deploymentIdBound = /^dpl_[A-Za-z0-9]+$/.test(expectedDeploymentId)
+    && String(evidence.deploymentId || '').trim() === expectedDeploymentId;
   const noEvidenceRebind = evidence.evidenceRebind === undefined || evidence.evidenceRebind === null;
   return {
-    status: scopeValid && commitBound && pipelineBound && parentBranchBound && noEvidenceRebind ? 'PASS' : 'NOT_VERIFIED',
+    status: scopeValid && commitBound && pipelineBound && parentBranchBound && deploymentIdBound && noEvidenceRebind ? 'PASS' : 'NOT_VERIFIED',
     testedAt: evidence.testedAt || null,
     checks,
     httpBase: evidence.httpBase || null,
@@ -249,6 +252,7 @@ function readProductionSessionIsolationEvidence(filePath = embeddedEvidencePath(
     commitBound,
     pipelineBound,
     parentBranchBound,
+    deploymentIdBound,
     noEvidenceRebind
   };
 }
@@ -269,7 +273,10 @@ function readProductionRecoveryPointEvidence(filePath = embeddedEvidencePath('PR
   const expectedParentBranchId = String(env.OPSC_PRODUCTION_NEON_BRANCH_ID || '').trim();
   const parentBranchBound = /^[a-z0-9-]{8,80}$/.test(expectedParentBranchId)
     && String(evidence.parentBranchId || '').trim() === expectedParentBranchId;
-  const scopeValid = evidence.schemaVersion === 'opscore.production-recovery-point.v2'
+  const expectedDeploymentId = String(env.VERCEL_DEPLOYMENT_ID || '').trim();
+  const deploymentIdBound = /^dpl_[A-Za-z0-9]+$/.test(expectedDeploymentId)
+    && String(evidence.deploymentId || '').trim() === expectedDeploymentId;
+  const scopeValid = evidence.schemaVersion === 'opscore.production-recovery-point.v3'
     && evidence.databaseName === 'opscore_acceptance'
     && evidence.verificationScope === 'branch-clone-public-table-count-and-core-tenant-row-counts-only'
     && evidence.coreTenantTableRowCountsMatch === true
@@ -278,7 +285,7 @@ function readProductionRecoveryPointEvidence(filePath = embeddedEvidencePath('PR
     && typeof evidence.recoveryBranchId === 'string'
     && /^[a-z0-9-]{8,80}$/.test(evidence.recoveryBranchId);
   const noEvidenceRebind = evidence.evidenceRebind === undefined || evidence.evidenceRebind === null;
-  const ok = evidence.status === 'PASS' && scopeValid && commitBound && pipelineBound && parentBranchBound && noEvidenceRebind;
+  const ok = evidence.status === 'PASS' && scopeValid && commitBound && pipelineBound && parentBranchBound && deploymentIdBound && noEvidenceRebind;
   return {
     status: ok ? 'PASS' : 'NOT_VERIFIED',
     testedAt: evidence.testedAt || null,
@@ -293,6 +300,7 @@ function readProductionRecoveryPointEvidence(filePath = embeddedEvidencePath('PR
     commitBound,
     pipelineBound,
     parentBranchBound,
+    deploymentIdBound,
     noEvidenceRebind
   };
 }
@@ -329,6 +337,9 @@ function readProductionSignedTenantRouteCoverageEvidence(
   const pipelineBound = PIPELINE_RE.test(expectedPipelineId) && String(evidence.pipelineId || '') === expectedPipelineId;
   const expectedBranchId = String(env.OPSC_PRODUCTION_NEON_BRANCH_ID || '').trim();
   const branchBound = /^[a-z0-9-]{8,80}$/.test(expectedBranchId) && String(evidence.parentBranchId || '') === expectedBranchId;
+  const expectedDeploymentId = String(env.VERCEL_DEPLOYMENT_ID || '').trim();
+  const deploymentIdBound = /^dpl_[A-Za-z0-9]+$/.test(expectedDeploymentId)
+    && String(evidence.deploymentId || '').trim() === expectedDeploymentId;
 
   const inventorySha256 = crypto.createHash('sha256').update(inventoryBytes).digest('hex');
   const manifestSha256 = crypto.createHash('sha256').update(manifestBytes).digest('hex');
@@ -435,6 +446,7 @@ function readProductionSignedTenantRouteCoverageEvidence(
     && commitBound
     && pipelineBound
     && branchBound
+    && deploymentIdBound
     && evidence.evidenceRebind == null;
 
   return {
@@ -448,6 +460,7 @@ function readProductionSignedTenantRouteCoverageEvidence(
     commitBound,
     pipelineBound,
     parentBranchBound: branchBound,
+    deploymentIdBound,
     manifestBound,
     inventoryBound,
     routeResultsValid
