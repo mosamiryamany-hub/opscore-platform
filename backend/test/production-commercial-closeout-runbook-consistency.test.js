@@ -14,6 +14,14 @@ const buyerResiduals = fs.readFileSync(
   path.join(root, 'docs', 'BUYER_RESIDUALS.md'),
   'utf8'
 );
+const sellerCloseoutChecklist = fs.readFileSync(
+  path.join(root, 'docs', 'commercial', 'REMAINING_CLOSEOUT_CHECKLIST.md'),
+  'utf8'
+);
+const commercialCloseout = fs.readFileSync(
+  path.join(root, 'docs', 'commercial', 'COMMERCIAL_CLOSEOUT_FINAL.md'),
+  'utf8'
+);
 const migrationWorkflow = fs.readFileSync(
   path.join(root, '.github', 'workflows', 'ops-apply-production-signed-context-migrations.yml'),
   'utf8'
@@ -33,17 +41,35 @@ const languageQualificationRows = fs.readFileSync(
 ).trim().split('\n').slice(1);
 
 test('Production runbook and buyer residual register use the latest observed Neon capacity', () => {
-  assert.match(runbook, /5 active branches \(5\/10 included\)/);
-  assert.match(runbook, /5 active branches \(5\/10 included\)/);
-  assert.match(runbook, /3 root branches/);
-  assert.match(runbook, /All five are unprotected/);
+  assert.match(runbook, /2 active branches \(2\/10 included\)/);
+  assert.match(runbook, /2 active branches \(2\/10 included\)/);
+  assert.match(runbook, /2 root branches/);
+  assert.match(runbook, /Both active branches are unprotected/);
   assert.match(runbook, /Primary automatic snapshot schedule is empty/);
   assert.match(runbook, /snapshots limit exceeded/);
-  assert.match(buyerResiduals, /5 active branches of 10 available/);
-  assert.match(buyerResiduals, /all five active branches are unprotected/i);
+  assert.match(buyerResiduals, /2 active branches/);
+  assert.match(buyerResiduals, /Both are currently unprotected/i);
   assert.match(buyerResiduals, /non-finalizing Restore Snapshot API/);
   assert.doesNotMatch(runbook, /10 active branches \(10\/10 included\)/);
   assert.doesNotMatch(buyerResiduals, /10\/10 visible branches|all ten are unprotected/i);
+});
+
+test('Seller product closeout is buyer-independent while actual buyer license rights remain transaction-gated', () => {
+  assert.match(sellerCloseoutChecklist, /A named buyer, buyer signature, buyer-specific legal review, payment, or transaction schedule is \*\*not\*\* a prerequisite/);
+  assert.match(sellerCloseoutChecklist, /Transaction boundary — explicitly outside product closeout/);
+  assert.match(sellerCloseoutChecklist, /required before granting the buyer licensed use or delivery rights/);
+  assert.match(commercialCloseout, /No prospective buyer or buyer signature is needed to complete the product/);
+  assert.match(commercialCloseout, /No license grant is made to a buyer until/);
+  assert.doesNotMatch(sellerCloseoutChecklist, /Buyer-specific work — not a seller launch or marketing gate/);
+});
+
+test('Live 67-route acceptance remains a Production certification task, not a source-package release gate', () => {
+  const sourceReleaseSection = sellerCloseoutChecklist.split('## Separate seller-hosted SaaS track')[0];
+  const hostedServiceSection = sellerCloseoutChecklist.split('## Separate seller-hosted SaaS track')[1] || '';
+  assert.doesNotMatch(sourceReleaseSection, /67-route signed-session/);
+  assert.match(hostedServiceSection, /67-route signed-session HTTP acceptance matrix/);
+  assert.match(hostedServiceSection, /not a source-code package release gate/);
+  assert.match(hostedServiceSection, /Production certification NOT_ESTABLISHED/);
 });
 
 test('Production key material and 67-route collector remain open while the real restore proof is accurately recorded', () => {

@@ -1,4 +1,4 @@
-# OpsCore v0.11.61 — Buyer Value Proof
+# OpsCore v0.11.62 — Buyer Value Proof
 
 **Release: v0.11.62**
 

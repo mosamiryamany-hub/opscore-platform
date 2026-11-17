@@ -328,7 +328,9 @@ test('seller offer may be marketed before buyer identification while buyer right
   assert.match(buyerDelivery, /Seller advertising, listings, demonstrations and negotiations may happen before a buyer is known/i);
 
   const closeout = read('docs/commercial/REMAINING_CLOSEOUT_CHECKLIST.md');
-  assert.match(closeout, /not a seller launch or marketing gate/i);
+  assert.match(closeout, /A named buyer, buyer signature, buyer-specific legal review, payment, or transaction schedule is \*\*not\*\* a prerequisite/i);
+  assert.match(closeout, /Transaction boundary — explicitly outside product closeout/);
+  assert.match(closeout, /required before granting the buyer licensed use or delivery rights/);
   assert.doesNotMatch(closeout, /- \[ \] First signed License Schedule with a named buyer/i);
 
   const gate = read('backend/scripts/release-hardening-gate.js');

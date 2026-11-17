@@ -6,7 +6,7 @@ Package: commercial source-code delivery, not a hosted SaaS subscription and not
 
 The Contact Center module, locale selector, 114 locale resources, loader, RTL behavior, safe text rendering, fallback handling and visible AI/machine-translation notice are included in the source.
 
-Catalogue: 1 English source locale, 109 machine-assisted draft locales, 4 explicit English-fallback locales (din, nus, pau, ch), 89 keys per locale. Four structural/forensic rounds run in CI. Native-speaker reviewed = 0/114; production-qualified = 0/114. The audit verifies structure, provenance and safe integration, not linguistic accuracy or cultural/legal suitability. Keep the machine-translation notice visible.
+Catalogue: 1 English source locale, 109 machine-assisted draft resources and 4 explicit English-fallback resources (din, nus, pau, ch), 89 keys per resource. The current runtime exposes 105 selectable locales: 1 English source, 100 machine-assisted drafts and 4 fallbacks; 9 flagged resources are withdrawn from runtime selection pending remediation/native review. Four structural/forensic rounds run in CI. Native-speaker reviewed = 0/114; production-qualified = 0/105 selectable runtime locales. Structural verification does not establish linguistic accuracy or cultural/legal suitability. Keep the machine-translation notice visible.
 
 ## 2. External integrations — buyer/customer responsibility
 
@@ -24,7 +24,7 @@ The package includes Expo mobile source and source-level verification only. It d
 
 The buyer owns buyer-specific EAS setup, Android/iOS signing, native builds, physical-device GPS/camera/offline/upgrade testing, store accounts, submission and distribution. The seller remains responsible for defects in the supplied mobile source and for pre-delivery remediation of high/critical dependency advisories. After handover, ongoing dependency/security maintenance is buyer-owned.
 
-The last verified locked-tree baseline reported 12 npm findings: 0 critical, 0 high, 10 moderate, 2 low. CI blocks high/critical findings and preserves the complete JSON report in the exact archive pipeline. Moderate/low findings remain disclosed; the package is not described as vulnerability-free.
+Current candidate security status: PR #222 head `bd6d7ee56a0f3b7db3cf09cefefe11fd46ba76e3`; exact-head OpsCore CI run 44167795172 reports 26 High in the required mobile `npm audit --omit=dev --audit-level=high` step (the separate npm ci install summary prints 25 High), 0 Critical, through transitive picomatch dependencies linked to GHSA-fc5q-39xc-vjpf / CVE-2026-112366. Vercel contract run 44167795351 also reports 26 High. Backend runtime dependency audit: 0 findings. PostgreSQL 18 isolated acceptance passed on the same head in run 44167795388 (346 route checks, 137 restore tables; isolation certification NOT_CERTIFIED). The fail-closed mobile audit gate remains open; no High/Critical risk is assigned to the buyer or silently waived. Seller must resolve or formally disposition the finding before issuing a qualified source package.
 
 ## Acceptance rule
 
