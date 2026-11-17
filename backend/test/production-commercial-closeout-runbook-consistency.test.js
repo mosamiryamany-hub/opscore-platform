@@ -63,6 +63,15 @@ test('Seller product closeout is buyer-independent while actual buyer license ri
   assert.doesNotMatch(sellerCloseoutChecklist, /Buyer-specific work — not a seller launch or marketing gate/);
 });
 
+test('Live 67-route acceptance remains a Production certification task, not a source-package release gate', () => {
+  const sourceReleaseSection = sellerCloseoutChecklist.split('## Separate seller-hosted SaaS track')[0];
+  const hostedServiceSection = sellerCloseoutChecklist.split('## Separate seller-hosted SaaS track')[1] || '';
+  assert.doesNotMatch(sourceReleaseSection, /67-route signed-session/);
+  assert.match(hostedServiceSection, /67-route signed-session HTTP acceptance matrix/);
+  assert.match(hostedServiceSection, /not a source-code package release gate/);
+  assert.match(hostedServiceSection, /Production certification NOT_ESTABLISHED/);
+});
+
 test('Production key material and 67-route collector remain open while the real restore proof is accurately recorded', () => {
   assert.match(runbook, /`opscore_security` schema and `context_hmac_keys` table are absent on Primary/);
   assert.match(runbook, /zero Production HMAC key rows/);
