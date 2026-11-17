@@ -2,44 +2,59 @@
 
 **Disposition: OPEN / NOT ACCEPTED / RELEASE BLOCKER**
 
-This record documents the exact dependency finding currently blocking the OpsCore mobile release. It does not suppress npm audit, declare the advisory false, or authorize production release.
+This is a current assessment of GHSA-fc5q-39xc-vjpf / CVE-2026-112366 for OpsCore v0.11.62. It does not suppress npm audit, declare the advisory false, or authorize release.
 
-## Scope verified from repository lockfiles
+## OpsCore dependency and source boundary
 
-- The current `backend/package-lock.json` contains 15 package records and no `picomatch` package.
-- The current `mobile/package-lock.json` on main contains 503 package records and resolves:
-  - `picomatch@4.0.7` at the root of the mobile dependency tree.
-  - `picomatch@2.3.2` nested under `jest-util` and `micromatch`.
-- The main-branch CI runs on 2026-11-17 reported 26 High, 0 Critical, 0 Moderate and 0 Low findings for the mobile audit. The same failure was observed by both required workflows.
-- The detailed audit dependency chain includes Expo / Metro / React Native tooling, `tinyglobby`, `micromatch`, `jest-util`, and `picomatch`. The current report's root advisory entry is GHSA-fc5q-39xc-vjpf / CVE-2026-112366.
-- The existing Android, iOS and Web exports completed successfully in the dedicated SDK 58 remediation workflow. Its signature scan did not find the checked picomatch source markers in those three exported client bundles.
+- Current candidate lockfile: npm lockfile v3, 498 package records.
+- It resolves `picomatch@4.0.7` at the mobile dependency-tree root and `picomatch@2.3.2` nested below `jest-util` and `micromatch`.
+- Current root `backend/package-lock.json`: 15 package records, no `picomatch`.
+- GitHub Actions on the candidate reports the mobile audit as High because of GHSA-fc5q-39xc-vjpf. Both required CI workflows fail at the mobile dependency audit. The backend runtime dependency audit reports 0 findings.
+- The mobile app source inventory inspected on main includes `App.js`, `metro.config.js`, and the tracked `mobile/src` modules. No direct application import/call to `picomatch`, `micromatch`, `tinyglobby`, or a user-configurable glob-matching API was found. `metro.config.js` only adds WebAssembly to Metro asset extensions.
+- A separate SDK 58 refresh workflow completed Android, iOS and Web exports and did not find the scanned picomatch source signatures in the emitted client bundles.
 
-These facts narrow the observed exposure to the mobile toolchain in the current graph. They do **not** prove the package can never receive attacker-controlled patterns during local development or CI, and bundle scanning alone is not an exploitability assessment.
+These observations support a narrower classification: the currently visible occurrences are in the Expo/Metro build/development dependency graph, not a direct app runtime call path. They are **not proof of zero exposure**. Buyer-controlled or untrusted repository/configuration input used during builds remains an environment-dependent concern. Bundle-signature scans do not prove safety of all code paths.
 
-## Advisory disagreement — current public record
+## Current authoritative and disputed public evidence
 
-- GitHub Advisory Database lists GHSA-fc5q-39xc-vjpf as High, for picomatch through 4.0.7, with no patched version stated: https://github.com/advisories/GHSA-fc5q-39xc-vjpf
-- NVD record CVE-2026-112366 remains in Awaiting Enrichment; the visible 8.7 score is attributed to CNA VulnCheck, not an NVD assessment: https://nvd.nist.gov/vuln/detail/CVE-2026-112366
-- Snyk's SNYK-JS-PICOMATCH-21248802 page says the advisory was revoked and deemed not a vulnerability: https://security.snyk.io/vuln/SNYK-JS-PICOMATCH-21248802
-- The available upstream changelog still lists 4.0.7 as the latest release and does not document a fix for CVE-2026-112366: https://github.com/micromatch/picomatch/blob/master/CHANGELOG.md
+### GitHub / NVD
+- GitHub Advisory Database currently lists GHSA-fc5q-39xc-vjpf as High / Unreviewed. Its current advisory page does not define a package entry or known affected/patched version range, while npm audit resolves the advisory to the installed picomatch graph.
+  https://github.com/advisories/GHSA-fc5q-39xc-vjpf
+- NVD currently shows CVE-2026-112366 as Awaiting Enrichment. The displayed 8.7 High score is attributed to CNA VulnCheck; NVD states it has not yet provided its own assessment.
+  https://nvd.nist.gov/vuln/detail/CVE-2026-112366
+- The advisory's technical description concerns single-branch repeated extglob patterns such as `+(*)` and `+(*a)`, which can compile to nested unbounded quantifiers and cause catastrophic backtracking.
 
-The sources conflict. The GitHub/npm audit signal remains actionable until GitHub updates or withdraws its advisory, or an approved risk decision is recorded with supporting technical evidence.
+### Snyk and maintainer dispute
+- Snyk search metadata currently labels SNYK-JS-PICOMATCH-21248802 as revoked / deemed not a vulnerability. The opened Snyk detail page still retains the historical ReDoS description and states there is no fixed version. Treat this as a disputed source, not as a clean bill of health.
+  https://security.snyk.io/vuln/SNYK-JS-PICOMATCH-21248802
+- The upstream maintainer comment on PR #235 states that arbitrary untrusted glob/regex patterns should not be accepted and disputes the claimed vulnerability. On 2026-11-17T18:00Z, contributor G-Rath stated that another dispute had been submitted to the CNAs to withdraw the advisory.
+  https://github.com/micromatch/picomatch/pull/235
 
-## Why no forced dependency downgrade or override is applied
+### Upstream remediation proposals are not release-ready
+- PR #237 (v4 fix) remains open and unmerged, with no formal review submissions recorded.
+  https://github.com/micromatch/picomatch/pull/237
+- PR #238 (v4 fix) remains open and unmerged. A review submitted on 2026-11-17 measured residual exponential cases in that patch: `+(*)`, `*(*)`, and `+(a*)`; the reported `+(*)` case reached about 3 seconds at input length 28. The reviewer states this includes one of the patterns named in the advisory. Therefore PR #238 is not accepted as a complete fix as-is.
+  https://github.com/micromatch/picomatch/pull/238
+- PR #246 proposes a v2 adaptation for `picomatch@2.x`; it remains open/unmerged with no formal review submissions recorded.
+  https://github.com/micromatch/picomatch/pull/246
+- npm currently publishes picomatch 4.0.7 as latest; no 4.0.8 or corresponding patched v2 release is published in the examined version registry.
+  https://www.npmjs.com/package/picomatch
 
-The remediation advice returned by npm points to Expo 54 and React Native 0.83 in the audit graph. Those are major-version changes away from this product's selected Expo SDK 58 / React Native 0.88 baseline. Applying them only to silence the audit would break the supported SDK alignment and is not an acceptable fix.
+## Why the candidate does not apply a forced change
 
-No unofficial fork, synthetic patched tarball, lockfile-only edit, arbitrary override, or audit suppression is accepted as remediation.
+- The npm remediation path proposes downgrading React Native to 0.83.10 / Expo 54, which is a major SDK change away from the selected Expo SDK 58 / React Native 0.88.1 baseline.
+- The published upstream fix proposals are not merged, and the latest review found residual slow patterns in one v4 patch.
+- No unofficial tarball, private fork, arbitrary override, lockfile-only rewrite, or audit suppression is applied.
+- No audit warning is treated as resolved merely because source signatures are absent from generated bundles.
 
-## Required evidence before a narrowly scoped exception can be considered
+## Required next evidence
 
-1. Rebuild the current SDK 58-compatible lockfile from the current main-based candidate using the official Expo installer and publish the exact lockfile as CI evidence.
-2. Review every mobile source call path that can supply glob patterns to Expo CLI, Metro, `tinyglobby`, `micromatch` and `picomatch`; establish whether any remote, tenant-controlled, uploaded, or otherwise untrusted data can reach those arguments.
-3. Confirm the full dependency audit contains only this advisory family and no independent High/Critical issue.
-4. Repeat Android, iOS and Web exports and scan the generated artifacts; retain the actual artifact hashes. Treat this as corroborating evidence only, not proof of runtime exploitability.
-5. Have a security reviewer document the residual risk, exploit preconditions, trust boundary, mitigation, owner, expiry date, and explicit approval. The rights holder must approve any commercial risk acceptance.
-6. Keep the advisory visible to buyers and preserve the audit JSON, SBOM, lockfile and waiver (if approved) with the exact release statement.
+1. Re-run the exact candidate clean install, SDK alignment gate, Expo Doctor and Android/iOS/Web exports after every dependency or source change.
+2. Preserve both the full mobile audit and the production-only audit JSON from the exact same candidate. Reconcile all reported vulnerable nodes to the single advisory; any independent finding blocks the candidate.
+3. Perform an explicit source/data-flow review for every build-time path that accepts glob patterns. Confirm whether untrusted repository content, remote artifacts, user uploads, tenant data, or external build configuration can reach the pattern argument. Keep this as a separate security acceptance report.
+4. Require an upstream maintainer-approved fix or an internally maintained fork that has a reviewed complete patch for both v4 and v2, regression coverage for the reported cases, full upstream tests, and reproducible package provenance. Do not deploy the currently open PR patches as if they were approved.
+5. If the rights holder later elects to accept the residual build-tool risk, record a transaction-specific signed risk acceptance, exact package pins, scope, controls, review date, and buyer disclosure. This document is not that acceptance.
 
 ## Release rule
 
-Until all evidence above exists and an authorized owner records any exception in writing, the mobile High finding remains unresolved and the release gate must fail closed. No Production deployment, mobile binary signing, or buyer delivery is authorized by this document.
+The High audit finding remains unresolved. Required CI checks remain fail-closed. No Production activation, signed mobile release, buyer delivery, or claim of security remediation is authorized by this assessment. Seller-side marketing may proceed only with explicit disclosure that the current mobile dependency audit is unresolved and that the offer is source-code handoff, not a hosted SaaS or certified mobile binary.
