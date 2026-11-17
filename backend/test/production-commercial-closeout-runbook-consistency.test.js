@@ -26,7 +26,7 @@ const rotationWorkflow = fs.readFileSync(
 test('Production runbook and buyer residual register use the latest observed Neon capacity', () => {
   assert.match(runbook, /10 active branches \(10\/10 included\)/);
   assert.match(runbook, /3 root branches/);
-  assert.match(runbook, /all ten are unprotected/);
+  assert.match(runbook, /All ten are unprotected/);
   assert.match(runbook, /current automatic snapshot schedule is empty/);
   assert.match(runbook, /restore attempt failed with `root branches limit exceeded`/);
   assert.match(buyerResiduals, /10\/10 visible branches/);
@@ -36,9 +36,9 @@ test('Production runbook and buyer residual register use the latest observed Neo
 });
 
 test('Production key material, restore proof, and 67-route collector are not falsely described as completed', () => {
-  assert.match(runbook, /Production HMAC key table does not exist/);
+  assert.match(runbook, /`opscore_security` schema and `context_hmac_keys` table are absent on Primary/);
   assert.match(runbook, /zero Production HMAC key rows/);
-  assert.match(runbook, /Production 67-route collector\/evidence writer is \*\*not implemented and not available\*\*/);
+  assert.match(runbook, /real Production 67-route collector\/evidence writer is \*\*not implemented and not available\*\*/);
   assert.match(runbook, /restore proof does not exist/);
   assert.doesNotMatch(runbook, /Production key table exists/i);
   assert.doesNotMatch(runbook, /67-route collector is implemented and available/i);
