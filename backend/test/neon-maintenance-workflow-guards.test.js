@@ -34,6 +34,19 @@ test('Neon hygiene refuses pruning without typed confirmation and narrows eligib
   assert.match(hygieneScript, /BRANCH_CAPACITY_FULL_NO_AUTOMATIC_DELETION|skip_protected_identity/);
 });
 
+test('duplicate ephemeral pruner deletes only one exact manually selected branch', () => {
+  const pruneWorkflow = read('.github/workflows/neon-prune-ephemeral-branches.yml');
+  assert.match(pruneWorkflow, /workflow_dispatch:/);
+  assert.doesNotMatch(pruneWorkflow, /repository_dispatch/);
+  assert.doesNotMatch(pruneWorkflow, /^\\s*push:/m);
+  assert.ok(pruneWorkflow.includes('branch_id:'));
+  assert.ok(pruneWorkflow.includes('expected_branch_name:'));
+  assert.ok(pruneWorkflow.includes('DELETE_ONE_EPHEMERAL_NEON_BRANCH'));
+  assert.ok(pruneWorkflow.includes('TARGET_BRANCH_ID'));
+  assert.ok(pruneWorkflow.includes('TARGET_BRANCH_DELETE_NOT_VERIFIED'));
+  assert.ok(pruneWorkflow.includes('TARGET_BRANCH_NAME_NOT_IN_EPHEMERAL_ALLOWLIST'));
+});
+
 test('Primary snapshot rotation requires manual dispatch and exact-ID deletion approval', () => {
   assert.match(snapshotWorkflow, /workflow_dispatch:/);
   assert.doesNotMatch(snapshotWorkflow, /repository_dispatch/);
