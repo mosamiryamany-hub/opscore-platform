@@ -27,6 +27,12 @@ test('signed-context migration branch workflow uses pinned actions and the offic
 
 test('migration branch runner never deletes branches and requires free branch capacity', () => {
   assert.match(runner, /if len\(branches\) >= 10:/);
+  assert.match(runner, /def list_all_branches\(\):/);
+  assert.match(runner, /"limit": 100/);
+  assert.match(runner, /"cursor": cursor/);
+  assert.match(runner, /pagination\.get\("next"\)/);
+  assert.match(runner, /NEON_BRANCH_PAGINATION_CURSOR_REPEATED/);
+  assert.match(runner, /NEON_BRANCH_PAGINATION_PAGE_LIMIT_EXCEEDED/);
   assert.match(runner, /BRANCH_CAPACITY_FULL_NO_AUTOMATIC_DELETION/);
   assert.doesNotMatch(runner, /api\(["']DELETE["']/);
   assert.doesNotMatch(runner, /cleanup_old_mig|Delete prior failed mig branches/);
