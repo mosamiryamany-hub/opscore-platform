@@ -1,0 +1,201 @@
+name: production-migration
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_primary_migration:
+        description: 'Explicit authorization to migrate the Neon primary branch'
+        required: true
+        type: choice
+        options:
+          - I_AUTHORIZE_PRIMARY_MIGRATION
+      expected_project_id:
+        description: 'Neon project id (exact)'
+        required: true
+        type: string
+      expected_branch_id:
+        description: 'Neon primary branch id (exact)'
+        required: true
+        type: string
+      database:
+        description: 'Application database name on the primary branch'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-migration
+  cancel-in-progress: false
+
+jobs:
+  rehearse:
+    runs-on: ubuntu-24.04
+    outputs:
+      pending: ${{ steps.dry.outputs.pending }}
+      snapshot_id: ${{ steps.snap.outputs.snapshot_id }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22.23.4'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Install backend
+        working-directory: backend
+        run: npm ci --ignore-scripts
+      - name: Guard explicit authorization
+        run: test "${{ inputs.confirm_primary_migration }}" = "I_AUTHORIZE_PRIMARY_MIGRATION"
+      - name: Snapshot primary branch (rollback point)
+        id: snap
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+        run: |
+          set -euo pipefail
+          resp=$(curl -sSf -X POST -H "Authorization: Bearer ${NEON_API_KEY}" -H "Content-Type: application/json" \
+            "https://api.neon.tech/v2/projects/${{ inputs.expected_project_id }}/snapshots" \
+            -d "{\"source_branch_id\":\"${{ inputs.expected_branch_id }}\"}")
+          sid=$(node -e "let d=null;try{d=JSON.parse(process.argv[1])}catch{};const o=(d&&(d.snapshot||d.data))||d||{};console.log(o.id||'')" "$resp")
+          if [ -z "$sid" ]; then echo "SNAPSHOT_CREATION_FAILED"; exit 1; fi
+          echo "snapshot_id=$sid" >> "$GITHUB_OUTPUT"
+          echo "SNAPSHOT_OK=$sid"
+      - name: Resolve owner connection URI
+        id: uri
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+        run: |
+          set -euo pipefail
+          resp=$(curl -sSf -H "Authorization: Bearer ${NEON_API_KEY}" \
+            "https://api.neon.tech/v2/projects/${{ inputs.expected_project_id }}/branches/${{ inputs.expected_branch_id }}/connection_uri?database=${{ inputs.database }}&role_name=neondb_owner")
+          uri=$(node -e "let d=null;try{d=JSON.parse(process.argv[1])}catch{};const u=(d&&d.uri)||process.argv[1];if(!/^postgres(ql)?:\/\//.test(u||''))process.exit(1);console.log(u)" "$resp")
+          echo "::add-mask::$uri"
+          echo "uri=$uri" >> "$GITHUB_OUTPUT"
+      - name: Dry-run migration plan (no changes)
+        id: dry
+        working-directory: backend
+        env:
+          OPSC_MIGRATION_DATABASE_URL: ${{ steps.uri.outputs.uri }}
+          OPSC_MIGRATION_CONFIRM_DATABASE: ${{ inputs.database }}
+          OPSC_MIGRATION_EXPECTED_PROJECT_ID: ${{ inputs.expected_project_id }}
+          OPSC_MIGRATION_CONFIRM_PROJECT_ID: ${{ inputs.expected_project_id }}
+          OPSC_MIGRATION_EXPECTED_BRANCH_ID: ${{ inputs.expected_branch_id }}
+          OPSC_MIGRATION_CONFIRM_BRANCH_ID: ${{ inputs.expected_branch_id }}
+        run: |
+          set -euo pipefail
+          node scripts/apply-postgres-migrations.js > /tmp/dry.json
+          cat /tmp/dry.json
+          pending=$(node -e "const d=require('/tmp/dry.json');console.log((d.pending||[]).map(x=>x.filename).join(','))")
+          echo "pending=$pending" >> "$GITHUB_OUTPUT"
+          case ",$pending," in
+            *,068_opscore_app_role_privilege_lockdown.sql,*)
+              echo "MIGRATION_068_REQUIRES_SEPARATE_AUTHORIZED_WINDOW (app-role privilege repair must be scheduled deliberately)"; exit 1;;
+          esac
+
+  apply-and-enable:
+    needs: [rehearse]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22.23.4'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Install backend
+        working-directory: backend
+        run: npm ci --ignore-scripts
+      - name: Resolve owner connection URI
+        id: uri
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+        run: |
+          set -euo pipefail
+          resp=$(curl -sSf -H "Authorization: Bearer ${NEON_API_KEY}" \
+            "https://api.neon.tech/v2/projects/${{ inputs.expected_project_id }}/branches/${{ inputs.expected_branch_id }}/connection_uri?database=${{ inputs.database }}&role_name=neondb_owner")
+          uri=$(node -e "let d=null;try{d=JSON.parse(process.argv[1])}catch{};const u=(d&&d.uri)||process.argv[1];if(!/^postgres(ql)?:\/\//.test(u||''))process.exit(1);console.log(u)" "$resp")
+          echo "::add-mask::$uri"
+          echo "uri=$uri" >> "$GITHUB_OUTPUT"
+      - name: Apply pending migrations (06x batch, 068 excluded by design)
+        working-directory: backend
+        env:
+          OPSC_MIGRATION_DATABASE_URL: ${{ steps.uri.outputs.uri }}
+          OPSC_MIGRATION_CONFIRM_DATABASE: ${{ inputs.database }}
+          OPSC_MIGRATION_EXPECTED_PROJECT_ID: ${{ inputs.expected_project_id }}
+          OPSC_MIGRATION_CONFIRM_PROJECT_ID: ${{ inputs.expected_project_id }}
+          OPSC_MIGRATION_EXPECTED_BRANCH_ID: ${{ inputs.expected_branch_id }}
+          OPSC_MIGRATION_CONFIRM_BRANCH_ID: ${{ inputs.expected_branch_id }}
+        run: node scripts/apply-postgres-migrations.js --apply > /tmp/apply.json
+      - name: Verify migration ledger and generate evidence
+        working-directory: backend
+        env:
+          MIGRATION_DATABASE_URL: ${{ steps.uri.outputs.uri }}
+        run: |
+          set -euo pipefail
+          node - <<'EOF'
+          const fs=require('fs');
+          const {Client}=require('pg');
+          (async()=>{
+            const c=new Client({connectionString:process.env.MIGRATION_DATABASE_URL,ssl:{rejectUnauthorized:true}});
+            await c.connect();
+            const rows=(await c.query("SELECT filename,sha256,applied_at FROM public.schema_migrations WHERE filename LIKE '06%' ORDER BY filename")).rows;
+            const need=['060_firewall_rate_bucket_expiry_index.sql','061_operational_autopilot_tenant_persistence.sql','062_autopilot_table_privilege_minimization.sql','063_signed_tenant_context_verifier.sql','064_signed_tenant_context_work_orders_routing.sql','065_signed_tenant_context_evidence_upload_chunks.sql','066_signed_tenant_context_verifier_search_path_hardening.sql','067_signed_tenant_context_rls_policy_accessor_alignment.sql','069_technician_location_trail_tenant_persistence.sql'];
+            const have=rows.map(r=>r.filename);
+            const missing=need.filter(n=>!have.includes(n));
+            if(missing.length)throw new Error('MIGRATION_LEDGER_MISSING:'+missing.join(','));
+            if(have.includes('068_opscore_app_role_privilege_lockdown.sql'))throw new Error('MIGRATION_068_APPLIED_WITHOUT_AUTHORIZED_WINDOW');
+            const crypto=require('crypto');
+            const evidence={schemaVersion:'opscore.production-migration-evidence.v1',generatedAt:new Date().toISOString(),database:process.env.MIGRATION_DATABASE_URL.replace(/\/\/[^@]+@/,'//***@'),migrations06x:rows,verified:true};
+            fs.mkdirSync('docs/verification',{recursive:true});
+            fs.writeFileSync('docs/verification/PRODUCTION_MIGRATION_06x_EVIDENCE.json',JSON.stringify(evidence,null,2)+'\n');
+            console.log('MIGRATION_LEDGER_VERIFIED',have.join(','));
+            await c.end();
+          })().catch(e=>{console.error(e.message);process.exit(1)});
+          EOF
+      - name: Seed production HMAC key (32 bytes, masked)
+        id: hmac
+        working-directory: backend
+        env:
+          MIGRATION_DATABASE_URL: ${{ steps.uri.outputs.uri }}
+        run: |
+          set -euo pipefail
+          KEY_ID="prod-$(date -u +%Y%m%d%H%M%S)"
+          KEY=$(openssl rand -hex 32)
+          echo "::add-mask::$KEY"
+          KEY_ID="$KEY_ID" KEY="$KEY" node - <<'EOF'
+          const {Client}=require('pg');
+          (async()=>{
+            const c=new Client({connectionString:process.env.MIGRATION_DATABASE_URL,ssl:{rejectUnauthorized:true}});
+            await c.connect();
+            await c.query('SET ROLE opscore_auth_definer');
+            await c.query('INSERT INTO opscore_security.context_hmac_keys(key_id,secret,enabled,not_before) VALUES($1,$2,true,now())',[process.env.KEY_ID,Buffer.from(process.env.KEY,'hex')]);
+            const r=await c.query('SELECT key_id,octet_length(secret) AS len,enabled FROM opscore_security.context_hmac_keys WHERE key_id=$1',[process.env.KEY_ID]);
+            if(!r.rows[0]||Number(r.rows[0].len)!==32||r.rows[0].enabled!==true)throw new Error('HMAC_KEY_SEED_FAILED');
+            console.log('HMAC_KEY_SEEDED',r.rows[0].key_id);
+            await c.end();
+          })().catch(e=>{console.error(e.message);process.exit(1)});
+          EOF
+          echo "key_id=$KEY_ID" >> "$GITHUB_OUTPUT"
+          echo "key=$KEY" >> "$GITHUB_OUTPUT"
+      - name: Publish HMAC env to Vercel production
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          HMAC_KEY: ${{ steps.hmac.outputs.key }}
+          HMAC_KEY_ID: ${{ steps.hmac.outputs.key_id }}
+        run: |
+          set -euo pipefail
+          curl -sSf -X POST "https://api.vercel.com/v10/projects/${VERCEL_PROJECT_ID}/env?teamId=${VERCEL_ORG_ID}&upsert=true" \
+            -H "Authorization: Bearer ${VERCEL_TOKEN}" -H "Content-Type: application/json" -d "[{\"key\":\"OPSC_TENANT_CONTEXT_HMAC_KEY\",\"value\":\"${HMAC_KEY}\",\"type\":\"encrypted\",\"target\":[\"production\"]},{\"key\":\"OPSC_TENANT_CONTEXT_KEY_ID\",\"value\":\"${HMAC_KEY_ID}\",\"type\":\"encrypted\",\"target\":[\"production\"]}]" > /tmp/vercel_env.json
+          node -e "const d=require('/tmp/vercel_env.json');const ok=(d.created||[]).length===2;if(!ok){console.error(JSON.stringify(d).slice(0,200));process.exit(1)}console.log('VERCEL_HMAC_ENV_SET')"
+      - name: Upload migration evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: production-migration-evidence-${{ github.run_id }}
+          path: backend/docs/verification/PRODUCTION_MIGRATION_06x_EVIDENCE.json
+          if-no-files-found: error
+          retention-days: 30
