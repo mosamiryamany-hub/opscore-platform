@@ -25,7 +25,7 @@ concurrency:
 
 jobs:
   prune:
-    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.confirm == 'DELETE_ONE_EPHEMERAL_NEON_BRANCH' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.event.inputs.confirm == 'DELETE_ONE_EPHEMERAL_NEON_BRANCH' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -47,7 +47,9 @@ jobs:
           project = os.environ.get("NEON_PROJECT_ID") or "summer-leaf-18448271"
           target_id = str(os.environ.get("TARGET_BRANCH_ID") or "").strip()
           expected_name = str(os.environ.get("EXPECTED_BRANCH_NAME") or "").strip()
-          if not key or not target_id.startswith("br-") or not expected_name:
+          if os.environ.get("GITHUB_EVENT_NAME") != "workflow_dispatch" or os.environ.get("GITHUB_REF") != "refs/heads/main":
+              raise SystemExit("EPHEMERAL_BRANCH_DELETE_MAIN_MANUAL_DISPATCH_REQUIRED")
+          if not key or not __import__("re").fullmatch(r"br-[a-z0-9-]{8,80}", target_id) or not expected_name:
               raise SystemExit("EXACT_BRANCH_ID_NAME_AND_API_KEY_REQUIRED")
 
           keep_ids = {
