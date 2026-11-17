@@ -1,0 +1,62 @@
+name: neon-prune-ephemeral-branches
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type PRUNE_EPHEMERAL_NEON_BRANCHES to delete only non-primary non-protected branches matching ephemeral name patterns
+        required: true
+permissions:
+  contents: read
+jobs:
+  prune:
+    if: github.event.inputs.confirm == 'PRUNE_EPHEMERAL_NEON_BRANCHES'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Prune ephemeral branches only
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: summer-leaf-18448271
+        run: |
+          set -euo pipefail
+          curl -sS -H "Authorization: Bearer $NEON_API_KEY" -H "Accept: application/json" \
+            "https://console.neon.tech/api/v2/projects/${NEON_PROJECT_ID}/branches" -o branches.json
+          python3 <<'PY'
+import json,os,urllib.request
+key=os.environ["NEON_API_KEY"]
+proj=os.environ["NEON_PROJECT_ID"]
+# Never delete these (production / known preview)
+KEEP_IDS={
+  "br-proud-salad-bcshhdap",
+  "br-wispy-term-bcrqqj84",
+  "br-fragrant-king-bcr9928f",
+}
+# Ephemeral name markers only
+MARKERS=("recovery-point","opscore-prod-recovery","digital-twin","tmp-","test-accept","accept-recovery","ephemeral")
+branches=json.load(open("branches.json")).get("branches") or []
+print("total", len(branches))
+deleted=[]
+skipped=[]
+for b in branches:
+  bid=b.get("id") or ""
+  name=(b.get("name") or "").lower()
+  if b.get("primary") or b.get("protected") or bid in KEEP_IDS:
+    skipped.append((bid,name,"keep_flag")); continue
+  if not any(m in name for m in MARKERS):
+    skipped.append((bid,name,"no_marker")); continue
+  req=urllib.request.Request(
+    f"https://console.neon.tech/api/v2/projects/{proj}/branches/{bid}",
+    method="DELETE",
+    headers={"Authorization":f"Bearer {key}","Accept":"application/json"},
+  )
+  try:
+    with urllib.request.urlopen(req) as resp:
+      print("deleted", bid, name, resp.status)
+      deleted.append(bid)
+  except Exception as e:
+    body=e.read().decode()[:300] if hasattr(e,"read") else str(e)
+    print("fail", bid, name, body)
+print("deleted_count", len(deleted))
+print("skipped_count", len(skipped))
+for s in skipped:
+  print("skipped", s)
+PY
