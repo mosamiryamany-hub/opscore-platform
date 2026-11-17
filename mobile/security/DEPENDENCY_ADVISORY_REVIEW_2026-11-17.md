@@ -114,6 +114,51 @@ Artifact: `mobile-sdk58-current-main-evidence-44157820028`, artifact ID `1436171
 
 The prior exact-head run 44157086377 on the same mobile dependency lockfile reported 26 High full / 25 High `--omit=dev`; run 44156497177 reported 25/25. The count shifts across repeated npm audit runs without any dependency-lock change. This is audit-result variance, not a patch, fix, or risk reduction. For the latest state, disclose 25 High full / 26 High production-only and keep the fail-closed gate active.
 
+## First-party mobile source/data-flow review — candidate head `d59819b`
+
+A targeted static review was performed against the current SDK58 candidate tree. This is a reachability assessment of first-party source, not a claim that the upstream advisory is false or that the Expo toolchain is free of the vulnerable code.
+
+### Exact source inputs reviewed
+
+| File | Git blob SHA |
+|---|---|
+| `mobile/package.json` | `3acfd5aa6b7a452fba4e6e5bae764e72bdcdccc5` |
+| `mobile/package-lock.json` | `b9f7e719865312650eab54d1c0ca8dc362a8c2dc` |
+| `mobile/App.js` | `1b87ec2f57085511e96c91aa047c045e6552d730` |
+| `mobile/metro.config.js` | `c5c6947433e057dc0338d034df846041426eeb74` |
+| `mobile/app.json` | `7df95ddbe5d8cb5bcee9330e210f1ef7d1c6abce` |
+| `mobile/src/api.js` | `89d66f3c2e84035252c3aa8a8b0bb8e4711e3709` |
+| `mobile/src/auth.js` | `b4e6853c6a6e4e4c3d641ea96bd6fa4f7c203253` |
+| `mobile/src/db.js` | `d885964044785da86f82bfc08724b3d602e22f02` |
+| `mobile/src/id.js` | `ba85911269dba9a5746e06dbd0badeee5fbd621d` |
+| `mobile/src/local-crypto.js` | `f15be2219558c145c17e5ed17bb251d5fcef0fed` |
+| `mobile/src/signoff-assurance.js` | `ed6c11d68eae2f8edb67d41ded3c3f359dc6bc9b` |
+| `mobile/src/sync-result.js` | `be51e9a338bc609fa1d48079ca20afb4161fca19` |
+| `mobile/src/sync.js` | `5cc9ac7b8f7ca7f0e3a6e45e5c97628c73bcfa2a` |
+| `mobile/scripts/dependency-upgrade-gate.js` | `666b6d1539caa2ec0f10c0976853461b6857b011` |
+
+No direct first-party import or call to `picomatch`, `micromatch`, `tinyglobby`, or a glob-matching API was found in these app/config modules. The only first-party `glob` references in the reviewed dependency-gate script inspect lockfile versions; they do not invoke a glob matcher. `metro.config.js` only extends Metro's asset extensions for WebAssembly.
+
+### Locked dependency graph
+
+The 498-record npm lockfile resolves:
+- `picomatch@4.0.7` at `node_modules/picomatch`;
+- `picomatch@2.3.2` below `jest-util` and `micromatch`;
+- direct parent edges from `@expo/metro-config@58.0.23`, Expo's nested `@expo/cli@58.1.21`, `jest-util@29.7.0`, `micromatch@4.0.8`, and `tinyglobby@0.2.17`.
+
+These are transitive Expo/Metro/build-tool graph paths. They are not first-party application imports. However, the packages are not all marked as dev-only in the lockfile, and the latest `npm audit --omit=dev` still reports 26 High. Therefore this issue must not be described as dev-only or absent from the production-only audit.
+
+### Reachability and threat boundary
+
+- No first-party mobile API, screen, sync payload, user field, or HTTP request handler was found that accepts a glob/extglob pattern and passes it to picomatch.
+- The Android, iOS and Web exports in the exact SDK58 validation did not contain the checked picomatch source signatures. This is a narrow signature scan, not proof that no vulnerable code path exists.
+- The remaining plausible exposure is in build/configuration tooling processing repository-controlled source/configuration, or in a compromised dependency/CI input. The static first-party scan does not prove that all third-party Expo/Metro calls are unreachable or that malicious repository changes cannot trigger a slow pattern.
+- The advisory requires a pattern that triggers pathological regex backtracking. No end-user-controlled pattern path was identified in first-party mobile source during this review; this lowers the apparent remote-app attack surface but does not remove the build/CI supply-chain exposure.
+
+### Disposition
+
+**Reachability review: PARTIAL / NOT A RISK ACCEPTANCE. Advisory: OPEN / RELEASE BLOCKER.** This review supplies first-party source evidence but does not independently test every third-party call site, prove all build inputs trusted, or replace an upstream fix. Keep the CI audit fail-closed. If the rights holder chooses to accept the residual build/CI risk, only an authorized seller-side security/risk owner may sign the internal risk acceptance described above; no buyer identification or buyer signature is required for that seller decision.
+
 ## Current authoritative and disputed public evidence
 
 ### GitHub / NVD
