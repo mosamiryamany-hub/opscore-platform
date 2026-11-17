@@ -128,15 +128,46 @@ def load_and_verify_restore_proof(key):
         "runtime_role_boundary",
     }
     checks = proof.get("checks")
-    if not isinstance(checks, list):
+    if not isinstance(checks, dict):
         fail("PRODUCTION_PRIMARY_RESTORE_PROOF_CHECKS_MISSING")
+    if set(checks) != required_checks:
+        fail("PRODUCTION_PRIMARY_RESTORE_PROOF_CHECK_SET_MISMATCH", {
+            "actual": sorted(str(name) for name in checks),
+            "required": sorted(required_checks),
+        })
     actual_checks = {
-        str(item.get("id")): str(item.get("status"))
-        for item in checks
+        str(name): str(item.get("status"))
+        for name, item in checks.items()
         if isinstance(item, dict)
     }
     if any(actual_checks.get(name) != "PASS" for name in required_checks):
         fail("PRODUCTION_PRIMARY_RESTORE_PROOF_CHECKS_INCOMPLETE")
+
+    snapshot_check = checks["snapshot_provenance"]
+    if snapshot_check.get("restoreStatus") != "restored" or snapshot_check.get("restoredAs") != PRIMARY_BRANCH_ID:
+        fail("PRODUCTION_PRIMARY_RESTORE_PROOF_SNAPSHOT_CHECK_INVALID")
+    restore_check = checks["restore_branch_ready"]
+    if str(restore_check.get("currentState") or "").lower() != "ready" or restore_check.get("branchId") != restored_branch_id:
+        fail("PRODUCTION_PRIMARY_RESTORE_PROOF_RESTORE_CHECK_INVALID")
+    identity_check = checks["database_identity"]
+    if not str(identity_check.get("serverVersion") or "").startswith("18."):
+        fail("PRODUCTION_PRIMARY_RESTORE_PROOF_SERVER_VERSION_INVALID")
+    inventory_check = checks["public_table_inventory"]
+    if inventory_check.get("publicTableCount") != proof["publicTableCount"]:
+        fail("PRODUCTION_PRIMARY_RESTORE_PROOF_TABLE_COUNT_MISMATCH")
+    if inventory_check.get("rlsEnabledTableCount") != inventory_check.get("forceRlsEnabledTableCount"):
+        fail("PRODUCTION_PRIMARY_RESTORE_PROOF_RLS_FORCE_MISMATCH")
+    migration_check = checks["migration_ledger_read"]
+    if migration_check.get("migration068Present") is not True or migration_check.get("migrations063to067And069Absent") is not True:
+        fail("PRODUCTION_PRIMARY_RESTORE_PROOF_MIGRATION_BASELINE_INVALID")
+    runtime_check = checks["runtime_role_boundary"]
+    if runtime_check.get("runtimeRoleSuperuser") is not False or runtime_check.get("runtimeRoleBypassRls") is not False:
+        fail("PRODUCTION_PRIMARY_RESTORE_PROOF_RUNTIME_ROLE_INVALID")
+    if runtime_check.get("organizationsVisibleWithoutTenantContext") != 0:
+        fail("PRODUCTION_PRIMARY_RESTORE_PROOF_RUNTIME_RLS_DEFAULT_DENY_FAILED")
+    core_check = checks["core_table_read"]
+    if not isinstance(core_check.get("organizationsCount"), int) or core_check["organizationsCount"] <= 0:
+        fail("PRODUCTION_PRIMARY_RESTORE_PROOF_CORE_TABLE_CHECK_INVALID")
 
     tested_at = parse_iso(proof.get("testedAt"), "PRODUCTION_PRIMARY_RESTORE_PROOF_TIMESTAMP_INVALID")
     now = datetime.now(timezone.utc)
@@ -158,6 +189,8 @@ def load_and_verify_restore_proof(key):
         fail("PRODUCTION_RESTORE_BRANCH_NOT_READY")
     if restore_branch.get("restored_from") != snapshot_id or str(restore_branch.get("restore_status") or "").lower() != "restored":
         fail("PRODUCTION_RESTORE_BRANCH_SNAPSHOT_PROVENANCE_MISMATCH")
+    if restore_branch.get("restored_as") != PRIMARY_BRANCH_ID:
+        fail("PRODUCTION_RESTORE_BRANCH_TARGET_MISMATCH")
 
     print("PRODUCTION_RESTORE_PROOF=PASS")
     print("PRODUCTION_RESTORE_PROOF_SHA256=" + actual_digest)
