@@ -38,6 +38,28 @@ The workflow run itself ended FAILURE at its old step that tried to push refresh
 
 **Interpretation:** SDK 58 source checks, Expo Doctor and all three JS exports pass, and the exact lockfile is reproducible. This does not resolve the audit finding. The production-only npm audit also reports High findings; no buyer-ready mobile security claim or merge approval follows from the successful build steps.
 
+## Latest read-only candidate run — 2026-11-17 18:55Z
+
+GitHub Actions run **44152872774** tested candidate commit `851b31fb20f47e17d58aed89bddd97e3c9af73e7`. The candidate package manifest and generated lockfile were unchanged from the files now at PR #222 head: package.json blob `3acfd5aa6b7a452fba4e6e5bae764e72bdcdccc5`; package-lock blob `b9f7e719865312650eab54d1c0ca8dc362a8c2dc`.
+
+| Check | Latest result |
+|---|---|
+| `npm ci` from the committed lockfile | PASS |
+| SDK58 alignment / dependency gate | PASS |
+| Mobile source contract verification | PASS |
+| Expo Doctor | 20/20 |
+| Android, iOS and Web exports | PASS |
+| Checked picomatch signatures in client bundles | Not found in all three |
+| Full `npm audit --json` | **26 High** |
+| `npm audit --omit=dev --json` | **25 High** |
+| Fail-closed release condition | **FAIL — expected while High/Critical remains** |
+
+Exact evidence artifact: `mobile-sdk58-current-main-evidence-44152872774`, artifact ID `14359762064`, SHA-256 `e28ff52c887b66dc6f05cada7a40599e5384bb79e7782985b340691c1dce1bdf`.
+
+The prior read-only predecessor run 44152511359 reported the reverse 25/26 count split across full and omit-dev. The committed lockfile SHA and package versions were identical in both artifacts. Therefore do not treat the one-count difference as a fixed vulnerability or a reduction in risk. For current qualification use the latest run's 26 High full-audit / 25 High omit-dev figures, and preserve both raw JSON reports. The same root advisory GHSA-fc5q-39xc-vjpf remains present. Package-level High counts are transitive audit records, not 26 separate CVEs.
+
+The read-only workflow now has `contents: read`, checkout credentials disabled and no branch-push step. Its intentional final failure is the unresolved audit gate, not a write conflict.
+
 ## Current authoritative and disputed public evidence
 
 ### GitHub / NVD
