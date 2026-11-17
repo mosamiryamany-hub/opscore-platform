@@ -26,6 +26,17 @@ The selected time is an owner-approved operational window. Current Vercel Hobby 
 4. PR #212 prepares a corrected disposable-branch path: direct non-pooler endpoint, exact project/branch/host/database binding, the guarded `apply-postgres-migrations.js --apply` runner, SHA-256 ledger evidence, and no automatic branch deletion. It is not Production authorization and must pass independent review before use.
 5. The current application policy still gates signed operational routes to `VERCEL_ENV=preview`. Current Vercel deploy workflow's Production job is hard-disabled (`if: false && ...`). Production env inventory shows HMAC keys and the signed-route switches in Preview only. Flipping environment flags alone is not a Production activation plan.
 
+## Snapshot restore attempt — 17 November 2026
+
+A non-finalizing restore test was attempted against the current manual Primary snapshot `snap-floral-sea-bcug7fd3`. Neon rejected creation of the restore branch with `root branches limit exceeded`. The snapshot is still listed and was not deleted or replaced; no restore branch was produced. The provider's branch list showed eight active branches at the time, but this observation is not a contractual statement of the account's plan limit.
+
+Consequences:
+
+- Snapshot existence and provenance are verified; **restore execution is not verified**.
+- The earlier disposable PostgreSQL logical dump/restore drill is CI evidence only and does not substitute for Neon Primary snapshot restoration.
+- Do not delete branches, replace the Primary, finalize a restore, or upgrade the Neon plan automatically to make room.
+- The Production migration remains **NO-GO** until an owner-approved capacity path allows a non-finalizing restore test from the current snapshot (or an equivalent independently verified recovery procedure), with schema/data identity checks.
+
 ## Mandatory pre-window gates
 
 Do not enter the Production write phase unless all are true:
