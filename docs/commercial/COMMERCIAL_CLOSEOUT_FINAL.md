@@ -6,8 +6,8 @@
 
 **Updated:** 2026-11-17  
 **Current `main`:** `6adea6fa209e394b464c4272db1860422d608afb`  
-**Current candidate:** PR #222, branch `fix/mobile-sdk58-current-main-20261117`, head `807dee55f050bc96a4123091f09be1503c10004d`  
-**Candidate status:** Draft / not merged / not a qualified release.
+**Current candidate branch head:** PR #222, branch `fix/mobile-sdk58-current-main-20261117`, head `b94b6187daf55f86e736dd47d5ba8ef5e38297f0`.  
+**Candidate status:** Draft / not merged / not a qualified release. The latest full workflow evidence below is from tested code head `807dee55f050bc96a4123091f09be1503c10004d`; 17 commits since that tested head changed only seller/buyer documentation and the dependency-advisory review, not application source, manifests or lockfiles. The new final branch head requires a fresh full CI and PostgreSQL check result before it can be considered for release.
 
 ## 1. Current exact-head evidence
 
@@ -20,7 +20,7 @@
 | PostgreSQL 18 isolated RLS/HTTP acceptance | [Run 44158727249](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44158727249) — success on this exact head | The caller-bound tenant matrix recorded 346 route checks; the report explicitly remains `isolationCertification=NOT_CERTIFIED` |
 | Vercel contract verification | [Run 44158727582](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44158727582) — failed at the same mobile audit | PostgreSQL deploy-bound and deploy jobs were skipped; no Production deployment occurred |
 
-The mobile build/export evidence is from the earlier candidate validation: run 44157820028 on `d59819b94c5953e17413b4f9cbf1ef1172145e90` recorded Expo Doctor 20/20 and Android, iOS and Web exports as PASS. A Git comparison from that tested head to the then-current head `807dee55f050bc96a4123091f09be1503c10004d` showed 12 later commits touching documentation and advisory review only; the mobile application source, `package.json`, and `package-lock.json` did not change. That build evidence therefore relates to the same mobile source/lockfile, but it does **not** resolve the audit finding.
+The mobile build/export evidence is from the earlier candidate validation: run 44157820028 on `d59819b94c5953e17413b4f9cbf1ef1172145e90` recorded Expo Doctor 20/20 and Android, iOS and Web exports as PASS. A Git comparison from the earlier export-tested head `d59819b94c5953e17413b4f9cbf1ef1172145e90` to tested head `807dee55f050bc96a4123091f09be1503c10004d` showed 12 later commits touching documentation and advisory review only; the mobile application source, `package.json`, and `package-lock.json` did not change. That build evidence therefore relates to the same mobile source/lockfile, but it does **not** resolve the audit finding.
 
 The current audit still flags transitive `picomatch@4.0.7` and `picomatch@2.3.2` through the Expo/Metro dependency graph under GHSA-fc5q-39xc-vjpf / CVE-2026-112366. The advisory remains unresolved for this candidate. No audit suppression, unreviewed patch, forced major downgrade, or risk waiver was applied. `npm audit fix --force` proposes installing React Native 0.83.10, a breaking change from the candidate's 0.88.1 line; that option was rejected. The backend audit passing and successful JavaScript exports do not establish mobile supply-chain security. The High rows are repeated dependency-path audit findings around the advisory, not 26 independently confirmed CVEs.
 
