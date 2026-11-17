@@ -21,15 +21,15 @@ h1{font-size:42px;line-height:1.1}h2{margin-top:0}.badge{display:inline-block;pa
 <div><b>Translation</b><br>Contact Center locale resources with visible AI/machine-translation disclosure and four structural audit rounds enforced by CI.</div>
 </div></section>
 <section><h2>Translation: integrated, with explicit qualification boundary</h2>
-<p>114 Contact Center locale codes are selectable; coverage is 1 English source, 109 machine-assisted draft locales and 4 explicit English-fallback locales. Four reproducible structural/integrity checks are run by CI.</p>
-<div class="notice"><b>AI/machine translation notice</b><br>Translations are machine-generated and structurally audited. They have not been approved by native speakers; 0/114 locales are production-qualified. Keep the in-app notice visible.</div>
+<p>The Contact Center runtime currently exposes 105 selectable locale codes: 1 English source, 100 machine-assisted draft locales and 4 explicit English-fallback locales. A separate qualification register contains 114 source rows; 9 flagged locales are currently withdrawn from runtime selection pending remediation and native-speaker review. Four structural/integrity checks do not establish linguistic approval.</p>
+<div class="notice"><b>AI/machine translation notice</b><br>Translations are machine-generated and structurally audited. They have not been approved by native speakers; native-speaker review is 0/114 and production qualification is 0/105 currently selectable runtime locales. Keep the in-app notice visible.</div>
 </section>
 <section><h2>Buyer responsibilities</h2><ul>
 <li><b>External integrations:</b> buyer-owned accounts, licenses, credentials, configuration and live testing for applicable identity, messaging, external call-center/telephony, payment, webhook, storage, KMS, maps and cloud services.</li>
 <li><b>Mobile release:</b> buyer-owned EAS/project setup, native builds, signing, device tests, store accounts/submission, distribution and security/dependency updates. No signed APK/AAB/IPA is included.</li>
 <li><b>Production:</b> buyer verifies PostgreSQL/RLS, backup/restore, TLS/WAF, KMS, observability, operations and production isolation.</li>
 </ul>
-<p class="muted">Current locked Expo SDK 57.0.31 / React Native 0.86.3 baseline: 0 critical, 0 high, 10 moderate, 2 low. CI blocks high/critical findings; the complete audit JSON from the exact archive-producing pipeline is authoritative. Moderate/low findings remain disclosed.</p></section>
+<p class="muted">Current main locked baseline: Expo SDK 58.0.23 / React Native 0.88.1 / React 19.3.0. GitHub Actions on 2026-11-17 reported 26 High mobile dependency findings linked to GHSA-fc5q-39xc-vjpf / CVE-2026-112366; the mobile audit gate currently fails closed. Draft PR #222 refreshes Expo to 58.0.26 but is not merged or release-qualified. This advisory is unresolved and must be disclosed; do not claim zero High findings.</p></section>
 <section><h2>Transfer</h2><p>Review <code>docs/commercial/BUYER_RESPONSIBILITIES.md</code>, <code>docs/commercial/BUYER_RESPONSIBILITIES_AR.md</code> and <code>docs/commercial/COMMERCIAL_TRANSFER_CHECKLIST.md</code>. Commercial rights, excluded assets, third-party accounts and deployment credentials must be documented in the signed transaction.</p></section>
 <section><h2>Release truth</h2><p>Production certification is <b>NOT_ESTABLISHED</b>. Use only the exact release ZIP and its CI-generated release statement, test reports, forensic i18n report and SHA-256 sums. Historical pipeline hashes are not evidence for a changed source tree.</p></section>
 </body></html>
