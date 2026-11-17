@@ -1,0 +1,77 @@
+name: ops-delete-named-neon-branches
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type DELETE_TWO_VALUELESS_NEON_BRANCHES
+        required: true
+      branch_id_1:
+        required: true
+      expected_name_1:
+        required: true
+      branch_id_2:
+        required: true
+      expected_name_2:
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  delete:
+    if: ${{ github.ref == 'refs/heads/main' && github.event.inputs.confirm == 'DELETE_TWO_VALUELESS_NEON_BRANCHES' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Delete exactly two named non-primary branches
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          ID1: ${{ github.event.inputs.branch_id_1 }}
+          NAME1: ${{ github.event.inputs.expected_name_1 }}
+          ID2: ${{ github.event.inputs.branch_id_2 }}
+          NAME2: ${{ github.event.inputs.expected_name_2 }}
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import json, os, re, urllib.request, urllib.error
+          key=os.environ["NEON_API_KEY"]
+          project="summer-leaf-18448271"
+          never={"br-proud-salad-bcshhdap","br-quiet-poetry-bc3uo0u3","br-wispy-credit-bckacgvt"}
+          targets=[(os.environ["ID1"].strip(), os.environ["NAME1"].strip()), (os.environ["ID2"].strip(), os.environ["NAME2"].strip())]
+          def api(method, path):
+            req=urllib.request.Request(f"https://console.neon.tech/api/v2/projects/{project}{path}", method=method,
+              headers={"Authorization":f"Bearer {key}","Accept":"application/json"})
+            try:
+              with urllib.request.urlopen(req, timeout=30) as r:
+                raw=r.read().decode() or "{}"
+                return r.status, json.loads(raw) if raw.strip() else {}
+            except urllib.error.HTTPError as e:
+              return e.code, json.loads(e.read().decode() or "{}")
+          _, inv=api("GET","/branches?limit=100")
+          by_id={b.get("id"):b for b in (inv.get("branches") or [])}
+          for bid, expected in targets:
+            if not re.fullmatch(r"br-[a-z0-9-]{8,80}", bid):
+              raise SystemExit("BAD_ID "+bid)
+            if bid in never:
+              raise SystemExit("NEVER_DELETE "+bid)
+            b=by_id.get(bid)
+            if not b:
+              raise SystemExit("NOT_FOUND "+bid)
+            if b.get("primary") or b.get("protected") or b.get("default"):
+              raise SystemExit("PROTECTED "+bid)
+            actual=str(b.get("name") or "").strip()
+            if actual != expected:
+              raise SystemExit(f"NAME_MISMATCH {bid} {actual!r}!={expected!r}")
+            st,_=api("DELETE", f"/branches/{bid}")
+            print("delete_http", bid, actual, st)
+            if st not in (200,202,204):
+              raise SystemExit("DELETE_FAILED "+bid)
+          _, inv2=api("GET","/branches?limit=100")
+          left={b.get("id") for b in (inv2.get("branches") or [])}
+          for bid,_ in targets:
+            if bid in left:
+              raise SystemExit("STILL_PRESENT "+bid)
+            print("verified_deleted", bid)
+          print("branch_count_after", len(left))
+          for b in inv2.get("branches") or []:
+            print("branch", b.get("id"), b.get("name"), "primary="+str(b.get("primary")))
+          PY
