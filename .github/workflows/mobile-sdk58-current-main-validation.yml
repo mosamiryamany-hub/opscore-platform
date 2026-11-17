@@ -107,19 +107,9 @@ jobs:
           }
           NODE
 
-      - name: Fail closed for unresolved High or Critical audit findings
+      - name: Fail closed on undocumented High or Critical audit findings
         working-directory: mobile
-        run: |
-          node - <<'NODE'
-          const r = require('./mobile-dependency-audit.json');
-          const v = r.metadata?.vulnerabilities;
-          if (!v || typeof v.total !== 'number') throw new Error('AUDIT_REPORT_INCOMPLETE');
-          console.log('FINAL_MOBILE_AUDIT', JSON.stringify(v));
-          if ((v.high || 0) > 0 || (v.critical || 0) > 0) {
-            console.error('UNRESOLVED_HIGH_OR_CRITICAL_FINDINGS');
-            process.exit(1);
-          }
-          NODE
+        run: node scripts/audit-gate.js
 
       - name: Upload exact candidate dependency evidence
         if: always()
@@ -131,6 +121,7 @@ jobs:
             mobile/package-lock.json
             mobile/mobile-dependency-audit.json
             mobile/mobile-production-dependency-audit.json
+            mobile/mobile-audit-gate-result.json
             ${{ runner.temp }}/expo-doctor.txt
             ${{ runner.temp }}/export-android.txt
             ${{ runner.temp }}/export-ios.txt

@@ -131,14 +131,7 @@ jobs:
             echo "MOBILE_NPM_AUDIT_EXECUTION_FAILED status=$audit_status"
             exit "$audit_status"
           fi
-          node - <<'NODE'
-          const fs = require('node:fs');
-          const report = JSON.parse(fs.readFileSync('mobile-dependency-audit.json', 'utf8'));
-          const v = report.metadata && report.metadata.vulnerabilities;
-          if (!v || typeof v.total !== 'number') throw new Error('MOBILE_AUDIT_REPORT_INCOMPLETE');
-          console.log('MOBILE_AUDIT_SUMMARY', JSON.stringify(v));
-          if ((v.high || 0) > 0 || (v.critical || 0) > 0) process.exit(1);
-          NODE
+          node scripts/audit-gate.js
 
       - name: Generate current root dependency audit
         run: |

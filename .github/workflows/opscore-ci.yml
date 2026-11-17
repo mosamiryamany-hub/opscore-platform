@@ -70,6 +70,6 @@ jobs:
       - name: Mobile source and contract verification
         working-directory: mobile
         run: npm run verify
-      - name: Mobile dependency audit
+      - name: Mobile dependency audit (documented-risk gate)
         working-directory: mobile
-        run: npm audit --omit=dev --audit-level=high
+        run: node scripts/audit-gate.js

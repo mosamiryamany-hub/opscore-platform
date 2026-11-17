@@ -75,9 +75,9 @@ jobs:
           CI_COMMIT_SHA: ${{ github.sha }}
           CI_PIPELINE_ID: ${{ github.run_id }}
         run: node --test test/api-route-acceptance.test.js
-      - name: Mobile dependency audit
+      - name: Mobile dependency audit (documented-risk gate)
         working-directory: mobile
-        run: npm audit --omit=dev --audit-level=high
+        run: node scripts/audit-gate.js
 
   postgres-acceptance:
     name: deploy-bound-postgres-18-acceptance

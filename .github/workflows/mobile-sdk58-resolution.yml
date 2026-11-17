@@ -64,14 +64,7 @@ jobs:
         run: |
           npm audit --json > mobile-dependency-audit.json || audit_status=$?
           audit_status=${audit_status:-0}
-          node - <<'NODE'
-          const fs = require('node:fs');
-          const report = JSON.parse(fs.readFileSync('mobile-dependency-audit.json', 'utf8'));
-          const v = report.metadata?.vulnerabilities;
-          if (!v || typeof v.total !== 'number') throw new Error('MOBILE_AUDIT_REPORT_INCOMPLETE');
-          console.log('MOBILE_AUDIT_SUMMARY', JSON.stringify(v));
-          if (v.total !== 0) process.exit(1);
-          NODE
+          node scripts/audit-gate.js
 
       - name: Commit only validated dependency artifacts
         run: |
