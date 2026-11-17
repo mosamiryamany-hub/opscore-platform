@@ -238,3 +238,17 @@ Do not:
 
 The next acceptable closure route is an official upstream patched release or a separately reviewed, provenance-verified patch whose complete dependency graph and regression tests pass on one exact candidate head. Then rerun all required CI and generate the final Secure Release artifact from that exact head. Until then, seller source-release status remains HOLD.
 
+## Latest full exact-head workflow — PR #222 candidate `bd6d7ee56a0f3b7db3cf09cefefe11fd46ba76e3`
+
+The three required check workflows completed on this same candidate head:
+
+| Workflow | Run | Result |
+|---|---|---|
+| OpsCore CI | [44167795172](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44167795172) | Backend release suite 810 total / 807 pass / 0 fail / 3 skipped; backend runtime audit 0 vulnerabilities; mobile install-time `npm ci` summary prints 25 High; required mobile `npm audit --omit=dev --audit-level=high` step fails with 26 High / 0 Critical |
+| PostgreSQL 18 isolated RLS/HTTP acceptance | [44167795388](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44167795388) | PASS; caller-bound tenant matrix 346 route checks; caller-bound logical restore 137 tables; `isolationCertification=NOT_CERTIFIED` |
+| Vercel contract | [44167795351](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44167795351) | Fails at mobile `npm audit --omit=dev --audit-level=high` with 26 High / 0 Critical; deploy-bound PostgreSQL and deploy jobs skipped; no Production deployment |
+
+The difference between the 25-High `npm ci` install-time summary and the 26-High explicit `npm audit --omit=dev` result is an audit-output count difference within the same CI job, not an improvement or a second advisory. The explicit audit step is the enforced gate and fails with 26 High. The Vercel contract independently reaches the same 26-High explicit-audit result.
+
+Backend runtime audit success and the passing PostgreSQL 18 isolated test do not resolve the mobile dependency advisory. The isolated database evidence is not Production certification. Do not merge the candidate, create a Secure Release ZIP, or claim release qualification while this fail-closed audit remains unresolved.
+
