@@ -40,6 +40,7 @@ jobs:
           python3 <<'PY'
           import json
           import os
+          import re
           import urllib.error
           import urllib.request
 
@@ -49,7 +50,7 @@ jobs:
           expected_name = str(os.environ.get("EXPECTED_BRANCH_NAME") or "").strip()
           if os.environ.get("GITHUB_EVENT_NAME") != "workflow_dispatch" or os.environ.get("GITHUB_REF") != "refs/heads/main":
               raise SystemExit("EPHEMERAL_BRANCH_DELETE_MAIN_MANUAL_DISPATCH_REQUIRED")
-          if not key or not __import__("re").fullmatch(r"br-[a-z0-9-]{8,80}", target_id) or not expected_name:
+          if not key or not re.fullmatch(r"br-[a-z0-9-]{8,80}", target_id) or not expected_name:
               raise SystemExit("EXACT_BRANCH_ID_NAME_AND_API_KEY_REQUIRED")
 
           keep_ids = {
