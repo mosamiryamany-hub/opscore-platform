@@ -290,7 +290,7 @@ def schema_inventory(uri):
 
 
 def table_data_inventory(uri):
-    table_output = psql(restore_uri, "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename")
+    table_output = psql(uri, "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename")
     table_names = [line for line in table_output.splitlines() if line]
     if len(table_names) != 135:
         fail("RESTORE_PROOF_PUBLIC_TABLE_COUNT_MISMATCH", {"count": len(table_names)})
@@ -309,7 +309,7 @@ def table_data_inventory(uri):
     query = "SELECT table_name, row_count::text, row_content_sha256 FROM ("
     query += " UNION ALL ".join(statements)
     query += ") AS inventory ORDER BY table_name"
-    inventory_output = psql(restore_uri, query)
+    inventory_output = psql(uri, query)
     inventory_rows = []
     for line in inventory_output.splitlines():
         parts = line.split("|")
