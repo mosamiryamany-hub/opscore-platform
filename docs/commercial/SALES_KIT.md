@@ -22,7 +22,7 @@ The Contact Center locale runtime is integrated. Its catalog has 109 machine-ass
 
 **Mobile release:** buyer owns EAS project/account setup, Android/iOS signing, native builds, physical-device QA, developer accounts, store submission/distribution and post-handover dependency maintenance. No signed APK/AAB/IPA is included; the delivered item is mobile source plus source-level verification.
 
-**Mobile security:** Current locked Expo SDK 58.0.23 / React Native 0.88.1 / React 19.3.0 baseline: 0 critical, 0 high, 0 moderate, 0 low. CI blocks high/critical findings; the complete audit JSON from the exact archive-producing pipeline is authoritative. Moderate/low findings remain disclosed.
+**Mobile dependency security — current release blocker:** The current `main` lockfile baseline is Expo SDK 58.0.23 / React Native 0.88.1 / React 19.3.0. GitHub Actions on 2026-11-17 reported **26 High dependency findings** in the mobile tree, associated with GHSA-fc5q-39xc-vjpf / CVE-2026-112366 through transitive `picomatch` 4.0.7 and 2.3.2. The backend runtime dependency audit reported 0 findings. The mobile audit gate fails closed; this advisory is unresolved, not waived, and must be shown to prospective buyers. A separate current-main-based Expo SDK 58.0.26 candidate is tracked in draft PR #222; it is not merged and is not a release artifact. The current application source review found no direct app-runtime call to `picomatch`/glob APIs, but build-tool exposure is not proven impossible. See `mobile/security/DEPENDENCY_ADVISORY_REVIEW_2026-11-17.md`.
 
 **Production:** the buyer validates production PostgreSQL/RLS, backup/restore, KMS, TLS/WAF, observability, operations and tenant isolation. Production certification is NOT_ESTABLISHED.
 
