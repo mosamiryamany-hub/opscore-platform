@@ -42,8 +42,11 @@ def fail(code):
 if MODE not in ("list", "prune_ephemeral"):
     fail("NEON_HYGIENE_MODE_INVALID")
 
-if MODE == "prune_ephemeral" and os.environ.get("CONFIRM_PRUNE") != PRUNE_CONFIRMATION:
-    fail("NEON_PRUNE_CONFIRMATION_REQUIRED")
+if MODE == "prune_ephemeral":
+    if os.environ.get("GITHUB_EVENT_NAME") != "workflow_dispatch" or os.environ.get("GITHUB_REF") != "refs/heads/main":
+        fail("NEON_PRUNE_MAIN_MANUAL_DISPATCH_REQUIRED")
+    if os.environ.get("CONFIRM_PRUNE") != PRUNE_CONFIRMATION:
+        fail("NEON_PRUNE_CONFIRMATION_REQUIRED")
 
 key = str(os.environ.get("NEON_API_KEY") or "").strip()
 if not key:
