@@ -12,6 +12,7 @@ const workflow = fs.readFileSync(
 
 test('Production HMAC rotation is manual, typed-confirmation and Production-environment approval gated', () => {
   assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /github\.ref == 'refs\/heads\/main'/);
   assert.match(workflow, /ROTATE_PRODUCTION_TENANT_HMAC/);
   assert.match(workflow, /environment:\s*\n\s+name: production/);
   assert.match(workflow, /permissions:\s*\n\s+contents: read/);
