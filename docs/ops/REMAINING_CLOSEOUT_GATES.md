@@ -46,7 +46,7 @@ Restore Snapshot endpoint:
   cited as restore evidence.
 
 The proof JSON is rebound to the valid branch. Its new SHA-256 is
-`0799bd763d7440abd5f005b6a97f3836b85ab140ee029afb5fb866c925c0a940`.
+`231b7d5a8b94ebaf2307f9b0a42cf5c95537ed6237db9842cf7f3da39297be28`.
 Update GitHub Environment `production` secret
 `OPSC_PRODUCTION_RESTORE_PROOF_SHA256` to this exact value after this change
 is merged. Until that update is confirmed, the Production migration workflow
