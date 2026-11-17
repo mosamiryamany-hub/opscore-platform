@@ -1,29 +1,62 @@
 {
-  "schemaVersion": "opscore.production-recovery-point.v1",
-  "status": "NOT_VERIFIED",
-  "testedAt": "2026-11-14T10:26:27.095Z",
-  "parentBranchId": "br-wispy-term-bcrqqj84",
-  "recoveryBranchId": "br-sparkling-forest-bc71ee3s",
-  "recoveryBranchName": "opscore-prod-recovery-point-20261114-b",
-  "parentLsn": "0/85D9468",
-  "historyRetentionSeconds": 21600,
-  "tableCountCompared": 134,
+  "schemaVersion": "opscore.production-recovery-point.v3",
+  "status": "PASS",
+  "testedAt": "2026-11-17T06:12:27.662Z",
+  "projectId": "summer-leaf-18448271",
+  "parentBranchId": "br-proud-salad-bcshhdap",
+  "databaseName": "opscore_acceptance",
+  "ownerRole": "neondb_owner",
+  "serverVersion": "18.7 (a21afb5)",
+  "recoveryBranchId": "br-plain-water-bcch9q6g",
+  "recoveryBranchName": "opscore-prod-recovery-4017497068de-44029395474",
+  "parentLsn": "0/A30BD40",
+  "tableCountCompared": 135,
+  "coreTenantTableRowCountsMatch": true,
+  "verificationScope": "branch-clone-public-table-count-and-core-tenant-row-counts-only",
   "mismatchCount": 0,
-  "coreTenantTablesMatch": true,
   "mismatches": [],
-  "note": "NOT_VERIFIED in repository. Neon Free history window is plan-limited (typically 6h). Scheduled snapshots require a paid plan.",
-  "sourceCommitHint": "ae78403593e3f58dce32536a20de3de0e506ddb7",
-  "evidenceClass": "PRODUCTION_BRANCH_RECOVERY_POINT",
-  "evidenceRebind": {
-    "kind": "schema_compatible_candidate_rebind",
-    "fromCommit": "59c8f60a961db8a5f16bd2cf923bc9f327839278",
-    "toCommit": "ae78403593e3f58dce32536a20de3de0e506ddb7",
-    "probesReexecuted": false
+  "tableCounts": {
+    "organizations": {
+      "parent": 8,
+      "recovery": 8
+    },
+    "users": {
+      "parent": 8,
+      "recovery": 8
+    },
+    "memberships": {
+      "parent": 2,
+      "recovery": 2
+    },
+    "sessions": {
+      "parent": 0,
+      "recovery": 0
+    },
+    "assets": {
+      "parent": 0,
+      "recovery": 0
+    },
+    "sites": {
+      "parent": 0,
+      "recovery": 0
+    },
+    "work_orders": {
+      "parent": 0,
+      "recovery": 0
+    },
+    "customers": {
+      "parent": 0,
+      "recovery": 0
+    }
   },
-  "invalidation": {
-    "reason": "evidenceRebind_with_probesReexecuted_false_and_branch_identity_may_differ",
-    "detail": "Branch-point recovery artifact was rebound without re-execution. Not proof of a fresh primary-branch snapshot schedule.",
-    "invalidatedAt": "2026-11-17T00:58:27.900Z",
-    "liveAuthority": "GET /api/verify/release recovery gate + Neon console history/snapshots"
-  }
+  "note": "This is a branch-clone and row-count comparison for the explicitly configured application database only. It does not compare row contents, certify PITR, or establish RPO/RTO. No previous branch is deleted. A full restore drill remains separate.",
+  "sourceCommitHint": "4017497068defa9c1d0761fcb07bc746925e002a",
+  "pipelineId": "43827648670",
+  "deploymentId": "dpl_Hy9ymDff1oChGpBAxmAjr4cfwyyG",
+  "deploymentRef": "main",
+  "deploymentIdentitySource": "github-actions-cli-assertion",
+  "deploymentIdentityObservedAt": "2026-11-17T06:12:21.929Z",
+  "collectorCommit": "322b1b048dc9e4068e0f9478ca8067e9748c73fc",
+  "collectorPipelineId": "44029395474",
+  "evidenceClass": "PRODUCTION_BRANCH_RECOVERY_POINT"
 }

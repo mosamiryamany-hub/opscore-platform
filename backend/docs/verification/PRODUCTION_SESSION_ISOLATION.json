@@ -1,30 +1,51 @@
 {
-  "schemaVersion": "opscore.production-session-isolation.v1",
-  "status": "NOT_VERIFIED",
+  "schemaVersion": "opscore.production-session-isolation.v3",
+  "status": "PASS",
   "environment": "production",
   "httpBase": "https://opscore-platform.vercel.app",
-  "testedAt": "2026-11-14T10:26:35.745Z",
+  "databaseName": "opscore_acceptance",
+  "databaseBranchId": "br-proud-salad-bcshhdap",
+  "neonEndpointId": "ep-mute-sun-bcahhoei",
+  "testedAt": "2026-11-17T06:13:12.514Z",
+  "verificationScope": "dual-tenant-http-asset-create-read-event-write-denial-and-cleanup",
   "tenants": {
     "A": {
-      "organizationId": "org_accept_a_aa2a1583fa7a",
-      "userId": "usr_accept_a_aa2a1583fa7a"
+      "organizationId": "org_31131b022934",
+      "userId": "usr_b86943a0105b"
     },
     "B": {
-      "organizationId": "org_accept_b_511fee9d5504",
-      "userId": "usr_accept_b_511fee9d5504"
+      "organizationId": "org_3e94dfbd5848",
+      "userId": "usr_1af79e96be4d"
     }
   },
   "checks": {
     "dualLogin": "PASS",
+    "tenantPrincipalBinding": "PASS",
     "ownAssetCreate": "PASS",
     "tenantListIsolation": "PASS",
-    "crossTenantAssetDenied": "PASS",
+    "ownAssetRead": "PASS",
+    "crossTenantAssetReadDenied": "PASS",
+    "ownAssetEventWrite": "PASS",
     "crossTenantWriteDenied": "PASS",
     "unauthenticatedDenied": "PASS",
     "cleanupComplete": "PASS"
   },
   "probes": [
     {
+      "phase": "login",
+      "label": "A",
+      "method": "POST",
+      "path": "/api/v1/auth/mobile-login",
+      "status": 200
+    },
+    {
+      "phase": "login",
+      "label": "B",
+      "method": "POST",
+      "path": "/api/v1/auth/mobile-login",
+      "status": 200
+    },
+    {
       "phase": "own-read",
       "label": "A",
       "method": "GET",
@@ -33,136 +54,10 @@
     },
     {
       "phase": "own-read",
-      "label": "A",
-      "method": "GET",
-      "path": "/api/v1/session",
-      "status": 404
-    },
-    {
-      "phase": "own-read",
-      "label": "A",
-      "method": "GET",
-      "path": "/api/v1/organizations",
-      "status": 404
-    },
-    {
-      "phase": "own-read",
-      "label": "A",
-      "method": "GET",
-      "path": "/api/v1/users",
-      "status": 404
-    },
-    {
-      "phase": "own-read",
-      "label": "A",
-      "method": "GET",
-      "path": "/api/v1/assets",
-      "status": 200
-    },
-    {
-      "phase": "own-read",
-      "label": "A",
-      "method": "GET",
-      "path": "/api/v1/sites",
-      "status": 200
-    },
-    {
-      "phase": "own-read",
-      "label": "A",
-      "method": "GET",
-      "path": "/api/v1/work-orders",
-      "status": 200
-    },
-    {
-      "phase": "own-read",
-      "label": "A",
-      "method": "GET",
-      "path": "/api/v1/memberships",
-      "status": 404
-    },
-    {
-      "phase": "own-read",
       "label": "B",
       "method": "GET",
       "path": "/api/v1/me",
       "status": 200
-    },
-    {
-      "phase": "own-read",
-      "label": "B",
-      "method": "GET",
-      "path": "/api/v1/session",
-      "status": 404
-    },
-    {
-      "phase": "own-read",
-      "label": "B",
-      "method": "GET",
-      "path": "/api/v1/organizations",
-      "status": 404
-    },
-    {
-      "phase": "own-read",
-      "label": "B",
-      "method": "GET",
-      "path": "/api/v1/users",
-      "status": 404
-    },
-    {
-      "phase": "own-read",
-      "label": "B",
-      "method": "GET",
-      "path": "/api/v1/assets",
-      "status": 200
-    },
-    {
-      "phase": "own-read",
-      "label": "B",
-      "method": "GET",
-      "path": "/api/v1/sites",
-      "status": 200
-    },
-    {
-      "phase": "own-read",
-      "label": "B",
-      "method": "GET",
-      "path": "/api/v1/work-orders",
-      "status": 200
-    },
-    {
-      "phase": "own-read",
-      "label": "B",
-      "method": "GET",
-      "path": "/api/v1/memberships",
-      "status": 404
-    },
-    {
-      "phase": "cross-read",
-      "label": "A",
-      "method": "GET",
-      "path": "/api/v1/organizations/org_accept_b_511fee9d5504",
-      "status": 404
-    },
-    {
-      "phase": "cross-read",
-      "label": "B",
-      "method": "GET",
-      "path": "/api/v1/organizations/org_accept_a_aa2a1583fa7a",
-      "status": 404
-    },
-    {
-      "phase": "cross-read",
-      "label": "A",
-      "method": "GET",
-      "path": "/api/v1/users/usr_accept_b_511fee9d5504",
-      "status": 404
-    },
-    {
-      "phase": "cross-read",
-      "label": "B",
-      "method": "GET",
-      "path": "/api/v1/users/usr_accept_a_aa2a1583fa7a",
-      "status": 404
     },
     {
       "phase": "own-write",
@@ -179,98 +74,76 @@
       "status": 201
     },
     {
-      "phase": "list-after-write",
+      "phase": "own-read",
       "label": "A",
       "method": "GET",
       "path": "/api/v1/assets",
       "status": 200
     },
     {
-      "phase": "list-after-write",
+      "phase": "own-read",
       "label": "B",
       "method": "GET",
       "path": "/api/v1/assets",
       "status": 200
     },
     {
-      "phase": "cross-asset",
-      "label": "B",
-      "method": "GET",
-      "path": "/api/v1/assets/ast_cad4564b-5848-46d7-809b-18e761b7980b",
-      "status": 404
-    },
-    {
-      "phase": "cross-asset",
+      "phase": "own-read",
       "label": "A",
       "method": "GET",
-      "path": "/api/v1/assets/ast_125e482f-e7cc-49a3-8db1-6292c6f42e7e",
+      "path": "/api/v1/assets/{id}/intelligence",
+      "status": 200
+    },
+    {
+      "phase": "cross-read",
+      "label": "B",
+      "method": "GET",
+      "path": "/api/v1/assets/{id}/intelligence",
       "status": 404
     },
     {
-      "phase": "cross-write",
+      "phase": "own-write",
       "label": "A",
-      "method": "PATCH",
-      "path": "/api/v1/organizations/org_accept_b_511fee9d5504",
-      "status": 404
+      "method": "POST",
+      "path": "/api/v1/assets/{id}/events",
+      "status": 201
     },
     {
       "phase": "cross-write",
       "label": "B",
-      "method": "PATCH",
-      "path": "/api/v1/organizations/org_accept_a_aa2a1583fa7a",
-      "status": 404
-    },
-    {
-      "phase": "cross-write",
-      "label": "A",
-      "method": "DELETE",
-      "path": "/api/v1/users/usr_accept_b_511fee9d5504",
-      "status": 404
-    },
-    {
-      "phase": "cross-write",
-      "label": "B",
-      "method": "DELETE",
-      "path": "/api/v1/users/usr_accept_a_aa2a1583fa7a",
+      "method": "POST",
+      "path": "/api/v1/assets/{id}/events",
       "status": 404
     },
     {
       "phase": "unauth",
-      "label": "NONE",
-      "method": "GET",
-      "path": "/api/v1/me",
-      "status": 401
-    },
-    {
-      "phase": "unauth",
-      "label": "NONE",
+      "label": "-",
       "method": "GET",
       "path": "/api/v1/assets",
       "status": 401
     }
   ],
   "cleanup": {
-    "assetsDeleted": [
-      "ast_cad4564b-5848-46d7-809b-18e761b7980b",
-      "ast_125e482f-e7cc-49a3-8db1-6292c6f42e7e"
-    ],
-    "sessionsDeleted": true,
-    "usersDisabled": true,
-    "organizationsClosed": true
+    "status": "PASS",
+    "details": {
+      "organizationsRetained": 2,
+      "disabledUsers": 2,
+      "sessionsRemaining": 0,
+      "membershipsRemaining": 0,
+      "assetsRemaining": 0,
+      "assetEventsRemaining": 0
+    },
+    "retainedAuditPrincipalsDisabled": true
   },
-  "note": "NOT_VERIFIED in repository. Do not cite this file as certification of any commit after the original probe window without probesReexecuted=true on that exact commit.",
-  "sourceCommitHint": "ae78403593e3f58dce32536a20de3de0e506ddb7",
-  "evidenceClass": "PRODUCTION_HTTP_DUAL_TENANT_SESSION",
-  "evidenceRebind": {
-    "kind": "schema_compatible_candidate_rebind",
-    "fromCommit": "59c8f60a961db8a5f16bd2cf923bc9f327839278",
-    "toCommit": "ae78403593e3f58dce32536a20de3de0e506ddb7",
-    "probesReexecuted": false
-  },
-  "invalidation": {
-    "reason": "evidenceRebind_with_probesReexecuted_false",
-    "detail": "Git-stored copy cannot certify the live tip. Runtime embed from deploy pipeline remains authoritative for the deployed commit only.",
-    "invalidatedAt": "2026-11-17T00:58:27.900Z",
-    "liveAuthority": "GET /api/verify/release on the production deployment"
-  }
+  "note": "Live HTTP probes tested both tenant principals, own asset creation/read, own asset event write, cross-tenant asset read denial, cross-tenant event write denial confirmed by unchanged database row count, unauthenticated denial, and verified fixture cleanup. sourceCommitHint and pipelineId come from the running Vercel deployment proof, not from the collector workflow; collectorCommit and collectorPipelineId are recorded separately. Users are disabled and probe organizations retained under archived names to keep immutable audit actor references resolvable. No evidence rebind.",
+  "sourceCommitHint": "4017497068defa9c1d0761fcb07bc746925e002a",
+  "pipelineId": "43827648670",
+  "parentBranchId": "br-proud-salad-bcshhdap",
+  "deploymentId": "dpl_Hy9ymDff1oChGpBAxmAjr4cfwyyG",
+  "deploymentRef": "main",
+  "deploymentIdentitySource": "github-actions-cli-assertion",
+  "deploymentIdentityObservedAt": "2026-11-17T06:13:09.373Z",
+  "collectorCommit": "322b1b048dc9e4068e0f9478ca8067e9748c73fc",
+  "collectorPipelineId": "44029395474",
+  "evidenceClass": "PRODUCTION_DUAL_TENANT_HTTP"
 }
