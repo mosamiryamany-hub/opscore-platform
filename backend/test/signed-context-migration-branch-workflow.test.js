@@ -27,6 +27,7 @@ test('signed-context migration branch workflow uses pinned actions and the offic
   assert.ok(!workflow.includes('psql -f'));
   assert.ok(!workflow.includes('repository_dispatch'));
   assert.ok(workflow.includes("github.event_name == 'workflow_dispatch'"));
+  assert.ok(workflow.includes("github.ref == 'refs/heads/main'"));
   assert.ok(workflow.includes("github.event.inputs.confirm == 'CREATE_SIGNED_CONTEXT_MIGRATION_BRANCH'"));
 });
 
@@ -39,6 +40,9 @@ test('migration branch runner never deletes branches and requires free branch ca
   assert.ok(runner.includes('NEON_BRANCH_PAGINATION_CURSOR_REPEATED'));
   assert.ok(runner.includes('NEON_BRANCH_PAGINATION_PAGE_LIMIT_EXCEEDED'));
   assert.ok(runner.includes('BRANCH_CAPACITY_FULL_NO_AUTOMATIC_DELETION'));
+  assert.ok(runner.includes('GITHUB_EVENT_NAME'));
+  assert.ok(runner.includes('GITHUB_REF'));
+  assert.ok(runner.includes('MIGRATION_BRANCH_WORKFLOW_MAIN_MANUAL_DISPATCH_REQUIRED'));
   assert.ok(!runner.includes('api("DELETE"'));
   assert.ok(!runner.includes('cleanup_old_mig'));
   assert.ok(!runner.includes('Delete prior failed mig branches'));
