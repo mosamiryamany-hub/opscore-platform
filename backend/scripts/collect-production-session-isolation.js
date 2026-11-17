@@ -11,6 +11,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { execFileSync } = require('node:child_process');
+const { readProductionDeploymentIdentity } = require('./lib/production-deployment-identity');
 
 const root = path.resolve(__dirname, '..');
 const outPath = path.join(root, 'docs', 'verification', 'PRODUCTION_SESSION_ISOLATION.json');
@@ -111,8 +112,10 @@ function writeReport(report) {
 }
 
 async function main() {
-  const commit = sourceCommit();
-  if (!/^[a-f0-9]{40}$/.test(commit)) throw new Error('SOURCE_COMMIT_SHA_REQUIRED');
+  const collectorCommit = sourceCommit();
+  if (!/^[a-f0-9]{40}$/.test(collectorCommit)) throw new Error('COLLECTOR_SOURCE_COMMIT_SHA_REQUIRED');
+  const collectorPipelineId = String(process.env.GITHUB_RUN_ID || '').trim();
+  if (!/^[1-9][0-9]{0,14}$/.test(collectorPipelineId)) throw new Error('COLLECTOR_PIPELINE_ID_REQUIRED');
   const projectId = String(process.env.NEON_PROJECT_ID || '').trim();
   const branchId = String(process.env.OPSC_PRODUCTION_NEON_BRANCH_ID || '').trim();
   const databaseName = String(process.env.OPSC_PRODUCTION_DATABASE_NAME || '').trim();
@@ -131,13 +134,17 @@ async function main() {
   );
   const ownerUri = String(connection.uri || '').trim();
   if (!ownerUri) throw new Error('PRODUCTION_OWNER_CONNECTION_URI_MISSING');
-  const target = await verifyProductionDatabaseTarget(ownerUri);
   const httpBase = String(process.env.OPSC_PRODUCTION_HTTP_BASE || 'https://opscore-platform.vercel.app').replace(/\/+$/, '');
   const httpUrl = new URL(httpBase);
   if (httpUrl.protocol !== 'https:' || httpUrl.hostname !== 'opscore-platform.vercel.app') throw new Error('PRODUCTION_HTTP_ORIGIN_NOT_APPROVED');
+  const deploymentIdentity = await readProductionDeploymentIdentity(
+    httpBase,
+    String(process.env.OPSC_EXPECTED_PRODUCTION_COMMIT_SHA || '')
+  );
+  const commit = deploymentIdentity.commitSha;
+  const pipelineId = deploymentIdentity.ciPipelineId;
+  const target = await verifyProductionDatabaseTarget(ownerUri);
   const parentBranchId = target.branchId;
-  const pipelineId = String(process.env.GITHUB_RUN_ID || '').trim();
-  if (!/^[1-9][0-9]{0,14}$/.test(pipelineId)) throw new Error('SOURCE_PIPELINE_ID_REQUIRED');
 
   const stamp = Date.now().toString(36) + crypto.randomBytes(4).toString('hex');
   const password = 'OpsCore-Probe-' + crypto.randomBytes(18).toString('hex') + '-x';
@@ -317,10 +324,16 @@ async function main() {
     checks,
     probes,
     cleanup: { status: checks.cleanupComplete, details: cleanupDetails, retainedAuditPrincipalsDisabled: true },
-    note: 'Live HTTP probes tested both tenant principals, own asset creation/read, own asset event write, cross-tenant asset read denial, cross-tenant event write denial confirmed by unchanged database row count, unauthenticated denial, and verified fixture cleanup. Users are disabled and probe organizations retained under archived names to keep immutable audit actor references resolvable. No evidence rebind.',
+    note: 'Live HTTP probes tested both tenant principals, own asset creation/read, own asset event write, cross-tenant asset read denial, cross-tenant event write denial confirmed by unchanged database row count, unauthenticated denial, and verified fixture cleanup. sourceCommitHint and pipelineId come from the running Vercel deployment proof, not from the collector workflow; collectorCommit and collectorPipelineId are recorded separately. Users are disabled and probe organizations retained under archived names to keep immutable audit actor references resolvable. No evidence rebind.',
     sourceCommitHint: commit,
     pipelineId,
     parentBranchId,
+    deploymentId: deploymentIdentity.deploymentId,
+    deploymentRef: deploymentIdentity.ref,
+    deploymentIdentitySource: deploymentIdentity.sourceCommitIdentitySource,
+    deploymentIdentityObservedAt: deploymentIdentity.observedAt,
+    collectorCommit,
+    collectorPipelineId,
     evidenceClass: 'PRODUCTION_DUAL_TENANT_HTTP'
   };
   if (!allPass && !reportReason) reportReason = 'REQUIRED_PROBE_OR_CLEANUP_FAILED';
