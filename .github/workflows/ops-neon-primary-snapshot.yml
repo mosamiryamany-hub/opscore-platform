@@ -27,7 +27,7 @@ concurrency:
 
 jobs:
   rotate:
-    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.confirm == 'ROTATE_PRIMARY_SNAPSHOT' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.event.inputs.confirm == 'ROTATE_PRIMARY_SNAPSHOT' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
