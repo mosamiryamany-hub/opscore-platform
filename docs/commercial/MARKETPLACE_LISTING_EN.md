@@ -25,7 +25,7 @@ The Contact Center runtime currently exposes 105 selectable locale codes: 1 Engl
 - Native mobile build, dependency remediation, EAS setup, signing, physical-device tests, store accounts/submission and distribution. No signed binaries are included.
 - Production infrastructure, PostgreSQL/RLS, backup/restore, TLS/WAF, operations and certification.
 
-The current main branch uses Expo SDK 58.0.23 / React Native 0.88.1. The 2026-11-17 mobile audit reports 26 High findings associated with GHSA-fc5q-39xc-vjpf / CVE-2026-112366, and CI currently fails closed. A separate Expo SDK 58.0.26 candidate is in draft PR #222 and is not a release. Do not claim this advisory is fixed; any buyer offer must disclose the unresolved mobile build-tool dependency audit.
+The current main branch uses Expo SDK 58.0.23 / React Native 0.88.1. The latest exact-head mobile candidate audit (run 44156497177) reports 25 High findings in both the full and `--omit=dev` trees (0 Critical) associated with GHSA-fc5q-39xc-vjpf / CVE-2026-112366. CI still fails closed. A separate Expo SDK 58.0.26 candidate is in draft PR #222 and is not a release. Do not claim this advisory is fixed; any buyer offer must disclose the unresolved mobile build-tool dependency audit.
 
 **Explicit non-claims**  
 Not production-certified. Not 114 human-reviewed translations. Not signed store binaries. Not proof that each external provider is live. The sale price and transfer rights are agreed separately in writing.
