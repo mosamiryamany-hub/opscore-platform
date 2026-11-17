@@ -10,6 +10,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { execFileSync } = require('node:child_process');
+const { readProductionDeploymentIdentity } = require('./lib/production-deployment-identity');
 
 const root = path.resolve(__dirname, '..');
 const outPath = path.join(root, 'docs', 'verification', 'PRODUCTION_RECOVERY_POINT.json');
@@ -55,14 +56,21 @@ async function main() {
   const parentBranchId = String(process.env.OPSC_PRODUCTION_NEON_BRANCH_ID || '').trim();
   const databaseName = String(process.env.OPSC_PRODUCTION_DATABASE_NAME || '').trim();
   const roleName = String(process.env.OPSC_PRODUCTION_OWNER_ROLE || 'neondb_owner').trim();
-  const commit = sourceCommit();
-  if (!/^[a-f0-9]{40}$/.test(commit)) throw new Error('SOURCE_COMMIT_SHA_REQUIRED');
+  const collectorCommit = sourceCommit();
+  const collectorPipelineId = String(process.env.GITHUB_RUN_ID || '').trim();
+  if (!/^[a-f0-9]{40}$/.test(collectorCommit)) throw new Error('COLLECTOR_SOURCE_COMMIT_SHA_REQUIRED');
+  if (!/^[1-9][0-9]{0,14}$/.test(collectorPipelineId)) throw new Error('COLLECTOR_PIPELINE_ID_REQUIRED');
   if (!projectId || !parentBranchId || !databaseName) throw new Error('PRODUCTION_RECOVERY_TARGET_IDENTITY_REQUIRED');
-  const pipelineId = String(process.env.GITHUB_RUN_ID || '').trim();
-  if (!/^[1-9][0-9]{0,14}$/.test(pipelineId)) throw new Error('SOURCE_PIPELINE_ID_REQUIRED');
 
   // The application database is explicitly selected. A different acceptance or
   // system database is never used as a fallback when this exact database is missing.
+  const httpBase = String(process.env.OPSC_PRODUCTION_HTTP_BASE || 'https://opscore-platform.vercel.app').replace(/\\/+$/, '');
+  const deploymentIdentity = await readProductionDeploymentIdentity(
+    httpBase,
+    String(process.env.OPSC_EXPECTED_PRODUCTION_COMMIT_SHA || '')
+  );
+  const commit = deploymentIdentity.commitSha;
+  const pipelineId = deploymentIdentity.ciPipelineId;
   const parentUri = await connectionUri(projectId, parentBranchId, databaseName, roleName);
   const sourceIdentity = psql(parentUri,
     "SELECT json_build_object('database',current_database(),'role',current_user,'server_version',current_setting('server_version'),'lsn',pg_current_wal_lsn()::text)::text;");
@@ -79,7 +87,34 @@ async function main() {
   if (!parentBranch) throw new Error('PRODUCTION_PARENT_BRANCH_NOT_FOUND');
   if (parentBranch.current_state !== 'ready') throw new Error('PRODUCTION_PARENT_BRANCH_NOT_READY');
   if (branches.length >= limitRaw) {
-    throw new Error('NEON_BRANCH_CAPACITY_EXHAUSTED:' + branches.length + '/' + limitRaw + '; no existing recovery branch was deleted');
+    const blockedReport = {
+      schemaVersion: 'opscore.production-recovery-point.v3',
+      status: 'BLOCKED',
+      testedAt: new Date().toISOString(),
+      projectId,
+      parentBranchId,
+      databaseName,
+      ownerRole: roleName,
+      serverVersion: identity.server_version,
+      parentLsn,
+      branchCount: branches.length,
+      branchLimit: limitRaw,
+      verificationScope: 'branch-clone-public-table-count-and-core-tenant-row-counts-only',
+      blockers: [{ code: 'NEON_BRANCH_CAPACITY_EXHAUSTED', detail: branches.length + '/' + limitRaw + '; no existing branch was deleted' }],
+      mismatchCount: null,
+      sourceCommitHint: commit,
+      pipelineId,
+      deploymentId: deploymentIdentity.deploymentId,
+      deploymentRef: deploymentIdentity.ref,
+      deploymentIdentityObservedAt: deploymentIdentity.observedAt,
+      collectorCommit,
+      collectorPipelineId,
+      evidenceClass: 'PRODUCTION_BRANCH_RECOVERY_POINT'
+    };
+    writeReport(blockedReport);
+    process.stderr.write('PRODUCTION_RECOVERY_POINT_BLOCKED:NEON_BRANCH_CAPACITY_EXHAUSTED:' + branches.length + '/' + limitRaw + '\\n');
+    process.exitCode = 1;
+    return;
   }
 
   const runId = String(process.env.GITHUB_RUN_ID || Date.now()).replace(/[^0-9]/g, '');
@@ -126,7 +161,7 @@ async function main() {
     && parentPublicTables >= 130
     && parentPublicTables === recoveryPublicTables;
   const report = {
-    schemaVersion: 'opscore.production-recovery-point.v2',
+    schemaVersion: 'opscore.production-recovery-point.v3',
     status: tableCountsMatch ? 'PASS' : 'FAIL',
     testedAt: new Date().toISOString(),
     projectId,
@@ -146,6 +181,12 @@ async function main() {
     note: 'This is a branch-clone and row-count comparison for the explicitly configured application database only. It does not compare row contents, certify PITR, or establish RPO/RTO. No previous branch is deleted. A full restore drill remains separate.',
     sourceCommitHint: commit,
     pipelineId,
+    deploymentId: deploymentIdentity.deploymentId,
+    deploymentRef: deploymentIdentity.ref,
+    deploymentIdentitySource: deploymentIdentity.sourceCommitIdentitySource,
+    deploymentIdentityObservedAt: deploymentIdentity.observedAt,
+    collectorCommit,
+    collectorPipelineId,
     evidenceClass: 'PRODUCTION_BRANCH_RECOVERY_POINT'
   };
   writeReport(report);
