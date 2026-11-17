@@ -24,7 +24,7 @@ The selected time is an owner-approved operational window. Current Vercel Hobby 
 2. Existing branch `br-steep-star-bcgphok3` is **DDL-only evidence**: 063–067 returned `psql_rc=0`, but no corresponding migration-ledger rows were written; the final verification query returned `(0 rows)` and still printed `MIGRATION_BRANCH_PASS`. It also used a pooled endpoint. Do not promote this branch or treat that run as official migration-runner certification.
 3. The signed 67-route manifest includes technician GPS trail routes. PostgreSQL's `geofencing.js` fails closed when `public.technician_location_trail` is absent. Therefore the candidate schema must include **063–067 and 069**, with the official runner writing each filename and SHA-256 into `public.schema_migrations`. Keeping the three GPS routes in the 67-route scope while omitting 069 is a release contradiction.
 4. PR #212 prepares a corrected disposable-branch path: direct non-pooler endpoint, exact project/branch/host/database binding, the guarded `apply-postgres-migrations.js --apply` runner, SHA-256 ledger evidence, and no automatic branch deletion. It is not Production authorization and must pass independent review before use.
-5. The current application policy still gates signed operational routes to `VERCEL_ENV=preview`. Current Vercel deploy workflow's Production job is hard-disabled (`if: false && ...`). Production env inventory shows HMAC keys and the signed-route switches in Preview only. Flipping environment flags alone is not a Production activation plan.
+5. The signed-context policy now has a Production code path, but it is independently fail-closed: `VERCEL_ENV=production`, `OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED=true`, `OPSC_PRODUCTION_HOLD=false`, and the exact running deployment must pass `hasVerifiedProductionRelease()` including the current 67-route signed-session proof. The server computes this readiness once at cold start; missing/stale/mismatched proof keeps Production signed routes disabled. The 67-route Production collector/evidence artifact is still not available, so the new path does not make Production activatable today. The Vercel Production deploy job remains hard-disabled (`if: false && ...`).
 
 ## Snapshot restore attempt — 17 November 2026
 
@@ -64,6 +64,40 @@ Consequences:
 - Before commercial buyer traffic, move the owning Vercel team/project to Pro or Enterprise, attach and verify the intended custom domain, and verify that deployment protection/SSO settings permit intended customer access without weakening staff/admin protections. Pro is currently listed at $20/month with $20 included usage credit; usage beyond the credit and applicable taxes are additional. Enterprise is not recommended absent a requirement for its dedicated controls/SLA.
 - No Vercel plan upgrade, domain purchase/transfer, DNS change or protection change is authorized or performed here.
 
+## Production signed-context activation and key rotation path
+
+The application now accepts Production signed-context configuration only when all four independent conditions are true:
+
+1. `VERCEL_ENV=production`.
+2. `OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED=true`.
+3. `OPSC_PRODUCTION_HOLD=false`.
+4. At cold start, `hasVerifiedProductionRelease()` verifies the immutable running deployment's exact source commit, CI pipeline, package fingerprint, production acceptance, session/isolation evidence, recovery evidence, and all 67 signed-route results bound to the exact deployment ID and Primary branch.
+
+The server caches this readiness result for the lifetime of the deployment. Missing evidence, a different commit/pipeline/deployment/branch, a malformed proof, or an exception returns false and leaves signed Production paths unavailable. Setting environment flags alone cannot open the path. The separate global Production traffic gate still requires `OPSC_RELEASE_VERIFIED=true` plus the same release verifier; neither gate is changed by the new code path.
+
+### Manual Production key rotation
+
+Workflow: `.github/workflows/rotate-production-tenant-hmac.yml`
+
+- Manual `workflow_dispatch` only, with the exact confirmation `ROTATE_PRODUCTION_TENANT_HMAC` and the protected GitHub `production` Environment.
+- Verifies the exact Neon project/Primary/database/owner role and a direct non-pooler connection. It fails if migration 063 has not created `opscore_security.context_hmac_keys`.
+- Generates a new 256-bit HMAC key, inserts it into the Primary key table, and syncs only the three Production HMAC variables in Vercel. It does not create or modify Preview/Development values.
+- Old database key rows are intentionally left enabled and their expiry is not shortened. The workflow does not deploy, enable signed routes, change `OPSC_REQUIRE_SIGNED_TENANT_CONTEXT`, set `OPSC_PRODUCTION_HOLD`, or change `OPSC_RELEASE_VERIFIED`.
+- Key environment changes affect the next deployment only. They do not change the currently running Production deployment.
+- Rollback keeps the previous key row valid and points Production traffic back to the exact last verified deployment. Do not retire prior keys until the new deployment has completed the full signed-route soak and rollback reserve. Retirement is a separate, reviewed operation.
+
+### Manual Production migration
+
+Workflow: `.github/workflows/ops-apply-production-signed-context-migrations.yml`
+
+- Manual `workflow_dispatch` only from `main`, exact confirmation `APPLY_PRODUCTION_SIGNED_CONTEXT_MIGRATIONS`, and protected GitHub `production` Environment approval.
+- Requires `docs/ops/evidence/PRODUCTION_PRIMARY_RESTORE_PROOF.json` and an exact matching SHA-256 in the Environment secret `OPSC_PRODUCTION_RESTORE_PROOF_SHA256`. The proof contract is defined in `docs/ops/PRODUCTION_PRIMARY_RESTORE_PROOF_SPEC.md`. That file must not be marked PASS until a real non-finalizing Neon restore test has completed.
+- Independently rechecks the snapshot and restore-branch provenance, project, Primary branch, database, age, and proof checks. It uses the official `apply-postgres-migrations.js` runner and a direct connection only.
+- Runs the runner dry-run first and refuses to write unless the exact pending set is 063–067 and 069. It then requires `APPLIED_AND_VERIFIED` and the matching SHA-256 ledger rows.
+- It does not deploy, rotate keys, enable signed routes, open the traffic hold, delete a branch/snapshot, or finalize a restore. It is intentionally a schema-only operation with a separate post-deploy stage.
+
+**Current limitation:** the Production 67-route collector/evidence writer and a valid restore proof do not exist yet. Therefore both manual workflows are prepared but must not be dispatched now. Production remains **NO-GO** until the restore quota is resolved, an actual restore proof is created, the exact migration candidate passes, the 67-route collector can produce exact-deployment evidence, and the release/deploy gates are independently reviewed.
+
 ## Mandatory pre-window gates
 
 Do not enter the Production write phase unless all are true:
@@ -71,9 +105,9 @@ Do not enter the Production write phase unless all are true:
 - PR #212 and all required production-activation code changes are independently reviewed, merged, and green on the exact selected main SHA.
 - A fresh disposable child branch from the current Primary has passed the official migration runner with direct connection identity and ledger SHA-256 rows for 063–067 and 069.
 - The exact Production deployment candidate has been built and smoke-tested with signed-route enforcement still off; its source SHA, database branch, package identity and migration set are fixed and recorded.
-- A production-safe HMAC rotation/dual-key overlap/retire/rollback procedure is tested on the isolated candidate; no key secret is placed in logs or documentation.
+- The manual HMAC rotation workflow and rollback procedure have passed isolated contract review; the Production key table exists, and the old key remains enabled throughout overlap. No key secret is placed in logs or documentation.
 - The real Production 67-route collector is available and proves session, tenant, backend PID, transaction, raw-GUC tamper denial, cross-tenant read/write denial and cleanup per route, bound to the exact commit, pipeline, Production Neon branch and Vercel deployment.
-- A recoverable **current** Primary snapshot is confirmed. The existing snapshot above is roughly 13h 51m old at the beginning of the window; confirm it still exists and take a new Primary snapshot immediately before writes if the Neon snapshot quota allows it. There is no automatic snapshot schedule. If a fresh snapshot cannot be taken, validated or restored to a matching branch, abort the Primary migration.
+- A valid, hash-pinned **non-finalizing restore proof** exists for a real Primary snapshot, and the snapshot is still available. The existing `snap-floral-sea-bcug7fd3` has not passed restore. After an owner-approved Neon capacity upgrade, create a fresh pre-window Primary snapshot, restore it to a separate root branch and produce `PRODUCTION_PRIMARY_RESTORE_PROOF.json` with its GitHub Environment SHA-256 secret. If the snapshot cannot be taken, restored, validated and pinned, abort the Primary migration. The automatic snapshot schedule must also be populated and verified under the approved plan.
 - A Production migration workflow uses a direct Neon endpoint, the official runner, and exact `OPSC_MIGRATION_TARGET_CLASS=production`, `OPSC_MIGRATION_ALLOW_PRODUCTION=1`, project/branch/host/database confirmations. No manual `psql -f` path and no pooled endpoint.
 - A deployment workflow exists for the reviewed exact SHA, with explicit Production environment approval and live post-deploy evidence; the currently hard-disabled Production deploy job must not be assumed executable.
 
@@ -85,7 +119,7 @@ Do not enter the Production write phase unless all are true:
 | 02:10–02:25 | 15 min | Reconfirm the candidate branch's official runner report, all required migration ledger SHA-256 values (063–067, 069), role privileges, forced RLS, zero remaining direct tenant GUC policies and technician trail schema. |
 | 02:25–02:45 | 20 min | Verify reviewed Production candidate deployment is READY on the exact SHA with signed-route switches OFF. Run read-only health, deployment identity, database identity and baseline login/session smoke. |
 | 02:45–03:05 | 20 min | Apply the signed-context migrations through the approved Production runner only; verify ledger and schema postconditions immediately. Any error = stop; no ad-hoc SQL repair. |
-| 03:05–03:25 | 20 min | Apply the approved HMAC overlap rotation and limited canary activation only after the new deployment and schema match. Keep old key valid during overlap; test signed positive, invalid signature, expiry, replay, wrong tenant and backend/transaction binding. |
+| 03:05–03:25 | 20 min | Run the approval-gated Production HMAC rotation only after schema checks. Verify the new key row and Production-only environment values; leave old key rows enabled. Do **not** activate signed-route flags unless a complete 67-route exact-deployment proof already exists and has passed the release verifier. |
 | 03:25–03:45 | 20 min | Execute commit/deployment/branch-bound Production smoke and the complete 67-route evidence collector. If any route is missing, evidence is rebound, cleanup fails, or session/tenant boundaries fail = **NO-GO**. |
 | 03:45–04:00 | 15 min | GO/NO-GO, freeze evidence and either keep canary at approved limited scope or execute the tested rollback. Do not use this period to continue an unfinished migration. |
 
@@ -99,7 +133,7 @@ On trigger:
 1. Stop expanding canary and keep/restore the Production traffic hold using the approved release procedure.
 2. Roll back Vercel to the exact previously verified deployment.
 3. Do not automatically finalize a Neon restore branch. Verify the restore branch, schema/data identity and snapshot provenance first; primary replacement requires explicit operator approval and exact target confirmation.
-4. Re-run health/login/session/database identity checks against the old deployment and record a run-bound rollback report.
+4. Keep the prior HMAC key rows enabled; roll Vercel traffic back to the exact previously verified deployment ID, and re-run health/login/session/database identity checks against it. Record a run-bound rollback report. Do not rotate the old key out during rollback.
 5. If restoration cannot be proven within the reserve, remain in maintenance/hold rather than reopen traffic on an unknown state.
 
 ## Explicit exclusions
