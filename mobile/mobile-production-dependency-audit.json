@@ -484,8 +484,8 @@
         "node_modules/picomatch"
       ],
       "fixAvailable": {
-        "name": "react-native",
-        "version": "0.83.10",
+        "name": "expo",
+        "version": "54.0.33",
         "isSemVerMajor": true
       }
     },
@@ -531,8 +531,8 @@
         "node_modules/tinyglobby"
       ],
       "fixAvailable": {
-        "name": "react-native",
-        "version": "0.83.10",
+        "name": "expo",
+        "version": "54.0.33",
         "isSemVerMajor": true
       }
     }
