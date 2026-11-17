@@ -33,14 +33,14 @@ const languageQualificationRows = fs.readFileSync(
 ).trim().split('\n').slice(1);
 
 test('Production runbook and buyer residual register use the latest observed Neon capacity', () => {
-  assert.match(runbook, /5 active branches \(5\/10 included\)/);
-  assert.match(runbook, /5 active branches \(5\/10 included\)/);
-  assert.match(runbook, /3 root branches/);
-  assert.match(runbook, /All five are unprotected/);
+  assert.match(runbook, /2 active branches \(2\/10 included\)/);
+  assert.match(runbook, /2 active branches \(2\/10 included\)/);
+  assert.match(runbook, /2 root branches/);
+  assert.match(runbook, /Both active branches are unprotected/);
   assert.match(runbook, /Primary automatic snapshot schedule is empty/);
   assert.match(runbook, /snapshots limit exceeded/);
-  assert.match(buyerResiduals, /5 active branches of 10 available/);
-  assert.match(buyerResiduals, /all five active branches are unprotected/i);
+  assert.match(buyerResiduals, /2 active branches/);
+  assert.match(buyerResiduals, /Both are currently unprotected/i);
   assert.match(buyerResiduals, /non-finalizing Restore Snapshot API/);
   assert.doesNotMatch(runbook, /10 active branches \(10\/10 included\)/);
   assert.doesNotMatch(buyerResiduals, /10\/10 visible branches|all ten are unprotected/i);
