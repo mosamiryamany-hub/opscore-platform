@@ -308,7 +308,7 @@ async function main() {
   ];
   const allPass = requiredFinalChecks.every(key => checks[key] === 'PASS');
   const report = {
-    schemaVersion: 'opscore.production-session-isolation.v2',
+    schemaVersion: 'opscore.production-session-isolation.v3',
     status: allPass ? 'PASS' : 'FAIL',
     environment: 'production',
     httpBase,
