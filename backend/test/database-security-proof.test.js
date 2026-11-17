@@ -26,6 +26,31 @@ function buildDatabaseSecurityProof(row, ...args) {
   }, ...args);
 }
 
+test('database catalog proof cannot certify production isolation from an environment flag alone', () => {
+  const proof = buildDatabaseSecurityProof({
+    public_table_count:132,
+    rls_enabled_table_count:131,
+    rls_forced_table_count:131,
+    tables_without_rls_count:1,
+    non_postgis_tables_without_rls_count:0,
+    non_postgis_tables_without_force_rls_count:0,
+    spatial_ref_sys_runtime_write_access_count:0,
+    migration_ledger_table_count:1,
+    migration_ledger_without_force_rls_count:0,
+    migration_ledger_runtime_privileges_count:0,
+    identity_tables_without_rls_with_runtime_access_count:0,
+    control_plane_table_count:3,
+    control_plane_policy_valid_table_count:3,
+    control_plane_runtime_privilege_gap_count:0,
+    system_operational_table_count:3,
+    system_operational_policy_valid_table_count:3,
+    system_operational_runtime_privilege_gap_count:0
+  }, fixedTime, { OPSC_PRODUCTION_ISOLATION_CERTIFICATION: 'CERTIFIED' });
+  assert.equal(proof.status, 'IDENTITY_PLANE_RLS_ENFORCED');
+  assert.equal(proof.productionIsolationCertification, 'NOT_CERTIFIED');
+  assert.match(proof.note, /independent release-proof gate/);
+});
+
 test('identity tables accessible without RLS remain not certified', () => {
   const proof = buildDatabaseSecurityProof({
     public_table_count:129, rls_enabled_table_count:119, rls_forced_table_count:119,
