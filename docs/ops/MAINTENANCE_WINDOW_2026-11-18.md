@@ -108,7 +108,7 @@ Do not simply remove `deploymentIdBound`, remove the 67-route gate, weaken `hasV
 
 Workflow: `.github/workflows/rotate-production-tenant-hmac.yml`
 
-- Manual `workflow_dispatch` only from reviewed `main`, with the exact confirmation `ROTATE_PRODUCTION_TENANT_HMAC` and the protected GitHub `production` Environment. The workflow is not time-scheduled; the operator must dispatch it only inside the approved 02:00–04:00 Cairo window.
+- Manual `workflow_dispatch` only from `main`, with the exact confirmation `ROTATE_PRODUCTION_TENANT_HMAC`, and it references GitHub Environment `production`. The repository's Environment protection rules / Required reviewers were not readable through the current GitHub integration; their presence is **UNVERIFIED**. Verify Settings → Environments → production before any dispatch and require an independent reviewer. The workflow is not time-scheduled; the operator must dispatch it only inside the approved 02:00–04:00 Cairo window.
 - Verifies the exact Neon project/Primary/database/owner role and a direct non-pooler connection. It fails if migration 063 has not created `opscore_security.context_hmac_keys`.
 - Generates a new 256-bit HMAC key, inserts it into the Primary key table, and syncs only the three Production HMAC variables in Vercel. It does not create or modify Preview/Development values.
 - Old database key rows are intentionally left enabled and their expiry is not shortened. The workflow does not deploy, enable signed routes, change `OPSC_REQUIRE_SIGNED_TENANT_CONTEXT`, set `OPSC_PRODUCTION_HOLD`, or change `OPSC_RELEASE_VERIFIED`.
@@ -119,7 +119,7 @@ Workflow: `.github/workflows/rotate-production-tenant-hmac.yml`
 
 Workflow: `.github/workflows/ops-apply-production-signed-context-migrations.yml`
 
-- Manual `workflow_dispatch` only from `main`, exact confirmation `APPLY_PRODUCTION_SIGNED_CONTEXT_MIGRATIONS`, and protected GitHub `production` Environment approval.
+- Manual `workflow_dispatch` only from `main`, exact confirmation `APPLY_PRODUCTION_SIGNED_CONTEXT_MIGRATIONS`, and it references GitHub Environment `production`. Actual Environment protection rules / Required reviewers remain **UNVERIFIED** and must be inspected before dispatch.
 - Requires `docs/ops/evidence/PRODUCTION_PRIMARY_RESTORE_PROOF.json` and an exact matching SHA-256 in the Environment secret `OPSC_PRODUCTION_RESTORE_PROOF_SHA256`. The proof contract is defined in `docs/ops/PRODUCTION_PRIMARY_RESTORE_PROOF_SPEC.md`. That file must not be marked PASS until a real non-finalizing Neon restore test has completed.
 - Independently rechecks the snapshot and restore-branch provenance, project, Primary branch, database, age, and proof checks. It uses the official `apply-postgres-migrations.js` runner and a direct connection only.
 - Runs the runner dry-run first and refuses to write unless the exact pending set is 063–067 and 069. It then requires `APPLIED_AND_VERIFIED` and the matching SHA-256 ledger rows.
@@ -138,7 +138,7 @@ Do not enter the Production write phase unless all are true:
 - The real Production 67-route collector/evidence writer is **not implemented and not available**. It must prove session, tenant, backend PID, transaction, raw-GUC tamper denial, cross-tenant read/write denial and cleanup per route, bound to the exact commit, pipeline, Production Neon branch and Vercel deployment. It must also solve the cold-start proof/bootstrap sequencing without weakening the fail-closed gate.
 - A valid, hash-pinned **non-finalizing restore proof does not exist**. The snapshot `snap-floral-sea-bcug7fd3` remains listed, but its restore attempt failed with `root branches limit exceeded`; it is not an executable rollback proof. After an owner-approved Neon Scale upgrade, verify the new quotas, protect Primary, create a fresh pre-window Primary snapshot, restore it to a separate root branch and produce `PRODUCTION_PRIMARY_RESTORE_PROOF.json` with its GitHub Environment SHA-256 secret. If the snapshot cannot be taken, restored, validated and pinned, abort the Primary migration. The automatic snapshot schedule must also be populated and verified under the approved plan.
 - A Production migration workflow uses a direct Neon endpoint, the official runner, and exact `OPSC_MIGRATION_TARGET_CLASS=production`, `OPSC_MIGRATION_ALLOW_PRODUCTION=1`, project/branch/host/database confirmations. No manual `psql -f` path and no pooled endpoint.
-- A deployment workflow exists for the reviewed exact SHA, with explicit Production environment approval and live post-deploy evidence; the currently hard-disabled Production deploy job must not be assumed executable.
+- The deployment workflow references the Production Environment, but actual Environment reviewer protection is UNVERIFIED; the current Production deploy job is hard-disabled and must not be assumed executable.
 
 ## In-window sequence — 120-minute ceiling
 
@@ -147,7 +147,7 @@ Do not enter the Production write phase unless all are true:
 | 02:00–02:10 | 10 min | Freeze changes; verify exact main SHA, current Production deploy/branch/database identity, snapshot availability and service health. Take and verify a fresh Primary snapshot. Any mismatch or snapshot failure = **NO-GO**. |
 | 02:10–02:25 | 15 min | Reconfirm the candidate branch's official runner report, all required migration ledger SHA-256 values (063–067, 069), role privileges, forced RLS, zero remaining direct tenant GUC policies and technician trail schema. |
 | 02:25–02:45 | 20 min | Apply the signed-context migrations through the approved Production runner only; verify ledger and schema postconditions immediately. Any error = stop; no ad-hoc SQL repair. |
-| 02:45–03:00 | 15 min | Run the approval-gated Production HMAC rotation only after schema checks. Verify the new key row and Production-only environment values; leave old key rows enabled. |
+| 02:45–03:00 | 15 min | Run the manually dispatched, exact-confirmation Production HMAC rotation only after schema checks and after the GitHub `production` Environment's Required reviewers have been independently verified. Verify the new key row and Production-only environment values; leave old key rows enabled. |
 | 03:00–03:20 | 20 min | Deploy the reviewed exact SHA **after** HMAC env sync so the new deployment loads the new key. Keep signed-route flags OFF, confirm the new deployment identity/commit/package/Primary and run baseline smoke. If deployment identity differs, stop. |
 | 03:20–03:45 | 25 min | Only if the proof-bootstrap architecture and collector were completed and rehearsed pre-window: run the deployment-bound 67-route canary collector, verify tenant A/B isolation, backend PID/transaction binding, raw-GUC tamper denial, writes/cleanup, and publish the attestation for this exact deployment. If any route is missing, proof cannot be read by the running deployment, evidence is rebound, or cleanup fails = **NO-GO**. |
 | 03:45–04:00 | 15 min | GO/NO-GO, freeze evidence and either keep the already-approved limited canary or roll back to the exact prior deployment while preserving old HMAC keys. Do not use this reserve to continue migration, key rotation or collector development. |
