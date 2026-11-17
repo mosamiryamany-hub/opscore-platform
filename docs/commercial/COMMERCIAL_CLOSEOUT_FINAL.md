@@ -4,13 +4,13 @@
 >
 > A buyer is **not required** to complete engineering, create a release package, publish the offer, or begin negotiations. Buyer identification, transaction negotiation, signature, payment and the transaction-specific License Schedule are post-sale steps, not seller release gates.
 >
-> Current `main` is `6adea6fa209e394b464c4272db1860422d608afb`. Draft PR #222 is based on that main and has advanced Expo SDK 58 to 58.0.26. On the latest fully checked PR head `8f2cd2f8a43925f33fc4bc1bfbd8bde17c6b384f`, the PostgreSQL 18 isolated RLS/HTTP acceptance passed and the backend regression suite recorded 806 passed, 0 failed, 3 skipped. OpsCore CI failed only at the mobile dependency audit. The latest audit run 44157086377 reported 26 High findings in the full mobile tree and 25 High with `--omit=dev`, associated with GHSA-fc5q-39xc-vjpf / CVE-2026-112366 through transitive picomatch dependencies. Expo Doctor passed 20/20 and Android/iOS/Web exports passed, but the fail-closed audit condition failed. No audit suppression or forced downgrade was applied. The Vercel contract run for the preceding tested head also stopped at the same mobile audit; no deployment occurred. PR #222 remains a draft and is not a release.
+> Current `main` is `6adea6fa209e394b464c4272db1860422d608afb`. Draft PR #222 is based on that main and has advanced Expo SDK 58 to 58.0.26. On the latest fully checked PR head `d59819b94c5953e17413b4f9cbf1ef1172145e90`, PostgreSQL 18 isolated RLS/HTTP acceptance passed and the backend regression suite recorded 807 passed, 0 failed, 3 skipped. OpsCore CI and Vercel contract verification failed only at the mobile dependency audit; Vercel deploy jobs were skipped. The latest mobile run 44157820028 reported 25 High findings in the full mobile tree and 26 High with `--omit=dev`, associated with GHSA-fc5q-39xc-vjpf / CVE-2026-112366 through transitive picomatch dependencies. Expo Doctor passed 20/20 and Android/iOS/Web exports passed, but the fail-closed audit condition failed. No audit suppression or forced downgrade was applied; no deployment occurred. PR #222 remains a draft and is not a release.
 >
 > The older Production proof below is historical evidence bound to its earlier commit/deployment. It does not certify current main or the SDK58 candidate. Do not use its package digest as a current deliverable fingerprint.
 
-**Updated:** 2026-11-17 — latest evidence through run 44157086377  
+**Updated:** 2026-11-17 — latest evidence through run 44157820028  
 **Current main:** `6adea6fa209e394b464c4272db1860422d608afb`  
-**Latest candidate head with exact SDK58 audit evidence:** `8f2cd2f8a43925f33fc4bc1bfbd8bde17c6b384f`  
+**Latest candidate head with exact SDK58 audit evidence:** `d59819b94c5953e17413b4f9cbf1ef1172145e90`  
 **Historical Production pin:** `4017497068defa9c1d0761fcb07bc746925e002a`
 
 ## Latest source-candidate evidence
@@ -18,13 +18,13 @@
 | Gate | Result |
 |---|---|
 | SDK58 validation | Expo Doctor 20/20; Android/iOS/Web exports PASS |
-| Full mobile audit | 26 High, 0 Critical |
-| Mobile audit with `--omit=dev` | 25 High, 0 Critical |
+| Full mobile audit | 25 High, 0 Critical |
+| Mobile audit with `--omit=dev` | 26 High, 0 Critical |
 | Fail-closed release condition | FAIL — mobile High findings unresolved |
-| Evidence artifact | `mobile-sdk58-current-main-evidence-44157086377` |
-| Artifact SHA-256 | `32fe23c57c3eb51f50cd98c540dfaa5c81b1eb0883715589423bd159f443b77d` |
-| Isolated PostgreSQL 18 RLS/HTTP | PASS on tested PR head `335e9a5` |
-| Full backend regression suite | 806 passed, 0 failed, 3 skipped on tested PR head `335e9a5` |
+| Evidence artifact | `mobile-sdk58-current-main-evidence-44157820028` |
+| Artifact SHA-256 | `98ec6833d033d880d661d37aa2b6feff2520b0dcd4ccb4f4241f10201b6ebf01` |
+| Isolated PostgreSQL 18 RLS/HTTP | PASS on tested PR head `d59819b` |
+| Full backend regression suite | 807 passed, 0 failed, 3 skipped on tested PR head `d59819b` |
 
 The backend and PostgreSQL evidence above is bound to the listed tested PR head, not automatically to later documentation-only branch heads. The current exact-head audit remains blocked. No qualified release ZIP or release statement has been generated for the latest candidate.
 
