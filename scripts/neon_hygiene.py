@@ -17,6 +17,8 @@ MARKERS = (
     "test-accept",
     "accept-recovery",
     "ephemeral",
+    "restore-drill",
+    "opscore-restore-drill",
 )
 
 def get(url):
