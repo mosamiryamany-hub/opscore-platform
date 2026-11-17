@@ -76,6 +76,7 @@ SELECT
       HAVING c.relrowsecurity
         AND c.relforcerowsecurity
         -- Exactly two policies are permitted: one tenant access and one boundary guard.
+        -- Both expressions must use migration 067's signed-context-aware canonical tenant accessor.
         AND COUNT(p.oid) = 2
         AND COUNT(p.oid) FILTER (
           WHERE p.polname = 'opscore_tenant_permissive'
@@ -83,9 +84,9 @@ SELECT
             AND p.polcmd = '*'
             AND p.polroles::text = '{0}'
             AND COALESCE(pg_get_expr(p.polqual,p.polrelid),'') =
-              '(organization_id = NULLIF(current_setting(''app.tenant_id''::text, true), ''''::text))'
+              '(organization_id = NULLIF(opscore_current_tenant(), ''''::text))'
             AND COALESCE(pg_get_expr(p.polwithcheck,p.polrelid),'') =
-              '(organization_id = NULLIF(current_setting(''app.tenant_id''::text, true), ''''::text))'
+              '(organization_id = NULLIF(opscore_current_tenant(), ''''::text))'
         ) = 1
         AND COUNT(p.oid) FILTER (
           WHERE p.polname = 'opscore_tenant_boundary_guard'
@@ -93,9 +94,9 @@ SELECT
             AND p.polcmd = '*'
             AND p.polroles::text = '{0}'
             AND COALESCE(pg_get_expr(p.polqual,p.polrelid),'') =
-              '(organization_id = NULLIF(current_setting(''app.tenant_id''::text, true), ''''::text))'
+              '(organization_id = NULLIF(opscore_current_tenant(), ''''::text))'
             AND COALESCE(pg_get_expr(p.polwithcheck,p.polrelid),'') =
-              '(organization_id = NULLIF(current_setting(''app.tenant_id''::text, true), ''''::text))'
+              '(organization_id = NULLIF(opscore_current_tenant(), ''''::text))'
         ) = 1
     ) AS valid_control_plane_policy_tables
   ) AS control_plane_policy_valid_table_count,
