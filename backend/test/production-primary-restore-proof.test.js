@@ -44,7 +44,7 @@ test('proof runner checks database identity, migration baseline, RLS and runtime
   ]) {
     assert.ok(runner.includes(fragment), 'missing proof assertion: ' + fragment);
   }
-  assert.ok(proofSpec.includes('POST /snapshots/{snapshot_id}/restore'));
+  assert.ok(proofSpec.includes('POST /projects/{project_id}/snapshots/{snapshot_id}/restore'));
   assert.ok(proofSpec.includes('finalize_restore=false'));
 });
 
