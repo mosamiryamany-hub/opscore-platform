@@ -32,6 +32,80 @@ REQUIRED_PENDING = {
     "069_technician_location_trail_tenant_persistence.sql",
 }
 
+SCHEMA_INVENTORY_SQL = r"""
+WITH schema_items AS (
+ SELECT 'schema|'||n.nspname||'|'||pg_catalog.pg_get_userbyid(n.nspowner)||'|'||coalesce(n.nspacl::text,'') AS item
+ FROM pg_namespace n WHERE n.nspname NOT LIKE 'pg_%' AND n.nspname<>'information_schema'
+ UNION ALL
+ SELECT 'extension|'||e.extname||'|'||e.extversion||'|'||n.nspname
+ FROM pg_extension e JOIN pg_namespace n ON n.oid=e.extnamespace
+ UNION ALL
+ SELECT 'relation|'||n.nspname||'.'||c.relname||'|'||c.relkind::text||'|'||c.relpersistence::text||'|'||
+        c.relrowsecurity::text||'|'||c.relforcerowsecurity::text||'|'||
+        pg_catalog.pg_get_userbyid(c.relowner)||'|'||coalesce(c.reloptions::text,'')||'|'||
+        coalesce(c.relacl::text,'')||'|'||c.relispartition::text
+ FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+ WHERE n.nspname NOT LIKE 'pg_%' AND n.nspname<>'information_schema'
+   AND c.relkind IN ('r','p','v','m','S','f','i','I')
+ UNION ALL
+ SELECT 'column|'||n.nspname||'.'||c.relname||'.'||a.attname||'|'||
+        pg_catalog.format_type(a.atttypid,a.atttypmod)||'|'||a.attnotnull::text||'|'||
+        a.attidentity::text||'|'||a.attgenerated::text||'|'||coalesce(pg_catalog.pg_get_expr(d.adbin,d.adrelid),'')||'|'||
+        coalesce(a.attcollation::regcollation::text,'')||'|'||coalesce(a.attacl::text,'')
+ FROM pg_attribute a
+ JOIN pg_class c ON c.oid=a.attrelid
+ JOIN pg_namespace n ON n.oid=c.relnamespace
+ LEFT JOIN pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum
+ WHERE n.nspname NOT LIKE 'pg_%' AND n.nspname<>'information_schema'
+   AND a.attnum>0 AND NOT a.attisdropped
+ UNION ALL
+ SELECT 'constraint|'||coalesce(n.nspname,'')||'.'||coalesce(c.relname,t.typname,'')||'|'||
+        con.conname||'|'||pg_catalog.pg_get_constraintdef(con.oid,true)||'|'||
+        con.convalidated::text||'|'||con.condeferrable::text||'|'||con.condeferred::text
+ FROM pg_constraint con
+ LEFT JOIN pg_class c ON c.oid=con.conrelid
+ LEFT JOIN pg_namespace n ON n.oid=coalesce(c.relnamespace, (SELECT typnamespace FROM pg_type WHERE oid=con.contypid))
+ LEFT JOIN pg_type t ON t.oid=con.contypid
+ WHERE n.nspname NOT LIKE 'pg_%' AND n.nspname<>'information_schema'
+ UNION ALL
+ SELECT 'index|'||schemaname||'.'||tablename||'.'||indexname||'|'||indexdef
+ FROM pg_indexes
+ WHERE schemaname NOT LIKE 'pg_%' AND schemaname<>'information_schema'
+ UNION ALL
+ SELECT 'policy|'||schemaname||'.'||tablename||'.'||policyname||'|'||
+        permissive||'|'||roles::text||'|'||cmd||'|'||coalesce(qual,'')||'|'||coalesce(with_check,'')
+ FROM pg_policies
+ WHERE schemaname NOT LIKE 'pg_%' AND schemaname<>'information_schema'
+ UNION ALL
+ SELECT 'function|'||n.nspname||'.'||p.proname||'('||pg_catalog.pg_get_function_identity_arguments(p.oid)||')|'||
+        pg_catalog.pg_get_userbyid(p.proowner)||'|'||p.prosecdef::text||'|'||coalesce(p.proconfig::text,'')||'|'||
+        coalesce(p.proacl::text,'')||'|'||pg_catalog.pg_get_functiondef(p.oid)
+ FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+ WHERE n.nspname NOT LIKE 'pg_%' AND n.nspname<>'information_schema' AND p.prokind IN ('f','p','w')
+ UNION ALL
+ SELECT 'trigger|'||n.nspname||'.'||c.relname||'.'||t.tgname||'|'||pg_catalog.pg_get_triggerdef(t.oid,true)
+ FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid JOIN pg_namespace n ON n.oid=c.relnamespace
+ WHERE NOT t.tgisinternal AND n.nspname NOT LIKE 'pg_%' AND n.nspname<>'information_schema'
+ UNION ALL
+ SELECT 'view|'||schemaname||'.'||viewname||'|'||definition
+ FROM pg_views WHERE schemaname NOT LIKE 'pg_%' AND schemaname<>'information_schema'
+ UNION ALL
+ SELECT 'type|'||n.nspname||'.'||t.typname||'|'||t.typtype::text||'|'||coalesce(t.typbasetype::regtype::text,'')||'|'||t.typnotnull::text||'|'||coalesce(t.typacl::text,'')
+ FROM pg_type t JOIN pg_namespace n ON n.oid=t.typnamespace
+ WHERE n.nspname NOT LIKE 'pg_%' AND n.nspname<>'information_schema'
+ UNION ALL
+ SELECT 'enum|'||n.nspname||'.'||t.typname||'|'||e.enumlabel
+ FROM pg_enum e JOIN pg_type t ON t.oid=e.enumtypid JOIN pg_namespace n ON n.oid=t.typnamespace
+ WHERE n.nspname NOT LIKE 'pg_%' AND n.nspname<>'information_schema'
+ UNION ALL
+ SELECT 'sequence|'||schemaname||'.'||sequencename||'|'||start_value::text||'|'||min_value::text||'|'||max_value::text||'|'||increment_by::text||'|'||cycle::text||'|'||cache_size::text
+ FROM pg_sequences WHERE schemaname NOT LIKE 'pg_%' AND schemaname<>'information_schema'
+)
+SELECT count(*)::int || '|' ||
+       encode(digest(coalesce(string_agg(item,E'\\n' ORDER BY item),''),'sha256'),'hex')
+FROM schema_items
+"""
+
 
 def fail(code, detail=None):
     print(code)
@@ -203,6 +277,59 @@ def psql(uri, sql):
     return result.stdout.strip()
 
 
+def schema_inventory(uri):
+    output = psql(uri, SCHEMA_INVENTORY_SQL)
+    parts = output.split("|")
+    if len(parts) != 2:
+        fail("RESTORE_PROOF_SCHEMA_INVENTORY_INVALID", {"output": output[:300]})
+    item_count = int(parts[0])
+    digest = parts[1].strip()
+    if item_count <= 0 or not SHA_RE.fullmatch(digest):
+        fail("RESTORE_PROOF_SCHEMA_INVENTORY_INVALID")
+    return item_count, digest
+
+
+def table_data_inventory(uri):
+    table_output = psql(uri, "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename")
+    table_names = [line for line in table_output.splitlines() if line]
+    if len(table_names) != 135:
+        fail("RESTORE_PROOF_PUBLIC_TABLE_COUNT_MISMATCH", {"count": len(table_names)})
+
+    statements = []
+    for name in table_names:
+        identifier = '"' + name.replace('"', '""') + '"'
+        literal = name.replace("'", "''")
+        statements.append(
+            "SELECT '" + literal + "'::text AS table_name, "
+            "count(*)::bigint AS row_count, "
+            "md5(coalesce(string_agg(md5(row_to_json(t)::text), '' "
+            "ORDER BY row_to_json(t)::text), '')) AS row_content_md5 "
+            "FROM public." + identifier + " AS t"
+        )
+    query = "SELECT table_name, row_count::text, row_content_md5 FROM ("
+    query += " UNION ALL ".join(statements)
+    query += ") AS inventory ORDER BY table_name"
+    inventory_output = psql(uri, query)
+    inventory_rows = []
+    for line in inventory_output.splitlines():
+        parts = line.split("|")
+        if len(parts) != 3 or not re.fullmatch(r"[a-f0-9]{32}", parts[2]):
+            fail("RESTORE_PROOF_TABLE_CONTENT_INVENTORY_INVALID", {"row": line[:300]})
+        inventory_rows.append((parts[0], int(parts[1]), parts[2]))
+    if len(inventory_rows) != len(table_names):
+        fail("RESTORE_PROOF_TABLE_CONTENT_INVENTORY_INCOMPLETE", {
+            "expected": len(table_names),
+            "actual": len(inventory_rows),
+        })
+    table_sha = hashlib.sha256("\\n".join(table_names).encode("utf-8")).hexdigest()
+    canonical_rows = "\\n".join(
+        name + "\\t" + str(count) + "\\t" + digest
+        for name, count, digest in inventory_rows
+    )
+    content_sha = hashlib.sha256(canonical_rows.encode("utf-8")).hexdigest()
+    return table_names, table_sha, content_sha
+
+
 def main():
     global KEY
     if os.environ.get("GITHUB_EVENT_NAME") != "workflow_dispatch" or os.environ.get("GITHUB_REF") != "refs/heads/main":
@@ -216,22 +343,54 @@ def main():
     snapshot = verify_snapshot()
     branch = find_or_create_real_restore(snapshot)
     branch_id = str(branch["id"])
-    uri = direct_connection_uri(branch_id)
 
-    identity = psql(uri, "SELECT current_database() || '|' || current_user || '|' || current_setting('server_version')")
-    identity_parts = identity.split("|")
-    if len(identity_parts) != 3 or identity_parts[0] != DATABASE_NAME or identity_parts[1] != ROLE_NAME:
-        fail("RESTORE_PROOF_DATABASE_IDENTITY_MISMATCH", {"identity": identity})
-    database_version = identity_parts[2]
+    primary_branch = api("GET", "/branches/" + PRIMARY_BRANCH_ID).get("branch") or {}
+    if (
+        primary_branch.get("id") != PRIMARY_BRANCH_ID
+        or not primary_branch.get("primary")
+        or not primary_branch.get("default")
+        or str(primary_branch.get("current_state") or "").lower() != "ready"
+    ):
+        fail("RESTORE_PROOF_CURRENT_PRIMARY_IDENTITY_INVALID")
 
-    schema_output = psql(uri, "SELECT nspname FROM pg_namespace WHERE nspname NOT LIKE 'pg_%' AND nspname <> 'information_schema' ORDER BY 1")
-    table_output = psql(uri, "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY 1")
-    schema_sha = hashlib.sha256(schema_output.encode("utf-8")).hexdigest()
-    table_sha = hashlib.sha256(table_output.encode("utf-8")).hexdigest()
-    table_names = [line for line in table_output.splitlines() if line]
+    primary_uri = direct_connection_uri(PRIMARY_BRANCH_ID)
+    restore_uri = direct_connection_uri(branch_id)
+
+    primary_identity = psql(primary_uri, "SELECT current_database() || '|' || current_user || '|' || current_setting('server_version')")
+    identity = psql(restore_uri, "SELECT current_database() || '|' || current_user || '|' || current_setting('server_version')")
+    for label, identity_value in (("primary", primary_identity), ("restore", identity)):
+        identity_parts = identity_value.split("|")
+        if len(identity_parts) != 3 or identity_parts[0] != DATABASE_NAME or identity_parts[1] != ROLE_NAME:
+            fail("RESTORE_PROOF_DATABASE_IDENTITY_MISMATCH", {"target": label, "identity": identity_value})
+    primary_version = primary_identity.split("|")[2]
+    database_version = identity.split("|")[2]
+    if primary_version != database_version:
+        fail("RESTORE_PROOF_POSTGRES_VERSION_MISMATCH")
+
+    primary_schema_count, primary_schema_sha = schema_inventory(primary_uri)
+    schema_item_count, schema_sha = schema_inventory(restore_uri)
+    if primary_schema_count != schema_item_count or primary_schema_sha != schema_sha:
+        fail("RESTORE_PROOF_SCHEMA_DIFFERS_FROM_CURRENT_PRIMARY", {
+            "primary_item_count": primary_schema_count,
+            "restore_item_count": schema_item_count,
+            "primary_schema_sha256": primary_schema_sha,
+            "restore_schema_sha256": schema_sha,
+        })
+
+    primary_tables, primary_table_sha, primary_data_sha = table_data_inventory(primary_uri)
+    table_names, table_sha, data_content_sha = table_data_inventory(restore_uri)
     public_table_count = len(table_names)
-    if public_table_count != 135:
-        fail("RESTORE_PROOF_PUBLIC_TABLE_COUNT_MISMATCH", {"count": public_table_count})
+    if (
+        primary_tables != table_names
+        or primary_table_sha != table_sha
+        or primary_data_sha != data_content_sha
+    ):
+        fail("RESTORE_PROOF_TABLE_DATA_DIFFERS_FROM_CURRENT_PRIMARY", {
+            "primary_table_count": len(primary_tables),
+            "restore_table_count": public_table_count,
+            "primary_data_sha256": primary_data_sha,
+            "restore_data_sha256": data_content_sha,
+        })
 
     ledger_count = int(psql(uri, "SELECT COUNT(*) FROM public.schema_migrations"))
     migration_rows = psql(
@@ -313,7 +472,9 @@ def main():
         "databaseIdentity": {"databaseName": DATABASE_NAME, "roleName": ROLE_NAME},
         "testedAt": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "schemaSha256": schema_sha,
+        "schemaInventoryItemCount": schema_item_count,
         "tableInventorySha256": table_sha,
+        "dataContentSha256": data_content_sha,
         "publicTableCount": public_table_count,
         "checks": {
             "snapshot_provenance": {
@@ -327,12 +488,14 @@ def main():
                 "branchId": branch_id,
             },
             "database_identity": {"status": "PASS", "serverVersion": database_version},
-            "schema_catalog_read": {"status": "PASS"},
+            "schema_catalog_read": {"status": "PASS", "schemaItemCount": schema_item_count, "definitionParityWithPrimary": True},
             "public_table_inventory": {
                 "status": "PASS",
                 "publicTableCount": public_table_count,
                 "rlsEnabledTableCount": rls_parts[1],
                 "forceRlsEnabledTableCount": rls_parts[2],
+                "rowContentSha256": data_content_sha,
+                "rowContentParityWithPrimary": True,
             },
             "migration_ledger_read": {
                 "status": "PASS",
