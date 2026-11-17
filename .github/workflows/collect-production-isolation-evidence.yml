@@ -64,7 +64,7 @@ jobs:
         run: node backend/scripts/collect-production-recovery-point.js
       - name: Upload recovery evidence, including explicit BLOCKED reports
         if: always()
-        uses: actions/upload-artifact@cf430e030dd5b0abf93d22962f4752f3646cd9 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v4
         with:
           name: production-recovery-evidence-${{ github.run_id }}
           path: |
@@ -99,7 +99,7 @@ jobs:
         run: node backend/scripts/collect-production-session-isolation.js
       - name: Upload session-isolation evidence
         if: always()
-        uses: actions/upload-artifact@cf430e030dd5b0abf93d22962f4752f3646cd9 # v4
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v4
         with:
           name: production-session-isolation-evidence-${{ github.run_id }}
           path: |
