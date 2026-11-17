@@ -37,6 +37,8 @@ At the time of the attempt, the project exposed eight active branches, including
 
 The observed Neon error is consistent with the documented Free-plan allowance of three root branches per project. The project API did not expose an explicit plan-name field, so the plan identity is not asserted. Other observed Free-equivalent limits are the six-hour history window, 1 GB branch logical-size limit and one listed manual snapshot. Current official plan guidance lists Launch at five root branches, 100 manual snapshots and up to seven days of history; Scale lists 25 root branches and up to 30 days. See Neon plan documentation: https://neon.com/docs/introduction/plans and root branch documentation: https://neon.com/docs/manage/branches.
 
+Neon Launch's current published usage rates are: $0.106 per CU-hour, $0.35 per GB-month of database storage, $0.20 per GB-month of retained PITR history and $0.09 per GB-month of snapshot storage. Launch has no monthly minimum. It includes 10 total branches per project (the existing eight plus a restore branch fit), up to five root branches, 100 manual snapshots, up to seven days of history, and scheduled backups. Extra branches beyond the included ten cost $1.50 per branch-month, prorated hourly. See https://neon.com/docs/introduction/plans and https://neon.com/docs/manage/branches.
+
 Consequences:
 
 - Snapshot existence and provenance are verified; **restore execution is not verified**.
@@ -44,7 +46,7 @@ Consequences:
 - Total branch count (8) and root-branch count (3) are separate limits. The corrected disposable migration workflow creates a child branch; the failed snapshot restore needs an additional root/backup branch.
 - The only manual snapshot slot is currently occupied by `snap-floral-sea-bcug7fd3`; the current automatic snapshot schedule is empty.
 - Do not delete branches or snapshots, replace the Primary, finalize a restore, or upgrade the Neon plan automatically to make room.
-- The safest quota path is an owner-approved Launch upgrade before the window, followed by verification of the effective quotas, a fresh Primary snapshot, a non-finalizing restore test, and schema/data identity checks. This is a paid-plan change and is not authorized by this runbook.
+- The safest quota path is an owner-approved Neon Launch upgrade before the window, followed by verification of the effective quotas, a fresh Primary snapshot, a non-finalizing restore test, and schema/data identity checks. Launch has no fixed monthly minimum; actual compute/storage/PITR/snapshot use is billed at the rates above. This paid-plan change is not authorized by this runbook. Scale is not recommended at present: its higher CU rate buys 25 roots and up to 30 days of history, neither currently required by the observed limits.
 - Without the approved capacity change and successful restore test, the Production migration remains **NO-GO**. Do not treat the existing snapshot alone as an executable rollback.
 
 ## Commercial hosting entitlement — Vercel
@@ -59,7 +61,7 @@ The Vercel Pro base price is currently listed as **$20/month**, with $20 usage c
 Consequences:
 
 - A READY Production deployment is not proof of commercial hosting entitlement or customer-facing reachability.
-- Before commercial buyer traffic, move the owning Vercel team/project to Pro or Enterprise, attach and verify the intended custom domain, and verify that deployment protection/SSO settings permit intended customer access without weakening staff/admin protections.
+- Before commercial buyer traffic, move the owning Vercel team/project to Pro or Enterprise, attach and verify the intended custom domain, and verify that deployment protection/SSO settings permit intended customer access without weakening staff/admin protections. Pro is currently listed at $20/month with $20 included usage credit; usage beyond the credit and applicable taxes are additional. Enterprise is not recommended absent a requirement for its dedicated controls/SLA.
 - No Vercel plan upgrade, domain purchase/transfer, DNS change or protection change is authorized or performed here.
 
 ## Mandatory pre-window gates
