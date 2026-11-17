@@ -263,7 +263,7 @@ def direct_connection_uri(branch_id):
     return uri
 
 
-def psql(uri, sql):
+def psql(restore_uri, sql):
     result = subprocess.run(
         ["psql", uri, "-X", "-q", "-t", "-A", "-v", "ON_ERROR_STOP=1", "-c", sql],
         text=True,
@@ -278,7 +278,7 @@ def psql(uri, sql):
 
 
 def schema_inventory(uri):
-    output = psql(uri, SCHEMA_INVENTORY_SQL)
+    output = psql(restore_uri, SCHEMA_INVENTORY_SQL)
     parts = output.split("|")
     if len(parts) != 2:
         fail("RESTORE_PROOF_SCHEMA_INVENTORY_INVALID", {"output": output[:300]})
@@ -290,7 +290,7 @@ def schema_inventory(uri):
 
 
 def table_data_inventory(uri):
-    table_output = psql(uri, "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename")
+    table_output = psql(restore_uri, "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename")
     table_names = [line for line in table_output.splitlines() if line]
     if len(table_names) != 135:
         fail("RESTORE_PROOF_PUBLIC_TABLE_COUNT_MISMATCH", {"count": len(table_names)})
@@ -309,7 +309,7 @@ def table_data_inventory(uri):
     query = "SELECT table_name, row_count::text, row_content_sha256 FROM ("
     query += " UNION ALL ".join(statements)
     query += ") AS inventory ORDER BY table_name"
-    inventory_output = psql(uri, query)
+    inventory_output = psql(restore_uri, query)
     inventory_rows = []
     for line in inventory_output.splitlines():
         parts = line.split("|")
@@ -392,7 +392,7 @@ def main():
             "restore_data_sha256": data_content_sha,
         })
 
-    ledger_count = int(psql(uri, "SELECT COUNT(*) FROM public.schema_migrations"))
+    ledger_count = int(psql(restore_uri, "SELECT COUNT(*) FROM public.schema_migrations"))
     migration_rows = psql(
         uri,
         "SELECT filename FROM public.schema_migrations WHERE filename IN ("
@@ -410,10 +410,10 @@ def main():
         fail("RESTORE_PROOF_MIGRATION_LEDGER_BASELINE_MISMATCH", {"rows": sorted(applied)})
     if ledger_count != 62:
         fail("RESTORE_PROOF_MIGRATION_LEDGER_COUNT_MISMATCH", {"count": ledger_count})
-    if psql(uri, "SELECT to_regclass('public.technician_location_trail') IS NULL") != "t":
+    if psql(restore_uri, "SELECT to_regclass('public.technician_location_trail') IS NULL") != "t":
         fail("RESTORE_PROOF_TECHNICIAN_TRAIL_BASELINE_MISMATCH")
 
-    organizations_count = int(psql(uri, "SELECT COUNT(*) FROM public.organizations"))
+    organizations_count = int(psql(restore_uri, "SELECT COUNT(*) FROM public.organizations"))
     if organizations_count <= 0:
         fail("RESTORE_PROOF_CORE_TABLE_EMPTY")
 
