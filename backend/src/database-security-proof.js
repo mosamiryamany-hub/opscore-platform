@@ -278,14 +278,9 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
 
   let status = 'NOT_CERTIFIED';
   let note = 'Catalog metadata is not a full behavioral certification of every application path.';
-  const isolationCertified = String(env.OPSC_PRODUCTION_ISOLATION_CERTIFICATION || '').trim().toUpperCase() === 'CERTIFIED'
-    && identityPlaneHardened && catalogAcceptable;
-  if (isolationCertified) {
+  if (identityPlaneHardened && catalogAcceptable) {
     status = 'IDENTITY_PLANE_RLS_ENFORCED';
-    note = 'Catalog FORCE RLS and least-privilege boundaries are enforced. Formal production isolation certification was attested via OPSC_PRODUCTION_ISOLATION_CERTIFICATION after dual-tenant behavioral acceptance evidence was bound to the deployed release.';
-  } else if (identityPlaneHardened && catalogAcceptable) {
-    status = 'IDENTITY_PLANE_RLS_ENFORCED';
-    note = 'Every public application table except the read-only PostGIS spatial_ref_sys catalog has FORCE RLS. The schema_migrations ledger is owner-only. Control-plane tables have explicit least-privilege runtime grants independent of provider default ACLs. Authenticated path-by-path and cross-tenant behavioral tests are still required before production isolation certification.';
+    note = 'Every public application table except the read-only PostGIS spatial_ref_sys catalog has FORCE RLS. The schema_migrations ledger is owner-only. Control-plane tables have explicit least-privilege runtime grants independent of provider default ACLs. This catalog-only endpoint does not certify production tenant isolation; authenticated path-by-path and cross-tenant behavioral evidence must be evaluated by the independent release-proof gate.';
   } else if (identityPlaneHardened) {
     status = 'REVIEW_REQUIRED';
     note = 'Identity-plane RLS checks passed, but catalog evidence is incomplete or a non-PostGIS relation without RLS or FORCE RLS, migration-ledger boundary, PostGIS write privilege, runtime-role privilege, control-plane tenant-boundary policy, or runtime system-table policy/grant still requires review.';
@@ -296,7 +291,7 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
   return {
     schemaVersion: 'opscore.public-database-security-proof.v2',
     status,
-    productionIsolationCertification: isolationCertified ? 'CERTIFIED' : 'NOT_CERTIFIED',
+    productionIsolationCertification: 'NOT_CERTIFIED',
     evidenceScope: 'Live PostgreSQL catalog metadata queried as the running application database role',
     publicSchema: {
       ordinaryTableCount: publicTableCount,
