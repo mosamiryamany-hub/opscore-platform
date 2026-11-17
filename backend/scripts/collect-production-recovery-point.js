@@ -32,9 +32,12 @@ async function neon(pathname, opts = {}) {
   try { return text ? JSON.parse(text) : {}; } catch { throw new Error('NEON_API_RESPONSE_INVALID'); }
 }
 async function connectionUri(projectId, branchId, database, role) {
-  const query = new URLSearchParams({ branch_id: branchId, database_name: database, role_name: role });
+  const query = new URLSearchParams({ branch_id: branchId, database_name: database, role_name: role, pooled: 'false' });
   const data = await neon('/projects/' + encodeURIComponent(projectId) + '/connection_uri?' + query.toString());
   if (!data.uri) throw new Error('NEON_CONNECTION_URI_MISSING');
+  let parsed;
+  try { parsed = new URL(data.uri); } catch { throw new Error('NEON_CONNECTION_URI_INVALID'); }
+  if (parsed.hostname.toLowerCase().includes('-pooler.')) throw new Error('NEON_DIRECT_CONNECTION_REQUIRED');
   return data.uri;
 }
 function psql(uri, sql) {
