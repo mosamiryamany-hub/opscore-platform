@@ -64,7 +64,7 @@ test('67-route source manifest is inventory-bound while Production route evidenc
   assert.equal(manifest.routeCount, 67);
   assert.equal(manifest.routes.length, 67);
   assert.equal(manifest.routeInventorySha256, inventoryHash);
-  assert.equal(manifest.sourceCommit, '362e7cd5b6665003479a185358d0bcccbf9135af');
+  assert.equal(manifest.sourceCommit, 'e57adb3f380c1171d754c55c2911ca8f900b65a2');
   assert.equal(new Set(manifest.routes.map((route) => route.method + ' ' + route.path)).size, 67);
 
   for (const route of manifest.routes) {
