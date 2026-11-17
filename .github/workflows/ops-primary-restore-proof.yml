@@ -1,37 +1,51 @@
 name: ops-primary-restore-proof
+
 on:
   workflow_dispatch:
     inputs:
       confirm:
-        description: Type CREATE_PRIMARY_RESTORE_PROOF
+        description: Type CREATE_PRIMARY_RESTORE_PROOF after reviewing the exact Primary snapshot
         required: true
+        type: string
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: ops-primary-restore-proof
+  cancel-in-progress: false
 
 jobs:
   proof:
-    if: ${{ github.ref == 'refs/heads/main' && github.event.inputs.confirm == 'CREATE_PRIMARY_RESTORE_PROOF' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.event.inputs.confirm == 'CREATE_PRIMARY_RESTORE_PROOF' }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
-      - name: Install psql
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
-      - name: Restore from primary snapshot and write proof
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install PostgreSQL client
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+      - name: Create or reuse a real non-finalizing snapshot restore and verify it
         env:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
           OPSC_PRIMARY_SNAPSHOT_ID: snap-floral-sea-bcug7fd3
-        run: python3 scripts/neon_primary_restore_proof.py
-      - name: Publish proof bytes
+          OPSC_CONFIRM_RESTORE_PROOF: ${{ github.event.inputs.confirm }}
         run: |
           set -euo pipefail
-          test -f docs/ops/evidence/PRODUCTION_PRIMARY_RESTORE_PROOF.json
-          echo '---PROOF_JSON_BEGIN---'
-          cat docs/ops/evidence/PRODUCTION_PRIMARY_RESTORE_PROOF.json
-          echo '---PROOF_JSON_END---'
+          python3 scripts/neon_primary_restore_proof.py
+      - name: Publish the exact proof bytes and digest
+        run: |
+          set -euo pipefail
+          test -s docs/ops/evidence/PRODUCTION_PRIMARY_RESTORE_PROOF.json
           sha256sum docs/ops/evidence/PRODUCTION_PRIMARY_RESTORE_PROOF.json
-      - name: Upload proof artifact
+      - name: Upload the proof artifact
         uses: actions/upload-artifact@v4
         with:
           name: production-primary-restore-proof
           path: docs/ops/evidence/PRODUCTION_PRIMARY_RESTORE_PROOF.json
+          if-no-files-found: error
+          retention-days: 30
