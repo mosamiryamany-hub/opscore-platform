@@ -1,6 +1,7 @@
 'use strict';
 
 const READ_ONLY_PRODUCTION_VERIFICATION_PATHS = new Set([
+  '/api/health',
   '/api/verify/deployment',
   '/api/verify/release',
   '/verify/release.json',
