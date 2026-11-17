@@ -36,6 +36,10 @@ function validateAppRolePreflight(role, repairPending) {
  if(!repairPending){
   const residualSafe=memberships.length===0||(!canLogin&&!inherits&&hasOnlyKnownNeonResidual);
   if(!exists){
+   // 068 semantics: an absent legacy role is strictly stronger than a locked one.
+   // Fail closed if a caller ever reports contradictory absence + escalation.
+   const contradictory=bool(role.rolsuper)||bool(role.rolbypassrls)||bool(role.rolcreaterole)||bool(role.rolcreatedb)||canLogin||inherits||incomingMemberships!==0;
+   if(contradictory)throw new Error('MIGRATION_APP_ROLE_NOT_LEAST_PRIVILEGED');
    return {status:'PASS_WITH_ABSENT_LEGACY_ROLE',repairPending:false,roleExists:false,note:'OPSC_LEGACY_APP_ROLE_ABSENT_TREATED_AS_LOCKED'};
   }
   if(bool(role.rolsuper)||bool(role.rolbypassrls)||bool(role.rolcreaterole)||bool(role.rolcreatedb)||canLogin||inherits||!residualSafe||incomingMemberships!==0){

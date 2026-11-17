@@ -18,9 +18,11 @@ test('absent legacy role passes the least-privilege preflight (068 semantics)', 
   });
 });
 
-test('absent legacy role is not repaired or recreated', () => {
-  assert.notStrictEqual(validateAppRolePreflight({ role_exists: false }, true).status,
-    'PASS_WITH_ABSENT_LEGACY_ROLE');
+test('contradictory absence + escalation still fails closed', () => {
+  assert.throws(() => validateAppRolePreflight({ role_exists: false, rolcanlogin: true }, false),
+    /MIGRATION_APP_ROLE_NOT_LEAST_PRIVILEGED/);
+  assert.throws(() => validateAppRolePreflight({ role_exists: false, rolbypassrls: true }, false),
+    /MIGRATION_APP_ROLE_NOT_LEAST_PRIVILEGED/);
 });
 
 test('fully locked role passes', () => {
