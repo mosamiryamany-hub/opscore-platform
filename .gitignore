@@ -31,3 +31,7 @@ Thumbs.db
 *.swp
 backend/junit.xml
 backend/src/opscore-vercel-release-identity.json
+
+# Python bytecode
+__pycache__/
+*.pyc
