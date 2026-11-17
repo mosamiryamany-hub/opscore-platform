@@ -34,4 +34,8 @@ No `evidenceRebind` / `probesReexecuted=false` on these files.
 1. Neon Launch+ for scheduled primary backups + multi-day PITR (manual snapshot limit on current plan)  
 2. Vercel edge WAF: promote auth rules log → deny/rate-limit after observation  
 3. Buyer residuals: mobile stores, human translation, licensed maps  
-4. Optional: promote current `main` tip to Production after a new deploy-bound evidence cycle  
+4. Optional: promote current `main` tip to Production after a new deploy-bound evidence cycle
+
+## Ops merge note (2026-11-17)
+
+Merged fail-closed Neon maintenance (#213) and guarded migration runner (#212). Production pin and isolation certification unchanged until a deliberate production evidence cycle.
