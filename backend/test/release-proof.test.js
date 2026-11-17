@@ -320,6 +320,18 @@ test('production behavioral evidence must carry the exact release commit hint', 
     fs.writeFileSync(recoveryPath, JSON.stringify(recovery));
     assert.equal(readProductionSessionIsolationEvidence(sessionPath, env).status, 'PASS');
     assert.equal(readProductionRecoveryPointEvidence(recoveryPath, env).status, 'PASS');
+    assert.equal(readProductionSessionIsolationEvidence(sessionPath, {
+      ...env, VERCEL_DEPLOYMENT_ID: 'dpl-other-deployment'
+    }).status, 'NOT_VERIFIED');
+    assert.equal(readProductionRecoveryPointEvidence(recoveryPath, {
+      ...env, VERCEL_DEPLOYMENT_ID: 'dpl-other-deployment'
+    }).status, 'NOT_VERIFIED');
+    assert.equal(readProductionSessionIsolationEvidence(sessionPath, {
+      ...env, OPSC_PRODUCTION_DATABASE_NAME: 'wrong_database'
+    }).status, 'NOT_VERIFIED');
+    assert.equal(readProductionRecoveryPointEvidence(recoveryPath, {
+      ...env, OPSC_PRODUCTION_DATABASE_NAME: 'wrong_database'
+    }).status, 'NOT_VERIFIED');
     fs.writeFileSync(sessionPath, JSON.stringify({ ...session, schemaVersion: 'opscore.production-session-isolation.v1' }));
     fs.writeFileSync(recoveryPath, JSON.stringify({ ...recovery, schemaVersion: 'opscore.production-recovery-point.v1' }));
     assert.equal(readProductionSessionIsolationEvidence(sessionPath, env).status, 'NOT_VERIFIED');
