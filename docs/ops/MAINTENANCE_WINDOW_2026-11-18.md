@@ -53,23 +53,13 @@ path was corrected to call Neon’s dedicated Restore Snapshot API with
 - The restore was not finalized. Production Primary remained the primary/default
   branch and no compute was moved to the restored branch.
 
-The current live branch inventory is **5 active branches (5/10 included)** and
-**3 root branches**. All five are unprotected; the Production Primary is
-unprotected.
+The current live branch inventory was rechecked on 17 November 2026: **2 active branches (2/10 included)** and **2 root branches**. Both active branches are unprotected; the Production Primary remains unprotected.
 
-Root branches:
-- `br-proud-salad-bcshhdap` — Production Primary `main` (unprotected).
-- `br-quiet-poetry-bc3uo0u3` — non-finalizing restore from the current listed manual snapshot (unprotected).
-- `br-wispy-term-bcrqqj84` — prior restore-drill root (unprotected).
+Active branches:
+- `br-proud-salad-bcshhdap` — Production Primary `main` (primary/default, unprotected).
+- `br-quiet-poetry-bc3uo0u3` — non-finalizing restore from the retained manual Primary snapshot (unprotected).
 
-Child branches:
-- `br-divine-fog-bcki2xa4` — ordinary child created by the earlier proof helper; not restore provenance (unprotected).
-- `br-wispy-credit-bckacgvt` — `vercel-dev` child of the prior restore-drill root (unprotected).
-
-The Neon project currently reports plan `free_v3`, with 10 total branch slots;
-five are currently active. One manual Primary snapshot remains listed:
-`snap-floral-sea-bcug7fd3`. The Primary automatic snapshot schedule is empty.
-The project has three root branches and no Primary branch protection.
+The three earlier root branches and two child branches described in the 17 November pre-cleanup inventory are no longer active. The current Neon project reports plan `free_v3` with 10 total branch slots and 2 currently active. One manual Primary snapshot remains listed: `snap-floral-sea-bcug7fd3`. The Primary automatic snapshot schedule is empty. Both currently active branches are unprotected.
 
 A new Primary snapshot request on 17 November was rejected with
 `snapshots limit exceeded`. The existing snapshot was not deleted or replaced.
@@ -273,12 +263,7 @@ until then, the Production migration workflow will fail closed.
 
 ### Current Neon capacity reconciliation
 
-The active inventory after creating the verified restore branch is 5 branches:
-Primary, the older restore-drill root, `vercel-dev`, the earlier invalid
-`br-divine-fog-bcki2xa4` child, and the verified restore branch
-`br-quiet-poetry-bc3uo0u3`. There are 3 root branches. Do not claim the active
-count is 3, and do not delete the older or invalid evidence branches as an
-automatic cleanup step.
+The earlier five-branch inventory in this section is historical. After owner-authorized cleanup, the current live inventory is 2 branches: Production Primary `br-proud-salad-bcshhdap` and the verified non-finalizing restore branch `br-quiet-poetry-bc3uo0u3`. Both are currently unprotected. The retained manual snapshot remains `snap-floral-sea-bcug7fd3`; do not delete or rotate it automatically.
 
 ### Production migration boundary
 
