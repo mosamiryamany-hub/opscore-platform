@@ -9,6 +9,7 @@ const deploy = fs.readFileSync(path.join(root, '.github/workflows/vercel-deploy.
 const postgres = fs.readFileSync(path.join(root, '.github/workflows/digital-twin-postgres-live.yml'), 'utf8');
 
 test('production promotion remains disabled until the staged OIDC probe path is independently reviewed and enabled', () => {
+  assert.match(deploy, /if: false && github\.event_name == 'workflow_dispatch'/);
   assert.match(deploy, /vars\.OPSC_STAGED_PRODUCTION_PROBE_READY == 'true'/);
   assert.match(deploy, /I_AUTHORIZE_PRODUCTION_DEPLOYMENT/);
   assert.match(deploy, /vars\.OPSC_PRODUCTION_AUTODEPLOY_ENABLED == 'true'/);
