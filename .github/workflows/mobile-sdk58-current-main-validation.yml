@@ -139,15 +139,15 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: mobile-sdk58-current-main-evidence-\${{ github.run_id }}
+          name: mobile-sdk58-current-main-evidence-${{ github.run_id }}
           path: |
             mobile/package.json
             mobile/package-lock.json
             mobile/mobile-dependency-audit.json
             mobile/mobile-production-dependency-audit.json
-            \${{ runner.temp }}/expo-doctor.txt
-            \${{ runner.temp }}/export-android.txt
-            \${{ runner.temp }}/export-ios.txt
-            \${{ runner.temp }}/export-web.txt
+            ${{ runner.temp }}/expo-doctor.txt
+            ${{ runner.temp }}/export-android.txt
+            ${{ runner.temp }}/export-ios.txt
+            ${{ runner.temp }}/export-web.txt
           if-no-files-found: warn
           retention-days: 14
