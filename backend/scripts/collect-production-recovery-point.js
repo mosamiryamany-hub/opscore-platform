@@ -103,7 +103,7 @@ async function main() {
       branchCount: branches.length,
       branchLimit: limitRaw,
       verificationScope: 'branch-clone-public-table-count-and-core-tenant-row-counts-only',
-      blockers: [{ code: 'NEON_BRANCH_CAPACITY_EXHAUSTED', detail: branches.length + '/' + limitRaw + '; no existing branch was deleted' }],
+      blockers: [{ code: 'NEON_BRANCH_CAPACITY_EXHAUSTED', detail: branches.length + '/' + limitRaw + '; no existing recovery branch was deleted' }],
       mismatchCount: null,
       sourceCommitHint: commit,
       pipelineId,
