@@ -53,18 +53,30 @@ print("branch_count", len(branches))
 if len(branches) >= 10:
     fail("BRANCH_CAPACITY_FULL")
 
-name = "opscore-primary-restore-proof-" + time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
-payload = {
-    "snapshot_id": SNAPSHOT,
-    "branch": {"name": name},
-    "endpoints": [{"type": "read_write"}],
-}
-code, created = api("POST", "/branches", payload)
-print("create_restore_http", code, json.dumps(created)[:500])
-if code not in (200, 201):
-    fail("RESTORE_BRANCH_CREATE_FAILED", created)
-branch = created.get("branch") or {}
-bid = branch.get("id")
+# Reuse an existing ready restore-proof branch from the same snapshot when present.
+bid = None
+name = None
+code, brs = api("GET", "/branches")
+for b in (brs.get("branches") or []):
+    bname = str(b.get("name") or "")
+    if "primary-restore-proof" in bname and not b.get("primary"):
+        bid = b.get("id")
+        name = bname
+        print("reuse_restore_branch", bid, name)
+        break
+if not bid:
+    name = "opscore-primary-restore-proof-" + time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
+    payload = {
+        "snapshot_id": SNAPSHOT,
+        "branch": {"name": name},
+        "endpoints": [{"type": "read_write"}],
+    }
+    code, created = api("POST", "/branches", payload)
+    print("create_restore_http", code, json.dumps(created)[:500])
+    if code not in (200, 201):
+        fail("RESTORE_BRANCH_CREATE_FAILED", created)
+    branch = created.get("branch") or {}
+    bid = branch.get("id")
 print("restore_branch_id", bid)
 
 for i in range(60):

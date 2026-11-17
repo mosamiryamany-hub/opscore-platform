@@ -22,14 +22,16 @@ jobs:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
           OPSC_PRIMARY_SNAPSHOT_ID: snap-floral-sea-bcug7fd3
         run: python3 scripts/neon_primary_restore_proof.py
-      - name: Commit proof if present
+      - name: Publish proof bytes
         run: |
           set -euo pipefail
-          if [ -f docs/ops/evidence/PRODUCTION_PRIMARY_RESTORE_PROOF.json ]; then
-            git config user.name 'OpsCore Release'
-            git config user.email 'ops@opscore.local'
-            git add docs/ops/evidence/PRODUCTION_PRIMARY_RESTORE_PROOF.json
-            git commit -m "evidence: primary restore proof PASS from snap-floral-sea-bcug7fd3" || echo no_change
-            git push origin HEAD:main || true
-            sha256sum docs/ops/evidence/PRODUCTION_PRIMARY_RESTORE_PROOF.json
-          fi
+          test -f docs/ops/evidence/PRODUCTION_PRIMARY_RESTORE_PROOF.json
+          echo '---PROOF_JSON_BEGIN---'
+          cat docs/ops/evidence/PRODUCTION_PRIMARY_RESTORE_PROOF.json
+          echo '---PROOF_JSON_END---'
+          sha256sum docs/ops/evidence/PRODUCTION_PRIMARY_RESTORE_PROOF.json
+      - name: Upload proof artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-primary-restore-proof
+          path: docs/ops/evidence/PRODUCTION_PRIMARY_RESTORE_PROOF.json
