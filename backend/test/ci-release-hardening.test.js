@@ -71,7 +71,7 @@ test('production Vercel deploy requires explicit main dispatch, waits on mobile 
   assert.match(workflow, /deploy:\s*\n\s+needs: \[verify, postgres-acceptance\]\s*\n(?:\s+#.*\n)*\s+if: false && github\.event_name == 'workflow_dispatch' && github\.ref == 'refs\/heads\/main' && github\.event\.inputs\.confirm_production_deployment == 'I_AUTHORIZE_PRODUCTION_DEPLOYMENT' && vars\.OPSC_PRODUCTION_AUTODEPLOY_ENABLED == 'true' && vars\.OPSC_STAGED_PRODUCTION_PROBE_READY == 'true'/);
   assert.match(workflow, /OPSC_PRODUCTION_AUTODEPLOY_ENABLED == 'true'/);
   assert.match(workflow, /confirm_production_deployment:[\s\S]+I_AUTHORIZE_PRODUCTION_DEPLOYMENT/);
-  assert.match(workflow, /working-directory: mobile\s+run: npm audit --omit=dev --audit-level=high/);
+  assert.match(workflow, /working-directory: mobile\s+run: node scripts\/audit-gate\.js/);
   assert.match(workflow, /node scripts\/write-vercel-release-identity\.js/);
   assert.match(workflow, /Verify Vercel output contains the current release identity/);
   assert.match(workflow, /find \.vercel\/output/);
@@ -113,7 +113,7 @@ test('secure release workflow supports version-bound tags and guarded exact-main
   assert.match(workflow, /npm run contact-center:i18n:forensic/);
   assert.match(workflow, /Generate current mobile dependency audit/);
   assert.match(workflow, /Generate current root dependency audit/);
-  assert.match(workflow, /MOBILE_AUDIT_REPORT_INCOMPLETE/);
+  assert.match(workflow, /node scripts\/audit-gate\.js/);
   assert.match(workflow, /ROOT_AUDIT_REPORT_INCOMPLETE/);
   assert.match(workflow, /node scripts\/write-release-attestation\.js/);
   assert.match(workflow, /actions\/attest@/);
