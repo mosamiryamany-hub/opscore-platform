@@ -202,3 +202,39 @@ These are transitive Expo/Metro/build-tool graph paths. They are not first-party
 ## Release rule
 
 The High audit finding remains unresolved. Required CI checks remain fail-closed. No Production activation, signed mobile release, buyer delivery, or claim of security remediation is authorized by this assessment. Seller-side marketing may proceed only with explicit disclosure that the current mobile dependency audit is unresolved and that the offer is source-code handoff, not a hosted SaaS or certified mobile binary.
+
+## Current-head CI and upstream status addendum — 2026-11-17
+
+The latest complete exact-head check located during this review tested PR #222 head `807dee55f050bc96a4123091f09be1503c10004d`:
+
+| Evidence | Result |
+|---|---|
+| OpsCore CI | Run 44158727347; failed only at the fail-closed mobile dependency audit |
+| Backend runtime `npm audit --omit=dev --audit-level=high` | 0 findings |
+| Mobile full `npm audit` | 25 High, 0 Critical |
+| Mobile `npm audit --omit=dev` | 26 High, 0 Critical |
+| PostgreSQL 18 isolated RLS/HTTP acceptance | Run 44158727249; PASS on the same head; caller-bound matrix 346 route checks; `isolationCertification=NOT_CERTIFIED` |
+| Vercel contract | Run 44158727582; failed at the same mobile audit; deployment jobs skipped |
+
+The audit log traces all mobile High records to the picomatch advisory through the Expo/Metro dependency graph. It does not show 26 separate CVEs. The backend runtime audit passing does not reduce or waive the mobile findings.
+
+### Public advisory position checked on 2026-11-17
+
+- GitHub Advisory Database: [GHSA-fc5q-39xc-vjpf](https://github.com/advisories/GHSA-fc5q-39xc-vjpf), associated with [CVE-2026-112366](https://nvd.nist.gov/vuln/detail/CVE-2026-112366), describes regular-expression denial of service through single-branch repeated extglob patterns and lists affected picomatch versions through 4.0.7. No patched npm release version is identified in the advisory record at this check.
+- NVD still labels the record as awaiting enrichment; its displayed CVSS-B 8.7 score is attributed to VulnCheck rather than an NVD assessment.
+- The upstream maintainer discussion remains visible at [micromatch/picomatch issue #247](https://github.com/micromatch/picomatch/issues/247). A proposed fix or discussion is not an official published release.
+- A separate third-party package, [@ryotsu/picomatch](https://socket.dev/npm/package/@ryotsu/picomatch), advertises a fork of 4.0.7 with a patch. It is not the upstream picomatch release, and this review has not independently validated its source diff, regression corpus, package provenance, API/semantic compatibility, license chain or reproducible build. It is **not approved as a replacement** and must not be used to turn the current CI gate green.
+
+### Disposition
+
+**OPEN / NOT ACCEPTED / RELEASE BLOCKER remains the only evidence-supported disposition.**
+
+Do not:
+- add a `npm overrides` alias to an unreviewed fork;
+- mark the advisory as false positive from the bundle string scan;
+- call the issue dev-only while `npm audit --omit=dev` still reports High;
+- suppress the audit, convert High to warning, or add a VEX/not-affected assertion without a reproducible call-site and build-input reachability argument reviewed by an independent security reviewer;
+- use `npm audit fix --force`, which the exact CI log says would install React Native 0.83.10, breaking the candidate's React Native 0.88.1 line.
+
+The next acceptable closure route is an official upstream patched release or a separately reviewed, provenance-verified patch whose complete dependency graph and regression tests pass on one exact candidate head. Then rerun all required CI and generate the final Secure Release artifact from that exact head. Until then, seller source-release status remains HOLD.
+
