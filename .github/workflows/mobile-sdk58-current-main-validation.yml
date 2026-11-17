@@ -6,7 +6,7 @@ on:
       - fix/mobile-sdk58-current-main-20261117
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: mobile-sdk58-current-main-candidate
@@ -20,7 +20,7 @@ jobs:
       - name: Checkout exact current-main candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          persist-credentials: true
+          persist-credentials: false
 
       - name: Set up Node.js
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -106,20 +106,6 @@ jobs:
             }
           }
           NODE
-
-      - name: Commit regenerated SDK lockfile and audit evidence to candidate branch
-        run: |
-          set -euo pipefail
-          git diff --check
-          git add mobile/package.json mobile/package-lock.json mobile/mobile-dependency-audit.json mobile/mobile-production-dependency-audit.json
-          if git diff --cached --quiet; then
-            echo "NO_REFRESH_CHANGES"
-          else
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git commit -m "fix(mobile): refresh current-main SDK 58 lockfile and audit evidence"
-            git push origin HEAD:fix/mobile-sdk58-current-main-20261117
-          fi
 
       - name: Fail closed for unresolved High or Critical audit findings
         working-directory: mobile
