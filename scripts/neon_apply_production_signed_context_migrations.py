@@ -286,7 +286,14 @@ def invoke_runner(root, env, apply):
     if result.returncode != 0:
         fail(
             "OFFICIAL_PRODUCTION_MIGRATION_RUNNER_FAILED",
-            {"return_code": result.returncode, "stderr_tail": result.stderr[-2000:]},
+            {
+                "return_code": result.returncode,
+                # The official runner reports structured failures as JSON on
+                # stdout and exits non-zero with an empty stderr. Surface stdout
+                # too, otherwise the real cause is discarded.
+                "stdout_tail": result.stdout[-4000:],
+                "stderr_tail": result.stderr[-2000:],
+            },
         )
     try:
         return json.loads(result.stdout)
