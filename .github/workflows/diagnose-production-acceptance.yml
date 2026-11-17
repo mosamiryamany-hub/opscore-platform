@@ -8,29 +8,18 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22.23.4'
       - name: Install
         working-directory: backend
         run: npm ci --ignore-scripts
-      - name: Placeholder bound evidence (diagnostic-only identity)
-        working-directory: backend
-        env:
-          GITHUB_SHA: ${{ github.sha }}
-          GITHUB_RUN_ID: ${{ github.run_id }}
-        run: |
-          set -euo pipefail
-          # Use real bound files from last successful postgres acceptance if present; else skip matrix path by running only DB portion via node snippet
-          mkdir -p docs/verification
-          echo "diagnostic_sha=$GITHUB_SHA"
       - name: Run acceptance against production (read-only) and print failDetail
         working-directory: backend
         env:
           OPSC_PRODUCTION_RUNTIME_URL: ${{ secrets.OPSC_DATABASE_URL }}
           OPSC_OWNER_DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          OPSC_WRITE_EVIDENCE: '1'
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_RUN_ID: ${{ github.run_id }}
         run: |
@@ -46,7 +35,7 @@ jobs:
           node <<'NODE'
           const { Client } = require('pg');
           (async () => {
-            const owner = new Client({ connectionString: process.env.OPSC_OWNER_DATABASE_URL, ssl: { rejectUnauthorized: false } });
+            const owner = new Client({ connectionString: process.env.OPSC_OWNER_DATABASE_URL, ssl: { rejectUnauthorized: true } });
             await owner.connect();
             const info = await owner.query("SELECT current_database() d, current_user u");
             console.log('owner', info.rows[0]);
@@ -77,10 +66,10 @@ jobs:
           NEON_PROJECT_ID: summer-leaf-18448271
         run: |
           set -euo pipefail
-          curl -sS -H "Authorization: Bearer $NEON_API_KEY" -H "Accept: application/json"             "https://console.neon.tech/api/v2/projects/${NEON_PROJECT_ID}/branches" -o branches.json
+          curl --fail --silent --show-error --retry 3 --retry-all-errors -H "Authorization: Bearer $NEON_API_KEY" -H "Accept: application/json"             "https://console.neon.tech/api/v2/projects/${NEON_PROJECT_ID}/branches" -o branches.json
           python3 -c 'import json;d=json.load(open("branches.json"));bs=d.get("branches")or[];print("count",len(bs));
 [print("---\nid",b.get("id"),"\nname",b.get("name"),"\nprimary",b.get("primary"),"\nprotected",b.get("protected"),"\nparent_id",b.get("parent_id"),"\ncreated",b.get("created_at"),"\nlogical_size",b.get("logical_size"),"\nstate",b.get("current_state")) for b in bs]'
-          curl -sS -H "Authorization: Bearer $NEON_API_KEY" -H "Accept: application/json"             "https://console.neon.tech/api/v2/projects/${NEON_PROJECT_ID}/snapshots" -o snaps.json || true
+          curl --fail --silent --show-error --retry 3 --retry-all-errors -H "Authorization: Bearer $NEON_API_KEY" -H "Accept: application/json"             "https://console.neon.tech/api/v2/projects/${NEON_PROJECT_ID}/snapshots" -o snaps.json
           python3 -c 'import json;d=json.load(open("snaps.json"));ss=d.get("snapshots")or[];print("snapshots",len(ss));
 [print("---\nid",s.get("id"),"\nname",s.get("name"),"\nsource",s.get("source_branch_id")or s.get("branch_id"),"\ncreated",s.get("created_at")) for s in ss]'
 
