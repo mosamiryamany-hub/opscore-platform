@@ -61,12 +61,13 @@ No `evidenceRebind` / `probesReexecuted=false` on these historical files.
 
 1. Resolve or formally disposition the mobile picomatch advisory without suppressing the audit or forcing an incompatible SDK downgrade.
 2. Complete the source/data-flow threat review and retain exact-candidate full and production-only audit JSON.
-3. Complete the 67-route signed-session coverage evidence and review the PR #163 security-hardening lineage.
-4. Pass every required CI check on one exact candidate head, including independent review.
-5. Generate one successful exact-head Secure Release package with SHA-256, SBOM, provenance, test reports and forensic i18n evidence.
-6. Reconcile buyer-facing documentation and package manifests to that same release statement and digest.
+3. Pass every required CI check on one exact candidate head, including independent review.
+4. Generate one successful exact-head Secure Release package with SHA-256, SBOM, provenance, test reports and forensic i18n evidence.
+5. Reconcile buyer-facing documentation and package manifests to that same release statement and digest.
 
 ## Separate hosted-service and Production operations
+
+The live 67-route signed-session HTTP acceptance collector/evidence writer is not implemented/available according to the current Production runbook. It remains a Production certification task and is not a source-code-only release gate. Do not claim Production certification until it is implemented and run against the actual authorized Production target.
 
 Neon paid backup/PITR capacity, Vercel commercial hosting, Preview SSO, Production migration, HMAC rotation, WAF enforcement and Production promotion belong to a separate seller-hosted SaaS / operational certification track. They are not prerequisites for a source-code-only commercial release. They must not be claimed as complete without current target-bound evidence, and no Production mutation is authorized by this document.
 
