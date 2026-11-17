@@ -17,6 +17,7 @@ on:
       - '.github/workflows/digital-twin-postgres-live.yml'
       - '.github/workflows/vercel-deploy.yml'
       - '.github/workflows/opscore-secure-release.yml'
+      - '.github/workflows/diagnose-production-acceptance.yml'
       - 'scripts/performance-regression-gate.js'
       - 'scripts/production-runtime-diagnostic.js'
       - 'scripts/production-runtime-diagnostic.test.js'
