@@ -37,10 +37,11 @@ test('recovery evidence declares its row-count-only scope and does not claim PIT
 });
 
 test('release certification requires the exact application database and explicit recovery scope', () => {
-  assert.match(workflow, /recovery\.schemaVersion === 'opscore.production-recovery-point.v3'/);
-  assert.match(workflow, /recovery\.databaseName === 'opscore_acceptance'/);
-  assert.match(workflow, /recovery\.coreTenantTableRowCountsMatch === true/);
-  assert.match(workflow, /branch-clone-public-table-count-and-core-tenant-row-counts-only/);
+  assert.match(releaseProof, /evidence.schemaVersion === 'opscore.production-recovery-point.v3'/);
+  assert.match(releaseProof, /evidence.databaseName === expectedDatabaseName/);
+  assert.match(releaseProof, /evidence.coreTenantTableRowCountsMatch === true/);
+  assert.match(releaseProof, /branch-clone-public-table-count-and-core-tenant-row-counts-only/);
+  assert.match(releaseProof, /deploymentIdBound/);
 });
 
 
