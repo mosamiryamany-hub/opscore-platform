@@ -73,3 +73,8 @@ jobs:
       - name: Mobile dependency audit (documented-risk gate)
         working-directory: mobile
         run: node scripts/audit-gate.js
+
+  required-postgres-acceptance:
+    name: isolated-postgres-rls-and-http-acceptance
+    if: github.event_name == 'pull_request'
+    uses: ./.github/workflows/digital-twin-postgres-live.yml
