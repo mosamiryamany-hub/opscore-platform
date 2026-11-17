@@ -221,7 +221,7 @@ Restore Snapshot API (not the normal branch-creation endpoint).
 | Database identity | `opscore_acceptance` / `neondb_owner` / PostgreSQL 18.7 |
 | Public tables | 135; RLS enabled 134; FORCE RLS 134 |
 | Migration ledger | 62 rows; 068 present; 063–067 and 069 absent |
-| Runtime role | `opscore_runtime`: `rolsuper=false`, `rolbypassrls=false` |
+| Runtime role | `opscore_runtime`: `rolsuper=false`, `rolbypassrls=false`; an actual role-scoped read without tenant context returned 0 organizations |
 | Organization rows | 10 |
 | Schema SHA-256 | `efa1f375d76194fa51a3556a97e641e61685f914d446979da50a551a4333ffd7` |
 | Public table inventory SHA-256 | `fbe28eb39056c46866c88dcd4cd37d8da55ba58b3887f2d5503287dba80a51be` |
