@@ -45,7 +45,7 @@ test('Production key material, restore proof, and 67-route collector are not fal
   assert.doesNotMatch(runbook, /valid, hash-pinned \*\*non-finalizing restore proof\*\* exists/i);
 });
 
-test('Production migration and rotation remain manual, approval-gated, and traffic-neutral', () => {
+test('Production migration and rotation remain manual, confirmation-gated, and traffic-neutral', () => {
   assert.match(migrationWorkflow, /workflow_dispatch:/);
   assert.match(migrationWorkflow, /APPLY_PRODUCTION_SIGNED_CONTEXT_MIGRATIONS/);
   assert.match(migrationWorkflow, /environment:\s*\n\s+name: production/);
