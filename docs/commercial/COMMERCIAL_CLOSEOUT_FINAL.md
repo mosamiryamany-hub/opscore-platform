@@ -7,20 +7,22 @@
 **Updated:** 2026-11-17  
 **Current `main`:** `6adea6fa209e394b464c4272db1860422d608afb`  
 **Current candidate branch:** PR #222, branch `fix/mobile-sdk58-current-main-20261117`.  
-**Candidate status:** Draft / not merged / not a qualified release. The latest full workflow evidence below is from tested candidate code head `5afd48c85b04bb4f7a6a5d73ce3ad7fdd8331371`. This run validates the current app source, manifests, lockfiles and seller/buyer documentation on that exact head.
+**Candidate status:** Draft / not merged / not a qualified release. The latest complete workflow evidence below tested candidate head `7b88f8fc18ec07bad09928038f9c1fe8176526a1`. The subsequent update to this report is documentation-only; the application source, manifests and mobile lockfiles remain the same tested candidate.
 
 ## 1. Current exact-head evidence
 
 | Gate | Exact-head result | Interpretation |
 |---|---|---|
-| OpsCore CI | [Run 44167258493](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44167258493) — failed at Mobile dependency audit | Backend release regression suite: 810 tests, 807 passed, 0 failed, 3 skipped; backend runtime audit: 0 vulnerabilities |
-| Mobile dependency audit in OpsCore CI | 25 High, 0 Critical | Fail-closed release gate |
-| PostgreSQL 18 isolated RLS/HTTP acceptance | [Run 44167258471](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44167258471) — PASS on this exact head | Caller-bound tenant matrix: 346 route checks; logical restore: 137 tables; report remains `isolationCertification=NOT_CERTIFIED` |
-| Vercel contract verification | [Run 44167258499](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44167258499) — failed at Mobile dependency audit | Vercel workflow reported 26 High, 0 Critical on the same head; deploy-bound PostgreSQL and deploy jobs were skipped. No Production deployment occurred |
+| OpsCore CI | [Run 44168632307](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44168632307) — failed only at Mobile dependency audit | Backend release regression suite: 810 tests, 807 passed, 0 failed, 3 skipped; backend runtime audit: 0 vulnerabilities |
+| Mobile full audit | 25 High, 0 Critical | Dedicated exact-candidate JSON `mobile-dependency-audit.json`; fail-closed audit gate remains active |
+| Mobile production audit (`--omit=dev`) | 26 High, 0 Critical | Dedicated exact-candidate JSON `mobile-production-dependency-audit.json`; required CI audit step fails |
+| Expo SDK58 candidate validation | [Run 44168624849](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44168624849) — fail-closed at unresolved High gate | Expo 58.0.26 / React 19.3.0 / React Native 0.88.1; Android, iOS and Web exports PASS; known picomatch signatures absent from exported bundles; full/production audit JSONs 25/26 High |
+| PostgreSQL 18 isolated RLS/HTTP acceptance | [Run 44168632188](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44168632188) — PASS on this exact head | Caller-bound tenant matrix: 346 route checks; logical restore: 137 tables; report remains `isolationCertification=NOT_CERTIFIED` |
+| Vercel contract verification | [Run 44168632421](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44168632421) — failed only at Mobile dependency audit | 26 High / 0 Critical in the required mobile production audit; deploy-bound PostgreSQL and deploy jobs were skipped. No Production deployment occurred |
 
-The two workflows report a 25-versus-26 High-row variance on the same head. Both trace the records to the picomatch dependency paths associated with the same advisory; this is not evidence of 25 or 26 independent CVEs. Preserve and reconcile the exact audit JSONs before any release.
+The counts are reconciled by the two separate JSON reports: 25 High in the full dependency graph and 26 High in the production-only (`--omit=dev`) graph. These are audit package/path records linked to the same picomatch advisory, not 25 or 26 independent CVEs. The enforced production audit gate returns 26 High and fails.
 
-The mobile build/export evidence is from the earlier candidate validation: run 44157820028 on `d59819b94c5953e17413b4f9cbf1ef1172145e90` recorded Expo Doctor 20/20 and Android, iOS and Web exports as PASS. A Git comparison from the earlier export-tested head `d59819b94c5953e17413b4f9cbf1ef1172145e90` through tested head `5afd48c85b04bb4f7a6a5d73ce3ad7fdd8331371` shows that later commits touched seller/buyer documentation and the advisory review only; the mobile application source, `package.json`, and `package-lock.json` did not change. That build evidence therefore relates to the same mobile source/lockfile, but it does **not** resolve the audit finding.
+The current candidate validation run 44168624849 resolved Expo 58.0.26, React 19.3.0, React Native 0.88.1 and the matching Expo SDK58 modules; it completed Android, iOS and Web JavaScript exports and did not find the known picomatch signatures in those exported client bundles. The full and production-only audit JSONs still report 25 and 26 High respectively. Bundle string scans do not prove that the vulnerable tooling code is unreachable in all Expo/Metro/package workflows, so these successful exports do **not** resolve the dependency audit finding.
 
 The current audit still flags transitive `picomatch@4.0.7` and `picomatch@2.3.2` through the Expo/Metro dependency graph under GHSA-fc5q-39xc-vjpf / CVE-2026-112366. The advisory remains unresolved for this candidate. No audit suppression, unreviewed patch, forced major downgrade, or risk waiver was applied. `npm audit fix --force` proposes installing React Native 0.83.10, a breaking change from the candidate's 0.88.1 line; that option was rejected. The backend audit passing and successful JavaScript exports do not establish mobile supply-chain security. The High rows are repeated dependency-path audit findings around the advisory, not 26 independently confirmed CVEs.
 
@@ -49,4 +51,4 @@ The isolated PostgreSQL route matrix is not the missing live Production 67-route
 
 ## 5. Historical evidence boundary
 
-Older Production pins, package digests and Secure Release artifacts are historical records only. They must not be reused as identity or proof for `5afd48c85b04bb4f7a6a5d73ce3ad7fdd8331371` or a later source head. A current handover identity exists only when a successful Secure Release run creates the ZIP and its matching external release statement for the exact source commit.
+Older Production pins, package digests and Secure Release artifacts are historical records only. They must not be reused as identity or proof for `7b88f8fc18ec07bad09928038f9c1fe8176526a1` or a later source head. A current handover identity exists only when a successful Secure Release run creates the ZIP and its matching external release statement for the exact source commit.
