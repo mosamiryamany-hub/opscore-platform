@@ -8,6 +8,18 @@ function isPreview(env = process.env) {
   return String(env.VERCEL_ENV || '') === 'preview';
 }
 
+// Production signed tenant context is deliberately a second, independent gate.
+// A Production environment switch is insufficient: the deployment's immutable
+// release proof must already certify the exact 67-route Production evidence,
+// and the global traffic hold must be explicitly open.
+function isSignedContextEnvironment(env = process.env, readiness = {}) {
+  if (isPreview(env)) return true;
+  return String(env.VERCEL_ENV || '') === 'production'
+    && enabled(env.OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED)
+    && String(env.OPSC_PRODUCTION_HOLD || '').trim().toLowerCase() === 'false'
+    && readiness.productionReleaseVerified === true;
+}
+
 const OPERATIONAL_SIGNED_READ_ROUTES = [
   ['GET', /^\/api\/v1\/customers$/],
   ['GET', /^\/api\/v1\/sites$/],
@@ -59,31 +71,31 @@ function routeAllowed(req, routes) {
   return routes.some(([expectedMethod, pattern]) => method === expectedMethod && pattern.test(pathname));
 }
 
-function signedOperationalReadEnabled(req, env = process.env) {
-  return isPreview(env)
+function signedOperationalReadEnabled(req, env = process.env, readiness = {}) {
+  return isSignedContextEnvironment(env, readiness)
     && enabled(env.OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_READ_ENABLED)
     && routeAllowed(req, OPERATIONAL_SIGNED_READ_ROUTES);
 }
 
-function signedOperationalWriteEnabled(req, env = process.env) {
-  return isPreview(env)
+function signedOperationalWriteEnabled(req, env = process.env, readiness = {}) {
+  return isSignedContextEnvironment(env, readiness)
     && enabled(env.OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_WRITE_ENABLED)
     && routeAllowed(req, OPERATIONAL_SIGNED_WRITE_ROUTES);
 }
 
-function signedWorkOrdersReadEnabled(req, env = process.env) {
+function signedWorkOrdersReadEnabled(req, env = process.env, readiness = {}) {
   const pathname = String(req && req.url || '').split('?')[0];
   const supportedReadPath = pathname === '/api/v1/work-orders'
     || /^\/api\/v1\/work-orders\/[^/]+$/.test(pathname)
     || /^\/api\/v1\/work-orders\/[^/]+\/(?:completion-package|timeline|handoff|operational-risk|comments|attachments|dispatch-candidates|parts|signoffs|why-blocked|changelog|verified-job-record|work-pack|completion-assurance|time-summary|first-time-right)$/.test(pathname);
-  const workOrderRead = isPreview(env)
+  const workOrderRead = isSignedContextEnvironment(env, readiness)
     && enabled(env.OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_ENABLED)
     && String(req && req.method || '').toUpperCase() === 'GET'
     && supportedReadPath;
-  return workOrderRead || signedOperationalReadEnabled(req, env);
+  return workOrderRead || signedOperationalReadEnabled(req, env, readiness);
 }
 
-function signedWorkOrdersWriteEnabled(req, env = process.env) {
+function signedWorkOrdersWriteEnabled(req, env = process.env, readiness = {}) {
   const pathname = String(req && req.url || '').split('?')[0];
   const method = String(req && req.method || '').toUpperCase();
   const workOrderIdPath = /^\/api\/v1\/work-orders\/[^/]+$/;
@@ -98,41 +110,45 @@ function signedWorkOrdersWriteEnabled(req, env = process.env) {
     || (method === 'PUT' && /^\/api\/v1\/evidence-uploads\/[^/]+\/chunks\/\d+$/.test(pathname))
     || (method === 'POST' && /^\/api\/v1\/evidence-uploads\/[^/]+\/complete$/.test(pathname))
     || (method === 'POST' && /^\/api\/v1\/work-orders\/[^/]+\/attachments$/.test(pathname));
-  const workOrderWrite = isPreview(env)
+  const workOrderWrite = isSignedContextEnvironment(env, readiness)
     && enabled(env.OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_WRITE_ENABLED)
     && supportedWritePath;
-  return workOrderWrite || signedOperationalWriteEnabled(req, env);
+  return workOrderWrite || signedOperationalWriteEnabled(req, env, readiness);
 }
 
-function signedWorkOrdersContextEnabled(req, env = process.env) {
-  return signedWorkOrdersReadEnabled(req, env) || signedWorkOrdersWriteEnabled(req, env);
+function signedWorkOrdersContextEnabled(req, env = process.env, readiness = {}) {
+  return signedWorkOrdersReadEnabled(req, env, readiness)
+    || signedWorkOrdersWriteEnabled(req, env, readiness);
 }
 
-function signedAssetsReadEnabled(req, env = process.env) {
+function signedAssetsReadEnabled(req, env = process.env, readiness = {}) {
   const pathname = String(req && req.url || '').split('?')[0];
-  return isPreview(env)
+  return isSignedContextEnvironment(env, readiness)
     && enabled(env.OPSC_SIGNED_TENANT_CONTEXT_ASSETS_READ_ENABLED)
     && String(req && req.method || '').toUpperCase() === 'GET'
     && pathname === '/api/v1/assets';
 }
 
-function signedSessionAutobindEnabled(env = process.env) {
-  return isPreview(env) && enabled(env.OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED);
+function signedSessionAutobindEnabled(env = process.env, readiness = {}) {
+  return isSignedContextEnvironment(env, readiness)
+    && enabled(env.OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED);
 }
 
 function signedTenantContextRequired(env = process.env) {
   return enabled(env.OPSC_REQUIRE_SIGNED_TENANT_CONTEXT);
 }
 
-function signedContextRequested(req, env = process.env) {
-  return signedSessionAutobindEnabled(env) || signedWorkOrdersContextEnabled(req, env) || signedAssetsReadEnabled(req, env);
+function signedContextRequested(req, env = process.env, readiness = {}) {
+  return signedSessionAutobindEnabled(env, readiness)
+    || signedWorkOrdersContextEnabled(req, env, readiness)
+    || signedAssetsReadEnabled(req, env, readiness);
 }
 
 // The worker rejects unsigned field-mode setSession calls when the hard cutover
 // flag is enabled. Detect unsupported routes before trying that legacy bind so
 // the HTTP layer can fail closed with an explicit route/configuration error.
-function signedTenantContextRouteError(req, env = process.env) {
-  return signedTenantContextRequired(env) && !signedContextRequested(req, env)
+function signedTenantContextRouteError(req, env = process.env, readiness = {}) {
+  return signedTenantContextRequired(env) && !signedContextRequested(req, env, readiness)
     ? 'SIGNED_TENANT_CONTEXT_ROUTE_NOT_ENABLED'
     : null;
 }
@@ -145,7 +161,7 @@ function isSignedTenantContextRouteDefinition(method, route, operation) {
       || inventoryPath.includes('?')) return false;
 
   // Convert API_INVENTORY's parameter templates into concrete representative
-  // paths, then ask the same Preview-only policy functions used by the server.
+  // paths, then ask the same Preview policy functions used by the server.
   // This prevents a self-consistent but unsupported manifest from certifying
   // routes that never enter the signed transaction wrappers.
   const concretePath = inventoryPath
@@ -171,6 +187,7 @@ function isSignedTenantContextRouteDefinition(method, route, operation) {
 
 module.exports = {
   isPreview,
+  isSignedContextEnvironment,
   signedWorkOrdersReadEnabled,
   signedWorkOrdersWriteEnabled,
   signedWorkOrdersContextEnabled,
