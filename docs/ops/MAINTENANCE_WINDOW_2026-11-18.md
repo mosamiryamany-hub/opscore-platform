@@ -80,7 +80,7 @@ The server caches this readiness result for the lifetime of the deployment. Miss
 
 Workflow: `.github/workflows/rotate-production-tenant-hmac.yml`
 
-- Manual `workflow_dispatch` only, with the exact confirmation `ROTATE_PRODUCTION_TENANT_HMAC` and the protected GitHub `production` Environment.
+- Manual `workflow_dispatch` only from reviewed `main`, with the exact confirmation `ROTATE_PRODUCTION_TENANT_HMAC` and the protected GitHub `production` Environment. The workflow is not time-scheduled; the operator must dispatch it only inside the approved 02:00–04:00 Cairo window.
 - Verifies the exact Neon project/Primary/database/owner role and a direct non-pooler connection. It fails if migration 063 has not created `opscore_security.context_hmac_keys`.
 - Generates a new 256-bit HMAC key, inserts it into the Primary key table, and syncs only the three Production HMAC variables in Vercel. It does not create or modify Preview/Development values.
 - Old database key rows are intentionally left enabled and their expiry is not shortened. The workflow does not deploy, enable signed routes, change `OPSC_REQUIRE_SIGNED_TENANT_CONTEXT`, set `OPSC_PRODUCTION_HOLD`, or change `OPSC_RELEASE_VERIFIED`.
