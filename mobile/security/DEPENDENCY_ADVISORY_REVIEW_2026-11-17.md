@@ -78,6 +78,24 @@ Evidence artifact: `mobile-sdk58-current-main-evidence-44156497177`, artifact ID
 
 This exact-head run supersedes the 44152872774 count split for current reporting. The audit now reports 25 High in both modes; this one-count change is not evidence of a fix. The same GHSA remains attached to picomatch in the installed Expo/Metro dependency tree, and no fixed upstream npm release is published as of this check. Expo Doctor and exports passing do not override the unresolved advisory or the fail-closed result.
 
+## Latest rerun after commercial-doc updates — 2026-11-17 19:19Z
+
+GitHub Actions run **44157086377** tested PR #222 candidate head `8f2cd2f8a43925f33fc4bc1bfbd8bde17c6b384f`.
+
+| Check | Result |
+|---|---|
+| SDK58 alignment and mobile source verification | PASS |
+| Expo Doctor | 20/20 |
+| Android / iOS / Web exports | PASS |
+| Scanned picomatch signatures in client bundles | Not found in all three |
+| Full mobile `npm audit --json` | **26 High, 0 Critical** |
+| Mobile `npm audit --omit=dev --json` | **25 High, 0 Critical** |
+| Fail-closed High/Critical release condition | **FAIL — correctly blocks release** |
+
+Artifact: `mobile-sdk58-current-main-evidence-44157086377`, artifact ID `14361941285`, SHA-256 `32fe23c57c3eb51f50cd98c540dfaa5c81b1eb0883715589423bd159f443b77d`.
+
+The preceding exact-head run 44156497177, on the same mobile manifest/lockfile, returned 25 High in both audit modes. The latest run returned 26/25. This is a one-record audit-result variation with no dependency change and must not be interpreted as a fix or reduced risk. Use the latest 26/25 result for current buyer-facing disclosure. The GHSA remains present and the fail-closed gate remains active.
+
 ## Current authoritative and disputed public evidence
 
 ### GitHub / NVD
