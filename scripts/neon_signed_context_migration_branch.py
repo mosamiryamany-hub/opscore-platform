@@ -66,10 +66,35 @@ def fail(code, detail=None):
     sys.exit(1)
 
 
-status, payload = api("GET", "/branches")
-if status != 200:
-    fail("NEON_BRANCH_LIST_FAILED", payload)
-branches = payload.get("branches") or []
+def list_all_branches():
+    """Read every active branch page; never decide capacity from one page."""
+    result = []
+    cursor = None
+    seen_cursors = set()
+    for page_number in range(100):
+        query = {"limit": 100}
+        if cursor:
+            query["cursor"] = cursor
+        status, page = api("GET", "/branches", query=query)
+        if status != 200:
+            fail("NEON_BRANCH_LIST_FAILED", {"http_status": status, "page": page_number + 1, "detail": page})
+        rows = page.get("branches") or []
+        if not isinstance(rows, list):
+            fail("NEON_BRANCH_LIST_RESPONSE_INVALID", {"page": page_number + 1})
+        result.extend(rows)
+        pagination = page.get("pagination") or {}
+        next_cursor = pagination.get("next")
+        if not next_cursor:
+            return result
+        next_cursor = str(next_cursor)
+        if next_cursor in seen_cursors:
+            fail("NEON_BRANCH_PAGINATION_CURSOR_REPEATED", {"page": page_number + 1})
+        seen_cursors.add(next_cursor)
+        cursor = next_cursor
+    fail("NEON_BRANCH_PAGINATION_PAGE_LIMIT_EXCEEDED", {"page_limit": 100})
+
+
+branches = list_all_branches()
 print("active_branch_count", len(branches))
 print("active_branch_limit", 10)
 if len(branches) >= 10:
