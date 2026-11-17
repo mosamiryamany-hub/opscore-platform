@@ -94,6 +94,9 @@ def list_all_branches():
     fail("NEON_BRANCH_PAGINATION_PAGE_LIMIT_EXCEEDED", {"page_limit": 100})
 
 
+if os.environ.get("GITHUB_EVENT_NAME") != "workflow_dispatch" or os.environ.get("GITHUB_REF") != "refs/heads/main":
+    fail("MIGRATION_BRANCH_WORKFLOW_MAIN_MANUAL_DISPATCH_REQUIRED")
+
 branches = list_all_branches()
 print("active_branch_count", len(branches))
 print("active_branch_limit", 10)
