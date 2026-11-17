@@ -429,8 +429,14 @@ test('locked legacy opscore_app is accepted only with no login, no inheritance a
     () => validateAppRolePreflight({ ...role, memberships: ['neon_superuser', 'unrelated_role'] }, false),
     /MIGRATION_APP_ROLE_NOT_LEAST_PRIVILEGED/
   );
+  assert.deepEqual(validateAppRolePreflight({ ...role, role_exists: false }, false), {
+    status: 'PASS_WITH_ABSENT_LEGACY_ROLE',
+    repairPending: false,
+    roleExists: false,
+    note: 'OPSC_LEGACY_APP_ROLE_ABSENT_TREATED_AS_LOCKED'
+  });
   assert.throws(
-    () => validateAppRolePreflight({ ...role, role_exists: false }, false),
+    () => validateAppRolePreflight({ ...role, role_exists: false, rolcanlogin: true }, false),
     /MIGRATION_APP_ROLE_NOT_LEAST_PRIVILEGED/
   );
 });
