@@ -24,7 +24,7 @@ concurrency:
 
 jobs:
   rotate:
-    if: ${{ github.event.inputs.confirm == 'ROTATE_PRODUCTION_TENANT_HMAC' }}
+    if: ${{ github.ref == 'refs/heads/main' && github.event.inputs.confirm == 'ROTATE_PRODUCTION_TENANT_HMAC' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     environment:
@@ -43,6 +43,7 @@ jobs:
           KEY_TTL_DAYS: ${{ inputs.key_ttl_days }}
         run: |
           set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
           test -n "${NEON_API_KEY:-}" || { echo "NEON_API_KEY_MISSING"; exit 1; }
           test -n "${VERCEL_TOKEN:-}" || { echo "VERCEL_TOKEN_MISSING"; exit 1; }
           test "$VERCEL_PROJECT_ID" = "prj_8jMqBt0l6OALicWSwQ3ECQTn8yPe" || { echo "UNAPPROVED_VERCEL_PROJECT"; exit 1; }
