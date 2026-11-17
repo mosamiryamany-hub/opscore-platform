@@ -2,6 +2,14 @@
 
 **Technical classification (seller-reference, git-stored evidence):** `NOT_VERIFIED` — repository copies of `PRODUCTION_SESSION_ISOLATION.json` / `PRODUCTION_RECOVERY_POINT.json` that still carry `evidenceRebind` with `probesReexecuted=false` must not be cited as certification of the live tip.
 
+
+## Dual-layer evidence (resolved)
+
+- **Git-stored** `PRODUCTION_SESSION_ISOLATION.json` / `PRODUCTION_RECOVERY_POINT.json`: **NOT_VERIFIED** (rebind / probes not re-executed). Do not cite as current certification.
+- **Runtime** `GET /api/verify/release` on the deployed Vercel production deployment: authoritative for that deployed sourceCommit only. Env flags on Production must match that runtime embed, not git tip of main.
+- **67-route signed matrix**: proven in isolated PostgreSQL CI scope; not a full live Production HTTP matrix.
+- **Neon backups**: Free-tier history is short; scheduled primary backups require paid plan. See `docs/ops/NEON_BACKUP_AND_RECOVERY_TRUTH.md`.
+
 **Seller offer status:** **OPEN FOR MARKETING AND COMMERCIAL NEGOTIATION.** A named buyer or buyer-signed License Schedule is not a prerequisite to prepare, publish, present, or negotiate the offer. No buyer commitment is implied.
 
 **License grant status:** **NO LICENSE GRANT** by default. All rights remain reserved by the rights holder until a transaction-specific License Schedule is executed by both the rights holder and the named buyer and pins the exact deliverable (source commit and/or package digest). The schedule is a per-transaction closing document, not a seller launch/marketing gate. No list prices are stored in-repo; commercial terms are negotiated per buyer.

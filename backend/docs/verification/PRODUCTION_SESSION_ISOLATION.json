@@ -1,6 +1,6 @@
 {
   "schemaVersion": "opscore.production-session-isolation.v1",
-  "status": "PASS",
+  "status": "NOT_VERIFIED",
   "environment": "production",
   "httpBase": "https://opscore-platform.vercel.app",
   "testedAt": "2026-11-14T10:26:35.745Z",
@@ -258,7 +258,7 @@
     "usersDisabled": true,
     "organizationsClosed": true
   },
-  "note": "Real dual-tenant HTTP sessions on production Control Plane. Cross-tenant reads/writes returned 404/401. Fixture users disabled and orgs closed after probe. Rebound to deploy candidate ae78403593e3f58dce32536a20de3de0e506ddb7 after production acceptance PASS on the same production database tip (schema ledger through 062; signed-context migrations remain staged Preview-only). Prior sourceCommitHint was 59c8f60a961db8a5f16bd2cf923bc9f327839278. Dual-tenant HTTP probes and recovery branch comparison were not re-executed in this rebind; status remains PASS only because prior production-scope checks were PASS and the intervening main commits do not alter tenant isolation routes.",
+  "note": "NOT_VERIFIED in repository. Do not cite this file as certification of any commit after the original probe window without probesReexecuted=true on that exact commit.",
   "sourceCommitHint": "ae78403593e3f58dce32536a20de3de0e506ddb7",
   "evidenceClass": "PRODUCTION_HTTP_DUAL_TENANT_SESSION",
   "evidenceRebind": {
@@ -266,5 +266,11 @@
     "fromCommit": "59c8f60a961db8a5f16bd2cf923bc9f327839278",
     "toCommit": "ae78403593e3f58dce32536a20de3de0e506ddb7",
     "probesReexecuted": false
+  },
+  "invalidation": {
+    "reason": "evidenceRebind_with_probesReexecuted_false",
+    "detail": "Git-stored copy cannot certify the live tip. Runtime embed from deploy pipeline remains authoritative for the deployed commit only.",
+    "invalidatedAt": "2026-11-17T00:58:27.900Z",
+    "liveAuthority": "GET /api/verify/release on the production deployment"
   }
 }
