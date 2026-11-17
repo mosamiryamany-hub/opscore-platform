@@ -280,7 +280,7 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
   let note = 'Catalog metadata is not a full behavioral certification of every application path.';
   if (identityPlaneHardened && catalogAcceptable) {
     status = 'IDENTITY_PLANE_RLS_ENFORCED';
-    note = 'Every public application table except the read-only PostGIS spatial_ref_sys catalog has FORCE RLS. The schema_migrations ledger is owner-only. Control-plane tables have explicit least-privilege runtime grants independent of provider default ACLs. This catalog-only endpoint does not certify production tenant isolation; authenticated path-by-path and cross-tenant behavioral evidence must be evaluated by the independent release-proof gate.';
+    note = 'Every public application table except the read-only PostGIS spatial_ref_sys catalog has FORCE RLS. The schema_migrations ledger is owner-only. Control-plane tables have explicit least-privilege runtime grants independent of provider default ACLs. This catalog-only endpoint does not certify production tenant isolation; authenticated path-by-path and cross-tenant behavioral tests must be evaluated by the independent release-proof gate before production isolation certification.';
   } else if (identityPlaneHardened) {
     status = 'REVIEW_REQUIRED';
     note = 'Identity-plane RLS checks passed, but catalog evidence is incomplete or a non-PostGIS relation without RLS or FORCE RLS, migration-ledger boundary, PostGIS write privilege, runtime-role privilege, control-plane tenant-boundary policy, or runtime system-table policy/grant still requires review.';
