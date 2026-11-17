@@ -4,11 +4,11 @@
 >
 > A buyer is **not required** to complete engineering, create a release package, publish the offer, or begin negotiations. Buyer identification, transaction negotiation, signature, payment and the transaction-specific License Schedule are post-sale steps, not seller release gates.
 >
-> Current `main` is `6adea6fa209e394b464c4272db1860422d608afb`. Draft PR #222 is based on that main and has advanced Expo SDK 58 to 58.0.26. On the latest checked PR head `522205a4d73ccacb2563aeb58ec31fdd9d0671b1`, the PostgreSQL 18 isolated RLS/HTTP acceptance passed. OpsCore CI and Vercel contract verification failed only at the mobile dependency audit: 26 High findings in the full mobile tree and 25 High findings with `--omit=dev`, associated with GHSA-fc5q-39xc-vjpf / CVE-2026-112366 through transitive picomatch dependencies. No audit suppression or forced downgrade was applied. The Vercel deploy job was skipped. PR #222 remains a draft and is not a release.
+> Current `main` is `6adea6fa209e394b464c4272db1860422d608afb`. Draft PR #222 is based on that main and has advanced Expo SDK 58 to 58.0.26. On the latest fully checked PR head `8f2cd2f8a43925f33fc4bc1bfbd8bde17c6b384f`, the PostgreSQL 18 isolated RLS/HTTP acceptance passed and the backend regression suite recorded 806 passed, 0 failed, 3 skipped. OpsCore CI failed only at the mobile dependency audit. The latest audit run 44157086377 reported 26 High findings in the full mobile tree and 25 High with `--omit=dev`, associated with GHSA-fc5q-39xc-vjpf / CVE-2026-112366 through transitive picomatch dependencies. Expo Doctor passed 20/20 and Android/iOS/Web exports passed, but the fail-closed audit condition failed. No audit suppression or forced downgrade was applied. The Vercel contract run for the preceding tested head also stopped at the same mobile audit; no deployment occurred. PR #222 remains a draft and is not a release.
 >
 > The older Production proof below is historical evidence bound to its earlier commit/deployment. It does not certify current main or the SDK58 candidate. Do not use its package digest as a current deliverable fingerprint.
 
-**Updated:** 2026-11-17T19:10Z UTC  
+**Updated:** 2026-11-17 — latest evidence through run 44157086377  
 **Current main:** `6adea6fa209e394b464c4272db1860422d608afb`  
 **Latest candidate head with exact SDK58 audit evidence:** `8f2cd2f8a43925f33fc4bc1bfbd8bde17c6b384f`  
 **Historical Production pin:** `4017497068defa9c1d0761fcb07bc746925e002a`
