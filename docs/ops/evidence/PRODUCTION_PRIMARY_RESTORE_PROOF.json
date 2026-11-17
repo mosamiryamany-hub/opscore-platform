@@ -29,6 +29,7 @@
       "ownerRoleBypassRls": true,
       "runtimeRoleBypassRls": false,
       "runtimeRoleSuperuser": false,
+      "organizationsVisibleWithoutTenantContext": 0,
       "status": "PASS"
     },
     "schema_catalog_read": {
