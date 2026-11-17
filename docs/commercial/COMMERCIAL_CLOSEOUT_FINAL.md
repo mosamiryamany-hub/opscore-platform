@@ -2,7 +2,7 @@
 
 > **Decision: SELLER SOURCE-RELEASE HOLD. This is not a buyer-acquisition hold.**
 >
-> A named buyer, buyer signature, payment, buyer-specific legal review or transaction License Schedule is **not** required to complete seller engineering, prepare a release package, publish or list the offer, present the product, or negotiate. The buyer-specific Schedule is required only at transaction close, before granting the named buyer licensed rights or making the licensed delivery.
+> A named buyer, buyer signature, payment, buyer-specific legal review or transaction License Schedule is **not** required to complete seller engineering, prepare a release package, publish or list the offer, present the product, or negotiate. **No prospective buyer or buyer signature is needed to complete the product.** The buyer-specific Schedule is required only at transaction close, before granting the named buyer licensed rights or making the licensed delivery. **No license grant is made to a buyer until** the rights holder and named buyer execute the License Schedule pinned to the exact released source commit and package digest.
 
 **Updated:** 2026-11-17  
 **Current `main`:** `6adea6fa209e394b464c4272db1860422d608afb`  
