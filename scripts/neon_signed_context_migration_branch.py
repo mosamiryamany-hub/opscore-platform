@@ -77,6 +77,24 @@ else:
     print("BRANCH_NOT_READY")
     sys.exit(1)
 
+# Ensure compute endpoint exists on the branch
+code, ends = api("GET", f"/branches/{bid}/endpoints")
+eps = ends.get("endpoints") or []
+print("endpoints_before", len(eps), json.dumps(ends)[:300])
+if not eps:
+    code, ep = api("POST", "/endpoints", {"endpoint": {"branch_id": bid, "type": "read_write"}})
+    print("create_endpoint_http", code, json.dumps(ep)[:400])
+    if code not in (200, 201):
+        sys.exit(1)
+    for i in range(30):
+        time.sleep(2)
+        code, ends = api("GET", f"/branches/{bid}/endpoints")
+        eps = ends.get("endpoints") or []
+        st = (eps[0].get("current_state") if eps else None) or (eps[0].get("state") if eps else None)
+        print("endpoint_state", st)
+        if st in ("active", "idle", "ready"):
+            break
+
 # Prefer official connection_uri endpoint
 uri = ""
 for attempt in range(15):
