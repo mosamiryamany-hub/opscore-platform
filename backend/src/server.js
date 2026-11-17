@@ -18,9 +18,22 @@ const {
   signedContextRequested: isSignedContextRequested
 } = require('./signed-tenant-context-policy');
 const { createDeploymentProof } = require('./deployment-proof');
-const { createPublicReleaseProof, readEmbeddedBuildIdentity } = require('./release-proof');
+const { createPublicReleaseProof, readEmbeddedBuildIdentity, hasVerifiedProductionRelease } = require('./release-proof');
 const { readDatabaseSecurityProof } = require('./database-security-proof');
 const { isHttpBootstrapAllowed } = require('./bootstrap-policy');
+
+function resolveSignedContextProductionReadiness(env = process.env) {
+  if (String(env.VERCEL_ENV || '').trim().toLowerCase() !== 'production') {
+    return Object.freeze({ productionReleaseVerified: false });
+  }
+  try {
+    return Object.freeze({ productionReleaseVerified: hasVerifiedProductionRelease(env) === true });
+  } catch (_) {
+    return Object.freeze({ productionReleaseVerified: false });
+  }
+}
+const signedContextProductionReadiness = resolveSignedContextProductionReadiness(process.env);
+
 
 // Commercial runtime: single engine. DATABASE_ENGINE=postgres → Store runs on Neon via sync helper.
 const opened = openDatabase(config);
@@ -1030,7 +1043,7 @@ function runSignedWorkOrdersRead(res, c, reader, responseHeaders = {}) {
   }
 }
 function sendWorkOrderRead(req, res, c, reader, responseHeaders = {}) {
-  if (!signedWorkOrdersReadEnabled(req)) return json(res, 200, reader(), responseHeaders);
+  if (!signedWorkOrdersReadEnabled(req, process.env, signedContextProductionReadiness)) return json(res, 200, reader(), responseHeaders);
   return runSignedWorkOrdersRead(res, c, reader, responseHeaders);
 }
 function runSignedWorkOrderWrite(res, c, writer, responder) {
@@ -1133,11 +1146,11 @@ function requireCtx(req, res) {
   // Preview session auto-bind and the narrower work-order allowlist both require
   // a real session principal. Once either gate is enabled, never fall back to raw GUCs.
   try {
-    const routeError = signedTenantContextRouteError(req);
+    const routeError = signedTenantContextRouteError(req, process.env, signedContextProductionReadiness);
     if (routeError) {
       throw Object.assign(new Error(routeError), { code: routeError });
     }
-    const signedContextRequested = isSignedContextRequested(req);
+    const signedContextRequested = isSignedContextRequested(req, process.env, signedContextProductionReadiness);
     if (signedContextRequested) {
       if (c.apiKeyId
           || !c.sessionId
@@ -1230,7 +1243,7 @@ function safeDatabaseErrorCode(error) {
   return 'UNCLASSIFIED';
 }
 function runSignedRouteWrite(req, res, c, writer, responder) {
-  if (!signedWorkOrdersWriteEnabled(req)) return responder(writer(), {});
+  if (!signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) return responder(writer(), {});
   return runSignedWorkOrderWrite(res, c, writer, responder);
 }
 
@@ -1383,12 +1396,12 @@ function route(req, res) {
     const c=requireCtx(req,res); if(!c)return; try{requireScope(c,'write');}catch(e){return fail(res,e);} return body(req).then(b=>runAgenticCopilot(store,c,b).then(out=>json(res,201,out))).catch(e=>fail(res,e));
   }
   if (req.method === 'POST' && url.pathname === '/api/v1/ai/knowledge/index') {
-    const c=requireCtx(req,res); if(!c)return; try{requireScope(c,'admin');}catch(e){return fail(res,e);} return body(req).then(async b=>{const {getPool}=require('./postgres-runtime');const {upsert}=require('./postgres-knowledge');const pool=getPool(config);const principal=signedSessionAutobindEnabled()?{sessionId:c.sessionId,userId:c.userId,tenantId:c.organizationId}:null;const limit=Math.min(Math.max(Number(b.limit)||100,1),500);const sources=[];sources.push(...store.db.prepare('SELECT id,title,description FROM work_orders WHERE organization_id=? ORDER BY updated_at DESC LIMIT ?').all(c.organizationId,limit).map(r=>({sourceType:'work_order',sourceId:r.id,content:`${r.title}\n${r.description}`,metadata:{number:r.number||null}})));sources.push(...store.db.prepare('SELECT id,name,asset_type FROM assets WHERE organization_id=? ORDER BY updated_at DESC LIMIT ?').all(c.organizationId,limit).map(r=>({sourceType:'asset',sourceId:r.id,content:`${r.name}\nType: ${r.asset_type}`,metadata:{}})));sources.push(...store.db.prepare('SELECT id,event_type,details_json,occurred_at FROM asset_events WHERE organization_id=? ORDER BY occurred_at DESC LIMIT ?').all(c.organizationId,Math.min(limit,200)).map(r=>({sourceType:'asset_event',sourceId:r.id,content:`${r.event_type}\n${r.details_json||''}`,metadata:{occurredAt:r.occurred_at}})));
+    const c=requireCtx(req,res); if(!c)return; try{requireScope(c,'admin');}catch(e){return fail(res,e);} return body(req).then(async b=>{const {getPool}=require('./postgres-runtime');const {upsert}=require('./postgres-knowledge');const pool=getPool(config);const principal=signedSessionAutobindEnabled(process.env, signedContextProductionReadiness)?{sessionId:c.sessionId,userId:c.userId,tenantId:c.organizationId}:null;const limit=Math.min(Math.max(Number(b.limit)||100,1),500);const sources=[];sources.push(...store.db.prepare('SELECT id,title,description FROM work_orders WHERE organization_id=? ORDER BY updated_at DESC LIMIT ?').all(c.organizationId,limit).map(r=>({sourceType:'work_order',sourceId:r.id,content:`${r.title}\n${r.description}`,metadata:{number:r.number||null}})));sources.push(...store.db.prepare('SELECT id,name,asset_type FROM assets WHERE organization_id=? ORDER BY updated_at DESC LIMIT ?').all(c.organizationId,limit).map(r=>({sourceType:'asset',sourceId:r.id,content:`${r.name}\nType: ${r.asset_type}`,metadata:{}})));sources.push(...store.db.prepare('SELECT id,event_type,details_json,occurred_at FROM asset_events WHERE organization_id=? ORDER BY occurred_at DESC LIMIT ?').all(c.organizationId,Math.min(limit,200)).map(r=>({sourceType:'asset_event',sourceId:r.id,content:`${r.event_type}\n${r.details_json||''}`,metadata:{occurredAt:r.occurred_at}})));
       sources.push(...store.db.prepare('SELECT id,procedure_id,status,steps_json,started_at,completed_at FROM procedure_runs WHERE organization_id=? ORDER BY started_at DESC LIMIT ?').all(c.organizationId,Math.min(limit,100)).map(r=>({sourceType:'procedure_run',sourceId:r.id,content:`Procedure ${r.procedure_id}\nStatus: ${r.status}\n${r.steps_json||''}`,metadata:{startedAt:r.started_at,completedAt:r.completed_at}})));
       sources.push(...store.db.prepare('SELECT id,rows_json,sheet_date FROM closure_sheets WHERE organization_id=? ORDER BY created_at DESC LIMIT ?').all(c.organizationId,Math.min(limit,100)).map(r=>({sourceType:'closure_sheet',sourceId:r.id,content:r.rows_json,metadata:{sheetDate:r.sheet_date}})));let indexed=0;for(const x of sources){await upsert(pool,{organizationId:c.organizationId,...x,principal});indexed++;}return json(res,200,{schemaVersion:'opscore.knowledge-index.v1',indexed,model:require('./ai-embeddings').model(),sourceCounts:sources.reduce((a,x)=>(a[x.sourceType]=(a[x.sourceType]||0)+1,a),{}),note:'Embeddings are generated by the configured provider and stored in PostgreSQL pgvector. No synthetic vectors are created.'});}).catch(e=>fail(res,e));
   }
   if (req.method === 'POST' && url.pathname === '/api/v1/ai/knowledge/search') {
-    const c=requireCtx(req,res); if(!c)return; try{requireScope(c,'read');}catch(e){return fail(res,e);} return body(req).then(async b=>{const {getPool}=require('./postgres-runtime');const {search}=require('./postgres-knowledge');const principal=signedSessionAutobindEnabled()?{sessionId:c.sessionId,userId:c.userId,tenantId:c.organizationId}:null;return json(res,200,await search(getPool(config),{organizationId:c.organizationId,query:b.query,limit:b.limit,principal}));}).catch(e=>fail(res,e));
+    const c=requireCtx(req,res); if(!c)return; try{requireScope(c,'read');}catch(e){return fail(res,e);} return body(req).then(async b=>{const {getPool}=require('./postgres-runtime');const {search}=require('./postgres-knowledge');const principal=signedSessionAutobindEnabled(process.env, signedContextProductionReadiness)?{sessionId:c.sessionId,userId:c.userId,tenantId:c.organizationId}:null;return json(res,200,await search(getPool(config),{organizationId:c.organizationId,query:b.query,limit:b.limit,principal}));}).catch(e=>fail(res,e));
   }
   if (req.method === 'POST' && url.pathname === '/api/v1/auth/bootstrap') {
     if (!isHttpBootstrapAllowed(config.nodeEnv)) {
@@ -2092,7 +2105,7 @@ function route(req, res) {
         toStatus: b.toStatus,
         reason: b.reason
       }, () => store.transitionWorkOrder(c, wtrans[1], b.toStatus, b.reason));
-      if (!signedWorkOrdersWriteEnabled(req)) return idemJson(res, write(), 200);
+      if (!signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) return idemJson(res, write(), 200);
       return runSignedWorkOrderWrite(res, c, write, (record, headers) => idemJson(res, record, 200, headers));
     }).catch(e => fail(res, e));
   }
@@ -2689,7 +2702,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
       'work-orders': 'work_order',
       assets: 'asset'
     }[del[1]];
-    if (del[1] === 'work-orders' && signedWorkOrdersWriteEnabled(req)) {
+    if (del[1] === 'work-orders' && signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) {
       return runSignedWorkOrderWrite(res, c,
         () => store.softDelete(c, 'work_order', del[2]),
         (result, headers) => json(res, 200, result, headers));
@@ -2709,7 +2722,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
       'work-orders': 'work_order',
       assets: 'asset'
     }[rest[1]];
-    if (rest[1] === 'work-orders' && signedWorkOrdersWriteEnabled(req)) {
+    if (rest[1] === 'work-orders' && signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) {
       return runSignedWorkOrderWrite(res, c,
         () => store.restore(c, 'work_order', rest[2]),
         (result, headers) => json(res, 200, result, headers));
@@ -2939,7 +2952,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
     return body(req).then(b => {
       const k = req.headers['idempotency-key'] || req.headers['x-idempotency-key'];
       const write = () => store.idempotentWrite(c, 'work_orders_bulk', k, b, () => store.bulkWorkOrders(c, b));
-      if (!signedWorkOrdersWriteEnabled(req)) return json(res, 200, write().payload);
+      if (!signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) return json(res, 200, write().payload);
       return runSignedWorkOrderWrite(res, c, write, (record, headers) => json(res, 200, record.payload, headers));
     }).catch(e => fail(res, e));
   }
@@ -2951,7 +2964,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
     }
     return body(req).then(b => {
       const write = () => store.createWorkOrder(c, b);
-      if (!signedWorkOrdersWriteEnabled(req)) return json(res, 201, write());
+      if (!signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) return json(res, 201, write());
       return runSignedWorkOrderWrite(res, c, write, (result, headers) => json(res, 201, result, headers));
     }).catch(e => fail(res, e));
   }
@@ -2985,7 +2998,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
         workOrderId: wm[1],
         body: b
       }, () => store.updateWorkOrder(c, wm[1], b));
-      if (!signedWorkOrdersWriteEnabled(req)) return idemJson(res, write(), 200);
+      if (!signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) return idemJson(res, write(), 200);
       return runSignedWorkOrderWrite(res, c, write, (record, headers) => idemJson(res, record, 200, headers));
     }).catch(e => fail(res, e));
   }
@@ -3006,7 +3019,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
         workOrderId: cm[1],
         body: b.body
       }, () => store.addComment(c, cm[1], b.body));
-      if (!signedWorkOrdersWriteEnabled(req)) return idemJson(res, write(), 201);
+      if (!signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) return idemJson(res, write(), 201);
       return runSignedWorkOrderWrite(res, c, write, (record, headers) => idemJson(res, record, 201, headers));
     }).catch(e => fail(res, e));
   }
@@ -3025,7 +3038,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
         workOrderId: eu[1],
         ...b
       }));
-      if (!signedWorkOrdersWriteEnabled(req)) return idemJson(res, write(), 201);
+      if (!signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) return idemJson(res, write(), 201);
       return runSignedWorkOrderWrite(res, c, write, (record, headers) => idemJson(res, record, 201, headers));
     }).catch(e => fail(res, e));
   }
@@ -3038,7 +3051,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
     }
     return body(req, 800000).then(b => {
       const write = () => store.putEvidenceChunk(c, ec[1], ec[2], b.contentBase64);
-      if (!signedWorkOrdersWriteEnabled(req)) return json(res, 200, write());
+      if (!signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) return json(res, 200, write());
       return runSignedWorkOrderWrite(res, c, write, (result, headers) => json(res, 200, result, headers));
     }).catch(e => fail(res, e));
   }
@@ -3050,7 +3063,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
       return fail(res, e);
     }
     const write = () => store.completeEvidenceUpload(c, ex[1]);
-    if (!signedWorkOrdersWriteEnabled(req)) return json(res, 201, write());
+    if (!signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) return json(res, 201, write());
     return runSignedWorkOrderWrite(res, c, write, (result, headers) => json(res, 201, result, headers));
   }
   const am = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/attachments$/);
@@ -3072,12 +3085,12 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
         workOrderId: am[1],
         ...b
       }));
-      if (!signedWorkOrdersWriteEnabled(req)) return idemJson(res, write(), 201);
+      if (!signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) return idemJson(res, write(), 201);
       return runSignedWorkOrderWrite(res, c, write, (record, headers) => idemJson(res, record, 201, headers));
     }).catch(e => fail(res, e));
   }
   if (req.method === 'GET' && url.pathname === '/api/v1/assets') {
-    if (signedAssetsReadEnabled(req)) {
+    if (signedAssetsReadEnabled(req, process.env, signedContextProductionReadiness)) {
       return runSignedWorkOrdersRead(res, c, () => store.listAssets(c));
     }
     return json(res, 200, store.listAssets(c));

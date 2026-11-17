@@ -1,5 +1,8 @@
 # OpsCore v0.11.62 — Buyer Verification and Acceptance
 
+> **Historical evidence notice (17 November 2026):** This document records the historical v0.11.62 source-package candidate and workflow run `43308699094` only. It is not evidence for current branch `main` (`e57adb3f...`), the latest PR candidate, the deployed Production SHA (`4017497068...`), Neon Production schema, Production signed-route coverage, or buyer-environment certification. Do not reuse its artifact/hash/test evidence for a newer commit. The current residual register is maintained in [`docs/BUYER_RESIDUALS.md`](../BUYER_RESIDUALS.md); all new deliveries require a fresh exact-artifact run and exact deployment/database evidence.
+
+
 ## Exact-artifact rule
 
 Verify the exact ZIP generated for delivery. From the same GitHub Actions Secure Release run download and review its artifact. For the verified candidate, use run 43308699094: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/43308699094. Download artifact `opscore-release-43308699094` and review:

@@ -1,0 +1,60 @@
+name: Apply Production signed-context migrations
+
+# Manual, exact-confirmation workflow. Verify GitHub Environment reviewer rules separately before dispatch.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type APPLY_PRODUCTION_SIGNED_CONTEXT_MIGRATIONS after reviewing the exact migration plan
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-signed-context-migrations
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    if: ${{ github.ref == 'refs/heads/main' && github.event.inputs.confirm == 'APPLY_PRODUCTION_SIGNED_CONTEXT_MIGRATIONS' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    environment:
+      name: production
+    steps:
+      - name: Checkout reviewed main
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js for the official migration runner
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22.23.4'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend migration-runner dependencies
+        working-directory: backend
+        run: npm ci --ignore-scripts
+
+      - name: Verify restore proof and apply the exact Production migration set
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          OPSC_PRODUCTION_RESTORE_PROOF_SHA256: ${{ secrets.OPSC_PRODUCTION_RESTORE_PROOF_SHA256 }}
+          OPSC_CONFIRM_PRODUCTION_MIGRATION: ${{ github.event.inputs.confirm }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main"
+          python3 scripts/neon_apply_production_signed_context_migrations.py
+
+      - name: Explicit no-deploy boundary
+        run: |
+          echo "Production schema migration completed only if the official runner reports APPLIED_AND_VERIFIED."
+          echo "No Vercel deployment was started."
+          echo "No HMAC key was rotated."
+          echo "No signed-route or traffic-hold flag was changed."
+          echo "Signed-route activation requires a separate exact-deployment Production 67-route proof."
