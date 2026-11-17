@@ -5,7 +5,8 @@
 ## Source-code commercial release — seller-owned gates
 
 - [ ] Resolve or formally disposition GHSA-fc5q-39xc-vjpf / CVE-2026-112366 for the exact mobile SDK 58 dependency tree. No unreviewed upstream patch, silent audit suppression, or forced major downgrade.
-- [ ] Complete the source/data-flow threat review for build-time glob patterns and retain full + production-only npm audit JSONs from the exact candidate run.
+- [x] Complete the first-party mobile source/config static scan for direct picomatch/glob APIs; evidence and limitations recorded in `mobile/security/DEPENDENCY_ADVISORY_REVIEW_2026-11-17.md` (partial reachability review only, not risk acceptance).
+- [ ] Complete independent third-party Expo/Metro call-site and CI build-input reachability review; preserve full + `--omit=dev` npm audit JSONs from the same exact candidate run. Do not label the advisory dev-only or accept risk from the first-party scan alone.
 - [ ] Complete PR #222 candidate verification on its latest head; merge only after every required check passes and independent review is recorded.
 - [x] Integrated signed-tenant security-hardening lineage: superseding PR #174 is already merged. Verify its behavior remains covered by current-main regression tests; do not reopen superseded PR #163.
 - [ ] Generate the final exact-head Secure Release artifact, SBOM, provenance, test reports and checksum statement from one successful pipeline.
