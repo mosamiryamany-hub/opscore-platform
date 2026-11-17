@@ -278,7 +278,7 @@ def psql(restore_uri, sql):
 
 
 def schema_inventory(uri):
-    output = psql(restore_uri, SCHEMA_INVENTORY_SQL)
+    output = psql(uri, SCHEMA_INVENTORY_SQL)
     parts = output.split("|")
     if len(parts) != 2:
         fail("RESTORE_PROOF_SCHEMA_INVENTORY_INVALID", {"output": output[:300]})
@@ -394,7 +394,7 @@ def main():
 
     ledger_count = int(psql(restore_uri, "SELECT COUNT(*) FROM public.schema_migrations"))
     migration_rows = psql(
-        uri,
+        restore_uri,
         "SELECT filename FROM public.schema_migrations WHERE filename IN ("
         "'063_signed_tenant_context_verifier.sql',"
         "'064_signed_tenant_context_work_orders_routing.sql',"
@@ -418,7 +418,7 @@ def main():
         fail("RESTORE_PROOF_CORE_TABLE_EMPTY")
 
     role_rows = psql(
-        uri,
+        restore_uri,
         "SELECT rolname, rolsuper, rolbypassrls FROM pg_roles "
         "WHERE rolname IN ('opscore_runtime','neondb_owner') ORDER BY rolname",
     )
@@ -439,7 +439,7 @@ def main():
             "owner_superuser": owner_super,
         })
     runtime_probe = psql(
-        uri,
+        restore_uri,
         "BEGIN; SET LOCAL ROLE opscore_runtime; "
         "SELECT current_user || '|' || COUNT(*)::text FROM public.organizations; ROLLBACK",
     )
@@ -448,7 +448,7 @@ def main():
         fail("RESTORE_PROOF_RUNTIME_RLS_DEFAULT_DENY_FAILED", {"probe": runtime_probe})
 
     rls_counts = psql(
-        uri,
+        restore_uri,
         "SELECT count(*) || '|' || count(*) FILTER (WHERE c.relrowsecurity) || '|' || "
         "count(*) FILTER (WHERE c.relforcerowsecurity) FROM pg_class c "
         "JOIN pg_namespace n ON n.oid=c.relnamespace "

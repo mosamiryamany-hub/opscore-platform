@@ -32,7 +32,7 @@ jobs:
       - name: Create or reuse a real non-finalizing snapshot restore and verify it
         env:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
-          OPSC_PRIMARY_SNAPSHOT_ID: snap-floral-sea-bcug7fd3
+          OPSC_PRIMARY_SNAPSHOT_ID: snap-holy-salad-bcvyvzv9
           OPSC_CONFIRM_RESTORE_PROOF: ${{ github.event.inputs.confirm }}
         run: |
           set -euo pipefail
