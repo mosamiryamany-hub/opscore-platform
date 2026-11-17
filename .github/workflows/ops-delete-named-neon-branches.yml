@@ -35,7 +35,7 @@ jobs:
           import json, os, re, urllib.request, urllib.error
           key=os.environ["NEON_API_KEY"]
           project="summer-leaf-18448271"
-          never={"br-proud-salad-bcshhdap","br-quiet-poetry-bc3uo0u3","br-wispy-credit-bckacgvt"}
+          never={"br-proud-salad-bcshhdap","br-quiet-poetry-bc3uo0u3"}  # primary + active restore proof only
           targets=[(os.environ["ID1"].strip(), os.environ["NAME1"].strip()), (os.environ["ID2"].strip(), os.environ["NAME2"].strip())]
           def api(method, path):
             req=urllib.request.Request(f"https://console.neon.tech/api/v2/projects/{project}{path}", method=method,
@@ -61,10 +61,12 @@ jobs:
             actual=str(b.get("name") or "").strip()
             if actual != expected:
               raise SystemExit(f"NAME_MISMATCH {bid} {actual!r}!={expected!r}")
-            st,_=api("DELETE", f"/branches/{bid}")
-            print("delete_http", bid, actual, st)
+            st,body=api("DELETE", f"/branches/{bid}")
+            print("delete_http", bid, actual, st, json.dumps(body)[:300])
             if st not in (200,202,204):
               raise SystemExit("DELETE_FAILED "+bid)
+            import time
+            time.sleep(2)
           _, inv2=api("GET","/branches?limit=100")
           left={b.get("id") for b in (inv2.get("branches") or [])}
           for bid,_ in targets:
