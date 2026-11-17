@@ -29,11 +29,11 @@ test('recovery evidence declares its row-count-only scope and does not claim PIT
   assert.match(collector, /coreTenantTableRowCountsMatch/);
   assert.match(collector, /branch-clone-public-table-count-and-core-tenant-row-counts-only/);
   assert.match(collector, /does not compare row contents, certify PITR, or establish RPO\/RTO/);
-  assert.match(collector, /opscore\.production-recovery-point\.v2/);
+  assert.match(collector, /opscore.production-recovery-point.v3/);
 });
 
 test('release certification requires the exact application database and explicit recovery scope', () => {
-  assert.match(workflow, /recovery\.schemaVersion === 'opscore\.production-recovery-point\.v2'/);
+  assert.match(workflow, /recovery\.schemaVersion === 'opscore.production-recovery-point.v3'/);
   assert.match(workflow, /recovery\.databaseName === 'opscore_acceptance'/);
   assert.match(workflow, /recovery\.coreTenantTableRowCountsMatch === true/);
   assert.match(workflow, /branch-clone-public-table-count-and-core-tenant-row-counts-only/);
