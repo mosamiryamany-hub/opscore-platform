@@ -75,6 +75,18 @@ Consequences:
 
 The runtime locale manifest contains **105 selectable Contact Center locales**: 1 English source locale, 100 machine-assisted draft translations and 4 explicit English-fallback locales (din, nus, pau, ch). Nine flagged locales (ms, sw, hy, uz, my, ml, es, sr, te) are withdrawn from runtime selection pending linguistic remediation and native-speaker review. The separate qualification matrix contains 114 source-language rows, all marked `planned_not_qualified`; native-speaker review completed is 0/114, and current runtime production-qualified locales are 0/105. All non-native-reviewed locales must retain the machine-translation notice. Do not claim 114 runtime-selectable or native-reviewed languages.
 
+## Vercel firewall posture — read-only inspection on 17 November 2026
+
+The active Vercel firewall configuration reports `firewallEnabled=true`, version 4:
+
+- Managed CRS rules active but `log` only: Generic, RCE, SQLi and XSS. Java, LFI, Multipart, PHP, RFI, Scanner Detection and Session Fixation groups are inactive.
+- Bot Protection is active but `log` only.
+- IP allow/deny rules list is empty.
+- One valid custom rule limits `POST /api/v1/auth/(login|mobile-login)` to 60 requests per source IP per fixed 60-second window, with action `rate_limit`.
+- The Vercel active-attack query returned no anomalies for its default last-24-hour window. This does not prove absence of attacks or justify changing mitigation actions.
+
+No WAF/CRS/BotID/IP-rule changes were made. Do not flip the current `log` rules to `deny` based solely on this one-day sample; collect a longer representative baseline, inspect false positives and rehearse in Preview first. Rate-limit enforcement must remain aligned with application account-level throttling.
+
 ## Commercial hosting entitlement — Vercel
 
 The current Vercel project inspection returned `domains: []`, `live: false`, and SSO protection enabled for all deployments except custom domains. The Vercel runtime-log API explicitly rejected a one-hour lookback as a Hobby-plan retention violation. The current Vercel pricing and Fair Use guidance states Hobby is for personal/non-commercial use and commercial usage requires Pro or Enterprise.
