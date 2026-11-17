@@ -10,8 +10,23 @@
 
 **Updated:** 2026-11-17T19:10Z UTC  
 **Current main:** `6adea6fa209e394b464c4272db1860422d608afb`  
-**Current candidate PR head:** `522205a4d73ccacb2563aeb58ec31fdd9d0671b1`  
+**Latest candidate head with exact SDK58 audit evidence:** `6a0df56fe4ae647379646460c1ea76de71e8062f`  
 **Historical Production pin:** `4017497068defa9c1d0761fcb07bc746925e002a`
+
+## Latest source-candidate evidence
+
+| Gate | Result |
+|---|---|
+| SDK58 validation | Expo Doctor 20/20; Android/iOS/Web exports PASS |
+| Full mobile audit | 25 High, 0 Critical |
+| Mobile audit with `--omit=dev` | 25 High, 0 Critical |
+| Fail-closed release condition | FAIL — mobile High findings unresolved |
+| Evidence artifact | `mobile-sdk58-current-main-evidence-44156497177` |
+| Artifact SHA-256 | `8c64e388b4db141e91ca94cbd5b491e38003f1f6b31ded43321ade06e14dc044` |
+| Isolated PostgreSQL 18 RLS/HTTP | PASS on tested PR head `335e9a5` |
+| Full backend regression suite | 806 passed, 0 failed, 3 skipped on tested PR head `335e9a5` |
+
+The backend and PostgreSQL evidence above is bound to the listed tested PR head, not automatically to later documentation-only branch heads. The current exact-head audit remains blocked. No qualified release ZIP or release statement has been generated for the latest candidate.
 
 ## Historical runtime evidence — earlier Production pin only
 
