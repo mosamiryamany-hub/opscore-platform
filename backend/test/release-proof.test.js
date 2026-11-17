@@ -683,6 +683,7 @@ test('Production signed-session route validator rejects structurally consistent 
     OPSC_RELEASE_CI_COMMIT: SHA,
     OPSC_RELEASE_CI_PIPELINE_ID: '3099988776',
     OPSC_PRODUCTION_NEON_BRANCH_ID: 'br-current-production',
+    OPSC_PRODUCTION_DATABASE_NAME: 'opscore_acceptance',
     VERCEL_DEPLOYMENT_ID: 'dpl-production-fixture'
   };
   const routes = Array.from({ length: 67 }, (_, index) => ({
