@@ -60,6 +60,20 @@ function validateAppRolePreflight(role, repairPending) {
  if(exists&&needsAttributeChange&&!bool(role.current_user_admin_option))throw new Error('MIGRATION_APP_ROLE_REPAIR_ADMIN_OPTION_REQUIRED');
  return {status:'REPAIR_PENDING',repairPending:true,roleExists:exists,quarantinedOutgoingMemberships:memberships};
 }
+function validateAppRolePostconditions(post) {
+ if(!post||typeof post.app_role_exists!=='boolean')return false;
+ if(Number(post.control_plane_privilege_gap_count)!==0)return false;
+ if(!post.app_role_exists)return true;
+ return post.app_superuser===false
+  &&post.app_bypassrls===false
+  &&post.app_create_role===false
+  &&post.app_create_db===false
+  &&post.app_login===false
+  &&post.app_inherit===false
+  &&Number(post.app_privileged_membership_count)===0
+  &&Number(post.app_incoming_membership_count)===0
+  &&Number(post.app_neon_superuser_membership_count)<=1;
+}
 function readMigrations(){return fs.readdirSync(DIR).filter(parseMigrationFilename).sort(compareMigrationFilenames).map(filename=>{const content=fs.readFileSync(path.join(DIR,filename),'utf8');return{filename,content,sha256:hash(content)};});}
 function unwrapOuterTransaction(content, filename='unknown') {
  const source=String(content);
@@ -370,13 +384,13 @@ runtime_control_plane_gaps AS (
     )
 )
 SELECT
-  has_database_privilege('opscore_app',current_database(),'CREATE') AS app_can_create_database_schema,
-  has_schema_privilege('opscore_app','public','CREATE') AS app_can_create_public_objects,
+  CASE WHEN EXISTS(SELECT 1 FROM pg_roles WHERE rolname='opscore_app') THEN has_database_privilege('opscore_app',current_database(),'CREATE') ELSE false END AS app_can_create_database_schema,
+  CASE WHEN EXISTS(SELECT 1 FROM pg_roles WHERE rolname='opscore_app') THEN has_schema_privilege('opscore_app','public','CREATE') ELSE false END AS app_can_create_public_objects,
   (SELECT relrowsecurity AND relforcerowsecurity FROM pg_class WHERE oid='public.schema_migrations'::regclass) AS ledger_forced_rls,
-  has_table_privilege('opscore_app','public.schema_migrations','SELECT') AS app_can_select,
-  has_table_privilege('opscore_app','public.schema_migrations','INSERT') AS app_can_insert,
-  has_table_privilege('opscore_app','public.schema_migrations','UPDATE') AS app_can_update,
-  has_table_privilege('opscore_app','public.schema_migrations','DELETE') AS app_can_delete,
+  CASE WHEN EXISTS(SELECT 1 FROM pg_roles WHERE rolname='opscore_app') THEN has_table_privilege('opscore_app','public.schema_migrations','SELECT') ELSE false END AS app_can_select,
+  CASE WHEN EXISTS(SELECT 1 FROM pg_roles WHERE rolname='opscore_app') THEN has_table_privilege('opscore_app','public.schema_migrations','INSERT') ELSE false END AS app_can_insert,
+  CASE WHEN EXISTS(SELECT 1 FROM pg_roles WHERE rolname='opscore_app') THEN has_table_privilege('opscore_app','public.schema_migrations','UPDATE') ELSE false END AS app_can_update,
+  CASE WHEN EXISTS(SELECT 1 FROM pg_roles WHERE rolname='opscore_app') THEN has_table_privilege('opscore_app','public.schema_migrations','DELETE') ELSE false END AS app_can_delete,
   (SELECT prosecdef FROM pg_proc WHERE oid='public.opscore_is_privileged()'::regprocedure) AS privileged_is_definer,
   (SELECT proconfig @> ARRAY['row_security=off'] FROM pg_proc WHERE oid='public.opscore_create_password_reset_token(text,text,text,timestamptz)'::regprocedure) AS reset_token_row_security_off,
   EXISTS(SELECT 1 FROM runtime_role) AS runtime_role_exists,
@@ -453,11 +467,13 @@ SELECT
     WHERE membership.roleid=(SELECT oid FROM pg_roles WHERE rolname='opscore_app')
   ) ELSE 1 END AS app_incoming_membership_count,
   (SELECT count(*) FROM pg_class WHERE relnamespace='public'::regnamespace AND relname IN ('control_plane_runs','feature_flags','safe_mode_states')) AS control_plane_table_count,
+  CASE WHEN EXISTS(SELECT 1 FROM pg_roles WHERE rolname='opscore_app') THEN (
   (SELECT count(*) FROM pg_class c WHERE c.relnamespace='public'::regnamespace AND c.relname IN ('control_plane_runs','feature_flags','safe_mode_states') AND (
-    (c.relname='feature_flags' AND (NOT has_table_privilege('opscore_app',c.oid,'SELECT') OR NOT has_table_privilege('opscore_app',c.oid,'INSERT') OR NOT has_table_privilege('opscore_app',c.oid,'UPDATE') OR has_table_privilege('opscore_app',c.oid,'DELETE') OR has_table_privilege('opscore_app',c.oid,'TRUNCATE')))
-    OR (c.relname='safe_mode_states' AND (NOT has_table_privilege('opscore_app',c.oid,'SELECT') OR NOT has_table_privilege('opscore_app',c.oid,'INSERT') OR NOT has_table_privilege('opscore_app',c.oid,'UPDATE') OR has_table_privilege('opscore_app',c.oid,'DELETE') OR has_table_privilege('opscore_app',c.oid,'TRUNCATE')))
-    OR (c.relname='control_plane_runs' AND (NOT has_table_privilege('opscore_app',c.oid,'INSERT') OR has_table_privilege('opscore_app',c.oid,'SELECT') OR has_table_privilege('opscore_app',c.oid,'UPDATE') OR has_table_privilege('opscore_app',c.oid,'DELETE') OR has_table_privilege('opscore_app',c.oid,'TRUNCATE')))
-  )) AS control_plane_privilege_gap_count
+      (c.relname='feature_flags' AND (NOT has_table_privilege('opscore_app',c.oid,'SELECT') OR NOT has_table_privilege('opscore_app',c.oid,'INSERT') OR NOT has_table_privilege('opscore_app',c.oid,'UPDATE') OR has_table_privilege('opscore_app',c.oid,'DELETE') OR has_table_privilege('opscore_app',c.oid,'TRUNCATE')))
+      OR (c.relname='safe_mode_states' AND (NOT has_table_privilege('opscore_app',c.oid,'SELECT') OR NOT has_table_privilege('opscore_app',c.oid,'INSERT') OR NOT has_table_privilege('opscore_app',c.oid,'UPDATE') OR has_table_privilege('opscore_app',c.oid,'DELETE') OR has_table_privilege('opscore_app',c.oid,'TRUNCATE')))
+      OR (c.relname='control_plane_runs' AND (NOT has_table_privilege('opscore_app',c.oid,'INSERT') OR has_table_privilege('opscore_app',c.oid,'SELECT') OR has_table_privilege('opscore_app',c.oid,'UPDATE') OR has_table_privilege('opscore_app',c.oid,'DELETE') OR has_table_privilege('opscore_app',c.oid,'TRUNCATE')))
+    ))
+  ) ELSE 0 END AS control_plane_privilege_gap_count
 `)).rows[0];
   const controlPlaneTables=['feature_flags','safe_mode_states','control_plane_runs'];
   const controlPlanePolicyRows=(await client.query(`SELECT c.relname AS table_name,p.polname AS policy_name,p.polpermissive AS permissive,pg_get_expr(p.polqual,p.polrelid) AS using_expr,pg_get_expr(p.polwithcheck,p.polrelid) AS check_expr FROM pg_policy p JOIN pg_class c ON c.oid=p.polrelid JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relname=ANY($1::text[])`,[controlPlaneTables])).rows;
@@ -473,7 +489,7 @@ SELECT
   });
   post.control_plane_policy_results=controlPlanePolicyResults;
   post.control_plane_restrictive_policy_gap_count=controlPlanePolicyResults.filter(x=>x.status!=='PASS').length;
-  if((!post.runtime_role_exists&&(post.app_can_create_database_schema||post.app_can_create_public_objects||post.app_can_select||post.app_can_insert||post.app_can_update||post.app_can_delete||Number(post.control_plane_privilege_gap_count)!==0))||!post.app_role_exists||post.app_superuser||post.app_bypassrls||post.app_create_role||post.app_create_db||Number(post.app_privileged_membership_count)!==0||Number(post.app_incoming_membership_count)!==0||Number(post.app_neon_superuser_membership_count)>1||post.app_login||post.app_inherit||!post.ledger_forced_rls||!post.privileged_is_definer||!post.reset_token_row_security_off||Number(post.control_plane_table_count)!==3||Number(post.control_plane_restrictive_policy_gap_count)!==0||(post.runtime_role_exists&&(!post.runtime_login||post.runtime_superuser||post.runtime_bypassrls||post.runtime_create_role||post.runtime_create_db||Number(post.runtime_privileged_membership_count)!==0||post.runtime_database_create||post.runtime_schema_create||post.runtime_neon_superuser_member||post.runtime_neon_superuser_set||post.runtime_app_role_member||post.runtime_schema_migrations_access||!post.runtime_privileged_execute||Number(post.runtime_policy_function_gap_count)!==0||Number(post.runtime_control_plane_privilege_gap_count)!==0||Number(post.runtime_autopilot_table_privilege_gap_count)!==0)))throw new Error('MIGRATION_POSTCONDITION_FAILED');
+  if((!post.runtime_role_exists&&(post.app_can_create_database_schema||post.app_can_create_public_objects||post.app_can_select||post.app_can_insert||post.app_can_update||post.app_can_delete||Number(post.control_plane_privilege_gap_count)!==0))||!validateAppRolePostconditions(post)||!post.ledger_forced_rls||!post.privileged_is_definer||!post.reset_token_row_security_off||Number(post.control_plane_table_count)!==3||Number(post.control_plane_restrictive_policy_gap_count)!==0||(post.runtime_role_exists&&(!post.runtime_login||post.runtime_superuser||post.runtime_bypassrls||post.runtime_create_role||post.runtime_create_db||Number(post.runtime_privileged_membership_count)!==0||post.runtime_database_create||post.runtime_schema_create||post.runtime_neon_superuser_member||post.runtime_neon_superuser_set||post.runtime_app_role_member||post.runtime_schema_migrations_access||!post.runtime_privileged_execute||Number(post.runtime_policy_function_gap_count)!==0||Number(post.runtime_control_plane_privilege_gap_count)!==0||Number(post.runtime_autopilot_table_privilege_gap_count)!==0)))throw new Error('MIGRATION_POSTCONDITION_FAILED');
   emit({status:'APPLIED_AND_VERIFIED',target:{database:info.database,role:info.role,targetClass},neonIdentity,serverVersion:info.server_version,legacy042Evidence,controlPlane053Evidence,applied,skipped:plan.skipped,postconditions:post,note:'Only the explicitly confirmed target database was changed. The sole allowed app-role residual is a dormant Neon-managed neon_superuser membership on a NOLOGIN/NOINHERIT/NOBYPASSRLS role with zero incoming memberships; removing that membership requires Neon role-admin authority. Production certification remains separate.'});
  }finally{
   if(locked&&client)try{await client.query("SELECT pg_advisory_unlock(hashtext(current_database()),hashtext('opscore-schema-migrations'))");}catch(_){}
@@ -483,4 +499,4 @@ SELECT
 if (require.main === module) {
  main().catch(error=>emit({status:'FAIL',reason:error.message||String(error),note:'Connection values are never emitted; no production fallback is used.'},1));
 }
-module.exports = { readMigrations, verifyLegacy042Catalog, verifyControlPlane053Catalog, assertTarget, unwrapOuterTransaction, extractNeonEndpointId, verifyNeonEndpointIdentity, tenantPolicyExprValid, validateAppRolePreflight };
+module.exports = { readMigrations, verifyLegacy042Catalog, verifyControlPlane053Catalog, assertTarget, unwrapOuterTransaction, extractNeonEndpointId, verifyNeonEndpointIdentity, tenantPolicyExprValid, validateAppRolePreflight, validateAppRolePostconditions };
