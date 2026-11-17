@@ -60,6 +60,10 @@ Consequences:
 - The recommended quota/security path is an owner-approved Neon Scale upgrade before the window, followed by verification of the effective quotas, protection of the Production primary, a fresh Primary snapshot, a non-finalizing restore test, and schema/data identity checks. Scale is usage-based with no monthly minimum; the higher compute rate is the cost of the larger protection/recovery envelope. Launch is acceptable only as the lower-cost alternative if the owner accepts two protected branches and a 7-day history window. No upgrade or branch-protection change is authorized by this runbook. Do not enable IP Allow until the actual Vercel outbound IP range is established and validated.
 - Without the approved capacity change and successful restore test, the Production migration remains **NO-GO**. Do not treat the existing snapshot alone as an executable rollback.
 
+## Localization qualification residual
+
+The runtime locale manifest contains **105 selectable Contact Center locales**: 1 English source locale, 100 machine-assisted draft translations and 4 explicit English-fallback locales (din, nus, pau, ch). Nine flagged locales (ms, sw, hy, uz, my, ml, es, sr, te) are withdrawn from runtime selection pending linguistic remediation and native-speaker review. The separate qualification matrix contains 114 source-language rows, all marked `planned_not_qualified`; native-speaker review completed is 0/114, and current runtime production-qualified locales are 0/105. All non-native-reviewed locales must retain the machine-translation notice. Do not claim 114 runtime-selectable or native-reviewed languages.
+
 ## Commercial hosting entitlement — Vercel
 
 The current Vercel project inspection returned `domains: []`, `live: false`, and SSO protection enabled for all deployments except custom domains. The Vercel runtime-log API explicitly rejected a one-hour lookback as a Hobby-plan retention violation. The current Vercel pricing and Fair Use guidance states Hobby is for personal/non-commercial use and commercial usage requires Pro or Enterprise.
