@@ -279,6 +279,14 @@ def main():
             "runtime_bypass_rls": runtime_bypass,
             "owner_superuser": owner_super,
         })
+    runtime_probe = psql(
+        uri,
+        "BEGIN; SET LOCAL ROLE opscore_runtime; "
+        "SELECT current_user || '|' || COUNT(*)::text FROM public.organizations; ROLLBACK",
+    )
+    runtime_probe_parts = runtime_probe.split("|")
+    if runtime_probe_parts != ["opscore_runtime", "0"]:
+        fail("RESTORE_PROOF_RUNTIME_RLS_DEFAULT_DENY_FAILED", {"probe": runtime_probe})
 
     rls_counts = psql(
         uri,
@@ -338,6 +346,7 @@ def main():
                 "runtimeRoleSuperuser": runtime_super,
                 "runtimeRoleBypassRls": runtime_bypass,
                 "ownerRoleBypassRls": owner_bypass,
+                "organizationsVisibleWithoutTenantContext": 0,
             },
         },
     }
