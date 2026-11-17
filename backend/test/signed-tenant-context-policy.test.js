@@ -289,6 +289,7 @@ test('server checks the route gate before its legacy unsigned field-context fall
 const productionRead = {
   VERCEL_ENV: 'production',
   OPSC_PRODUCTION_HOLD: 'false',
+  OPSC_RELEASE_VERIFIED: 'true',
   OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED: 'true',
   OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_READ_ENABLED: 'true',
   OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_WRITE_ENABLED: 'true',
@@ -329,6 +330,11 @@ test('Production signed context requires the independent Production flag, hold=f
   assert.equal(policy.signedTenantContextRouteError(
     { method: 'GET', url: '/api/v1/customers' }, productionRead, productionProofReady
   ), null);
+});
+
+test('Production release-verification switch is independently required', () => {
+  const { OPSC_RELEASE_VERIFIED, ...withoutReleaseSwitch } = productionRead;
+  assert.equal(policy.isSignedContextEnvironment(withoutReleaseSwitch, productionProofReady), false);
 });
 
 test('Production flags cannot override a renewed hold or a missing independent enable switch', () => {
