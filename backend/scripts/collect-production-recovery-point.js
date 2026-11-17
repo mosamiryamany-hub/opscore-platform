@@ -67,7 +67,7 @@ async function main() {
 
   // The application database is explicitly selected. A different acceptance or
   // system database is never used as a fallback when this exact database is missing.
-  const httpBase = String(process.env.OPSC_PRODUCTION_HTTP_BASE || 'https://opscore-platform.vercel.app').replace(/\\/+$/, '');
+  const httpBase = String(process.env.OPSC_PRODUCTION_HTTP_BASE || 'https://opscore-platform.vercel.app').replace(/\/+$/, '');
   const deploymentIdentity = await readProductionDeploymentIdentity(
     httpBase,
     String(process.env.OPSC_EXPECTED_PRODUCTION_COMMIT_SHA || '')
