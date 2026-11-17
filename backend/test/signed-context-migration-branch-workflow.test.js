@@ -17,24 +17,27 @@ const runner = fs.readFileSync(
 );
 
 test('signed-context migration branch workflow uses pinned actions and the official guarded runner', () => {
-  assert.match(workflow, /actions\/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1/);
-  assert.match(workflow, /actions\/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1/);
-  assert.match(workflow, /node-version: '22\.23\.4'/);
+  assert.match(workflow, /actions\\/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1/);
+  assert.match(workflow, /actions\\/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1/);
+  assert.match(workflow, /node-version: '22\\.23\\.4'/);
   assert.match(workflow, /npm ci --ignore-scripts/);
   assert.match(workflow, /Create disposable child branch and apply 063–067 plus technician-trail 069/);
-  assert.doesNotMatch(workflow, /actions\/checkout@v4|npm i -g|psql -f/);
+  assert.doesNotMatch(workflow, /actions\\/checkout@v4|npm i -g|psql -f/);
+  assert.doesNotMatch(workflow, /repository_dispatch/);
+  assert.match(workflow, /github\\.event_name == 'workflow_dispatch'/);
+  assert.match(workflow, /github\\.event\\.inputs\\.confirm == 'CREATE_SIGNED_CONTEXT_MIGRATION_BRANCH'/);
 });
 
 test('migration branch runner never deletes branches and requires free branch capacity', () => {
-  assert.match(runner, /if len\(branches\) >= 10:/);
-  assert.match(runner, /def list_all_branches\(\):/);
+  assert.match(runner, /if len\\(branches\\) >= 10:/);
+  assert.match(runner, /def list_all_branches\\(\\):/);
   assert.match(runner, /"limit": 100/);
-  assert.match(runner, /query\["cursor"\] = cursor/);
-  assert.match(runner, /pagination\.get\("next"\)/);
+  assert.match(runner, /query\\["cursor"\\] = cursor/);
+  assert.match(runner, /pagination\\.get\\("next"\\)/);
   assert.match(runner, /NEON_BRANCH_PAGINATION_CURSOR_REPEATED/);
   assert.match(runner, /NEON_BRANCH_PAGINATION_PAGE_LIMIT_EXCEEDED/);
   assert.match(runner, /BRANCH_CAPACITY_FULL_NO_AUTOMATIC_DELETION/);
-  assert.doesNotMatch(runner, /api\(["']DELETE["']/);
+  assert.doesNotMatch(runner, /api\\(["']DELETE["']/);
   assert.doesNotMatch(runner, /cleanup_old_mig|Delete prior failed mig branches/);
 });
 
@@ -54,7 +57,7 @@ test('migration branch runner requires a direct endpoint and exact target identi
   ]) {
     assert.ok(runner.includes(key), 'missing exact migration identity binding: ' + key);
   }
-  assert.match(runner, /apply-postgres-migrations\.js/);
+  assert.match(runner, /apply-postgres-migrations\\.js/);
   assert.match(runner, /APPLIED_AND_VERIFIED/);
 });
 
