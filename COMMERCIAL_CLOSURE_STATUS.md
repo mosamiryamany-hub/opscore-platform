@@ -1,6 +1,6 @@
 # OpsCore — Technical and Commercial Closure Status
 
-**Technical classification (seller-reference, git-stored evidence):** `NOT_VERIFIED` — repository copies of `PRODUCTION_SESSION_ISOLATION.json` / `PRODUCTION_RECOVERY_POINT.json` that still carry `evidenceRebind` with `probesReexecuted=false` must not be cited as certification of the live tip.
+**Technical classification (seller-reference, git-stored evidence):** `PASS` for session/recovery artifacts re-executed 2026-11-17 on live commit `4017497068defa9c1d0761fcb07bc746925e002a` (run 44029395474). Older rebind copies must not be cited. — repository copies of `PRODUCTION_SESSION_ISOLATION.json` / `PRODUCTION_RECOVERY_POINT.json` that still carry `evidenceRebind` with `probesReexecuted=false` must not be cited as certification of the live tip.
 
 
 ## Dual-layer evidence (resolved)
