@@ -52,5 +52,5 @@ module.exports = {
   httpKeepAliveTimeoutMs: positiveInt('HTTP_KEEP_ALIVE_TIMEOUT_MS', 5000, { max: 120000 }),
   httpMaxHeaders: positiveInt('HTTP_MAX_HEADERS', 100, { max: 2000 }),
   loginRateWindowMs: positiveInt('LOGIN_RATE_WINDOW_MS', 60000, { max: 3600000 }),
-  loginRateLimit: positiveInt('LOGIN_RATE_LIMIT', 20, { max: 1000 })
+  loginRateLimit: positiveInt('LOGIN_RATE_LIMIT', 10, { max: 1000 })
 };
