@@ -20,7 +20,7 @@
 | [docs/architecture/DIGITAL_TWIN_SYSTEM_MAP_2026-10-21_AR.md](docs/architecture/DIGITAL_TWIN_SYSTEM_MAP_2026-10-21_AR.md) | Multidomain digital-twin map with implemented vs planned boundaries |
 | [docs/architecture/DIGITAL_TWIN_VERIFICATION_REPORT_2026_10_21_AR.md](docs/architecture/DIGITAL_TWIN_VERIFICATION_REPORT_2026_10_21_AR.md) | Test evidence and unresolved production gates |
 
-**Evidence Pack:** see `evidence-pack/` for SHA256, current SBOM, and key proof documents.
+**Evidence Pack:** `evidence-pack/` contains version-bound evidence records. Only the ZIP, release statement, archive SHA-256, SBOM, provenance, tests and dependency audits produced by one successful Secure Release run for the exact source head identify a current handover; historical evidence does not certify a newer commit.
 
 ---
 
@@ -72,8 +72,8 @@ Any serious buyer is expected to run `npm run buyer:preflight` and `npm run buye
 
 ## Quick Commercial Boundaries
 
-- Form: commercial model pending rights-holder decision (NO LICENSE GRANT until a separate signed agreement)
-- Support included: 30 days for critical defects in the supplied source
+- Commercial offer: source-code handoff, not seller-hosted SaaS. The seller may publish and negotiate before any buyer is identified; a transaction-specific License Schedule is required only before granting the named buyer rights or delivering the licensed package.
+- Support/updates: no default period is included; scope, term and price are negotiated and recorded only in the signed License Schedule.
 - Out of scope: deployment, TLS, store submission/signing, buyer infrastructure, new feature development
 
 ---
