@@ -19,6 +19,10 @@ MARKERS = (
     "ephemeral",
     "restore-drill",
     "opscore-restore-drill",
+    "preview/",
+    "preview-",
+    "catalog-proof",
+    "integrated-commercial-gates",
 )
 
 def get(url):
