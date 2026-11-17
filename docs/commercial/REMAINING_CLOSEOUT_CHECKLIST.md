@@ -1,23 +1,28 @@
-# Remaining closeout checklist (honest scope)
+# Seller commercial-release closeout checklist
 
-## Seller-owned engineering closeout
-- [x] Commercial tiers A/B/C framework and transaction-specific License Schedule template
-- [ ] Resolve or formally disposition GHSA-fc5q-39xc-vjpf / CVE-2026-112366 for the exact mobile SDK 58 dependency tree; no unreviewed upstream patch, audit suppression, or forced major downgrade.
+**Buyer-independent rule:** A named buyer, buyer signature, buyer-specific legal review, payment, or transaction schedule is **not** a prerequisite to finish the product, generate its release package, publish the offer, or begin sales discussions. Those are post-sale transaction steps only. This checklist contains seller-owned release work only.
+
+## Source-code commercial release — seller-owned gates
+
+- [ ] Resolve or formally disposition GHSA-fc5q-39xc-vjpf / CVE-2026-112366 for the exact mobile SDK 58 dependency tree. No unreviewed upstream patch, silent audit suppression, or forced major downgrade.
 - [ ] Complete the source/data-flow threat review for build-time glob patterns and retain full + production-only npm audit JSONs from the exact candidate run.
-- [ ] Complete PR #222 candidate verification on its latest head; do not merge while any required check fails or before independent review.
-- [ ] Merge integrated security hardening (PR #163 lineage) after rebasing onto current main and passing exact-head CI
-- [ ] Complete and verify the approved 67-route signed-session coverage matrix; do not substitute inventory counts or CI-only route contracts
-- [ ] Obtain commit- and Neon-branch-bound Production dual-tenant and recovery evidence; do not reuse rebind-era JSON
-- [ ] Verify Production deploy remains explicitly manual-only and cannot run on an ordinary push
-- [ ] Generate the final exact-head Secure Release artifact, SBOM, provenance, test reports and checksum statement from one successful pipeline
-- [ ] Reconcile the deliverable's source commit, package digest and release statement; ensure buyer package matches the selected release candidate
+- [ ] Complete PR #222 candidate verification on its latest head; merge only after every required check passes and independent review is recorded.
+- [ ] Rebase and review the integrated security-hardening PR #163 lineage; merge only after exact-head CI passes.
+- [ ] Complete and verify the approved 67-route signed-session coverage matrix; do not substitute inventory counts or CI-only route contracts.
+- [ ] Generate the final exact-head Secure Release artifact, SBOM, provenance, test reports and checksum statement from one successful pipeline.
+- [ ] Reconcile all seller-facing offer and handoff documentation to the exact release statement, source commit and package digest.
+- [ ] Confirm that the downloadable source package contains only intended distributable files and no credentials, customer data, local state, or unrelated artifacts.
 
-## Seller / account-owner commercial infrastructure decisions
-- [ ] Decide on Vercel commercial hosting plan or alternate hosting before selling a hosted SaaS service; this is not a blocker to marketing a source-code handoff
-- [ ] Decide whether Neon paid retention, multi-day PITR and protected-branch capacity are required for the seller-hosted service; do not claim these on the Free plan
-- [ ] Resolve Preview SSO / authenticated Preview-test access without weakening Production or broadening deployment access
+## Separate seller-hosted SaaS track — not a source-code sale gate
 
-## Buyer-specific work — not a seller launch or marketing gate
-- Mobile store signing, native-speaker translation review and licensed map/provider accounts are disclosed buyer/environment responsibilities unless separately included in a transaction.
-- A named buyer, buyer-signed License Schedule and buyer-specific independent legal review happen only after a prospective buyer is identified and transaction terms are negotiated. These are transaction-closing requirements, not pre-sale release blockers.
-- The rights holder and the named buyer must execute the License Schedule before licensed use, modification, redistribution or delivery of the pinned software package.
+- Vercel commercial hosting or alternate hosting is required only before the seller offers a hosted SaaS service. It is not required to sell a source-code package.
+- Neon paid retention, multi-day PITR and protected-branch capacity are service-operability decisions for a seller-hosted environment. Do not advertise Free-plan capabilities as production backup guarantees.
+- Preview SSO and authenticated Preview acceptance remain environment hardening tasks. They must not be solved by weakening Production controls.
+- Production migration, HMAC rotation, WAF enforcement changes and promotion of a new Production deployment remain separately authorized operations. Do not run them merely to produce a source-code sales package.
+- Production certification remains NOT_ESTABLISHED unless separately proven against the actual Production target. This limitation must be disclosed; it does not by itself prevent a source-code-only release if all source-release gates pass.
+
+## Transaction boundary — explicitly outside product closeout
+
+After a prospective buyer is identified and transaction terms are agreed, the rights holder and buyer execute the applicable License Schedule, pinning the exact released commit/package digest and defining permitted use, modification, distribution, territory, term, price and support. That agreement is required before granting the buyer licensed use or delivery rights; it is not a product-completion, release, marketing, or buyer-identification gate.
+
+Mobile store signing, native-speaker translation review, licensed map/provider accounts and third-party service credentials remain disclosed buyer/environment responsibilities unless the seller separately agrees to provide them.
