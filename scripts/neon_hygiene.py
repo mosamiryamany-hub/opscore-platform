@@ -18,7 +18,7 @@ KEEP_IDS = {
 
 # This is deliberately a very narrow allowlist. Broad markers such as "preview",
 # "restore", "migration", "catalog" or "digital-twin" must never select a branch.
-PRUNE_PREFIXES = ("tmp-", "test-accept-", "ephemeral-", "preview/", "opscore-mig-signed-ctx-", "opscore-commercial-closeout-", "opscore-prepromotion-", "opscore-signed-context-063", "opscore-production-restore-drill")
+PRUNE_PREFIXES = ("tmp-", "test-accept-", "ephemeral-")
 PROTECTED_NAME_MARKERS = (
     "prod", "production", "restore", "recovery", "snapshot", "migration",
     "signed", "commercial", "preview", "catalog", "release", "handoff",

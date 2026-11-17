@@ -5,29 +5,47 @@
       "status": "PASS"
     },
     "database_identity": {
+      "serverVersion": "18.7 (a21afb5)",
       "status": "PASS"
     },
     "migration_ledger_read": {
+      "migration068Present": true,
+      "migrations063to067And069Absent": true,
       "schemaMigrationsCount": 62,
       "status": "PASS"
     },
     "public_table_inventory": {
+      "forceRlsEnabledTableCount": 134,
       "publicTableCount": 135,
+      "rlsEnabledTableCount": 134,
+      "rowContentParityWithPrimary": true,
+      "rowContentSha256": "fe5063af3ca6cfbad6a0325f6eda972731fb80a960af471f2075f51896400341",
       "status": "PASS"
     },
     "restore_branch_ready": {
+      "branchId": "br-quiet-poetry-bc3uo0u3",
+      "currentState": "ready",
       "status": "PASS"
     },
     "runtime_role_boundary": {
+      "organizationsVisibleWithoutTenantContext": 0,
+      "ownerRoleBypassRls": true,
+      "runtimeRoleBypassRls": false,
+      "runtimeRoleSuperuser": false,
       "status": "PASS"
     },
     "schema_catalog_read": {
+      "definitionParityWithPrimary": true,
+      "schemaItemCount": 6096,
       "status": "PASS"
     },
     "snapshot_provenance": {
+      "restoreStatus": "restored",
+      "restoredAs": "br-proud-salad-bcshhdap",
       "status": "PASS"
     }
   },
+  "dataContentSha256": "fe5063af3ca6cfbad6a0325f6eda972731fb80a960af471f2075f51896400341",
   "databaseIdentity": {
     "databaseName": "opscore_acceptance",
     "roleName": "neondb_owner"
@@ -36,14 +54,15 @@
   "primaryBranchId": "br-proud-salad-bcshhdap",
   "projectId": "summer-leaf-18448271",
   "publicTableCount": 135,
-  "restoreBranchId": "br-divine-fog-bcki2xa4",
+  "restoreBranchId": "br-quiet-poetry-bc3uo0u3",
   "restoreBranchState": "ready",
   "restoreSnapshotId": "snap-floral-sea-bcug7fd3",
-  "schemaSha256": "efa1f375d76194fa51a3556a97e641e61685f914d446979da50a551a4333ffd7",
+  "schemaInventoryItemCount": 6096,
+  "schemaSha256": "2deab77e3b25f816c5a17aad24cebce83fbd7065dc26407898b3ebf584553fb5",
   "schemaVersion": "opscore.neon-primary-restore-proof.v1",
   "snapshotId": "snap-floral-sea-bcug7fd3",
   "snapshotSourceBranchId": "br-proud-salad-bcshhdap",
   "status": "PASS",
   "tableInventorySha256": "fbe28eb39056c46866c88dcd4cd37d8da55ba58b3887f2d5503287dba80a51be",
-  "testedAt": "2026-11-17T16:10:36.745503Z"
+  "testedAt": "2026-11-17T16:47:34.945Z"
 }

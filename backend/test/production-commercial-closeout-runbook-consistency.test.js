@@ -33,25 +33,28 @@ const languageQualificationRows = fs.readFileSync(
 ).trim().split('\n').slice(1);
 
 test('Production runbook and buyer residual register use the latest observed Neon capacity', () => {
-  assert.match(runbook, /10 active branches \(10\/10 included\)/);
+  assert.match(runbook, /5 active branches \(5\/10 included\)/);
+  assert.match(runbook, /5 active branches \(5\/10 included\)/);
   assert.match(runbook, /3 root branches/);
-  assert.match(runbook, /All ten are unprotected/);
-  assert.match(runbook, /current automatic snapshot schedule is empty/);
-  assert.match(runbook, /restore attempt failed with `root branches limit exceeded`/);
-  assert.match(buyerResiduals, /10\/10 visible branches/);
-  assert.match(buyerResiduals, /all ten are unprotected/);
-  assert.doesNotMatch(runbook, /eight active branches|Total branch count \(8\)/i);
-  assert.doesNotMatch(buyerResiduals, /8 visible branches|eight visible branches/i);
+  assert.match(runbook, /All five are unprotected/);
+  assert.match(runbook, /Primary automatic snapshot schedule is empty/);
+  assert.match(runbook, /snapshots limit exceeded/);
+  assert.match(buyerResiduals, /5 active branches of 10 available/);
+  assert.match(buyerResiduals, /all five active branches are unprotected/i);
+  assert.match(buyerResiduals, /non-finalizing Restore Snapshot API/);
+  assert.doesNotMatch(runbook, /10 active branches \(10\/10 included\)/);
+  assert.doesNotMatch(buyerResiduals, /10\/10 visible branches|all ten are unprotected/i);
 });
 
-test('Production key material, restore proof, and 67-route collector are not falsely described as completed', () => {
+test('Production key material and 67-route collector remain open while the real restore proof is accurately recorded', () => {
   assert.match(runbook, /`opscore_security` schema and `context_hmac_keys` table are absent on Primary/);
   assert.match(runbook, /zero Production HMAC key rows/);
   assert.match(runbook, /real Production 67-route collector\/evidence writer is \*\*not implemented and not available\*\*/);
-  assert.match(runbook, /restore proof does not exist/);
+  assert.match(runbook, /valid non-finalizing restore proof now exists in the PR #219 branch/);
+  assert.match(runbook, /OPSC_PRODUCTION_RESTORE_PROOF_SHA256/);
   assert.doesNotMatch(runbook, /Production key table exists/i);
   assert.doesNotMatch(runbook, /67-route collector is implemented and available/i);
-  assert.doesNotMatch(runbook, /valid, hash-pinned \*\*non-finalizing restore proof\*\* exists/i);
+  assert.doesNotMatch(runbook, /valid, hash-pinned \*\*non-finalizing restore proof does not exist\*\*/);
 });
 
 test('Production migration and rotation remain manual, confirmation-gated, and traffic-neutral', () => {

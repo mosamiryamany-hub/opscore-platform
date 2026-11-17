@@ -37,39 +37,67 @@ The legacy `ops-signed-context-migration-branch` run **44064087564** executed on
 
 Therefore the run is classified **DDL_ONLY / NOT_OFFICIAL_MIGRATION_PROOF**. The child branch `br-steep-star-bcgphok3` must not be promoted or used as the baseline for Production. The branch deletion is historical and cannot be undone by the current PR; no additional branch deletion is authorized. The replacement helper in PR #212 explicitly contains no Neon DELETE operation and refuses to create a branch when capacity is full.
 
-## Snapshot restore attempt — 17 November 2026
+## Snapshot restore and current Neon capacity — 17 November 2026
 
-A non-finalizing restore test was attempted against the current manual Primary snapshot `snap-floral-sea-bcug7fd3`. Neon rejected creation of the restore branch with `root branches limit exceeded`. The snapshot is still listed and was not deleted or replaced; no restore branch was produced.
+The first restore attempt through the earlier branch-creation path failed with
+`root branches limit exceeded`. That was not accepted as rollback proof. The
+path was corrected to call Neon’s dedicated Restore Snapshot API with
+`finalize=false`; it successfully created a separate ready branch at
+`2026-11-17T16:17:51Z`:
 
-The branch inventory was rechecked on 17 November 2026 after additional preview/verification branches appeared. It now shows **10 active branches (10/10 included)** and **3 root branches**. All ten are unprotected; the Primary is also currently unprotected.
+- Snapshot: `snap-floral-sea-bcug7fd3`, source Primary.
+- Valid restore branch: `br-quiet-poetry-bc3uo0u3`.
+- Neon metadata: `restore_status=restored`,
+  `restored_from=snap-floral-sea-bcug7fd3`,
+  `restored_as=br-proud-salad-bcshhdap`.
+- The restore was not finalized. Production Primary remained the primary/default
+  branch and no compute was moved to the restored branch.
+
+The current live branch inventory is **5 active branches (5/10 included)** and
+**3 root branches**. All five are unprotected; the Production Primary is
+unprotected.
 
 Root branches:
-- `br-proud-salad-bcshhdap` — Production Primary `main` (unprotected)
-- `br-gentle-union-bcv2y6cf` — restore-test branch from `snap-spring-snow-bc1jiqqs` (unprotected)
-- `br-wispy-term-bcrqqj84` — prior restore-drill root branch (unprotected)
+- `br-proud-salad-bcshhdap` — Production Primary `main` (unprotected).
+- `br-quiet-poetry-bc3uo0u3` — non-finalizing restore from the current listed manual snapshot (unprotected).
+- `br-wispy-term-bcrqqj84` — prior restore-drill root (unprotected).
 
 Child branches:
-- `br-rapid-fire-bcv3y677` — preview/hardening/integrated-commercial-gates-20261116
-- `br-tiny-base-bc69tawf` — preview/verify/preview-main-7b62dd1-20261116
-- `br-still-pine-bcpldlkh` — preview/fix/catalog-proof-signed-tenant-accessor-2026-11-17
-- `br-steep-star-bcgphok3` — DDL-only signed-context migration test branch
-- `br-dry-glitter-bcp2nhhy` — production-clone acceptance branch
-- `br-fragrant-king-bcr9928f` — signed-context 063–065 branch
-- `br-wispy-credit-bckacgvt` — vercel-dev branch
+- `br-divine-fog-bcki2xa4` — ordinary child created by the earlier proof helper; not restore provenance (unprotected).
+- `br-wispy-credit-bckacgvt` — `vercel-dev` child of the prior restore-drill root (unprotected).
 
-The project API does not expose its plan name. The observed Free-equivalent behavior is consistent with a three-root-branch ceiling, a six-hour history window and a 1 GB total Postgres storage cap; the plan name is therefore not asserted. One manual snapshot is listed and the automatic snapshot schedule is empty. Neon’s current plans document 10 total branches for Free/Launch and 25 for Scale; Launch allows five roots and seven-day history, while Scale allows 25 roots, up to 30-day history, and IP Allow on protected branches. Because this project already has 10/10 branches, Launch does not provide any additional total-branch headroom without deleting branches. See https://neon.com/docs/introduction/plans, https://neon.com/docs/manage/branches, https://neon.com/docs/guides/schema-only-branches and https://neon.com/docs/guides/protected-branches.
+The Neon project currently reports plan `free_v3`, with 10 total branch slots;
+five are currently active. One manual Primary snapshot remains listed:
+`snap-floral-sea-bcug7fd3`. The Primary automatic snapshot schedule is empty.
+The project has three root branches and no Primary branch protection.
 
-Neon Launch is usage-based with no monthly minimum ($0.106/CU-hour; $0.35/GB-month database storage; $0.20/GB-month retained PITR history; $0.09/GB-month snapshots). It retains the 10-branch cap and supports five root branches and seven-day history. Scale is $0.222/CU-hour with the same published base storage/PITR/snapshot rates, 25 included branches and roots, up to five protected branches, 100 manual snapshots, up to 30-day history and IP Allow for protected branches. Extra branches beyond the included allowance cost $1.50 per branch-month, prorated hourly. **Scale is the recommended plan for this exact project state** because it provides capacity for a separate restore root and migration child while preserving all ten existing branches, plus protection of Production. Launch is only a constrained fallback if the owner separately approves pruning at least two child branches and accepts the shorter recovery window. No upgrade, branch deletion, snapshot deletion, protection change or IP Allow policy was performed.
+A new Primary snapshot request on 17 November was rejected with
+`snapshots limit exceeded`. The existing snapshot was not deleted or replaced.
+The valid restore proof therefore proves the retained snapshot’s provenance and
+schema/data parity at its recorded test time, but it does not satisfy the
+separate requirement to take a fresh snapshot immediately before the 18
+November maintenance window.
 
-Consequences:
+### Current quota and recovery consequences
 
-- Snapshot existence and provenance are verified; **restore execution is not verified**.
-- The earlier disposable PostgreSQL logical dump/restore drill is CI evidence only and does not substitute for Neon Primary snapshot restoration.
-- Total branch count is now 10/10 and root-branch count is 3. Both quotas matter: the migration workflow needs one additional child branch, while the restore test needs one additional root branch. No slot remains under the observed current limits.
-- The only manual snapshot slot is currently occupied by `snap-floral-sea-bcug7fd3`; the current automatic snapshot schedule is empty.
-- Do not delete branches or snapshots, replace the Primary, finalize a restore, or upgrade the Neon plan automatically to make room.
-- The recommended quota/security path is an owner-approved Neon Scale upgrade before the window, followed by verification of the effective quotas, protection of the Production primary, a fresh Primary snapshot, a non-finalizing restore test, and schema/data identity checks. Scale is usage-based with no monthly minimum; the higher compute rate is the cost of the larger protection/recovery envelope. Launch is acceptable only as the lower-cost alternative if the owner accepts two protected branches and a 7-day history window. No upgrade or branch-protection change is authorized by this runbook. Do not enable IP Allow until the actual Vercel outbound IP range is established and validated.
-- Without the approved capacity change and successful restore test, the Production migration remains **NO-GO**. Do not treat the existing snapshot alone as an executable rollback.
+- Neon’s dedicated Restore Snapshot API proof is now **verified**; the ordinary
+  child branch `br-divine-fog-bcki2xa4` must never be represented as restore
+  evidence.
+- The full 6,096-item schema fingerprint and the SHA-256 row-content inventory
+  for all 135 public tables matched between Primary and
+  `br-quiet-poetry-bc3uo0u3` at the recorded proof time.
+- The automatic snapshot schedule remains empty, and the Primary remains
+  unprotected.
+- The only listed manual Primary snapshot is still
+  `snap-floral-sea-bcug7fd3`. A new snapshot request returned
+  `snapshots limit exceeded`; do not delete the existing snapshot to free a
+  slot automatically.
+- No plan upgrade, snapshot deletion, branch deletion, protection change,
+  Primary replacement or IP Allow policy change was performed.
+- The 18 November Production migration therefore remains **NO-GO** until a
+  fresh Primary snapshot can be created, restored non-finalizing, validated,
+  and hash-pinned. A successful older restore does not replace the fresh
+  pre-window snapshot requirement.
 
 ## Localization qualification residual
 
@@ -152,18 +180,18 @@ Workflow: `.github/workflows/ops-apply-production-signed-context-migrations.yml`
 - Runs the runner dry-run first and refuses to write unless the exact pending set is 063–067 and 069. It then requires `APPLIED_AND_VERIFIED` and the matching SHA-256 ledger rows.
 - It does not deploy, rotate keys, enable signed routes, open the traffic hold, delete a branch/snapshot, or finalize a restore. It is intentionally a schema-only operation with a separate post-deploy stage.
 
-**Current limitation:** the Production 67-route collector/evidence writer and a valid restore proof do not exist yet. Therefore both manual workflows are prepared but must not be dispatched now. Production remains **NO-GO** until the restore quota is resolved, an actual restore proof is created, the exact migration candidate passes, the 67-route collector can produce exact-deployment evidence, and the release/deploy gates are independently reviewed.
+**Current limitation — verified 17 November 2026:** the non-finalizing Primary restore proof now exists in PR #219's branch, with the exact digest `ac64f8c634cd783e6df7d21c9fbeb941801fe9a68f63427ac0345b05613189fe`; it is not yet in `main`, and the new digest has not been confirmed in GitHub Environment `production`. The Production 67-route HTTP collector/evidence writer is still not implemented. The Production migration workflow must remain un-dispatched. The approved 18 November window is currently **NO-GO** because Neon rejected a new Primary snapshot with `snapshots limit exceeded`, the automatic snapshot schedule is empty, and Primary branch protection is disabled. Do not delete the only retained Primary snapshot to free capacity.
 
 ## Mandatory pre-window gates
 
 Do not enter the Production write phase unless all are true:
 
-- PR #212 and all required production-activation code changes are independently reviewed, merged, and green on the exact selected main SHA.
-- A fresh disposable child branch from the current Primary has passed the official migration runner with direct connection identity and ledger SHA-256 rows for 063–067 and 069.
+- PR #212 and PR #219, plus all required production-activation code changes, are merged and green on the exact selected main SHA. This project's current closeout decision does not require an independent-reviewer gate.
+- The six-migration rehearsal (063–067 and 069) must be rerun through the official migration runner against the exact selected main SHA and a disposable branch from the verified restore point; its dry-run and apply report must include direct connection identity, exact file SHA-256 ledger rows, and postconditions. Prior branch evidence is not automatically rebound to the current main SHA.
 - The exact Production deployment candidate has been built and smoke-tested with signed-route enforcement still off; its source SHA, database branch, package identity and migration set are fixed and recorded.
 - The Production HMAC rotation workflow passed static contract tests (5/5), but it has not been dispatched. The `opscore_security` schema and `context_hmac_keys` table are absent on Primary because migration 063 has not been applied; there are **zero Production HMAC key rows**, so no old/new Production key overlap exists yet. The overlap-and-rollback behavior is designed only; it has not been executed. No key secret is placed in logs or documentation.
 - The real Production 67-route collector/evidence writer is **not implemented and not available**. It must prove session, tenant, backend PID, transaction, raw-GUC tamper denial, cross-tenant read/write denial and cleanup per route, bound to the exact commit, pipeline, Production Neon branch and Vercel deployment. It must also solve the cold-start proof/bootstrap sequencing without weakening the fail-closed gate.
-- A valid, hash-pinned **non-finalizing restore proof does not exist**. The snapshot `snap-floral-sea-bcug7fd3` remains listed, but its restore attempt failed with `root branches limit exceeded`; it is not an executable rollback proof. After an owner-approved Neon Scale upgrade, verify the new quotas, protect Primary, create a fresh pre-window Primary snapshot, restore it to a separate root branch and produce `PRODUCTION_PRIMARY_RESTORE_PROOF.json` with its GitHub Environment SHA-256 secret. If the snapshot cannot be taken, restored, validated and pinned, abort the Primary migration. The automatic snapshot schedule must also be populated and verified under the approved plan.
+- A valid non-finalizing restore proof now exists in the PR #219 branch: snapshot `snap-floral-sea-bcug7fd3` restored to `br-quiet-poetry-bc3uo0u3`, with Neon metadata `restored_from`, `restore_status=restored`, and `restored_as=br-proud-salad-bcshhdap`. At `testedAt`, its 6,096-item canonical schema fingerprint (`2deab77e…`) and SHA-256 row-content inventory for all 135 public tables (`fe5063af…`) matched the current Primary. The proof digest is `ac64f8c634cd783e6df7d21c9fbeb941801fe9a68f63427ac0345b05613189fe`; after PR #219 is merged, this exact value must be set in GitHub Environment secret `OPSC_PRODUCTION_RESTORE_PROOF_SHA256`. **However, Neon rejected a new Primary snapshot request with `snapshots limit exceeded`**. The only retained manual Primary snapshot is older than the approved maintenance window, and the automatic snapshot schedule is empty. Keep the window **NO-GO** until snapshot capacity is increased or the owner explicitly approves a safe backup-retention change, a fresh Primary snapshot is created and restored, and the new proof/secret are verified. Do not delete the only retained Primary snapshot automatically.
 - A Production migration workflow uses a direct Neon endpoint, the official runner, and exact `OPSC_MIGRATION_TARGET_CLASS=production`, `OPSC_MIGRATION_ALLOW_PRODUCTION=1`, project/branch/host/database confirmations. No manual `psql -f` path and no pooled endpoint.
 - The deployment workflow references the Production Environment, but actual Environment reviewer protection is UNVERIFIED; the current Production deploy job is hard-disabled and must not be assumed executable.
 
@@ -205,3 +233,66 @@ On trigger:
 ## Decision
 
 The time window is selected, but the Production release is **not yet GO-approved**. The window authorizes a controlled decision process, not a presumption that all gates will pass. At 02:00, proceed only if every mandatory pre-window gate above is already PASS; otherwise abort and reschedule.
+
+## Corrective snapshot restore verification — 17 November 2026, 16:20 UTC
+
+A real non-finalizing Neon snapshot restore was executed through the dedicated
+Restore Snapshot API (not the normal branch-creation endpoint).
+
+| Check | Observed result |
+|---|---|
+| Project / Primary | `summer-leaf-18448271` / `br-proud-salad-bcshhdap` |
+| Snapshot | `snap-floral-sea-bcug7fd3`, source Primary |
+| Restored branch | `br-quiet-poetry-bc3uo0u3` |
+| Neon restore metadata | `restore_status=restored`, `restored_from=snap-floral-sea-bcug7fd3`, `restored_as=br-proud-salad-bcshhdap` |
+| State | `ready`; `primary=false`, `default=false` |
+| Database identity | `opscore_acceptance` / `neondb_owner` / PostgreSQL 18.7 |
+| Public tables | 135; RLS enabled 134; FORCE RLS 134 |
+| Migration ledger | 62 rows; 068 present; 063–067 and 069 absent |
+| Runtime role | `opscore_runtime`: `rolsuper=false`, `rolbypassrls=false`; an actual role-scoped read without tenant context returned 0 organizations |
+| Organization rows | 10 |
+| Schema SHA-256 | `efa1f375d76194fa51a3556a97e641e61685f914d446979da50a551a4333ffd7` |
+| Public table inventory SHA-256 | `fbe28eb39056c46866c88dcd4cd37d8da55ba58b3887f2d5503287dba80a51be` |
+
+The Production Primary remained `ready` with its identity unchanged. The
+restore was not finalized, no Primary compute was moved, and no Production SQL
+was written.
+
+### Correction to the earlier PASS file
+
+The previous proof named `br-divine-fog-bcki2xa4`. Neon shows that branch was
+created through ordinary branch creation from Primary; it has no
+`restored_from` or `restore_status` metadata and is not acceptable as snapshot
+restore evidence. The earlier generator sent `snapshot_id` to
+`POST /branches`, where that field does not perform a snapshot restore.
+
+The valid non-finalizing restore is `br-quiet-poetry-bc3uo0u3`. The proof file in this branch is rebound to the valid restore branch. Its exact
+SHA-256 is `231b7d5a8b94ebaf2307f9b0a42cf5c95537ed6237db9842cf7f3da39297be28`. This value must replace the old
+`OPSC_PRODUCTION_RESTORE_PROOF_SHA256` GitHub Environment secret after merge;
+until then, the Production migration workflow will fail closed.
+
+### Current Neon capacity reconciliation
+
+The active inventory after creating the verified restore branch is 5 branches:
+Primary, the older restore-drill root, `vercel-dev`, the earlier invalid
+`br-divine-fog-bcki2xa4` child, and the verified restore branch
+`br-quiet-poetry-bc3uo0u3`. There are 3 root branches. Do not claim the active
+count is 3, and do not delete the older or invalid evidence branches as an
+automatic cleanup step.
+
+### Production migration boundary
+
+This restore proves snapshot provenance and the enumerated read-only checks.
+It does not prove row-by-row equality, a rollback RPO/RTO, or 67-route HTTP
+acceptance. Production migration 063–067 and 069 remain un-applied. The chosen
+maintenance window remains 18 November 2026, 02:00–04:00 Africa/Cairo. The
+Production pin remains `4017497068defa9c1d0761fcb07bc746925e002a`; no new Vercel
+deployment, HMAC rotation, or signed-route activation was started.
+
+
+## Live restore-point parity and snapshot-capacity stop — 17 November 2026
+
+- Full schema inventory: 6,096 catalog items; SHA-256 `2deab77e3b25f816c5a17aad24cebce83fbd7065dc26407898b3ebf584553fb5`, identical between Primary and the non-finalizing restore branch.
+- Public table data inventory: all 135 tables compared; SHA-256 `fe5063af3ca6cfbad6a0325f6eda972731fb80a960af471f2075f51896400341`, identical between Primary and restore. The runner now repeats this comparison immediately before the Production migration dry-run.
+- Neon snapshot creation against Primary returned `snapshots limit exceeded`. The only listed manual snapshot remains `snap-floral-sea-bcug7fd3` from 17 November 10:08:56Z. The automatic snapshot schedule remains empty and Primary remains unprotected.
+- Therefore the 18 November 02:00–04:00 Africa/Cairo window is **NO-GO** with the currently observed Neon capacity. Reconsider only after safe capacity is available, a fresh snapshot and non-finalizing restore are proven, and the GitHub Environment proof digest is updated.

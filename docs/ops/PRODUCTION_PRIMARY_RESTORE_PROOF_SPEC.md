@@ -32,10 +32,12 @@ Required fields:
 | `databaseName` | `opscore_acceptance` |
 | `databaseIdentity` | `{ "databaseName": "opscore_acceptance", "roleName": "neondb_owner" }` |
 | `testedAt` | Offset-aware ISO timestamp, no more than 24 hours old when migration workflow runs |
-| `schemaSha256` | 64-character lowercase SHA-256 of the restored schema inventory |
-| `tableInventorySha256` | 64-character lowercase SHA-256 of the restored public table inventory |
+| `schemaSha256` | 64-character lowercase SHA-256 of the canonical schema-definition inventory (not a hash of schema names only) |
+| `schemaInventoryItemCount` | Positive count of catalog objects included in the canonical schema inventory |
+| `tableInventorySha256` | 64-character lowercase SHA-256 of the sorted public table-name inventory |
+| `dataContentSha256` | 64-character lowercase SHA-256 over per-table row counts and per-row SHA-256 digests for all public tables |
 | `publicTableCount` | Positive integer |
-| `checks` | All eight required checks listed below, each with `status: "PASS"` |
+| `checks` | All eight required checks listed below, each with `status: "PASS"`; `schema_catalog_read` includes `schemaItemCount` and `definitionParityWithPrimary=true`; `public_table_inventory` includes `rowContentSha256` and `rowContentParityWithPrimary=true` |
 
 Required check IDs:
 
@@ -56,13 +58,29 @@ official migration runner in dry-run mode and requires the exact pending set
 
 ## Evidence boundary
 
-The proof is not a Production isolation certificate, not a row-content equality
-certificate for every row, and not an RPO/RTO guarantee. It proves the stated
-snapshot/restore provenance and read-only database checks only. The separate
-Production 67-route signed-session evidence remains mandatory for route
-activation and release certification.
+The proof is not a Production isolation certificate, not a backup portability or RPO/RTO guarantee, and not a substitute for the Production 67-route signed-session evidence. It proves the stated snapshot/restore provenance, a canonical schema-catalog fingerprint, and normalized row-content fingerprints for the 135 public tables at the recorded test time only. Sequence current values, large objects, external object storage, and changes occurring after `testedAt` are outside that row-content fingerprint.
+
+The schema fingerprint covers non-system namespaces and their owners/ACLs, extensions, relations and RLS flags, columns and defaults, constraints, indexes, policies, user functions, triggers, views, types/enums, and sequence definitions. The data fingerprint sorts each table's row JSON representation, computes a SHA-256 per row, and then hashes the table-name/count/digest inventory. The proof generator compares both fingerprints between the restored branch and the live Primary before writing the proof; the Production migration runner repeats that comparison immediately before its migration dry-run.
 
 The file must remain absent or non-PASS until the restore test is actually
 completed. A missing proof, a mismatched digest, a stale timestamp, a deleted
 snapshot, a non-ready restore branch, or any missing check causes the Production
 migration workflow to fail before invoking the migration runner.
+
+
+## Correct snapshot restore execution
+
+The restore proof generator must call the Neon Restore Snapshot endpoint:
+`POST /projects/{project_id}/snapshots/{snapshot_id}/restore`, with
+`target_branch_id` bound to the Production Primary and
+`finalize_restore: false`. A normal `POST /branches` call is not a snapshot
+restore and must never be used to generate this proof.
+
+Before writing the proof, the runner independently requires a ready non-primary
+branch whose Neon metadata reports all of:
+`restored_from == snapshotId`, `restore_status == "restored"`, and
+`restored_as == primaryBranchId`. It then verifies direct database identity,
+schema/table SHA-256 inventories, the exact 62-row migration baseline, the
+absence of migrations 063–067 and 069, 135 public tables, the 134/134 RLS and
+FORCE RLS counts, and the non-superuser/non-BYPASSRLS runtime role. It never
+finalizes the restore or mutates Primary.
