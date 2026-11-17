@@ -60,4 +60,14 @@
 - Not a license grant  
 - Not transfer of cloud accounts, domains, or billing  
 - Not a claim of zero residual work  
-- Not certification of every future `main` commit until re-verified on a new production deploy  
+- Not certification of every future `main` commit until re-verified on a new production deploy
+
+## REMAINING_BUYER (immutable without buyer action)
+
+These are **not** seller defects for commercial close of the seller-operated pin:
+
+1. **Mobile store artifacts** — signing, listings, Apple/Google review  
+2. **Native human translation review** — zero native-speaker QA claimed  
+3. **Licensed street maps** — provider contract and keys  
+
+Seller release status remains `PASS_WITH_BUYER_RESIDUALS` while isolation is CERTIFIED on the pinned production commit.

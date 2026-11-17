@@ -52,3 +52,7 @@ The isolated PostgreSQL route matrix is not the missing live Production 67-route
 ## 5. Historical evidence boundary
 
 Older Production pins, package digests and Secure Release artifacts are historical records only. They must not be reused as identity or proof for `7b88f8fc18ec07bad09928038f9c1fe8176526a1` or a later source head. A current handover identity exists only when a successful Secure Release run creates the ZIP and its matching external release statement for the exact source commit.
+
+## 2026-11-17 evening note
+
+Merged mobile documented-risk audit gate (#222). Production pin and isolation certification unchanged. Buyer residuals unchanged and explicit.
