@@ -5,13 +5,13 @@ const PIPELINE_RE = /^[1-9][0-9]{0,14}$/;
 const DEPLOYMENT_RE = /^dpl_[A-Za-z0-9]+$/;
 const APPROVED_PRODUCTION_ORIGIN = 'https://opscore-platform.vercel.app';
 
-async function readProductionDeploymentIdentity(httpBase, expectedCommitSha) {
+async function readProductionDeploymentIdentity(httpBase, expectedCommitSha, fetchImpl = fetch) {
   const base = String(httpBase || '').replace(/\/+$/, '');
   if (base !== APPROVED_PRODUCTION_ORIGIN) throw new Error('PRODUCTION_HTTP_ORIGIN_NOT_APPROVED');
   const expectedCommit = String(expectedCommitSha || '').trim().toLowerCase();
   if (!COMMIT_RE.test(expectedCommit)) throw new Error('EXPECTED_PRODUCTION_COMMIT_SHA_REQUIRED');
 
-  const response = await fetch(base + '/api/verify/release', {
+  const response = await fetchImpl(base + '/api/verify/release', {
     method: 'GET',
     headers: { accept: 'application/json', 'cache-control': 'no-cache' },
     signal: AbortSignal.timeout(15000)
