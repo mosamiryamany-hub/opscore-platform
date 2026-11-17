@@ -10,7 +10,7 @@ const workflow = fs.readFileSync(
   'utf8'
 );
 
-test('Production HMAC rotation is manual, typed-confirmation and Production-environment approval gated', () => {
+test('Production HMAC rotation is manual, typed-confirmation and references the production Environment', () => {
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /github\.ref == 'refs\/heads\/main'/);
   assert.match(workflow, /ROTATE_PRODUCTION_TENANT_HMAC/);
