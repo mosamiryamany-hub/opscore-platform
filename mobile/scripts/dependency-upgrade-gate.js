@@ -29,7 +29,7 @@ const checks = [
   ['Expo SecureStore SDK 58 line', major(installed('expo-secure-store')) === 58],
   ['Expo SQLite SDK 58 line', major(installed('expo-sqlite')) === 58],
   ['node-forge patched version pinned', pkg.overrides?.['node-forge'] === '1.4.3' && everyVersionIs('node-forge', '1.4.3')],
-  ['glob fixed line pinned everywhere', pkg.overrides?.glob === '14.0.4' && everyVersionIs('glob', '14.0.4')],
+  ['glob absent or fixed line pinned everywhere', allVersions('glob').length === 0 || (pkg.overrides?.glob === '14.0.4' && everyVersionIs('glob', '14.0.4'))],
   ['minimatch fixed line pinned everywhere', pkg.overrides?.minimatch === '11.0.5' && everyVersionIs('minimatch', '11.0.5')]
 ];
 const result = {
