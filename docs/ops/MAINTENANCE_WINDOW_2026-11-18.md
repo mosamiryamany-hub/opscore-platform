@@ -106,7 +106,7 @@ Do not enter the Production write phase unless all are true:
 - A fresh disposable child branch from the current Primary has passed the official migration runner with direct connection identity and ledger SHA-256 rows for 063–067 and 069.
 - The exact Production deployment candidate has been built and smoke-tested with signed-route enforcement still off; its source SHA, database branch, package identity and migration set are fixed and recorded.
 - The manual HMAC rotation workflow and rollback procedure have passed isolated contract review; the Production key table exists, and the old key remains enabled throughout overlap. No key secret is placed in logs or documentation.
-- The real Production 67-route collector is available and proves session, tenant, backend PID, transaction, raw-GUC tamper denial, cross-tenant read/write denial and cleanup per route, bound to the exact commit, pipeline, Production Neon branch and Vercel deployment.
+- The real Production 67-route collector is implemented and available. It must prove session, tenant, backend PID, transaction, raw-GUC tamper denial, cross-tenant read/write denial and cleanup per route, bound to the exact commit, pipeline, Production Neon branch and Vercel deployment. It must also solve the cold-start proof/bootstrap sequencing without weakening the fail-closed gate; the current collector/evidence writer is not yet implemented.
 - A valid, hash-pinned **non-finalizing restore proof** exists for a real Primary snapshot, and the snapshot is still available. The existing `snap-floral-sea-bcug7fd3` has not passed restore. After an owner-approved Neon capacity upgrade, create a fresh pre-window Primary snapshot, restore it to a separate root branch and produce `PRODUCTION_PRIMARY_RESTORE_PROOF.json` with its GitHub Environment SHA-256 secret. If the snapshot cannot be taken, restored, validated and pinned, abort the Primary migration. The automatic snapshot schedule must also be populated and verified under the approved plan.
 - A Production migration workflow uses a direct Neon endpoint, the official runner, and exact `OPSC_MIGRATION_TARGET_CLASS=production`, `OPSC_MIGRATION_ALLOW_PRODUCTION=1`, project/branch/host/database confirmations. No manual `psql -f` path and no pooled endpoint.
 - A deployment workflow exists for the reviewed exact SHA, with explicit Production environment approval and live post-deploy evidence; the currently hard-disabled Production deploy job must not be assumed executable.
@@ -138,7 +138,7 @@ On trigger:
 
 ## Explicit exclusions
 
-- No Production schema write, HMAC Production key installation/rotation, signed-route Production flag change or Production deploy before the approved window and all mandatory pre-window gates.
+- No Production schema write, HMAC Production key installation/rotation, signed-route Production flag change or Production deploy before the approved window and all mandatory pre-window gates. The new workflows in PR #212 are manual-only and have not been dispatched.
 - No automatic deletion of Neon branches or snapshots to make capacity.
 - No Neon/Vercel plan upgrade without prior cost approval.
 - No claim of full Production 67-route coverage until the actual Production evidence file is generated and verified against the exact deployment.
