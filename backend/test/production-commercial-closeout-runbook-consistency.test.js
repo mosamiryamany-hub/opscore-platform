@@ -57,3 +57,10 @@ test('Production migration and rotation remain manual, confirmation-gated, and t
   assert.match(rotationWorkflow, /No Production deployment was started/);
   assert.match(rotationWorkflow, /signed_route_enable_flags_unchanged=true/);
 });
+
+test('GitHub Environment reviewer protection is not claimed without a verified settings read', () => {
+  assert.match(runbook, /Environment protection rules \/ Required reviewers were not readable/);
+  assert.match(runbook, /their presence is \*\*UNVERIFIED\*\*/);
+  assert.match(runbook, /Verify Settings → Environments → production before any dispatch/);
+  assert.doesNotMatch(runbook, /protected GitHub `production` Environment approval/);
+});
