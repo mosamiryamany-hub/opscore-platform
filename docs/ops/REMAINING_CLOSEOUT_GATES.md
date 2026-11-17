@@ -28,3 +28,37 @@
 - **Git `main` tip** may be ahead with ops/security hygiene; that tip is **not** automatically Production-certified.
 - **Buyer environment** certification remains **NOT_ESTABLISHED** until measured under a signed License Schedule.
 - **No license** is granted by repository presence or this document.
+
+
+## Verified update after the non-finalizing Neon restore — 17 November 2026
+
+The non-finalizing restore gate is now **VERIFIED** through the dedicated Neon
+Restore Snapshot endpoint:
+
+- Snapshot: `snap-floral-sea-bcug7fd3`, source Primary.
+- Valid restored branch: `br-quiet-poetry-bc3uo0u3`, ready, with Neon metadata
+  `restored_from`, `restore_status=restored`, and `restored_as=br-proud-salad-bcshhdap`.
+- Read-only validation: PostgreSQL 18.7, 135 public tables, 62 migration-ledger
+  rows, 068 present, 063–067 and 069 absent, and runtime role
+  `opscore_runtime` has neither superuser nor BYPASSRLS.
+- The older `br-divine-fog-bcki2xa4` is **not** a restore branch and must not be
+  cited as restore evidence.
+
+The proof JSON is rebound to the valid branch. Its new SHA-256 is
+`b2b92add88b3dab79f161db802af069760a6b13207fc681559b0bfae868e0fb4`.
+Update GitHub Environment `production` secret
+`OPSC_PRODUCTION_RESTORE_PROOF_SHA256` to this exact value after this change
+is merged. Until that update is confirmed, the Production migration workflow
+must remain un-dispatched.
+
+Neon currently has **5 active branches and 3 roots** (Free plan: 10 total
+branches). All observed branch protections remain disabled. No additional
+branch pruning, snapshot deletion, Primary protection change, or plan upgrade
+was done.
+
+The signed-context Production migration remains scheduled for the approved
+window **18 November 2026, 02:00–04:00 Africa/Cairo**. It is still subject to
+the exact six-migration preflight and the new proof digest check. It does not
+automatically deploy, rotate HMAC, or activate signed routes. Production stays
+pinned to `4017497068defa9c1d0761fcb07bc746925e002a` until a later, separate
+deployment and 67-route Production evidence cycle passes.
