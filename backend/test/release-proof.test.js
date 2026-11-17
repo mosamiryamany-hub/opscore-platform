@@ -272,15 +272,17 @@ test('production behavioral evidence must carry the exact release commit hint', 
   const recoveryPath = path.join(dir, 'recovery.json');
   const env = {
     OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE: 'true',
+    VERCEL_DEPLOYMENT_ID: 'dpl-production-fixture',
     OPSC_RELEASE_CI_COMMIT: SHA,
     OPSC_RELEASE_CI_PIPELINE_ID: '2978538209',
     OPSC_PRODUCTION_NEON_BRANCH_ID: 'br-current-production'
   };
   const session = {
-    schemaVersion: 'opscore.production-session-isolation.v2',
+    schemaVersion: 'opscore.production-session-isolation.v3',
     status: 'PASS',
     testedAt: '2026-10-23T00:00:00.000Z',
     sourceCommitHint: SHA,
+    deploymentId: 'dpl-production-fixture',
     pipelineId: '2978538209',
     databaseName: 'opscore_acceptance',
     verificationScope: 'dual-tenant-http-asset-create-read-event-write-denial-and-cleanup',
@@ -299,10 +301,11 @@ test('production behavioral evidence must carry the exact release commit hint', 
     }
   };
   const recovery = {
-    schemaVersion: 'opscore.production-recovery-point.v2',
+    schemaVersion: 'opscore.production-recovery-point.v3',
     status: 'PASS',
     testedAt: '2026-10-23T00:00:00.000Z',
     sourceCommitHint: SHA,
+    deploymentId: 'dpl-production-fixture',
     pipelineId: '2978538209',
     parentBranchId: 'br-current-production',
     databaseName: 'opscore_acceptance',
@@ -358,15 +361,17 @@ test('production behavioral evidence rejects any evidence rebind marker', () => 
   const recoveryPath = path.join(dir, 'recovery.json');
   const env = {
     OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE: 'true',
+    VERCEL_DEPLOYMENT_ID: 'dpl-production-fixture',
     OPSC_RELEASE_CI_COMMIT: SHA,
     OPSC_RELEASE_CI_PIPELINE_ID: '2978538209',
     OPSC_PRODUCTION_NEON_BRANCH_ID: 'br-current-production'
   };
   const session = {
-    schemaVersion: 'opscore.production-session-isolation.v2',
+    schemaVersion: 'opscore.production-session-isolation.v3',
     status: 'PASS',
     testedAt: '2026-10-23T00:00:00.000Z',
     sourceCommitHint: SHA,
+    deploymentId: 'dpl-production-fixture',
     pipelineId: '2978538209',
     databaseName: 'opscore_acceptance',
     verificationScope: 'dual-tenant-http-asset-create-read-event-write-denial-and-cleanup',
@@ -391,10 +396,11 @@ test('production behavioral evidence rejects any evidence rebind marker', () => 
     }
   };
   const recovery = {
-    schemaVersion: 'opscore.production-recovery-point.v2',
+    schemaVersion: 'opscore.production-recovery-point.v3',
     status: 'PASS',
     testedAt: '2026-10-23T00:00:00.000Z',
     sourceCommitHint: SHA,
+    deploymentId: 'dpl-production-fixture',
     pipelineId: '2978538209',
     parentBranchId: 'br-current-production',
     databaseName: 'opscore_acceptance',
@@ -676,7 +682,8 @@ test('Production signed-session route validator rejects structurally consistent 
   const env = {
     OPSC_RELEASE_CI_COMMIT: SHA,
     OPSC_RELEASE_CI_PIPELINE_ID: '3099988776',
-    OPSC_PRODUCTION_NEON_BRANCH_ID: 'br-current-production'
+    OPSC_PRODUCTION_NEON_BRANCH_ID: 'br-current-production',
+    VERCEL_DEPLOYMENT_ID: 'dpl-production-fixture'
   };
   const routes = Array.from({ length: 67 }, (_, index) => ({
     method: index < 34 ? 'GET' : 'POST',
@@ -719,6 +726,7 @@ test('Production signed-session route validator rejects structurally consistent 
     status: 'PASS',
     databaseName: 'opscore_acceptance',
     sourceCommitHint: SHA,
+    deploymentId: 'dpl-production-fixture',
     pipelineId: '3099988776',
     parentBranchId: 'br-current-production',
     expectedRouteCount: 67,
