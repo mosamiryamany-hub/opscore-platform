@@ -205,3 +205,59 @@ On trigger:
 ## Decision
 
 The time window is selected, but the Production release is **not yet GO-approved**. The window authorizes a controlled decision process, not a presumption that all gates will pass. At 02:00, proceed only if every mandatory pre-window gate above is already PASS; otherwise abort and reschedule.
+
+## Corrective snapshot restore verification — 17 November 2026, 16:20 UTC
+
+A real non-finalizing Neon snapshot restore was executed through the dedicated
+Restore Snapshot API (not the normal branch-creation endpoint).
+
+| Check | Observed result |
+|---|---|
+| Project / Primary | `summer-leaf-18448271` / `br-proud-salad-bcshhdap` |
+| Snapshot | `snap-floral-sea-bcug7fd3`, source Primary |
+| Restored branch | `br-quiet-poetry-bc3uo0u3` |
+| Neon restore metadata | `restore_status=restored`, `restored_from=snap-floral-sea-bcug7fd3`, `restored_as=br-proud-salad-bcshhdap` |
+| State | `ready`; `primary=false`, `default=false` |
+| Database identity | `opscore_acceptance` / `neondb_owner` / PostgreSQL 18.7 |
+| Public tables | 135; RLS enabled 134; FORCE RLS 134 |
+| Migration ledger | 62 rows; 068 present; 063–067 and 069 absent |
+| Runtime role | `opscore_runtime`: `rolsuper=false`, `rolbypassrls=false` |
+| Organization rows | 10 |
+| Schema SHA-256 | `efa1f375d76194fa51a3556a97e641e61685f914d446979da50a551a4333ffd7` |
+| Public table inventory SHA-256 | `fbe28eb39056c46866c88dcd4cd37d8da55ba58b3887f2d5503287dba80a51be` |
+
+The Production Primary remained `ready` with its identity unchanged. The
+restore was not finalized, no Primary compute was moved, and no Production SQL
+was written.
+
+### Correction to the earlier PASS file
+
+The previous proof named `br-divine-fog-bcki2xa4`. Neon shows that branch was
+created through ordinary branch creation from Primary; it has no
+`restored_from` or `restore_status` metadata and is not acceptable as snapshot
+restore evidence. The earlier generator sent `snapshot_id` to
+`POST /branches`, where that field does not perform a snapshot restore.
+
+The valid non-finalizing restore is `br-quiet-poetry-bc3uo0u3`. The proof file
+in this change is rebound to that branch, and its digest must replace the old
+`OPSC_PRODUCTION_RESTORE_PROOF_SHA256` GitHub Environment secret before the
+Production migration workflow can pass. The old digest is no longer valid for
+the corrected proof bytes.
+
+### Current Neon capacity reconciliation
+
+The active inventory after creating the verified restore branch is 5 branches:
+Primary, the older restore-drill root, `vercel-dev`, the earlier invalid
+`br-divine-fog-bcki2xa4` child, and the verified restore branch
+`br-quiet-poetry-bc3uo0u3`. There are 3 root branches. Do not claim the active
+count is 3, and do not delete the older or invalid evidence branches as an
+automatic cleanup step.
+
+### Production migration boundary
+
+This restore proves snapshot provenance and the enumerated read-only checks.
+It does not prove row-by-row equality, a rollback RPO/RTO, or 67-route HTTP
+acceptance. Production migration 063–067 and 069 remain un-applied. The chosen
+maintenance window remains 18 November 2026, 02:00–04:00 Africa/Cairo. The
+Production pin remains `4017497068defa9c1d0761fcb07bc746925e002a`; no new Vercel
+deployment, HMAC rotation, or signed-route activation was started.
