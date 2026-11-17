@@ -102,7 +102,7 @@ WITH schema_items AS (
  FROM pg_sequences WHERE schemaname NOT LIKE 'pg_%' AND schemaname<>'information_schema'
 )
 SELECT count(*)::int || '|' ||
-       encode(digest(coalesce(string_agg(item,E'\\n' ORDER BY item),''),'sha256'),'hex')
+       encode(digest(coalesce(string_agg(item,E'\n' ORDER BY item),''),'sha256'),'hex')
 FROM schema_items
 """
 
@@ -321,9 +321,9 @@ def table_data_inventory(uri):
             "expected": len(table_names),
             "actual": len(inventory_rows),
         })
-    table_sha = hashlib.sha256("\\n".join(table_names).encode("utf-8")).hexdigest()
-    canonical_rows = "\\n".join(
-        name + "\\t" + str(count) + "\\t" + digest
+    table_sha = hashlib.sha256("\n".join(table_names).encode("utf-8")).hexdigest()
+    canonical_rows = "\n".join(
+        name + "\t" + str(count) + "\t" + digest
         for name, count, digest in inventory_rows
     )
     content_sha = hashlib.sha256(canonical_rows.encode("utf-8")).hexdigest()
