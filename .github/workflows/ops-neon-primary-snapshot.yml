@@ -1,25 +1,44 @@
 name: ops-neon-primary-snapshot
+
 on:
   workflow_dispatch:
     inputs:
       confirm:
         description: Type ROTATE_PRIMARY_SNAPSHOT
         required: true
-  repository_dispatch:
-    types: [neon-primary-snapshot]
+        type: string
+      snapshot_id_to_delete:
+        description: Exact non-primary snapshot ID to delete only if primary snapshot creation is blocked by the plan limit
+        required: false
+        default: ''
+        type: string
+      confirm_non_primary_snapshot_deletion:
+        description: Type DELETE_ONE_NON_PRIMARY_SNAPSHOT after verifying the exact snapshot ID
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
 
+concurrency:
+  group: ops-neon-primary-snapshot
+  cancel-in-progress: false
+
 jobs:
   rotate:
-    if: ${{ github.event_name == 'repository_dispatch' || github.event.inputs.confirm == 'ROTATE_PRIMARY_SNAPSHOT' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.confirm == 'ROTATE_PRIMARY_SNAPSHOT' }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Rotate manual snapshot onto primary
         env:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
           NEON_PROJECT_ID: summer-leaf-18448271
           OPSC_PRODUCTION_NEON_BRANCH_ID: br-proud-salad-bcshhdap
+          OPSC_NON_PRIMARY_SNAPSHOT_DELETE_ID: ${{ github.event.inputs.snapshot_id_to_delete || '' }}
+          OPSC_CONFIRM_NON_PRIMARY_SNAPSHOT_DELETE: ${{ github.event.inputs.confirm_non_primary_snapshot_deletion || '' }}
         run: python3 scripts/neon_primary_snapshot_rotate.py
