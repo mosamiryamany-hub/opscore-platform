@@ -19,17 +19,17 @@ test('production remains held when the explicit hold variable is missing or true
   }, () => true), /PRODUCTION_HOLD_ACTIVE/);
 });
 
-test('explicit hold false opens production in operator-open mode without release evidence', () => {
-  assert.deepEqual(productionSafetyGate({ nodeEnv: 'production' }, {
+test('explicit hold false remains blocked when the current release evidence does not verify', () => {
+  assert.throws(() => productionSafetyGate({ nodeEnv: 'production' }, {
     OPSC_PRODUCTION_HOLD: 'false'
-  }, () => true), { allowed: true, mode: 'production-operator-open' });
+  }, () => true), /PRODUCTION_RELEASE_EVIDENCE_NOT_VERIFIED/);
 });
 
-test('environment flags alone do not claim full verified production mode without evidence', () => {
-  assert.deepEqual(productionSafetyGate({ nodeEnv: 'production' }, {
+test('environment flags alone cannot open Production without verified release evidence', () => {
+  assert.throws(() => productionSafetyGate({ nodeEnv: 'production' }, {
     OPSC_PRODUCTION_HOLD: 'false',
     OPSC_RELEASE_VERIFIED: 'true'
-  }, () => false), { allowed: true, mode: 'production-operator-open' });
+  }, () => false), /PRODUCTION_RELEASE_EVIDENCE_NOT_VERIFIED/);
 });
 
 test('production verified mode requires hold false, release switch, and evidence verifier', () => {
