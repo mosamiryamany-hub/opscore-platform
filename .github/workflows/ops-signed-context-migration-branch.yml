@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   migrate-branch:
-    if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.confirm == 'CREATE_SIGNED_CONTEXT_MIGRATION_BRANCH' }}
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.event.inputs.confirm == 'CREATE_SIGNED_CONTEXT_MIGRATION_BRANCH' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
