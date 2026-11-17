@@ -16,7 +16,7 @@ The catalog contains 1 English source locale, 109 machine-assisted drafts and 4 
 - **Mobile apps:** buyer builds, signs, device-tests, submits and distributes Android/iOS apps, maintains EAS/accounts and remediates mobile dependencies. Only mobile source is included.
 - **Production:** buyer verifies database behavior/isolation, backups/restore, KMS, TLS/WAF, observability and the target environment.
 
-The current locked Expo SDK 57.0.31 / React Native 0.86.3 baseline reports 0 high, 0 critical, 10 moderate and 2 low findings. The root PostgreSQL runtime driver pg 8.23.1 is locked and its baseline npm audit reported 0 findings. CI blocks high/critical; the exact pipeline report is authoritative and moderate/low findings remain disclosed.
+The current `main` lockfile baseline is Expo SDK 58.0.23 / React Native 0.88.1 / React 19.3.0. GitHub Actions on 2026-11-17 reported 26 High findings in the mobile dependency tree, associated with GHSA-fc5q-39xc-vjpf / CVE-2026-112366 through transitive picomatch copies. The root PostgreSQL runtime dependency audit reported 0 findings. Required CI blocks High/Critical results and is currently failing on the mobile audit. The separate Expo SDK 58.0.26 candidate is draft PR #222, not a released or merged baseline. Do not claim the mobile advisory is resolved; disclose it to prospective buyers and use only a same-run exact-head audit in any future package.
 
 ## What this is not
 - Not a hosted SaaS subscription.
