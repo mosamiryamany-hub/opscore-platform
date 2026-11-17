@@ -1,19 +1,23 @@
-# Commercial closeout — final seller posture
+# Commercial closeout — seller release posture
 
-> **Current status (2026-11-17): HOLD — NOT CURRENT-HEAD RELEASE-QUALIFIED.**
+> **Current status (2026-11-17): SELLER RELEASE HOLD — security and exact-head package gates remain open.**
 >
-> Current `main` is `6adea6fa209e394b464c4272db1860422d608afb`. No successful exact-head Secure Release artifact has been established for this commit. Required CI currently fails at the mobile dependency audit with 26 High findings associated with GHSA-fc5q-39xc-vjpf / CVE-2026-112366. Draft PR #222 refreshes Expo SDK 58 to 58.0.26 but is not merged or release-qualified. The old production proof below remains a historical reference bound to its earlier commit/deployment; it does not certify current main or a new buyer package. Do not use its package digest as a current deliverable fingerprint.
+> A buyer is **not required** to complete engineering, create a release package, publish the offer, or begin negotiations. Buyer identification, transaction negotiation, signature, payment and the transaction-specific License Schedule are post-sale steps, not seller release gates.
+>
+> Current `main` is `6adea6fa209e394b464c4272db1860422d608afb`. Draft PR #222 is based on that main and has advanced Expo SDK 58 to 58.0.26. On the latest checked PR head `522205a4d73ccacb2563aeb58ec31fdd9d0671b1`, the PostgreSQL 18 isolated RLS/HTTP acceptance passed. OpsCore CI and Vercel contract verification failed only at the mobile dependency audit: 26 High findings in the full mobile tree and 25 High findings with `--omit=dev`, associated with GHSA-fc5q-39xc-vjpf / CVE-2026-112366 through transitive picomatch dependencies. No audit suppression or forced downgrade was applied. The Vercel deploy job was skipped. PR #222 remains a draft and is not a release.
+>
+> The older Production proof below is historical evidence bound to its earlier commit/deployment. It does not certify current main or the SDK58 candidate. Do not use its package digest as a current deliverable fingerprint.
 
-**Updated:** 2026-11-17T06:13Z UTC  
-**Live production pin:** commit `4017497068defa9c1d0761fcb07bc746925e002a`
+**Updated:** 2026-11-17T19:10Z UTC  
+**Current main:** `6adea6fa209e394b464c4272db1860422d608afb`  
+**Current candidate PR head:** `522205a4d73ccacb2563aeb58ec31fdd9d0671b1`  
+**Historical Production pin:** `4017497068defa9c1d0761fcb07bc746925e002a`
 
 ## Historical runtime evidence — earlier Production pin only
 
 The following records are retained for traceability. They describe the earlier pinned deployment and must not be represented as current-main or current-package acceptance.
 
-## Historical runtime evidence
-
-| Gate | Status |
+| Gate | Historical status |
 |---|---|
 | Overall | PASS_WITH_BUYER_RESIDUALS |
 | Isolation | CERTIFIED |
@@ -22,28 +26,33 @@ The following records are retained for traceability. They describe the earlier p
 | Package SHA-256 | dea02a40c556fee6abfc84c372fb153009317867593bf9dafe8f21e171b02880 |
 | Proof URL | https://opscore-platform.vercel.app/api/verify/release |
 
-## Historical git-stored evidence for the earlier pin (2026-11-17)
+## Historical git-stored evidence for the earlier pin
 
-| Artifact | Status | Notes |
+| Artifact | Historical status | Notes |
 |---|---|---|
 | PRODUCTION_SESSION_ISOLATION.json | PASS | dual-tenant HTTP probes; sourceCommitHint=4017497…; run 44029395474 |
 | PRODUCTION_RECOVERY_POINT.json | PASS | 135 tables compared; mismatchCount=0; recovery branch created then eligible for ephemeral prune |
 
-No `evidenceRebind` / `probesReexecuted=false` on these files.
+No `evidenceRebind` / `probesReexecuted=false` on these historical files.
 
-## Seller offer
+## Seller offer status
 
-- OPEN FOR MARKETING AND COMMERCIAL NEGOTIATION  
-- NO LICENSE GRANT until per-buyer License Schedule is signed  
-- Tiers A (use) / B (modify) / C (modify+distribute) via schedule template  
+- OPEN FOR MARKETING, PRESENTATIONS AND COMMERCIAL NEGOTIATION.
+- No prospective buyer or buyer signature is needed to complete the product or prepare its release package.
+- No license grant is made to a buyer until the rights holder and named buyer execute a transaction-specific License Schedule that pins the exact deliverable.
+- Tiers A (use), B (use+modify), and C (use+modify+distribute) remain transaction options, not release prerequisites.
 
-## Remaining closeout blockers and disclosed residuals
+## Remaining seller-owned source-release gates
 
-1. Neon Launch+ for scheduled primary backups + multi-day PITR (manual snapshot limit on current plan)  
-2. Vercel edge WAF: promote auth rules log → deny/rate-limit after observation  
-3. Buyer residuals: mobile stores, human translation, licensed maps  
-4. Optional: promote current `main` tip to Production after a new deploy-bound evidence cycle
+1. Resolve or formally disposition the mobile picomatch advisory without suppressing the audit or forcing an incompatible SDK downgrade.
+2. Complete the source/data-flow threat review and retain exact-candidate full and production-only audit JSON.
+3. Complete the 67-route signed-session coverage evidence and review the PR #163 security-hardening lineage.
+4. Pass every required CI check on one exact candidate head, including independent review.
+5. Generate one successful exact-head Secure Release package with SHA-256, SBOM, provenance, test reports and forensic i18n evidence.
+6. Reconcile buyer-facing documentation and package manifests to that same release statement and digest.
 
-## Ops merge note (2026-11-17)
+## Separate hosted-service and Production operations
 
-Merged fail-closed Neon maintenance (#213) and guarded migration runner (#212). Production pin and isolation certification unchanged until a deliberate production evidence cycle.
+Neon paid backup/PITR capacity, Vercel commercial hosting, Preview SSO, Production migration, HMAC rotation, WAF enforcement and Production promotion belong to a separate seller-hosted SaaS / operational certification track. They are not prerequisites for a source-code-only commercial release. They must not be claimed as complete without current target-bound evidence, and no Production mutation is authorized by this document.
+
+Production certification remains NOT_ESTABLISHED for the current candidate. That limitation must be disclosed; it does not create a buyer-identification gate or prevent marketing a source-code offer.
