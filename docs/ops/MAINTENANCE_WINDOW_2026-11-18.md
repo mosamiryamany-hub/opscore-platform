@@ -66,12 +66,13 @@ Consequences:
 
 ## Production signed-context activation and key rotation path
 
-The application now accepts Production signed-context configuration only when all four independent conditions are true:
+The application now accepts Production signed-context configuration only when all five independent conditions are true:
 
 1. `VERCEL_ENV=production`.
 2. `OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED=true`.
 3. `OPSC_PRODUCTION_HOLD=false`.
-4. At cold start, `hasVerifiedProductionRelease()` verifies the immutable running deployment's exact source commit, CI pipeline, package fingerprint, production acceptance, session/isolation evidence, recovery evidence, and all 67 signed-route results bound to the exact deployment ID and Primary branch.
+4. `OPSC_RELEASE_VERIFIED=true`.
+5. At cold start, `hasVerifiedProductionRelease()` verifies the immutable running deployment's exact source commit, CI pipeline, package fingerprint, production acceptance, session/isolation evidence, recovery evidence, and all 67 signed-route results bound to the exact deployment ID and Primary branch.
 
 The server caches this readiness result for the lifetime of the deployment. Missing evidence, a different commit/pipeline/deployment/branch, a malformed proof, or an exception returns false and leaves signed Production paths unavailable. Setting environment flags alone cannot open the path. The separate global Production traffic gate still requires `OPSC_RELEASE_VERIFIED=true` plus the same release verifier; neither gate is changed by the new code path.
 
