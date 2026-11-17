@@ -60,7 +60,7 @@ No `evidenceRebind` / `probesReexecuted=false` on these historical files.
 ## Remaining seller-owned source-release gates
 
 1. Resolve or formally disposition the mobile picomatch advisory without suppressing the audit or forcing an incompatible SDK downgrade.
-2. Complete the source/data-flow threat review and retain exact-candidate full and production-only audit JSON.
+2. First-party mobile source/config scan is complete and recorded; finish independent third-party Expo/Metro call-site and CI build-input reachability review, retaining exact-candidate full and `--omit=dev` audit JSON. The first-party scan alone is not risk acceptance.
 3. Pass every required CI check on one exact candidate head, including independent review.
 4. Generate one successful exact-head Secure Release package with SHA-256, SBOM, provenance, test reports and forensic i18n evidence.
 5. Reconcile buyer-facing documentation and package manifests to that same release statement and digest.
