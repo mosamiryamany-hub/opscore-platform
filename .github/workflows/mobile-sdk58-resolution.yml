@@ -59,21 +59,32 @@ jobs:
           npx expo export --platform ios --output-dir "$RUNNER_TEMP/opscore-mobile-ios"
           npx expo export --platform web --output-dir "$RUNNER_TEMP/opscore-mobile-web"
 
-      - name: Generate and require a clean mobile audit
+      - name: Record full mobile audit (findings are not suppressed)
         working-directory: mobile
         run: |
-          npm audit --json > mobile-dependency-audit.json || audit_status=$?
-          audit_status=${audit_status:-0}
+          set +e
+          npm audit --json > mobile-dependency-audit.json
+          audit_status=$?
+          set -e
           node - <<'NODE'
           const fs = require('node:fs');
           const report = JSON.parse(fs.readFileSync('mobile-dependency-audit.json', 'utf8'));
           const v = report.metadata?.vulnerabilities;
           if (!v || typeof v.total !== 'number') throw new Error('MOBILE_AUDIT_REPORT_INCOMPLETE');
           console.log('MOBILE_AUDIT_SUMMARY', JSON.stringify(v));
-          if (v.total !== 0) process.exit(1);
+          for (const [name, issue] of Object.entries(report.vulnerabilities || {})) {
+            console.log('MOBILE_AUDIT_FINDING', JSON.stringify({
+              name, severity: issue.severity, range: issue.range,
+              fixAvailable: issue.fixAvailable,
+              via: (issue.via || []).map(v => typeof v === 'string' ? v : {
+                title: v.title, url: v.url, range: v.range
+              })
+            }));
+          }
           NODE
+          echo "npm_audit_exit=$audit_status"
 
-      - name: Commit only validated dependency artifacts
+      - name: Commit dependency refresh and exact audit evidence
         run: |
           set -euo pipefail
           git diff --check
@@ -84,5 +95,16 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "fix(mobile): align SDK 58 dependencies and clear audit"
+          git commit -m "fix(mobile): refresh SDK 58 dependencies and audit evidence"
           git push origin HEAD:maintenance/mobile-sdk58-security-remediation-2026-11-11
+
+      - name: Fail closed when dependency findings remain
+        working-directory: mobile
+        run: |
+          node - <<'NODE'
+          const report = require('./mobile-dependency-audit.json');
+          const v = report.metadata?.vulnerabilities;
+          if (!v || typeof v.total !== 'number') throw new Error('AUDIT_REPORT_INCOMPLETE');
+          console.log('FINAL_MOBILE_AUDIT', JSON.stringify(v));
+          if (v.total !== 0) process.exit(1);
+          NODE
