@@ -48,7 +48,7 @@ test('legacy ephemeral pruner requires exact branch ID/name, allowlist and main 
   assert.ok(pruneWorkflow.includes('branch_id:'));
   assert.ok(pruneWorkflow.includes('expected_branch_name:'));
   assert.ok(pruneWorkflow.includes('DELETE_ONE_EPHEMERAL_NEON_BRANCH'));
-  assert.ok(pruneWorkflow.includes('re-[a-z0-9-]{8,80}'));
+  assert.ok(pruneWorkflow.includes('br-[a-z0-9-]{8,80}'));
   assert.ok(pruneWorkflow.includes('TARGET_BRANCH_NAME_MISMATCH'));
   assert.ok(pruneWorkflow.includes('TARGET_BRANCH_NAME_NOT_IN_EPHEMERAL_ALLOWLIST'));
   assert.ok(pruneWorkflow.includes('TARGET_BRANCH_DELETE_NOT_VERIFIED'));
