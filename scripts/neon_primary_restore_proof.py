@@ -302,18 +302,18 @@ def table_data_inventory(uri):
         statements.append(
             "SELECT '" + literal + "'::text AS table_name, "
             "count(*)::bigint AS row_count, "
-            "md5(coalesce(string_agg(md5(row_to_json(t)::text), '' "
-            "ORDER BY row_to_json(t)::text), '')) AS row_content_md5 "
+            "encode(digest(coalesce(string_agg(encode(digest(row_to_json(t)::text,'sha256'),'hex'), '' "
+            "ORDER BY row_to_json(t)::text),''),'sha256'),'hex') AS row_content_sha256 "
             "FROM public." + identifier + " AS t"
         )
-    query = "SELECT table_name, row_count::text, row_content_md5 FROM ("
+    query = "SELECT table_name, row_count::text, row_content_sha256 FROM ("
     query += " UNION ALL ".join(statements)
     query += ") AS inventory ORDER BY table_name"
     inventory_output = psql(uri, query)
     inventory_rows = []
     for line in inventory_output.splitlines():
         parts = line.split("|")
-        if len(parts) != 3 or not re.fullmatch(r"[a-f0-9]{32}", parts[2]):
+        if len(parts) != 3 or not re.fullmatch(r"[a-f0-9]{64}", parts[2]):
             fail("RESTORE_PROOF_TABLE_CONTENT_INVENTORY_INVALID", {"row": line[:300]})
         inventory_rows.append((parts[0], int(parts[1]), parts[2]))
     if len(inventory_rows) != len(table_names):
