@@ -39,8 +39,8 @@ test('production verified mode requires hold false, release switch, and evidence
   }, () => true), { allowed: true, mode: 'production' });
 });
 
-test('the default production verifier does not elevate operator-open into verified mode from env-only claims', () => {
-  assert.deepEqual(productionSafetyGate({ nodeEnv: 'production' }, {
+test('the default production verifier keeps a deployment closed when embedded release evidence is incomplete', () => {
+  assert.throws(() => productionSafetyGate({ nodeEnv: 'production' }, {
     OPSC_PRODUCTION_HOLD: 'false',
     OPSC_RELEASE_VERIFIED: 'true',
     OPSC_RELEASE_CI_COMMIT: 'a'.repeat(40),
@@ -49,7 +49,7 @@ test('the default production verifier does not elevate operator-open into verifi
     OPSC_RELEASE_PACKAGE_SHA256: 'b'.repeat(64),
     OPSC_RELEASE_DEPLOYMENT_SOURCE: 'github-actions-cli',
     OPSC_PRODUCTION_ISOLATION_CERTIFICATION: 'CERTIFIED'
-  }), { allowed: true, mode: 'production-operator-open' });
+  }), /PRODUCTION_RELEASE_EVIDENCE_NOT_VERIFIED/);
 });
 
 test('Vercel Preview remains available when NODE_ENV is production without opening the production gate', () => {
