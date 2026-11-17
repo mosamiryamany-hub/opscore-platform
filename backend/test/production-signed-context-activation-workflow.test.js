@@ -20,7 +20,7 @@ const restoreProofSpec = fs.readFileSync(
   'utf8'
 );
 
-test('Production migration workflow is manual, exact-confirmation, main-only and Environment-approval gated', () => {
+test('Production migration workflow is manual, exact-confirmation, main-only and references the production Environment', () => {
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /APPLY_PRODUCTION_SIGNED_CONTEXT_MIGRATIONS/);
   assert.match(workflow, /github\.ref == 'refs\/heads\/main'/);
