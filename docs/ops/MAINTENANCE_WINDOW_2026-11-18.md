@@ -26,6 +26,17 @@ The selected time is an owner-approved operational window. Current Vercel Hobby 
 4. PR #212 prepares a corrected disposable-branch path: direct non-pooler endpoint, exact project/branch/host/database binding, the guarded `apply-postgres-migrations.js --apply` runner, SHA-256 ledger evidence, and no automatic branch deletion. It is not Production authorization and must pass independent review before use.
 5. The signed-context policy now has a Production code path, but it is independently fail-closed: `VERCEL_ENV=production`, `OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED=true`, `OPSC_PRODUCTION_HOLD=false`, and the exact running deployment must pass `hasVerifiedProductionRelease()` including the current 67-route signed-session proof. The server computes this readiness once at cold start; missing/stale/mismatched proof keeps Production signed routes disabled. The 67-route Production collector/evidence artifact is still not available, so the new path does not make Production activatable today. The Vercel Production deploy job remains hard-disabled (`if: false && ...`).
 
+## Historical migration workflow audit — 17 November 2026
+
+The legacy `ops-signed-context-migration-branch` run **44064087564** executed on `main` commit `e57adb3f380c1171d754c55c2911ca8f900b65a2` at 10:21 UTC. Its job concluded `success`, but the actual steps/logs show why it is not official migration-runner proof:
+
+- It automatically deleted the prior child branch `br-solitary-star-bctbf0ms` (Neon API returned HTTP 200), reducing branch count from 7 to 6, then created `br-steep-star-bcgphok3` from Primary. Primary itself was not deleted or changed by this branch-creation step.
+- It used a pooled Neon endpoint (`ep-plain-forest-bc8j0arj-pooler...`) and raw `psql` commands, not the guarded `apply-postgres-migrations.js --apply` runner.
+- Migrations 063–067 each returned `psql_rc=0`, but the subsequent migration-ledger query returned **`(0 rows)`**. The script nevertheless printed `MIGRATION_BRANCH_PASS`.
+- It omitted migration 069, which is required for the technician-trail routes in the 67-route manifest.
+
+Therefore the run is classified **DDL_ONLY / NOT_OFFICIAL_MIGRATION_PROOF**. The child branch `br-steep-star-bcgphok3` must not be promoted or used as the baseline for Production. The branch deletion is historical and cannot be undone by the current PR; no additional branch deletion is authorized. The replacement helper in PR #212 explicitly contains no Neon DELETE operation and refuses to create a branch when capacity is full.
+
 ## Snapshot restore attempt — 17 November 2026
 
 A non-finalizing restore test was attempted against the current manual Primary snapshot `snap-floral-sea-bcug7fd3`. Neon rejected creation of the restore branch with `root branches limit exceeded`. The snapshot is still listed and was not deleted or replaced; no restore branch was produced.
