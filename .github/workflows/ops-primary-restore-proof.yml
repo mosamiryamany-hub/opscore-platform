@@ -1,0 +1,35 @@
+name: ops-primary-restore-proof
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type CREATE_PRIMARY_RESTORE_PROOF
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  proof:
+    if: ${{ github.ref == 'refs/heads/main' && github.event.inputs.confirm == 'CREATE_PRIMARY_RESTORE_PROOF' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install psql
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+      - name: Restore from primary snapshot and write proof
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          OPSC_PRIMARY_SNAPSHOT_ID: snap-floral-sea-bcug7fd3
+        run: python3 scripts/neon_primary_restore_proof.py
+      - name: Commit proof if present
+        run: |
+          set -euo pipefail
+          if [ -f docs/ops/evidence/PRODUCTION_PRIMARY_RESTORE_PROOF.json ]; then
+            git config user.name 'OpsCore Release'
+            git config user.email 'ops@opscore.local'
+            git add docs/ops/evidence/PRODUCTION_PRIMARY_RESTORE_PROOF.json
+            git commit -m "evidence: primary restore proof PASS from snap-floral-sea-bcug7fd3" || echo no_change
+            git push origin HEAD:main || true
+            sha256sum docs/ops/evidence/PRODUCTION_PRIMARY_RESTORE_PROOF.json
+          fi
