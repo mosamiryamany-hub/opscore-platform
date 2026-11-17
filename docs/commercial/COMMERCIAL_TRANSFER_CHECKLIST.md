@@ -10,13 +10,13 @@ The GitHub repository was confirmed **public** during the 2026-11-11 closeout in
 
 | Area | Included by this source package | Buyer/customer responsibility |
 |---|---|---|
-| Contact Center translation | 114 selectable locale resources, runtime loader/selector/RTL/safe rendering, machine-translation notice, and four reproducible forensic/structural audit rounds whose pass result is in the build-specific CI report. Coverage is 1 English source, 109 machine-assisted drafts, 4 English fallback locales; 89 keys per locale. | Native-speaker/domain review and approval before official use. Do not claim human-reviewed or 114 production-qualified languages; currently 0/114 are production-qualified. |
+| Contact Center translation | 114 source/qualification rows, with 105 selectable runtime locales: 1 English source, 100 machine-assisted drafts, 4 explicit English fallbacks; 9 flagged locales withdrawn from runtime. The visible machine-translation notice and 89-key structure are included. | Native-speaker/domain review and approval before official use. Native-speaker review is 0/114; runtime production qualification is 0/105. Do not describe all 114 rows as selectable or qualified. |
 | External integrations | Source contracts, routes/adapters and configuration boundaries only where present. | Accounts, licenses, API credentials, OIDC/JWKS, email/SMS/WhatsApp/carrier and external call-center/telephony providers, payment, webhooks, object storage, KMS/HSM, maps/routing, cloud, quotas, billing, callbacks, live acceptance tests and maintenance. |
 | Mobile apps | Expo mobile source (version 0.1.16) and source-level verification. No signed APK/AAB/IPA is included. | EAS project/account, signing keys, Apple/Google developer accounts, native builds, physical-device testing, API environment setup, store submission/distribution, security/dependency remediation and updates. |
 
 ## Mobile dependency warning
 
-The verified current source candidate uses Expo SDK 58.0.23 / React Native 0.88.1 / React 19.3.0. GitHub Secure Release run 43308699094 reported zero findings across all npm audit severities in its same-run mobile audit JSON. This is a point-in-time locked-tree result, not a guarantee against future advisories. Signed native binaries and physical-device acceptance remain buyer-side gates.
+The current `main` baseline is Expo SDK 58.0.23 / React Native 0.88.1 / React 19.3.0. Draft PR #222 candidate head `807dee55f050bc96a4123091f09be1503c10004d` upgrades the candidate to Expo SDK 58.0.26. Exact-head run 44158727347 reports 25 High findings in the full mobile audit and 26 High with `--omit=dev` (0 Critical), caused by transitive picomatch dependencies associated with GHSA-fc5q-39xc-vjpf / CVE-2026-112366. Backend runtime dependency audit reports 0 findings. PostgreSQL 18 isolated acceptance passed on the same head (run 44158727249), but Production isolation remains NOT_CERTIFIED. The audit gate is fail-closed, no waiver or suppression is applied, and no exact-head Secure Release artifact is available. The earlier zero-finding run 43308699094 is historical and must not be used for this source tree.
 
 ## Other production boundaries
 
