@@ -7,20 +7,20 @@
 **Updated:** 2026-11-17  
 **Current `main`:** `6adea6fa209e394b464c4272db1860422d608afb`  
 **Current candidate branch:** PR #222, branch `fix/mobile-sdk58-current-main-20261117`.  
-**Candidate status:** Draft / not merged / not a qualified release. The latest full workflow evidence below is from tested code head `807dee55f050bc96a4123091f09be1503c10004d`; all subsequent commits on this PR branch changed seller/buyer documentation and the dependency-advisory review only, not application source, manifests or lockfiles. The new final branch head requires a fresh full CI and PostgreSQL check result before it can be considered for release.
+**Candidate status:** Draft / not merged / not a qualified release. The latest full workflow evidence below is from tested candidate code head `5afd48c85b04bb4f7a6a5d73ce3ad7fdd8331371`. This run validates the current app source, manifests, lockfiles and seller/buyer documentation on that exact head.
 
 ## 1. Current exact-head evidence
 
 | Gate | Exact-head result | Interpretation |
 |---|---|---|
-| OpsCore CI | [Run 44158727347](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44158727347) — failed at Mobile dependency audit | Backend verification, regression checks, mobile source-contract verification and backend runtime dependency audit completed successfully; the mobile audit remains fail-closed |
-| Backend runtime dependency audit | 0 findings | This does not clear the separate mobile dependency tree |
-| Mobile full dependency audit | 25 High, 0 Critical | Release gate failed |
-| Mobile audit with `--omit=dev` | 26 High, 0 Critical | The findings are not demonstrated to be dev-only |
-| PostgreSQL 18 isolated RLS/HTTP acceptance | [Run 44158727249](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44158727249) — success on this exact head | The caller-bound tenant matrix recorded 346 route checks; the report explicitly remains `isolationCertification=NOT_CERTIFIED` |
-| Vercel contract verification | [Run 44158727582](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44158727582) — failed at the same mobile audit | PostgreSQL deploy-bound and deploy jobs were skipped; no Production deployment occurred |
+| OpsCore CI | [Run 44167258493](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44167258493) — failed at Mobile dependency audit | Backend release regression suite: 810 tests, 807 passed, 0 failed, 3 skipped; backend runtime audit: 0 vulnerabilities |
+| Mobile dependency audit in OpsCore CI | 25 High, 0 Critical | Fail-closed release gate |
+| PostgreSQL 18 isolated RLS/HTTP acceptance | [Run 44167258471](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44167258471) — PASS on this exact head | Caller-bound tenant matrix: 346 route checks; logical restore: 137 tables; report remains `isolationCertification=NOT_CERTIFIED` |
+| Vercel contract verification | [Run 44167258499](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44167258499) — failed at Mobile dependency audit | Vercel workflow reported 26 High, 0 Critical on the same head; deploy-bound PostgreSQL and deploy jobs were skipped. No Production deployment occurred |
 
-The mobile build/export evidence is from the earlier candidate validation: run 44157820028 on `d59819b94c5953e17413b4f9cbf1ef1172145e90` recorded Expo Doctor 20/20 and Android, iOS and Web exports as PASS. A Git comparison from the earlier export-tested head `d59819b94c5953e17413b4f9cbf1ef1172145e90` to tested head `807dee55f050bc96a4123091f09be1503c10004d` showed 12 later commits touching documentation and advisory review only; the mobile application source, `package.json`, and `package-lock.json` did not change. That build evidence therefore relates to the same mobile source/lockfile, but it does **not** resolve the audit finding.
+The two workflows report a 25-versus-26 High-row variance on the same head. Both trace the records to the picomatch dependency paths associated with the same advisory; this is not evidence of 25 or 26 independent CVEs. Preserve and reconcile the exact audit JSONs before any release.
+
+The mobile build/export evidence is from the earlier candidate validation: run 44157820028 on `d59819b94c5953e17413b4f9cbf1ef1172145e90` recorded Expo Doctor 20/20 and Android, iOS and Web exports as PASS. A Git comparison from the earlier export-tested head `d59819b94c5953e17413b4f9cbf1ef1172145e90` through tested head `5afd48c85b04bb4f7a6a5d73ce3ad7fdd8331371` shows that later commits touched seller/buyer documentation and the advisory review only; the mobile application source, `package.json`, and `package-lock.json` did not change. That build evidence therefore relates to the same mobile source/lockfile, but it does **not** resolve the audit finding.
 
 The current audit still flags transitive `picomatch@4.0.7` and `picomatch@2.3.2` through the Expo/Metro dependency graph under GHSA-fc5q-39xc-vjpf / CVE-2026-112366. The advisory remains unresolved for this candidate. No audit suppression, unreviewed patch, forced major downgrade, or risk waiver was applied. `npm audit fix --force` proposes installing React Native 0.83.10, a breaking change from the candidate's 0.88.1 line; that option was rejected. The backend audit passing and successful JavaScript exports do not establish mobile supply-chain security. The High rows are repeated dependency-path audit findings around the advisory, not 26 independently confirmed CVEs.
 
@@ -49,4 +49,4 @@ The isolated PostgreSQL route matrix is not the missing live Production 67-route
 
 ## 5. Historical evidence boundary
 
-Older Production pins, package digests and Secure Release artifacts are historical records only. They must not be reused as identity or proof for `807dee55f050bc96a4123091f09be1503c10004d` or a later source head. A current handover identity exists only when a successful Secure Release run creates the ZIP and its matching external release statement for the exact source commit.
+Older Production pins, package digests and Secure Release artifacts are historical records only. They must not be reused as identity or proof for `5afd48c85b04bb4f7a6a5d73ce3ad7fdd8331371` or a later source head. A current handover identity exists only when a successful Secure Release run creates the ZIP and its matching external release statement for the exact source commit.
