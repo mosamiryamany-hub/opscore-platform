@@ -2,6 +2,9 @@
 
 ## Seller-owned engineering closeout
 - [x] Commercial tiers A/B/C framework and transaction-specific License Schedule template
+- [ ] Resolve or formally disposition GHSA-fc5q-39xc-vjpf / CVE-2026-112366 for the exact mobile SDK 58 dependency tree; no unreviewed upstream patch, audit suppression, or forced major downgrade.
+- [ ] Complete the source/data-flow threat review for build-time glob patterns and retain full + production-only npm audit JSONs from the exact candidate run.
+- [ ] Complete PR #222 candidate verification on its latest head; do not merge while any required check fails or before independent review.
 - [ ] Merge integrated security hardening (PR #163 lineage) after rebasing onto current main and passing exact-head CI
 - [ ] Complete and verify the approved 67-route signed-session coverage matrix; do not substitute inventory counts or CI-only route contracts
 - [ ] Obtain commit- and Neon-branch-bound Production dual-tenant and recovery evidence; do not reuse rebind-era JSON
