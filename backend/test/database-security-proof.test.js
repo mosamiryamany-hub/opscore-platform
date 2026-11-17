@@ -152,7 +152,9 @@ test('runtime catalog query is read-only and inspects identity, PostGIS and migr
   assert.match(DATABASE_SECURITY_SQL,/opscore_tenant_boundary_guard/);
   assert.ok(DATABASE_SECURITY_SQL.includes("p.polroles::text = '{0}'"));
   assert.ok(DATABASE_SECURITY_SQL.includes('COUNT(p.oid) = 2'));
-  assert.ok(DATABASE_SECURITY_SQL.includes("(organization_id = NULLIF(current_setting(''app.tenant_id''::text, true), ''''::text))"));
+  assert.ok(DATABASE_SECURITY_SQL.includes("(organization_id = NULLIF(opscore_current_tenant(), ''''::text))"));
+  assert.doesNotMatch(DATABASE_SECURITY_SQL, /organization_id = NULLIF\\(current_setting/);
+  assert.ok(DATABASE_SECURITY_SQL.includes("(organization_id = NULLIF(opscore_current_tenant(), ''''::text))"));
   assert.match(DATABASE_SECURITY_SQL,/pg_get_expr\(p\.polqual,p\.polrelid\)/);
   assert.match(DATABASE_SECURITY_SQL,/pg_get_expr\(p\.polwithcheck,p\.polrelid\)/);
   assert.doesNotMatch(DATABASE_SECURITY_SQL,/regexp_replace/i);
