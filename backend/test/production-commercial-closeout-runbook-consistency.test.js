@@ -99,6 +99,17 @@ test('Runtime locale availability is separated from the 114-row language qualifi
   assert.doesNotMatch(buyerResiduals, /114 locales are listed; 109 are machine-assisted/);
 });
 
+test('WAF log-only posture and short attack window are not overstated as enforcement certification', () => {
+  assert.match(runbook, /firewallEnabled=true/);
+  assert.match(runbook, /CRS rules active but `log` only/);
+  assert.match(runbook, /Bot Protection is active but `log` only/);
+  assert.match(runbook, /IP allow\/deny rules list is empty/);
+  assert.match(runbook, /60 requests per source IP per fixed 60-second window/);
+  assert.match(runbook, /no anomalies for its default last-24-hour window/);
+  assert.match(runbook, /Do not flip the current `log` rules to `deny`/);
+  assert.match(buyerResiduals, /Vercel firewall enforcement posture/);
+});
+
 test('GitHub Environment reviewer protection is not claimed without a verified settings read', () => {
   assert.match(runbook, /Environment protection rules \/ Required reviewers were not readable/);
   assert.match(runbook, /their presence is \*\*UNVERIFIED\*\*/);
