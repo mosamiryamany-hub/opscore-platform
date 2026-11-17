@@ -73,7 +73,7 @@ test('legacy migration branch job is explicitly classified as destructive DDL-on
   assert.match(runbook, /pooled Neon endpoint/);
   assert.match(runbook, /raw `psql` commands, not the guarded `apply-postgres-migrations.js --apply` runner/);
   assert.match(runbook, /migration-ledger query returned/);
-  assert.match(runbook, /\\(0 rows\\)/);
+  assert.ok(runbook.includes('(0 rows)'));
   assert.match(runbook, /DDL_ONLY \/ NOT_OFFICIAL_MIGRATION_PROOF/);
   assert.match(runbook, /replacement helper in PR #212 explicitly contains no Neon DELETE operation/);
 });
