@@ -67,6 +67,16 @@ test('Production migration and rotation remain manual, confirmation-gated, and t
   assert.match(rotationWorkflow, /signed_route_enable_flags_unchanged=true/);
 });
 
+test('legacy migration branch job is explicitly classified as destructive DDL-only evidence', () => {
+  assert.match(runbook, /legacy `ops-signed-context-migration-branch` run \*\*44064087564\*\*/);
+  assert.match(runbook, /deleted the prior child branch `br-solitary-star-bctbf0ms`/);
+  assert.match(runbook, /pooled Neon endpoint/);
+  assert.match(runbook, /raw `psql` commands, not the guarded `apply-postgres-migrations.js --apply` runner/);
+  assert.match(runbook, /migration-ledger query returned \*\*\\`\(0 rows\)\\`\*\*/);
+  assert.match(runbook, /DDL_ONLY \/ NOT_OFFICIAL_MIGRATION_PROOF/);
+  assert.match(runbook, /replacement helper in PR #212 explicitly contains no Neon DELETE operation/);
+});
+
 test('Runtime locale availability is separated from the 114-row language qualification matrix', () => {
   const localeStatuses = localesManifest.locales.reduce((counts, locale) => {
     counts[locale.status] = (counts[locale.status] || 0) + 1;
