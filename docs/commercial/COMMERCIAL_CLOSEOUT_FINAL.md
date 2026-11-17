@@ -6,8 +6,8 @@
 
 **Updated:** 2026-11-17  
 **Current `main`:** `6adea6fa209e394b464c4272db1860422d608afb`  
-**Current candidate branch head:** PR #222, branch `fix/mobile-sdk58-current-main-20261117`, head `b94b6187daf55f86e736dd47d5ba8ef5e38297f0`.  
-**Candidate status:** Draft / not merged / not a qualified release. The latest full workflow evidence below is from tested code head `807dee55f050bc96a4123091f09be1503c10004d`; 17 commits since that tested head changed only seller/buyer documentation and the dependency-advisory review, not application source, manifests or lockfiles. The new final branch head requires a fresh full CI and PostgreSQL check result before it can be considered for release.
+**Current candidate branch:** PR #222, branch `fix/mobile-sdk58-current-main-20261117`.  
+**Candidate status:** Draft / not merged / not a qualified release. The latest full workflow evidence below is from tested code head `807dee55f050bc96a4123091f09be1503c10004d`; all subsequent commits on this PR branch changed seller/buyer documentation and the dependency-advisory review only, not application source, manifests or lockfiles. The new final branch head requires a fresh full CI and PostgreSQL check result before it can be considered for release.
 
 ## 1. Current exact-head evidence
 
