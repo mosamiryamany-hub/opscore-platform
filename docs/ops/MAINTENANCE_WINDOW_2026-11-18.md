@@ -135,13 +135,15 @@ Do not enter the Production write phase unless all are true:
 |---|---:|---|
 | 02:00–02:10 | 10 min | Freeze changes; verify exact main SHA, current Production deploy/branch/database identity, snapshot availability and service health. Take and verify a fresh Primary snapshot. Any mismatch or snapshot failure = **NO-GO**. |
 | 02:10–02:25 | 15 min | Reconfirm the candidate branch's official runner report, all required migration ledger SHA-256 values (063–067, 069), role privileges, forced RLS, zero remaining direct tenant GUC policies and technician trail schema. |
-| 02:25–02:45 | 20 min | Verify reviewed Production candidate deployment is READY on the exact SHA with signed-route switches OFF. Run read-only health, deployment identity, database identity and baseline login/session smoke. |
-| 02:45–03:05 | 20 min | Apply the signed-context migrations through the approved Production runner only; verify ledger and schema postconditions immediately. Any error = stop; no ad-hoc SQL repair. |
-| 03:05–03:25 | 20 min | Run the approval-gated Production HMAC rotation only after schema checks. Verify the new key row and Production-only environment values; leave old key rows enabled. Do **not** activate signed-route flags unless a complete 67-route exact-deployment proof already exists and has passed the release verifier. |
-| 03:25–03:45 | 20 min | Execute commit/deployment/branch-bound Production smoke and the complete 67-route evidence collector. If any route is missing, evidence is rebound, cleanup fails, or session/tenant boundaries fail = **NO-GO**. |
-| 03:45–04:00 | 15 min | GO/NO-GO, freeze evidence and either keep canary at approved limited scope or execute the tested rollback. Do not use this period to continue an unfinished migration. |
+| 02:25–02:45 | 20 min | Apply the signed-context migrations through the approved Production runner only; verify ledger and schema postconditions immediately. Any error = stop; no ad-hoc SQL repair. |
+| 02:45–03:00 | 15 min | Run the approval-gated Production HMAC rotation only after schema checks. Verify the new key row and Production-only environment values; leave old key rows enabled. |
+| 03:00–03:20 | 20 min | Deploy the reviewed exact SHA **after** HMAC env sync so the new deployment loads the new key. Keep signed-route flags OFF, confirm the new deployment identity/commit/package/Primary and run baseline smoke. If deployment identity differs, stop. |
+| 03:20–03:45 | 25 min | Only if the proof-bootstrap architecture and collector were completed and rehearsed pre-window: run the deployment-bound 67-route canary collector, verify tenant A/B isolation, backend PID/transaction binding, raw-GUC tamper denial, writes/cleanup, and publish the attestation for this exact deployment. If any route is missing, proof cannot be read by the running deployment, evidence is rebound, or cleanup fails = **NO-GO**. |
+| 03:45–04:00 | 15 min | GO/NO-GO, freeze evidence and either keep the already-approved limited canary or roll back to the exact prior deployment while preserving old HMAC keys. Do not use this reserve to continue migration, key rotation or collector development. |
 
-The final 15 minutes are a decision/rollback reserve, not extra implementation time. Stop initiating new changes by 03:25.
+The final 15 minutes are a decision/rollback reserve, not extra implementation time. Stop initiating new changes by 03:45.
+
+**Important: this time table is a target sequence, not a GO authorization.** The signed Production proof bootstrap problem above is unresolved, and the post-rotation redeployment step must be part of the reviewed rehearsal. Unless the bootstrap design, exact post-rotation deployment identity, live 67-route collector, and rollback are completed and timed on an isolated Production-equivalent clone before the window, the correct action at 02:00 is **NO-GO / reschedule**. Do not attempt to invent or debug the collector inside the 120-minute Production window.
 
 ## Rollback triggers and actions
 
