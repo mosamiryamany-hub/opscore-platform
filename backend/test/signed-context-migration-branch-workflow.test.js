@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 
 const root = path.join(__dirname, '..', '..');
 const workflow = fs.readFileSync(
@@ -64,4 +65,13 @@ test('migration branch runner includes every schema prerequisite for the signed 
   }
   assert.match(runner, /MIGRATION_LEDGER_APPLIED/);
   assert.match(runner, /MIGRATION_LEDGER_SHA256_BOUND=true/);
+});
+
+test('signed-context migration helper is valid Python syntax without creating bytecode files', () => {
+  const result = spawnSync('python3', [
+    '-c',
+    'import ast, pathlib, sys; ast.parse(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))',
+    path.join(root, 'scripts', 'neon_signed_context_migration_branch.py'),
+  ], { encoding: 'utf8', env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' } });
+  assert.equal(result.status, 0, result.stderr || result.stdout || 'python syntax check failed');
 });
