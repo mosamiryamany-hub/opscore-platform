@@ -74,7 +74,7 @@ jobs:
 
   session-isolation:
     needs: recovery-point
-    if: always() && github.event.inputs.confirm_production_probe == 'I_AUTHORIZE_PRODUCTION_EVIDENCE_PROBES'
+    if: needs.recovery-point.result == 'success' && github.event.inputs.confirm_production_probe == 'I_AUTHORIZE_PRODUCTION_EVIDENCE_PROBES'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
