@@ -430,7 +430,7 @@ test('locked legacy opscore_app is accepted only with no login, no inheritance a
     /MIGRATION_APP_ROLE_NOT_LEAST_PRIVILEGED/
   );
   assert.throws(
-    () => validateAppRolePreflight({ ...role, role_exists: false }, false),
+    () => validateAppRolePreflight({ ...role, role_exists: false, rolcanlogin: true }, false),
     /MIGRATION_APP_ROLE_NOT_LEAST_PRIVILEGED/
   );
 });

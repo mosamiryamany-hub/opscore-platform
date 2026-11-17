@@ -35,7 +35,10 @@ function validateAppRolePreflight(role, repairPending) {
  const hasOnlyKnownNeonResidual=memberships.length===1&&memberships[0]==='neon_superuser';
  if(!repairPending){
   const residualSafe=memberships.length===0||(!canLogin&&!inherits&&hasOnlyKnownNeonResidual);
-  if(!exists||bool(role.rolsuper)||bool(role.rolbypassrls)||bool(role.rolcreaterole)||bool(role.rolcreatedb)||canLogin||inherits||!residualSafe||incomingMemberships!==0){
+  if(!exists){
+   return {status:'PASS_WITH_ABSENT_LEGACY_ROLE',repairPending:false,roleExists:false,note:'OPSC_LEGACY_APP_ROLE_ABSENT_TREATED_AS_LOCKED'};
+  }
+  if(bool(role.rolsuper)||bool(role.rolbypassrls)||bool(role.rolcreaterole)||bool(role.rolcreatedb)||canLogin||inherits||!residualSafe||incomingMemberships!==0){
    throw new Error('MIGRATION_APP_ROLE_NOT_LEAST_PRIVILEGED');
   }
   return hasOnlyKnownNeonResidual
