@@ -1,28 +1,68 @@
 name: neon-primary-manual-snapshot
-# Creates a manual snapshot of the configured production branch (root).
-# Free plan: max 1 manual snapshot. Paid: schedules available in Console.
 on:
   workflow_dispatch:
     inputs:
       confirm:
-        description: Type CREATE_PRIMARY_SNAPSHOT to proceed
+        description: CREATE_PRIMARY_SNAPSHOT or LIST_BRANCHES_ONLY
         required: true
 permissions:
   contents: read
 jobs:
-  snapshot:
-    if: github.event.inputs.confirm == 'CREATE_PRIMARY_SNAPSHOT'
+  run:
     runs-on: ubuntu-24.04
     steps:
-      - name: Create manual snapshot of production branch
+      - name: Neon inventory or snapshot
         env:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
           NEON_PROJECT_ID: summer-leaf-18448271
-          # Prefer the branch id published to production env / release identity
           BRANCH_ID: br-proud-salad-bcshhdap
+          CONFIRM: ${{ github.event.inputs.confirm }}
         run: |
           set -euo pipefail
           test -n "${NEON_API_KEY:-}"
+          echo "mode=$CONFIRM"
+          curl -sS -H "Authorization: Bearer $NEON_API_KEY" -H "Accept: application/json" \
+            "https://console.neon.tech/api/v2/projects/${NEON_PROJECT_ID}/branches" -o /tmp/branches.json
+          python3 - <<'PY'
+import json
+d=json.load(open("/tmp/branches.json"))
+branches=d.get("branches") or []
+print("count", len(branches))
+for b in sorted(branches, key=lambda x: x.get("created_at") or ""):
+  print("---")
+  print("id", b.get("id"))
+  print("name", b.get("name"))
+  print("primary", b.get("primary"))
+  print("default", b.get("default"))
+  print("protected", b.get("protected"))
+  print("parent_id", b.get("parent_id"))
+  print("created", b.get("created_at"))
+  print("updated", b.get("updated_at"))
+  print("state", b.get("current_state"))
+  print("logical_size", b.get("logical_size"))
+PY
+          curl -sS -H "Authorization: Bearer $NEON_API_KEY" -H "Accept: application/json" \
+            "https://console.neon.tech/api/v2/projects/${NEON_PROJECT_ID}/snapshots" -o /tmp/snaps.json || true
+          python3 - <<'PY'
+import json
+d=json.load(open("/tmp/snaps.json"))
+snaps=d.get("snapshots") or []
+print("snapshots", len(snaps))
+for s in snaps:
+  print("---")
+  print("id", s.get("id"))
+  print("name", s.get("name"))
+  print("source_branch_id", s.get("source_branch_id") or s.get("branch_id"))
+  print("created", s.get("created_at"))
+  print("expires", s.get("expires_at"))
+PY
+          if [ "$CONFIRM" = "LIST_BRANCHES_ONLY" ]; then
+            echo "list_only_done"
+            exit 0
+          fi
+          if [ "$CONFIRM" != "CREATE_PRIMARY_SNAPSHOT" ]; then
+            echo "unknown_confirm"; exit 1
+          fi
           NAME="opscore-primary-$(date -u +%Y%m%dT%H%M%SZ)"
           CODE=$(curl -sS -o /tmp/snap.json -w "%{http_code}" -X POST \
             -H "Authorization: Bearer $NEON_API_KEY" \
@@ -32,5 +72,4 @@ jobs:
             -d "{\"snapshot\":{\"name\":\"${NAME}\",\"expires_at\":null}}")
           echo "HTTP $CODE"
           head -c 1200 /tmp/snap.json; echo
-          # 200/201 success; 409/422 may indicate plan limit — surface body, fail closed
           test "$CODE" = "200" -o "$CODE" = "201"
