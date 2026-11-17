@@ -8,6 +8,8 @@ const { spawnSync } = require('node:child_process');
 const root = path.resolve(__dirname, '..');
 const collector = fs.readFileSync(path.join(root, 'scripts', 'collect-production-session-isolation.js'), 'utf8');
 const workflow = fs.readFileSync(path.join(root, '..', '.github', 'workflows', 'vercel-deploy.yml'), 'utf8');
+const releaseProof = fs.readFileSync(path.join(root, 'src', 'release-proof.js'), 'utf8');
+const evidenceWorkflow = fs.readFileSync(path.join(root, '..', '.github', 'workflows', 'collect-production-isolation-evidence.yml'), 'utf8');
 
 test('production session evidence requires independently verified Neon project, branch, database and role identity before writes', () => {
   assert.match(collector, /verifyProductionDatabaseTarget\(ownerUri\)/);
@@ -19,6 +21,8 @@ test('production session evidence requires independently verified Neon project, 
   assert.match(collector, /PRODUCTION_OWNER_DIRECT_CONNECTION_REQUIRED/);
   assert.match(collector, /read_write/);
   assert.match(workflow, /OPSC_PRODUCTION_DATABASE_NAME: opscore_acceptance/);
+  assert.match(evidenceWorkflow, /OPSC_PRODUCTION_DATABASE_NAME: \$\{\{ inputs\.production_database_name \}\}/);
+  assert.match(evidenceWorkflow, /needs\.recovery-point\.result == 'success'/);
 });
 
 test('production session write evidence is based on real HTTP probes and database row-count postconditions', () => {
