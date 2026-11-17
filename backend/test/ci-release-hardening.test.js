@@ -68,7 +68,7 @@ test('production Vercel deploy requires explicit main dispatch, waits on mobile 
   const workflow = read('.github/workflows/vercel-deploy.yml');
   assert.match(workflow, /verify:\s*\n\s+name: vercel-contract-verify\s*\n\s+if: github\.event_name == 'pull_request' \|\| github\.ref == 'refs\/heads\/main'/);
   assert.match(workflow, /postgres-acceptance:\s*\n\s+name: deploy-bound-postgres-18-acceptance\s*\n\s+if: \(github\.event_name == 'push' \|\| github\.event_name == 'workflow_dispatch'\) && github\.ref == 'refs\/heads\/main'\s*\n\s+uses: \.\/\.github\/workflows\/digital-twin-postgres-live\.yml/);
-  assert.match(workflow, /deploy:\s*\n\s+needs: \[verify, postgres-acceptance\]\s*\n(?:\s+#.*\n)*\s+if: github\.event_name == 'workflow_dispatch' && github\.ref == 'refs\/heads\/main' && github\.event\.inputs\.confirm_production_deployment == 'I_AUTHORIZE_PRODUCTION_DEPLOYMENT' && vars\.OPSC_PRODUCTION_AUTODEPLOY_ENABLED == 'true'/);
+  assert.match(workflow, /deploy:\s*\n\s+needs: \[verify, postgres-acceptance\]\s*\n(?:\s+#.*\n)*\s+if: false && github\.event_name == 'workflow_dispatch' && github\.ref == 'refs\/heads\/main' && github\.event\.inputs\.confirm_production_deployment == 'I_AUTHORIZE_PRODUCTION_DEPLOYMENT' && vars\.OPSC_PRODUCTION_AUTODEPLOY_ENABLED == 'true' && vars\.OPSC_STAGED_PRODUCTION_PROBE_READY == 'true'/);
   assert.match(workflow, /OPSC_PRODUCTION_AUTODEPLOY_ENABLED == 'true'/);
   assert.match(workflow, /confirm_production_deployment:[\s\S]+I_AUTHORIZE_PRODUCTION_DEPLOYMENT/);
   assert.match(workflow, /working-directory: mobile\s+run: npm audit --omit=dev --audit-level=high/);
