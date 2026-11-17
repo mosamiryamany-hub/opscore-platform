@@ -277,10 +277,80 @@ test('global session autobind remains Preview-only and satisfies the route requi
 });
 
 test('server checks the route gate before its legacy unsigned field-context fallback', () => {
-  const guardAt = server.indexOf('const routeError = signedTenantContextRouteError(req);');
+  const guardAt = server.indexOf('const routeError = signedTenantContextRouteError(req, process.env, signedContextProductionReadiness);');
   const unsignedBindAt = server.indexOf("store.db.setSession({ tenantId: c.organizationId", guardAt);
   assert.ok(guardAt >= 0, 'server must call the signed route guard');
   assert.ok(unsignedBindAt > guardAt, 'signed route guard must run before legacy unsigned field binding');
   assert.match(server, /SIGNED_TENANT_CONTEXT_ROUTE_NOT_ENABLED/);
-  assert.match(server, /if \(signedAssetsReadEnabled\(req\)\)\s*\{\s*return runSignedWorkOrdersRead\(res, c, \(\) => store\.listAssets\(c\)\);/);
+  assert.match(server, /if \(signedAssetsReadEnabled\(req, process\.env, signedContextProductionReadiness\)\)\s*\{\s*return runSignedWorkOrdersRead\(res, c, \(\) => store\.listAssets\(c\)\);/);
+});
+
+
+const productionRead = {
+  VERCEL_ENV: 'production',
+  OPSC_PRODUCTION_HOLD: 'false',
+  OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED: 'true',
+  OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_READ_ENABLED: 'true',
+  OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_WRITE_ENABLED: 'true',
+  OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_ENABLED: 'true',
+  OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_WRITE_ENABLED: 'true',
+  OPSC_SIGNED_TENANT_CONTEXT_ASSETS_READ_ENABLED: 'true',
+  OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED: 'true',
+  OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'true'
+};
+const productionProofReady = Object.freeze({ productionReleaseVerified: true });
+
+test('Production signed context remains disabled when the immutable release proof is absent', () => {
+  assert.equal(policy.isSignedContextEnvironment(productionRead), false);
+  assert.equal(policy.signedWorkOrdersReadEnabled(
+    { method: 'GET', url: '/api/v1/customers' }, productionRead
+  ), false);
+  assert.equal(policy.signedWorkOrdersWriteEnabled(
+    { method: 'POST', url: '/api/v1/customers' }, productionRead
+  ), false);
+  assert.equal(policy.signedSessionAutobindEnabled(productionRead), false);
+  assert.equal(policy.signedTenantContextRouteError(
+    { method: 'GET', url: '/api/v1/customers' }, productionRead
+  ), 'SIGNED_TENANT_CONTEXT_ROUTE_NOT_ENABLED');
+});
+
+test('Production signed context requires the independent Production flag, hold=false, and exact release proof', () => {
+  assert.equal(policy.isSignedContextEnvironment(productionRead, productionProofReady), true);
+  assert.equal(policy.signedWorkOrdersReadEnabled(
+    { method: 'GET', url: '/api/v1/customers' }, productionRead, productionProofReady
+  ), true);
+  assert.equal(policy.signedWorkOrdersReadEnabled(
+    { method: 'GET', url: '/api/v1/work-orders/wo_123/timeline' }, productionRead, productionProofReady
+  ), true);
+  assert.equal(policy.signedWorkOrdersWriteEnabled(
+    { method: 'POST', url: '/api/v1/customers' }, productionRead, productionProofReady
+  ), true);
+  assert.equal(policy.signedSessionAutobindEnabled(productionRead, productionProofReady), true);
+  assert.equal(policy.signedTenantContextRouteError(
+    { method: 'GET', url: '/api/v1/customers' }, productionRead, productionProofReady
+  ), null);
+});
+
+test('Production flags cannot override a renewed hold or a missing independent enable switch', () => {
+  assert.equal(policy.isSignedContextEnvironment({
+    ...productionRead,
+    OPSC_PRODUCTION_HOLD: 'true'
+  }, productionProofReady), false);
+  assert.equal(policy.isSignedContextEnvironment({
+    ...productionRead,
+    OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED: 'false'
+  }, productionProofReady), false);
+  assert.equal(policy.isSignedContextEnvironment(productionRead, {
+    productionReleaseVerified: false
+  }), false);
+});
+
+test('server derives Production signed-context readiness from hasVerifiedProductionRelease and passes it to every signed route family', () => {
+  assert.match(server, /hasVerifiedProductionRelease\(env\) === true/);
+  assert.match(server, /signedTenantContextRouteError\(req, process\.env, signedContextProductionReadiness\)/);
+  assert.match(server, /isSignedContextRequested\(req, process\.env, signedContextProductionReadiness\)/);
+  assert.match(server, /signedWorkOrdersReadEnabled\(req, process\.env, signedContextProductionReadiness\)/);
+  assert.match(server, /signedWorkOrdersWriteEnabled\(req, process\.env, signedContextProductionReadiness\)/);
+  assert.match(server, /signedAssetsReadEnabled\(req, process\.env, signedContextProductionReadiness\)/);
+  assert.match(server, /signedSessionAutobindEnabled\(process\.env, signedContextProductionReadiness\)/);
 });
