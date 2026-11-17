@@ -96,6 +96,24 @@ Artifact: `mobile-sdk58-current-main-evidence-44157086377`, artifact ID `1436194
 
 The preceding exact-head run 44156497177, on the same mobile manifest/lockfile, returned 25 High in both audit modes. The latest run returned 26/25. This is a one-record audit-result variation with no dependency change and must not be interpreted as a fix or reduced risk. Use the latest 26/25 result for current buyer-facing disclosure. The GHSA remains present and the fail-closed gate remains active.
 
+## Latest exact-head rerun — 2026-11-17 19:23Z
+
+GitHub Actions run **44157820028** tested PR #222 candidate head `d59819b94c5953e17413b4f9cbf1ef1172145e90`.
+
+| Check | Result |
+|---|---|
+| SDK58 alignment and mobile source verification | PASS |
+| Expo Doctor | 20/20 |
+| Android / iOS / Web exports | PASS |
+| Scanned picomatch signatures in client bundles | Not found in all three |
+| Full mobile `npm audit --json` | **25 High, 0 Critical** |
+| Mobile `npm audit --omit=dev --json` | **26 High, 0 Critical** |
+| Fail-closed High/Critical release condition | **FAIL — correctly blocks release** |
+
+Artifact: `mobile-sdk58-current-main-evidence-44157820028`, artifact ID `14361712311`, SHA-256 `98ec6833d033d880d661d37aa2b6feff2520b0dcd4ccb4f4241f10201b6ebf01`.
+
+The prior exact-head run 44157086377 on the same mobile dependency lockfile reported 26 High full / 25 High `--omit=dev`; run 44156497177 reported 25/25. The count shifts across repeated npm audit runs without any dependency-lock change. This is audit-result variance, not a patch, fix, or risk reduction. For the latest state, disclose 25 High full / 26 High production-only and keep the fail-closed gate active.
+
 ## Current authoritative and disputed public evidence
 
 ### GitHub / NVD
