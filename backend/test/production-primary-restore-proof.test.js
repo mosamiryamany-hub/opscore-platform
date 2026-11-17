@@ -56,3 +56,35 @@ test('proof runner Python syntax is valid without creating bytecode files', () =
   ], { encoding: 'utf8', env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' } });
   assert.equal(result.status, 0, result.stderr || result.stdout || 'Python syntax check failed');
 });
+
+test('Production migration preflight accepts only the proof checks object-map contract and validates every check', () => {
+  const migrationRunner = fs.readFileSync(
+    path.join(root, 'scripts', 'neon_apply_production_signed_context_migrations.py'),
+    'utf8'
+  );
+  assert.ok(migrationRunner.includes('if not isinstance(checks, dict):'));
+  assert.ok(migrationRunner.includes('set(checks) != required_checks'));
+  assert.ok(migrationRunner.includes('PRODUCTION_PRIMARY_RESTORE_PROOF_SNAPSHOT_CHECK_INVALID'));
+  assert.ok(migrationRunner.includes('PRODUCTION_PRIMARY_RESTORE_PROOF_RUNTIME_RLS_DEFAULT_DENY_FAILED'));
+  assert.ok(migrationRunner.includes('PRODUCTION_RESTORE_BRANCH_TARGET_MISMATCH'));
+  assert.ok(!migrationRunner.includes('if not isinstance(checks, list):'));
+});
+
+test('checked-in restore proof is bound to the real Neon-restored branch and all eight PASS checks', () => {
+  const proof = JSON.parse(fs.readFileSync(
+    path.join(root, 'docs', 'ops', 'evidence', 'PRODUCTION_PRIMARY_RESTORE_PROOF.json'),
+    'utf8'
+  ));
+  const required = [
+    'snapshot_provenance', 'restore_branch_ready', 'database_identity',
+    'schema_catalog_read', 'public_table_inventory', 'migration_ledger_read',
+    'core_table_read', 'runtime_role_boundary'
+  ];
+  assert.equal(proof.status, 'PASS');
+  assert.equal(proof.restoreBranchId, 'br-quiet-poetry-bc3uo0u3');
+  assert.equal(proof.checks.snapshot_provenance.restoreStatus, 'restored');
+  assert.equal(proof.checks.snapshot_provenance.restoredAs, proof.primaryBranchId);
+  assert.deepEqual(Object.keys(proof.checks).sort(), required.sort());
+  for (const name of required) assert.equal(proof.checks[name].status, 'PASS', name);
+  assert.equal(proof.checks.runtime_role_boundary.organizationsVisibleWithoutTenantContext, 0);
+});
