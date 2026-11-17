@@ -24,7 +24,7 @@ The package includes Expo mobile source and source-level verification only. It d
 
 The buyer owns buyer-specific EAS setup, Android/iOS signing, native builds, physical-device GPS/camera/offline/upgrade testing, store accounts, submission and distribution. The seller remains responsible for defects in the supplied mobile source and for pre-delivery remediation of high/critical dependency advisories. After handover, ongoing dependency/security maintenance is buyer-owned.
 
-The last verified locked-tree baseline reported 12 npm findings: 0 critical, 0 high, 10 moderate, 2 low. CI blocks high/critical findings and preserves the complete JSON report in the exact archive pipeline. Moderate/low findings remain disclosed; the package is not described as vulnerability-free.
+Current candidate security status: PR #222 head `807dee55f050bc96a4123091f09be1503c10004d`, exact-head OpsCore CI run 44158727347, reports 25 High findings in the full mobile dependency tree and 26 High with `npm audit --omit=dev` (0 Critical) through transitive picomatch dependencies linked to GHSA-fc5q-39xc-vjpf / CVE-2026-112366. The backend runtime dependency audit reported 0 findings. The fail-closed mobile audit gate remains open; no High/Critical risk is assigned to the buyer or silently waived. Seller must resolve or formally disposition the finding before issuing a qualified source package.
 
 ## Acceptance rule
 
