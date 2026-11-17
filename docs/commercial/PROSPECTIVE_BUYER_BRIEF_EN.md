@@ -31,7 +31,7 @@ These controls are source-level integrity mechanisms. They are not a claim of le
 
 The current main source head is 6adea6fa209e394b464c4272db1860422d608afb. The latest mobile SDK 58 candidate is in draft PR #222 and is not merged or approved as a release.
 
-The candidate has passed clean dependency installation, source checks, Expo Doctor (20/20), and Android, iOS and Web JavaScript exports. However, the latest exact-candidate npm audit reports 25 High findings in both the full mobile dependency tree and `npm audit --omit=dev`, associated with GHSA-fc5q-39xc-vjpf / CVE-2026-112366 through transitive picomatch dependencies. The required audit gate remains fail-closed. This advisory is unresolved; it is not waived or described as fixed.
+The candidate has passed clean dependency installation, source checks, Expo Doctor (20/20), and Android, iOS and Web JavaScript exports. However, the latest exact-candidate npm audit reports 26 High findings in the full mobile dependency tree and 25 High findings with `npm audit --omit=dev`, associated with GHSA-fc5q-39xc-vjpf / CVE-2026-112366 through transitive picomatch dependencies. The required audit gate remains fail-closed. This advisory is unresolved; it is not waived or described as fixed.
 
 The seller is responsible for resolving or formally assessing this release blocker before issuing a qualified delivery package. A successful bundle export alone is not security acceptance.
 
