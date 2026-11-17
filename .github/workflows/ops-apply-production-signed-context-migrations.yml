@@ -1,5 +1,7 @@
 name: Apply Production signed-context migrations
 
+# Manual, exact-confirmation workflow. Verify GitHub Environment reviewer rules separately before dispatch.
+
 on:
   workflow_dispatch:
     inputs:
