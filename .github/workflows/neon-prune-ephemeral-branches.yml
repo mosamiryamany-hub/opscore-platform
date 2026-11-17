@@ -1,62 +1,106 @@
 name: neon-prune-ephemeral-branches
+
 on:
   workflow_dispatch:
     inputs:
-      confirm:
-        description: Type PRUNE_EPHEMERAL_NEON_BRANCHES to delete only non-primary non-protected branches matching ephemeral name patterns
+      branch_id:
+        description: Exact Neon branch ID to remove; current production, preview, migration and recovery branches are explicitly blocked
         required: true
+        type: string
+      expected_branch_name:
+        description: Exact current branch name as shown by the read-only inventory
+        required: true
+        type: string
+      confirm:
+        description: Type DELETE_ONE_EPHEMERAL_NEON_BRANCH to delete this exact verified branch
+        required: true
+        type: string
+
 permissions:
   contents: read
+
+concurrency:
+  group: neon-prune-one-ephemeral-branch
+  cancel-in-progress: false
+
 jobs:
   prune:
-    if: github.event.inputs.confirm == 'PRUNE_EPHEMERAL_NEON_BRANCHES'
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.event.inputs.confirm == 'DELETE_ONE_EPHEMERAL_NEON_BRANCH' }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - name: Prune ephemeral branches only
+      - name: Verify and delete exactly one explicitly selected ephemeral branch
         env:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
           NEON_PROJECT_ID: summer-leaf-18448271
+          TARGET_BRANCH_ID: ${{ github.event.inputs.branch_id }}
+          EXPECTED_BRANCH_NAME: ${{ github.event.inputs.expected_branch_name }}
         run: |
           set -euo pipefail
-          curl -sS -H "Authorization: Bearer $NEON_API_KEY" -H "Accept: application/json" \
-            "https://console.neon.tech/api/v2/projects/${NEON_PROJECT_ID}/branches" -o branches.json
           python3 <<'PY'
-import json,os,urllib.request
-key=os.environ["NEON_API_KEY"]
-proj=os.environ["NEON_PROJECT_ID"]
-# Never delete these (production / known preview)
-KEEP_IDS={
-  "br-proud-salad-bcshhdap",
-  "br-wispy-term-bcrqqj84",
-  "br-fragrant-king-bcr9928f",
-}
-# Ephemeral name markers only
-MARKERS=("recovery-point","opscore-prod-recovery","digital-twin","tmp-","test-accept","accept-recovery","ephemeral")
-branches=json.load(open("branches.json")).get("branches") or []
-print("total", len(branches))
-deleted=[]
-skipped=[]
-for b in branches:
-  bid=b.get("id") or ""
-  name=(b.get("name") or "").lower()
-  if b.get("primary") or b.get("protected") or bid in KEEP_IDS:
-    skipped.append((bid,name,"keep_flag")); continue
-  if not any(m in name for m in MARKERS):
-    skipped.append((bid,name,"no_marker")); continue
-  req=urllib.request.Request(
-    f"https://console.neon.tech/api/v2/projects/{proj}/branches/{bid}",
-    method="DELETE",
-    headers={"Authorization":f"Bearer {key}","Accept":"application/json"},
-  )
-  try:
-    with urllib.request.urlopen(req) as resp:
-      print("deleted", bid, name, resp.status)
-      deleted.append(bid)
-  except Exception as e:
-    body=e.read().decode()[:300] if hasattr(e,"read") else str(e)
-    print("fail", bid, name, body)
-print("deleted_count", len(deleted))
-print("skipped_count", len(skipped))
-for s in skipped:
-  print("skipped", s)
-PY
+          import json
+          import os
+          import re
+          import urllib.error
+          import urllib.request
+
+          key = str(os.environ.get("NEON_API_KEY") or "").strip()
+          project = os.environ.get("NEON_PROJECT_ID") or "summer-leaf-18448271"
+          target_id = str(os.environ.get("TARGET_BRANCH_ID") or "").strip()
+          expected_name = str(os.environ.get("EXPECTED_BRANCH_NAME") or "").strip()
+          if os.environ.get("GITHUB_EVENT_NAME") != "workflow_dispatch" or os.environ.get("GITHUB_REF") != "refs/heads/main":
+              raise SystemExit("EPHEMERAL_BRANCH_DELETE_MAIN_MANUAL_DISPATCH_REQUIRED")
+          if not key or not re.fullmatch(r"br-[a-z0-9-]{8,80}", target_id) or not expected_name:
+              raise SystemExit("EXACT_BRANCH_ID_NAME_AND_API_KEY_REQUIRED")
+
+          keep_ids = {
+              "br-proud-salad-bcshhdap", "br-wispy-term-bcrqqj84",
+              "br-fragrant-king-bcr9928f", "br-dry-glitter-bcp2nhhy",
+              "br-rapid-fire-bcv3y677", "br-tiny-base-bc69tawf",
+              "br-steep-star-bcgphok3", "br-still-pine-bcpldlkh",
+              "br-gentle-union-bcv2y6cf", "br-wispy-credit-bckacgvt",
+          }
+          protected_name_markers = (
+              "prod", "production", "restore", "recovery", "snapshot", "migration",
+              "signed", "commercial", "preview", "catalog", "release", "handoff",
+              "backup", "vercel", "digital-twin",
+          )
+          allowed_prefixes = ("tmp-", "test-accept-", "ephemeral-")
+
+          def request(method, path):
+              req = urllib.request.Request(
+                  "https://console.neon.tech/api/v2/projects/" + project + path,
+                  method=method,
+                  headers={"Authorization": "Bearer " + key, "Accept": "application/json"},
+              )
+              with urllib.request.urlopen(req, timeout=20) as response:
+                  raw = response.read().decode("utf-8")
+                  return response.status, json.loads(raw) if raw else {}
+
+          status, inventory = request("GET", "/branches?limit=100")
+          branches = inventory.get("branches") or []
+          matches = [item for item in branches if item.get("id") == target_id]
+          if len(matches) != 1:
+              raise SystemExit("TARGET_BRANCH_ID_NOT_UNIQUE_OR_NOT_FOUND")
+
+          target = matches[0]
+          actual_name = str(target.get("name") or "").strip()
+          normalized_name = actual_name.lower()
+          if actual_name != expected_name:
+              raise SystemExit("TARGET_BRANCH_NAME_MISMATCH")
+          if target.get("primary") or target.get("default") or target.get("protected") or target_id in keep_ids:
+              raise SystemExit("TARGET_BRANCH_IS_PROTECTED_OR_EXPLICITLY_KEPT")
+          if not normalized_name.startswith(allowed_prefixes):
+              raise SystemExit("TARGET_BRANCH_NAME_NOT_IN_EPHEMERAL_ALLOWLIST")
+          if any(marker in normalized_name for marker in protected_name_markers):
+              raise SystemExit("TARGET_BRANCH_NAME_MATCHES_PROTECTED_MARKER")
+
+          delete_status, _ = request("DELETE", "/branches/" + target_id)
+          if delete_status not in (200, 202, 204):
+              raise SystemExit("TARGET_BRANCH_DELETE_FAILED")
+          _, refreshed = request("GET", "/branches?limit=100")
+          remaining = refreshed.get("branches") or []
+          if any(item.get("id") == target_id for item in remaining):
+              raise SystemExit("TARGET_BRANCH_DELETE_NOT_VERIFIED")
+          print("EXACT_EPHEMERAL_BRANCH_DELETED_AND_VERIFIED", target_id, actual_name)
+          PY

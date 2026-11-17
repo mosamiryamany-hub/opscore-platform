@@ -1,29 +1,41 @@
 name: ops-neon-hygiene
+
 on:
   workflow_dispatch:
     inputs:
       mode:
-        description: list | prune_ephemeral | both
+        description: Read-only inventory or explicitly confirmed ephemeral cleanup
         required: true
-        default: both
-  repository_dispatch:
-    types: [neon-hygiene]
-  push:
-    paths:
-      - "scripts/neon_hygiene.py"
-      - ".github/workflows/ops-neon-hygiene.yml"
+        type: choice
+        options:
+          - list
+          - prune_ephemeral
+        default: list
+      confirm_prune:
+        description: Type DELETE_EPHEMERAL_NEON_BRANCHES only after reviewing the inventory
+        required: false
+        type: string
 
 permissions:
   contents: read
 
+concurrency:
+  group: ops-neon-hygiene
+  cancel-in-progress: false
+
 jobs:
   hygiene:
+    if: ${{ github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && (github.event.inputs.mode == 'list' || (github.event.inputs.mode == 'prune_ephemeral' && github.event.inputs.confirm_prune == 'DELETE_EPHEMERAL_NEON_BRANCHES')) }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - name: Run Neon hygiene
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Run read-only or explicitly confirmed Neon hygiene
         env:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
           NEON_PROJECT_ID: summer-leaf-18448271
-          MODE: ${{ github.event.inputs.mode || github.event.client_payload.mode || 'both' }}
+          MODE: ${{ github.event.inputs.mode || 'list' }}
+          CONFIRM_PRUNE: ${{ github.event.inputs.confirm_prune || '' }}
         run: python3 scripts/neon_hygiene.py
