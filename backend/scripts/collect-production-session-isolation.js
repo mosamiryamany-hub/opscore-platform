@@ -126,7 +126,8 @@ async function main() {
   const connectionQuery = new URLSearchParams({
     branch_id: branchId,
     database_name: databaseName,
-    role_name: roleName
+    role_name: roleName,
+    pooled: 'false'
   });
   const connection = await neonApi(
     '/projects/' + encodeURIComponent(projectId) + '/connection_uri?' + connectionQuery.toString(),
@@ -134,6 +135,9 @@ async function main() {
   );
   const ownerUri = String(connection.uri || '').trim();
   if (!ownerUri) throw new Error('PRODUCTION_OWNER_CONNECTION_URI_MISSING');
+  let ownerUrl;
+  try { ownerUrl = new URL(ownerUri); } catch { throw new Error('PRODUCTION_OWNER_CONNECTION_URI_INVALID'); }
+  if (ownerUrl.hostname.toLowerCase().includes('-pooler.')) throw new Error('PRODUCTION_OWNER_DIRECT_CONNECTION_REQUIRED');
   const httpBase = String(process.env.OPSC_PRODUCTION_HTTP_BASE || 'https://opscore-platform.vercel.app').replace(/\/+$/, '');
   const httpUrl = new URL(httpBase);
   if (httpUrl.protocol !== 'https:' || httpUrl.hostname !== 'opscore-platform.vercel.app') throw new Error('PRODUCTION_HTTP_ORIGIN_NOT_APPROVED');
