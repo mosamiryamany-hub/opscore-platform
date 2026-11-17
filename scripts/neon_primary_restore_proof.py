@@ -265,7 +265,7 @@ def direct_connection_uri(branch_id):
 
 def psql(restore_uri, sql):
     result = subprocess.run(
-        ["psql", uri, "-X", "-q", "-t", "-A", "-v", "ON_ERROR_STOP=1", "-c", sql],
+        ["psql", restore_uri, "-X", "-q", "-t", "-A", "-v", "ON_ERROR_STOP=1", "-c", sql],
         text=True,
         capture_output=True,
         timeout=60,
