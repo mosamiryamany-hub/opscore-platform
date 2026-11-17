@@ -99,7 +99,8 @@ function productionSafetyGate(config, env = process.env, releaseVerifier = hasVe
   if(String(env.OPSC_PRODUCTION_HOLD||'true').toLowerCase()!=='false') throw new Error('PRODUCTION_HOLD_ACTIVE');
   const releaseOk = String(env.OPSC_RELEASE_VERIFIED||'').toLowerCase()==='true' &&
     typeof releaseVerifier==='function' && releaseVerifier(env);
-  return {allowed:true,mode: releaseOk ? 'production' : 'production-operator-open'};
+  if (!releaseOk) throw new Error('PRODUCTION_RELEASE_EVIDENCE_NOT_VERIFIED');
+  return {allowed:true,mode:'production'};
 }
 function validateOsrmBaseUrl(raw, {production=false}={}){
   let u; try{u=new URL(String(raw||''));}catch{throw new Error('OSRM_BASE_URL_INVALID');}
