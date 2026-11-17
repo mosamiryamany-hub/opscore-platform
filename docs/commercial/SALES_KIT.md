@@ -9,12 +9,12 @@
 - Work-order, scheduling, dispatch, evidence and completion workflows.
 - Multi-tenant backend/security controls, operational UI, audit paths and APIs.
 - Expo mobile source and integration contract; not signed, built or store-published native apps.
-- Contact Center module with 114 registered locale codes and visible AI/machine-translation disclosure.
+- Contact Center module with 105 selectable runtime locale codes, visible AI/machine-translation disclosure, and a separate 114-row qualification register.
 - Release checks, acceptance evidence, checksums and buyer handoff documents.
 
 ## Translation disclosure
 
-The Contact Center locale runtime is integrated. Its catalog has 109 machine-assisted draft locales, 4 explicit English-fallback locales (din, nus, pau, ch), and English as the source locale; 89 keys per locale. Four reproducible structural/integrity audit rounds are run by CI. This is not linguistic approval: 0/114 locales are native-speaker reviewed or production-qualified. The machine-translation notice must remain visible.
+The Contact Center runtime currently exposes 105 selectable locale codes: 1 English source, 100 machine-assisted drafts, and 4 explicit English-fallback locales (din, nus, pau, ch); 89 keys per locale. The separate qualification register contains 114 source rows; 9 flagged locales (ms, sw, hy, uz, my, ml, es, sr, te) are currently withdrawn from runtime selection pending remediation and native-speaker review. Structural/integrity checks are not linguistic approval: native-speaker review is 0/114 and production qualification is 0/105 currently selectable locales. Keep the machine-translation notice visible.
 
 ## Customer responsibilities
 
