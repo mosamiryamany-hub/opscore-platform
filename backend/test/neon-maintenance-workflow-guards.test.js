@@ -22,6 +22,8 @@ test('Neon hygiene is manual-only and defaults to read-only inventory', () => {
   assert.match(hygieneWorkflow, /- list\s+- prune_ephemeral/);
   assert.match(hygieneWorkflow, /DELETE_EPHEMERAL_NEON_BRANCHES/);
   assert.match(hygieneWorkflow, /persist-credentials: false/);
+  assert.ok(hygieneWorkflow.includes("github.ref == 'refs/heads/main'"));
+  assert.ok(hygieneScript.includes('GITHUB_REF') && hygieneScript.includes('NEON_PRUNE_MAIN_MANUAL_DISPATCH_REQUIRED'));
 });
 
 test('Neon hygiene refuses pruning without typed confirmation and narrows eligible names', () => {
@@ -40,6 +42,10 @@ test('duplicate ephemeral pruner deletes only one exact manually selected branch
   assert.doesNotMatch(pruneWorkflow, /repository_dispatch/);
   assert.ok(!pruneWorkflow.includes('\n  push:'));
   assert.ok(!pruneWorkflow.includes('\n  repository_dispatch:'));
+  assert.ok(pruneWorkflow.includes("github.ref == 'refs/heads/main'"));
+  assert.ok(pruneWorkflow.includes("github.ref == 'refs/heads/main'"));
+  assert.ok(pruneWorkflow.includes('re.fullmatch(r"br-[a-z0-9-]{8,80}", target_id)'));
+  assert.ok(pruneWorkflow.includes('github.ref == \'refs/heads/main\'') === false || pruneWorkflow.includes('EPHEMERAL_BRANCH_DELETE_MAIN_MANUAL_DISPATCH_REQUIRED'));
   assert.ok(pruneWorkflow.includes('branch_id:'));
   assert.ok(pruneWorkflow.includes('expected_branch_name:'));
   assert.ok(pruneWorkflow.includes('DELETE_ONE_EPHEMERAL_NEON_BRANCH'));
@@ -56,6 +62,8 @@ test('Primary snapshot rotation requires manual dispatch and exact-ID deletion a
   assert.match(snapshotWorkflow, /confirm_non_primary_snapshot_deletion:/);
   assert.match(snapshotWorkflow, /OPSC_NON_PRIMARY_SNAPSHOT_DELETE_ID:/);
   assert.match(snapshotWorkflow, /OPSC_CONFIRM_NON_PRIMARY_SNAPSHOT_DELETE:/);
+  assert.ok(snapshotWorkflow.includes("github.ref == 'refs/heads/main'"));
+  assert.ok(snapshotScript.includes('GITHUB_REF') && snapshotScript.includes('NEON_SNAPSHOT_MAIN_MANUAL_DISPATCH_REQUIRED'));
 });
 
 test('snapshot helper requires separate typed approval and exact non-primary snapshot ID before DELETE', () => {
@@ -68,6 +76,8 @@ test('snapshot helper requires separate typed approval and exact non-primary sna
   assert.match(snapshotScript, /REFUSE_DELETE_PRIMARY_SOURCE_SNAPSHOT/);
   assert.match(snapshotScript, /REFUSE_DELETE_PROTECTED_SNAPSHOT_NAME/);
   assert.match(snapshotScript, /NON_PRIMARY_SNAPSHOT_DELETE_NOT_VERIFIED/);
+  const manualSnapshotWorkflow = read('.github/workflows/neon-primary-manual-snapshot.yml');
+  assert.ok(manualSnapshotWorkflow.includes("github.ref == 'refs/heads/main'"));
 });
 
 test('Neon maintenance helpers parse as Python without writing bytecode files', () => {
