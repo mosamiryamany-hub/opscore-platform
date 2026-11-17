@@ -98,7 +98,7 @@ test('checked-in restore proof is bound to the real Neon-restored branch and all
     'core_table_read', 'runtime_role_boundary'
   ];
   assert.equal(proof.status, 'PASS');
-  assert.equal(proof.restoreBranchId, 'br-quiet-poetry-bc3uo0u3');
+  assert.equal(proof.restoreBranchId, 'br-damp-surf-bciz4n1b');
   assert.equal(proof.schemaSha256, '2deab77e3b25f816c5a17aad24cebce83fbd7065dc26407898b3ebf584553fb5');
   assert.equal(proof.schemaInventoryItemCount, 6096);
   assert.equal(proof.dataContentSha256, 'fe5063af3ca6cfbad6a0325f6eda972731fb80a960af471f2075f51896400341');
