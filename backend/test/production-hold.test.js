@@ -20,6 +20,7 @@ test('production hold blocks traffic while leaving only read-only verification G
   });
 
   for (const pathname of [
+    '/api/health',
     '/api/verify/deployment',
     '/api/verify/release',
     '/verify/release.json',
@@ -30,7 +31,7 @@ test('production hold blocks traffic while leaving only read-only verification G
   }
   assert.equal(isReadOnlyProductionVerificationRequest({ method: 'POST', url: '/api/verify/release' }), false);
   assert.equal(isReadOnlyProductionVerificationRequest({ method: 'GET', url: '/api/v1/assets' }), false);
-  assert.equal(isReadOnlyProductionVerificationRequest({ method: 'GET', url: '/api/health' }), false);
+  assert.equal(isReadOnlyProductionVerificationRequest({ method: 'POST', url: '/api/health' }), false);
 });
 
 test('missing release evidence cannot be bypassed by setting hold false', () => {
