@@ -49,13 +49,12 @@ test('production cleanup disables principals and verifies that sessions, members
 });
 
 test('release certification refuses stale v1 or incomplete session-isolation evidence', () => {
-  assert.match(workflow, /opscore.production-session-isolation.v3/);
-  assert.match(workflow, /tenantPrincipalBinding/);
-  assert.match(workflow, /ownAssetEventWrite/);
-  assert.match(workflow, /crossTenantAssetReadDenied/);
-  assert.match(workflow, /crossTenantWriteDenied/);
-  assert.match(workflow, /cleanupComplete/);
-  assert.match(workflow, /session\.databaseName === 'opscore_acceptance'/);
+  assert.match(releaseProof, /evidence.schemaVersion === 'opscore.production-session-isolation.v3'/);
+  assert.match(releaseProof, /evidence.databaseName === expectedDatabaseName/);
+  assert.match(releaseProof, /deploymentIdBound/);
+  for (const key of ['tenantPrincipalBinding','ownAssetEventWrite','crossTenantAssetReadDenied','crossTenantWriteDenied','cleanupComplete']) {
+    assert.match(collector, new RegExp(key));
+  }
 });
 
 
