@@ -28,14 +28,24 @@ The selected time is an owner-approved operational window. Current Vercel Hobby 
 
 ## Snapshot restore attempt — 17 November 2026
 
-A non-finalizing restore test was attempted against the current manual Primary snapshot `snap-floral-sea-bcug7fd3`. Neon rejected creation of the restore branch with `root branches limit exceeded`. The snapshot is still listed and was not deleted or replaced; no restore branch was produced. The provider's branch list showed eight active branches at the time, but this observation is not a contractual statement of the account's plan limit.
+A non-finalizing restore test was attempted against the current manual Primary snapshot `snap-floral-sea-bcug7fd3`. Neon rejected creation of the restore branch with `root branches limit exceeded`. The snapshot is still listed and was not deleted or replaced; no restore branch was produced.
+
+At the time of the attempt, the project exposed eight active branches, including exactly three root branches:
+- `br-proud-salad-bcshhdap` — current Primary `main`
+- `br-gentle-union-bcv2y6cf` — prior restore-test branch from `snap-spring-snow-bc1jiqqs`
+- `br-wispy-term-bcrqqj84` — prior restore-drill root branch from `snap-lively-lab-bcezlz2o`
+
+The observed Neon error is consistent with the documented Free-plan allowance of three root branches per project. The project API did not expose an explicit plan-name field, so the plan identity is not asserted. Other observed Free-equivalent limits are the six-hour history window, 1 GB branch logical-size limit and one listed manual snapshot. Current official plan guidance lists Launch at five root branches, 100 manual snapshots and up to seven days of history; Scale lists 25 root branches and up to 30 days. See Neon plan documentation: https://neon.com/docs/introduction/plans and root branch documentation: https://neon.com/docs/manage/branches.
 
 Consequences:
 
 - Snapshot existence and provenance are verified; **restore execution is not verified**.
 - The earlier disposable PostgreSQL logical dump/restore drill is CI evidence only and does not substitute for Neon Primary snapshot restoration.
-- Do not delete branches, replace the Primary, finalize a restore, or upgrade the Neon plan automatically to make room.
-- The Production migration remains **NO-GO** until an owner-approved capacity path allows a non-finalizing restore test from the current snapshot (or an equivalent independently verified recovery procedure), with schema/data identity checks.
+- Total branch count (8) and root-branch count (3) are separate limits. The corrected disposable migration workflow creates a child branch; the failed snapshot restore needs an additional root/backup branch.
+- The only manual snapshot slot is currently occupied by `snap-floral-sea-bcug7fd3`; the current automatic snapshot schedule is empty.
+- Do not delete branches or snapshots, replace the Primary, finalize a restore, or upgrade the Neon plan automatically to make room.
+- The safest quota path is an owner-approved Launch upgrade before the window, followed by verification of the effective quotas, a fresh Primary snapshot, a non-finalizing restore test, and schema/data identity checks. This is a paid-plan change and is not authorized by this runbook.
+- Without the approved capacity change and successful restore test, the Production migration remains **NO-GO**. Do not treat the existing snapshot alone as an executable rollback.
 
 ## Mandatory pre-window gates
 
