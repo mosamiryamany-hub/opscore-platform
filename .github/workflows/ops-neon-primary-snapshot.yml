@@ -1,0 +1,25 @@
+name: ops-neon-primary-snapshot
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type ROTATE_PRIMARY_SNAPSHOT
+        required: true
+  repository_dispatch:
+    types: [neon-primary-snapshot]
+
+permissions:
+  contents: read
+
+jobs:
+  rotate:
+    if: ${{ github.event_name == 'repository_dispatch' || github.event.inputs.confirm == 'ROTATE_PRIMARY_SNAPSHOT' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rotate manual snapshot onto primary
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: summer-leaf-18448271
+          OPSC_PRODUCTION_NEON_BRANCH_ID: br-proud-salad-bcshhdap
+        run: python3 scripts/neon_primary_snapshot_rotate.py
