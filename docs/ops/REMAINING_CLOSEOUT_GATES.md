@@ -46,7 +46,7 @@ Restore Snapshot endpoint:
   cited as restore evidence.
 
 The proof JSON is rebound to the valid branch. Its new SHA-256 is
-`231b7d5a8b94ebaf2307f9b0a42cf5c95537ed6237db9842cf7f3da39297be28`.
+`ac64f8c634cd783e6df7d21c9fbeb941801fe9a68f63427ac0345b05613189fe`.
 Update GitHub Environment `production` secret
 `OPSC_PRODUCTION_RESTORE_PROOF_SHA256` to this exact value after this change
 is merged. Until that update is confirmed, the Production migration workflow
@@ -63,3 +63,11 @@ the exact six-migration preflight and the new proof digest check. It does not
 automatically deploy, rotate HMAC, or activate signed routes. Production stays
 pinned to `4017497068defa9c1d0761fcb07bc746925e002a` until a later, separate
 deployment and 67-route Production evidence cycle passes.
+
+
+## Additional verified restore evidence and blocker — 17 November 2026
+
+- PR #219 contains the corrected Neon Restore Snapshot implementation and proof contract. Exact proof SHA-256: `ac64f8c634cd783e6df7d21c9fbeb941801fe9a68f63427ac0345b05613189fe` (must replace the prior value in GitHub Environment `production` after merge; secret value not independently readable from the current GitHub connection).
+- The 6,096-item schema definition fingerprint and SHA-256 per-row public-table content inventory match between Primary and the valid restore branch `br-quiet-poetry-bc3uo0u3` at the recorded proof time. The Production migration runner rechecks both live fingerprints immediately before any migration operation.
+- A new Primary snapshot request was rejected with `snapshots limit exceeded`; current automatic backup schedule is empty; Primary branch protection is off. Do not destroy the only retained Primary snapshot to create space. The 18 November 02:00–04:00 Africa/Cairo maintenance window is **NO-GO** until a safe snapshot capacity path exists.
+- Production migrations 063–067 and 069 remain unapplied; 21 policies still reference the legacy tenant GUC directly. Production HMAC key material/table is absent, no signed-context Production enablement variables were found, and the real Production 67-route HTTP evidence collector remains unavailable.
