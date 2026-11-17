@@ -86,3 +86,7 @@ There is a second dependency: Production HOLD returns 503 on operational paths. 
 ### Neon Object Storage assessment
 
 Read-only inspection on 2026-11-17 confirms Neon Object Storage is enabled on the primary branch and has no buckets configured. It is S3-compatible and can hold logical dump files, but it is branch-aware: child branches inherit the parent's bucket/object state at the branch point. It therefore remains inside the same Neon project/provider failure domain and is not an independent immutable backup destination. Neon Object Storage compatibility documentation also notes that S3 bucket versioning and lifecycle configurations are not enforced. No bucket was created because an empty or branch-coupled bucket would not close the independent-backup gap. Use a separate S3/R2 account/project with immutable retention and periodic restore drills for the independent backup copy.
+
+### Promotion hard-disable
+
+The `deploy` job in `.github/workflows/vercel-deploy.yml` now has an explicit static `if: false` gate in addition to the owner confirmation and staged-probe readiness variable. This is intentional: a repository variable could not be inspected through the current GitHub connection, so a configuration-only gate was insufficiently provable. Do not remove the static block until the staged OIDC probe path and the real Production 67-route runner are implemented, independently reviewed, and tested on a no-domain candidate deployment.
