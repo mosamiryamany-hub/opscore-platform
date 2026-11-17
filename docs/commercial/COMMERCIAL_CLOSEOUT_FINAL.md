@@ -1,74 +1,52 @@
-# Commercial closeout — seller release posture
+# Seller-side commercial closeout — OpsCore v0.11.62
 
-> **Current status (2026-11-17): SELLER RELEASE HOLD — security and exact-head package gates remain open.**
+> **Decision: SELLER SOURCE-RELEASE HOLD. This is not a buyer-acquisition hold.**
 >
-> A buyer is **not required** to complete engineering, create a release package, publish the offer, or begin negotiations. Buyer identification, transaction negotiation, signature, payment and the transaction-specific License Schedule are post-sale steps, not seller release gates.
->
-> Current `main` is `6adea6fa209e394b464c4272db1860422d608afb`. Draft PR #222 is based on that main and has advanced Expo SDK 58 to 58.0.26. On the latest fully checked PR head `d59819b94c5953e17413b4f9cbf1ef1172145e90`, PostgreSQL 18 isolated RLS/HTTP acceptance passed and the backend regression suite recorded 807 passed, 0 failed, 3 skipped. OpsCore CI and Vercel contract verification failed only at the mobile dependency audit; Vercel deploy jobs were skipped. The latest mobile run 44157820028 reported 25 High findings in the full mobile tree and 26 High with `--omit=dev`, associated with GHSA-fc5q-39xc-vjpf / CVE-2026-112366 through transitive picomatch dependencies. Expo Doctor passed 20/20 and Android/iOS/Web exports passed, but the fail-closed audit condition failed. No audit suppression or forced downgrade was applied; no deployment occurred. PR #222 remains a draft and is not a release.
->
-> The older Production proof below is historical evidence bound to its earlier commit/deployment. It does not certify current main or the SDK58 candidate. Do not use its package digest as a current deliverable fingerprint.
+> A named buyer, buyer signature, payment, buyer-specific legal review or transaction License Schedule is **not** required to complete seller engineering, prepare a release package, publish or list the offer, present the product, or negotiate. The buyer-specific Schedule is required only at transaction close, before granting the named buyer licensed rights or making the licensed delivery.
 
-**Updated:** 2026-11-17 — latest evidence through run 44157820028  
-**Current main:** `6adea6fa209e394b464c4272db1860422d608afb`  
-**Latest candidate head with exact SDK58 audit evidence:** `d59819b94c5953e17413b4f9cbf1ef1172145e90`  
-**Historical Production pin:** `4017497068defa9c1d0761fcb07bc746925e002a`
+**Updated:** 2026-11-17  
+**Current `main`:** `6adea6fa209e394b464c4272db1860422d608afb`  
+**Current candidate:** PR #222, branch `fix/mobile-sdk58-current-main-20261117`, head `807dee55f050bc96a4123091f09be1503c10004d`  
+**Candidate status:** Draft / not merged / not a qualified release.
 
-## Latest source-candidate evidence
+## 1. Current exact-head evidence
 
-| Gate | Result |
-|---|---|
-| SDK58 validation | Expo Doctor 20/20; Android/iOS/Web exports PASS |
-| Full mobile audit | 25 High, 0 Critical |
-| Mobile audit with `--omit=dev` | 26 High, 0 Critical |
-| Fail-closed release condition | FAIL — mobile High findings unresolved |
-| Evidence artifact | `mobile-sdk58-current-main-evidence-44157820028` |
-| Artifact SHA-256 | `98ec6833d033d880d661d37aa2b6feff2520b0dcd4ccb4f4241f10201b6ebf01` |
-| Isolated PostgreSQL 18 RLS/HTTP | PASS on tested PR head `d59819b` |
-| Full backend regression suite | 807 passed, 0 failed, 3 skipped on tested PR head `d59819b` |
-
-The backend and PostgreSQL evidence above is bound to the listed tested PR head, not automatically to later documentation-only branch heads. The current exact-head audit remains blocked. No qualified release ZIP or release statement has been generated for the latest candidate.
-
-## Historical runtime evidence — earlier Production pin only
-
-The following records are retained for traceability. They describe the earlier pinned deployment and must not be represented as current-main or current-package acceptance.
-
-| Gate | Historical status |
-|---|---|
-| Overall | PASS_WITH_BUYER_RESIDUALS |
-| Isolation | CERTIFIED |
-| Session boundary | PASS_PRODUCTION |
-| Recovery bundle | PASS_PRODUCTION |
-| Package SHA-256 | dea02a40c556fee6abfc84c372fb153009317867593bf9dafe8f21e171b02880 |
-| Proof URL | https://opscore-platform.vercel.app/api/verify/release |
-
-## Historical git-stored evidence for the earlier pin
-
-| Artifact | Historical status | Notes |
+| Gate | Exact-head result | Interpretation |
 |---|---|---|
-| PRODUCTION_SESSION_ISOLATION.json | PASS | dual-tenant HTTP probes; sourceCommitHint=4017497…; run 44029395474 |
-| PRODUCTION_RECOVERY_POINT.json | PASS | 135 tables compared; mismatchCount=0; recovery branch created then eligible for ephemeral prune |
+| OpsCore CI | [Run 44158727347](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44158727347) — failed at Mobile dependency audit | Backend verification, regression checks, mobile source-contract verification and backend runtime dependency audit completed successfully; the mobile audit remains fail-closed |
+| Backend runtime dependency audit | 0 findings | This does not clear the separate mobile dependency tree |
+| Mobile full dependency audit | 25 High, 0 Critical | Release gate failed |
+| Mobile audit with `--omit=dev` | 26 High, 0 Critical | The findings are not demonstrated to be dev-only |
+| PostgreSQL 18 isolated RLS/HTTP acceptance | [Run 44158727249](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44158727249) — success on this exact head | The caller-bound tenant matrix recorded 346 route checks; the report explicitly remains `isolationCertification=NOT_CERTIFIED` |
+| Vercel contract verification | [Run 44158727582](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44158727582) — failed at the same mobile audit | PostgreSQL deploy-bound and deploy jobs were skipped; no Production deployment occurred |
 
-No `evidenceRebind` / `probesReexecuted=false` on these historical files.
+The mobile build/export evidence is from the earlier candidate validation: run 44157820028 on `d59819b94c5953e17413b4f9cbf1ef1172145e90` recorded Expo Doctor 20/20 and Android, iOS and Web exports as PASS. A Git comparison from that tested head to the then-current head `807dee55f050bc96a4123091f09be1503c10004d` showed 12 later commits touching documentation and advisory review only; the mobile application source, `package.json`, and `package-lock.json` did not change. That build evidence therefore relates to the same mobile source/lockfile, but it does **not** resolve the audit finding.
 
-## Seller offer status
+The current audit still flags transitive `picomatch@4.0.7` and `picomatch@2.3.2` through the Expo/Metro dependency graph under GHSA-fc5q-39xc-vjpf / CVE-2026-112366. The advisory remains unresolved for this candidate. No audit suppression, unreviewed patch, forced major downgrade, or risk waiver was applied. `npm audit fix --force` proposes installing React Native 0.83.10, a breaking change from the candidate's 0.88.1 line; that option was rejected. The backend audit passing and successful JavaScript exports do not establish mobile supply-chain security. The High rows are repeated dependency-path audit findings around the advisory, not 26 independently confirmed CVEs.
 
-- OPEN FOR MARKETING, PRESENTATIONS AND COMMERCIAL NEGOTIATION.
-- No prospective buyer or buyer signature is needed to complete the product or prepare its release package.
-- No license grant is made to a buyer until the rights holder and named buyer execute a transaction-specific License Schedule that pins the exact deliverable.
-- Tiers A (use), B (use+modify), and C (use+modify+distribute) remain transaction options, not release prerequisites.
+## 2. Commercial status — buyer-independent
 
-## Remaining seller-owned source-release gates
+- **Offer publication, listing, presentation and negotiation:** permitted by the seller-side commercial framework before any buyer is identified.
+- **Qualified downloadable source release:** not yet available for this candidate because the seller-owned mobile dependency gate and exact-head Secure Release package gate remain open.
+- **Hosted SaaS:** not included in this source-code offer. Vercel/Neon seller-hosted operations and Production certification are a separate track.
+- **License grant:** none by default. A transaction-specific Schedule is prepared only when a real transaction proceeds; it pins the exact released source commit and package SHA-256 and specifies tier, rights, term, territory, payment and support.
 
-1. Resolve or formally disposition the mobile picomatch advisory without suppressing the audit or forcing an incompatible SDK downgrade.
-2. First-party mobile source/config scan is complete and recorded; finish independent third-party Expo/Metro call-site and CI build-input reachability review, retaining exact-candidate full and `--omit=dev` audit JSON. The first-party scan alone is not risk acceptance.
-3. Pass every required CI check on one exact candidate head, including independent review.
-4. Generate one successful exact-head Secure Release package with SHA-256, SBOM, provenance, test reports and forensic i18n evidence.
-5. Reconcile buyer-facing documentation and package manifests to that same release statement and digest.
+No buyer acquisition, buyer signature or payment task appears in the seller closeout checklist. The offer can be prepared and presented while the seller completes release gates, but the present candidate must not be represented as a qualified download or production-certified service.
 
-## Separate hosted-service and Production operations
+## 3. Remaining seller-owned source-release gates
 
-The live 67-route signed-session HTTP acceptance collector/evidence writer is not implemented/available according to the current Production runbook. It remains a Production certification task and is not a source-code-only release gate. Do not claim Production certification until it is implemented and run against the actual authorized Production target.
+1. Resolve the mobile advisory through an upstream fix or a documented, independently reviewed, evidence-based disposition. Do not suppress npm audit or force an incompatible downgrade.
+2. Complete the independent Expo/Metro call-site and CI build-input reachability review; retain full and `--omit=dev` audit JSONs from the same exact candidate.
+3. Run all mandatory workflows on one exact final candidate head and record the required review.
+4. Generate the exact-head Secure Release ZIP, external release statement, SHA-256, SBOM, provenance, JUnit/test reports, mobile audit JSON and forensic i18n evidence from one successful run.
+5. Reconcile README, buyer quickstart, offer pages and transfer documents to that exact release statement and digest; scan the archive for secrets, customer data, local state and unintended files.
 
-Neon paid backup/PITR capacity, Vercel commercial hosting, Preview SSO, Production migration, HMAC rotation, WAF enforcement and Production promotion belong to a separate seller-hosted SaaS / operational certification track. They are not prerequisites for a source-code-only commercial release. They must not be claimed as complete without current target-bound evidence, and no Production mutation is authorized by this document.
+## 4. Separate hosted-service / Production track
 
-Production certification remains NOT_ESTABLISHED for the current candidate. That limitation must be disclosed; it does not create a buyer-identification gate or prevent marketing a source-code offer.
+Neon backup/PITR capacity, branch protection, Vercel commercial hosting entitlement, domains, Preview SSO, the Production 67-route signed-session collector, Production migrations, HMAC rotation, WAF enforcement and Production promotion are not prerequisites for selling a source-code package. They remain necessary before the seller offers and operates a hosted Production service, and must not be described as complete without current target-bound evidence.
+
+The isolated PostgreSQL route matrix is not the missing live Production 67-route certification. Production certification remains `NOT_ESTABLISHED`; no Production migration, key rotation, WAF change or Production deployment is authorized by this source-code closeout.
+
+## 5. Historical evidence boundary
+
+Older Production pins, package digests and Secure Release artifacts are historical records only. They must not be reused as identity or proof for `807dee55f050bc96a4123091f09be1503c10004d` or a later source head. A current handover identity exists only when a successful Secure Release run creates the ZIP and its matching external release statement for the exact source commit.
