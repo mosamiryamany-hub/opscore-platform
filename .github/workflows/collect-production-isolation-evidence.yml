@@ -42,6 +42,49 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
+      - name: Prune ephemeral Neon branches when at capacity
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: summer-leaf-18448271
+        run: |
+          set -euo pipefail
+          test -n "${NEON_API_KEY:-}" || { echo "no_neon_key"; exit 0; }
+          PROJECT="${NEON_PROJECT_ID:-summer-leaf-18448271}"
+          curl -sS -H "Authorization: Bearer $NEON_API_KEY" -H "Accept: application/json"             "https://console.neon.tech/api/v2/projects/${PROJECT}/branches" -o /tmp/branches.json
+          python3 <<'PY2'
+import json,os,urllib.request
+key=os.environ["NEON_API_KEY"]
+# project from file path used in curl - read env
+import os
+proj=os.environ.get("NEON_PROJECT_ID") or "summer-leaf-18448271"
+KEEP={"br-proud-salad-bcshhdap","br-wispy-term-bcrqqj84","br-fragrant-king-bcr9928f"}
+MARKERS=("recovery-point","opscore-prod-recovery","digital-twin","tmp-","test-accept","accept-recovery","ephemeral")
+bs=json.load(open("/tmp/branches.json")).get("branches") or []
+print("branch_count_before", len(bs))
+for b in bs:
+  print("branch", b.get("id"), b.get("name"), "primary="+str(b.get("primary")), "protected="+str(b.get("protected")))
+deleted=0
+for b in bs:
+  bid=b.get("id") or ""
+  name=(b.get("name") or "").lower()
+  if b.get("primary") or b.get("protected") or bid in KEEP:
+    continue
+  if not any(m in name for m in MARKERS):
+    continue
+  req=urllib.request.Request(
+    f"https://console.neon.tech/api/v2/projects/{proj}/branches/{bid}",
+    method="DELETE",
+    headers={"Authorization": f"Bearer {key}", "Accept": "application/json"},
+  )
+  try:
+    with urllib.request.urlopen(req) as resp:
+      print("deleted", bid, name, resp.status)
+      deleted += 1
+  except Exception as e:
+    print("delete_fail", bid, getattr(e, "read", lambda: str(e).encode)()[:200])
+print("deleted_count", deleted)
+PY2
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
