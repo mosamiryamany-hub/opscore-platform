@@ -8,6 +8,8 @@ const { spawnSync } = require('node:child_process');
 const root = path.resolve(__dirname, '..');
 const collector = fs.readFileSync(path.join(root, 'scripts', 'collect-production-recovery-point.js'), 'utf8');
 const workflow = fs.readFileSync(path.join(root, '..', '.github', 'workflows', 'vercel-deploy.yml'), 'utf8');
+const releaseProof = fs.readFileSync(path.join(root, 'src', 'release-proof.js'), 'utf8');
+const evidenceWorkflow = fs.readFileSync(path.join(root, '..', '.github', 'workflows', 'collect-production-isolation-evidence.yml'), 'utf8');
 
 test('production recovery selects one explicit application database and never falls back to another database', () => {
   assert.match(collector, /OPSC_PRODUCTION_DATABASE_NAME/);
@@ -16,6 +18,8 @@ test('production recovery selects one explicit application database and never fa
   assert.doesNotMatch(collector, /db_try_fail/);
   assert.match(collector, /PRODUCTION_RECOVERY_DATABASE_IDENTITY_MISMATCH/);
   assert.match(workflow, /OPSC_PRODUCTION_DATABASE_NAME: opscore_acceptance/);
+  assert.match(evidenceWorkflow, /OPSC_PRODUCTION_DATABASE_NAME: \$\{\{ inputs\.production_database_name \}\}/);
+  assert.match(evidenceWorkflow, /I_AUTHORIZE_PRODUCTION_EVIDENCE_PROBES/);
 });
 
 test('recovery collector never deletes an existing Neon branch and fails closed at the branch limit', () => {
