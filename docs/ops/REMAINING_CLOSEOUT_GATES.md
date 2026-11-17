@@ -40,7 +40,8 @@ Restore Snapshot endpoint:
   `restored_from`, `restore_status=restored`, and `restored_as=br-proud-salad-bcshhdap`.
 - Read-only validation: PostgreSQL 18.7, 135 public tables, 62 migration-ledger
   rows, 068 present, 063–067 and 069 absent, and runtime role
-  `opscore_runtime` has neither superuser nor BYPASSRLS.
+  `opscore_runtime` has neither superuser nor BYPASSRLS; a role-scoped read with no
+  tenant context returned zero organizations.
 - The older `br-divine-fog-bcki2xa4` is **not** a restore branch and must not be
   cited as restore evidence.
 
