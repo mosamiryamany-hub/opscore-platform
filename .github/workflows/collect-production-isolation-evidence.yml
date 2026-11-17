@@ -1,39 +1,108 @@
 name: collect-production-isolation-evidence
+
 on:
   workflow_dispatch:
+    inputs:
+      expected_production_commit_sha:
+        description: Exact commit reported by https://opscore-platform.vercel.app/api/verify/release
+        required: true
+        type: string
+      production_database_name:
+        description: Exact application database name independently confirmed for the configured Production Neon branch
+        required: true
+        type: string
+      production_owner_role:
+        description: Owner role used only for controlled seed, cleanup, and read-only recovery comparison
+        required: true
+        type: string
+        default: neondb_owner
+      neon_branch_limit:
+        description: Active branch limit for the current Neon plan; keep this at the observed project limit unless the plan changes
+        required: true
+        type: string
+        default: '10'
+      confirm_production_probe:
+        description: Explicitly authorize the live dual-tenant HTTP probe and a recovery-branch creation attempt
+        required: true
+        type: choice
+        options:
+          - DO_NOT_RUN
+          - I_AUTHORIZE_PRODUCTION_EVIDENCE_PROBES
+
 permissions:
   contents: read
+
+concurrency:
+  group: production-evidence-${{ github.event.inputs.expected_production_commit_sha }}
+  cancel-in-progress: false
+
 jobs:
-  collect:
+  recovery-point:
+    if: github.event.inputs.confirm_production_probe == 'I_AUTHORIZE_PRODUCTION_EVIDENCE_PROBES'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22.23.4'
       - name: Install psql
         run: |
           sudo apt-get update -qq
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq postgresql-client
-      - name: Recovery point
+      - name: Verify served deployment, database identity and create recovery point
         env:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
           NEON_PROJECT_ID: summer-leaf-18448271
           OPSC_PRODUCTION_NEON_BRANCH_ID: br-proud-salad-bcshhdap
+          OPSC_PRODUCTION_DATABASE_NAME: ${{ inputs.production_database_name }}
+          OPSC_PRODUCTION_OWNER_ROLE: ${{ inputs.production_owner_role }}
+          OPSC_PRODUCTION_HTTP_BASE: https://opscore-platform.vercel.app
+          OPSC_EXPECTED_PRODUCTION_COMMIT_SHA: ${{ inputs.expected_production_commit_sha }}
+          OPSC_NEON_BRANCH_LIMIT: ${{ inputs.neon_branch_limit }}
           GITHUB_SHA: ${{ github.sha }}
         run: node backend/scripts/collect-production-recovery-point.js
-      - name: Session isolation
-        env:
-          OPSC_OWNER_DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          OPSC_PRODUCTION_HTTP_BASE: https://opscore-platform.vercel.app
-          OPSC_PRODUCTION_NEON_BRANCH_ID: br-proud-salad-bcshhdap
-          GITHUB_SHA: ${{ github.sha }}
-        run: node backend/scripts/collect-production-session-isolation.js
-      - name: Upload evidence artifacts
+      - name: Upload recovery evidence, including explicit BLOCKED reports
+        if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v4
         with:
-          name: production-isolation-evidence
+          name: production-recovery-evidence-${{ github.run_id }}
           path: |
             backend/docs/verification/PRODUCTION_RECOVERY_POINT.json
+            backend/docs/verification/PRODUCTION_RECOVERY_POINT.json.sha256
+          if-no-files-found: warn
+
+  session-isolation:
+    needs: recovery-point
+    if: needs.recovery-point.result == 'success' && github.event.inputs.confirm_production_probe == 'I_AUTHORIZE_PRODUCTION_EVIDENCE_PROBES'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22.23.4'
+      - name: Install psql
+        run: |
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq postgresql-client
+      - name: Verify served deployment and Neon target before live dual-tenant HTTP writes
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: summer-leaf-18448271
+          OPSC_PRODUCTION_NEON_BRANCH_ID: br-proud-salad-bcshhdap
+          OPSC_PRODUCTION_DATABASE_NAME: ${{ inputs.production_database_name }}
+          OPSC_PRODUCTION_OWNER_ROLE: ${{ inputs.production_owner_role }}
+          OPSC_PRODUCTION_HTTP_BASE: https://opscore-platform.vercel.app
+          OPSC_EXPECTED_PRODUCTION_COMMIT_SHA: ${{ inputs.expected_production_commit_sha }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: node backend/scripts/collect-production-session-isolation.js
+      - name: Upload session-isolation evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v4
+        with:
+          name: production-session-isolation-evidence-${{ github.run_id }}
+          path: |
             backend/docs/verification/PRODUCTION_SESSION_ISOLATION.json
+            backend/docs/verification/PRODUCTION_SESSION_ISOLATION.json.sha256
+          if-no-files-found: warn

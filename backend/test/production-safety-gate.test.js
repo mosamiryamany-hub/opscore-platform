@@ -19,17 +19,17 @@ test('production remains held when the explicit hold variable is missing or true
   }, () => true), /PRODUCTION_HOLD_ACTIVE/);
 });
 
-test('explicit hold false opens production in operator-open mode without release evidence', () => {
-  assert.deepEqual(productionSafetyGate({ nodeEnv: 'production' }, {
+test('explicit hold false remains blocked when the current release evidence does not verify', () => {
+  assert.throws(() => productionSafetyGate({ nodeEnv: 'production' }, {
     OPSC_PRODUCTION_HOLD: 'false'
-  }, () => true), { allowed: true, mode: 'production-operator-open' });
+  }, () => true), /PRODUCTION_RELEASE_EVIDENCE_NOT_VERIFIED/);
 });
 
-test('environment flags alone do not claim full verified production mode without evidence', () => {
-  assert.deepEqual(productionSafetyGate({ nodeEnv: 'production' }, {
+test('environment flags alone cannot open Production without verified release evidence', () => {
+  assert.throws(() => productionSafetyGate({ nodeEnv: 'production' }, {
     OPSC_PRODUCTION_HOLD: 'false',
     OPSC_RELEASE_VERIFIED: 'true'
-  }, () => false), { allowed: true, mode: 'production-operator-open' });
+  }, () => false), /PRODUCTION_RELEASE_EVIDENCE_NOT_VERIFIED/);
 });
 
 test('production verified mode requires hold false, release switch, and evidence verifier', () => {
@@ -39,8 +39,8 @@ test('production verified mode requires hold false, release switch, and evidence
   }, () => true), { allowed: true, mode: 'production' });
 });
 
-test('the default production verifier does not elevate operator-open into verified mode from env-only claims', () => {
-  assert.deepEqual(productionSafetyGate({ nodeEnv: 'production' }, {
+test('the default production verifier keeps a deployment closed when embedded release evidence is incomplete', () => {
+  assert.throws(() => productionSafetyGate({ nodeEnv: 'production' }, {
     OPSC_PRODUCTION_HOLD: 'false',
     OPSC_RELEASE_VERIFIED: 'true',
     OPSC_RELEASE_CI_COMMIT: 'a'.repeat(40),
@@ -49,7 +49,7 @@ test('the default production verifier does not elevate operator-open into verifi
     OPSC_RELEASE_PACKAGE_SHA256: 'b'.repeat(64),
     OPSC_RELEASE_DEPLOYMENT_SOURCE: 'github-actions-cli',
     OPSC_PRODUCTION_ISOLATION_CERTIFICATION: 'CERTIFIED'
-  }), { allowed: true, mode: 'production-operator-open' });
+  }), /PRODUCTION_RELEASE_EVIDENCE_NOT_VERIFIED/);
 });
 
 test('Vercel Preview remains available when NODE_ENV is production without opening the production gate', () => {

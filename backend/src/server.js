@@ -32,6 +32,7 @@ store.databaseEngineResolved = opened.engine;
 store.postgresRuntimeWired = opened.postgresRuntimeWired;
 const {authProviderGate, verifyOidcIdToken} = require('./security');
 const {inspectRequest,productionSafetyGate,createRateLimiter,createLoginRateLimiter,assertTenantAlignment}=require('./firewall');
+const {evaluateProductionGate,isReadOnlyProductionVerificationRequest}=require('./production-hold');
 const {can: rbacCan}=require('./rbac');
 const {breaker}=require('./enterprise-value-additions');
 breaker.setDb?.(db);
@@ -3431,7 +3432,10 @@ if(req.method==='POST'&&url.pathname==='/api/v1/reconciliation/run'){try{require
     file = path.join(webRoot, 'index.html');
   sendFile(res, file, false);
 }
-if (config.nodeEnv === 'production') productionSafetyGate(config);
+const productionGate = config.nodeEnv === 'production'
+  ? evaluateProductionGate(config, process.env, productionSafetyGate)
+  : { blocked: false, mode: 'development', reasonCode: null };
+if (productionGate.blocked) warn('production_traffic_held', { reasonCode: productionGate.reasonCode });
 const server = http.createServer({ maxHeaderSize: config.httpMaxHeaders * 1024 }, (req, res) => runWithRequest(() => {
   const started = process.hrtime.bigint();
   const originalEnd = res.end.bind(res);
@@ -3440,15 +3444,25 @@ const server = http.createServer({ maxHeaderSize: config.httpMaxHeaders * 1024 }
     if (!recorded) {
       recorded = true;
       try {
-        const ms = Number(process.hrtime.bigint() - started) / 1000000;
-        store.recordRuntimeRequest(req.method || 'UNKNOWN', String((req.url || '').split('?')[0]), res.statusCode || 0, ms);
-        if (Date.now()-lastOtelExport>=60000 && process.env.OTEL_EXPORTER_OTLP_ENDPOINT) { lastOtelExport=Date.now(); exportOtlp(store.runtimeObservability({role:'admin'})).catch(e=>warn('otlp_export_failed',{error:e})); }
+        if (!productionGate.blocked) {
+          const ms = Number(process.hrtime.bigint() - started) / 1000000;
+          store.recordRuntimeRequest(req.method || 'UNKNOWN', String((req.url || '').split('?')[0]), res.statusCode || 0, ms);
+          if (Date.now()-lastOtelExport>=60000 && process.env.OTEL_EXPORTER_OTLP_ENDPOINT) { lastOtelExport=Date.now(); exportOtlp(store.runtimeObservability({role:'admin'})).catch(e=>warn('otlp_export_failed',{error:e})); }
+        }
       } catch (metricsError) {
         warn('runtime_metrics_persistence_degraded', { error: metricsError });
       }
     }
     return originalEnd(chunk, encoding, cb);
   };
+  if (productionGate.blocked && !isReadOnlyProductionVerificationRequest(req)) {
+    return json(res, 503, {
+      schemaVersion: 'opscore.production-hold-response.v1',
+      status: 'MAINTENANCE',
+      error: { code: productionGate.reasonCode },
+      note: 'Operational traffic is disabled while Production release evidence is not verified. Read-only deployment and release verification endpoints remain available.'
+    }, { 'retry-after': '60' });
+  }
   try {
     const r = route(req, res);
     if (r?.catch)
