@@ -14,6 +14,9 @@ primary = os.environ.get("OPSC_PRODUCTION_NEON_BRANCH_ID") or "br-proud-salad-bc
 delete_snapshot_id = str(os.environ.get("OPSC_NON_PRIMARY_SNAPSHOT_DELETE_ID") or "").strip()
 delete_confirmation = str(os.environ.get("OPSC_CONFIRM_NON_PRIMARY_SNAPSHOT_DELETE") or "").strip()
 
+if os.environ.get("GITHUB_EVENT_NAME") != "workflow_dispatch" or os.environ.get("GITHUB_REF") != "refs/heads/main":
+    print("NEON_SNAPSHOT_MAIN_MANUAL_DISPATCH_REQUIRED")
+    raise SystemExit(2)
 if not key:
     print("NEON_API_KEY_MISSING")
     raise SystemExit(2)
