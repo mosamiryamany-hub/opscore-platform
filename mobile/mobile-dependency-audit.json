@@ -237,6 +237,26 @@
         "isSemVerMajor": true
       }
     },
+    "@react-native/community-cli-plugin": {
+      "name": "@react-native/community-cli-plugin",
+      "severity": "high",
+      "isDirect": false,
+      "via": [
+        "metro"
+      ],
+      "effects": [
+        "react-native"
+      ],
+      "range": "0.73.8 - 0.74.0-nightly-20240220-e9351f0f8 || >=0.74.1",
+      "nodes": [
+        "node_modules/@react-native/community-cli-plugin"
+      ],
+      "fixAvailable": {
+        "name": "react-native",
+        "version": "0.83.10",
+        "isSemVerMajor": true
+      }
+    },
     "@react-native/virtualized-lists": {
       "name": "@react-native/virtualized-lists",
       "severity": "high",
@@ -368,6 +388,7 @@
         "metro-transform-worker"
       ],
       "effects": [
+        "@react-native/community-cli-plugin",
         "metro-config",
         "metro-transform-worker"
       ],
@@ -375,7 +396,11 @@
       "nodes": [
         "node_modules/metro"
       ],
-      "fixAvailable": true
+      "fixAvailable": {
+        "name": "react-native",
+        "version": "0.83.10",
+        "isSemVerMajor": true
+      }
     },
     "metro-config": {
       "name": "metro-config",
@@ -385,7 +410,7 @@
         "metro"
       ],
       "effects": [],
-      "range": "0.71.0 - 0.87.1",
+      "range": ">=0.80.0",
       "nodes": [
         "node_modules/metro-config"
       ],
@@ -421,7 +446,7 @@
         "metro"
       ],
       "effects": [],
-      "range": "0.71.0 - 0.87.1",
+      "range": ">=0.80.0",
       "nodes": [
         "node_modules/metro-transform-worker"
       ],
@@ -484,8 +509,8 @@
         "node_modules/picomatch"
       ],
       "fixAvailable": {
-        "name": "expo",
-        "version": "54.0.33",
+        "name": "react-native",
+        "version": "0.83.10",
         "isSemVerMajor": true
       }
     },
@@ -495,13 +520,14 @@
       "isDirect": true,
       "via": [
         "@react-native/codegen",
+        "@react-native/community-cli-plugin",
         "@react-native/virtualized-lists",
         "tinyglobby"
       ],
       "effects": [
         "@react-native/virtualized-lists"
       ],
-      "range": "0.84.0-nightly-20251105-5ec5cc3a3 - 0.90.0-nightly-20261117-c1acb2bd6",
+      "range": "0.73.0-nightly-20230506-1af868c52 - 0.90.0-nightly-20261117-c1acb2bd6",
       "nodes": [
         "node_modules/react-native"
       ],
@@ -531,8 +557,8 @@
         "node_modules/tinyglobby"
       ],
       "fixAvailable": {
-        "name": "expo",
-        "version": "54.0.33",
+        "name": "react-native",
+        "version": "0.83.10",
         "isSemVerMajor": true
       }
     }
@@ -542,9 +568,9 @@
       "info": 0,
       "low": 0,
       "moderate": 0,
-      "high": 25,
+      "high": 26,
       "critical": 0,
-      "total": 25
+      "total": 26
     },
     "dependencies": {
       "prod": 475,
