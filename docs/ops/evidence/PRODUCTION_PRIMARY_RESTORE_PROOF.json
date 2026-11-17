@@ -23,7 +23,7 @@
       "status": "PASS"
     },
     "restore_branch_ready": {
-      "branchId": "br-quiet-poetry-bc3uo0u3",
+      "branchId": "br-damp-surf-bciz4n1b",
       "currentState": "ready",
       "status": "PASS"
     },
@@ -54,15 +54,15 @@
   "primaryBranchId": "br-proud-salad-bcshhdap",
   "projectId": "summer-leaf-18448271",
   "publicTableCount": 135,
-  "restoreBranchId": "br-quiet-poetry-bc3uo0u3",
+  "restoreBranchId": "br-damp-surf-bciz4n1b",
   "restoreBranchState": "ready",
-  "restoreSnapshotId": "snap-floral-sea-bcug7fd3",
+  "restoreSnapshotId": "snap-holy-salad-bcvyvzv9",
   "schemaInventoryItemCount": 6096,
   "schemaSha256": "2deab77e3b25f816c5a17aad24cebce83fbd7065dc26407898b3ebf584553fb5",
   "schemaVersion": "opscore.neon-primary-restore-proof.v1",
-  "snapshotId": "snap-floral-sea-bcug7fd3",
+  "snapshotId": "snap-holy-salad-bcvyvzv9",
   "snapshotSourceBranchId": "br-proud-salad-bcshhdap",
   "status": "PASS",
   "tableInventorySha256": "fbe28eb39056c46866c88dcd4cd37d8da55ba58b3887f2d5503287dba80a51be",
-  "testedAt": "2026-11-17T16:47:34.945Z"
+  "testedAt": "2026-11-17T21:55:57.867337Z"
 }
