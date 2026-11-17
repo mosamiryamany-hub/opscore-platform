@@ -1,6 +1,6 @@
 name: Rotate Production tenant HMAC key
 
-# Manual, approval-gated key rotation only. This workflow does not deploy,
+# Manual, typed-confirmation key rotation only. GitHub Environment reviewer protection must be verified separately. This workflow does not deploy,
 # open the Production traffic hold, or enable signed routes.
 on:
   workflow_dispatch:
