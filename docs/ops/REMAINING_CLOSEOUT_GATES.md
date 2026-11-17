@@ -1,12 +1,15 @@
-# Remaining closeout gates (honest)
+# Remaining closeout gates
 
-| Gate | State | Owner action |
-|---|---|---|
-| PR merges for security hygiene | Done (#201–#203) | — |
-| Live dual-tenant session isolation | PASS (run 44029395474) | Keep pin until next deploy |
-| Branch-point recovery at probe time | PASS | Refresh after Neon capacity/plan allows durable restore points |
-| Signed context 063–067 on Production DB | **Not applied** | Follow SIGNED_CONTEXT_PRODUCTION_PROMOTION.md |
-| 67-route Production HTTP matrix | **Not claimed** | After signed context promotion |
-| Neon primary protected + scheduled backups | **Plan-limited** | Launch+ / paid snapshots |
-| WAF log → deny on auth | Observing | Vercel Console after traffic review |
-| Buyer: mobile / human i18n / maps | REMAINING_BUYER | Per Schedule |
+**Maintenance window (chosen):** 2026-11-18 **02:00–04:00** Africa/Cairo (120 min).  
+See `docs/ops/MAINTENANCE_WINDOW_2026-11-18.md`.
+
+| Gate | State |
+|---|---|
+| Primary snapshot | PASS — `snap-floral-sea-bcug7fd3` |
+| Manifest source binding (#205) | Merged |
+| Signed-context migration **branch** (063–067) | Run via `ops-signed-context-migration-branch` |
+| Apply 063–067 on **primary** | Only inside maintenance window after branch PASS |
+| Production HMAC + signed route flags | After matching deploy + evidence |
+| 67-route Production HTTP evidence | After flags on new deploy |
+| Neon primary protected / schedules | Paid plan |
+| Buyer residuals | Per Schedule |

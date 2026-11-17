@@ -1,0 +1,29 @@
+name: ops-signed-context-migration-branch
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type CREATE_SIGNED_CONTEXT_MIGRATION_BRANCH
+        required: true
+  repository_dispatch:
+    types: [signed-context-migration-branch]
+
+permissions:
+  contents: read
+
+jobs:
+  migrate-branch:
+    if: ${{ github.event_name == 'repository_dispatch' || github.event.inputs.confirm == 'CREATE_SIGNED_CONTEXT_MIGRATION_BRANCH' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install psql
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+      - name: Create branch from primary and apply 063-067
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: summer-leaf-18448271
+          OPSC_PRODUCTION_NEON_BRANCH_ID: br-proud-salad-bcshhdap
+        run: python3 scripts/neon_signed_context_migration_branch.py
