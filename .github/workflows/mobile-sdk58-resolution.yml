@@ -59,6 +59,18 @@ jobs:
           npx expo export --platform ios --output-dir "$RUNNER_TEMP/opscore-mobile-ios"
           npx expo export --platform web --output-dir "$RUNNER_TEMP/opscore-mobile-web"
 
+      - name: Verify picomatch build tooling is absent from shipped client bundles
+        run: |
+          set -euo pipefail
+          for target in android ios web; do
+            dir="$RUNNER_TEMP/opscore-mobile-$target"
+            if grep -R -n -E 'analyzeRepeatedExtglob|picomatch/lib/parse|node_modules/picomatch' "$dir"; then
+              echo "PICOMATCH_SOURCE_PRESENT_IN_CLIENT_BUNDLE target=$target"
+              exit 1
+            fi
+            echo "PICOMATCH_SOURCE_ABSENT_FROM_CLIENT_BUNDLE target=$target"
+          done
+
       - name: Record full mobile audit (findings are not suppressed)
         working-directory: mobile
         run: |
