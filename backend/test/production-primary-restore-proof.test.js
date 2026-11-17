@@ -74,8 +74,13 @@ test('Production migration preflight accepts only the proof checks object-map co
   assert.ok(migrationRunner.includes('import neon_primary_restore_proof as restore_proof'));
   assert.ok(migrationRunner.includes('PRODUCTION_RESTORE_PROOF_SCHEMA_NO_LONGER_MATCHES_PRIMARY'));
   assert.ok(migrationRunner.includes('PRODUCTION_RESTORE_PROOF_PUBLIC_TABLE_DATA_NO_LONGER_MATCHES_PRIMARY'));
-  assert.ok(runner.includes('psql(restore_uri'));
-  assert.ok(!runner.includes('psql(uri,'));
+  const helperStart = runner.indexOf('def table_data_inventory(uri):');
+  const helperEnd = runner.indexOf('\n\ndef main():', helperStart);
+  const inventoryHelper = runner.slice(helperStart, helperEnd);
+  const mainBody = runner.slice(runner.indexOf('def main():'));
+  assert.ok(inventoryHelper.includes('psql(uri,'));
+  assert.ok(!inventoryHelper.includes('psql(restore_uri,'));
+  assert.ok(mainBody.includes('psql(restore_uri,'));
   assert.ok(migrationRunner.includes('dataContentSha256'));
   assert.ok(migrationRunner.includes('schemaInventoryItemCount'));
   assert.ok(migrationRunner.includes('rowContentParityWithPrimary'));
