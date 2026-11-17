@@ -38,7 +38,8 @@ test('duplicate ephemeral pruner deletes only one exact manually selected branch
   const pruneWorkflow = read('.github/workflows/neon-prune-ephemeral-branches.yml');
   assert.match(pruneWorkflow, /workflow_dispatch:/);
   assert.doesNotMatch(pruneWorkflow, /repository_dispatch/);
-  assert.doesNotMatch(pruneWorkflow, /^\\s*push:/m);
+  assert.ok(!pruneWorkflow.includes('\n  push:'));
+  assert.ok(!pruneWorkflow.includes('\n  repository_dispatch:'));
   assert.ok(pruneWorkflow.includes('branch_id:'));
   assert.ok(pruneWorkflow.includes('expected_branch_name:'));
   assert.ok(pruneWorkflow.includes('DELETE_ONE_EPHEMERAL_NEON_BRANCH'));
