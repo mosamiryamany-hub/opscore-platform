@@ -14,6 +14,14 @@ const buyerResiduals = fs.readFileSync(
   path.join(root, 'docs', 'BUYER_RESIDUALS.md'),
   'utf8'
 );
+const sellerCloseoutChecklist = fs.readFileSync(
+  path.join(root, 'docs', 'commercial', 'REMAINING_CLOSEOUT_CHECKLIST.md'),
+  'utf8'
+);
+const commercialCloseout = fs.readFileSync(
+  path.join(root, 'docs', 'commercial', 'COMMERCIAL_CLOSEOUT_FINAL.md'),
+  'utf8'
+);
 const migrationWorkflow = fs.readFileSync(
   path.join(root, '.github', 'workflows', 'ops-apply-production-signed-context-migrations.yml'),
   'utf8'
@@ -44,6 +52,15 @@ test('Production runbook and buyer residual register use the latest observed Neo
   assert.match(buyerResiduals, /non-finalizing Restore Snapshot API/);
   assert.doesNotMatch(runbook, /10 active branches \(10\/10 included\)/);
   assert.doesNotMatch(buyerResiduals, /10\/10 visible branches|all ten are unprotected/i);
+});
+
+test('Seller product closeout is buyer-independent while actual buyer license rights remain transaction-gated', () => {
+  assert.match(sellerCloseoutChecklist, /A named buyer, buyer signature, buyer-specific legal review, payment, or transaction schedule is \*\*not\*\* a prerequisite/);
+  assert.match(sellerCloseoutChecklist, /Transaction boundary — explicitly outside product closeout/);
+  assert.match(sellerCloseoutChecklist, /required before granting the buyer licensed use or delivery rights/);
+  assert.match(commercialCloseout, /No prospective buyer or buyer signature is needed to complete the product/);
+  assert.match(commercialCloseout, /No license grant is made to a buyer until/);
+  assert.doesNotMatch(sellerCloseoutChecklist, /Buyer-specific work — not a seller launch or marketing gate/);
 });
 
 test('Production key material and 67-route collector remain open while the real restore proof is accurately recorded', () => {
