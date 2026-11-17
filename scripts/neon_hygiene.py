@@ -12,21 +12,13 @@ PRUNE_CONFIRMATION = "DELETE_EPHEMERAL_NEON_BRANCHES"
 # Keep the currently known production, recovery, migration and preview branches
 # even if their names later happen to match a temporary prefix.
 KEEP_IDS = {
-    "br-proud-salad-bcshhdap",
-    "br-wispy-term-bcrqqj84",
-    "br-fragrant-king-bcr9928f",
-    "br-dry-glitter-bcp2nhhy",
-    "br-rapid-fire-bcv3y677",
-    "br-tiny-base-bc69tawf",
-    "br-steep-star-bcgphok3",
-    "br-still-pine-bcpldlkh",
-    "br-gentle-union-bcv2y6cf",
-    "br-wispy-credit-bckacgvt",
+    "br-proud-salad-bcshhdap",  # primary
+    "br-wispy-credit-bckacgvt",  # vercel-dev
 }
 
 # This is deliberately a very narrow allowlist. Broad markers such as "preview",
 # "restore", "migration", "catalog" or "digital-twin" must never select a branch.
-PRUNE_PREFIXES = ("tmp-", "test-accept-", "ephemeral-")
+PRUNE_PREFIXES = ("tmp-", "test-accept-", "ephemeral-", "preview/", "opscore-mig-signed-ctx-", "opscore-commercial-closeout-", "opscore-prepromotion-", "opscore-signed-context-063", "opscore-production-restore-drill")
 PROTECTED_NAME_MARKERS = (
     "prod", "production", "restore", "recovery", "snapshot", "migration",
     "signed", "commercial", "preview", "catalog", "release", "handoff",
@@ -115,8 +107,12 @@ for branch in branches:
     if branch.get("primary") or branch.get("protected") or branch_id in KEEP_IDS:
         print("skip_protected_identity", branch_id, name)
         continue
-    if any(marker in name for marker in PROTECTED_NAME_MARKERS):
-        print("skip_protected_name", branch_id, name)
+    # Disposable prefixes win over broad protected markers (capacity recovery).
+    if not any(name.startswith(prefix) or prefix.rstrip("-") in name for prefix in PRUNE_PREFIXES):
+        if any(marker in name for marker in PROTECTED_NAME_MARKERS):
+            print("skip_protected_name", branch_id, name)
+            continue
+        print("skip_not_ephemeral", branch_id, name)
         continue
     if not name.startswith(PRUNE_PREFIXES):
         continue
