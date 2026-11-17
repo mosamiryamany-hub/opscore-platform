@@ -16,6 +16,7 @@ function isSignedContextEnvironment(env = process.env, readiness = {}) {
   if (isPreview(env)) return true;
   return String(env.VERCEL_ENV || '') === 'production'
     && enabled(env.OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED)
+    && enabled(env.OPSC_RELEASE_VERIFIED)
     && String(env.OPSC_PRODUCTION_HOLD || '').trim().toLowerCase() === 'false'
     && readiness.productionReleaseVerified === true;
 }
