@@ -17,6 +17,8 @@ from urllib.parse import urlparse
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError
 
+import neon_primary_restore_proof as restore_proof
+
 PROJECT_ID = "summer-leaf-18448271"
 PRIMARY_BRANCH_ID = "br-proud-salad-bcshhdap"
 DATABASE_NAME = "opscore_acceptance"
@@ -111,11 +113,13 @@ def load_and_verify_restore_proof(key):
     if database_identity.get("databaseName") != DATABASE_NAME or database_identity.get("roleName") != ROLE_NAME:
         fail("PRODUCTION_PRIMARY_RESTORE_PROOF_DATABASE_IDENTITY_INVALID")
 
-    for field in ("schemaSha256", "tableInventorySha256"):
+    for field in ("schemaSha256", "tableInventorySha256", "dataContentSha256"):
         if not SHA_RE.fullmatch(str(proof.get(field) or "").lower()):
             fail("PRODUCTION_PRIMARY_RESTORE_PROOF_HASH_INVALID", {"field": field})
     if not isinstance(proof.get("publicTableCount"), int) or proof["publicTableCount"] <= 0:
         fail("PRODUCTION_PRIMARY_RESTORE_PROOF_TABLE_COUNT_INVALID")
+    if not isinstance(proof.get("schemaInventoryItemCount"), int) or proof["schemaInventoryItemCount"] <= 0:
+        fail("PRODUCTION_PRIMARY_RESTORE_PROOF_SCHEMA_INVENTORY_COUNT_INVALID")
 
     required_checks = {
         "snapshot_provenance",
@@ -149,6 +153,12 @@ def load_and_verify_restore_proof(key):
     restore_check = checks["restore_branch_ready"]
     if str(restore_check.get("currentState") or "").lower() != "ready" or restore_check.get("branchId") != restored_branch_id:
         fail("PRODUCTION_PRIMARY_RESTORE_PROOF_RESTORE_CHECK_INVALID")
+    schema_check = checks["schema_catalog_read"]
+    if (
+        schema_check.get("schemaItemCount") != proof["schemaInventoryItemCount"]
+        or schema_check.get("definitionParityWithPrimary") is not True
+    ):
+        fail("PRODUCTION_PRIMARY_RESTORE_PROOF_SCHEMA_INVENTORY_INVALID")
     identity_check = checks["database_identity"]
     if not str(identity_check.get("serverVersion") or "").startswith("18."):
         fail("PRODUCTION_PRIMARY_RESTORE_PROOF_SERVER_VERSION_INVALID")
@@ -157,6 +167,11 @@ def load_and_verify_restore_proof(key):
         fail("PRODUCTION_PRIMARY_RESTORE_PROOF_TABLE_COUNT_MISMATCH")
     if inventory_check.get("rlsEnabledTableCount") != inventory_check.get("forceRlsEnabledTableCount"):
         fail("PRODUCTION_PRIMARY_RESTORE_PROOF_RLS_FORCE_MISMATCH")
+    if (
+        inventory_check.get("rowContentSha256") != proof["dataContentSha256"]
+        or inventory_check.get("rowContentParityWithPrimary") is not True
+    ):
+        fail("PRODUCTION_PRIMARY_RESTORE_PROOF_ROW_CONTENT_INVENTORY_INVALID")
     migration_check = checks["migration_ledger_read"]
     if migration_check.get("migration068Present") is not True or migration_check.get("migrations063to067And069Absent") is not True:
         fail("PRODUCTION_PRIMARY_RESTORE_PROOF_MIGRATION_BASELINE_INVALID")
@@ -191,6 +206,34 @@ def load_and_verify_restore_proof(key):
         fail("PRODUCTION_RESTORE_BRANCH_SNAPSHOT_PROVENANCE_MISMATCH")
     if restore_branch.get("restored_as") != PRIMARY_BRANCH_ID:
         fail("PRODUCTION_RESTORE_BRANCH_TARGET_MISMATCH")
+
+    # Recompare the exact current Primary against the restored snapshot branch
+    # immediately before the Production migration dry-run/write sequence.
+    # A stale but correctly hash-pinned proof must not authorize a rollback point
+    # that no longer contains the current public-table data or schema.
+    restore_proof.KEY = key
+    primary_uri = restore_proof.direct_connection_uri(PRIMARY_BRANCH_ID)
+    restore_uri = restore_proof.direct_connection_uri(restored_branch_id)
+    primary_schema_count, primary_schema_sha = restore_proof.schema_inventory(primary_uri)
+    restore_schema_count, restore_schema_sha = restore_proof.schema_inventory(restore_uri)
+    if (
+        primary_schema_count != restore_schema_count
+        or primary_schema_sha != restore_schema_sha
+        or primary_schema_sha != proof.get("schemaSha256")
+        or restore_schema_sha != proof.get("schemaSha256")
+    ):
+        fail("PRODUCTION_RESTORE_PROOF_SCHEMA_NO_LONGER_MATCHES_PRIMARY")
+    primary_tables, primary_table_sha, primary_data_sha = restore_proof.table_data_inventory(primary_uri)
+    restore_tables, restore_table_sha, restore_data_sha = restore_proof.table_data_inventory(restore_uri)
+    if (
+        primary_tables != restore_tables
+        or primary_table_sha != restore_table_sha
+        or primary_table_sha != proof.get("tableInventorySha256")
+        or primary_data_sha != restore_data_sha
+        or primary_data_sha != proof.get("dataContentSha256")
+        or restore_data_sha != proof.get("dataContentSha256")
+    ):
+        fail("PRODUCTION_RESTORE_PROOF_PUBLIC_TABLE_DATA_NO_LONGER_MATCHES_PRIMARY")
 
     print("PRODUCTION_RESTORE_PROOF=PASS")
     print("PRODUCTION_RESTORE_PROOF_SHA256=" + actual_digest)
