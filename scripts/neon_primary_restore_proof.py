@@ -278,7 +278,7 @@ def psql(restore_uri, sql):
 
 
 def schema_inventory(uri):
-    output = psql(restore_uri, SCHEMA_INVENTORY_SQL)
+    output = psql(uri, SCHEMA_INVENTORY_SQL)
     parts = output.split("|")
     if len(parts) != 2:
         fail("RESTORE_PROOF_SCHEMA_INVENTORY_INVALID", {"output": output[:300]})
