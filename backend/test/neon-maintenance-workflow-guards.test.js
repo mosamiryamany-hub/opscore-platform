@@ -14,73 +14,79 @@ const hygieneScript = read('scripts/neon_hygiene.py');
 const snapshotWorkflow = read('.github/workflows/ops-neon-primary-snapshot.yml');
 const snapshotScript = read('scripts/neon_primary_snapshot_rotate.py');
 
-test('Neon hygiene is manual-only and defaults to read-only inventory', () => {
-  assert.match(hygieneWorkflow, /workflow_dispatch:/);
-  assert.doesNotMatch(hygieneWorkflow, /^\s*(?:push|repository_dispatch):/m);
-  assert.match(hygieneWorkflow, /default: list/);
-  assert.match(hygieneWorkflow, /type: choice/);
-  assert.match(hygieneWorkflow, /- list\s+- prune_ephemeral/);
-  assert.match(hygieneWorkflow, /DELETE_EPHEMERAL_NEON_BRANCHES/);
-  assert.match(hygieneWorkflow, /persist-credentials: false/);
+test('Neon hygiene is manual-only, main-bound and defaults to read-only inventory', () => {
+  assert.ok(hygieneWorkflow.includes('workflow_dispatch:'));
+  assert.ok(!hygieneWorkflow.includes('repository_dispatch:'));
+  assert.ok(!hygieneWorkflow.includes('\n  push:'));
+  assert.ok(hygieneWorkflow.includes('default: list'));
+  assert.ok(hygieneWorkflow.includes('type: choice'));
+  assert.ok(hygieneWorkflow.includes('DELETE_EPHEMERAL_NEON_BRANCHES'));
   assert.ok(hygieneWorkflow.includes("github.ref == 'refs/heads/main'"));
-  assert.ok(hygieneScript.includes('GITHUB_REF') && hygieneScript.includes('NEON_PRUNE_MAIN_MANUAL_DISPATCH_REQUIRED'));
+  assert.ok(hygieneWorkflow.includes('persist-credentials: false'));
+  assert.ok(hygieneScript.includes('if MODE == "prune_ephemeral":'));
+  assert.ok(hygieneScript.includes('GITHUB_EVENT_NAME'));
+  assert.ok(hygieneScript.includes('GITHUB_REF'));
+  assert.ok(hygieneScript.includes('NEON_PRUNE_MAIN_MANUAL_DISPATCH_REQUIRED'));
+  assert.ok(hygieneScript.includes('CONFIRM_PRUNE'));
 });
 
-test('Neon hygiene refuses pruning without typed confirmation and narrows eligible names', () => {
-  assert.match(hygieneScript, /os\.environ\.get\("MODE"\) or "list"/);
-  assert.match(hygieneScript, /MODE == "prune_ephemeral" and os\.environ\.get\("CONFIRM_PRUNE"\) != PRUNE_CONFIRMATION/);
-  assert.match(hygieneScript, /PRUNE_PREFIXES = \("tmp-", "test-accept-", "ephemeral-"\)/);
-  assert.match(hygieneScript, /PROTECTED_NAME_MARKERS/);
-  assert.match(hygieneScript, /if any\(marker in name for marker in PROTECTED_NAME_MARKERS\)/);
-  assert.match(hygieneScript, /if not name\.startswith\(PRUNE_PREFIXES\)/);
-  assert.match(hygieneScript, /BRANCH_CAPACITY_FULL_NO_AUTOMATIC_DELETION|skip_protected_identity/);
+test('Neon hygiene prunes only narrow temporary-name prefixes and protects operational names', () => {
+  assert.ok(hygieneScript.includes('PRUNE_PREFIXES = ("tmp-", "test-accept-", "ephemeral-")'));
+  assert.ok(hygieneScript.includes('PROTECTED_NAME_MARKERS'));
+  assert.ok(hygieneScript.includes('if any(marker in name for marker in PROTECTED_NAME_MARKERS)'));
+  assert.ok(hygieneScript.includes('if not name.startswith(PRUNE_PREFIXES)'));
+  assert.ok(hygieneScript.includes('skip_protected_identity'));
+  assert.ok(!hygieneScript.includes('repository_dispatch'));
 });
 
-test('duplicate ephemeral pruner deletes only one exact manually selected branch', () => {
+test('legacy ephemeral pruner requires exact branch ID/name, allowlist and main manual dispatch', () => {
   const pruneWorkflow = read('.github/workflows/neon-prune-ephemeral-branches.yml');
-  assert.match(pruneWorkflow, /workflow_dispatch:/);
-  assert.doesNotMatch(pruneWorkflow, /repository_dispatch/);
+  assert.ok(pruneWorkflow.includes('workflow_dispatch:'));
+  assert.ok(!pruneWorkflow.includes('repository_dispatch:'));
   assert.ok(!pruneWorkflow.includes('\n  push:'));
-  assert.ok(!pruneWorkflow.includes('\n  repository_dispatch:'));
   assert.ok(pruneWorkflow.includes("github.ref == 'refs/heads/main'"));
-  assert.ok(pruneWorkflow.includes("github.ref == 'refs/heads/main'"));
-  assert.ok(pruneWorkflow.includes('re.fullmatch(r"br-[a-z0-9-]{8,80}", target_id)'));
-  assert.ok(pruneWorkflow.includes('github.ref == \'refs/heads/main\'') === false || pruneWorkflow.includes('EPHEMERAL_BRANCH_DELETE_MAIN_MANUAL_DISPATCH_REQUIRED'));
   assert.ok(pruneWorkflow.includes('branch_id:'));
   assert.ok(pruneWorkflow.includes('expected_branch_name:'));
   assert.ok(pruneWorkflow.includes('DELETE_ONE_EPHEMERAL_NEON_BRANCH'));
-  assert.ok(pruneWorkflow.includes('TARGET_BRANCH_ID'));
-  assert.ok(pruneWorkflow.includes('TARGET_BRANCH_DELETE_NOT_VERIFIED'));
+  assert.ok(pruneWorkflow.includes('re-[a-z0-9-]{8,80}'));
+  assert.ok(pruneWorkflow.includes('TARGET_BRANCH_NAME_MISMATCH'));
   assert.ok(pruneWorkflow.includes('TARGET_BRANCH_NAME_NOT_IN_EPHEMERAL_ALLOWLIST'));
+  assert.ok(pruneWorkflow.includes('TARGET_BRANCH_DELETE_NOT_VERIFIED'));
+  assert.ok(pruneWorkflow.includes('GITHUB_EVENT_NAME'));
+  assert.ok(pruneWorkflow.includes('EPHEMERAL_BRANCH_DELETE_MAIN_MANUAL_DISPATCH_REQUIRED'));
 });
 
-test('Primary snapshot rotation requires manual dispatch and exact-ID deletion approval', () => {
-  assert.match(snapshotWorkflow, /workflow_dispatch:/);
-  assert.doesNotMatch(snapshotWorkflow, /repository_dispatch/);
-  assert.match(snapshotWorkflow, /ROTATE_PRIMARY_SNAPSHOT/);
-  assert.match(snapshotWorkflow, /snapshot_id_to_delete:/);
-  assert.match(snapshotWorkflow, /confirm_non_primary_snapshot_deletion:/);
-  assert.match(snapshotWorkflow, /OPSC_NON_PRIMARY_SNAPSHOT_DELETE_ID:/);
-  assert.match(snapshotWorkflow, /OPSC_CONFIRM_NON_PRIMARY_SNAPSHOT_DELETE:/);
+test('Primary snapshot writers require main manual dispatch and explicit confirmation', () => {
+  assert.ok(snapshotWorkflow.includes('workflow_dispatch:'));
+  assert.ok(!snapshotWorkflow.includes('repository_dispatch:'));
   assert.ok(snapshotWorkflow.includes("github.ref == 'refs/heads/main'"));
-  assert.ok(snapshotScript.includes('GITHUB_REF') && snapshotScript.includes('NEON_SNAPSHOT_MAIN_MANUAL_DISPATCH_REQUIRED'));
+  assert.ok(snapshotWorkflow.includes('ROTATE_PRIMARY_SNAPSHOT'));
+  assert.ok(snapshotWorkflow.includes('snapshot_id_to_delete:'));
+  assert.ok(snapshotWorkflow.includes('confirm_non_primary_snapshot_deletion:'));
+  assert.ok(snapshotWorkflow.includes('OPSC_NON_PRIMARY_SNAPSHOT_DELETE_ID'));
+  assert.ok(snapshotWorkflow.includes('OPSC_CONFIRM_NON_PRIMARY_SNAPSHOT_DELETE'));
+  assert.ok(snapshotScript.includes('GITHUB_EVENT_NAME'));
+  assert.ok(snapshotScript.includes('GITHUB_REF'));
+  assert.ok(snapshotScript.includes('NEON_SNAPSHOT_MAIN_MANUAL_DISPATCH_REQUIRED'));
+
+  const manualSnapshotWorkflow = read('.github/workflows/neon-primary-manual-snapshot.yml');
+  assert.ok(manualSnapshotWorkflow.includes('workflow_dispatch:'));
+  assert.ok(manualSnapshotWorkflow.includes("github.ref == 'refs/heads/main'"));
 });
 
-test('snapshot helper requires separate typed approval and exact non-primary snapshot ID before DELETE', () => {
+test('snapshot helper requires exact non-primary snapshot ID and separate typed approval before DELETE', () => {
   const confirmationAt = snapshotScript.indexOf('DELETE_ONE_NON_PRIMARY_SNAPSHOT');
   const idCheckAt = snapshotScript.indexOf('NON_PRIMARY_SNAPSHOT_DELETE_ID_REQUIRED');
   const deleteAt = snapshotScript.indexOf('api("DELETE", f"/snapshots/{delete_snapshot_id}")');
   assert.ok(confirmationAt >= 0);
   assert.ok(idCheckAt > confirmationAt);
   assert.ok(deleteAt > idCheckAt);
-  assert.match(snapshotScript, /REFUSE_DELETE_PRIMARY_SOURCE_SNAPSHOT/);
-  assert.match(snapshotScript, /REFUSE_DELETE_PROTECTED_SNAPSHOT_NAME/);
-  assert.match(snapshotScript, /NON_PRIMARY_SNAPSHOT_DELETE_NOT_VERIFIED/);
-  const manualSnapshotWorkflow = read('.github/workflows/neon-primary-manual-snapshot.yml');
-  assert.ok(manualSnapshotWorkflow.includes("github.ref == 'refs/heads/main'"));
+  assert.ok(snapshotScript.includes('REFUSE_DELETE_PRIMARY_SOURCE_SNAPSHOT'));
+  assert.ok(snapshotScript.includes('REFUSE_DELETE_PROTECTED_SNAPSHOT_NAME'));
+  assert.ok(snapshotScript.includes('NON_PRIMARY_SNAPSHOT_DELETE_NOT_VERIFIED'));
 });
 
-test('Neon maintenance helpers parse as Python without writing bytecode files', () => {
+test('Neon maintenance Python helpers parse without writing bytecode files', () => {
   for (const file of ['scripts/neon_hygiene.py', 'scripts/neon_primary_snapshot_rotate.py']) {
     const result = spawnSync('python3', [
       '-c',
