@@ -40,7 +40,10 @@ test('proof runner checks database identity, migration baseline, RLS and runtime
     '069_technician_location_trail_tenant_persistence.sql',
     'rolsuper', 'rolbypassrls', 'relrowsecurity', 'relforcerowsecurity',
     'SET LOCAL ROLE opscore_runtime', 'RESTORE_PROOF_RUNTIME_RLS_DEFAULT_DENY_FAILED',
-    'schemaSha256', 'tableInventorySha256', 'testedAt'
+    'SCHEMA_INVENTORY_SQL', 'schema_inventory(primary_uri)', 'table_data_inventory(primary_uri)',
+    'RESTORE_PROOF_SCHEMA_DIFFERS_FROM_CURRENT_PRIMARY',
+    'RESTORE_PROOF_TABLE_DATA_DIFFERS_FROM_CURRENT_PRIMARY',
+    'schemaSha256', 'schemaInventoryItemCount', 'tableInventorySha256', 'dataContentSha256', 'testedAt'
   ]) {
     assert.ok(runner.includes(fragment), 'missing proof assertion: ' + fragment);
   }
@@ -67,6 +70,9 @@ test('Production migration preflight accepts only the proof checks object-map co
   assert.ok(migrationRunner.includes('PRODUCTION_PRIMARY_RESTORE_PROOF_SNAPSHOT_CHECK_INVALID'));
   assert.ok(migrationRunner.includes('PRODUCTION_PRIMARY_RESTORE_PROOF_RUNTIME_RLS_DEFAULT_DENY_FAILED'));
   assert.ok(migrationRunner.includes('PRODUCTION_RESTORE_BRANCH_TARGET_MISMATCH'));
+  assert.ok(migrationRunner.includes('import neon_primary_restore_proof as restore_proof'));
+  assert.ok(migrationRunner.includes('PRODUCTION_RESTORE_PROOF_SCHEMA_NO_LONGER_MATCHES_PRIMARY'));
+  assert.ok(migrationRunner.includes('PRODUCTION_RESTORE_PROOF_PUBLIC_TABLE_DATA_NO_LONGER_MATCHES_PRIMARY'));
   assert.ok(!migrationRunner.includes('if not isinstance(checks, list):'));
 });
 
@@ -82,6 +88,12 @@ test('checked-in restore proof is bound to the real Neon-restored branch and all
   ];
   assert.equal(proof.status, 'PASS');
   assert.equal(proof.restoreBranchId, 'br-quiet-poetry-bc3uo0u3');
+  assert.equal(proof.schemaSha256, '2deab77e3b25f816c5a17aad24cebce83fbd7065dc26407898b3ebf584553fb5');
+  assert.equal(proof.schemaInventoryItemCount, 6096);
+  assert.equal(proof.dataContentSha256, 'fe5063af3ca6cfbad6a0325f6eda972731fb80a960af471f2075f51896400341');
+  assert.equal(proof.checks.schema_catalog_read.definitionParityWithPrimary, true);
+  assert.equal(proof.checks.public_table_inventory.rowContentSha256, proof.dataContentSha256);
+  assert.equal(proof.checks.public_table_inventory.rowContentParityWithPrimary, true);
   assert.equal(proof.checks.snapshot_provenance.restoreStatus, 'restored');
   assert.equal(proof.checks.snapshot_provenance.restoredAs, proof.primaryBranchId);
   assert.deepEqual(Object.keys(proof.checks).sort(), required.sort());
