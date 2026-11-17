@@ -5,11 +5,11 @@ A multi-sector operational **source-code foundation**: browser console + HTTP AP
 
 ## What is integrated
 - Core work-order, dispatch, offline sync, evidence and governed completion source.
-- Contact Center locale runtime with 114 selectable locale codes and visible AI/machine-translation notice.
+- Contact Center locale runtime with 105 selectable locale codes (1 English source, 100 machine-assisted drafts, 4 English fallbacks), visible AI/machine-translation notice, and a separate 114-row qualification register.
 - Four reproducible structural/forensic i18n audit rounds enforced by CI, with a generated report on the exact build.
 
 ## What translation status means
-The catalog contains 1 English source locale, 109 machine-assisted drafts and 4 explicit English-fallback locales (din, nus, pau, ch); 89 keys per locale. The four rounds check integrity, exact key and placeholder structure, registry alignment and safe runtime notice wiring. Native-speaker reviewed = 0/114; production-qualified = 0/114. Do not claim human-reviewed or fully qualified translations.
+The runtime manifest currently contains 105 selectable locale codes: 1 English source, 100 machine-assisted drafts and 4 explicit English-fallback locales (din, nus, pau, ch); 89 keys per locale. The separate qualification register contains 114 source rows; 9 flagged locales (ms, sw, hy, uz, my, ml, es, sr, te) are withdrawn from runtime selection pending remediation and native review. The four audit rounds check integrity, exact key and placeholder structure, registry alignment and safe runtime notice wiring; they do not establish linguistic approval. Native-speaker reviewed = 0/114; production-qualified = 0/105 selectable runtime locales. Do not claim human-reviewed or fully qualified translations.
 
 ## Buyer responsibilities
 - **External integrations:** buyer provisions and operates required provider accounts/licenses/credentials, webhooks, identity, messaging, external call-center/telephony, payments, object storage, KMS, maps and cloud.
