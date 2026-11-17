@@ -238,11 +238,10 @@ created through ordinary branch creation from Primary; it has no
 restore evidence. The earlier generator sent `snapshot_id` to
 `POST /branches`, where that field does not perform a snapshot restore.
 
-The valid non-finalizing restore is `br-quiet-poetry-bc3uo0u3`. The proof file
-in this change is rebound to that branch, and its digest must replace the old
-`OPSC_PRODUCTION_RESTORE_PROOF_SHA256` GitHub Environment secret before the
-Production migration workflow can pass. The old digest is no longer valid for
-the corrected proof bytes.
+The valid non-finalizing restore is `br-quiet-poetry-bc3uo0u3`. The proof file in this branch is rebound to the valid restore branch. Its exact
+SHA-256 is `231b7d5a8b94ebaf2307f9b0a42cf5c95537ed6237db9842cf7f3da39297be28`. This value must replace the old
+`OPSC_PRODUCTION_RESTORE_PROOF_SHA256` GitHub Environment secret after merge;
+until then, the Production migration workflow will fail closed.
 
 ### Current Neon capacity reconciliation
 
