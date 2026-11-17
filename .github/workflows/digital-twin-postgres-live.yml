@@ -98,6 +98,8 @@ on:
       - 'docs/ops/REMAINING_CLOSEOUT_GATES.md'
       - 'docs/ops/evidence/PRODUCTION_PRIMARY_RESTORE_PROOF.json'
       - 'docs/BUYER_RESIDUALS.md'
+      # Emit the exact required check on every PR; explicit protected paths above remain documented.
+      - '**'
   workflow_dispatch:
   schedule:
     # Nightly CI-only logical restore drill on disposable PostgreSQL; not a production backup or RPO guarantee.
