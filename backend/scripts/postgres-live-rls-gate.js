@@ -34,7 +34,7 @@ function emit(status, details = {}, exitCode = 0) {
     schemaVersion: 'opscore.postgres-live-rls-gate.v1',
     generatedAt: new Date().toISOString(),
     status,
-    target: 'GitHub Actions disposable PostgreSQL 18 service; rollback-only temporary schema; migrations 031, 052 and 053; tenant RLS for twin, work, appointment and control-plane tables',
+    target: 'GitHub Actions disposable PostgreSQL 18 service; rollback-only temporary schema; migrations 031, 052 and 053 plus post-067 canonical tenant-accessor control-plane policy fixture; tenant RLS for twin, work, appointment and control-plane tables',
     productionCertification: false,
     ...details
   };
@@ -197,6 +197,24 @@ async function main() {
     )`);
     const controlPlaneMigration = fs.readFileSync(controlPlanePolicyMigrationPath, 'utf8');
     await client.query(controlPlaneMigration);
+
+    // Migration 067 rewrites these three policies from the legacy tenant GUC
+    // to the signed-context-aware canonical accessor. This rollback-only
+    // fixture mirrors that final catalog expression without applying the
+    // production migration chain here; signed-context behavior is exercised
+    // independently by signed-tenant-context-postgres-gate.js.
+    for (const table of ['feature_flags', 'safe_mode_states', 'control_plane_runs']) {
+      await client.query(
+        `ALTER POLICY opscore_tenant_permissive ON ${quotedSchema}.${table}
+         USING (organization_id = NULLIF(opscore_current_tenant(), ''))
+         WITH CHECK (organization_id = NULLIF(opscore_current_tenant(), ''))`
+      );
+      await client.query(
+        `ALTER POLICY opscore_tenant_boundary_guard ON ${quotedSchema}.${table}
+         USING (organization_id = NULLIF(opscore_current_tenant(), ''))
+         WITH CHECK (organization_id = NULLIF(opscore_current_tenant(), ''))`
+      );
+    }
     const controlPolicyRows = (await client.query(
       "SELECT c.relname AS table_name,p.polname AS policy_name, " +
       "p.polpermissive AS permissive,p.polcmd AS command,p.polroles::text AS policy_roles, " +
@@ -209,7 +227,7 @@ async function main() {
     )).rows;
     // Compare PostgreSQL's canonical pg_get_expr representation verbatim.
     // Whitespace inside quoted literals is semantically significant.
-    const expectedControlPlanePredicate = "(organization_id = NULLIF(current_setting('app.tenant_id'::text, true), ''::text))";
+    const expectedControlPlanePredicate = "(organization_id = NULLIF(opscore_current_tenant(), ''::text))";
     const isExactTenantPolicy = row => row.command === '*' &&
       row.policy_roles === '{0}' &&
       row.using_expr === expectedControlPlanePredicate &&
@@ -282,8 +300,8 @@ async function main() {
     }
     await client.query(
       `ALTER POLICY opscore_tenant_boundary_guard ON ${quotedSchema}.feature_flags
-       USING (organization_id = NULLIF(current_setting('app.tenant_id', true), ''))
-       WITH CHECK (organization_id = NULLIF(current_setting('app.tenant_id', true), ''))`
+       USING (organization_id = NULLIF(opscore_current_tenant(), ''))
+       WITH CHECK (organization_id = NULLIF(opscore_current_tenant(), ''))`
     );
     const restoredProofCount = await readControlPlaneProofCount();
     if (restoredProofCount !== 3) {
