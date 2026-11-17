@@ -39,6 +39,7 @@ test('proof runner checks database identity, migration baseline, RLS and runtime
     '063_signed_tenant_context_verifier.sql',
     '069_technician_location_trail_tenant_persistence.sql',
     'rolsuper', 'rolbypassrls', 'relrowsecurity', 'relforcerowsecurity',
+    'SET LOCAL ROLE opscore_runtime', 'RESTORE_PROOF_RUNTIME_RLS_DEFAULT_DENY_FAILED',
     'schemaSha256', 'tableInventorySha256', 'testedAt'
   ]) {
     assert.ok(runner.includes(fragment), 'missing proof assertion: ' + fragment);
