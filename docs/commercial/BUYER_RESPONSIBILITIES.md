@@ -6,7 +6,7 @@ Package: commercial source-code delivery, not a hosted SaaS subscription and not
 
 The Contact Center module, locale selector, 114 locale resources, loader, RTL behavior, safe text rendering, fallback handling and visible AI/machine-translation notice are included in the source.
 
-Catalogue: 1 English source locale, 109 machine-assisted draft locales, 4 explicit English-fallback locales (din, nus, pau, ch), 89 keys per locale. Four structural/forensic rounds run in CI. Native-speaker reviewed = 0/114; production-qualified = 0/114. The audit verifies structure, provenance and safe integration, not linguistic accuracy or cultural/legal suitability. Keep the machine-translation notice visible.
+Catalogue: 1 English source locale, 109 machine-assisted draft resources and 4 explicit English-fallback resources (din, nus, pau, ch), 89 keys per resource. The current runtime exposes 105 selectable locales: 1 English source, 100 machine-assisted drafts and 4 fallbacks; 9 flagged resources are withdrawn from runtime selection pending remediation/native review. Four structural/forensic rounds run in CI. Native-speaker reviewed = 0/114; production-qualified = 0/105 selectable runtime locales. Structural verification does not establish linguistic accuracy or cultural/legal suitability. Keep the machine-translation notice visible.
 
 ## 2. External integrations — buyer/customer responsibility
 
