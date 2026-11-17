@@ -76,6 +76,23 @@ The application now accepts Production signed-context configuration only when al
 
 The server caches this readiness result for the lifetime of the deployment. Missing evidence, a different commit/pipeline/deployment/branch, a malformed proof, or an exception returns false and leaves signed Production paths unavailable. Setting environment flags alone cannot open the path. The separate global Production traffic gate still requires `OPSC_RELEASE_VERIFIED=true` plus the same release verifier; neither gate is changed by the new code path.
 
+### Production proof bootstrap — unresolved architectural gate
+
+The current release verifier creates a deliberate bootstrap dependency that is not yet solved:
+
+- `hasVerifiedProductionRelease()` requires `signedTenantRouteCoverage.status === PASS_PRODUCTION_ROUTE_SCOPE`.
+- `readProductionSignedTenantRouteCoverageEvidence()` requires all 67 route rows, including `deploymentIdBound` to the exact `VERCEL_DEPLOYMENT_ID` of the running deployment.
+- The server computes `signedContextProductionReadiness` once at cold start and keeps the signed Production routes disabled unless `hasVerifiedProductionRelease()` is already true.
+
+Consequently, collecting the 67-route proof against a newly deployed Production candidate is blocked by the same proof gate that requires the evidence. Embedding the evidence into a later build changes the Vercel deployment ID and invalidates the deployment binding. The present code therefore **fails closed but is not yet an executable end-to-end activation path**.
+
+Before Production activation, implement and independently test one of these safe bootstrap designs:
+
+1. A narrowly scoped, internal-only canary path for a dedicated Production test tenant and explicitly issued test sessions. Only that test tenant can use signed routes while the global user traffic hold remains active; run the 67-route collector, verify cleanup, then publish a deployment-bound attestation.
+2. A separately stored, cryptographically signed Production attestation record (for example, a protected database control-plane record), written only by the collector after it tests the exact live deployment and read dynamically by the server. Bind the record to project, commit, pipeline, Vercel deployment ID, Primary branch, manifest/inventory hashes, and expiry/revocation.
+
+Do not simply remove `deploymentIdBound`, remove the 67-route gate, weaken `hasVerifiedProductionRelease()`, trust an unverified environment boolean, or enable signed routes broadly to break this cycle. No activation claim is valid until the selected bootstrap method has negative tests for expired, mismatched, revoked, cross-deployment and cross-tenant proof.
+
 ### Manual Production key rotation
 
 Workflow: `.github/workflows/rotate-production-tenant-hmac.yml`
@@ -84,7 +101,7 @@ Workflow: `.github/workflows/rotate-production-tenant-hmac.yml`
 - Verifies the exact Neon project/Primary/database/owner role and a direct non-pooler connection. It fails if migration 063 has not created `opscore_security.context_hmac_keys`.
 - Generates a new 256-bit HMAC key, inserts it into the Primary key table, and syncs only the three Production HMAC variables in Vercel. It does not create or modify Preview/Development values.
 - Old database key rows are intentionally left enabled and their expiry is not shortened. The workflow does not deploy, enable signed routes, change `OPSC_REQUIRE_SIGNED_TENANT_CONTEXT`, set `OPSC_PRODUCTION_HOLD`, or change `OPSC_RELEASE_VERIFIED`.
-- Key environment changes affect the next deployment only. They do not change the currently running Production deployment.
+- Key environment changes affect the next deployment only. They do not change the currently running Production deployment. Therefore the rotation step must be followed by a reviewed, exact-SHA Production redeployment before any key-using smoke test. A READY deployment from before the env update cannot prove the new key was loaded.
 - Rollback keeps the previous key row valid and points Production traffic back to the exact last verified deployment. Do not retire prior keys until the new deployment has completed the full signed-route soak and rollback reserve. Retirement is a separate, reviewed operation.
 
 ### Manual Production migration
