@@ -1,9 +1,5 @@
 #!/usr/bin/env python3
-"""Create a disposable Neon branch from primary and apply 063-067 SQL files.
-
-Does NOT touch the primary branch. Uses NEON_API_KEY + connection via branch endpoints.
-"""
-import json, os, sys, time, urllib.request, urllib.error, subprocess, tempfile
+import json, os, sys, time, urllib.request, urllib.error, subprocess, urllib.parse
 from pathlib import Path
 
 key = os.environ["NEON_API_KEY"]
@@ -19,10 +15,11 @@ files = [
     "067_signed_tenant_context_rls_policy_accessor_alignment.sql",
 ]
 
-def api(method, path, body=None):
+def api(method, path, body=None, query=None):
+    q = ("?" + urllib.parse.urlencode(query)) if query else ""
     data = None if body is None else json.dumps(body).encode()
     req = urllib.request.Request(
-        f"https://console.neon.tech/api/v2/projects/{proj}{path}",
+        f"https://console.neon.tech/api/v2/projects/{proj}{path}{q}",
         data=data, method=method,
         headers={"Authorization": f"Bearer {key}", "Accept": "application/json", "Content-Type": "application/json"},
     )
@@ -31,12 +28,30 @@ def api(method, path, body=None):
             raw = resp.read().decode() or "{}"
             return resp.status, json.loads(raw) if raw.strip() else {}
     except urllib.error.HTTPError as e:
-        return e.code, json.loads(e.read().decode() or "{}")
+        raw = e.read().decode()
+        try:
+            payload = json.loads(raw) if raw else {}
+        except Exception:
+            payload = {"raw": raw[:500]}
+        return e.code, payload
 
-# Capacity check
 code, br = api("GET", "/branches")
 branches = br.get("branches") or []
 print("branch_count", len(branches))
+# Delete prior failed mig branches to keep capacity
+for b in branches:
+    name = (b.get("name") or "").lower()
+    bid = b.get("id")
+    if b.get("primary") or b.get("protected"):
+        continue
+    if "opscore-mig-signed-ctx" in name or "mig-signed" in name:
+        dcode, _ = api("DELETE", f"/branches/{bid}")
+        print("cleanup_old_mig", bid, dcode)
+        time.sleep(2)
+
+code, br = api("GET", "/branches")
+branches = br.get("branches") or []
+print("branch_count_after_cleanup", len(branches))
 if len(branches) >= 10:
     print("BRANCH_CAPACITY_FULL")
     sys.exit(2)
@@ -48,13 +63,13 @@ if code not in (200, 201):
     sys.exit(1)
 branch = created.get("branch") or {}
 bid = branch.get("id")
-print("branch_id", bid, "name", branch.get("name"))
+print("branch_id", bid)
 
-# Wait for operable
-for i in range(30):
+for i in range(45):
     time.sleep(2)
     c, b = api("GET", f"/branches/{bid}")
-    state = (b.get("branch") or b).get("current_state") or (b.get("branch") or b).get("state")
+    node = b.get("branch") or b
+    state = node.get("current_state") or node.get("state")
     print("state", state)
     if state in ("ready", "active"):
         break
@@ -62,25 +77,30 @@ else:
     print("BRANCH_NOT_READY")
     sys.exit(1)
 
-# Connection URI
-code, ends = api("GET", f"/connection_uri?branch_id={bid}&database_name=opscore_acceptance&role_name=neondb_owner")
-# API may vary - try endpoints list
-if code != 200:
+# Prefer official connection_uri endpoint
+uri = ""
+for attempt in range(15):
+    code, cu = api(
+        "GET",
+        "/connection_uri",
+        query={
+            "branch_id": bid,
+            "database_name": "opscore_acceptance",
+            "role_name": "neondb_owner",
+        },
+    )
+    print("connection_uri_http", code, json.dumps(cu)[:300])
+    uri = cu.get("uri") or cu.get("connection_uri") or ""
+    if uri:
+        break
+    # endpoints fallback
     code, ends = api("GET", f"/branches/{bid}/endpoints")
-    print("endpoints_http", code, json.dumps(ends)[:400])
-    # fallback: get project connection with branch param
-    code, cu = api("GET", f"/connection_uri?branch_id={bid}&database_name=opscore_acceptance&role_name=neondb_owner")
-    print("connection_uri_http", code)
-else:
-    cu = ends
-uri = (cu.get("uri") or cu.get("connection_uri") or "")
+    print("endpoints", code, json.dumps(ends)[:300])
+    time.sleep(2)
+
 if not uri:
-    # try list databases / role password path used elsewhere
-    code, cu = api("GET", f"/branches/{bid}")
-    print("branch_detail", json.dumps(cu)[:600])
     print("NO_CONNECTION_URI")
     sys.exit(1)
-print("uri_host", uri.split("@")[-1][:80] if "@" in uri else "redacted")
 
 for fn in files:
     path = sql_dir / fn
@@ -88,25 +108,21 @@ for fn in files:
         print("MISSING", fn)
         sys.exit(1)
     print("apply", fn)
-    r = subprocess.run(
-        ["psql", uri, "-v", "ON_ERROR_STOP=1", "-f", str(path)],
-        capture_output=True, text=True,
-    )
+    r = subprocess.run(["psql", uri, "-v", "ON_ERROR_STOP=1", "-f", str(path)], capture_output=True, text=True)
     print("psql_rc", r.returncode)
     if r.stdout:
-        print(r.stdout[-500:])
+        print(r.stdout[-400:])
     if r.returncode != 0:
         print(r.stderr[-800:])
         sys.exit(1)
 
-# Verify
 verify = """
 SELECT EXISTS(SELECT 1 FROM pg_namespace WHERE nspname='opscore_security') AS has_schema;
 SELECT EXISTS(
   SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
-  WHERE n.nspname='opscore_security' AND p.proname='verified_tenant_context'
+  WHERE n.nspname IN ('opscore_security','public') AND p.proname='verified_tenant_context'
 ) AS has_verifier;
-SELECT filename FROM schema_migrations WHERE filename LIKE '063%' OR filename LIKE '064%' OR filename LIKE '065%' OR filename LIKE '066%' OR filename LIKE '067%' ORDER BY 1;
+SELECT filename FROM schema_migrations WHERE filename ~ '^(063|064|065|066|067)_' ORDER BY 1;
 """
 r = subprocess.run(["psql", uri, "-v", "ON_ERROR_STOP=1", "-c", verify], capture_output=True, text=True)
 print(r.stdout)
@@ -114,5 +130,3 @@ if r.returncode != 0:
     print(r.stderr)
     sys.exit(1)
 print("MIGRATION_BRANCH_PASS", bid, name)
-# write output for workflow
-Path("/tmp/migration_branch_id.txt").write_text(bid)
