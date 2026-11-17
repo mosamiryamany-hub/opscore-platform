@@ -43,7 +43,8 @@ test('proof runner checks database identity, migration baseline, RLS and runtime
     'SCHEMA_INVENTORY_SQL', 'schema_inventory(primary_uri)', 'table_data_inventory(primary_uri)',
     'RESTORE_PROOF_SCHEMA_DIFFERS_FROM_CURRENT_PRIMARY',
     'RESTORE_PROOF_TABLE_DATA_DIFFERS_FROM_CURRENT_PRIMARY',
-    'schemaSha256', 'schemaInventoryItemCount', 'tableInventorySha256', 'dataContentSha256', 'testedAt'
+    'schemaSha256', 'schemaInventoryItemCount', 'tableInventorySha256', 'dataContentSha256',
+    'row_content_sha256', 'testedAt'
   ]) {
     assert.ok(runner.includes(fragment), 'missing proof assertion: ' + fragment);
   }
@@ -73,6 +74,9 @@ test('Production migration preflight accepts only the proof checks object-map co
   assert.ok(migrationRunner.includes('import neon_primary_restore_proof as restore_proof'));
   assert.ok(migrationRunner.includes('PRODUCTION_RESTORE_PROOF_SCHEMA_NO_LONGER_MATCHES_PRIMARY'));
   assert.ok(migrationRunner.includes('PRODUCTION_RESTORE_PROOF_PUBLIC_TABLE_DATA_NO_LONGER_MATCHES_PRIMARY'));
+  assert.ok(migrationRunner.includes('dataContentSha256'));
+  assert.ok(migrationRunner.includes('schemaInventoryItemCount'));
+  assert.ok(migrationRunner.includes('rowContentParityWithPrimary'));
   assert.ok(!migrationRunner.includes('if not isinstance(checks, list):'));
 });
 
