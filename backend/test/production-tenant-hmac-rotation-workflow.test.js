@@ -33,7 +33,7 @@ test('HMAC rotation installs a new bounded key while preserving all previous DB 
   assert.match(workflow, /openssl rand -hex 32/);
   assert.match(workflow, /decode\('\$KEY_HEX','hex'\)/);
   assert.match(workflow, /secret, enabled, not_before, not_after/);
-  assert.match(workflow, /VALUES \\('\$KEY_ID', decode\\('\$KEY_HEX','hex'\\), true, now\\(\\), now\\(\\) \\+ make_interval/);
+  assert.ok(workflow.includes("VALUES ('$KEY_ID', decode('$KEY_HEX','hex'), true, now(), now() + make_interval(days => $TTL));"));
   assert.match(workflow, /previous_key_rows_changed=false/);
   assert.match(workflow, /Old HMAC keys remain enabled for overlap and rollback/);
   assert.doesNotMatch(workflow, /DELETE\s+FROM\s+opscore_security\.context_hmac_keys/i);
