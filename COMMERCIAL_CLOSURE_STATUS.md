@@ -1,11 +1,13 @@
 # OpsCore — Technical and Commercial Closure Status
 
-**Technical classification (seller-reference, git-stored evidence):** `PASS` for session/recovery artifacts re-executed 2026-11-17 on live commit `4017497068defa9c1d0761fcb07bc746925e002a` (run 44029395474). Older rebind copies must not be cited. — repository copies of `PRODUCTION_SESSION_ISOLATION.json` / `PRODUCTION_RECOVERY_POINT.json` that still carry `evidenceRebind` with `probesReexecuted=false` must not be cited as certification of the live tip.
+**Technical classification (seller-reference, git-stored evidence):** `PASS` — session and recovery artifacts re-executed 2026-11-17 on live commit `4017497068defa9c1d0761fcb07bc746925e002a` (Actions run 44029395474). Do not cite older rebind copies.
+
+**Buyer-environment isolation / transfer:** `NOT_VERIFIED` until the buyer’s own environment is measured. Seller runtime CERTIFIED does not transfer.
 
 
 ## Dual-layer evidence (resolved)
 
-- **Git-stored** `PRODUCTION_SESSION_ISOLATION.json` / `PRODUCTION_RECOVERY_POINT.json`: **NOT_VERIFIED** (rebind / probes not re-executed). Do not cite as current certification.
+- **Git-stored** `PRODUCTION_SESSION_ISOLATION.json` / `PRODUCTION_RECOVERY_POINT.json`: **PASS** (re-executed 2026-11-17, run 44029395474).
 - **Runtime** `GET /api/verify/release` on the deployed Vercel production deployment: authoritative for that deployed sourceCommit only. Env flags on Production must match that runtime embed, not git tip of main.
 - **67-route signed matrix**: proven in isolated PostgreSQL CI scope; not a full live Production HTTP matrix.
 - **Neon backups**: Free-tier history is short; scheduled primary backups require paid plan. See `docs/ops/NEON_BACKUP_AND_RECOVERY_TRUTH.md`.
@@ -50,4 +52,4 @@ See `docs/BUYER_RESIDUALS.md`. Summary:
 
 - Seller-reference proofs do not transfer to the buyer environment.
 - Branch-point recovery is not full PITR/RPO/RTO certification.
-- Do not report seller-reference production isolation from rebind-era git JSON as verified.
+- Do not report seller-reference production isolation from rebind-era git JSON as verified; current session/recovery JSON was re-executed 2026-11-17.
