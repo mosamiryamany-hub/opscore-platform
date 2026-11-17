@@ -16,7 +16,7 @@ const helper = fs.readFileSync(
   'utf8'
 );
 const restoreProofSpec = fs.readFileSync(
-  path.join(root, '..', 'docs', 'ops', 'PRODUCTION_PRIMARY_RESTORE_PROOF_SPEC.md'),
+  path.join(root, 'docs', 'ops', 'PRODUCTION_PRIMARY_RESTORE_PROOF_SPEC.md'),
   'utf8'
 );
 
@@ -59,7 +59,7 @@ test('Production migration dry-run must contain exactly 063–067 and 069 before
   assert.match(helper, /PRODUCTION_MIGRATION_PENDING_SET_MISMATCH/);
   assert.match(helper, /status\) != "APPLIED_AND_VERIFIED"/);
   assert.match(helper, /PRODUCTION_MIGRATION_LEDGER_APPLIED/);
-  assert.match(helper, /MIGRATION_PRODUCTION_UNTOUCHED/);
+  assert.match(helper, /PRODUCTION_MIGRATION_DEPLOYMENT_NOT_STARTED=true/);
 });
 
 test('Production migration path uses only the guarded official runner and never deploys or deletes data', () => {
