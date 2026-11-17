@@ -222,10 +222,12 @@ function readProductionSessionIsolationEvidence(filePath = embeddedEvidencePath(
     'tenantListIsolation', 'crossTenantAssetReadDenied', 'ownAssetEventWrite',
     'crossTenantWriteDenied', 'unauthenticatedDenied', 'cleanupComplete'
   ];
-  const scopeValid = evidence.schemaVersion === 'opscore.production-session-isolation.v3'
+  const expectedDatabaseName = String(env.OPSC_PRODUCTION_DATABASE_NAME || '').trim();
+  const scopeValid = Boolean(expectedDatabaseName)
+    && evidence.schemaVersion === 'opscore.production-session-isolation.v3'
     && evidence.status === 'PASS'
     && evidence.verificationScope === 'dual-tenant-http-asset-create-read-event-write-denial-and-cleanup'
-    && evidence.databaseName === 'opscore_acceptance'
+    && evidence.databaseName === expectedDatabaseName
     && required.every(key => checks[key] === 'PASS');
   const expectedCommit = normalizedSha(env.OPSC_RELEASE_CI_COMMIT || env.CI_COMMIT_SHA || env.OPSC_SOURCE_COMMIT_SHA);
   const evidenceCommit = normalizedSha(evidence.sourceCommitHint);
@@ -276,8 +278,10 @@ function readProductionRecoveryPointEvidence(filePath = embeddedEvidencePath('PR
   const expectedDeploymentId = String(env.VERCEL_DEPLOYMENT_ID || '').trim();
   const deploymentIdBound = /^dpl_[A-Za-z0-9]+$/.test(expectedDeploymentId)
     && String(evidence.deploymentId || '').trim() === expectedDeploymentId;
-  const scopeValid = evidence.schemaVersion === 'opscore.production-recovery-point.v3'
-    && evidence.databaseName === 'opscore_acceptance'
+  const expectedDatabaseName = String(env.OPSC_PRODUCTION_DATABASE_NAME || '').trim();
+  const scopeValid = Boolean(expectedDatabaseName)
+    && evidence.schemaVersion === 'opscore.production-recovery-point.v3'
+    && evidence.databaseName === expectedDatabaseName
     && evidence.verificationScope === 'branch-clone-public-table-count-and-core-tenant-row-counts-only'
     && evidence.coreTenantTableRowCountsMatch === true
     && Number(evidence.tableCountCompared) >= 130
@@ -430,10 +434,12 @@ function readProductionSignedTenantRouteCoverageEvidence(
     seen.add(key);
   }
 
-  const exact = evidence.schemaVersion === 'opscore.signed-tenant-context-production-coverage.v1'
+  const expectedDatabaseName = String(env.OPSC_PRODUCTION_DATABASE_NAME || '').trim();
+  const exact = Boolean(expectedDatabaseName)
+    && evidence.schemaVersion === 'opscore.signed-tenant-context-production-coverage.v1'
     && evidence.environment === 'production'
     && evidence.status === 'PASS'
-    && evidence.databaseName === 'opscore_acceptance'
+    && evidence.databaseName === expectedDatabaseName
     && Number(evidence.expectedRouteCount) === 67
     && Number(evidence.coveredRouteCount) === 67
     && Number(evidence.failedRouteCount) === 0
