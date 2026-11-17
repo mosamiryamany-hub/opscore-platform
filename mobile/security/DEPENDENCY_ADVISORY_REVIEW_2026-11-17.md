@@ -15,6 +15,29 @@ This is a current assessment of GHSA-fc5q-39xc-vjpf / CVE-2026-112366 for OpsCor
 
 These observations support a narrower classification: the currently visible occurrences are in the Expo/Metro build/development dependency graph, not a direct app runtime call path. They are **not proof of zero exposure**. Buyer-controlled or untrusted repository/configuration input used during builds remains an environment-dependent concern. Bundle-signature scans do not prove safety of all code paths.
 
+## Exact candidate verification record — GitHub Actions run 44152511359
+
+Candidate commit tested: `5e3c49846b4c13623bdbfc759470c9107eda5a37` (PR #222 lineage; candidate source package and lockfile matched the subsequent branch copy byte-for-byte by Git blob SHA).
+
+| Check | Recorded result |
+|---|---|
+| Clean `npm ci` from candidate lockfile | PASS |
+| SDK dependency alignment gate | PASS |
+| Mobile release preflight and source verification | PASS |
+| Expo Doctor | 20/20 checks passed |
+| Android export | PASS |
+| iOS export | PASS |
+| Web export | PASS |
+| Client-bundle advisory signature scan | Checked signatures not found in all three exports |
+| Full mobile `npm audit --json` | **25 High, 0 Critical, 0 Moderate, 0 Low** |
+| Mobile `npm audit --omit=dev --json` | **26 High, 0 Critical, 0 Moderate, 0 Low** |
+
+The workflow uploaded exact audit JSON, manifest, lockfile and export/doctor logs as artifact `mobile-sdk58-current-main-evidence-44152511359` (artifact ID `14360445590`; SHA-256 `0b542b038e937f3eb43dc5430a2c4db77d6b17d342b731a0442b78bea9d4ceb6`). The generated lockfile blob SHA is `b9f7e719865312650eab54d1c0ca8dc362a8c2dc`, exactly matching the candidate branch lockfile.
+
+The workflow run itself ended FAILURE at its old step that tried to push refreshed files back to the branch while concurrent documentation updates had advanced the branch. This was a Git non-fast-forward race, not a test or build failure. The workflow was then changed to read-only validation with artifact output only. The full/production audits already produced above remain findings; the fail-closed audit gate was skipped in that particular run because the obsolete commit step failed first. A rerun of the read-only workflow is required to record the expected fail-closed result on the latest candidate head.
+
+**Interpretation:** SDK 58 source checks, Expo Doctor and all three JS exports pass, and the exact lockfile is reproducible. This does not resolve the audit finding. The production-only npm audit also reports High findings; no buyer-ready mobile security claim or merge approval follows from the successful build steps.
+
 ## Current authoritative and disputed public evidence
 
 ### GitHub / NVD
