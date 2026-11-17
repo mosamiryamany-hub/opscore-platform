@@ -8,7 +8,6 @@
 - [ ] Complete the source/data-flow threat review for build-time glob patterns and retain full + production-only npm audit JSONs from the exact candidate run.
 - [ ] Complete PR #222 candidate verification on its latest head; merge only after every required check passes and independent review is recorded.
 - [x] Integrated signed-tenant security-hardening lineage: superseding PR #174 is already merged. Verify its behavior remains covered by current-main regression tests; do not reopen superseded PR #163.
-- [ ] Complete and verify the approved 67-route signed-session coverage matrix; do not substitute inventory counts or CI-only route contracts.
 - [ ] Generate the final exact-head Secure Release artifact, SBOM, provenance, test reports and checksum statement from one successful pipeline.
 - [ ] Reconcile all seller-facing offer and handoff documentation to the exact release statement, source commit and package digest.
 - [ ] Confirm that the downloadable source package contains only intended distributable files and no credentials, customer data, local state, or unrelated artifacts.
@@ -19,6 +18,7 @@
 - Neon paid retention, multi-day PITR and protected-branch capacity are service-operability decisions for a seller-hosted environment. Do not advertise Free-plan capabilities as production backup guarantees.
 - Preview SSO and authenticated Preview acceptance remain environment hardening tasks. They must not be solved by weakening Production controls.
 - Production migration, HMAC rotation, WAF enforcement changes and promotion of a new Production deployment remain separately authorized operations. Do not run them merely to produce a source-code sales package.
+- The 67-route signed-session HTTP acceptance matrix and its live evidence collector are Production-environment certification work, not a source-code package release gate. The current runbook records the real Production 67-route collector/evidence writer as not implemented/not available. Keep Production certification NOT_ESTABLISHED until an authorized, target-bound run completes; do not replace it with source route counts or disposable CI tests.
 - Production certification remains NOT_ESTABLISHED unless separately proven against the actual Production target. This limitation must be disclosed; it does not by itself prevent a source-code-only release if all source-release gates pass.
 
 ## Transaction boundary — explicitly outside product closeout
