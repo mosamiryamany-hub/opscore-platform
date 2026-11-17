@@ -29,7 +29,7 @@ test('migration branch runner never deletes branches and requires free branch ca
   assert.match(runner, /if len\(branches\) >= 10:/);
   assert.match(runner, /def list_all_branches\(\):/);
   assert.match(runner, /"limit": 100/);
-  assert.match(runner, /"cursor": cursor/);
+  assert.match(runner, /query\["cursor"\] = cursor/);
   assert.match(runner, /pagination\.get\("next"\)/);
   assert.match(runner, /NEON_BRANCH_PAGINATION_CURSOR_REPEATED/);
   assert.match(runner, /NEON_BRANCH_PAGINATION_PAGE_LIMIT_EXCEEDED/);
