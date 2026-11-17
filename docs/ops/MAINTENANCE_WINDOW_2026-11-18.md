@@ -47,6 +47,21 @@ Consequences:
 - The safest quota path is an owner-approved Launch upgrade before the window, followed by verification of the effective quotas, a fresh Primary snapshot, a non-finalizing restore test, and schema/data identity checks. This is a paid-plan change and is not authorized by this runbook.
 - Without the approved capacity change and successful restore test, the Production migration remains **NO-GO**. Do not treat the existing snapshot alone as an executable rollback.
 
+## Commercial hosting entitlement — Vercel
+
+The current Vercel project inspection returned `domains: []`, `live: false`, and SSO protection enabled for all deployments except custom domains. The Vercel runtime-log API explicitly rejected a one-hour lookback as a Hobby-plan retention violation. The current Vercel pricing and Fair Use guidance states Hobby is for personal/non-commercial use and commercial usage requires Pro or Enterprise.
+
+The Vercel Pro base price is currently listed as **$20/month**, with $20 usage credit; additional resource consumption, extra paid seats and applicable taxes can add cost. Enterprise is available for higher security/operational requirements. Official links:
+- https://vercel.com/pricing
+- https://vercel.com/docs/limits/fair-use-guidelines
+- https://vercel.com/legal/terms
+
+Consequences:
+
+- A READY Production deployment is not proof of commercial hosting entitlement or customer-facing reachability.
+- Before commercial buyer traffic, move the owning Vercel team/project to Pro or Enterprise, attach and verify the intended custom domain, and verify that deployment protection/SSO settings permit intended customer access without weakening staff/admin protections.
+- No Vercel plan upgrade, domain purchase/transfer, DNS change or protection change is authorized or performed here.
+
 ## Mandatory pre-window gates
 
 Do not enter the Production write phase unless all are true:
