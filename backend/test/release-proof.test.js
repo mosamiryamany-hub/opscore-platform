@@ -275,7 +275,8 @@ test('production behavioral evidence must carry the exact release commit hint', 
     VERCEL_DEPLOYMENT_ID: 'dpl-production-fixture',
     OPSC_RELEASE_CI_COMMIT: SHA,
     OPSC_RELEASE_CI_PIPELINE_ID: '2978538209',
-    OPSC_PRODUCTION_NEON_BRANCH_ID: 'br-current-production'
+    OPSC_PRODUCTION_NEON_BRANCH_ID: 'br-current-production',
+    OPSC_PRODUCTION_DATABASE_NAME: 'opscore_acceptance'
   };
   const session = {
     schemaVersion: 'opscore.production-session-isolation.v3',
@@ -376,7 +377,8 @@ test('production behavioral evidence rejects any evidence rebind marker', () => 
     VERCEL_DEPLOYMENT_ID: 'dpl-production-fixture',
     OPSC_RELEASE_CI_COMMIT: SHA,
     OPSC_RELEASE_CI_PIPELINE_ID: '2978538209',
-    OPSC_PRODUCTION_NEON_BRANCH_ID: 'br-current-production'
+    OPSC_PRODUCTION_NEON_BRANCH_ID: 'br-current-production',
+    OPSC_PRODUCTION_DATABASE_NAME: 'opscore_acceptance'
   };
   const session = {
     schemaVersion: 'opscore.production-session-isolation.v3',
