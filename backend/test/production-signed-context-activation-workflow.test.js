@@ -55,9 +55,9 @@ test('Production migration dry-run must contain exactly 063–067 and 069 before
   ]) {
     assert.ok(helper.includes(filename), 'missing required Production migration ' + filename);
   }
-  assert.match(helper, /status\) != "DRY_RUN_PASS"/);
+  assert.ok(helper.includes('plan.get("status") != "DRY_RUN_PASS"'));
   assert.match(helper, /PRODUCTION_MIGRATION_PENDING_SET_MISMATCH/);
-  assert.match(helper, /status\) != "APPLIED_AND_VERIFIED"/);
+  assert.ok(helper.includes('report.get("status") != "APPLIED_AND_VERIFIED"'));
   assert.match(helper, /PRODUCTION_MIGRATION_LEDGER_APPLIED/);
   assert.match(helper, /PRODUCTION_MIGRATION_DEPLOYMENT_NOT_STARTED=true/);
 });
