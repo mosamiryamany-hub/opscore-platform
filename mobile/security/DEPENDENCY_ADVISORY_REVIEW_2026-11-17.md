@@ -13,7 +13,7 @@ This is a current assessment of GHSA-fc5q-39xc-vjpf / CVE-2026-112366 for OpsCor
 - The mobile app source inventory inspected on main includes `App.js`, `metro.config.js`, and the tracked `mobile/src` modules. No direct application import/call to `picomatch`, `micromatch`, `tinyglobby`, or a user-configurable glob-matching API was found. `metro.config.js` only adds WebAssembly to Metro asset extensions.
 - A separate SDK 58 refresh workflow completed Android, iOS and Web exports and did not find the scanned picomatch source signatures in the emitted client bundles.
 
-These observations support a narrower classification: the currently visible occurrences are in the Expo/Metro build/development dependency graph, not a direct app runtime call path. They are **not proof of zero exposure**. Buyer-controlled or untrusted repository/configuration input used during builds remains an environment-dependent concern. Bundle-signature scans do not prove safety of all code paths.
+These observations show that the reported packages are transitive members of the installed Expo/Metro toolchain graph and that no direct application-source call to a glob-matching API was found. However, the audit with `--omit=dev` still reports 25 High findings; this is **not a dev-only finding** and must not be described as one. The absence of a direct app-source call and the absence of checked strings in exported bundles do not prove that no vulnerable code path can execute in Expo, Metro or packaging workflows. Treat the issue as unresolved exposure in the installed mobile toolchain until a complete security review or upstream fix is accepted.
 
 ## Exact candidate verification record — GitHub Actions run 44152511359
 
