@@ -20,7 +20,7 @@ The demo seed is local SQLite-only and must not be run with PostgreSQL environme
 
 ## Translation truth
 
-The Contact Center has 114 selectable locale codes: 1 English source, 109 machine-assisted drafts and 4 explicit English fallback locales; 89 keys per locale. Four reproducible forensic/structural checks are enforced in CI. Keep the AI/machine-translation notice visible. Native-speaker review is 0/114 and production qualification is 0/114; buyer must arrange linguistic review before production claims.
+The Contact Center runtime currently exposes 105 selectable locale codes: 1 English source, 100 machine-assisted drafts and 4 explicit English fallback locales; 89 keys per locale. A separate qualification register contains 114 source rows; 9 flagged locales are withdrawn from runtime selection pending remediation and native-speaker review. Structural/forensic checks do not establish linguistic approval. Native-speaker review is 0/114; production qualification is 0/105 selectable locales. Keep the machine-translation notice visible.
 
 ## Buyer-owned services
 
