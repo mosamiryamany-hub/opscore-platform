@@ -6,7 +6,7 @@ Safety:
 - Deletes at most one non-primary snapshot when at the plan limit.
 - Creates a new snapshot on the primary branch.
 """
-import json, os, sys, urllib.request, urllib.error
+import json, os, sys, time, urllib.request, urllib.error
 from datetime import datetime, timezone
 
 key = os.environ["NEON_API_KEY"]
@@ -74,10 +74,12 @@ for s in snaps:
         continue
     dcode, dbody = api("DELETE", f"/snapshots/{sid}")
     print("delete_http", dcode, sid, json.dumps(dbody)[:200])
-    if dcode in (200, 201, 204):
+    if dcode in (200, 201, 202, 204):
         deleted = True
         break
 
+if deleted:
+    time.sleep(3)
 if not deleted:
     print("NO_NON_PRIMARY_SNAPSHOT_TO_DELETE")
     sys.exit(1)
