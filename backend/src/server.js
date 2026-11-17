@@ -3444,9 +3444,11 @@ const server = http.createServer({ maxHeaderSize: config.httpMaxHeaders * 1024 }
     if (!recorded) {
       recorded = true;
       try {
-        const ms = Number(process.hrtime.bigint() - started) / 1000000;
-        store.recordRuntimeRequest(req.method || 'UNKNOWN', String((req.url || '').split('?')[0]), res.statusCode || 0, ms);
-        if (Date.now()-lastOtelExport>=60000 && process.env.OTEL_EXPORTER_OTLP_ENDPOINT) { lastOtelExport=Date.now(); exportOtlp(store.runtimeObservability({role:'admin'})).catch(e=>warn('otlp_export_failed',{error:e})); }
+        if (!productionGate.blocked) {
+          const ms = Number(process.hrtime.bigint() - started) / 1000000;
+          store.recordRuntimeRequest(req.method || 'UNKNOWN', String((req.url || '').split('?')[0]), res.statusCode || 0, ms);
+          if (Date.now()-lastOtelExport>=60000 && process.env.OTEL_EXPORTER_OTLP_ENDPOINT) { lastOtelExport=Date.now(); exportOtlp(store.runtimeObservability({role:'admin'})).catch(e=>warn('otlp_export_failed',{error:e})); }
+        }
       } catch (metricsError) {
         warn('runtime_metrics_persistence_degraded', { error: metricsError });
       }
