@@ -1,0 +1,49 @@
+{
+  "checks": {
+    "core_table_read": {
+      "organizationsCount": 10,
+      "status": "PASS"
+    },
+    "database_identity": {
+      "status": "PASS"
+    },
+    "migration_ledger_read": {
+      "schemaMigrationsCount": 62,
+      "status": "PASS"
+    },
+    "public_table_inventory": {
+      "publicTableCount": 135,
+      "status": "PASS"
+    },
+    "restore_branch_ready": {
+      "status": "PASS"
+    },
+    "runtime_role_boundary": {
+      "status": "PASS"
+    },
+    "schema_catalog_read": {
+      "status": "PASS"
+    },
+    "snapshot_provenance": {
+      "status": "PASS"
+    }
+  },
+  "databaseIdentity": {
+    "databaseName": "opscore_acceptance",
+    "roleName": "neondb_owner"
+  },
+  "databaseName": "opscore_acceptance",
+  "primaryBranchId": "br-proud-salad-bcshhdap",
+  "projectId": "summer-leaf-18448271",
+  "publicTableCount": 135,
+  "restoreBranchId": "br-divine-fog-bcki2xa4",
+  "restoreBranchState": "ready",
+  "restoreSnapshotId": "snap-floral-sea-bcug7fd3",
+  "schemaSha256": "efa1f375d76194fa51a3556a97e641e61685f914d446979da50a551a4333ffd7",
+  "schemaVersion": "opscore.neon-primary-restore-proof.v1",
+  "snapshotId": "snap-floral-sea-bcug7fd3",
+  "snapshotSourceBranchId": "br-proud-salad-bcshhdap",
+  "status": "PASS",
+  "tableInventorySha256": "fbe28eb39056c46866c88dcd4cd37d8da55ba58b3887f2d5503287dba80a51be",
+  "testedAt": "2026-11-17T16:10:36.745503Z"
+}
