@@ -16,6 +16,11 @@ on:
         required: true
         type: string
         default: neondb_owner
+      neon_branch_limit:
+        description: Active branch limit for the current Neon plan; keep this at the observed project limit unless the plan changes
+        required: true
+        type: string
+        default: '10'
       confirm_production_probe:
         description: Explicitly authorize the live dual-tenant HTTP probe and a recovery-branch creation attempt
         required: true
@@ -37,8 +42,8 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22.23.4'
       - name: Install psql
@@ -54,7 +59,7 @@ jobs:
           OPSC_PRODUCTION_OWNER_ROLE: ${{ inputs.production_owner_role }}
           OPSC_PRODUCTION_HTTP_BASE: https://opscore-platform.vercel.app
           OPSC_EXPECTED_PRODUCTION_COMMIT_SHA: ${{ inputs.expected_production_commit_sha }}
-          OPSC_NEON_BRANCH_LIMIT: '10'
+          OPSC_NEON_BRANCH_LIMIT: ${{ inputs.neon_branch_limit }}
           GITHUB_SHA: ${{ github.sha }}
         run: node backend/scripts/collect-production-recovery-point.js
       - name: Upload recovery evidence, including explicit BLOCKED reports
@@ -68,12 +73,13 @@ jobs:
           if-no-files-found: warn
 
   session-isolation:
-    if: github.event.inputs.confirm_production_probe == 'I_AUTHORIZE_PRODUCTION_EVIDENCE_PROBES'
+    needs: recovery-point
+    if: always() && github.event.inputs.confirm_production_probe == 'I_AUTHORIZE_PRODUCTION_EVIDENCE_PROBES'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: '22.23.4'
       - name: Install psql
