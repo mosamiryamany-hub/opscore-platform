@@ -66,3 +66,21 @@ The file must remain absent or non-PASS until the restore test is actually
 completed. A missing proof, a mismatched digest, a stale timestamp, a deleted
 snapshot, a non-ready restore branch, or any missing check causes the Production
 migration workflow to fail before invoking the migration runner.
+
+
+## Correct snapshot restore execution
+
+The restore proof generator must call the Neon Restore Snapshot endpoint:
+`POST /projects/{project_id}/snapshots/{snapshot_id}/restore`, with
+`target_branch_id` bound to the Production Primary and
+`finalize_restore: false`. A normal `POST /branches` call is not a snapshot
+restore and must never be used to generate this proof.
+
+Before writing the proof, the runner independently requires a ready non-primary
+branch whose Neon metadata reports all of:
+`restored_from == snapshotId`, `restore_status == "restored"`, and
+`restored_as == primaryBranchId`. It then verifies direct database identity,
+schema/table SHA-256 inventories, the exact 62-row migration baseline, the
+absence of migrations 063–067 and 069, 135 public tables, the 134/134 RLS and
+FORCE RLS counts, and the non-superuser/non-BYPASSRLS runtime role. It never
+finalizes the restore or mutates Primary.
