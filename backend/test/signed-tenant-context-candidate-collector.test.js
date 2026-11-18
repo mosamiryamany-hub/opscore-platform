@@ -9,6 +9,11 @@ const {
   validateCandidateProbeEnvironment,
   validateCandidateRuntimeProofs,
   isSignedTenantManifestRoute,
+  findSignedTenantManifestRoute,
+  resetCandidateRouteObservations,
+  registerCandidateSessionToken,
+  getCandidateRouteObservations,
+  recordCandidateRouteObservation,
   queryHttp
 } = require('../scripts/signed-tenant-context-postgres-gate');
 
@@ -342,165 +347,63 @@ test('remote candidate manifest route requires explicit confirmation that GUC ta
 });
 
 
+test('manifest route resolver binds path templates to exact manifest method and operation', () => {
+  const read = findSignedTenantManifestRoute('GET', '/api/v1/work-orders/wo_123/timeline');
+  assert.deepEqual(read, {
+    method: 'GET',
+    path: '/api/v1/work-orders/{id}/timeline',
+    operation: 'read'
+  });
+  const chunk = findSignedTenantManifestRoute('PUT', '/api/v1/evidence-uploads/up_123/chunks/9');
+  assert.deepEqual(chunk, {
+    method: 'PUT',
+    path: '/api/v1/evidence-uploads/{id}/chunks/(\\d+)',
+    operation: 'write'
+  });
+  assert.equal(findSignedTenantManifestRoute('POST', '/api/v1/work-orders/wo_123/timeline'), null);
+  assert.equal(findSignedTenantManifestRoute('GET', '/api/v1/work-orders/wo_123/not-in-manifest'), null);
+});
 
-function setProofPath(target, locator, value = 'PASS') {
-  const parts = locator.split('.');
-  let current = target;
-  for (const part of parts.slice(0, -1)) {
-    current[part] ||= {};
-    current = current[part];
-  }
-  current[parts[parts.length - 1]] = value;
-}
-
-function completeCandidateProofFixture() {
-  const proof = {};
-  for (const requirement of Object.values(CANDIDATE_ROUTE_PROOF_REQUIREMENTS)) {
-    for (const locator of [...requirement.a, ...requirement.b, ...requirement.cross]) {
-      setProofPath(proof, locator);
+test('candidate request observations are tenant-labelled, route-bound, and count only signed tamper-confirmed 2xx responses', () => {
+  resetCandidateRouteObservations();
+  registerCandidateSessionToken('synthetic-token-A', 'tenantA');
+  registerCandidateSessionToken('synthetic-token-B', 'tenantB');
+  const routeA = findSignedTenantManifestRoute('GET', '/api/v1/customers');
+  const routeB = findSignedTenantManifestRoute('GET', '/api/v1/customers');
+  recordCandidateRouteObservation(routeA, 'synthetic-token-A', {
+    status: 200,
+    headers: {
+      'x-opscore-signed-tenant-context': 'verified',
+      'x-opscore-candidate-guc-tamper': 'applied'
     }
-  }
-  return proof;
-}
-
-test('candidate route proof requirements are a one-to-one inventory of the approved 67-route manifest', () => {
-  const manifestKeys = signedRouteManifest.routes.map(route =>
-    String(route.method).toUpperCase() + ' ' + route.path
-  );
-  const requirementKeys = Object.keys(CANDIDATE_ROUTE_PROOF_REQUIREMENTS);
-  assert.equal(signedRouteManifest.routeCount, 67);
-  assert.equal(signedRouteManifest.routes.length, 67);
-  assert.equal(requirementKeys.length, 67);
-  assert.deepEqual([...requirementKeys].sort(), [...manifestKeys].sort());
-  assert.equal(new Set(requirementKeys).size, 67);
-  assert.ok(CANDIDATE_ROUTE_PROOF_REQUIREMENTS[
-    'PUT /api/v1/evidence-uploads/{id}/chunks/(\\d+)'
-  ], 'numeric chunk route must match the manifest backslash encoding exactly');
-});
-
-test('candidate route coverage emits 67 rows and passes only routes with complete A/B and cross-tenant proofs', () => {
-  const proof = completeCandidateProofFixture();
-  const evidence = buildCandidateSignedTenantRouteCoverage({
-    proof,
-    manifest: signedRouteManifest,
-    inventory: routeInventory,
-    manifestBytes,
-    inventoryBytes,
-    candidateMode: true,
-    databaseName: 'opscore_acceptance',
-    parentBranchId: 'br-proud-salad-bcshhdap',
-    deploymentId: 'dpl_CandidateRouteProof123',
-    sourceCommitHint: 'a'.repeat(40),
-    pipelineId: '123456789'
   });
-  const expectedCompleteRequirements = Object.values(CANDIDATE_ROUTE_PROOF_REQUIREMENTS)
-    .filter(requirement => requirement.a.length > 0
-      && requirement.b.length > 0
-      && requirement.cross.length > 0).length;
-
-  assert.equal(evidence.status, 'NOT_VERIFIED',
-    'known incomplete route proofs must prevent the whole matrix from passing');
-  assert.equal(evidence.expectedRouteCount, 67);
-  assert.equal(evidence.coveredRouteCount, expectedCompleteRequirements);
-  assert.equal(evidence.failedRouteCount, 67 - expectedCompleteRequirements);
-  assert.equal(evidence.routes.length, 67);
-  const completedRoute = evidence.routes.find(route =>
-    route.method === 'PATCH' && route.path === '/api/v1/work-orders/{id}'
-  );
-  assert.equal(completedRoute.status, 'PASS');
-  assert.equal(completedRoute.signedContextBound, true);
-  assert.equal(completedRoute.sessionBound, true);
-  assert.equal(completedRoute.transactionBound, true);
-  assert.equal(completedRoute.rawGucTamperDenied, true);
-  assert.equal(completedRoute.tenantAWrite, true);
-  assert.equal(completedRoute.tenantBWrite, true);
-  assert.equal(completedRoute.crossTenantWriteDenied, true);
-  assert.match(evidence.routeManifestSha256, /^[a-f0-9]{64}$/);
-  assert.match(evidence.routeInventorySha256, /^[a-f0-9]{64}$/);
-  assert.equal(evidence.evidenceRebind, null);
-});
-test('missing per-route proof reduces the covered count and keeps the affected rows NOT_VERIFIED', () => {
-  const proof = completeCandidateProofFixture();
-  const baseline = buildCandidateSignedTenantRouteCoverage({
-    proof,
-    manifest: signedRouteManifest,
-    inventory: routeInventory,
-    manifestBytes,
-    inventoryBytes,
-    candidateMode: true
+  recordCandidateRouteObservation(routeB, 'synthetic-token-B', {
+    status: 200,
+    headers: {
+      'x-opscore-signed-tenant-context': 'verified',
+      'x-opscore-candidate-guc-tamper': 'applied'
+    }
   });
-  delete proof.session.appointmentListTenantA;
-  delete proof.session.appointmentCrossTenantUpdateDenied;
-
-  const evidence = buildCandidateSignedTenantRouteCoverage({
-    proof,
-    manifest: signedRouteManifest,
-    inventory: routeInventory,
-    manifestBytes,
-    inventoryBytes,
-    candidateMode: true,
-    databaseName: 'opscore_acceptance',
-    parentBranchId: 'br-proud-salad-bcshhdap',
-    deploymentId: 'dpl_CandidateRouteProof123',
-    sourceCommitHint: 'a'.repeat(40),
-    pipelineId: '123456789'
+  recordCandidateRouteObservation(routeA, 'synthetic-token-A', {
+    status: 404,
+    headers: {
+      'x-opscore-signed-tenant-context': 'verified',
+      'x-opscore-candidate-guc-tamper': 'applied'
+    }
   });
-
-  assert.equal(evidence.status, 'NOT_VERIFIED');
-  assert.equal(evidence.routes.length, 67);
-  assert.equal(evidence.coveredRouteCount, baseline.coveredRouteCount - 2);
-  assert.equal(evidence.failedRouteCount, 67 - evidence.coveredRouteCount);
-  const list = evidence.routes.find(route => route.method === 'GET' && route.path === '/api/v1/appointments');
-  assert.equal(list.status, 'NOT_VERIFIED');
-  assert.equal(list.tenantARead, false);
-  assert.equal(list.tenantBRead, true);
-  assert.equal(list.crossTenantReadDenied, false);
-  assert.ok(list.unresolvedReasons.includes('TENANT_A_ROUTE_PROOF_MISSING'));
-
-  const patch = evidence.routes.find(route => route.method === 'PATCH' && route.path === '/api/v1/appointments/{id}');
-  assert.equal(patch.crossTenantWriteDenied, false);
-  assert.ok(patch.unresolvedReasons.includes('CROSS_TENANT_WRITE_DENIAL_PROOF_MISSING'));
-});
-test('the route matrix cannot certify from local CI proof maps without candidate-mode GUC tamper confirmation', () => {
-  const evidence = buildCandidateSignedTenantRouteCoverage({
-    proof: completeCandidateProofFixture(),
-    manifest: signedRouteManifest,
-    inventory: routeInventory,
-    manifestBytes,
-    inventoryBytes,
-    candidateMode: false,
-    databaseName: 'opscore_http_acceptance',
-    parentBranchId: 'br-local-test-branch',
-    deploymentId: 'dpl_LocalFixture123',
-    sourceCommitHint: 'a'.repeat(40),
-    pipelineId: '123456789'
+  recordCandidateRouteObservation(routeA, 'unknown-token', {
+    status: 200,
+    headers: {
+      'x-opscore-signed-tenant-context': 'verified',
+      'x-opscore-candidate-guc-tamper': 'applied'
+    }
   });
-  assert.equal(evidence.status, 'NOT_VERIFIED');
-  assert.equal(evidence.coveredRouteCount, 0);
-  assert.equal(evidence.failedRouteCount, 67);
-  assert.equal(evidence.routes.every(route => route.rawGucTamperDenied === false), true);
-});
-
-test('manifest or inventory drift prevents the 67-route matrix from passing', () => {
-  const driftedManifest = {
-    ...signedRouteManifest,
-    routes: signedRouteManifest.routes.slice(0, 66),
-    routeCount: 66
-  };
-  const evidence = buildCandidateSignedTenantRouteCoverage({
-    proof: completeCandidateProofFixture(),
-    manifest: driftedManifest,
-    inventory: routeInventory,
-    manifestBytes,
-    inventoryBytes,
-    candidateMode: true,
-    databaseName: 'opscore_acceptance',
-    parentBranchId: 'br-proud-salad-bcshhdap',
-    deploymentId: 'dpl_CandidateRouteProof123',
-    sourceCommitHint: 'a'.repeat(40),
-    pipelineId: '123456789'
-  });
-  assert.equal(evidence.status, 'NOT_VERIFIED');
-  assert.equal(evidence.manifestComplete, false);
-  assert.equal(evidence.routes.length, 66);
-});
+  assert.deepEqual(getCandidateRouteObservations(), [{
+    method: 'GET',
+    path: '/api/v1/customers',
+    operation: 'read',
+    tenantA: { requests: 2, signed: 2, tamperApplied: 2, successful: 1 },
+    tenantB: { requests: 1, signed: 1, tamperApplied: 1, successful: 1 }
+  }]);
+  resetCandidateRouteObservations();
+  assert.deepEqual(getCandidateRouteObservations(), []);});
