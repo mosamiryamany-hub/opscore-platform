@@ -111,3 +111,60 @@ test('does not call external hosts, accept non-success status, or accept malform
     /PRODUCTION_RELEASE_IDENTITY_JSON_INVALID/
   );
 });
+
+
+test('accepts only the exact OIDC-bound unaliased Production candidate identity and deployment pin', async () => {
+  const origin = 'https://opscore-platform-candidate123-mosamiryamany-1692.vercel.app';
+  const env = {
+    OPSC_PRODUCTION_CANDIDATE_MODE: 'true',
+    OPSC_PRODUCTION_HOLD: 'true',
+    OPSC_RELEASE_VERIFIED: 'false',
+    OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED: 'true',
+    OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID: 'dpl_Production123',
+    VERCEL_TRUSTED_OIDC_TOKEN: 'header.payload.signature'
+  };
+  const identity = await readProductionDeploymentIdentity(origin, expectedCommit, async (url, options) => {
+    assert.equal(url, origin + '/api/verify/release');
+    assert.equal(options.headers['x-vercel-trusted-oidc-idp-token'], env.VERCEL_TRUSTED_OIDC_TOKEN);
+    return response(200, proof);
+  }, { env });
+
+  assert.equal(identity.deploymentId, 'dpl_Production123');
+  assert.equal(identity.environment, 'production');
+  assert.equal(identity.ref, 'main');
+});
+
+test('candidate identity rejects missing fail-closed flags, wrong team hosts, missing OIDC and deployment-ID mismatch', async () => {
+  const origin = 'https://opscore-platform-candidate123-mosamiryamany-1692.vercel.app';
+  const env = {
+    OPSC_PRODUCTION_CANDIDATE_MODE: 'true',
+    OPSC_PRODUCTION_HOLD: 'true',
+    OPSC_RELEASE_VERIFIED: 'false',
+    OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED: 'true',
+    OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID: 'dpl_Production123',
+    VERCEL_TRUSTED_OIDC_TOKEN: 'header.payload.signature'
+  };
+  for (const change of [
+    { OPSC_PRODUCTION_HOLD: 'false' },
+    { OPSC_RELEASE_VERIFIED: 'true' },
+    { OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED: 'false' },
+    { VERCEL_TRUSTED_OIDC_TOKEN: '' },
+    { OPSC_PRODUCTION_CANDIDATE_MODE: 'false' }
+  ]) {
+    await assert.rejects(
+      readProductionDeploymentIdentity(origin, expectedCommit, async () => response(200, proof), { env: { ...env, ...change } }),
+      /PRODUCTION_CANDIDATE_HTTP_ORIGIN_NOT_APPROVED/
+    );
+  }
+  await assert.rejects(
+    readProductionDeploymentIdentity('https://opscore-platform-candidate123-other-team.vercel.app', expectedCommit,
+      async () => response(200, proof), { env }),
+    /PRODUCTION_CANDIDATE_HTTP_ORIGIN_NOT_APPROVED/
+  );
+  await assert.rejects(
+    readProductionDeploymentIdentity(origin, expectedCommit, async () => response(200, proof), {
+      env: { ...env, OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID: 'dpl_Different123' }
+    }),
+    /PRODUCTION_RELEASE_IDENTITY_NOT_ATTESTED/
+  );
+});
