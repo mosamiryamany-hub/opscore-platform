@@ -568,18 +568,12 @@ function main(argv = process.argv.slice(2)) {
   if (result.status !== 'PASS') process.exitCode = 2;
 }
 
-if (require.main === module) {
-  try { main(); }
-  catch (error) {
-    process.stderr.write(String(error && (error.code || error.message) || error).slice(0, 1000) + '\n');
-    process.exitCode = 1;
-  }
-}
 
 module.exports = {
   ROUTE_EVIDENCE,
   routeKey,
   validateCandidateResult,
   buildSignedTenantContextProductionCoverage,
-  parseArgs
+  parseArgs,
+  main
 };
