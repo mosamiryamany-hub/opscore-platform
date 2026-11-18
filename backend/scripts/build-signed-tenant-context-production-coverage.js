@@ -3,6 +3,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const signedTenantContextPolicy = require('../src/signed-tenant-context-policy');
 
 const DEFAULT_MANIFEST_PATH = path.join(__dirname, '..', 'docs', 'verification', 'SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST.json');
 const DEFAULT_INVENTORY_PATH = path.join(__dirname, '..', 'docs', 'API_INVENTORY.json');
@@ -313,7 +314,11 @@ function validateCandidateResult(candidate) {
       || candidate.status !== 'PASS'
       || candidate.cleanup?.status !== 'PASS'
       || !candidate.cleanup.residue
-      || Object.values(candidate.cleanup.residue).some(value => Number(value) !== 0)) {
+      || Object.values(candidate.cleanup.residue).some(value => Number(value) !== 0)
+      || candidate.checks?.tenantAHttpSession !== 'PASS'
+      || candidate.checks?.tenantBHttpSession !== 'PASS'
+      || candidate.checks?.rawGucTampering !== 'PASS_CANDIDATE_HTTP_ROUTE_PROBES'
+      || candidate.checks?.workOrdersRawGucTamperingIgnored !== 'PASS_CANDIDATE_HTTP_ROUTE_PROBES') {
     throw new Error('CANDIDATE_RESULT_NOT_CLEAN_PASS');
   }
   const runtime = candidate.candidateRuntimeIdentity || {};
@@ -354,8 +359,42 @@ function buildSignedTenantContextProductionCoverage({
   const rawInventory = inventoryBytes || Buffer.from(JSON.stringify(inventory));
   const checks = candidate.checks || {};
   const observations = Array.isArray(checks.candidateRouteObservations) ? checks.candidateRouteObservations : [];
-  const observationByKey = new Map(observations.map(row => [routeKey(row.method, row.path), row]));
   const manifestRoutes = Array.isArray(manifest && manifest.routes) ? manifest.routes : [];
+  const inventoryRoutes = Array.isArray(inventory && inventory.routes) ? inventory.routes : [];
+  const inventorySha256 = digest(rawInventory);
+  const manifestSha256 = digest(rawManifest);
+  const manifestKeys = new Set();
+  const inventoryKeys = new Set(inventoryRoutes
+    .filter(row => row && typeof row === 'object' && row.auth !== 'public')
+    .map(row => routeKey(row.method, row.route)));
+  let manifestBound = manifest.schemaVersion === 'opscore.signed-tenant-context-route-manifest.v1'
+    && Number(manifest.routeCount) === 67
+    && manifestRoutes.length === 67
+    && Number(inventory.routeCount) === inventoryRoutes.length
+    && inventoryRoutes.length > 0
+    && manifest.routeInventorySha256 === inventorySha256;
+  for (const route of manifestRoutes) {
+    const key = routeKey(route && route.method, route && route.path);
+    if (!route || typeof route !== 'object'
+        || !['read', 'write'].includes(String(route.operation || ''))
+        || manifestKeys.has(key)
+        || !inventoryKeys.has(key)
+        || !signedTenantContextPolicy.isSignedTenantContextRouteDefinition(route.method, route.path, route.operation)) {
+      manifestBound = false;
+    }
+    manifestKeys.add(key);
+  }
+  const observationByKey = new Map();
+  let observationsUnique = true;
+  for (const row of observations) {
+    if (!row || typeof row !== 'object') {
+      observationsUnique = false;
+      continue;
+    }
+    const key = routeKey(row.method, row.path);
+    if (observationByKey.has(key) || !manifestKeys.has(key)) observationsUnique = false;
+    observationByKey.set(key, row);
+  }
   const rows = [];
 
   for (const route of manifestRoutes) {
@@ -421,15 +460,24 @@ function buildSignedTenantContextProductionCoverage({
 
   const coveredRouteCount = rows.filter(row => row.status === 'PASS').length;
   const failedRouteCount = rows.length - coveredRouteCount;
-  const exactIdentity = String(runtime.sourceCommit).toLowerCase() === String(expectedCommit || runtime.sourceCommit).toLowerCase()
-    && String(runtime.pipelineId) === String(expectedPipelineId || runtime.pipelineId)
-    && String(runtime.deploymentId) === String(expectedDeploymentId || runtime.deploymentId)
-    && String(parentBranchId || '').trim() !== ''
+  const exactIdentity = /^[a-f0-9]{40}$/i.test(String(expectedCommit || ''))
+    && String(runtime.sourceCommit).toLowerCase() === String(expectedCommit).toLowerCase()
+    && /^[1-9][0-9]{0,14}$/.test(String(expectedPipelineId || ''))
+    && String(runtime.pipelineId) === String(expectedPipelineId)
+    && /^dpl_[A-Za-z0-9]+$/.test(String(expectedDeploymentId || ''))
+    && String(runtime.deploymentId) === String(expectedDeploymentId)
+    && /^[a-z0-9-]{8,80}$/.test(String(parentBranchId || '').trim())
     && String(databaseName) === runtime.databaseName
     && manifestRoutes.length === 67;
-  const complete = exactIdentity && coveredRouteCount === 67 && failedRouteCount === 0
+  const inventoryBound = manifestBound
+    && manifestKeys.size === 67
+    && inventoryKeys.size > 0
+    && manifest.routeInventorySha256 === inventorySha256;
+  const complete = exactIdentity && inventoryBound && observationsUnique
+    && coveredRouteCount === 67 && failedRouteCount === 0
     && rows.length === 67
     && observations.length === 67
+    && observationByKey.size === 67
     && rows.every(row => row.status === 'PASS');
 
   return {
@@ -440,8 +488,8 @@ function buildSignedTenantContextProductionCoverage({
     expectedRouteCount: 67,
     coveredRouteCount,
     failedRouteCount,
-    routeManifestSha256: digest(rawManifest),
-    routeInventorySha256: digest(rawInventory),
+    routeManifestSha256: manifestSha256,
+    routeInventorySha256: inventorySha256,
     sourceCommitHint: String(runtime.sourceCommit).toLowerCase(),
     pipelineId: String(runtime.pipelineId),
     parentBranchId: String(parentBranchId || ''),
@@ -452,7 +500,10 @@ function buildSignedTenantContextProductionCoverage({
     summary: {
       sourceManifestRouteCount: manifestRoutes.length,
       observationCount: observations.length,
-      mappedRouteCount: rows.filter((row, index) => ROUTE_EVIDENCE.has(routeKey(row.method, row.path))).length,
+      observationKeysUnique: observationsUnique,
+      manifestBound,
+      inventoryBound,
+      mappedRouteCount: rows.filter(row => ROUTE_EVIDENCE.has(routeKey(row.method, row.path))).length,
       unmappedRoutes: rows.filter(row => !ROUTE_EVIDENCE.has(routeKey(row.method, row.path))).map(row => row.method + ' ' + row.path),
       routesNotVerified: rows.filter(row => row.status !== 'PASS').map(row => row.method + ' ' + row.path)
     }
@@ -496,7 +547,7 @@ function main(argv = process.argv.slice(2)) {
     parentBranchId: options['parent-branch-id'],
     expectedCommit: options.commit || process.env.GITHUB_SHA || process.env.OPSC_RELEASE_CI_COMMIT,
     expectedPipelineId: options['pipeline-id'] || process.env.GITHUB_RUN_ID || process.env.OPSC_RELEASE_CI_PIPELINE_ID,
-    expectedDeploymentId: options['deployment-id'],
+    expectedDeploymentId: options['deployment-id'] || process.env.OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID,
     databaseName: options['database-name'] || process.env.OPSC_PRODUCTION_DATABASE_NAME || 'opscore_acceptance'
   });
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
