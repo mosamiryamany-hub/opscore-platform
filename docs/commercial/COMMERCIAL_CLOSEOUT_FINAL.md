@@ -38,7 +38,7 @@ These residuals prohibit claims of complete Production security or zero known se
 
 Signed Android/iOS store artifacts, physical-device acceptance, store publication, native-speaker translation QA, licensed maps, provider contracts/keys, customer-specific deployment, production migration, live backup/restore and environment-specific security acceptance remain outside the seller source archive unless stated otherwise.
 
-The locale catalogue has 114 entries; native-speaker reviewed and production-qualified counts remain 0/114. Do not describe machine-assisted translations as human-reviewed.
+The runtime Contact Center locale manifest contains 105 selectable locales. Separately, the language qualification matrix contains 114 source-language rows; native-speaker-reviewed and production-qualified counts remain 0/114. Do not describe machine-assisted translations as human-reviewed.
 
 ## Separate hosted-Production track
 
