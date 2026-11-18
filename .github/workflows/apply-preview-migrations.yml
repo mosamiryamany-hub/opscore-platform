@@ -107,14 +107,26 @@ jobs:
           echo "branch_id=$BRANCH_ID" >> "$GITHUB_OUTPUT"
           echo "branch_name=$BRANCH_NAME" >> "$GITHUB_OUTPUT"
           echo "Resolved Preview branch: $BRANCH_NAME ($BRANCH_ID)"
-          curl -fsS -G "${AUTH_H[@]}" \
+          URI_HTTP_STATUS="$(curl -sS -G "${AUTH_H[@]}" -o "$RUNNER_TEMP/uri-response.json" -w "%{http_code}" \
             --data-urlencode "branch_id=${BRANCH_ID}" \
             --data-urlencode "database_name=${INPUT_DB}" \
             --data-urlencode "role_name=opscore_owner" \
             --data-urlencode "endpoint_id=ep-dry-mouse-bbf5ozwy" \
             --data-urlencode "pooled=false" \
-            "https://console.neon.tech/api/v2/projects/${PROJECT_ID}/connection_uri" \
-            > "$RUNNER_TEMP/uri.json"
+            "https://console.neon.tech/api/v2/projects/${PROJECT_ID}/connection_uri")"
+          if [[ "${URI_HTTP_STATUS}" != "200" ]]; then
+            python3 - <<'PY'
+          import json,os
+          p=os.environ["RUNNER_TEMP"]+"/uri-response.json"
+          try:
+            d=json.load(open(p))
+            print("NEON_CONNECTION_URI_HTTP_FAILURE", d.get("code"), d.get("message") or d.get("error"))
+          except Exception:
+            print("NEON_CONNECTION_URI_HTTP_FAILURE status="+os.environ.get("URI_HTTP_STATUS","unknown"))
+          PY
+            exit 1
+          fi
+          cp "$RUNNER_TEMP/uri-response.json" "$RUNNER_TEMP/uri.json"
           python3 - <<'PY'
           import json,os,sys
           from urllib.parse import urlsplit,urlunsplit,parse_qsl,urlencode
