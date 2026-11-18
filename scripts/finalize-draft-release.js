@@ -7,6 +7,7 @@ const crypto = require('node:crypto');
 
 const API = 'https://api.github.com';
 const TAG = 'v0.11.62.18-commercial-source-package';
+const RELEASE_ID = 450480423;
 const EXPECTED_OLD_TAG_SHA = '63da7abe69c00d2311af02c5955ff77d5fffb0b5';
 const SECTION_START = '<!-- OPSCORE .18 CURRENT BUILD START -->';
 const SECTION_END = '<!-- OPSCORE .18 CURRENT BUILD END -->';
@@ -137,7 +138,7 @@ async function main() {
   const base = API + '/repos/' + repository;
   const branchRef = await apiJson(base + '/git/ref/heads/' + encodeURIComponent('release/v0.11.62.18-commercial-source-package'));
   assert(branchRef.object && branchRef.object.sha === sourceCommit, 'STALE_RELEASE_RUN_BRANCH_HEAD_MISMATCH');
-  const release = await apiJson(base + '/releases/tags/' + encodeURIComponent(TAG));
+  const release = await apiJson(base + '/releases/' + RELEASE_ID);
   assert(release.tag_name === TAG, 'DRAFT_RELEASE_TAG_MISMATCH');
   assert(release.draft === true && release.prerelease === true && release.published_at === null,
     'RELEASE_NOT_UNPUBLISHED_DRAFT_PRERELEASE');
