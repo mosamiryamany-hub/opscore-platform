@@ -468,7 +468,7 @@ test('candidate-only signed probe closes when hold, release, production flag, re
     { OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED: 'true' },
     { OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED: 'true' },
     { OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'false' },
-    { VERCEL_ENV: 'preview' }
+    { VERCEL_ENV: 'development' }
   ]) {
     const env = { ...candidateProbeEnvironment, ...changed };
     assert.equal(policy.signedWorkOrdersReadEnabled(request, env, candidateProbeReadiness), false);
