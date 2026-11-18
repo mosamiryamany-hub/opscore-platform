@@ -251,36 +251,32 @@ jobs:
           set -euo pipefail
           test -n "${NEON_API_KEY:-}"
           AUTH_H=(-H "Authorization: Bearer ${NEON_API_KEY}" -H "Accept: application/json")
-          curl -fsS -G "${AUTH_H[@]}" \
-            --data-urlencode "branch_id=${INPUT_BRANCH}" \
-            --data-urlencode "database_name=${INPUT_DB}" \
-            --data-urlencode "role_name=opscore_runtime" \
-            --data-urlencode "endpoint_id=ep-dry-mouse-bbf5ozwy" \
-            --data-urlencode "pooled=false" \
-            "https://console.neon.tech/api/v2/projects/${PROJECT_ID}/connection_uri" \
-            > "$RUNNER_TEMP/runtime-uri.json"
+          API="https://console.neon.tech/api/v2/projects/${PROJECT_ID}"
+          curl -fsS "${AUTH_H[@]}" "${API}/branches/${INPUT_BRANCH}/roles/opscore_runtime/reveal_password" > "$RUNNER_TEMP/runtime-password.json"
+          chmod 600 "$RUNNER_TEMP/runtime-password.json"
+          PASSWORD="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("password") or "")' "$RUNNER_TEMP/runtime-password.json")"
+          test -n "$PASSWORD" || { echo "ACCEPTANCE_RUNTIME_PASSWORD_UNAVAILABLE" >&2; exit 1; }
+          echo "::add-mask::${PASSWORD}"
           python3 - <<'PY'
           import json,os,sys
-          from urllib.parse import urlsplit,urlunsplit,parse_qsl,urlencode
-          raw=json.load(open(os.environ["RUNNER_TEMP"]+"/runtime-uri.json"))["uri"]
-          p=urlsplit(raw)
-          if p.scheme not in ("postgres","postgresql") or not p.hostname or "-pooler" in p.hostname:
-            print("ACCEPTANCE_RUNTIME_DIRECT_POSTGRES_REQUIRED", file=sys.stderr); sys.exit(1)
-          if p.hostname != os.environ["EXPECTED_HOST"]:
-            print("ACCEPTANCE_RUNTIME_HOST_MISMATCH", file=sys.stderr); sys.exit(1)
-          if p.path.lstrip("/") != os.environ["INPUT_DB"]:
-            print("ACCEPTANCE_RUNTIME_DATABASE_MISMATCH", file=sys.stderr); sys.exit(1)
-          q=dict(parse_qsl(p.query, keep_blank_values=True))
-          q["sslmode"]="verify-full"
-          uri=urlunsplit((p.scheme,p.netloc,p.path,urlencode(q),p.fragment))
+          from urllib.parse import quote
+          p=json.load(open(os.environ["RUNNER_TEMP"]+"/runtime-password.json"))
+          password=str(p.get("password") or "")
+          if not password:
+            raise SystemExit("ACCEPTANCE_RUNTIME_PASSWORD_UNAVAILABLE")
+          host=os.environ["EXPECTED_HOST"].lower()
+          database=os.environ["INPUT_DB"]
+          if not host or "-pooler" in host or database != "opscore_acceptance":
+            raise SystemExit("ACCEPTANCE_RUNTIME_IDENTITY_INVALID")
+          uri="postgresql://opscore_runtime:"+quote(password,safe="")+"@"+host+"/"+database+"?sslmode=verify-full&channel_binding=require"
           open(os.environ["RUNNER_TEMP"]+"/runtime.uri","w").write(uri)
-          print("ACCEPTANCE_RUNTIME_IDENTITY=PASS role=opscore_runtime host="+p.hostname+" database="+os.environ["INPUT_DB"])
           PY
           chmod 600 "$RUNNER_TEMP/runtime.uri"
           URI="$(cat "$RUNNER_TEMP/runtime.uri")"
           echo "::add-mask::$URI"
           echo "url=$URI" >> "$GITHUB_OUTPUT"
           echo "host=${EXPECTED_HOST}" >> "$GITHUB_OUTPUT"
+          echo "ACCEPTANCE_RUNTIME_IDENTITY=PASS role=opscore_runtime host=${EXPECTED_HOST} database=${INPUT_DB}"
 
       - name: Run PostgreSQL HTTP commercial acceptance against isolated Neon
         working-directory: backend
