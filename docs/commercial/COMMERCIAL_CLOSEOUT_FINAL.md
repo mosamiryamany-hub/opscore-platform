@@ -1,49 +1,49 @@
-# Seller-side commercial closeout record — OpsCore v0.11.62
+# Seller-side source-package closeout — OpsCore v0.11.62 (.18)
 
-> **Scope:** isolated seller source-package line `v0.11.62.17-commercial-source-package`.  
-> **Lineage anchor:** `deba977db586f19128a1f53377fec183beab44d0`.  
-> **Release branch:** `docs/commercial-source-package-closed-deba977d`.
+**Disposition:** source-package candidate may be identified only by its exact successful Secure Release statement and ZIP digest. The technical disposition is PASS_WITH_BUYER_RESIDUALS only when that exact run says so. This is not Production certification or a license grant.
 
-## Package identity
+## Isolated source line
 
-| Field | Authority |
+| Field | Value |
 |---|---|
-| Product version | `0.11.62` |
-| Intended release tag | `v0.11.62.17-commercial-source-package` |
-| Exact source commit | External `COMMERCIAL_RELEASE_STATEMENT.json` supplied with the archive |
-| Secure Release run | External `COMMERCIAL_RELEASE_STATEMENT.json` supplied with the archive |
-| Archive SHA-256 and byte length | External `COMMERCIAL_RELEASE_STATEMENT.json` supplied with the archive |
-| License grant | **NONE** pending a signed License Schedule for the exact archive SHA-256 |
-| Distribution authorization | **NOT AUTHORIZED** until that Schedule is executed |
+| Product version | 0.11.62 |
+| Release tag | v0.11.62.18-commercial-source-package |
+| Release branch | release/v0.11.62.18-commercial-source-package |
+| Lineage anchor | deba977db586f19128a1f53377fec183beab44d0 |
+| Exact source commit / run / archive SHA-256 | Companion external COMMERCIAL_RELEASE_STATEMENT.json |
+| License grant | **NONE** pending signed exact-digest License Schedule |
+| Distribution authorization | **FALSE** pending that Schedule |
+| Production certification | **FALSE / NOT CLAIMED** |
 
-The archive cannot contain its own final ZIP digest without a self-referential hash. The companion external release statement, generated after archive creation, is the authoritative source for the source commit, run identity, byte length, SHA-256, and package-specific results. Do not reuse the digest, bytes, commit, tag, or run belonging to the earlier `.16` package.
+The external statement and independently verified archive digest are authoritative. Do not copy a previous candidate's commit, run, bytes or digest into a later candidate's evidence.
 
-## Isolated release-line scope
+## Seller-owned source-package acceptance
 
-- This line starts from the recorded v0.11.62 source baseline and is maintained independently of subsequent product work on `main`.
-- No later product commits from `main` are included in this line.
-- The package-integrity repair moves evidence redaction ahead of provenance and checksum generation, refreshes adjacent evidence sidecars, regenerates backend provenance after sanitization, and runs the artifact gate against the sanitized staged tree.
-- PR #268 merged the integrity repair and buyer-independent closeout wording into the dedicated release branch. Its PR validation runs are recorded in GitHub; the tag-specific Secure Release result remains authoritative for the final archive.
+The exact tagged Secure Release must pass for the precise source commit. The accepted archive must pass evidence-sidecar checks, integrated manifests, SBOM verification, provenance verification, ZIP CRC/round-trip checks and independent upload-digest verification. A green branch check or successful run for a different commit is not sufficient.
 
-## Seller-owned release acceptance
+The .18 line includes a branch-specific secure-release workflow. The release tag must identify the same commit as the external statement; the branch may advance independently only through this controlled release-line process. main is not merged or used as the release source for this isolated line.
 
-The package-specific Secure Release must complete successfully for the exact intended tag. The generated archive and staged package must pass their release gates, provenance verification, sidecar checks, integrated manifest and SHA-256 checks, and archive round-trip verification. The uploaded artifact must then be independently downloaded and hashed before it is treated as the customer candidate.
+## Security residuals that remain open
 
-This in-tree record is a governance and scope document, not the result of that tag-specific build. The exact result belongs to the companion external release statement. A green PR check alone is not a substitute for the tagged release build or independent verification of the uploaded ZIP.
+1. OPSC_APP_SECURITY was not found as a defined source gate in the inspected .18 tree/package or as a Vercel environment-variable name on 2026-11-18. GitHub Actions secret names were not inspectable. It is **NOT VERIFIED**, not PASS.
+2. The 2026-11-14 Production tenant-context audit reported an unresolved trust-boundary weakness involving caller-settable tenant identity context and membership resolution. It is historical evidence, not proof of the present state; Production-wide tenant isolation remains **NOT CERTIFIED** pending exact live remediation and retest.
+3. The mobile lockfile retains picomatch versions within the range of High-severity GHSA-fc5q-39xc-vjpf / CVE-2026-112366. The release run has a documented exception for the build-toolchain path; the package audit's zero-finding result is not proof of an upstream fix. The exception must remain disclosed until fixed upstream or removed and re-audited.
+4. The repository's static API security contract result is historical and static; it is not an exact-run live security certification.
 
-## Explicit non-claims
+These residuals prohibit claims of complete Production security or zero known security issues. They do not authorize suppressing evidence or converting an unverified gate to PASS.
 
-1. This source-package line does not promote or certify a new Vercel Production deployment.
-2. It does not claim that migrations 063–067 / 069 were applied to Production primary.
-3. It does not claim Production HMAC activation or the live 67-route signed-session matrix for this source-package commit.
-4. Isolated PostgreSQL CI evidence is not a substitute for production-wide, live-route certification.
-5. Mobile store signing, native-speaker translation QA, licensed maps, and third-party provider accounts/contracts remain disclosed buyer/environment responsibilities unless separately contracted.
-6. Repository presence or possession of a ZIP does not grant a license or authorize distribution.
+## Buyer/environment residuals
+
+Signed Android/iOS store artifacts, physical-device acceptance, store publication, native-speaker translation QA, licensed maps, provider contracts/keys, customer-specific deployment, production migration, live backup/restore and environment-specific security acceptance remain outside the seller source archive unless stated otherwise.
+
+The locale catalogue has 114 entries; native-speaker reviewed and production-qualified counts remain 0/114. Do not describe machine-assisted translations as human-reviewed.
+
+## Separate hosted-Production track
+
+This source-package closeout does not deploy Vercel, mutate Neon, apply migrations, rotate secrets, change WAF/firewall policy or certify Production. Production deployment, live tenant-context verification, session-route acceptance, recovery/PITR/RPO/RTO and firewall enforcement remain separately authorized operational work.
 
 ## Commercial boundary
 
-No license grant is made to a buyer until the rights holder and buyer execute a signed License Schedule naming the exact package SHA-256. Until then, distribution and licensed use remain unauthorized.
+Seller-side source preparation, package generation, documentation and technical evidence do not require a named buyer or buyer signature. A buyer's licensed rights and delivery authorization remain separate transaction gates. No license or distribution permission is created by this record, by the repository, by a draft release or by possession of the ZIP.
 
-No prospective buyer or buyer signature is needed to complete the product or seller-side source-package closeout. Buyer license rights and delivery authorization remain separately gated by that signed License Schedule; repository access or a ZIP download alone grants no rights.
-
-The exact release outcome must be read from the companion external statement. This document does not assert a tag-specific release PASS, buyer license grant, or authorization to distribute.
+The rights holder and named buyer must sign a License Schedule that identifies the exact archive SHA-256 and specifies use, modification, distribution, resale, sublicensing, term, territory, fees and support before any such rights are granted.
