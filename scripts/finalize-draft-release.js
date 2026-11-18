@@ -203,7 +203,8 @@ async function main() {
     'Use only this versioned asset set. Earlier unversioned .18 assets are historical and superseded.',
     'The release remains draft and prerelease. No license is granted, distribution is not authorized, and Production certification is not issued.',
     '',
-    ...assets.map(asset => '- ' + asset.name + ': ' + asset.browser_download_url),
+    ...assets.map(asset => '- Current release asset: ' + asset.name),
+    'Download the three named files from the Assets section of this draft release page; do not use any historical/superseded asset.',
     SECTION_END
   ].join('\n');
 
