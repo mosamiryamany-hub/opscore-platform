@@ -310,7 +310,7 @@ The prior restore gate failed because its contract still required a stale 62-row
 
 The live Production 67-route signed-session matrix remains **NOT ESTABLISHED**. CI's isolated route matrix is not Production certification. The HMAC key table is empty; signed Production routes are not activated. The Production isolation pin remains the prior deployment until a separately authorized, gated deployment is verified.
 
-GitHub Environment protection rules / Required reviewers remain **UNVERIFIED** through the current integration. Verify Settings → Environments → production before any Production workflow dispatch.
+GitHub Environment protection rules / Required reviewers were not readable through the current integration; their presence is **UNVERIFIED**. Verify Settings → Environments → production before any Production workflow dispatch.
 
 ### Current Vercel firewall read-only inspection
 
