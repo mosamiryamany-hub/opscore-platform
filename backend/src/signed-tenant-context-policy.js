@@ -219,6 +219,7 @@ module.exports = {
   signedAssetsReadEnabled,
   signedSessionAutobindEnabled,
   signedTenantContextRequired,
+  isCandidateProbeAuthorized,
   signedContextRequested,
   signedTenantContextRouteError,
   isSignedTenantContextRouteDefinition
