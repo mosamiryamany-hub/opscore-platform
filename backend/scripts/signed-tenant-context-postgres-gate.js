@@ -4155,7 +4155,7 @@ async function main() {
       }
     });
     const faultCreateCrossResidue = await owner.query(
-      "SELECT COUNT(*)::int AS count FROM public.work_orders WHERE organization_id=$1 AND title=?",
+      'SELECT COUNT(*)::int AS count FROM public.work_orders WHERE organization_id=$1 AND title=$2',
       [tenantA, '[FAULT] Cross tenant fault reference must be rejected ' + keyId]
     );
     if (faultCreateCross.status < 400
