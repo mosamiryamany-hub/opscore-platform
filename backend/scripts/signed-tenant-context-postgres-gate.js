@@ -58,6 +58,103 @@ function validateCandidateProbeEnvironment(env = process.env) {
   return origin;
 }
 
+function validateCandidateRuntimeProofs(deploymentResponse, databaseResponse, env = process.env) {
+  const expectedCommit = String(env.GITHUB_SHA || env.OPSC_RELEASE_CI_COMMIT || '').trim().toLowerCase();
+  const expectedPipelineId = String(env.GITHUB_RUN_ID || env.OPSC_RELEASE_CI_PIPELINE_ID || '').trim();
+  if (!/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(expectedCommit)
+      || !/^[1-9][0-9]{0,14}$/.test(expectedPipelineId)) {
+    throw new Error('CANDIDATE_EXPECTED_COMMIT_OR_PIPELINE_ID_INVALID');
+  }
+
+  const deployment = deploymentResponse && deploymentResponse.body || {};
+  const deploymentId = String(deployment.deployment && deployment.deployment.id || '');
+  if (Number(deploymentResponse && deploymentResponse.status) !== 200
+      || deployment.status !== 'identified'
+      || String(deployment.source && deployment.source.commitSha || '').toLowerCase() !== expectedCommit
+      || String(deployment.source && deployment.source.ref || '') !== 'main'
+      || String(deployment.deployment && deployment.deployment.environment || '') !== 'production'
+      || !/^dpl_[A-Za-z0-9]+$/.test(deploymentId)) {
+    throw new Error('CANDIDATE_DEPLOYMENT_IDENTITY_MISMATCH:' + JSON.stringify({
+      status: deploymentResponse && deploymentResponse.status || null,
+      proofStatus: deployment.status || null,
+      sourceCommit: deployment.source && deployment.source.commitSha || null,
+      sourceRef: deployment.source && deployment.source.ref || null,
+      environment: deployment.deployment && deployment.deployment.environment || null,
+      deploymentId: deploymentId || null
+    }));
+  }
+
+  const diagnostic = databaseResponse && databaseResponse.body || {};
+  const db = diagnostic.database || {};
+  const identity = db.identity || {};
+  const envProof = diagnostic.environment || {};
+  const roles = Array.isArray(db.roles) ? db.roles : [];
+  const runtimeRole = roles.find(role => role && role.role_name === 'opscore_runtime');
+  const expectedDatabaseName = String(env.OPSC_PRODUCTION_DATABASE_NAME || '').trim();
+  if (Number(databaseResponse && databaseResponse.status) !== 200
+      || diagnostic.schemaVersion !== 'opscore.production-runtime-database-diagnostic.v1'
+      || !diagnostic.deployment
+      || diagnostic.deployment.commitSha !== expectedCommit
+      || String(diagnostic.deployment.pipelineId || '') !== expectedPipelineId
+      || diagnostic.deployment.ref !== 'main'
+      || envProof.vercelEnvironment !== 'production'
+      || envProof.nodeEnvironmentProduction !== true
+      || envProof.databaseEnginePostgres !== true
+      || envProof.applicationDatabaseUrlAligned !== true
+      || envProof.migrationDatabaseUrlAbsent !== true
+      || envProof.bootstrapDatabaseUrlAbsent !== true
+      || envProof.productionHoldEffectiveActive !== true
+      || envProof.releaseVerifiedEffective !== false
+      || envProof.releaseProofVerified !== false
+      || db.status !== 'IDENTITY_RESOLVED'
+      || db.identityScope !== 'APPLICATION_DATABASE'
+      || db.applicationDatabaseBinding !== 'PRESENT'
+      || db.connectionSource !== 'OPSC_DATABASE_URL'
+      || Number(db.writeOperations) !== 0
+      || identity.database_name !== expectedDatabaseName
+      || identity.session_user !== 'opscore_runtime'
+      || identity.current_user !== 'opscore_runtime'
+      || String(identity.transaction_read_only || '').toLowerCase() !== 'on'
+      || !runtimeRole
+      || runtimeRole.role_exists !== true
+      || runtimeRole.can_login !== true
+      || runtimeRole.superuser !== false
+      || runtimeRole.bypass_rls !== false
+      || runtimeRole.create_role !== false
+      || runtimeRole.create_db !== false
+      || runtimeRole.elevated_role_membership !== false) {
+    throw new Error('CANDIDATE_RUNTIME_DATABASE_IDENTITY_MISMATCH:' + JSON.stringify({
+      status: databaseResponse && databaseResponse.status || null,
+      schemaVersion: diagnostic.schemaVersion || null,
+      databaseStatus: db.status || null,
+      databaseName: identity.database_name || null,
+      sessionUser: identity.session_user || null,
+      currentUser: identity.current_user || null,
+      holdActive: envProof.productionHoldEffectiveActive === true,
+      releaseVerified: envProof.releaseVerifiedEffective === true,
+      releaseProofVerified: envProof.releaseProofVerified === true,
+      runtimeRole: runtimeRole || null
+    }));
+  }
+
+  return {
+    deploymentId,
+    sourceCommit: expectedCommit,
+    pipelineId: expectedPipelineId,
+    sourceRef: 'main',
+    environment: 'production',
+    databaseName: identity.database_name,
+    sessionUser: identity.session_user,
+    currentUser: identity.current_user,
+    runtimeRole,
+    readOnlyInspection: true,
+    writeOperations: 0,
+    holdActive: true,
+    releaseVerified: false,
+    releaseProofVerified: false
+  };
+}
+
 async function neonApi(pathname, apiKey) {
   const response = await fetch('https://console.neon.tech/api/v2' + pathname, {
     method: 'GET',
@@ -470,103 +567,15 @@ async function main() {
     if (candidateMode) {
       port = remoteHttpOrigin;
 
-      const expectedCommit = String(process.env.GITHUB_SHA || process.env.OPSC_RELEASE_CI_COMMIT || '').trim().toLowerCase();
-      const expectedPipelineId = String(process.env.GITHUB_RUN_ID || process.env.OPSC_RELEASE_CI_PIPELINE_ID || '').trim();
-      if (!/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(expectedCommit)
-          || !/^[1-9][0-9]{0,14}$/.test(expectedPipelineId)) {
-        throw new Error('CANDIDATE_EXPECTED_COMMIT_OR_PIPELINE_ID_INVALID');
-      }
-
       const deploymentResponse = await queryHttp(port, '/api/verify/deployment', 'candidate-runtime-identity-probe');
-      const deployment = deploymentResponse.body || {};
-      const deploymentId = String(deployment.deployment && deployment.deployment.id || '');
-      if (deploymentResponse.status !== 200
-          || deployment.status !== 'identified'
-          || String(deployment.source && deployment.source.commitSha || '').toLowerCase() !== expectedCommit
-          || String(deployment.source && deployment.source.ref || '') !== 'main'
-          || String(deployment.deployment && deployment.deployment.environment || '') !== 'production'
-          || !/^dpl_[A-Za-z0-9]+$/.test(deploymentId)) {
-        throw new Error('CANDIDATE_DEPLOYMENT_IDENTITY_MISMATCH:' + JSON.stringify({
-          status: deploymentResponse.status,
-          proofStatus: deployment.status || null,
-          sourceCommit: deployment.source && deployment.source.commitSha || null,
-          sourceRef: deployment.source && deployment.source.ref || null,
-          environment: deployment.deployment && deployment.deployment.environment || null,
-          deploymentId: deploymentId || null
-        }));
-      }
-
       const databaseResponse = await queryHttp(
         port, '/api/internal/production-database-identity', 'candidate-runtime-database-identity-probe'
       );
-      const diagnostic = databaseResponse.body || {};
-      const db = diagnostic.database || {};
-      const identity = db.identity || {};
-      const envProof = diagnostic.environment || {};
-      const roles = Array.isArray(db.roles) ? db.roles : [];
-      const runtimeRole = roles.find(role => role && role.role_name === 'opscore_runtime');
-      const expectedDatabaseName = String(process.env.OPSC_PRODUCTION_DATABASE_NAME || '').trim();
-      if (databaseResponse.status !== 200
-          || diagnostic.schemaVersion !== 'opscore.production-runtime-database-diagnostic.v1'
-          || !diagnostic.deployment
-          || diagnostic.deployment.commitSha !== expectedCommit
-          || String(diagnostic.deployment.pipelineId || '') !== expectedPipelineId
-          || diagnostic.deployment.ref !== 'main'
-          || envProof.vercelEnvironment !== 'production'
-          || envProof.nodeEnvironmentProduction !== true
-          || envProof.databaseEnginePostgres !== true
-          || envProof.applicationDatabaseUrlAligned !== true
-          || envProof.migrationDatabaseUrlAbsent !== true
-          || envProof.bootstrapDatabaseUrlAbsent !== true
-          || envProof.productionHoldEffectiveActive !== true
-          || envProof.releaseVerifiedEffective !== false
-          || envProof.releaseProofVerified !== false
-          || db.status !== 'IDENTITY_RESOLVED'
-          || db.identityScope !== 'APPLICATION_DATABASE'
-          || db.applicationDatabaseBinding !== 'PRESENT'
-          || db.connectionSource !== 'OPSC_DATABASE_URL'
-          || Number(db.writeOperations) !== 0
-          || identity.database_name !== expectedDatabaseName
-          || identity.session_user !== 'opscore_runtime'
-          || identity.current_user !== 'opscore_runtime'
-          || String(identity.transaction_read_only || '').toLowerCase() !== 'on'
-          || !runtimeRole
-          || runtimeRole.role_exists !== true
-          || runtimeRole.can_login !== true
-          || runtimeRole.superuser !== false
-          || runtimeRole.bypass_rls !== false
-          || runtimeRole.create_role !== false
-          || runtimeRole.create_db !== false
-          || runtimeRole.elevated_role_membership !== false) {
-        throw new Error('CANDIDATE_RUNTIME_DATABASE_IDENTITY_MISMATCH:' + JSON.stringify({
-          status: databaseResponse.status,
-          schemaVersion: diagnostic.schemaVersion || null,
-          databaseStatus: db.status || null,
-          databaseName: identity.database_name || null,
-          sessionUser: identity.session_user || null,
-          currentUser: identity.current_user || null,
-          holdActive: envProof.productionHoldEffectiveActive === true,
-          releaseVerified: envProof.releaseVerifiedEffective === true,
-          releaseProofVerified: envProof.releaseProofVerified === true,
-          runtimeRole: runtimeRole || null
-        }));
-      }
-      candidateRuntimeIdentity = {
-        deploymentId,
-        sourceCommit: expectedCommit,
-        pipelineId: expectedPipelineId,
-        sourceRef: 'main',
-        environment: 'production',
-        databaseName: identity.database_name,
-        sessionUser: identity.session_user,
-        currentUser: identity.current_user,
-        runtimeRole,
-        readOnlyInspection: true,
-        writeOperations: 0,
-        holdActive: true,
-        releaseVerified: false,
-        releaseProofVerified: false
-      };
+      candidateRuntimeIdentity = validateCandidateRuntimeProofs(
+        deploymentResponse,
+        databaseResponse,
+        process.env
+      );
     } else {
       port = await choosePort();
       evidenceRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-signed-evidence-root-'));
@@ -4224,5 +4233,6 @@ module.exports = {
   requireLocalAcceptanceUrl,
   queryHttp,
   candidateDatabaseUrl,
+  validateCandidateRuntimeProofs,
   main
 };
