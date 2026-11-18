@@ -46,7 +46,7 @@ test('Production migration helper binds the exact Primary, database, owner role,
   assert.match(helper, /PRODUCTION_RESTORE_BRANCH_SNAPSHOT_PROVENANCE_MISMATCH/);
   assert.match(helper, /age_seconds/);
   assert.match(restoreProofSpec, /PRODUCTION_PRIMARY_RESTORE_PROOF\.json/);
-  assert.match(restoreProofSpec, /opscore\.neon-primary-restore-proof\.v1/);
+  assert.match(restoreProofSpec, /opscore\\.neon-primary-restore-proof\\.v2/);
 });
 
 test('Production migration-state verification requires 063–069 already applied with exact ledger checksums and no pending work', () => {
