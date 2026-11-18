@@ -78,7 +78,20 @@ jobs:
           test -n "${NEON_API_KEY:-}" || { echo "NEON_API_KEY_MISSING"; exit 1; }
           PROJECT_ID="sweet-union-58466913"
           AUTH_H=(-H "Authorization: Bearer ${NEON_API_KEY}" -H "Accept: application/json")
-          BRANCHES=$(curl -fsS "${AUTH_H[@]}" "https://console.neon.tech/api/v2/projects/${PROJECT_ID}/branches")
+          BRANCH_HTTP_STATUS="$(curl -sS "${AUTH_H[@]}" -o "$RUNNER_TEMP/branches-response.json" -w "%{http_code}" "https://console.neon.tech/api/v2/projects/${PROJECT_ID}/branches")"
+          if [[ "$BRANCH_HTTP_STATUS" != "200" ]]; then
+            python3 - <<'PY'
+          import json,os
+          p=os.environ["RUNNER_TEMP"]+"/branches-response.json"
+          try:
+            d=json.load(open(p))
+            print("NEON_BRANCH_INVENTORY_HTTP_FAILURE", d.get("code"), d.get("message") or d.get("error"))
+          except Exception:
+            print("NEON_BRANCH_INVENTORY_HTTP_FAILURE status="+os.environ.get("BRANCH_HTTP_STATUS","unknown"))
+          PY
+            exit 1
+          fi
+          BRANCHES="$(cat "$RUNNER_TEMP/branches-response.json")"
           echo "$BRANCHES" | python3 -c '
           import json,os,sys
           data=json.load(sys.stdin)
