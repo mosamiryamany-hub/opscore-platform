@@ -400,10 +400,12 @@ async function main() {
         synthetic.serviceLineIds[1], tenantB, 'TC-B-' + keyId, 'Tenant B CI Service Line', 'tc-service-b-' + keyId, userB
       ]
     );
-    await owner.query(
-      'INSERT INTO opscore_security.context_probe_rows(id,organization_id,probe_value) VALUES($1,$2,$3),($4,$5,$6)',
-      ['row-' + sessionA, tenantA, 'proof:' + tenantA, 'row-' + sessionB, tenantB, 'proof:' + tenantB]
-    );
+    if (!candidateMode) {
+      await owner.query(
+        'INSERT INTO opscore_security.context_probe_rows(id,organization_id,probe_value) VALUES($1,$2,$3),($4,$5,$6)',
+        ['row-' + sessionA, tenantA, 'proof:' + tenantA, 'row-' + sessionB, tenantB, 'proof:' + tenantB]
+      );
+    }
 
     // Real product relation fixtures for the non-work-orders signed vertical slice.
     // The assets list query joins assets -> sites; both relations carry organization_id
@@ -425,7 +427,7 @@ async function main() {
       // synchronous bridge. Prove that this independent connection also binds a
       // signed principal to its own backend/xid and ignores forged legacy GUCs.
       signedContextPool = createPostgresPool({ connectionString: runtimeUrl, max: 2 });
-      const secondaryPoolProof = {};
+      secondaryPoolProof = {};
       for (const [label, principal, expectedTenant, foreignTenant] of [
         ['tenantA', { sessionId: sessionA, userId: userA, tenantId: tenantA }, tenantA, tenantB],
         ['tenantB', { sessionId: sessionB, userId: userB, tenantId: tenantB }, tenantB, tenantA]
