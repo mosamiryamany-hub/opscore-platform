@@ -50,6 +50,183 @@ function isSignedTenantManifestRoute(method, requestPath) {
   });
 }
 
+
+const CANDIDATE_ROUTE_PROOF_REQUIREMENTS = Object.freeze({
+  'GET /api/v1/appointments': { a: ['session.appointmentListTenantA'], b: ['session.appointmentListTenantB'], cross: ['session.appointmentListTenantA', 'session.appointmentListTenantB'] },
+  'POST /api/v1/appointments': { a: ['session.appointmentCreateTenantA'], b: ['session.appointmentCreateTenantB'], cross: [] },
+  'GET /api/v1/appointments/{id}': { a: ['session.appointmentDetailTenantA'], b: ['session.appointmentDetailTenantB'], cross: [] },
+  'PATCH /api/v1/appointments/{id}': { a: ['session.appointmentUpdateTenantA'], b: ['session.appointmentUpdateTenantB'], cross: ['session.appointmentCrossTenantUpdateDenied'] },
+  'POST /api/v1/appointments/{id}/on-my-way': { a: ['session.appointmentOnMyWayTenantA'], b: ['session.appointmentOnMyWayTenantB'], cross: [] },
+  'POST /api/v1/appointments/{id}/reschedule': { a: [], b: ['session.appointmentRescheduleManagerTenantB'], cross: [] },
+  'POST /api/v1/appointments/{id}/unreachable': { a: ['session.appointmentUnreachableTenantA'], b: ['session.appointmentUnreachableTenantB'], cross: [] },
+  'GET /api/v1/assets': { a: ['session.assetsTenantA'], b: ['session.assetsTenantB'], cross: ['session.assetsTenantA', 'session.assetsTenantB'] },
+  'POST /api/v1/assets': { a: ['session.assetsCreateTenantA'], b: ['session.assetsCreateTenantB'], cross: ['session.assetsCreateIgnoresClientTenantClaim'] },
+  'PATCH /api/v1/assets/{id}': { a: ['session.assetsUpdateTenantA'], b: ['session.assetsUpdateTenantB'], cross: ['session.assetsCrossTenantUpdateDenied'] },
+  'POST /api/v1/assets/{id}/events': { a: ['session.assetsEventTenantA'], b: ['session.assetsEventTenantB'], cross: ['session.assetsEventCrossTenantWriteDenied'] },
+  'GET /api/v1/customers': { a: ['session.customersTenantA'], b: ['session.customersTenantB'], cross: ['session.customersTenantA', 'session.customersTenantB'] },
+  'POST /api/v1/customers': { a: ['session.customersCreateTenantA'], b: ['session.customersCreateTenantB'], cross: ['session.customersCreateIgnoresClientTenantClaim'] },
+  'PATCH /api/v1/customers/{id}': { a: ['session.customersUpdateTenantA'], b: ['session.customersUpdateTenantB'], cross: ['session.customersCrossTenantUpdateDenied'] },
+  'GET /api/v1/customers/{id}/service-line': { a: ['session.customerServiceLineReadTenantA'], b: ['session.customerServiceLineReadTenantB'], cross: [] },
+  'POST /api/v1/customers/{id}/service-line': { a: ['session.customerServiceLineAssignTenantA'], b: ['session.customerServiceLineAssignTenantB'], cross: ['session.customerServiceLineCrossTenantAssignDenied'] },
+  'PUT /api/v1/evidence-uploads/{id}/chunks/(\\d+)': { a: ['evidence.chunkTenantA', 'evidence.chunkTenantAPersisted'], b: ['evidence.chunkTenantB', 'evidence.chunkTenantBPersisted'], cross: ['evidence.crossTenantChunkDenied'] },
+  'POST /api/v1/evidence-uploads/{id}/complete': { a: ['evidence.completeTenantA'], b: ['evidence.completeTenantB'], cross: ['evidence.crossTenantCompleteDenied'] },
+  'POST /api/v1/faults': { a: ['session.faultCreateTenantA'], b: ['session.faultCreateTenantB'], cross: [] },
+  'POST /api/v1/faults/{id}/transition': { a: ['session.faultTransitionTenantA'], b: ['session.faultTransitionTenantB'], cross: [] },
+  'POST /api/v1/faults/{id}/unreachable': { a: ['session.faultUnreachableTenantA'], b: ['session.faultUnreachableTenantB'], cross: [] },
+  'POST /api/v1/faults/classify': { a: ['session.faultClassificationTenantA'], b: ['session.faultClassificationTenantB'], cross: ['session.faultClassificationForeignTenantHidden'] },
+  'GET /api/v1/geofences': { a: ['session.geofenceListTenantA'], b: ['session.geofenceListTenantB'], cross: [] },
+  'POST /api/v1/geofences': { a: ['session.geofenceCreateTenantA'], b: ['session.geofenceCreateTenantB'], cross: [] },
+  'POST /api/v1/geofences/{id}/technicians': { a: ['session.geofenceAssignTechnicianTenantA'], b: ['session.geofenceAssignTechnicianTenantB'], cross: ['session.geofenceCrossTenantAssignmentDenied'] },
+  'POST /api/v1/geofences/assert-access': { a: ['session.geofenceAssertAccessTenantA'], b: ['session.geofenceAssertAccessTenantB'], cross: [] },
+  'POST /api/v1/geofences/dynamic-events': { a: ['session.dynamicGeofenceWriteTenantA'], b: ['session.dynamicGeofenceWriteTenantB'], cross: [] },
+  'POST /api/v1/geofences/evaluate': { a: ['session.geofenceEvaluationTenantA'], b: ['session.geofenceEvaluationTenantB'], cross: ['session.geofenceEvaluationForeignTenantHidden'] },
+  'GET /api/v1/geofences/role-polygons': { a: ['session.geofenceRolePolygonsTenantA'], b: ['session.geofenceRolePolygonsTenantB'], cross: [] },
+  'GET /api/v1/map/viewport': { a: ['session.mapViewportTenantA'], b: ['session.mapViewportTenantB'], cross: [] },
+  'GET /api/v1/sites': { a: ['session.sitesTenantA', 'session.sitesCustomerJoinTenantScoped'], b: ['session.sitesTenantB', 'session.sitesCustomerJoinTenantScoped'], cross: [] },
+  'POST /api/v1/sites': { a: ['session.sitesCreateTenantA'], b: ['session.sitesCreateTenantB'], cross: ['session.sitesCreateIgnoresClientTenantClaim'] },
+  'PATCH /api/v1/sites/{id}': { a: ['session.sitesUpdateTenantA'], b: ['session.sitesUpdateTenantB'], cross: ['session.sitesCrossTenantUpdateDenied'] },
+  'GET /api/v1/technicians': { a: ['session.technicianListTenantA'], b: ['session.technicianListTenantB'], cross: [] },
+  'POST /api/v1/technicians': { a: ['session.technicianProfileTenantA'], b: ['session.technicianProfileTenantB'], cross: [] },
+  'GET /api/v1/technicians/{id}/geofences': { a: ['session.technicianGeofenceReadTenantA'], b: ['session.technicianGeofenceReadTenantB'], cross: [] },
+  'GET /api/v1/technicians/availability': { a: ['session.technicianAvailabilityTenantA'], b: ['session.technicianAvailabilityTenantB'], cross: [] },
+  'GET /api/v1/technicians/skills': { a: ['session.technicianSkillsListTenantA'], b: ['session.technicianSkillsListTenantB'], cross: [] },
+  'POST /api/v1/technicians/skills': { a: ['session.technicianSkillTenantA'], b: ['session.technicianSkillTenantB'], cross: [] },
+  'GET /api/v1/technicians/trail': { a: ['session.technicianTrailReadTenantA'], b: ['session.technicianTrailReadTenantB'], cross: ['session.technicianTrailCrossTenantHidden'] },
+  'POST /api/v1/technicians/trail': { a: ['session.technicianTrailWriteTenantA'], b: ['session.technicianTrailWriteTenantB'], cross: [] },
+  'GET /api/v1/technicians/trail.geojson': { a: ['session.technicianTrailGeoJsonTenantA'], b: ['session.technicianTrailGeoJsonTenantB'], cross: [] },
+  'GET /api/v1/work-orders': { a: ['checks.signedWorkOrdersTenantA'], b: ['checks.signedWorkOrdersTenantB'], cross: ['checks.signedWorkOrdersTenantA', 'checks.signedWorkOrdersTenantB'] },
+  'POST /api/v1/work-orders': { a: ['write.createTenantA'], b: ['write.createTenantB'], cross: ['write.createIgnoresClientTenantClaim'] },
+  'GET /api/v1/work-orders/{id}': { a: ['checks.signedWorkOrderDetailTenantA'], b: ['checks.signedWorkOrderDetailTenantB'], cross: [] },
+  'PATCH /api/v1/work-orders/{id}': { a: ['write.patchTenantA'], b: ['write.patchTenantB'], cross: ['write.crossTenantPatchDenied', 'write.crossTenantPatchLeftForeignRowUnchanged'] },
+  'GET /api/v1/work-orders/{id}/attachments': { a: ['read.attachmentsTenantA'], b: ['read.attachmentsTenantB'], cross: ['read.attachmentsForeignTenantDenied'] },
+  'POST /api/v1/work-orders/{id}/attachments': { a: ['evidence.directAttachmentTenantA'], b: ['evidence.directAttachmentTenantB'], cross: ['evidence.crossTenantDirectAttachmentDenied'] },
+  'GET /api/v1/work-orders/{id}/changelog': { a: ['read.changelogTenantA'], b: ['read.changelogTenantB'], cross: ['read.changelogForeignTenantDenied'] },
+  'GET /api/v1/work-orders/{id}/comments': { a: ['read.commentsTenantA'], b: ['read.commentsTenantB'], cross: ['read.commentsForeignTenantDenied'] },
+  'POST /api/v1/work-orders/{id}/comments': { a: ['write.commentTenantA'], b: ['write.commentTenantB'], cross: ['write.crossTenantCommentDenied', 'write.crossTenantCommentNotPersisted'] },
+  'GET /api/v1/work-orders/{id}/completion-assurance': { a: ['read.completionAssuranceTenantA'], b: ['read.completionAssuranceTenantB'], cross: ['read.completionAssuranceForeignTenantDenied'] },
+  'GET /api/v1/work-orders/{id}/completion-package': { a: ['read.completionPackageTenantA'], b: ['read.completionPackageTenantB'], cross: ['read.completionPackageForeignTenantDenied'] },
+  'GET /api/v1/work-orders/{id}/dispatch-candidates': { a: ['read.dispatchCandidatesTenantA'], b: ['read.dispatchCandidatesTenantB'], cross: ['read.dispatchCandidatesForeignTenantDenied'] },
+  'POST /api/v1/work-orders/{id}/evidence-uploads': { a: ['evidence.initiateTenantA'], b: ['evidence.initiateTenantB'], cross: [] },
+  'GET /api/v1/work-orders/{id}/first-time-right': { a: ['read.firstTimeRightTenantA'], b: ['read.firstTimeRightTenantB'], cross: ['read.firstTimeRightForeignTenantDenied'] },
+  'GET /api/v1/work-orders/{id}/handoff': { a: ['read.handoffTenantA'], b: ['read.handoffTenantB'], cross: ['read.handoffForeignTenantDenied'] },
+  'GET /api/v1/work-orders/{id}/operational-risk': { a: ['read.operationalRiskTenantA'], b: ['read.operationalRiskTenantB'], cross: ['read.operationalRiskForeignTenantDenied'] },
+  'GET /api/v1/work-orders/{id}/parts': { a: ['read.partsTenantA'], b: ['read.partsTenantB'], cross: ['read.partsForeignTenantDenied'] },
+  'GET /api/v1/work-orders/{id}/signoffs': { a: ['read.signoffsTenantA'], b: ['read.signoffsTenantB'], cross: ['read.signoffsForeignTenantDenied'] },
+  'GET /api/v1/work-orders/{id}/time-summary': { a: ['read.timeSummaryTenantA'], b: ['read.timeSummaryTenantB'], cross: ['read.timeSummaryForeignTenantDenied'] },
+  'GET /api/v1/work-orders/{id}/timeline': { a: ['read.timelineTenantA'], b: ['read.timelineTenantB'], cross: ['read.timelineForeignTenantDenied'] },
+  'POST /api/v1/work-orders/{id}/transition': { a: ['write.transitionTenantA'], b: ['write.transitionTenantB'], cross: ['write.crossTenantTransitionDenied', 'write.crossTenantTransitionLeftForeignRowUnchanged'] },
+  'GET /api/v1/work-orders/{id}/verified-job-record': { a: ['read.verifiedJobRecordTenantA'], b: ['read.verifiedJobRecordTenantB'], cross: ['read.verifiedJobRecordForeignTenantDenied'] },
+  'GET /api/v1/work-orders/{id}/why-blocked': { a: ['read.whyBlockedTenantA'], b: ['read.whyBlockedTenantB'], cross: ['read.whyBlockedForeignTenantDenied'] },
+  'GET /api/v1/work-orders/{id}/work-pack': { a: ['read.workPackTenantA'], b: ['read.workPackTenantB'], cross: ['read.workPackForeignTenantDenied'] },
+  'POST /api/v1/work-orders/bulk': { a: ['write.bulkTenantA'], b: ['write.bulkTenantB'], cross: ['write.crossTenantBulkFailedNotFound', 'write.crossTenantBulkLeftForeignRowUnchanged'] }
+});
+
+function readCandidateProofValue(proof, locator) {
+  const parts = String(locator || '').split('.');
+  let value = proof;
+  for (const part of parts) value = value && value[part];
+  return value === 'PASS';
+}
+
+function buildCandidateSignedTenantRouteCoverage({
+  proof,
+  manifest = SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST,
+  inventory,
+  manifestBytes,
+  inventoryBytes,
+  candidateMode = false,
+  databaseName = '',
+  parentBranchId = '',
+  deploymentId = '',
+  sourceCommitHint = '',
+  pipelineId = '',
+  testedAt = new Date().toISOString()
+}) {
+  const rows = Array.isArray(manifest && manifest.routes) ? manifest.routes : [];
+  const inventoryRows = Array.isArray(inventory && inventory.routes) ? inventory.routes : [];
+  const inventorySha256 = inventoryBytes
+    ? crypto.createHash('sha256').update(inventoryBytes).digest('hex') : null;
+  const manifestSha256 = manifestBytes
+    ? crypto.createHash('sha256').update(manifestBytes).digest('hex') : null;
+
+  const routes = rows.map(route => {
+    const method = String(route && route.method || '').toUpperCase();
+    const routePath = String(route && route.path || '');
+    const operation = String(route && route.operation || '');
+    const key = method + ' ' + routePath;
+    const requirement = CANDIDATE_ROUTE_PROOF_REQUIREMENTS[key];
+    const required = requirement || { a: [], b: [], cross: [] };
+    const tenantA = required.a.length > 0 && required.a.every(item => readCandidateProofValue(proof, item));
+    const tenantB = required.b.length > 0 && required.b.every(item => readCandidateProofValue(proof, item));
+    const cross = required.cross.length > 0 && required.cross.every(item => readCandidateProofValue(proof, item));
+    const validManifestRoute = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(method)
+      && routePath.startsWith('/api/')
+      && ['read', 'write'].includes(operation);
+    const common = candidateMode && Boolean(requirement) && validManifestRoute && tenantA && tenantB && cross;
+    const reasons = [];
+    if (!requirement) reasons.push('ROUTE_PROOF_REQUIREMENT_NOT_DEFINED');
+    if (!validManifestRoute) reasons.push('MANIFEST_ROUTE_INVALID');
+    if (!tenantA) reasons.push('TENANT_A_ROUTE_PROOF_MISSING');
+    if (!tenantB) reasons.push('TENANT_B_ROUTE_PROOF_MISSING');
+    if (!cross) reasons.push(operation === 'read'
+      ? 'CROSS_TENANT_READ_DENIAL_PROOF_MISSING'
+      : 'CROSS_TENANT_WRITE_DENIAL_PROOF_MISSING');
+    return {
+      method,
+      path: routePath,
+      operation,
+      status: common ? 'PASS' : 'NOT_VERIFIED',
+      signedContextBound: common,
+      sessionBound: common,
+      transactionBound: common,
+      rawGucTamperDenied: common,
+      ...(operation === 'read' ? {
+        tenantARead: tenantA,
+        tenantBRead: tenantB,
+        crossTenantReadDenied: cross
+      } : {
+        tenantAWrite: tenantA,
+        tenantBWrite: tenantB,
+        crossTenantWriteDenied: cross
+      }),
+      proofKeys: { tenantA: required.a, tenantB: required.b, crossTenant: required.cross },
+      unresolvedReasons: reasons
+    };
+  });
+
+  const unique = new Set(routes.map(route => route.method + ' ' + route.path));
+  const manifestComplete = rows.length === 67 && Number(manifest && manifest.routeCount) === 67
+    && unique.size === 67 && manifestSha256 !== null && inventorySha256 !== null
+    && Number(inventory && inventory.routeCount) === inventoryRows.length
+    && inventoryRows.length > 0
+    && manifest.routeInventorySha256 === inventorySha256;
+  const coveredRouteCount = routes.filter(route => route.status === 'PASS').length;
+  const failedRouteCount = routes.length - coveredRouteCount;
+  const status = manifestComplete && routes.length === 67 && coveredRouteCount === 67 ? 'PASS' : 'NOT_VERIFIED';
+
+  return {
+    schemaVersion: 'opscore.signed-tenant-context-production-coverage.v1',
+    evidenceClass: 'LIVE_PRODUCTION_CANDIDATE_ROUTE_PROBES',
+    environment: 'production',
+    status,
+    databaseName: databaseName || null,
+    verificationScope: '67-route-dual-tenant-session-transaction-guc-tamper-and-cross-tenant-denial',
+    expectedRouteCount: 67,
+    coveredRouteCount,
+    failedRouteCount,
+    routeManifestSha256: manifestSha256,
+    routeInventorySha256: inventorySha256,
+    sourceCommitHint: sourceCommitHint || null,
+    pipelineId: String(pipelineId || '') || null,
+    parentBranchId: parentBranchId || null,
+    deploymentId: deploymentId || null,
+    testedAt,
+    evidenceRebind: null,
+    manifestComplete,
+    routes
+  };
+}
+
 function candidateOrigin(value) {
   let url;
   try { url = new URL(String(value || '').trim()); }
@@ -3804,6 +3981,45 @@ async function main() {
         runtimeBypassesRls: false
       }
     };
+
+    if (candidateMode) {
+      const manifestPath = path.join(__dirname, '..', 'docs', 'verification', 'SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST.json');
+      const inventoryPath = path.join(__dirname, '..', 'docs', 'API_INVENTORY.json');
+      const manifestBytes = fs.readFileSync(manifestPath);
+      const inventoryBytes = fs.readFileSync(inventoryPath);
+      const manifest = JSON.parse(manifestBytes.toString('utf8'));
+      const inventory = JSON.parse(inventoryBytes.toString('utf8'));
+      candidateProofReport.signedTenantRouteCoverage = buildCandidateSignedTenantRouteCoverage({
+        proof: {
+          session: signedSessionAutobindHttpProof,
+          read: signedReadRouteProof,
+          write: signedWriteRouteProof,
+          evidence: signedEvidenceRouteProof,
+          checks: candidateProofReport.checks
+        },
+        manifest,
+        inventory,
+        manifestBytes,
+        inventoryBytes,
+        candidateMode: true,
+        databaseName: candidateRuntimeIdentity.databaseName,
+        parentBranchId: String(process.env.OPSC_PRODUCTION_NEON_BRANCH_ID || ''),
+        deploymentId: candidateRuntimeIdentity.deploymentId,
+        sourceCommitHint: candidateRuntimeIdentity.sourceCommit,
+        pipelineId: candidateRuntimeIdentity.pipelineId
+      });
+      process.stdout.write('SIGNED_TENANT_ROUTE_COVERAGE '
+        + candidateProofReport.signedTenantRouteCoverage.status
+        + ' covered=' + candidateProofReport.signedTenantRouteCoverage.coveredRouteCount
+        + '/67 failed=' + candidateProofReport.signedTenantRouteCoverage.failedRouteCount + '\\n');
+      if (candidateProofReport.signedTenantRouteCoverage.status !== 'PASS') {
+        const unresolved = candidateProofReport.signedTenantRouteCoverage.routes
+          .filter(route => route.status !== 'PASS')
+          .map(route => route.method + ' ' + route.path + ':' + route.unresolvedReasons.join(','));
+        process.stderr.write('SIGNED_TENANT_ROUTE_COVERAGE_UNRESOLVED '
+          + JSON.stringify(unresolved) + '\\n');
+      }
+    }
   } finally {
     if (evidenceRollbackTriggerInstalled) {
       try { await owner.query('DROP TRIGGER IF EXISTS ci_reject_signed_evidence_rollback ON public.idempotency_records'); }
@@ -4367,6 +4583,9 @@ if (require.main === module) {
 }
 
 module.exports = {
+  CANDIDATE_ROUTE_PROOF_REQUIREMENTS,
+  readCandidateProofValue,
+  buildCandidateSignedTenantRouteCoverage,
   candidateOrigin,
   isSignedTenantManifestRoute,
   validateCandidateProbeEnvironment,
