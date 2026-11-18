@@ -403,6 +403,10 @@ async function main() {
   let evidenceRollbackTriggerInstalled = false;
   const signedSessionAutobindHttpProof = {};
   let candidateRuntimeIdentity = null;
+  let ownerConnected = false;
+  let candidateProofReport = null;
+  let finalCleanupStatus = 'NOT_VERIFIED';
+  let finalCleanupResidue = null;
 
   const keyId = (candidateMode ? 'probe-' : 'ci-') + crypto.randomUUID();
   const key = candidateMode ? null : crypto.randomBytes(32);
@@ -457,6 +461,7 @@ async function main() {
 
   try {
     await owner.connect();
+    ownerConnected = true;
     if (runtimeProbe) await runtimeProbe.connect();
 
     const ownerIdentity = await owner.query('SELECT current_user AS role_name, current_database() AS database_name');
@@ -3767,7 +3772,7 @@ async function main() {
   
     }
 
-    process.stdout.write(JSON.stringify({
+    candidateProofReport = {
       schemaVersion: 'opscore.signed-tenant-context-ci-proof.v1',
       status: 'PASS',
       checks: {
@@ -3796,7 +3801,7 @@ async function main() {
         runtimeRole: 'opscore_runtime',
         runtimeBypassesRls: false
       }
-    }) + '\\n');
+    };
   } finally {
     if (evidenceRollbackTriggerInstalled) {
       try { await owner.query('DROP TRIGGER IF EXISTS ci_reject_signed_evidence_rollback ON public.idempotency_records'); }
@@ -4243,13 +4248,111 @@ async function main() {
       try { await owner.query('DELETE FROM opscore_security.context_hmac_keys WHERE key_id=$1', [synthetic.keyId]); } catch (_) {}
       try { await owner.query('DROP TABLE IF EXISTS opscore_security.context_probe_rows'); } catch (_) {}
     }
-    try { await owner.end(); } catch (_) {}
+    if (ownerConnected) {
+      try {
+        const residue = await owner.query(
+          "SELECT " +
+          "(SELECT COUNT(*)::int FROM public.organizations WHERE id = ANY($1::text[])) AS organizations, " +
+          "(SELECT COUNT(*)::int FROM public.users WHERE id = ANY($2::text[])) AS users, " +
+          "(SELECT COUNT(*)::int FROM public.sessions WHERE id = ANY($3::text[])) AS sessions, " +
+          "(SELECT COUNT(*)::int FROM public.memberships WHERE user_id = ANY($2::text[])) AS memberships, " +
+          "(SELECT COUNT(*)::int FROM public.organization_governance WHERE organization_id = ANY($1::text[])) AS governance, " +
+          "(SELECT COUNT(*)::int FROM public.work_orders WHERE id = ANY($4::text[])) AS work_orders, " +
+          "(SELECT COUNT(*)::int FROM public.customers WHERE id = ANY($5::text[])) AS customers, " +
+          "(SELECT COUNT(*)::int FROM public.sites WHERE id = ANY($6::text[])) AS sites, " +
+          "(SELECT COUNT(*)::int FROM public.assets WHERE id = ANY($7::text[])) AS assets, " +
+          "(SELECT COUNT(*)::int FROM public.asset_events WHERE organization_id = ANY($1::text[]) AND asset_id = ANY($7::text[])) AS asset_events, " +
+          "(SELECT COUNT(*)::int FROM public.service_lines WHERE id = ANY($8::text[])) AS service_lines, " +
+          "(SELECT COUNT(*)::int FROM public.customer_service_lines WHERE organization_id = ANY($1::text[]) AND (customer_id = ANY($5::text[]) OR line_id = ANY($8::text[]))) AS service_assignments, " +
+          "(SELECT COUNT(*)::int FROM public.appointments WHERE id = ANY($9::text[])) AS appointments, " +
+          "(SELECT COUNT(*)::int FROM public.geofences WHERE id = ANY($10::text[])) AS geofences, " +
+          "(SELECT COUNT(*)::int FROM public.technician_geofences WHERE organization_id = ANY($1::text[]) AND geofence_id = ANY($10::text[])) AS technician_geofences, " +
+          "(SELECT COUNT(*)::int FROM public.technician_profiles WHERE organization_id = ANY($1::text[]) AND user_id = ANY($2::text[])) AS technician_profiles, " +
+          "(SELECT COUNT(*)::int FROM public.technician_skills WHERE organization_id = ANY($1::text[]) AND user_id = ANY($2::text[])) AS technician_skills, " +
+          "(SELECT COUNT(*)::int FROM public.technician_location_trail WHERE organization_id = ANY($1::text[]) AND (technician_id = ANY($2::text[]) OR client_event_id = ANY($11::text[]))) AS location_points, " +
+          "(SELECT COUNT(*)::int FROM public.dynamic_geofence_events WHERE id = ANY($12::text[]) OR (organization_id = ANY($1::text[]) AND source_event_id = ANY($13::text[]))) AS dynamic_geofence_events, " +
+          "(SELECT COUNT(*)::int FROM public.operational_jobs WHERE organization_id = ANY($1::text[]) AND ((entity_type='appointment' AND entity_id = ANY($9::text[])) OR (entity_type='work_order' AND entity_id = ANY($4::text[])))) AS operational_jobs, " +
+          "(SELECT COUNT(*)::int FROM public.operational_configs WHERE organization_id = ANY($1::text[]) AND config_key = ANY($14::text[])) AS operational_configs, " +
+          "(SELECT COUNT(*)::int FROM public.evidence_uploads WHERE id = ANY($15::text[]) OR organization_id = ANY($1::text[])) AS evidence_uploads, " +
+          "(SELECT COUNT(*)::int FROM public.evidence_upload_chunks WHERE upload_id = ANY($15::text[])) AS evidence_upload_chunks, " +
+          "(SELECT COUNT(*)::int FROM public.attachments WHERE id = ANY($16::text[]) OR organization_id = ANY($1::text[])) AS attachments, " +
+          "(SELECT COUNT(*)::int FROM public.comments WHERE organization_id = ANY($1::text[]) AND work_order_id = ANY($4::text[])) AS comments, " +
+          "(SELECT COUNT(*)::int FROM public.work_order_sla WHERE organization_id = ANY($1::text[]) AND work_order_id = ANY($4::text[])) AS work_order_sla, " +
+          "(SELECT COUNT(*)::int FROM public.work_order_bulk_jobs WHERE organization_id = ANY($1::text[]) AND id = ANY($17::text[])) AS work_order_bulk_jobs, " +
+          "(SELECT COUNT(*)::int FROM public.deleted_records WHERE organization_id = ANY($1::text[]) AND entity_type='work_order' AND entity_id = ANY($4::text[])) AS deleted_records, " +
+          "(SELECT COUNT(*)::int FROM public.workflow_transition_log WHERE organization_id = ANY($1::text[]) AND entity_id = ANY($4::text[])) AS workflow_transitions, " +
+          "(SELECT COUNT(*)::int FROM public.idempotency_records WHERE organization_id = ANY($1::text[]) AND idempotency_key = ANY($18::text[])) AS idempotency_records, " +
+          "(SELECT COUNT(*)::int FROM public.operation_envelopes WHERE organization_id = ANY($1::text[]) AND idempotency_key = ANY($18::text[])) AS operation_envelopes, " +
+          "(SELECT COUNT(*)::int FROM public.activity_log WHERE organization_id = ANY($1::text[])) AS activity_log, " +
+          "(SELECT COUNT(*)::int FROM public.audit_log WHERE organization_id = ANY($1::text[])) AS audit_log",
+          [
+            synthetic.tenantIds, synthetic.userIds, synthetic.sessionIds, synthetic.workOrderIds,
+            synthetic.customerIds, synthetic.siteIds, synthetic.assetIds, synthetic.serviceLineIds,
+            synthetic.appointmentIds, synthetic.geofenceIds, synthetic.trailClientEventIds,
+            synthetic.dynamicGeofenceIds, synthetic.dynamicGeofenceSourceEventIds,
+            synthetic.operationalConfigKeys, synthetic.evidenceUploadIds, synthetic.attachmentIds,
+            synthetic.bulkJobIds, synthetic.idempotencyKeys
+          ]
+        );
+        finalCleanupResidue = residue.rows[0] || {};
+        const nonzero = Object.fromEntries(Object.entries(finalCleanupResidue)
+          .filter(([, value]) => Number(value) !== 0));
+        if (Object.keys(nonzero).length) {
+          finalCleanupStatus = 'FAIL';
+          process.exitCode = 1;
+          process.stderr.write('SIGNED_CONTEXT_FINAL_FIXTURE_RESIDUE:' + JSON.stringify(nonzero) + '\\n');
+        } else {
+          finalCleanupStatus = 'PASS';
+          process.stdout.write('SIGNED_CONTEXT_FINAL_FIXTURE_RESIDUE=ZERO\\n');
+        }
+      } catch (cleanupError) {
+        finalCleanupStatus = 'FAIL';
+        process.exitCode = 1;
+        process.stderr.write('SIGNED_CONTEXT_FINAL_RESIDUE_CHECK_FAILED:' +
+          String(cleanupError.code || cleanupError.message || cleanupError).slice(0, 500) + '\\n');
+      }
+    } else {
+      finalCleanupStatus = 'NOT_VERIFIED';
+      process.exitCode = 1;
+    }
+
+    try { await owner.end(); } catch (cleanupError) {
+      finalCleanupStatus = 'FAIL';
+      process.exitCode = 1;
+      process.stderr.write('SIGNED_CONTEXT_OWNER_CONNECTION_CLOSE_FAILED:' + String(cleanupError.code || cleanupError.message || cleanupError).slice(0, 300) + '\\n');
+    }
     if (runtimeProbe) { try { await runtimeProbe.end(); } catch (_) {} }
     if (!candidateMode) {
       if (priorSigningKey === undefined) delete process.env.OPSC_TENANT_CONTEXT_HMAC_KEY;
       else process.env.OPSC_TENANT_CONTEXT_HMAC_KEY = priorSigningKey;
       if (priorSigningKeyId === undefined) delete process.env.OPSC_TENANT_CONTEXT_KEY_ID;
       else process.env.OPSC_TENANT_CONTEXT_KEY_ID = priorSigningKeyId;
+    }
+
+    if (!candidateProofReport || process.exitCode === 1 || finalCleanupStatus !== 'PASS') {
+      process.exitCode = 1;
+    } else {
+      const finalReport = {
+        ...candidateProofReport,
+        cleanup: {
+          status: finalCleanupStatus,
+          residue: finalCleanupResidue
+        },
+        candidateRuntimeIdentity
+      };
+      if (candidateMode) {
+        const workspace = String(process.env.GITHUB_WORKSPACE || '').trim();
+        if (!workspace) {
+          process.exitCode = 1;
+          process.stderr.write('CANDIDATE_RESULT_WORKSPACE_REQUIRED\\n');
+        } else {
+          const resultPath = path.join(workspace, 'SIGNED_TENANT_CONTEXT_CANDIDATE_RESULT.json');
+          fs.writeFileSync(resultPath, JSON.stringify(finalReport, null, 2) + '\\n', { flag: 'w', mode: 0o600 });
+          process.stdout.write(JSON.stringify({ status: 'PASS', resultPath: path.basename(resultPath), cleanup: finalCleanupStatus }) + '\\n');
+        }
+      } else {
+        process.stdout.write(JSON.stringify(finalReport) + '\\n');
+      }
     }
   }
 }
