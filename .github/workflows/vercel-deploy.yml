@@ -309,6 +309,7 @@ jobs:
           OPSC_PRODUCTION_OWNER_ROLE: neondb_owner
           OPSC_NEON_BRANCH_LIMIT: ${{ vars.OPSC_NEON_BRANCH_LIMIT || '10' }}
           GITHUB_SHA: ${{ github.sha }}
+          EXPECTED_PRODUCTION_COMMIT_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
           sudo apt-get update -qq
@@ -325,6 +326,7 @@ jobs:
           OPSC_PRODUCTION_HTTP_BASE: https://opscore-platform.vercel.app
           OPSC_PRODUCTION_NEON_BRANCH_ID: br-proud-salad-bcshhdap
           GITHUB_SHA: ${{ github.sha }}
+          EXPECTED_PRODUCTION_COMMIT_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
           sudo apt-get update -qq
