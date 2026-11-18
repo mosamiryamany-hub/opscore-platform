@@ -51,6 +51,46 @@ const previewWrite = {
 
 
 
+test('signed route coverage binds to the tested candidate deployment, not the final deployment ID', () => {
+  const manifestPath = path.join(__dirname, '..', 'docs', 'verification', 'SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST.json');
+  const inventoryPath = path.join(__dirname, '..', 'docs', 'API_INVENTORY.json');
+  const temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-signed-route-candidate-binding-'));
+  try {
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    const evidencePath = path.join(temporaryDirectory, 'evidence.json');
+    fs.writeFileSync(evidencePath, JSON.stringify({
+      schemaVersion: 'opscore.signed-tenant-context-production-coverage.v1',
+      environment: 'production',
+      status: 'PASS',
+      databaseName: 'opscore_acceptance',
+      expectedRouteCount: 67,
+      coveredRouteCount: 67,
+      failedRouteCount: 0,
+      routeManifestSha256: 'a'.repeat(64),
+      routeInventorySha256: 'b'.repeat(64),
+      sourceCommitHint: manifest.sourceCommit,
+      pipelineId: '123456789',
+      parentBranchId: 'br-proud-salad-bcshhdap',
+      deploymentId: 'dpl_ProbeCandidate123',
+      routes: []
+    }));
+    const result = require('../src/release-proof').readProductionSignedTenantRouteCoverageEvidence(evidencePath, {
+      OPSC_RELEASE_CI_COMMIT: manifest.sourceCommit,
+      OPSC_RELEASE_CI_PIPELINE_ID: '123456789',
+      OPSC_PRODUCTION_NEON_BRANCH_ID: 'br-proud-salad-bcshhdap',
+      OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID: 'dpl_ProbeCandidate123',
+      VERCEL_DEPLOYMENT_ID: 'dpl_FinalRelease456'
+    }, manifestPath, inventoryPath);
+    assert.equal(result.deploymentIdBound, true,
+      'the final release must use the candidate deployment ID that received the live route probes');
+    assert.equal(result.routeResultsValid, false,
+      'candidate identity alone must never substitute for route-level results');
+    assert.equal(result.status, 'NOT_VERIFIED');
+  } finally {
+    fs.rmSync(temporaryDirectory, { recursive: true, force: true });
+  }
+});
+
 test('67-route source manifest is inventory-bound while Production route evidence remains unverified', () => {
   const manifestPath = path.join(__dirname, '..', 'docs', 'verification', 'SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST.json');
   const inventoryPath = path.join(__dirname, '..', 'docs', 'API_INVENTORY.json');
@@ -359,4 +399,81 @@ test('server derives Production signed-context readiness from hasVerifiedProduct
   assert.match(server, /signedWorkOrdersWriteEnabled\(req, process\.env, signedContextProductionReadiness\)/);
   assert.match(server, /signedAssetsReadEnabled\(req, process\.env, signedContextProductionReadiness\)/);
   assert.match(server, /signedSessionAutobindEnabled\(process\.env, signedContextProductionReadiness\)/);
+});
+
+
+const candidateProbeToken = 'a'.repeat(64);
+const candidateProbeEnvironment = {
+  VERCEL_ENV: 'production',
+  OPSC_PRODUCTION_HOLD: 'true',
+  OPSC_RELEASE_VERIFIED: 'false',
+  OPSC_PRODUCTION_ISOLATION_CERTIFICATION: 'NOT_CERTIFIED',
+  OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'true',
+  OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED: 'true',
+  OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN: candidateProbeToken,
+  OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_READ_ENABLED: 'true',
+  OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_WRITE_ENABLED: 'true',
+  OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_ENABLED: 'true',
+  OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_WRITE_ENABLED: 'true',
+  OPSC_SIGNED_TENANT_CONTEXT_ASSETS_READ_ENABLED: 'true'
+};
+const candidateProbeReadiness = Object.freeze({ productionReleaseVerified: false });
+
+test('candidate-only signed probe requires the exact per-request token while Production hold stays active', () => {
+  const validRead = {
+    method: 'GET',
+    url: '/api/v1/customers',
+    headers: { 'x-opscore-signed-context-probe': candidateProbeToken }
+  };
+  const validWrite = {
+    method: 'POST',
+    url: '/api/v1/customers',
+    headers: { 'x-opscore-signed-context-probe': candidateProbeToken }
+  };
+  assert.equal(policy.signedWorkOrdersReadEnabled(validRead, candidateProbeEnvironment, candidateProbeReadiness), true);
+  assert.equal(policy.signedWorkOrdersWriteEnabled(validWrite, candidateProbeEnvironment, candidateProbeReadiness), true);
+  assert.equal(policy.signedTenantContextRouteError(validRead, candidateProbeEnvironment, candidateProbeReadiness), null);
+  assert.equal(policy.signedTenantContextRouteError(validWrite, candidateProbeEnvironment, candidateProbeReadiness), null);
+  assert.equal(candidateProbeEnvironment.OPSC_PRODUCTION_HOLD, 'true');
+  assert.equal(candidateProbeEnvironment.OPSC_RELEASE_VERIFIED, 'false');
+  assert.equal(policy.signedSessionAutobindEnabled(candidateProbeEnvironment, candidateProbeReadiness), false);
+});
+
+test('candidate-only signed probe rejects missing, incorrect, malformed and non-route tokens', () => {
+  const base = { method: 'GET', url: '/api/v1/customers' };
+  assert.equal(policy.signedWorkOrdersReadEnabled(base, candidateProbeEnvironment, candidateProbeReadiness), false);
+  assert.equal(policy.signedWorkOrdersReadEnabled({
+    ...base, headers: { 'x-opscore-signed-context-probe': 'b'.repeat(64) }
+  }, candidateProbeEnvironment, candidateProbeReadiness), false);
+  assert.equal(policy.signedWorkOrdersReadEnabled({
+    ...base, headers: { 'x-opscore-signed-context-probe': 'not-a-token' }
+  }, candidateProbeEnvironment, candidateProbeReadiness), false);
+  assert.equal(policy.signedWorkOrdersReadEnabled({
+    ...base, url: '/api/v1/autopilot/decision-memory',
+    headers: { 'x-opscore-signed-context-probe': candidateProbeToken }
+  }, candidateProbeEnvironment, candidateProbeReadiness), false);
+  assert.equal(policy.signedTenantContextRouteError(base, candidateProbeEnvironment, candidateProbeReadiness),
+    'SIGNED_TENANT_CONTEXT_ROUTE_NOT_ENABLED');
+});
+
+test('candidate-only signed probe closes when hold, release, production flag, readiness or global autobind changes', () => {
+  const request = {
+    method: 'GET',
+    url: '/api/v1/customers',
+    headers: { 'x-opscore-signed-context-probe': candidateProbeToken }
+  };
+  for (const changed of [
+    { OPSC_PRODUCTION_HOLD: 'false' },
+    { OPSC_RELEASE_VERIFIED: 'true' },
+    { OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED: 'true' },
+    { OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED: 'true' },
+    { OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'false' },
+    { VERCEL_ENV: 'development' }
+  ]) {
+    const env = { ...candidateProbeEnvironment, ...changed };
+    assert.equal(policy.signedWorkOrdersReadEnabled(request, env, candidateProbeReadiness), false);
+  }
+  assert.equal(policy.signedWorkOrdersReadEnabled(
+    request, candidateProbeEnvironment, { productionReleaseVerified: true }
+  ), false);
 });

@@ -341,7 +341,7 @@ function readProductionSignedTenantRouteCoverageEvidence(
   const pipelineBound = PIPELINE_RE.test(expectedPipelineId) && String(evidence.pipelineId || '') === expectedPipelineId;
   const expectedBranchId = String(env.OPSC_PRODUCTION_NEON_BRANCH_ID || '').trim();
   const branchBound = /^[a-z0-9-]{8,80}$/.test(expectedBranchId) && String(evidence.parentBranchId || '') === expectedBranchId;
-  const expectedDeploymentId = String(env.VERCEL_DEPLOYMENT_ID || '').trim();
+  const expectedDeploymentId = String(env.OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID || env.VERCEL_DEPLOYMENT_ID || '').trim();
   const deploymentIdBound = /^dpl_[A-Za-z0-9]+$/.test(expectedDeploymentId)
     && String(evidence.deploymentId || '').trim() === expectedDeploymentId;
 

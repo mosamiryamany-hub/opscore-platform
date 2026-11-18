@@ -1,5 +1,7 @@
 'use strict';
 
+const crypto = require('node:crypto');
+
 function enabled(value) {
   return String(value || '').trim().toLowerCase() === 'true';
 }
@@ -12,8 +14,30 @@ function isPreview(env = process.env) {
 // A Production environment switch is insufficient: the deployment's immutable
 // release proof must already certify the exact 67-route Production evidence,
 // and the global traffic hold must be explicitly open.
-function isSignedContextEnvironment(env = process.env, readiness = {}) {
+function isCandidateProbeAuthorized(req, env = process.env, readiness = {}) {
+  if (String(env.VERCEL_ENV || '') !== 'production'
+      || !enabled(env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED)
+      || String(env.OPSC_PRODUCTION_HOLD || '').trim().toLowerCase() !== 'true'
+      || enabled(env.OPSC_RELEASE_VERIFIED)
+      || enabled(env.OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED)
+      || enabled(env.OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED)
+      || String(env.OPSC_REQUIRE_SIGNED_TENANT_CONTEXT || '').trim().toLowerCase() !== 'true'
+      || readiness.productionReleaseVerified === true) return false;
+
+  const expected = String(env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN || '').trim();
+  const supplied = String(req && req.headers && req.headers['x-opscore-signed-context-probe'] || '').trim();
+  if (!/^[a-f0-9]{64}$/i.test(expected) || !/^[a-f0-9]{64}$/i.test(supplied)) return false;
+
+  const expectedBytes = Buffer.from(expected, 'hex');
+  const suppliedBytes = Buffer.from(supplied, 'hex');
+  return expectedBytes.length === 32
+    && suppliedBytes.length === expectedBytes.length
+    && crypto.timingSafeEqual(expectedBytes, suppliedBytes);
+}
+
+function isSignedContextEnvironment(env = process.env, readiness = {}, req = null) {
   if (isPreview(env)) return true;
+  if (isCandidateProbeAuthorized(req, env, readiness)) return true;
   return String(env.VERCEL_ENV || '') === 'production'
     && enabled(env.OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED)
     && enabled(env.OPSC_RELEASE_VERIFIED)
@@ -73,13 +97,13 @@ function routeAllowed(req, routes) {
 }
 
 function signedOperationalReadEnabled(req, env = process.env, readiness = {}) {
-  return isSignedContextEnvironment(env, readiness)
+  return isSignedContextEnvironment(env, readiness, req)
     && enabled(env.OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_READ_ENABLED)
     && routeAllowed(req, OPERATIONAL_SIGNED_READ_ROUTES);
 }
 
 function signedOperationalWriteEnabled(req, env = process.env, readiness = {}) {
-  return isSignedContextEnvironment(env, readiness)
+  return isSignedContextEnvironment(env, readiness, req)
     && enabled(env.OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_WRITE_ENABLED)
     && routeAllowed(req, OPERATIONAL_SIGNED_WRITE_ROUTES);
 }
@@ -89,7 +113,7 @@ function signedWorkOrdersReadEnabled(req, env = process.env, readiness = {}) {
   const supportedReadPath = pathname === '/api/v1/work-orders'
     || /^\/api\/v1\/work-orders\/[^/]+$/.test(pathname)
     || /^\/api\/v1\/work-orders\/[^/]+\/(?:completion-package|timeline|handoff|operational-risk|comments|attachments|dispatch-candidates|parts|signoffs|why-blocked|changelog|verified-job-record|work-pack|completion-assurance|time-summary|first-time-right)$/.test(pathname);
-  const workOrderRead = isSignedContextEnvironment(env, readiness)
+  const workOrderRead = isSignedContextEnvironment(env, readiness, req)
     && enabled(env.OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_ENABLED)
     && String(req && req.method || '').toUpperCase() === 'GET'
     && supportedReadPath;
@@ -111,7 +135,7 @@ function signedWorkOrdersWriteEnabled(req, env = process.env, readiness = {}) {
     || (method === 'PUT' && /^\/api\/v1\/evidence-uploads\/[^/]+\/chunks\/\d+$/.test(pathname))
     || (method === 'POST' && /^\/api\/v1\/evidence-uploads\/[^/]+\/complete$/.test(pathname))
     || (method === 'POST' && /^\/api\/v1\/work-orders\/[^/]+\/attachments$/.test(pathname));
-  const workOrderWrite = isSignedContextEnvironment(env, readiness)
+  const workOrderWrite = isSignedContextEnvironment(env, readiness, req)
     && enabled(env.OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_WRITE_ENABLED)
     && supportedWritePath;
   return workOrderWrite || signedOperationalWriteEnabled(req, env, readiness);
@@ -124,7 +148,7 @@ function signedWorkOrdersContextEnabled(req, env = process.env, readiness = {}) 
 
 function signedAssetsReadEnabled(req, env = process.env, readiness = {}) {
   const pathname = String(req && req.url || '').split('?')[0];
-  return isSignedContextEnvironment(env, readiness)
+  return isSignedContextEnvironment(env, readiness, req)
     && enabled(env.OPSC_SIGNED_TENANT_CONTEXT_ASSETS_READ_ENABLED)
     && String(req && req.method || '').toUpperCase() === 'GET'
     && pathname === '/api/v1/assets';
