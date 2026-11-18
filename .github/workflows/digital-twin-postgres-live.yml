@@ -600,7 +600,7 @@ jobs:
           }
           fetch_uri "$BRANCH_ID" "$BRANCH_ENDPOINT_ID" "$RUNNER_TEMP/pitr.uri"
           fetch_uri "$ROOT_BRANCH_ID" "ep-mute-sun-bcahhoei" "$RUNNER_TEMP/head.uri"
-          SQL="SELECT concat_ws('|', current_database(), (SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'), (SELECT count(*) FROM public.schema_migrations), (SELECT md5(string_agg(filename||':'||sha256,E'\\n' ORDER BY filename)) FROM public.schema_migrations), (SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='r' AND c.relforcerowsecurity), (SELECT count(*) FROM pg_policies), (SELECT string_agg(extname||':'||extversion,',' ORDER BY extname) FROM pg_extension));"
+          SQL="SELECT concat_ws('|', current_database(), (SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'), (SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='r' AND c.relforcerowsecurity), (SELECT count(*) FROM pg_policies), (SELECT string_agg(extname||':'||extversion,',' ORDER BY extname) FROM pg_extension));"
           HISTORICAL="$(psql "$(cat "$RUNNER_TEMP/pitr.uri")" -X -v ON_ERROR_STOP=1 -Atc "$SQL")"
           HEAD="$(psql "$(cat "$RUNNER_TEMP/head.uri")" -X -v ON_ERROR_STOP=1 -Atc "$SQL")"
           test -n "$HISTORICAL" && test "$HISTORICAL" = "$HEAD" || {
@@ -611,6 +611,6 @@ jobs:
           }
           echo "PITR_ROOT_HISTORY_BRANCH=PASS"
           echo "PITR_ROLE=opscore_runtime (non-superuser, no BYPASSRLS)"
-          echo "PITR_DATA_ACCESS=aggregate catalog and migration fingerprints only"
+          echo "PITR_DATA_ACCESS=aggregate schema, RLS, policy, and extension catalog only; migration ledger excluded by runtime-role boundary"
           echo "PITR_SCHEMA_CATALOG_MATCH=PASS"
           echo "PITR_TEST_SCOPE=historical branch from Production root; source branch unchanged"
