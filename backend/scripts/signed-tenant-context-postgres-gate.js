@@ -3041,13 +3041,14 @@ async function main() {
       const foreignResponse = await queryHttp(
         port, '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[1]) + routeCase.suffix, tokenA
       );
-      const foreignWasHidden = foreignResponse.status === 503
+      const foreignWasHidden = (foreignResponse.status === 404
+          && foreignResponse.body?.error?.code === 'NOT_FOUND'
+          && foreignResponse.headers?.['x-opscore-signed-tenant-context'] === 'verified')
         || (foreignResponse.status === 200
           && Array.isArray(foreignResponse.body)
           && foreignResponse.body.length === 0
           && foreignResponse.headers?.['x-opscore-signed-tenant-context'] === 'verified');
-      if (!foreignWasHidden
-          || (foreignResponse.status === 503 && foreignResponse.headers?.['x-opscore-signed-tenant-context'] === 'verified')) {
+      if (!foreignWasHidden) {
         throw new Error('SIGNED_CONTEXT_WORK_ORDER_CROSS_TENANT_READ_EXPOSED:' + JSON.stringify({
           route: routeCase.key,
           status: foreignResponse.status,
