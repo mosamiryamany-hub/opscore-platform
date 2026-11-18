@@ -75,7 +75,7 @@ test('Production migration preflight accepts only the proof checks object-map co
   assert.ok(migrationRunner.includes('PRODUCTION_RESTORE_PROOF_SCHEMA_NO_LONGER_MATCHES_PRIMARY'));
   assert.ok(migrationRunner.includes('PRODUCTION_RESTORE_PROOF_PUBLIC_TABLE_DATA_NO_LONGER_MATCHES_PRIMARY'));
   const helperStart = runner.indexOf('def table_data_inventory(uri):');
-  const helperEnd = runner.indexOf('\n\ndef main():', helperStart);
+  const helperEnd = runner.indexOf('\n\ndef verify_required_migration_ledger(uri):', helperStart);
   const inventoryHelper = runner.slice(helperStart, helperEnd);
   const mainBody = runner.slice(runner.indexOf('def main():'));
   assert.ok(inventoryHelper.includes('psql(uri,'));
@@ -84,6 +84,9 @@ test('Production migration preflight accepts only the proof checks object-map co
   assert.ok(migrationRunner.includes('dataContentSha256'));
   assert.ok(migrationRunner.includes('schemaInventoryItemCount'));
   assert.ok(migrationRunner.includes('rowContentParityWithPrimary'));
+  assert.ok(migrationRunner.includes('REQUIRED_APPLIED_MIGRATIONS'));
+  assert.ok(migrationRunner.includes('VERIFY_PRODUCTION_SIGNED_CONTEXT_MIGRATIONS'));
+  assert.ok(migrationRunner.includes('PRODUCTION_SCHEMA_WRITES=0'));
   assert.ok(!migrationRunner.includes('if not isinstance(checks, list):'));
 });
 
