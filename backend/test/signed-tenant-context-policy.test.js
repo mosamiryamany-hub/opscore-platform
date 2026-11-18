@@ -12,6 +12,10 @@ const server = fs.readFileSync(path.join(__dirname, '..', 'src', 'server.js'), '
 
 const apiInventory = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'docs', 'API_INVENTORY.json'), 'utf8'));
 
+const signedTenantRouteManifest = JSON.parse(fs.readFileSync(
+  path.join(__dirname, '..', 'docs', 'verification', 'SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST.json'), 'utf8'
+));
+
 test('signed route evidence policy is derived from actual Preview runtime allowlists', () => {
   const readPostPaths = new Set([
     'POST /api/v1/faults/classify',
@@ -411,11 +415,6 @@ const candidateProbeEnvironment = {
   OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'true',
   OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED: 'true',
   OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN: candidateProbeToken,
-  OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_READ_ENABLED: 'true',
-  OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_WRITE_ENABLED: 'true',
-  OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_ENABLED: 'true',
-  OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_WRITE_ENABLED: 'true',
-  OPSC_SIGNED_TENANT_CONTEXT_ASSETS_READ_ENABLED: 'true'
 };
 const candidateProbeReadiness = Object.freeze({ productionReleaseVerified: false });
 
@@ -476,4 +475,81 @@ test('candidate-only signed probe closes when hold, release, production flag, re
   assert.equal(policy.signedWorkOrdersReadEnabled(
     request, candidateProbeEnvironment, { productionReleaseVerified: true }
   ), false);
+});
+
+
+test('candidate probe enables only approved signed routes without opening global route flags', () => {
+  const allowed = [
+    [{ method: 'GET', url: '/api/v1/customers' }, 'read'],
+    [{ method: 'POST', url: '/api/v1/customers' }, 'write'],
+    [{ method: 'GET', url: '/api/v1/work-orders/wo_123/timeline' }, 'read'],
+    [{ method: 'POST', url: '/api/v1/work-orders/wo_123/comments' }, 'write'],
+    [{ method: 'PUT', url: '/api/v1/evidence-uploads/up_123/chunks/12' }, 'write'],
+    [{ method: 'POST', url: '/api/v1/faults/classify' }, 'read'],
+    [{ method: 'POST', url: '/api/v1/geofences/assert-access' }, 'read'],
+    [{ method: 'GET', url: '/api/v1/assets' }, 'read']
+  ];
+  for (const [request, operation] of allowed) {
+    const withToken = {
+      ...request,
+      headers: { 'x-opscore-signed-context-probe': candidateProbeToken }
+    };
+    assert.equal(policy.signedWorkOrdersContextEnabled(withToken, candidateProbeEnvironment, candidateProbeReadiness), true,
+      operation + ' candidate route should enter the signed transaction wrapper');
+    assert.equal(policy.signedTenantContextRouteError(withToken, candidateProbeEnvironment, candidateProbeReadiness), null);
+  }
+
+  assert.equal(candidateProbeEnvironment.OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_READ_ENABLED, undefined);
+  assert.equal(candidateProbeEnvironment.OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_WRITE_ENABLED, undefined);
+  assert.equal(candidateProbeEnvironment.OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_ENABLED, undefined);
+  assert.equal(candidateProbeEnvironment.OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_WRITE_ENABLED, undefined);
+  assert.equal(candidateProbeEnvironment.OPSC_SIGNED_TENANT_CONTEXT_ASSETS_READ_ENABLED, undefined);
+  assert.equal(policy.signedSessionAutobindEnabled(candidateProbeEnvironment, candidateProbeReadiness), false);
+});
+
+test('candidate route permission is limited to the actual Preview policy allowlist', () => {
+  const unknown = {
+    method: 'GET',
+    url: '/api/v1/autopilot/decision-memory',
+    headers: { 'x-opscore-signed-context-probe': candidateProbeToken }
+  };
+  const wrongMethod = {
+    method: 'POST',
+    url: '/api/v1/work-orders/wo_123/timeline',
+    headers: { 'x-opscore-signed-context-probe': candidateProbeToken }
+  };
+  assert.equal(policy.signedWorkOrdersContextEnabled(unknown, candidateProbeEnvironment, candidateProbeReadiness), false);
+  assert.equal(policy.signedTenantContextRouteError(unknown, candidateProbeEnvironment, candidateProbeReadiness),
+    'SIGNED_TENANT_CONTEXT_ROUTE_NOT_ENABLED');
+  assert.equal(policy.signedWorkOrdersContextEnabled(wrongMethod, candidateProbeEnvironment, candidateProbeReadiness), false);
+});
+
+
+test('Production candidate probe allows exactly the approved 67 manifest route/method pairs without global flags', () => {
+  const checked = [];
+  for (const route of signedTenantRouteManifest.routes) {
+    const pathname = String(route.path).split('/').map(segment => {
+      if (segment === '{id}') return 'candidate-route-id';
+      if (segment.startsWith('(') && segment.includes('d+') && segment.endsWith(')')) return '0';
+      return segment;
+    }).join('/');
+    const request = {
+      method: String(route.method).toUpperCase(),
+      url: pathname,
+      headers: { 'x-opscore-signed-context-probe': candidateProbeToken }
+    };
+    assert.equal(
+      policy.signedWorkOrdersContextEnabled(request, candidateProbeEnvironment, candidateProbeReadiness),
+      true,
+      'candidate route denied: ' + request.method + ' ' + request.url + ' (' + route.operation + ')'
+    );
+    assert.equal(
+      policy.signedTenantContextRouteError(request, candidateProbeEnvironment, candidateProbeReadiness),
+      null,
+      'candidate route error: ' + request.method + ' ' + request.url
+    );
+    checked.push(request.method + ' ' + request.url);
+  }
+  assert.equal(signedTenantRouteManifest.routeCount, 67);
+  assert.equal(checked.length, 67);
 });

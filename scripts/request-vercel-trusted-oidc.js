@@ -6,6 +6,7 @@ const EXPECTED_ISSUER = 'https://token.actions.githubusercontent.com';
 const EXPECTED_AUDIENCE = 'https://github.com/mosamiryamany-hub';
 const EXPECTED_REPOSITORY = 'mosamiryamany-hub/opscore-platform';
 const EXPECTED_REF = 'refs/heads/main';
+const EXPECTED_EVENTS = new Set(['push', 'workflow_dispatch']);
 const EXPECTED_EVENT = 'push';
 const EXPECTED_ENVIRONMENT = 'production';
 const EXPECTED_WORKFLOW_REF = 'mosamiryamany-hub/opscore-platform/.github/workflows/vercel-deploy.yml@refs/heads/main';
@@ -32,7 +33,7 @@ function validateGithubOidcClaims(claims, nowSeconds = Math.floor(Date.now() / 1
     EXPECTED_SUBJECTS.has(String(claims.sub || '')) &&
     claims.repository === EXPECTED_REPOSITORY &&
     claims.ref === EXPECTED_REF &&
-    claims.event_name === EXPECTED_EVENT &&
+    EXPECTED_EVENTS.has(String(claims.event_name || '')) &&
     claims.environment === EXPECTED_ENVIRONMENT &&
     claims.workflow_ref === EXPECTED_WORKFLOW_REF &&
     Number.isFinite(Number(claims.exp)) && Number(claims.exp) > nowSeconds &&

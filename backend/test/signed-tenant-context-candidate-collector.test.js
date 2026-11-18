@@ -3,6 +3,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
+  CANDIDATE_ROUTE_PROOF_REQUIREMENTS,
+  buildCandidateSignedTenantRouteCoverage,
   candidateOrigin,
   validateCandidateProbeEnvironment,
   validateCandidateRuntimeProofs,
@@ -14,6 +16,15 @@ const {
   recordCandidateRouteObservation,
   queryHttp
 } = require('../scripts/signed-tenant-context-postgres-gate');
+
+const fs = require('node:fs');
+const path = require('node:path');
+const manifestPath = path.join(__dirname, '..', 'docs', 'verification', 'SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST.json');
+const inventoryPath = path.join(__dirname, '..', 'docs', 'API_INVENTORY.json');
+const manifestBytes = fs.readFileSync(manifestPath);
+const inventoryBytes = fs.readFileSync(inventoryPath);
+const signedRouteManifest = JSON.parse(manifestBytes.toString('utf8'));
+const routeInventory = JSON.parse(inventoryBytes.toString('utf8'));
 
 const BASE = {
   OPSC_SIGNED_CONTEXT_CANDIDATE_HTTP_ORIGIN: 'https://opscore-platform-candidate123-mosamiryamany-1692.vercel.app',
@@ -336,7 +347,6 @@ test('remote candidate manifest route requires explicit confirmation that GUC ta
 });
 
 
-
 test('manifest route resolver binds path templates to exact manifest method and operation', () => {
   const read = findSignedTenantManifestRoute('GET', '/api/v1/work-orders/wo_123/timeline');
   assert.deepEqual(read, {
@@ -396,5 +406,4 @@ test('candidate request observations are tenant-labelled, route-bound, and count
     tenantB: { requests: 1, signed: 1, tamperApplied: 1, successful: 1 }
   }]);
   resetCandidateRouteObservations();
-  assert.deepEqual(getCandidateRouteObservations(), []);
-});
+  assert.deepEqual(getCandidateRouteObservations(), []);});
