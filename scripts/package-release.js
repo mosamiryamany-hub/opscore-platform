@@ -215,7 +215,7 @@ const rootAdvisories = Object.entries(rootAudit.vulnerabilities || {}).map(([nam
 const releaseStatement = {
   schemaVersion: 'opscore.commercial-release-statement.v2',
   version,
-  releaseTag: String(process.env.CI_COMMIT_TAG || '').trim() || null,
+  releaseTag: String(process.env.CI_COMMIT_TAG || process.env.OPSC_RELEASE_TAG || '').trim() || null,
   sourceCommit,
   pipelineId,
   pipelineUrl,
