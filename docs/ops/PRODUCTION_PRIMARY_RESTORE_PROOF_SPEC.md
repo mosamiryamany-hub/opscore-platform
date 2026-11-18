@@ -53,9 +53,11 @@ Required check IDs:
 
 The workflow independently rechecks the snapshot's existence and source branch,
 the restore branch's readiness and `restored_from` snapshot identity, and the
-proof's project, database, branch, timestamp and hash bindings. It then runs the
-official migration runner in dry-run mode and requires the exact pending set
-063–067 plus 069 before the first Production write.
+proof's project, database, branch, timestamp and hash bindings. The read-only migration-state verifier then runs the official migration
+runner in dry-run mode, requires no pending migrations, verifies exact
+source-checksum skips for 063–069, and repeats schema/data parity plus
+signed-context catalog checks. It performs zero Production schema writes and
+must never reapply an already recorded migration.
 
 ## Evidence boundary
 
@@ -81,7 +83,9 @@ Before writing the proof, the runner independently requires a ready non-primary
 branch whose Neon metadata reports all of:
 `restored_from == snapshotId`, `restore_status == "restored"`, and
 `restored_as == primaryBranchId`. It then verifies direct database identity,
-schema/table SHA-256 inventories, the exact 62-row migration baseline, the
-absence of migrations 063–067 and 069, 135 public tables, the 134/134 RLS and
-FORCE RLS counts, and the non-superuser/non-BYPASSRLS runtime role. It never
-finalizes the restore or mutates Primary.
+schema/table SHA-256 inventories, the exact source-checksummed migration
+records 063–069, signed-context schema postconditions, all non-extension-owned
+public application tables with both RLS and FORCE RLS (extension-owned objects
+such as PostGIS `spatial_ref_sys` are explicitly excluded), and the
+non-superuser/non-BYPASSRLS runtime role. It never finalizes the restore or
+mutates Primary.
