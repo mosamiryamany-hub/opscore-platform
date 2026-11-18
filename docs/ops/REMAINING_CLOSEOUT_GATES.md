@@ -38,7 +38,7 @@ A successful build proves only the checks that actually ran. Do not infer that a
 | Item | Status / responsibility |
 |---|---|
 | Android/iOS signed store artifacts, physical-device QA, app-store publication | Not evidenced in the source archive; buyer/environment-specific unless separately contracted |
-| Native-speaker review | 0/114 native-reviewed and 0/114 production-qualified; machine-assisted drafts/fallbacks only |
+| Runtime Contact Center locales | 105 selectable locales in the runtime manifest |\n| Native-speaker qualification | Separate 114-row source-language matrix; 0/114 native-reviewed and 0/114 production-qualified; machine-assisted drafts/fallbacks only |
 | Licensed map tiles, routing, provider contracts/keys | Buyer/environment-specific |
 | External identity, messaging, telephony/call-center, payments, webhooks, storage, KMS/HSM and cloud accounts | Buyer/environment-specific |
 | Customer-specific production deploy, migrations, security acceptance and recovery certification | Separate scope and authorization |
