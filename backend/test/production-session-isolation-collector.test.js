@@ -92,3 +92,12 @@ test('candidate session read and cross-tenant denial use the approved signed ass
   assert.match(collector, /checks\.crossTenantAssetReadDenied = listA\.status === 200/);
   assert.doesNotMatch(collector, /\/api\/v1\/assets\/\{id\}\/intelligence/);
 });
+
+
+test('candidate session principal binding is derived only from the approved signed asset list routes', () => {
+  assert.match(collector, /checks\.tenantPrincipalBinding = checks\.tenantListIsolation === 'PASS'/);
+  assert.match(collector, /listA\.data\.some\(row => row\.organization_id === orgA\)/);
+  assert.match(collector, /listB\.data\.some\(row => row\.organization_id === orgB\)/);
+  assert.doesNotMatch(collector, /\/api\/v1\/me/);
+  assert.doesNotMatch(collector, /\/api\/v1\/assets\/\+ encodeURIComponent\(assetAId\) \+ '\/intelligence'/);
+});
