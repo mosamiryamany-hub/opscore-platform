@@ -48,7 +48,7 @@ function main() {
       bytes: fs.statSync(archivePath).size
     },
     version,
-    releaseTag: String(process.env.CI_COMMIT_TAG || '').trim() || null,
+    releaseTag: String(process.env.CI_COMMIT_TAG || process.env.OPSC_RELEASE_TAG || '').trim() || null,
     sourceCommit,
     pipelineId,
     pipelineUrl,
