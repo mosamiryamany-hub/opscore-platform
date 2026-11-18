@@ -5,8 +5,6 @@ const assert = require('node:assert/strict');
 const {
   CANDIDATE_ROUTE_PROOF_REQUIREMENTS,
   buildCandidateSignedTenantRouteCoverage,
-  CANDIDATE_ROUTE_PROOF_REQUIREMENTS,
-  buildCandidateSignedTenantRouteCoverage,
   candidateOrigin,
   validateCandidateProbeEnvironment,
   validateCandidateRuntimeProofs,
