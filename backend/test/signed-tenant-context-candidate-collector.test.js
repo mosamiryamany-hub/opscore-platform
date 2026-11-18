@@ -117,6 +117,19 @@ test('remote candidate HTTP helper refuses requests outside the candidate origin
 });
 
 
+test('candidate mode does not open direct runtime-role Postgres connections for local HMAC replay probes', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const gate = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'signed-tenant-context-postgres-gate.js'), 'utf8');
+  const runtimeClients = [...gate.matchAll(/client[AB] = new Client\\(\\{ connectionString: runtimeUrl \\}\\);/g)];
+  assert.equal(runtimeClients.length, 2);
+  for (const match of runtimeClients) {
+    const start = Math.max(0, match.index - 250);
+    const before = gate.slice(start, match.index);
+    assert.match(before, /if \\(!candidateMode\\) \\{[\\s\\S]*$/);
+  }
+});
+
 test('Production candidate routes tamper raw tenant GUCs only after verified signed context activation', () => {
   const fs = require('node:fs');
   const path = require('node:path');
