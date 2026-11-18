@@ -26,6 +26,30 @@ function requireLocalAcceptanceUrl(value, expectedRole, label) {
   return url;
 }
 
+const SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST = JSON.parse(fs.readFileSync(
+  path.join(__dirname, '..', 'docs', 'verification', 'SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST.json'),
+  'utf8'
+));
+
+function isSignedTenantManifestRoute(method, requestPath) {
+  const normalizedMethod = String(method || '').toUpperCase();
+  const pathname = String(requestPath || '').split('?')[0];
+  return SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST.routes.some(route => {
+    if (String(route.method || '').toUpperCase() !== normalizedMethod) return false;
+    const template = String(route.path || '');
+    const expectedSegments = template.split('/');
+    const actualSegments = pathname.split('/');
+    return expectedSegments.length === actualSegments.length
+      && expectedSegments.every((segment, index) => {
+        if (segment === '{id}') return Boolean(actualSegments[index]);
+        if (segment.startsWith('(') && segment.includes('d+') && segment.endsWith(')')) {
+          return /^[0-9]+$/.test(actualSegments[index]);
+        }
+        return segment === actualSegments[index];
+      });
+  });
+}
+
 function candidateOrigin(value) {
   let url;
   try { url = new URL(String(value || '').trim()); }
@@ -56,6 +80,103 @@ function validateCandidateProbeEnvironment(env = process.env) {
     throw new Error('CANDIDATE_PROBE_RUNTIME_NOT_FAIL_CLOSED');
   }
   return origin;
+}
+
+function validateCandidateRuntimeProofs(deploymentResponse, databaseResponse, env = process.env) {
+  const expectedCommit = String(env.GITHUB_SHA || env.OPSC_RELEASE_CI_COMMIT || '').trim().toLowerCase();
+  const expectedPipelineId = String(env.GITHUB_RUN_ID || env.OPSC_RELEASE_CI_PIPELINE_ID || '').trim();
+  if (!/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(expectedCommit)
+      || !/^[1-9][0-9]{0,14}$/.test(expectedPipelineId)) {
+    throw new Error('CANDIDATE_EXPECTED_COMMIT_OR_PIPELINE_ID_INVALID');
+  }
+
+  const deployment = deploymentResponse && deploymentResponse.body || {};
+  const deploymentId = String(deployment.deployment && deployment.deployment.id || '');
+  if (Number(deploymentResponse && deploymentResponse.status) !== 200
+      || deployment.status !== 'identified'
+      || String(deployment.source && deployment.source.commitSha || '').toLowerCase() !== expectedCommit
+      || String(deployment.source && deployment.source.ref || '') !== 'main'
+      || String(deployment.deployment && deployment.deployment.environment || '') !== 'production'
+      || !/^dpl_[A-Za-z0-9]+$/.test(deploymentId)) {
+    throw new Error('CANDIDATE_DEPLOYMENT_IDENTITY_MISMATCH:' + JSON.stringify({
+      status: deploymentResponse && deploymentResponse.status || null,
+      proofStatus: deployment.status || null,
+      sourceCommit: deployment.source && deployment.source.commitSha || null,
+      sourceRef: deployment.source && deployment.source.ref || null,
+      environment: deployment.deployment && deployment.deployment.environment || null,
+      deploymentId: deploymentId || null
+    }));
+  }
+
+  const diagnostic = databaseResponse && databaseResponse.body || {};
+  const db = diagnostic.database || {};
+  const identity = db.identity || {};
+  const envProof = diagnostic.environment || {};
+  const roles = Array.isArray(db.roles) ? db.roles : [];
+  const runtimeRole = roles.find(role => role && role.role_name === 'opscore_runtime');
+  const expectedDatabaseName = String(env.OPSC_PRODUCTION_DATABASE_NAME || '').trim();
+  if (Number(databaseResponse && databaseResponse.status) !== 200
+      || diagnostic.schemaVersion !== 'opscore.production-runtime-database-diagnostic.v1'
+      || !diagnostic.deployment
+      || diagnostic.deployment.commitSha !== expectedCommit
+      || String(diagnostic.deployment.pipelineId || '') !== expectedPipelineId
+      || diagnostic.deployment.ref !== 'main'
+      || envProof.vercelEnvironment !== 'production'
+      || envProof.nodeEnvironmentProduction !== true
+      || envProof.databaseEnginePostgres !== true
+      || envProof.applicationDatabaseUrlAligned !== true
+      || envProof.migrationDatabaseUrlAbsent !== true
+      || envProof.bootstrapDatabaseUrlAbsent !== true
+      || envProof.productionHoldEffectiveActive !== true
+      || envProof.releaseVerifiedEffective !== false
+      || envProof.releaseProofVerified !== false
+      || db.status !== 'IDENTITY_RESOLVED'
+      || db.identityScope !== 'APPLICATION_DATABASE'
+      || db.applicationDatabaseBinding !== 'PRESENT'
+      || db.connectionSource !== 'OPSC_DATABASE_URL'
+      || Number(db.writeOperations) !== 0
+      || identity.database_name !== expectedDatabaseName
+      || identity.session_user !== 'opscore_runtime'
+      || identity.current_user !== 'opscore_runtime'
+      || String(identity.transaction_read_only || '').toLowerCase() !== 'on'
+      || !runtimeRole
+      || runtimeRole.role_exists !== true
+      || runtimeRole.can_login !== true
+      || runtimeRole.superuser !== false
+      || runtimeRole.bypass_rls !== false
+      || runtimeRole.create_role !== false
+      || runtimeRole.create_db !== false
+      || runtimeRole.elevated_role_membership !== false) {
+    throw new Error('CANDIDATE_RUNTIME_DATABASE_IDENTITY_MISMATCH:' + JSON.stringify({
+      status: databaseResponse && databaseResponse.status || null,
+      schemaVersion: diagnostic.schemaVersion || null,
+      databaseStatus: db.status || null,
+      databaseName: identity.database_name || null,
+      sessionUser: identity.session_user || null,
+      currentUser: identity.current_user || null,
+      holdActive: envProof.productionHoldEffectiveActive === true,
+      releaseVerified: envProof.releaseVerifiedEffective === true,
+      releaseProofVerified: envProof.releaseProofVerified === true,
+      runtimeRole: runtimeRole || null
+    }));
+  }
+
+  return {
+    deploymentId,
+    sourceCommit: expectedCommit,
+    pipelineId: expectedPipelineId,
+    sourceRef: 'main',
+    environment: 'production',
+    databaseName: identity.database_name,
+    sessionUser: identity.session_user,
+    currentUser: identity.current_user,
+    runtimeRole,
+    readOnlyInspection: true,
+    writeOperations: 0,
+    holdActive: true,
+    releaseVerified: false,
+    releaseProofVerified: false
+  };
 }
 
 async function neonApi(pathname, apiKey) {
@@ -141,13 +262,18 @@ async function queryHttp(port, route, token, options = {}) {
       redirect: 'manual',
       signal: AbortSignal.timeout(Number(options.timeoutMs) > 0 ? Number(options.timeoutMs) : 15000)
     });
+    const responseHeaders = Object.fromEntries(response.headers.entries());
+    if (isSignedTenantManifestRoute(method, target.pathname)
+        && String(responseHeaders['x-opscore-candidate-guc-tamper'] || '') !== 'applied') {
+      throw new Error('CANDIDATE_GUC_TAMPER_NOT_CONFIRMED:' + method + ' ' + target.pathname);
+    }
     const responseBody = await response.text();
     if (Buffer.byteLength(responseBody, 'utf8') > 1024 * 1024) {
       throw new Error('CANDIDATE_HTTP_RESPONSE_TOO_LARGE');
     }
     let parsed = null;
     try { parsed = responseBody ? JSON.parse(responseBody) : null; } catch (_) {}
-    return { status: response.status, headers: Object.fromEntries(response.headers.entries()), body: parsed };
+    return { status: response.status, headers: responseHeaders, body: parsed };
   }
 
   return new Promise((resolve, reject) => {
@@ -271,6 +397,11 @@ async function main() {
   let evidenceRoot = null;
   let evidenceRollbackTriggerInstalled = false;
   const signedSessionAutobindHttpProof = {};
+  let candidateRuntimeIdentity = null;
+  let ownerConnected = false;
+  let candidateProofReport = null;
+  let finalCleanupStatus = 'NOT_VERIFIED';
+  let finalCleanupResidue = null;
 
   const keyId = (candidateMode ? 'probe-' : 'ci-') + crypto.randomUUID();
   const key = candidateMode ? null : crypto.randomBytes(32);
@@ -325,6 +456,7 @@ async function main() {
 
   try {
     await owner.connect();
+    ownerConnected = true;
     if (runtimeProbe) await runtimeProbe.connect();
 
     const ownerIdentity = await owner.query('SELECT current_user AS role_name, current_database() AS database_name');
@@ -468,6 +600,16 @@ async function main() {
     let port;
     if (candidateMode) {
       port = remoteHttpOrigin;
+
+      const deploymentResponse = await queryHttp(port, '/api/verify/deployment', 'candidate-runtime-identity-probe');
+      const databaseResponse = await queryHttp(
+        port, '/api/internal/production-database-identity', 'candidate-runtime-database-identity-probe'
+      );
+      candidateRuntimeIdentity = validateCandidateRuntimeProofs(
+        deploymentResponse,
+        databaseResponse,
+        process.env
+      );
     } else {
       port = await choosePort();
       evidenceRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-signed-evidence-root-'));
@@ -2227,19 +2369,21 @@ async function main() {
     signedSessionAutobindHttpProof.customDomainResolutionTenantB = 'PASS';
     signedSessionAutobindHttpProof.noAuthModeDowngrade = 'PASS';
 
-    const httpA = await queryHttp(port, '/api/v1/_internal/tenant-context-proof', tokenA);
-    const httpB = await queryHttp(port, '/api/v1/_internal/tenant-context-proof', tokenB);
-    for (const [label, response] of [['tenantA', httpA], ['tenantB', httpB]]) {
-      if (response.status !== 200 || response.body?.status !== 'PASS'
-          || response.body?.signedContextBoundToBackendAndTransaction !== true
-          || response.body?.rawGucTamperingIgnored !== true
-          || response.body?.visibleProbeRows !== 1) {
-        throw new Error('SIGNED_CONTEXT_HTTP_TENANT_PROOF_FAILED:' + JSON.stringify({
-          label,
-          status: response.status,
-          body: response.body,
-          serverOutput: serverOutput.slice(-2000)
-        }));
+    if (!candidateMode) {
+      const httpA = await queryHttp(port, '/api/v1/_internal/tenant-context-proof', tokenA);
+      const httpB = await queryHttp(port, '/api/v1/_internal/tenant-context-proof', tokenB);
+      for (const [label, response] of [['tenantA', httpA], ['tenantB', httpB]]) {
+        if (response.status !== 200 || response.body?.status !== 'PASS'
+            || response.body?.signedContextBoundToBackendAndTransaction !== true
+            || response.body?.rawGucTamperingIgnored !== true
+            || response.body?.visibleProbeRows !== 1) {
+          throw new Error('SIGNED_CONTEXT_HTTP_TENANT_PROOF_FAILED:' + JSON.stringify({
+            label,
+            status: response.status,
+            body: response.body,
+            serverOutput: serverOutput.slice(-2000)
+          }));
+        }
       }
     }
 
@@ -3541,12 +3685,12 @@ async function main() {
     signedSessionAutobindHttpProof.faultUnreachableTenantB = 'PASS';
 
 
-    clientA = new Client({ connectionString: runtimeUrl });
-    clientB = new Client({ connectionString: runtimeUrl });
-    await clientA.connect();
-    await clientB.connect();
-
     if (!candidateMode) {
+      clientA = new Client({ connectionString: runtimeUrl });
+      clientB = new Client({ connectionString: runtimeUrl });
+      await clientA.connect();
+      await clientB.connect();
+
       // Without an assertion, raw GUCs alone must expose no rows.
       await clientA.query('BEGIN READ ONLY');
       await tamperRawGucs(clientA, tenantA);
@@ -3623,7 +3767,7 @@ async function main() {
   
     }
 
-    process.stdout.write(JSON.stringify({
+    candidateProofReport = {
       schemaVersion: 'opscore.signed-tenant-context-ci-proof.v1',
       status: 'PASS',
       checks: {
@@ -3638,21 +3782,28 @@ async function main() {
         signedWorkOrderSubresourceReads: signedReadRouteProof,
         signedWorkOrderWrites: signedWriteRouteProof,
         signedEvidenceWrites: signedEvidenceRouteProof,
-        workOrdersRawGucTamperingIgnored: 'PASS',
-        readOnlyBoundTransaction: 'PASS',
-        rawGucTampering: 'PASS',
-        unsignedGucDenied: 'PASS',
-        invalidSignatureDenied: 'PASS',
-        sameBackendNextTransactionReplayDenied: 'PASS',
-        differentBackendReplayDenied: 'PASS'
+        workOrdersRawGucTamperingIgnored: candidateMode ? 'PASS_CANDIDATE_HTTP_ROUTE_PROBES' : 'PASS',
+        readOnlyBoundTransaction: candidateMode ? 'NOT_VERIFIED_DIRECT_RUNTIME_REPLAY_SKIPPED' : 'PASS',
+        rawGucTampering: candidateMode ? 'PASS_CANDIDATE_HTTP_ROUTE_PROBES' : 'PASS',
+        unsignedGucDenied: candidateMode ? 'NOT_VERIFIED_DIRECT_RUNTIME_REPLAY_SKIPPED' : 'PASS',
+        invalidSignatureDenied: candidateMode ? 'NOT_VERIFIED_DIRECT_RUNTIME_REPLAY_SKIPPED' : 'PASS',
+        sameBackendNextTransactionReplayDenied: candidateMode ? 'NOT_VERIFIED_DIRECT_RUNTIME_REPLAY_SKIPPED' : 'PASS',
+        differentBackendReplayDenied: candidateMode ? 'NOT_VERIFIED_DIRECT_RUNTIME_REPLAY_SKIPPED' : 'PASS'
       },
-      environment: {
+      environment: candidateMode ? {
+        database: candidateRuntimeIdentity && candidateRuntimeIdentity.databaseName || null,
+        ownerRole: 'neondb_owner',
+        runtimeRole: candidateRuntimeIdentity && candidateRuntimeIdentity.currentUser || null,
+        runtimeBypassesRls: candidateRuntimeIdentity && candidateRuntimeIdentity.runtimeRole
+          ? candidateRuntimeIdentity.runtimeRole.bypass_rls
+          : null
+      } : {
         database: 'opscore_http_acceptance',
         ownerRole: 'neondb_owner',
         runtimeRole: 'opscore_runtime',
         runtimeBypassesRls: false
       }
-    }) + '\\n');
+    };
   } finally {
     if (evidenceRollbackTriggerInstalled) {
       try { await owner.query('DROP TRIGGER IF EXISTS ci_reject_signed_evidence_rollback ON public.idempotency_records'); }
@@ -4099,13 +4250,111 @@ async function main() {
       try { await owner.query('DELETE FROM opscore_security.context_hmac_keys WHERE key_id=$1', [synthetic.keyId]); } catch (_) {}
       try { await owner.query('DROP TABLE IF EXISTS opscore_security.context_probe_rows'); } catch (_) {}
     }
-    try { await owner.end(); } catch (_) {}
+    if (ownerConnected) {
+      try {
+        const residue = await owner.query(
+          "SELECT " +
+          "(SELECT COUNT(*)::int FROM public.organizations WHERE id = ANY($1::text[])) AS organizations, " +
+          "(SELECT COUNT(*)::int FROM public.users WHERE id = ANY($2::text[])) AS users, " +
+          "(SELECT COUNT(*)::int FROM public.sessions WHERE id = ANY($3::text[])) AS sessions, " +
+          "(SELECT COUNT(*)::int FROM public.memberships WHERE user_id = ANY($2::text[])) AS memberships, " +
+          "(SELECT COUNT(*)::int FROM public.organization_governance WHERE organization_id = ANY($1::text[])) AS governance, " +
+          "(SELECT COUNT(*)::int FROM public.work_orders WHERE id = ANY($4::text[])) AS work_orders, " +
+          "(SELECT COUNT(*)::int FROM public.customers WHERE id = ANY($5::text[])) AS customers, " +
+          "(SELECT COUNT(*)::int FROM public.sites WHERE id = ANY($6::text[])) AS sites, " +
+          "(SELECT COUNT(*)::int FROM public.assets WHERE id = ANY($7::text[])) AS assets, " +
+          "(SELECT COUNT(*)::int FROM public.asset_events WHERE organization_id = ANY($1::text[]) AND asset_id = ANY($7::text[])) AS asset_events, " +
+          "(SELECT COUNT(*)::int FROM public.service_lines WHERE id = ANY($8::text[])) AS service_lines, " +
+          "(SELECT COUNT(*)::int FROM public.customer_service_lines WHERE organization_id = ANY($1::text[]) AND (customer_id = ANY($5::text[]) OR line_id = ANY($8::text[]))) AS service_assignments, " +
+          "(SELECT COUNT(*)::int FROM public.appointments WHERE id = ANY($9::text[])) AS appointments, " +
+          "(SELECT COUNT(*)::int FROM public.geofences WHERE id = ANY($10::text[])) AS geofences, " +
+          "(SELECT COUNT(*)::int FROM public.technician_geofences WHERE organization_id = ANY($1::text[]) AND geofence_id = ANY($10::text[])) AS technician_geofences, " +
+          "(SELECT COUNT(*)::int FROM public.technician_profiles WHERE organization_id = ANY($1::text[]) AND user_id = ANY($2::text[])) AS technician_profiles, " +
+          "(SELECT COUNT(*)::int FROM public.technician_skills WHERE organization_id = ANY($1::text[]) AND user_id = ANY($2::text[])) AS technician_skills, " +
+          "(SELECT COUNT(*)::int FROM public.technician_location_trail WHERE organization_id = ANY($1::text[]) AND (technician_id = ANY($2::text[]) OR client_event_id = ANY($11::text[]))) AS location_points, " +
+          "(SELECT COUNT(*)::int FROM public.dynamic_geofence_events WHERE id = ANY($12::text[]) OR (organization_id = ANY($1::text[]) AND source_event_id = ANY($13::text[]))) AS dynamic_geofence_events, " +
+          "(SELECT COUNT(*)::int FROM public.operational_jobs WHERE organization_id = ANY($1::text[]) AND ((entity_type='appointment' AND entity_id = ANY($9::text[])) OR (entity_type='work_order' AND entity_id = ANY($4::text[])))) AS operational_jobs, " +
+          "(SELECT COUNT(*)::int FROM public.operational_configs WHERE organization_id = ANY($1::text[]) AND config_key = ANY($14::text[])) AS operational_configs, " +
+          "(SELECT COUNT(*)::int FROM public.evidence_uploads WHERE id = ANY($15::text[]) OR organization_id = ANY($1::text[])) AS evidence_uploads, " +
+          "(SELECT COUNT(*)::int FROM public.evidence_upload_chunks WHERE upload_id = ANY($15::text[])) AS evidence_upload_chunks, " +
+          "(SELECT COUNT(*)::int FROM public.attachments WHERE id = ANY($16::text[]) OR organization_id = ANY($1::text[])) AS attachments, " +
+          "(SELECT COUNT(*)::int FROM public.comments WHERE organization_id = ANY($1::text[]) AND work_order_id = ANY($4::text[])) AS comments, " +
+          "(SELECT COUNT(*)::int FROM public.work_order_sla WHERE organization_id = ANY($1::text[]) AND work_order_id = ANY($4::text[])) AS work_order_sla, " +
+          "(SELECT COUNT(*)::int FROM public.work_order_bulk_jobs WHERE organization_id = ANY($1::text[]) AND id = ANY($17::text[])) AS work_order_bulk_jobs, " +
+          "(SELECT COUNT(*)::int FROM public.deleted_records WHERE organization_id = ANY($1::text[]) AND entity_type='work_order' AND entity_id = ANY($4::text[])) AS deleted_records, " +
+          "(SELECT COUNT(*)::int FROM public.workflow_transition_log WHERE organization_id = ANY($1::text[]) AND entity_id = ANY($4::text[])) AS workflow_transitions, " +
+          "(SELECT COUNT(*)::int FROM public.idempotency_records WHERE organization_id = ANY($1::text[]) AND idempotency_key = ANY($18::text[])) AS idempotency_records, " +
+          "(SELECT COUNT(*)::int FROM public.operation_envelopes WHERE organization_id = ANY($1::text[]) AND idempotency_key = ANY($18::text[])) AS operation_envelopes, " +
+          "(SELECT COUNT(*)::int FROM public.activity_log WHERE organization_id = ANY($1::text[])) AS activity_log, " +
+          "(SELECT COUNT(*)::int FROM public.audit_log WHERE organization_id = ANY($1::text[])) AS audit_log",
+          [
+            synthetic.tenantIds, synthetic.userIds, synthetic.sessionIds, synthetic.workOrderIds,
+            synthetic.customerIds, synthetic.siteIds, synthetic.assetIds, synthetic.serviceLineIds,
+            synthetic.appointmentIds, synthetic.geofenceIds, synthetic.trailClientEventIds,
+            synthetic.dynamicGeofenceIds, synthetic.dynamicGeofenceSourceEventIds,
+            synthetic.operationalConfigKeys, synthetic.evidenceUploadIds, synthetic.attachmentIds,
+            synthetic.bulkJobIds, synthetic.idempotencyKeys
+          ]
+        );
+        finalCleanupResidue = residue.rows[0] || {};
+        const nonzero = Object.fromEntries(Object.entries(finalCleanupResidue)
+          .filter(([, value]) => Number(value) !== 0));
+        if (Object.keys(nonzero).length) {
+          finalCleanupStatus = 'FAIL';
+          process.exitCode = 1;
+          process.stderr.write('SIGNED_CONTEXT_FINAL_FIXTURE_RESIDUE:' + JSON.stringify(nonzero) + '\\n');
+        } else {
+          finalCleanupStatus = 'PASS';
+          process.stdout.write('SIGNED_CONTEXT_FINAL_FIXTURE_RESIDUE=ZERO\\n');
+        }
+      } catch (cleanupError) {
+        finalCleanupStatus = 'FAIL';
+        process.exitCode = 1;
+        process.stderr.write('SIGNED_CONTEXT_FINAL_RESIDUE_CHECK_FAILED:' +
+          String(cleanupError.code || cleanupError.message || cleanupError).slice(0, 500) + '\\n');
+      }
+    } else {
+      finalCleanupStatus = 'NOT_VERIFIED';
+      process.exitCode = 1;
+    }
+
+    try { await owner.end(); } catch (cleanupError) {
+      finalCleanupStatus = 'FAIL';
+      process.exitCode = 1;
+      process.stderr.write('SIGNED_CONTEXT_OWNER_CONNECTION_CLOSE_FAILED:' + String(cleanupError.code || cleanupError.message || cleanupError).slice(0, 300) + '\\n');
+    }
     if (runtimeProbe) { try { await runtimeProbe.end(); } catch (_) {} }
     if (!candidateMode) {
       if (priorSigningKey === undefined) delete process.env.OPSC_TENANT_CONTEXT_HMAC_KEY;
       else process.env.OPSC_TENANT_CONTEXT_HMAC_KEY = priorSigningKey;
       if (priorSigningKeyId === undefined) delete process.env.OPSC_TENANT_CONTEXT_KEY_ID;
       else process.env.OPSC_TENANT_CONTEXT_KEY_ID = priorSigningKeyId;
+    }
+
+    if (!candidateProofReport || process.exitCode === 1 || finalCleanupStatus !== 'PASS') {
+      process.exitCode = 1;
+    } else {
+      const finalReport = {
+        ...candidateProofReport,
+        cleanup: {
+          status: finalCleanupStatus,
+          residue: finalCleanupResidue
+        },
+        candidateRuntimeIdentity
+      };
+      if (candidateMode) {
+        const workspace = String(process.env.GITHUB_WORKSPACE || '').trim();
+        if (!workspace) {
+          process.exitCode = 1;
+          process.stderr.write('CANDIDATE_RESULT_WORKSPACE_REQUIRED\\n');
+        } else {
+          const resultPath = path.join(workspace, 'SIGNED_TENANT_CONTEXT_CANDIDATE_RESULT.json');
+          fs.writeFileSync(resultPath, JSON.stringify(finalReport, null, 2) + '\\n', { flag: 'w', mode: 0o600 });
+          process.stdout.write(JSON.stringify({ status: 'PASS', resultPath: path.basename(resultPath), cleanup: finalCleanupStatus }) + '\\n');
+        }
+      } else {
+        process.stdout.write(JSON.stringify(finalReport) + '\\n');
+      }
     }
   }
 }
@@ -4119,9 +4368,11 @@ if (require.main === module) {
 
 module.exports = {
   candidateOrigin,
+  isSignedTenantManifestRoute,
   validateCandidateProbeEnvironment,
   requireLocalAcceptanceUrl,
   queryHttp,
   candidateDatabaseUrl,
+  validateCandidateRuntimeProofs,
   main
 };

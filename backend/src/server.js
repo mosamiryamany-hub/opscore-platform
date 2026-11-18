@@ -14,6 +14,7 @@ const {
   signedWorkOrdersWriteEnabled,
   signedAssetsReadEnabled,
   signedSessionAutobindEnabled,
+  isCandidateProbeAuthorized,
   signedTenantContextRouteError,
   signedContextRequested: isSignedContextRequested
 } = require('./signed-tenant-context-policy');
@@ -1004,7 +1005,16 @@ function auditSafeAi(store,c,workOrderId,out){
     throw new Error('AI_AUDIT_EVIDENCE_REQUIRED');
   }
 }
-function runSignedWorkOrdersRead(res, c, reader, responseHeaders = {}) {
+function applyCandidateProbeTenantGucTampering(req, res) {
+  if (!isCandidateProbeAuthorized(req, process.env, signedContextProductionReadiness)) return false;
+  store.db.prepare(
+    "SELECT set_config('app.tenant_id', ?, true), set_config('app.user_id', ?, true), set_config('app.access_mode', ?, true)"
+  ).run('candidate-probe-forged-tenant', 'candidate-probe-forged-user', 'backoffice');
+  res.setHeader('x-opscore-candidate-guc-tamper', 'applied');
+  return true;
+}
+
+function runSignedWorkOrdersRead(req, res, c, reader, responseHeaders = {}) {
   if (c.apiKeyId || !c.sessionId || !store.db || store.db.engine !== 'postgres'
       || typeof store.db.activateVerifiedTenantContext !== 'function') {
     return json(res, 401, { error: { code: 'SIGNED_TENANT_SESSION_REQUIRED' } }, { 'cache-control': 'no-store' });
@@ -1014,6 +1024,9 @@ function runSignedWorkOrdersRead(res, c, reader, responseHeaders = {}) {
     store.db.exec('BEGIN READ ONLY');
     transactionOpen = true;
     store.db.activateVerifiedTenantContext();
+
+    // Candidate-only GUC tamper executes only after verified context activation.
+    applyCandidateProbeTenantGucTampering(req, res);
 
     // CI-only red-team probe: signed RLS accessors must ignore these raw GUC values.
     if (process.env.CI === 'true'
@@ -1044,9 +1057,9 @@ function runSignedWorkOrdersRead(res, c, reader, responseHeaders = {}) {
 }
 function sendWorkOrderRead(req, res, c, reader, responseHeaders = {}) {
   if (!signedWorkOrdersReadEnabled(req, process.env, signedContextProductionReadiness)) return json(res, 200, reader(), responseHeaders);
-  return runSignedWorkOrdersRead(res, c, reader, responseHeaders);
+  return runSignedWorkOrdersRead(req, res, c, reader, responseHeaders);
 }
-function runSignedWorkOrderWrite(res, c, writer, responder) {
+function runSignedWorkOrderWrite(req, res, c, writer, responder) {
   if (c.apiKeyId || !c.sessionId || !store.db || store.db.engine !== 'postgres'
       || typeof store.db.activateVerifiedTenantContext !== 'function'
       || typeof store.withCallerManagedTransaction !== 'function') {
@@ -1077,6 +1090,9 @@ function runSignedWorkOrderWrite(res, c, writer, responder) {
     store.db.exec('BEGIN');
     transactionOpen = true;
     store.db.activateVerifiedTenantContext();
+
+    // Candidate-only GUC tamper executes only after verified context activation.
+    applyCandidateProbeTenantGucTampering(req, res);
 
     // CI-only red-team probe: tenant writes must use signed claims, not caller-settable GUCs.
     if (process.env.CI === 'true'
@@ -1244,7 +1260,7 @@ function safeDatabaseErrorCode(error) {
 }
 function runSignedRouteWrite(req, res, c, writer, responder) {
   if (!signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) return responder(writer(), {});
-  return runSignedWorkOrderWrite(res, c, writer, responder);
+  return runSignedWorkOrderWrite(req, res, c, writer, responder);
 }
 
 function route(req, res) {
@@ -2106,7 +2122,7 @@ function route(req, res) {
         reason: b.reason
       }, () => store.transitionWorkOrder(c, wtrans[1], b.toStatus, b.reason));
       if (!signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) return idemJson(res, write(), 200);
-      return runSignedWorkOrderWrite(res, c, write, (record, headers) => idemJson(res, record, 200, headers));
+      return runSignedWorkOrderWrite(req, res, c, write, (record, headers) => idemJson(res, record, 200, headers));
     }).catch(e => fail(res, e));
   }
   if (req.method === 'GET' && url.pathname === '/api/v1/escalations')
@@ -2703,7 +2719,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
       assets: 'asset'
     }[del[1]];
     if (del[1] === 'work-orders' && signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) {
-      return runSignedWorkOrderWrite(res, c,
+      return runSignedWorkOrderWrite(req, res, c,
         () => store.softDelete(c, 'work_order', del[2]),
         (result, headers) => json(res, 200, result, headers));
     }
@@ -2723,7 +2739,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
       assets: 'asset'
     }[rest[1]];
     if (rest[1] === 'work-orders' && signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) {
-      return runSignedWorkOrderWrite(res, c,
+      return runSignedWorkOrderWrite(req, res, c,
         () => store.restore(c, 'work_order', rest[2]),
         (result, headers) => json(res, 200, result, headers));
     }
@@ -2953,7 +2969,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
       const k = req.headers['idempotency-key'] || req.headers['x-idempotency-key'];
       const write = () => store.idempotentWrite(c, 'work_orders_bulk', k, b, () => store.bulkWorkOrders(c, b));
       if (!signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) return json(res, 200, write().payload);
-      return runSignedWorkOrderWrite(res, c, write, (record, headers) => json(res, 200, record.payload, headers));
+      return runSignedWorkOrderWrite(req, res, c, write, (record, headers) => json(res, 200, record.payload, headers));
     }).catch(e => fail(res, e));
   }
   if (req.method === 'POST' && url.pathname === '/api/v1/work-orders') {
@@ -2965,7 +2981,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
     return body(req).then(b => {
       const write = () => store.createWorkOrder(c, b);
       if (!signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) return json(res, 201, write());
-      return runSignedWorkOrderWrite(res, c, write, (result, headers) => json(res, 201, result, headers));
+      return runSignedWorkOrderWrite(req, res, c, write, (result, headers) => json(res, 201, result, headers));
     }).catch(e => fail(res, e));
   }
   const wcp = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/completion-package$/);
@@ -2999,7 +3015,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
         body: b
       }, () => store.updateWorkOrder(c, wm[1], b));
       if (!signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) return idemJson(res, write(), 200);
-      return runSignedWorkOrderWrite(res, c, write, (record, headers) => idemJson(res, record, 200, headers));
+      return runSignedWorkOrderWrite(req, res, c, write, (record, headers) => idemJson(res, record, 200, headers));
     }).catch(e => fail(res, e));
   }
   const wr = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/operational-risk$/);
@@ -3020,7 +3036,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
         body: b.body
       }, () => store.addComment(c, cm[1], b.body));
       if (!signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) return idemJson(res, write(), 201);
-      return runSignedWorkOrderWrite(res, c, write, (record, headers) => idemJson(res, record, 201, headers));
+      return runSignedWorkOrderWrite(req, res, c, write, (record, headers) => idemJson(res, record, 201, headers));
     }).catch(e => fail(res, e));
   }
   const eu = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/evidence-uploads$/);
@@ -3039,7 +3055,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
         ...b
       }));
       if (!signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) return idemJson(res, write(), 201);
-      return runSignedWorkOrderWrite(res, c, write, (record, headers) => idemJson(res, record, 201, headers));
+      return runSignedWorkOrderWrite(req, res, c, write, (record, headers) => idemJson(res, record, 201, headers));
     }).catch(e => fail(res, e));
   }
   const ec = url.pathname.match(/^\/api\/v1\/evidence-uploads\/([^/]+)\/chunks\/(\d+)$/);
@@ -3052,7 +3068,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
     return body(req, 800000).then(b => {
       const write = () => store.putEvidenceChunk(c, ec[1], ec[2], b.contentBase64);
       if (!signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) return json(res, 200, write());
-      return runSignedWorkOrderWrite(res, c, write, (result, headers) => json(res, 200, result, headers));
+      return runSignedWorkOrderWrite(req, res, c, write, (result, headers) => json(res, 200, result, headers));
     }).catch(e => fail(res, e));
   }
   const ex = url.pathname.match(/^\/api\/v1\/evidence-uploads\/([^/]+)\/complete$/);
@@ -3064,7 +3080,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
     }
     const write = () => store.completeEvidenceUpload(c, ex[1]);
     if (!signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) return json(res, 201, write());
-    return runSignedWorkOrderWrite(res, c, write, (result, headers) => json(res, 201, result, headers));
+    return runSignedWorkOrderWrite(req, res, c, write, (result, headers) => json(res, 201, result, headers));
   }
   const am = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/attachments$/);
   if (am && req.method === 'GET')
@@ -3086,12 +3102,12 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
         ...b
       }));
       if (!signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) return idemJson(res, write(), 201);
-      return runSignedWorkOrderWrite(res, c, write, (record, headers) => idemJson(res, record, 201, headers));
+      return runSignedWorkOrderWrite(req, res, c, write, (record, headers) => idemJson(res, record, 201, headers));
     }).catch(e => fail(res, e));
   }
   if (req.method === 'GET' && url.pathname === '/api/v1/assets') {
     if (signedAssetsReadEnabled(req, process.env, signedContextProductionReadiness)) {
-      return runSignedWorkOrdersRead(res, c, () => store.listAssets(c));
+      return runSignedWorkOrdersRead(req, res, c, () => store.listAssets(c));
     }
     return json(res, 200, store.listAssets(c));
   }
