@@ -1,24 +1,43 @@
-# Buyer residuals (explicit — not seller-certified)
+# Buyer and seller residuals — reconciled 2026-11-18
 
-These items are **out of seller certification** for the current commercial close. Include or exclude them explicitly in each signed License Schedule. A future buyer-specific License Schedule is a transaction document, not a seller-side release or marketing residual; it is prepared only after a prospective buyer is identified and must be executed before that buyer receives licensed rights or delivery.
+These residuals distinguish what belongs to the seller's source release, what belongs to a buyer deployment, and what belongs only to the seller-hosted Production service. A transaction-specific License Schedule is prepared for a named buyer only when a sale proceeds and must be signed before granting rights or delivering the licensed package. Buyer identification/signature is not a prerequisite to seller engineering, offer publication, demonstration or negotiation.
+
+## Seller-owned source-release and governance residuals
+
+| Residual | Status | Evidence / boundary |
+|---|---|---|
+| Exact-head release archive | REMAINING_SELLER | Current main is 27d41476a115d81ddd3ad1b4f03025142a7e5be6. No current-main Secure Release ZIP, external release statement or matching digest was produced in this closeout round. Historical artifacts must not be reused. |
+| Picomatch security advisory | OPEN / TEMPORARY GATE EXCEPTION | GHSA-fc5q-39xc-vjpf remains unresolved for picomatch through 4.0.7. Main's audit gate allows the recorded entry only through 2026-12-18; CI PASS under that entry is not a fixed dependency or a signed risk acceptance. PR #230 is Draft/HOLD and must not merge as a fix. |
+| Seller-side residual risk approval | NOT EVIDENCED | The allowlist has a written rationale and expiry but does not itself identify/sign an authorized risk owner. Obtain and retain the seller's authorized decision before commercial risk acceptance is claimed. |
+| Current Production restore proof and capacity | REMAINING_SELLER / HOSTED OPS | Read-only inventory shows 6 active branches (6/10 included), 3 root branches and all six branch records unprotected. The project has one listed manual snapshot (snap-holy-salad-bcvyvzv9), the automatic schedule is empty, and a new snapshot request was rejected. That snapshot predates migrations 063–067 and 069; its restore branch has valid provenance for that earlier generation, but it is not schema-identical to the later Primary. A new current-generation snapshot is required for parity proof. Do not delete the retained snapshot. |
+
+## Buyer-owned deployment residuals
 
 | Residual | Status | Notes |
 |---|---|---|
-| Mobile dependency advisory / audit | REMAINING_SELLER — CURRENT SOURCE RELEASE BLOCKER | PR #222 candidate head `bd6d7ee56a0f3b7db3cf09cefefe11fd46ba76e3`: OpsCore CI run 44167795172 reports 26 High (0 Critical) in the required mobile `npm audit --omit=dev --audit-level=high` step; `npm ci` prints a separate 25-High install summary. Vercel contract run 44167795351 also reports 26 High. Both trace the same GHSA-fc5q-39xc-vjpf / CVE-2026-112366 advisory through transitive picomatch 4.0.7/2.3.2 paths. Backend runtime dependency audit: 0 findings. No upstream fix, accepted independent reachability review or waiver is recorded. The seller must resolve or formally assess this before issuing a qualified source release; do not reassign this blocker to a buyer.
-| Mobile app store signing / publication | REMAINING_BUYER | Android/iOS store artifacts, EAS keys, physical-device acceptance and store submission are unverified. The current preflight reports signed Android and iOS binaries as UNVERIFIED. |
-| Native-speaker translation review | REMAINING_BUYER | Current runtime manifest has 105 selectable Contact Center locales: 1 English source, 100 machine-assisted drafts and 4 explicit English-fallback locales. Nine flagged locales (ms, sw, hy, uz, my, ml, es, sr, te) are withdrawn from runtime selection pending remediation and native review. The separate qualification matrix has 114 source rows, all `planned_not_qualified`; native-speaker review completed: 0/114; runtime production-qualified: 0/105. Keep the machine-translation notice visible for all non-reviewed locales. |
-| Licensed street maps / routing | REMAINING_BUYER | External map provider account, API keys, billing, and territorial license remain unverified. |
-| Vercel commercial hosting entitlement and domain | SELLER-HOSTED SAAS ONLY — NOT A SOURCE-CODE SALE GATE | The seller's Vercel Hobby project is not to be used for commercial hosted SaaS traffic. This does not block a source-code package: the buyer provisions its own appropriately licensed hosting account and domain, unless a seller-hosted service is separately negotiated and enabled.
-| Vercel firewall enforcement posture | REMAINING_OPS | Firewall is enabled. Active CRS Generic/RCE/SQLi/XSS and Bot Protection are in `log` mode; IP rules are empty. One login/mobile-login POST rate-limit rule is active at 60/IP/60s. Active-attack query returned no anomalies for the default last-24h window only. Do not switch to `deny` without longer baseline, false-positive review and Preview rehearsal. |
-| Neon recovery capacity and scheduled backups | SELLER-HOSTED SAAS / PRODUCTION OPS ONLY — NOT A SOURCE-CODE SALE GATE | Live project check on 2026-11-17: plan `free_v3`, 2 active branches — Production Primary `br-proud-salad-bcshhdap` and non-finalizing restore-proof branch `br-quiet-poetry-bc3uo0u3`. Both are currently unprotected. The retained manual snapshot `snap-floral-sea-bcug7fd3` was restored through Neon’s dedicated non-finalizing Restore Snapshot API with restore provenance confirmed; the canonical schema and row-content inventory matched across all 135 public tables at proof time. A fresh Primary snapshot request returned `snapshots limit exceeded`, and the automatic Primary snapshot schedule is empty. This blocks the seller-hosted Production maintenance/migration window, not a source-code sale; do not claim Production backup/PITR guarantees or delete the retained snapshot to free capacity.
-| Signed tenant context Production activation | SELLER-HOSTED PRODUCTION ONLY — NOT A SOURCE-CODE SALE GATE | The Production activation path remains fail-closed pending a live 67-route collector/evidence writer, bootstrap resolution, Production key setup and exact deployment proof. Do not enable signed Production routes or claim certification from source/CI tests.
-| Production 67-route signed-session HTTP matrix | SELLER-HOSTED PRODUCTION ONLY — NOT ESTABLISHED | CI's isolated route matrix is not the live Production 67-route session/tenant/backend-PID/transaction-bound evidence required for hosted Production certification.
-| Production recovery/rollback proof | SELLER-HOSTED PRODUCTION ONLY — PARTIAL / NOT GO FOR MAINTENANCE | A non-finalizing restore test is recorded, but the fresh pre-window snapshot and Production recovery/RPO/RTO evidence remain incomplete. This is not a source-code sale gate.
-| Buyer-environment isolation certification | NOT_ESTABLISHED | Seller-reference CERTIFIED does not transfer. Each buyer environment needs exact-deployment and exact-database evidence. |
-| Dual-tenant Preview HTTP for `/api/v1/assets` under SSO | REMAINING_OPS | Requires an approved protection-bypass or authentication-policy path; do not weaken protections by default. |
+| Mobile signing and publication | REMAINING_BUYER | No signed APK/AAB/IPA, EAS signing key, physical-device acceptance or App Store/Play Store approval is included. Buyer owns its accounts, signing, native builds, device QA and submissions. |
+| Native translation review | REMAINING_BUYER | Runtime manifest has 105 selectable Contact Center locales: 1 English source, 100 machine-assisted drafts and 4 English-fallback locales. The qualification matrix has 114 source rows; nine flagged locales remain withdrawn. Native-speaker review is 0/114; production qualification is 0/105. Preserve visible machine-translation notice. |
+| Licensed maps and routing | REMAINING_BUYER | Buyer obtains map provider account, API credentials, usage billing and territorial commercial license. |
+| External service/provider setup | REMAINING_BUYER | Buyer provisions and live-tests identity/OIDC/JWKS, email/SMS/WhatsApp/carrier, telephony/contact-center, payment/webhooks, object storage, KMS/HSM, cloud and other selected providers. |
+| Buyer environment certification | NOT_ESTABLISHED | Seller-reference CI results do not transfer. Isolation, security, recovery and acceptance must be proven on the buyer's exact deployment and database. |
 
-## Official product stance on languages
+## Seller-hosted SaaS / Production operations — separate from source-code sale
 
-- The main web shell provides an **All languages** control (`#interfaceLanguageSelect`) filled from the package-owned catalogue.
-- Every non–native-reviewed locale must keep the **machine-translation notice** visible (`data-i18n-machine-notice`).
-- Do not market “114 languages certified” or “human-translated product” without native review evidence.
+| Residual | Status | Notes |
+|---|---|---|
+| Neon recovery capacity | REMAINING_HOSTED_OPS | Current Neon project is Free, 6-hour history retention, 1 GiB branch logical-size limit, automatic snapshot schedule empty and only one manual snapshot. No PITR/RPO/RTO guarantee is established. |
+| Production migrations | PARTIALLY EXECUTED / POST-FIX ATTESTATION MISSING | Production opscore_acceptance ledger has 68 rows; migrations 063–067 and 069 are present. Historical workflow 44189975492 failed in a post-apply check because the runner queried the intentionally absent opscore_app role. PR #234 corrected the postcondition code and passed isolated PostgreSQL CI. No post-fix Production verification run has been completed. Do not reapply migrations already present. |
+| Production signed tenant context | NOT ACTIVATED | opscore_security.context_hmac_keys currently contains 0 keys. Runtime role cannot read the key table; the restricted definer can. This does not establish that a Production signing key has been provisioned or activated. |
+| Production 67-route signed-session matrix | NOT_ESTABLISHED | Isolated PostgreSQL CI acceptance is not the live Production HTTP session/tenant/backend-PID/transaction-bound evidence matrix. |
+| Vercel commercial hosting | NOT_ENABLED | Vercel project reports live=false, no custom domains and latest deployment target null. Source-code handoff is not a seller-hosted SaaS subscription. |
+| Vercel firewall enforcement posture | NOT_CERTIFIED | Current active config version 4: CRS Generic/RCE/SQLi/XSS and Bot Protection are enabled in log-only mode; IP allow/deny rules are empty; POST login/mobile-login is rate-limited to 60 requests per source IP per fixed 60-second window. Do not switch log rules to deny without a representative baseline, false-positive review and Preview rehearsal. |
+| Production recovery/rollback | PARTIAL / NOT GO FOR MAINTENANCE | The existing restore is from the pre-migration snapshot generation; current-primary parity proof is missing. No current RPO/RTO evidence is established. |
+
+## Do not claim
+
+- Do not claim the picomatch advisory is fixed or that npm audit is clean; the main gate currently accepts a time-bounded advisory entry.
+- Do not claim migrations 063–067/069 are pending: they are present in the Production opscore_acceptance migration ledger. Do not claim post-fix Production attestation: it has not run.
+- Do not claim current Production backup/PITR/RPO/RTO, signed-route activation, 67-route certification, Production isolation certification or a current Production deploy.
+- Do not claim 114 languages certified, human-translated product, native-speaker review or production-qualified languages.
+- Do not represent Vercel Hobby/Free seller infrastructure as commercial hosted SaaS.
+- Do not treat any historical ZIP, digest or test artifact as the current-main handoff.
