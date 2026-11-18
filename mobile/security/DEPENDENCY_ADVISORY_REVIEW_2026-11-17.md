@@ -1,8 +1,8 @@
 # Mobile dependency advisory review — 2026-11-17
 
-**Disposition: OPEN / NOT ACCEPTED / RELEASE BLOCKER**
+**Disposition: OPEN / NOT FIXED / TEMPORARY GATE EXCEPTION ACTIVE — NOT A FORMAL SIGNED RISK ACCEPTANCE**
 
-This is a current assessment of GHSA-fc5q-39xc-vjpf / CVE-2026-112366 for OpsCore v0.11.62. It does not suppress npm audit, declare the advisory false, or authorize release.
+This is the advisory evidence record for GHSA-fc5q-39xc-vjpf / CVE-2026-112366 for OpsCore v0.11.62. Main currently permits the finding through a self-expiring audit-allowlist entry reviewed by 2026-12-18. That gate exception does not suppress the underlying record, declare the advisory false, constitute an independently signed risk acceptance, or establish a patched package.
 
 ## OpsCore dependency and source boundary
 
@@ -252,3 +252,20 @@ The difference between the 25-High `npm ci` install-time summary and the 26-High
 
 Backend runtime audit success and the passing PostgreSQL 18 isolated test do not resolve the mobile dependency advisory. The isolated database evidence is not Production certification. Do not merge the candidate, create a Secure Release ZIP, or claim release qualification while this fail-closed audit remains unresolved.
 
+
+
+## Current main reconciliation — 2026-11-18
+
+Current main is 27d41476a115d81ddd3ad1b4f03025142a7e5be6. The current mobile manifest resolves Expo 58.0.26, React 19.3.1 and React Native 0.88.1. OpsCore CI run [44203389751](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44203389751) passed, and Vercel contract run [44203389724](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44203389724) passed the contract and isolated PostgreSQL acceptance with the deployment job skipped.
+
+The reason the current main audit gate can pass is explicitly recorded in mobile/audit-allowlist.json:
+- GHSA-fc5q-39xc-vjpf remains allowlisted as a documented residual.
+- Maximum accepted picomatch version remains 4.0.7.
+- Review expiry is 2026-12-18.
+- Registry failure, publication of a newer picomatch version, or expiry voids the entry and causes the gate to fail closed.
+
+This is a temporary configuration-level exception. The reviewed file does not contain an authorized risk-owner identity, signature, or separately signed risk-acceptance record. Therefore **formal seller risk acceptance remains NOT EVIDENCED**. Do not state that the advisory is fixed, that the mobile audit is clean, or that the entry is a VEX/not-affected declaration.
+
+PR #230, which pins picomatch to 4.0.7, remains Draft/HOLD. The override alone does not remediate the advisory. The current-main Secure Release workflow has not yet produced a ZIP/statement for commit 27d41476a115d81ddd3ad1b4f03025142a7e5be6; the manual dispatch attempt did not start because the separate browser automation wallet balance was -$0.12. No workflow run or release artifact was created.
+
+Until an authorized seller security/risk owner documents and signs the disposition, treat the exception as time-limited CI gate policy only. Continue to preserve the advisory and reassess before 2026-12-18 or earlier if the registry state changes.
