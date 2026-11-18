@@ -378,9 +378,10 @@ test('candidate route proof requirements are a one-to-one inventory of the appro
   ], 'numeric chunk route must match the manifest backslash encoding exactly');
 });
 
-test('candidate route coverage emits 67 individually bound rows and only passes with every A/B and cross-tenant proof', () => {
+test('candidate route coverage emits 67 rows and passes only routes with complete A/B and cross-tenant proofs', () => {
+  const proof = completeCandidateProofFixture();
   const evidence = buildCandidateSignedTenantRouteCoverage({
-    proof: completeCandidateProofFixture(),
+    proof,
     manifest: signedRouteManifest,
     inventory: routeInventory,
     manifestBytes,
@@ -392,30 +393,42 @@ test('candidate route coverage emits 67 individually bound rows and only passes 
     sourceCommitHint: 'a'.repeat(40),
     pipelineId: '123456789'
   });
+  const expectedCompleteRequirements = Object.values(CANDIDATE_ROUTE_PROOF_REQUIREMENTS)
+    .filter(requirement => requirement.a.length > 0
+      && requirement.b.length > 0
+      && requirement.cross.length > 0).length;
 
-  assert.equal(evidence.status, 'PASS');
+  assert.equal(evidence.status, 'NOT_VERIFIED',
+    'known incomplete route proofs must prevent the whole matrix from passing');
   assert.equal(evidence.expectedRouteCount, 67);
-  assert.equal(evidence.coveredRouteCount, 67);
-  assert.equal(evidence.failedRouteCount, 0);
+  assert.equal(evidence.coveredRouteCount, expectedCompleteRequirements);
+  assert.equal(evidence.failedRouteCount, 67 - expectedCompleteRequirements);
   assert.equal(evidence.routes.length, 67);
-  assert.equal(evidence.routes.every(route =>
-    route.status === 'PASS'
-      && route.signedContextBound === true
-      && route.sessionBound === true
-      && route.transactionBound === true
-      && route.rawGucTamperDenied === true
-  ), true);
-  assert.equal(evidence.routes.some(route => route.operation === 'read'
-    && route.tenantARead === true && route.tenantBRead === true && route.crossTenantReadDenied === true), true);
-  assert.equal(evidence.routes.some(route => route.operation === 'write'
-    && route.tenantAWrite === true && route.tenantBWrite === true && route.crossTenantWriteDenied === true), true);
+  const completedRoute = evidence.routes.find(route =>
+    route.method === 'PATCH' && route.path === '/api/v1/work-orders/{id}'
+  );
+  assert.equal(completedRoute.status, 'PASS');
+  assert.equal(completedRoute.signedContextBound, true);
+  assert.equal(completedRoute.sessionBound, true);
+  assert.equal(completedRoute.transactionBound, true);
+  assert.equal(completedRoute.rawGucTamperDenied, true);
+  assert.equal(completedRoute.tenantAWrite, true);
+  assert.equal(completedRoute.tenantBWrite, true);
+  assert.equal(completedRoute.crossTenantWriteDenied, true);
   assert.match(evidence.routeManifestSha256, /^[a-f0-9]{64}$/);
   assert.match(evidence.routeInventorySha256, /^[a-f0-9]{64}$/);
   assert.equal(evidence.evidenceRebind, null);
 });
-
-test('missing per-route proof remains NOT_VERIFIED instead of being filled with synthetic PASS values', () => {
+test('missing per-route proof reduces the covered count and keeps the affected rows NOT_VERIFIED', () => {
   const proof = completeCandidateProofFixture();
+  const baseline = buildCandidateSignedTenantRouteCoverage({
+    proof,
+    manifest: signedRouteManifest,
+    inventory: routeInventory,
+    manifestBytes,
+    inventoryBytes,
+    candidateMode: true
+  });
   delete proof.session.appointmentListTenantA;
   delete proof.session.appointmentCrossTenantUpdateDenied;
 
@@ -435,20 +448,19 @@ test('missing per-route proof remains NOT_VERIFIED instead of being filled with 
 
   assert.equal(evidence.status, 'NOT_VERIFIED');
   assert.equal(evidence.routes.length, 67);
-  assert.equal(evidence.coveredRouteCount, 65);
-  assert.equal(evidence.failedRouteCount, 2);
+  assert.equal(evidence.coveredRouteCount, baseline.coveredRouteCount - 2);
+  assert.equal(evidence.failedRouteCount, 67 - evidence.coveredRouteCount);
   const list = evidence.routes.find(route => route.method === 'GET' && route.path === '/api/v1/appointments');
   assert.equal(list.status, 'NOT_VERIFIED');
   assert.equal(list.tenantARead, false);
   assert.equal(list.tenantBRead, true);
-  assert.equal(list.crossTenantReadDenied, true);
+  assert.equal(list.crossTenantReadDenied, false);
   assert.ok(list.unresolvedReasons.includes('TENANT_A_ROUTE_PROOF_MISSING'));
 
   const patch = evidence.routes.find(route => route.method === 'PATCH' && route.path === '/api/v1/appointments/{id}');
   assert.equal(patch.crossTenantWriteDenied, false);
   assert.ok(patch.unresolvedReasons.includes('CROSS_TENANT_WRITE_DENIAL_PROOF_MISSING'));
 });
-
 test('the route matrix cannot certify from local CI proof maps without candidate-mode GUC tamper confirmation', () => {
   const evidence = buildCandidateSignedTenantRouteCoverage({
     proof: completeCandidateProofFixture(),
