@@ -84,3 +84,17 @@ Seller release status remains `PASS_WITH_BUYER_RESIDUALS` while isolation is CER
 
 Live production isolation remains CERTIFIED on pin `4017497068defa9c1d0761fcb07bc746925e002a` and is independent of the source package tip.
 
+
+## Production pin after authorized promote (2026-11-18)
+
+| Field | Value |
+|---|---|
+| Live commit |  |
+| Public release proof | https://opscore-platform.vercel.app/api/verify/release |
+| Health | https://opscore-platform.vercel.app/api/health |
+| Isolation at promote time | **NOT_CERTIFIED** (first-promote path; post-promote evidence collection required) |
+| Seller source package | still closed on Secure Release tip / ZIP SHA in closeout doc |
+| Signed 67-route matrix | **DEFERRED_POST_PROMOTE** until coverage builder + live probes complete |
+
+Do not treat UNVERIFIED/NOT_CERTIFIED as a source-package regression. Source package authority remains the Secure Release artifact; live pin authority is .
+
