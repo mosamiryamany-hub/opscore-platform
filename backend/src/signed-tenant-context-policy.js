@@ -96,16 +96,26 @@ function routeAllowed(req, routes) {
   return routes.some(([expectedMethod, pattern]) => method === expectedMethod && pattern.test(pathname));
 }
 
+
+function candidateProbeRouteEnabled(req, env = process.env, readiness = {}, operation) {
+  if (!isCandidateProbeAuthorized(req, env, readiness)) return false;
+  const method = String(req && req.method || '').toUpperCase();
+  const pathname = String(req && req.url || '').split('?')[0];
+  return isSignedTenantContextRouteDefinition(method, pathname, operation);
+}
+
 function signedOperationalReadEnabled(req, env = process.env, readiness = {}) {
-  return isSignedContextEnvironment(env, readiness, req)
-    && enabled(env.OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_READ_ENABLED)
-    && routeAllowed(req, OPERATIONAL_SIGNED_READ_ROUTES);
+  return candidateProbeRouteEnabled(req, env, readiness, 'read')
+    || (isSignedContextEnvironment(env, readiness, req)
+      && enabled(env.OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_READ_ENABLED)
+      && routeAllowed(req, OPERATIONAL_SIGNED_READ_ROUTES));
 }
 
 function signedOperationalWriteEnabled(req, env = process.env, readiness = {}) {
-  return isSignedContextEnvironment(env, readiness, req)
-    && enabled(env.OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_WRITE_ENABLED)
-    && routeAllowed(req, OPERATIONAL_SIGNED_WRITE_ROUTES);
+  return candidateProbeRouteEnabled(req, env, readiness, 'write')
+    || (isSignedContextEnvironment(env, readiness, req)
+      && enabled(env.OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_WRITE_ENABLED)
+      && routeAllowed(req, OPERATIONAL_SIGNED_WRITE_ROUTES));
 }
 
 function signedWorkOrdersReadEnabled(req, env = process.env, readiness = {}) {
@@ -113,10 +123,11 @@ function signedWorkOrdersReadEnabled(req, env = process.env, readiness = {}) {
   const supportedReadPath = pathname === '/api/v1/work-orders'
     || /^\/api\/v1\/work-orders\/[^/]+$/.test(pathname)
     || /^\/api\/v1\/work-orders\/[^/]+\/(?:completion-package|timeline|handoff|operational-risk|comments|attachments|dispatch-candidates|parts|signoffs|why-blocked|changelog|verified-job-record|work-pack|completion-assurance|time-summary|first-time-right)$/.test(pathname);
-  const workOrderRead = isSignedContextEnvironment(env, readiness, req)
-    && enabled(env.OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_ENABLED)
-    && String(req && req.method || '').toUpperCase() === 'GET'
-    && supportedReadPath;
+  const workOrderRead = candidateProbeRouteEnabled(req, env, readiness, 'read')
+    || (isSignedContextEnvironment(env, readiness, req)
+      && enabled(env.OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_ENABLED)
+      && String(req && req.method || '').toUpperCase() === 'GET'
+      && supportedReadPath);
   return workOrderRead || signedOperationalReadEnabled(req, env, readiness);
 }
 
@@ -135,9 +146,10 @@ function signedWorkOrdersWriteEnabled(req, env = process.env, readiness = {}) {
     || (method === 'PUT' && /^\/api\/v1\/evidence-uploads\/[^/]+\/chunks\/\d+$/.test(pathname))
     || (method === 'POST' && /^\/api\/v1\/evidence-uploads\/[^/]+\/complete$/.test(pathname))
     || (method === 'POST' && /^\/api\/v1\/work-orders\/[^/]+\/attachments$/.test(pathname));
-  const workOrderWrite = isSignedContextEnvironment(env, readiness, req)
-    && enabled(env.OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_WRITE_ENABLED)
-    && supportedWritePath;
+  const workOrderWrite = candidateProbeRouteEnabled(req, env, readiness, 'write')
+    || (isSignedContextEnvironment(env, readiness, req)
+      && enabled(env.OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_WRITE_ENABLED)
+      && supportedWritePath);
   return workOrderWrite || signedOperationalWriteEnabled(req, env, readiness);
 }
 
@@ -148,10 +160,13 @@ function signedWorkOrdersContextEnabled(req, env = process.env, readiness = {}) 
 
 function signedAssetsReadEnabled(req, env = process.env, readiness = {}) {
   const pathname = String(req && req.url || '').split('?')[0];
-  return isSignedContextEnvironment(env, readiness, req)
-    && enabled(env.OPSC_SIGNED_TENANT_CONTEXT_ASSETS_READ_ENABLED)
-    && String(req && req.method || '').toUpperCase() === 'GET'
-    && pathname === '/api/v1/assets';
+  return (String(req && req.method || '').toUpperCase() === 'GET'
+      && pathname === '/api/v1/assets'
+      && candidateProbeRouteEnabled(req, env, readiness, 'read'))
+    || (isSignedContextEnvironment(env, readiness, req)
+      && enabled(env.OPSC_SIGNED_TENANT_CONTEXT_ASSETS_READ_ENABLED)
+      && String(req && req.method || '').toUpperCase() === 'GET'
+      && pathname === '/api/v1/assets');
 }
 
 function signedSessionAutobindEnabled(env = process.env, readiness = {}) {
