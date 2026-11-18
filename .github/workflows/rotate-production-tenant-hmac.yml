@@ -170,36 +170,47 @@ jobs:
               return request("GET", f"https://api.vercel.com/v9/projects/{project}/env?limit=100").get("envs", [])
 
           values = {
-              "OPSC_TENANT_CONTEXT_KEY_JSON": key_json,
-              "OPSC_TENANT_CONTEXT_HMAC_KEY": key_hex,
-              "OPSC_TENANT_CONTEXT_KEY_ID": key_id,
+              # These two variables contain signing-key material and must be
+              # write-only (Vercel API type "sensitive" / UI visibility "secret").
+              "OPSC_TENANT_CONTEXT_KEY_JSON": {"value": key_json, "type": "sensitive"},
+              "OPSC_TENANT_CONTEXT_HMAC_KEY": {"value": key_hex, "type": "sensitive"},
+              # A key identifier is metadata, not key material.
+              "OPSC_TENANT_CONTEXT_KEY_ID": {"value": key_id, "type": "encrypted"},
           }
-          for key, value in values.items():
+          for key, spec in values.items():
+              value = spec["value"]
+              env_type = spec["type"]
               rows = [e for e in get_envs() if e.get("key") == key and set(e.get("target") or []) == {"production"}]
               if len(rows) > 1:
                   raise SystemExit("PRODUCTION_ENV_ENTRY_NOT_UNIQUE:" + key)
               if rows:
-                  # Keep the existing encrypted/sensitive type. Do not delete an
-                  # existing entry if PATCH fails; abort and preserve auditability.
+                  # Vercel accepts a type update on this endpoint. The API must
+                  # return the Secret visibility for signing material; fail closed
+                  # if the platform refuses the conversion.
                   request("PATCH", f"https://api.vercel.com/v9/projects/{project}/env/{rows[0]['id']}", {
                       "value": value,
                       "target": ["production"],
+                      "type": env_type,
                   })
-                  print("updated Production env entry:", key)
+                  print("updated Production env entry and type:", key, env_type)
               else:
                   request("POST", f"https://api.vercel.com/v10/projects/{project}/env", {
                       "key": key,
                       "value": value,
-                      "type": "encrypted",
+                      "type": env_type,
                       "target": ["production"],
                   })
-                  print("created Production env entry:", key)
+                  print("created Production env entry and type:", key, env_type)
 
           verify = get_envs()
-          for key in values:
+          for key, spec in values.items():
               rows = [e for e in verify if e.get("key") == key and set(e.get("target") or []) == {"production"}]
               if len(rows) != 1:
                   raise SystemExit("PRODUCTION_ENV_VERIFICATION_FAILED:" + key)
+              if rows[0].get("type") != spec["type"]:
+                  raise SystemExit("PRODUCTION_ENV_TYPE_VERIFICATION_FAILED:" + key)
+              if spec["type"] == "sensitive" and rows[0].get("visibility") not in ("secret", "sensitive"):
+                  raise SystemExit("PRODUCTION_ENV_SECRET_VISIBILITY_FAILED:" + key)
           print("production_hmac_env_sync=PASS")
           print("previous_key_rows_untouched=true")
           print("signed_route_enable_flags_unchanged=true")

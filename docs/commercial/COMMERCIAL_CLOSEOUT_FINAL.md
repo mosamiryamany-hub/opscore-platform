@@ -32,11 +32,11 @@
 | Mobile audit gate (picomatch GHSA documented, time-boxed) | **PASS** |
 | Main CI (verify, vercel-contract) | **PASS** on release tip |
 | Primary restore proof (Neon) | **PASS** (see evidence file; not a production migration certificate) |
-| Live production isolation (deployed pin) | **CERTIFIED** on `4017497068defa9c1d0761fcb07bc746925e002a` |
+| Live production isolation (deployed pin) | **NOT_CERTIFIED** on `7b6d12b816c7a1ad4cc92802df7ce222bd233ade` |
 
 ## Explicit non-claims (prevent contradiction)
 
-1. **Hosted Production pin** remains `4017497…` until a separate, gated production upgrade. Source package closure does **not** auto-promote Vercel Production.
+1. **Hosted Production pin** is `7b6d12b8…`; isolation evidence on that pin is still incomplete. Source package closure does **not** auto-promote Vercel Production.
 2. **Signed-context migrations 063–067 / 069** are **not** asserted applied on Production primary by this closeout.
 3. **Production HMAC / 67-route live matrix** are **not** asserted for the new tip.
 4. **Buyer residuals** remain buyer-owned: mobile store signing, native human translation QA, licensed street maps.
