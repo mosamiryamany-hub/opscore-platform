@@ -291,7 +291,7 @@ This section supersedes earlier pre-window assumptions in the historical materia
 
 - Project: `summer-leaf-18448271`; Free plan; PostgreSQL 18; branch limit 10; history retention 21,600 seconds (6 hours); branch logical-size limit 1 GiB.
 - Current branch inventory: **2 active branches (2/10 included)**: Primary `br-proud-salad-bcshhdap` and non-primary restore `br-odd-surf-bcps6nce`. Both currently report `protected=false`; no branch protection is claimed.
-- Primary is the default branch and is ready. The non-finalizing restore `br-odd-surf-bcps6nce` is ready and reports `restored_from=snap-tiny-dream-bc58p5nj`, `restore_status=restored`, and `restored_as=br-proud-salad-bcshhdap`.
+- Primary is the default branch and is ready. The non-finalizing restore `br-odd-surf-bcps6nce` is ready and reports `restored_from=snap-tiny-dream-bc58p5nj`, `restore_status=restored`, and `restored_as=br-proud-salad-bcshhdap`. The snapshot is from the current 063–069 migration generation; all seven ledger/source checksums match.
 - Current snapshot inventory contains **one** manual Primary snapshot: `snap-tiny-dream-bc58p5nj`, created 2026-11-18 01:22:39 UTC. Previous snapshot and restore identifiers are historical.
 - Snapshot creation and branch cleanup are complete for this proof attempt. No further branch or snapshot deletion is authorized by this record.
 
@@ -310,16 +310,16 @@ The prior restore gate failed because its contract still required a stale 62-row
 
 The live Production 67-route signed-session matrix remains **NOT ESTABLISHED**. CI's isolated route matrix is not Production certification. The HMAC key table is empty; signed Production routes are not activated. The Production isolation pin remains the prior deployment until a separately authorized, gated deployment is verified.
 
-GitHub Environment protection rules / Required reviewers were not readable through the current integration; their presence is **UNVERIFIED**. Verify Settings → Environments → production before any Production workflow dispatch.
+GitHub Environment protection rules / Required reviewers were not readable through the current integration; their presence is **UNVERIFIED**. Verify Settings → Environments → production before any dispatch.
 
 ### Current Vercel firewall read-only inspection
 
 The active firewall config reports firewallEnabled=true, version 4:
-- CRS Generic, RCE, SQLi and XSS rules are active but `log` only.
+- CRS rules active (Generic, RCE, SQLi and XSS) but `log` only.
 - Bot Protection is active but `log` only.
 - IP allow/deny rules list is empty.
 - The custom POST login/mobile-login rate-limit rule is 60 requests per source IP per fixed 60-second window.
-- The prior 24-hour review reported no anomalies in its reviewed window; that is not a continuing guarantee. No firewall action was changed. Do not flip the current `log` rules to `deny` without a representative baseline, false-positive review and Preview rehearsal.
+- There were no anomalies for the default last-24-hour window reviewed at the time; this is not a continuing guarantee. No firewall action was changed. Do not flip the current `log` rules to `deny` without a representative baseline, false-positive review and Preview rehearsal.
 
 ### Current release boundary
 
