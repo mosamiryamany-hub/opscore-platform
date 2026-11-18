@@ -555,14 +555,21 @@ test('Production candidate probe allows exactly the approved 67 manifest route/m
 });
 
 
-test('signed work-order read reports 404 isolation only after confirmed rollback of a tenant-scoped NOT_FOUND', () => {
+test('signed read wrapper preserves only known tenant denials after confirmed rollback', () => {
   const start = server.indexOf('function runSignedWorkOrdersRead');
   const end = server.indexOf('function sendWorkOrderRead', start);
   assert.ok(start >= 0 && end > start, 'signed read wrapper must exist');
   const block = server.slice(start, end);
   assert.match(block, /let rollbackConfirmed = !transactionOpen/);
-  assert.match(block, /store\.db\.exec\('ROLLBACK'\)[\s\S]*?rollbackConfirmed = true/);
-  assert.match(block, /rollbackConfirmed && \(error\?\.code === 'NOT_FOUND' \|\| error\?\.message === 'NOT_FOUND'\)/);
-  assert.match(block, /json\(res, 404, \{ error: \{ code: 'NOT_FOUND' \} \}[\s\S]*?'x-opscore-signed-tenant-context': 'verified'/);
-  assert.match(block, /json\(res, 503, \{ error: \{ code: 'SIGNED_TENANT_WORK_ORDER_READ_FAILED' \} \}/);
+  assert.match(block, /store\\.db\\.exec\\('ROLLBACK'\\)[\\s\\S]*?rollbackConfirmed = true/);
+  assert.match(block, /rollbackConfirmed && \\(error\\?\\.code === 'NOT_FOUND' \\|\\| error\\?\\.message === 'NOT_FOUND'\\)/);
+  assert.match(block, /rollbackConfirmed && \\(error\\?\\.code === 'GEO_SCOPE_FORBIDDEN' \\|\\| error\\?\\.message === 'GEO_SCOPE_FORBIDDEN'\\)/);
+  assert.match(block, /rollbackConfirmed && \\(error\\?\\.code === 'GEO_SCOPE_EMPTY' \\|\\| error\\?\\.message === 'GEO_SCOPE_EMPTY'\\)/);
+  assert.match(block, /json\\(res, 404, \\{ error: \\{ code: 'NOT_FOUND' \\} \\}[\\s\\S]*?'x-opscore-signed-tenant-context': 'verified'/);
+  assert.match(block, /json\\(res, 403, \\{ error: \\{ code: 'GEO_SCOPE_FORBIDDEN' \\} \\}[\\s\\S]*?'x-opscore-signed-tenant-context': 'verified'/);
+  assert.match(block, /json\\(res, 403, \\{ error: \\{ code: 'GEO_SCOPE_EMPTY' \\} \\}[\\s\\S]*?'x-opscore-signed-tenant-context': 'verified'/);
+  assert.match(block, /json\\(res, 503, \\{ error: \\{ code: 'SIGNED_TENANT_WORK_ORDER_READ_FAILED' \\} \\}/);
+  assert.ok(block.indexOf('rollbackConfirmed && (error?.code === \'GEO_SCOPE_FORBIDDEN\'') > block.indexOf('rollbackConfirmed = true'),
+    'GEO_SCOPE_FORBIDDEN must never be labelled verified until rollback is confirmed');
 });
+
