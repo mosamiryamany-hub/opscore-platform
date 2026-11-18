@@ -506,3 +506,105 @@ jobs:
           console.log('CALLER_BOUND_LOGICAL_RESTORE=PASS tables=' + restore.tableCount);
           console.log('PRODUCTION_TENANT_AND_NEON_PITR_CERTIFICATION=false');
           NODE
+
+  production-neon-pitr-history-probe:
+    name: Production Neon PITR historical branch probe (read-only)
+    if: github.event_name == 'pull_request' && github.head_ref == 'ops/acceptance-neon-target-2026-11-19'
+    needs: live-rls
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Create and inspect a disposable historical branch from the Production root timeline
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: summer-leaf-18448271
+          ROOT_BRANCH_ID: br-proud-salad-bcshhdap
+          DATABASE_NAME: opscore_acceptance
+          RUNTIME_ROLE: opscore_runtime
+        run: |
+          set -euo pipefail
+          test -n "${NEON_API_KEY:-}" || { echo "NEON_API_KEY_MISSING"; exit 1; }
+          AUTH=(-H "Authorization: Bearer ${NEON_API_KEY}" -H "Accept: application/json")
+          API="https://console.neon.tech/api/v2/projects/${NEON_PROJECT_ID}"
+          PITR_TIMESTAMP="$(date -u --date='5 minutes ago' '+%Y-%m-%dT%H:%M:%SZ')"
+          BRANCH_NAME="opscore-pitr-ci-${GITHUB_RUN_ID}"
+          BRANCH_ID=""
+          cleanup() {
+            if [[ -n "${BRANCH_ID}" ]]; then
+              curl -fsS -X DELETE "${AUTH[@]}" "${API}/branches/${BRANCH_ID}" >/dev/null
+              echo "PITR_TEST_BRANCH_CLEANUP=PASS"
+            fi
+          }
+          trap cleanup EXIT
+          python3 - <<'PY' > "$RUNNER_TEMP/pitr-request.json"
+          import json,os
+          print(json.dumps({
+            "branch": {
+              "name": os.environ["BRANCH_NAME"],
+              "parent_id": os.environ["ROOT_BRANCH_ID"],
+              "parent_timestamp": os.environ["PITR_TIMESTAMP"]
+            },
+            "endpoints": [{"type":"read_write"}]
+          }))
+          PY
+          CREATE="$(curl -fsS -X POST "${AUTH[@]}" -H "Content-Type: application/json" \
+            --data-binary "@$RUNNER_TEMP/pitr-request.json" "${API}/branches")"
+          BRANCH_ID="$(printf '%s' "$CREATE" | python3 -c 'import json,sys; print(json.load(sys.stdin)["branch"]["id"])')"
+          test "${BRANCH_ID#br-}" != "${BRANCH_ID}" || { echo "PITR_BRANCH_ID_INVALID"; exit 1; }
+          echo "PITR_SOURCE_ROOT_BRANCH=${ROOT_BRANCH_ID}"
+          echo "PITR_HISTORICAL_BRANCH=${BRANCH_ID}"
+          echo "PITR_TARGET_TIMESTAMP=${PITR_TIMESTAMP}"
+          ready=0
+          for attempt in $(seq 1 45); do
+            CURRENT="$(curl -fsS "${AUTH[@]}" "${API}/branches/${BRANCH_ID}")"
+            STATE="$(printf '%s' "$CURRENT" | python3 -c 'import json,sys; print(json.load(sys.stdin)["branch"].get("current_state",""))')"
+            if [[ "$STATE" == "ready" ]]; then
+              PARENT_TS="$(printf '%s' "$CURRENT" | python3 -c 'import json,sys; print(json.load(sys.stdin)["branch"].get("parent_timestamp") or "")')"
+              test -n "$PARENT_TS" || { echo "PITR_PARENT_TIMESTAMP_MISSING"; exit 1; }
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+          test "$ready" = "1" || { echo "PITR_BRANCH_NOT_READY"; exit 1; }
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client >/dev/null
+          fetch_uri() {
+            local branch="$1"
+            local file="$2"
+            curl -fsS -G "${AUTH[@]}" \
+              --data-urlencode "branch_id=${branch}" \
+              --data-urlencode "database_name=${DATABASE_NAME}" \
+              --data-urlencode "role_name=${RUNTIME_ROLE}" \
+              --data-urlencode "pooled=false" \
+              "${API}/connection_uri" > "${file}.json"
+            python3 - "${file}.json" "$file" "$DATABASE_NAME" <<'PY'
+          import json,sys
+          from urllib.parse import urlsplit,urlunsplit,parse_qsl,urlencode
+          raw=json.load(open(sys.argv[1]))["uri"]
+          p=urlsplit(raw)
+          if p.scheme not in ("postgres","postgresql") or not p.hostname or "-pooler" in p.hostname:
+            raise SystemExit("PITR_DIRECT_POSTGRES_REQUIRED")
+          if p.path.lstrip("/") != sys.argv[3]:
+            raise SystemExit("PITR_DATABASE_MISMATCH")
+          q=dict(parse_qsl(p.query,keep_blank_values=True)); q["sslmode"]="verify-full"
+          open(sys.argv[2],"w").write(urlunsplit((p.scheme,p.netloc,p.path,urlencode(q),p.fragment)))
+          PY
+            chmod 600 "$file"
+          }
+          fetch_uri "$BRANCH_ID" "$RUNNER_TEMP/pitr.uri"
+          fetch_uri "$ROOT_BRANCH_ID" "$RUNNER_TEMP/head.uri"
+          SQL="SELECT concat_ws('|', current_database(), (SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'), (SELECT count(*) FROM public.schema_migrations), (SELECT md5(string_agg(filename||':'||sha256,E'\\n' ORDER BY filename)) FROM public.schema_migrations), (SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='r' AND c.relforcerowsecurity), (SELECT count(*) FROM pg_policies), (SELECT string_agg(extname||':'||extversion,',' ORDER BY extname) FROM pg_extension));"
+          HISTORICAL="$(psql "$(cat "$RUNNER_TEMP/pitr.uri")" -X -v ON_ERROR_STOP=1 -Atc "$SQL")"
+          HEAD="$(psql "$(cat "$RUNNER_TEMP/head.uri")" -X -v ON_ERROR_STOP=1 -Atc "$SQL")"
+          test -n "$HISTORICAL" && test "$HISTORICAL" = "$HEAD" || {
+            echo "PITR_HISTORICAL_SCHEMA_CATALOG_MISMATCH"
+            echo "historical=$HISTORICAL"
+            echo "head=$HEAD"
+            exit 1
+          }
+          echo "PITR_ROOT_HISTORY_BRANCH=PASS"
+          echo "PITR_ROLE=opscore_runtime (non-superuser, no BYPASSRLS)"
+          echo "PITR_DATA_ACCESS=aggregate catalog and migration fingerprints only"
+          echo "PITR_SCHEMA_CATALOG_MATCH=PASS"
+          echo "PITR_TEST_SCOPE=historical branch from Production root; source branch unchanged"
