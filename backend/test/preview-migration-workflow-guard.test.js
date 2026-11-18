@@ -25,6 +25,11 @@ test('Preview migrations require one exact ready non-primary unprotected branch 
   assert.match(previewApply, /OPSC_MIGRATION_EXPECTED_BRANCH_ID/);
   assert.match(previewApply, /OPSC_MIGRATION_CONFIRM_BRANCH_ID/);
   assert.match(previewApply, /sslmode.*verify-full/);
+  assert.match(previewApply, /endpoint_id=ep-dry-mouse-bbf5ozwy/);
+  assert.match(previewApply, /NEON_CONNECTION_URI_HTTP_FAILURE/);
+  assert.match(previewApply, /role_name=opscore_owner/);
+  assert.match(previewApply, /role_name=opscore_runtime/);
+  assert.doesNotMatch(previewApply, /summer-leaf-18448271/);
   assert.match(previewApply, /node-version: "22\.23\.4"/);
   assert.doesNotMatch(previewApply, /auto-detect|any\(k in lname|dry-run\.json" \|\| true/);
 });
