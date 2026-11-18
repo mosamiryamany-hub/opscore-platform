@@ -129,7 +129,7 @@ test('Production candidate routes tamper raw tenant GUCs only after verified sig
   assert.ok(readStart >= 0 && readActivate > readStart && readProbe > readActivate && readQuery > readProbe,
     'candidate read GUC tampering must happen after signature activation and before the route query');
 
-  const writeStart = server.indexOf('function runSignedWorkOrderWrite(req, res, c, writer');
+  assert.doesNotMatch(server, /runSignedWorkOrdersRead\\(res, c,/);\n  assert.doesNotMatch(server, /runSignedWorkOrderWrite\\(res, c,/);\n\n  const writeStart = server.indexOf('function runSignedWorkOrderWrite(req, res, c, writer');
   const writeActivate = server.indexOf('store.db.activateVerifiedTenantContext();', writeStart);
   const writeProbe = server.indexOf('isCandidateProbeAuthorized(req, process.env, signedContextProductionReadiness)', writeActivate);
   const writeQuery = server.indexOf('const result = store.withCallerManagedTransaction(writer, lifecycle);', writeProbe);
