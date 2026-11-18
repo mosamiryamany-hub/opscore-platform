@@ -41,7 +41,7 @@ The GitHub Advisory Database currently describes this as High severity (CVSS v4 
 
 ## 5. Disclosed buyer/environment residuals
 
-Unless a separate signed statement says otherwise, the source ZIP does not include signed Android AAB / iOS IPA, physical-device acceptance, store accounts, review or publication; native-speaker translation review (the catalogue contains 114 selectable language entries, but native-reviewed languages remain 0/114 and production-qualified languages remain 0/114); licensed map tiles, routing-data contracts, provider keys or external identity, messaging, telephony/call-center, payment, webhook, storage, KMS/HSM and cloud accounts; or customer-specific deployment, migration, security acceptance, recovery certification or operational service-level commitments.
+Unless a separate signed statement says otherwise, the source ZIP does not include signed Android AAB / iOS IPA, physical-device acceptance, store accounts, review or publication; native-speaker translation review (the catalogue contains 105 selectable Contact Center locales; the separate qualification matrix contains 114 source-language rows, with 0 native-speaker-reviewed and 0 production-qualified rows, but native-reviewed languages remain 0/114 and production-qualified languages remain 0/114); licensed map tiles, routing-data contracts, provider keys or external identity, messaging, telephony/call-center, payment, webhook, storage, KMS/HSM and cloud accounts; or customer-specific deployment, migration, security acceptance, recovery certification or operational service-level commitments.
 
 ## 6. Commercial and legal authority
 
