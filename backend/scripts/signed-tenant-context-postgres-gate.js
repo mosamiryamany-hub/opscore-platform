@@ -35,22 +35,31 @@ const candidateSessionTokenLabels = new Map();
 const candidateRouteObservations = new Map();
 let candidateModeForObservations = false;
 
+function escapeRegExpLiteral(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function routeTemplatePattern(template) {
+  const value = String(template || '');
+  const markerPattern = /\{id\}|\(\\d\+\)/g;
+  let pattern = '';
+  let cursor = 0;
+  for (const match of value.matchAll(markerPattern)) {
+    pattern += escapeRegExpLiteral(value.slice(cursor, match.index));
+    pattern += match[0] === '{id}' ? '[^/]+' : '[0-9]+';
+    cursor = match.index + match[0].length;
+  }
+  pattern += escapeRegExpLiteral(value.slice(cursor));
+  return new RegExp('^' + pattern + '$');
+}
+
 function findSignedTenantManifestRoute(method, requestPath) {
   const normalizedMethod = String(method || '').toUpperCase();
   const pathname = String(requestPath || '').split('?')[0];
-  return SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST.routes.find(route => {
-    if (String(route.method || '').toUpperCase() !== normalizedMethod) return false;
-    const template = String(route.path || '');
-    const markerPattern = /(\\{id\\}|\\(\\\\d\\+\\))/g;
-    const pieces = template.split(markerPattern);
-    let pattern = '^';
-    for (const piece of pieces) {
-      if (piece === '{id}') pattern += '[^/]+';
-      else if (piece === '(\\d+)') pattern += '[0-9]+';
-      else pattern += piece.replace(/[.*+?^$\\{\\}()|[\\]\\\\]/g, '\\\\$&');
-    }
-    return new RegExp(pattern + '$').test(pathname);
-  }) || null;
+  return SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST.routes.find(route =>
+    String(route.method || '').toUpperCase() === normalizedMethod
+      && routeTemplatePattern(route.path).test(pathname)
+  ) || null;
 }
 
 function isSignedTenantManifestRoute(method, requestPath) {
