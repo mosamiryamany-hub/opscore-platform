@@ -593,6 +593,7 @@ jobs:
           if p.path.lstrip("/") != sys.argv[3]:
             raise SystemExit("PITR_DATABASE_MISMATCH")
           q=dict(parse_qsl(p.query,keep_blank_values=True)); q["sslmode"]="verify-full"
+          q["sslrootcert"]="system"
           open(sys.argv[2],"w").write(urlunsplit((p.scheme,p.netloc,p.path,urlencode(q),p.fragment)))
           PY
             chmod 600 "$file"
