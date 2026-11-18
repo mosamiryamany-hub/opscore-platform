@@ -6,6 +6,7 @@ const {
   candidateOrigin,
   validateCandidateProbeEnvironment,
   validateCandidateRuntimeProofs,
+  isSignedTenantManifestRoute,
   queryHttp
 } = require('../scripts/signed-tenant-context-postgres-gate');
 
@@ -68,7 +69,7 @@ test('remote candidate HTTP requests carry the tenant probe token and Vercel Tru
     observed = { url: String(url), options };
     return {
       status: 200,
-      headers: { entries: () => [['content-type', 'application/json']] },
+      headers: { entries: () => [['content-type', 'application/json'], ['x-opscore-candidate-guc-tamper', 'applied']] },
       text: async () => JSON.stringify({ ok: true })
     };
   };
@@ -287,3 +288,42 @@ test('candidate runtime identity rejects a different commit, pipeline, domain or
     body: { ...databaseResponse.body, database: { ...databaseResponse.body.database, identity: { ...databaseResponse.body.database.identity, current_user: 'neondb_owner' } } }
   }, env), /CANDIDATE_RUNTIME_DATABASE_IDENTITY_MISMATCH/);
 });
+
+test('candidate route matcher recognises exact manifest method and parameterized route paths only', () => {
+  assert.equal(isSignedTenantManifestRoute('GET', '/api/v1/customers'), true);
+  assert.equal(isSignedTenantManifestRoute('GET', '/api/v1/work-orders/wo_123/timeline'), true);
+  assert.equal(isSignedTenantManifestRoute('PATCH', '/api/v1/assets/ast_123'), true);
+  assert.equal(isSignedTenantManifestRoute('PUT', '/api/v1/evidence-uploads/up_123/chunks/12'), true);
+  assert.equal(isSignedTenantManifestRoute('POST', '/api/v1/work-orders/wo_123/timeline'), false);
+  assert.equal(isSignedTenantManifestRoute('GET', '/api/v1/autopilot/decision-memory'), false);
+});
+
+test('remote candidate manifest route requires explicit confirmation that GUC tampering executed', async () => {
+  const previousFetch = global.fetch;
+  const previousToken = process.env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN;
+  const previousOidc = process.env.VERCEL_TRUSTED_OIDC_TOKEN;
+  process.env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN = BASE.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN;
+  process.env.VERCEL_TRUSTED_OIDC_TOKEN = BASE.VERCEL_TRUSTED_OIDC_TOKEN;
+  global.fetch = async () => ({
+    status: 200,
+    headers: { entries: () => [['content-type', 'application/json']] },
+    text: async () => JSON.stringify([{ id: 'tenant-a-row' }])
+  });
+  try {
+    await assert.rejects(
+      queryHttp(
+        'https://opscore-platform-candidate123-mosamiryamany-1692.vercel.app',
+        '/api/v1/customers',
+        'synthetic-session-token'
+      ),
+      /CANDIDATE_GUC_TAMPER_NOT_CONFIRMED/
+    );
+  } finally {
+    global.fetch = previousFetch;
+    if (previousToken === undefined) delete process.env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN;
+    else process.env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN = previousToken;
+    if (previousOidc === undefined) delete process.env.VERCEL_TRUSTED_OIDC_TOKEN;
+    else process.env.VERCEL_TRUSTED_OIDC_TOKEN = previousOidc;
+  }
+});
+
