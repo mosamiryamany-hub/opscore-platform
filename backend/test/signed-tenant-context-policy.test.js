@@ -74,7 +74,7 @@ test('signed route coverage binds to the tested candidate deployment, not the fi
       deploymentId: 'dpl_ProbeCandidate123',
       routes: []
     }));
-    const result = readProductionSignedTenantRouteCoverageEvidence(evidencePath, {
+    const result = require('../src/release-proof').readProductionSignedTenantRouteCoverageEvidence(evidencePath, {
       OPSC_RELEASE_CI_COMMIT: manifest.sourceCommit,
       OPSC_RELEASE_CI_PIPELINE_ID: '123456789',
       OPSC_PRODUCTION_NEON_BRANCH_ID: 'br-proud-salad-bcshhdap',
