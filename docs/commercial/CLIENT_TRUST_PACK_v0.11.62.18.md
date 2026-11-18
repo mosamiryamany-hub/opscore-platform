@@ -22,7 +22,7 @@ The Secure Release workflow is intended to verify the exact source candidate, re
 
 ### Buyer/environment residuals
 
-Signed Android/iOS store binaries and physical-device/store acceptance, native-speaker translation QA (0/114 native-reviewed and 0/114 production-qualified), licensed maps, provider contracts/keys and customer-specific deployment/security/recovery acceptance remain out of scope unless separately contracted.
+Signed Android/iOS store binaries and physical-device/store acceptance, 105 selectable Contact Center locales; a separate 114-row source-language qualification matrix has 0 native-speaker-reviewed and 0 production-qualified rows, licensed maps, provider contracts/keys and customer-specific deployment/security/recovery acceptance remain out of scope unless separately contracted.
 
 ## Commercial authority
 
