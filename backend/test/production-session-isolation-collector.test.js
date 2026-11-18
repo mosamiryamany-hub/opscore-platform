@@ -72,3 +72,23 @@ test('production session collector parses as a Node.js program', () => {
   const result = spawnSync(process.execPath, ['--check', file], { encoding: 'utf8', timeout: 10000 });
   assert.equal(result.status, 0, result.stderr || result.stdout);
 });
+
+
+test('candidate session probes require the exact Production candidate origin, OIDC identity, and signed-context probe token', () => {
+  assert.match(collector, /candidateProbeOrigin\(httpBase, process\.env\)/);
+  assert.match(collector, /OPSC_PRODUCTION_CANDIDATE_MODE/);
+  assert.match(collector, /OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN/);
+  assert.match(collector, /VERCEL_TRUSTED_OIDC_TOKEN/);
+  assert.match(collector, /x-opscore-signed-context-probe/);
+  assert.match(collector, /x-vercel-trusted-oidc-idp-token/);
+  assert.match(collector, /redirect:\s*'manual'/);
+  assert.match(collector, /readProductionDeploymentIdentity\(/);
+});
+
+test('candidate session read and cross-tenant denial use the approved signed assets collection route', () => {
+  assert.match(collector, /httpJson\(httpBase, 'GET', '\/api\/v1\/assets', \{ token: tokenA \}\)/);
+  assert.match(collector, /httpJson\(httpBase, 'GET', '\/api\/v1\/assets', \{ token: tokenB \}\)/);
+  assert.match(collector, /checks\.ownAssetRead = listA\.status === 200/);
+  assert.match(collector, /checks\.crossTenantAssetReadDenied = listA\.status === 200/);
+  assert.doesNotMatch(collector, /\/api\/v1\/assets\/\{id\}\/intelligence/);
+});
