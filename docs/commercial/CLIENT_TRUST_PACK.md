@@ -71,3 +71,16 @@ These are **not** seller defects for commercial close of the seller-operated pin
 3. **Licensed street maps** — provider contract and keys  
 
 Seller release status remains `PASS_WITH_BUYER_RESIDUALS` while isolation is CERTIFIED on the pinned production commit.
+
+## Seller source package (2026-11-18)
+
+| Field | Value |
+|---|---|
+| Commit | `deba977db586f19128a1f53377fec183beab44d0` |
+| Tag | `v0.11.62.16-commercial-source-package` |
+| ZIP SHA-256 | `f0bdd0f3989e815e7cb0764a44b461ea46a505995ed9d1f87de9495d24f2128f` |
+| Secure Release | https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44211989356 |
+| License | **No grant** until signed License Schedule cites this SHA |
+
+Live production isolation remains CERTIFIED on pin `4017497068defa9c1d0761fcb07bc746925e002a` and is independent of the source package tip.
+
