@@ -81,3 +81,18 @@ test('Neon PITR verification uses libpq system trust roots with full hostname ve
   assert.match(workflow, /q\["sslrootcert"\]="system"/);
   assert.match(workflow, /PITR_TEST_BRANCH_CLEANUP=PASS/);
 });
+
+test('Production PITR runtime probe stays within read-only catalog grants and never reads the protected migration ledger', () => {
+  const workflowPath = path.join(__dirname, '..', '..', '.github', 'workflows', 'digital-twin-postgres-live.yml');
+  const workflow = fs.readFileSync(workflowPath, 'utf8');
+  const start = workflow.indexOf('PITR_TARGET_TIMESTAMP=');
+  const end = workflow.indexOf('PITR_TEST_BRANCH_CLEANUP=PASS');
+  assert.ok(start >= 0 && end > start);
+  const probe = workflow.slice(start, end);
+  assert.match(probe, /sslmode.*verify-full/);
+  assert.match(probe, /sslrootcert.*system/);
+  assert.match(probe, /pg_policies/);
+  assert.match(probe, /relforcerowsecurity/);
+  assert.doesNotMatch(probe, /schema_migrations/);
+  assert.match(probe, /migration ledger excluded by runtime-role boundary/);
+});
