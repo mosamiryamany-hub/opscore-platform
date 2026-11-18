@@ -82,7 +82,7 @@ async function candidateDatabaseUrl(roleName, config) {
   if (!connectionString) throw new Error('NEON_CONNECTION_URI_MISSING:' + roleName);
   const url = new URL(connectionString);
   if (!['postgres:', 'postgresql:'].includes(url.protocol)
-      || decodeURIComponent(url.pathname.replace(/^\\/+/, '')) !== config.databaseName
+      || decodeURIComponent(url.pathname.replace(/^\/+/, '')) !== config.databaseName
       || decodeURIComponent(url.username) !== roleName
       || url.hostname.toLowerCase().includes('-pooler.')) {
     throw new Error('NEON_CONNECTION_URI_IDENTITY_INVALID:' + roleName);
@@ -96,8 +96,8 @@ async function candidateDatabaseUrl(roleName, config) {
   if (hits.length !== 1) throw new Error('NEON_ENDPOINT_NOT_UNIQUELY_RESOLVED');
   const endpoint = hits[0];
   const apiHost = String(endpoint.host || (endpoint.hosts && endpoint.hosts.read_write_host) || '').trim().toLowerCase();
-  const normalizedApiHost = apiHost.replace(/-pooler(?=\\.)/, '');
-  const normalizedConnectionHost = url.hostname.toLowerCase().replace(/-pooler(?=\\.)/, '');
+  const normalizedApiHost = apiHost.replace(/-pooler(?=\.)/, '');
+  const normalizedConnectionHost = url.hostname.toLowerCase().replace(/-pooler(?=\.)/, '');
   if (String(endpoint.project_id || '') !== config.projectId
       || String(endpoint.branch_id || '') !== config.branchId
       || normalizedApiHost !== normalizedConnectionHost
