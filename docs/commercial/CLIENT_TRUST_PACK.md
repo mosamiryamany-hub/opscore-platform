@@ -10,7 +10,7 @@ This handoff document describes the isolated v0.11.62 source-package line. It do
 
 The exact source commit, Secure Release run, archive byte length, archive SHA-256, SBOM/provenance references, and package-specific gate results are recorded in the **external `COMMERCIAL_RELEASE_STATEMENT.json` supplied with the exact archive**. That external statement is the authority for the build output. The archive does not embed its own final ZIP digest; doing so would create a self-referential hash.
 
-The previous `v0.11.62.16-commercial-source-package` archive and its digest are not the identity of this `.17` release line. Do not substitute an older archive, digest, or Actions run when checking this package.
+Do not substitute any previously published archive, digest, or Actions run when checking this package.
 
 > **License and distribution:** No license is granted by this pack, repository access, or ZIP possession. Sale, delivery, use, modification, resale, redistribution, and sublicensing remain unauthorized until the rights holder and buyer execute a signed License Schedule that identifies the exact archive SHA-256 and defines the granted rights.
 
