@@ -73,3 +73,11 @@ test('PostgreSQL acceptance target permits only the two named disposable accepta
     expectedHost: 'ep-acceptance-test.c-15.us-east-1.aws.neon.tech'
   }), /OPSC_PG_ACCEPTANCE_DATABASE_NOT_ALLOWLISTED/);
 });
+
+test('Neon PITR verification uses libpq system trust roots with full hostname verification', () => {
+  const workflowPath = path.join(__dirname, '..', '..', '.github', 'workflows', 'digital-twin-postgres-live.yml');
+  const workflow = fs.readFileSync(workflowPath, 'utf8');
+  assert.match(workflow, /q\["sslmode"\]="verify-full"/);
+  assert.match(workflow, /q\["sslrootcert"\]="system"/);
+  assert.match(workflow, /PITR_TEST_BRANCH_CLEANUP=PASS/);
+});
