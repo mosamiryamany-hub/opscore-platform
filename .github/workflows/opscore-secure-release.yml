@@ -2,12 +2,14 @@ name: OpsCore secure release
 
 on:
   push:
+    branches:
+      - 'release/v0.11.62.18-commercial-source-package'
     tags:
       - 'v*.*.*'
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
   attestations: write
 
@@ -19,6 +21,7 @@ jobs:
   verify-and-release:
     if: >-
       (github.ref_type == 'tag' && startsWith(github.ref_name, 'v')) ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/release/v0.11.62.18-commercial-source-package') ||
       (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -37,6 +40,12 @@ jobs:
           cache-dependency-path: |
             backend/package-lock.json
             mobile/package-lock.json
+
+      - name: Verify release control script syntax
+        run: |
+          node --check scripts/finalize-draft-release.js
+          node --check scripts/package-release.js
+          node --check scripts/write-release-attestation.js
 
       - name: Verify release tag matches package version
         if: github.ref_type == 'tag'
@@ -65,35 +74,45 @@ jobs:
         env:
           RELEASE_BASE_SHA: deba977db586f19128a1f53377fec183beab44d0
           ISOLATED_RELEASE_TAG: v0.11.62.18-commercial-source-package
+          ISOLATED_RELEASE_BRANCH: release/v0.11.62.18-commercial-source-package
         run: |
           set -euo pipefail
           if [[ "$GITHUB_REF_TYPE" == "tag" && "$GITHUB_REF_NAME" == "$ISOLATED_RELEASE_TAG" ]]; then
             git cat-file -e "${RELEASE_BASE_SHA}^{commit}"
             git merge-base --is-ancestor "$RELEASE_BASE_SHA" "$GITHUB_SHA"
             test "$(git rev-parse "${GITHUB_REF_NAME}^{commit}")" = "$GITHUB_SHA"
-            actual="$(git diff --name-only "$RELEASE_BASE_SHA" "$GITHUB_SHA" | LC_ALL=C sort)"
-            expected="$(printf '%s\n' \
-              '.github/workflows/opscore-secure-release.yml' \
-              'backend/docs/verification/I18N_FORENSIC_AUDIT_RESULT.sha256' \
-              'backend/docs/verification/PRODUCTION_RECOVERY_POINT.json.sha256' \
-              'backend/docs/verification/PRODUCTION_SESSION_ISOLATION.json.sha256' \
-              'backend/docs/verification/RECOVERY_GATE_RESULT.sha256' \
-              'backend/docs/verification/RELEASE_TEST_RUN_RESULT.sha256' \
-              'docs/commercial/CLIENT_TRUST_PACK.md' \
-              'docs/commercial/COMMERCIAL_CLOSEOUT_FINAL.md' \
-              'docs/ops/REMAINING_CLOSEOUT_GATES.md' \
-              'scripts/package-release.js' \
-              'scripts/refresh-evidence-sidecars.js' \
-              'scripts/release-artifact-gate.js')"
-            if [[ "$actual" != "$expected" ]]; then
-              printf 'ISOLATED_RELEASE_FILE_ALLOWLIST_MISMATCH\nExpected:\n%s\nActual:\n%s\n' "$expected" "$actual" >&2
-              exit 1
-            fi
-            echo "ISOLATED_COMMERCIAL_RELEASE_LINE_VERIFIED: base=$RELEASE_BASE_SHA tag=$GITHUB_REF_NAME"
+          elif [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF" == "refs/heads/$ISOLATED_RELEASE_BRANCH" ]]; then
+            git cat-file -e "${RELEASE_BASE_SHA}^{commit}"
+            git merge-base --is-ancestor "$RELEASE_BASE_SHA" "$GITHUB_SHA"
+            test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           else
             git merge-base --is-ancestor "$(git rev-parse HEAD)" origin/main
+            exit 0
           fi
-
+          actual="$(git diff --name-only "$RELEASE_BASE_SHA" "$GITHUB_SHA" | LC_ALL=C sort)"
+          expected="$(printf '%s\\n' \\
+            '.github/workflows/opscore-secure-release.yml' \\
+            'backend/docs/verification/I18N_FORENSIC_AUDIT_RESULT.sha256' \\
+            'backend/docs/verification/PRODUCTION_RECOVERY_POINT.json.sha256' \\
+            'backend/docs/verification/PRODUCTION_SESSION_ISOLATION.json.sha256' \\
+            'backend/docs/verification/RECOVERY_GATE_RESULT.sha256' \\
+            'backend/docs/verification/RELEASE_TEST_RUN_RESULT.sha256' \\
+            'docs/commercial/CLIENT_TRUST_PACK.md' \\
+            'docs/commercial/CLIENT_TRUST_PACK_v0.11.62.18.md' \\
+            'docs/commercial/COMMERCIAL_CLOSEOUT_FINAL.md' \\
+            'docs/commercial/REMAINING_CLOSEOUT_CHECKLIST.md' \\
+            'docs/ops/REMAINING_CLOSEOUT_GATES.md' \\
+            'docs/security/OPSC_APP_SECURITY_DISPOSITION.md' \\
+            'scripts/finalize-draft-release.js' \\
+            'scripts/package-release.js' \\
+            'scripts/refresh-evidence-sidecars.js' \\
+            'scripts/release-artifact-gate.js' \\
+            'scripts/write-release-attestation.js')"
+          if [[ "$actual" != "$expected" ]]; then
+            printf 'ISOLATED_RELEASE_FILE_ALLOWLIST_MISMATCH\\nExpected:\\n%s\\nActual:\\n%s\\n' "$expected" "$actual" >&2
+            exit 1
+          fi
+          echo "ISOLATED_COMMERCIAL_RELEASE_LINE_VERIFIED: base=$RELEASE_BASE_SHA tag=$ISOLATED_RELEASE_TAG"
       - name: Install backend dependencies from lockfile
         working-directory: backend
         run: npm ci --ignore-scripts
@@ -201,7 +220,7 @@ jobs:
 
       - name: Build buyer release archive
         env:
-          CI_COMMIT_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+          CI_COMMIT_TAG: ${{ github.ref_type == 'tag' && github.ref_name || (github.ref == 'refs/heads/release/v0.11.62.18-commercial-source-package' && 'v0.11.62.18-commercial-source-package') || '' }}
           CI_COMMIT_SHA: ${{ github.sha }}
           CI_PIPELINE_ID: ${{ github.run_id }}
           CI_PIPELINE_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -210,9 +229,19 @@ jobs:
           CI_JOB_NAME: commercial-closure
         run: node scripts/package-release.js "$RUNNER_TEMP/OpsCore-release.zip"
 
+      - name: Name archive with exact source and run identity
+        env:
+          SOURCE_ARCHIVE: ${{ runner.temp }}/OpsCore-release.zip
+          RELEASE_ARCHIVE: ${{ runner.temp }}/OpsCore-release-v0.11.62.18-${{ github.sha }}-${{ github.run_id }}.zip
+        run: |
+          set -euo pipefail
+          test -s "$SOURCE_ARCHIVE"
+          mv "$SOURCE_ARCHIVE" "$RELEASE_ARCHIVE"
+          test -s "$RELEASE_ARCHIVE"
+
       - name: Write external commercial archive statement
         env:
-          CI_COMMIT_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+          CI_COMMIT_TAG: ${{ github.ref_type == 'tag' && github.ref_name || (github.ref == 'refs/heads/release/v0.11.62.18-commercial-source-package' && 'v0.11.62.18-commercial-source-package') || '' }}
           CI_COMMIT_SHA: ${{ github.sha }}
           CI_PIPELINE_ID: ${{ github.run_id }}
           CI_PIPELINE_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -227,12 +256,24 @@ jobs:
           subject-path: "${{ runner.temp }}/OpsCore-release.zip"
           sbom-path: docs/sbom/opscore-v0.11.62.cyclonedx.json
 
+      - name: Finalize versioned assets on the existing .18 draft release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/release/v0.11.62.18-commercial-source-package'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          RELEASE_TAG: v0.11.62.18-commercial-source-package
+          RELEASE_ARCHIVE_PATH: ${{ runner.temp }}/OpsCore-release-v0.11.62.18-${{ github.sha }}-${{ github.run_id }}.zip
+          RELEASE_STATEMENT_PATH: ${{ runner.temp }}/COMMERCIAL_RELEASE_STATEMENT.json
+        run: node scripts/finalize-draft-release.js
+
       - name: Upload release and exact-run evidence
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: opscore-release-${{ github.run_id }}
           path: |
-            ${{ runner.temp }}/OpsCore-release.zip
+            ${{ runner.temp }}/OpsCore-release-v0.11.62.18-${{ github.sha }}-${{ github.run_id }}.zip
             ${{ runner.temp }}/COMMERCIAL_RELEASE_STATEMENT.json
             mobile/mobile-dependency-audit.json
             mobile/mobile-audit-gate-result.json
