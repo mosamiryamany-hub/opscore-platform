@@ -75,7 +75,7 @@ test('Production migration preflight accepts only the proof checks object-map co
   assert.ok(migrationRunner.includes('PRODUCTION_RESTORE_PROOF_SCHEMA_NO_LONGER_MATCHES_PRIMARY'));
   assert.ok(migrationRunner.includes('PRODUCTION_RESTORE_PROOF_PUBLIC_TABLE_DATA_NO_LONGER_MATCHES_PRIMARY'));
   const helperStart = runner.indexOf('def table_data_inventory(uri):');
-  const helperEnd = runner.indexOf('\n\ndef verify_required_migration_ledger(uri):', helperStart);
+  const helperEnd = runner.indexOf('\\n\\ndef verify_signed_context_catalog(uri):', helperStart);
   const inventoryHelper = runner.slice(helperStart, helperEnd);
   const mainBody = runner.slice(runner.indexOf('def main():'));
   assert.ok(inventoryHelper.includes('psql(uri,'));
