@@ -26,6 +26,31 @@ function requireLocalAcceptanceUrl(value, expectedRole, label) {
   return url;
 }
 
+const SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST = JSON.parse(fs.readFileSync(
+  path.join(__dirname, '..', 'docs', 'verification', 'SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST.json'),
+  'utf8'
+));
+
+function isSignedTenantManifestRoute(method, requestPath) {
+  const normalizedMethod = String(method || '').toUpperCase();
+  const pathname = String(requestPath || '').split('?')[0];
+  return SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST.routes.some(route => {
+    if (String(route.method || '').toUpperCase() !== normalizedMethod) return false;
+    const template = String(route.path || '');
+    if (template.endsWith('/chunks/(\\d+)')) {
+      const prefix = template.slice(0, -'/chunks/(\\d+)'.length);
+      return pathname.startsWith(prefix + '/chunks/')
+        && /^\\d+$/.test(pathname.slice((prefix + '/chunks/').length));
+    }
+    const expectedSegments = template.split('/');
+    const actualSegments = pathname.split('/');
+    return expectedSegments.length === actualSegments.length
+      && expectedSegments.every((segment, index) =>
+        segment === '{id}' ? Boolean(actualSegments[index]) : segment === actualSegments[index]
+      );
+  });
+}
+
 function candidateOrigin(value) {
   let url;
   try { url = new URL(String(value || '').trim()); }
@@ -238,13 +263,18 @@ async function queryHttp(port, route, token, options = {}) {
       redirect: 'manual',
       signal: AbortSignal.timeout(Number(options.timeoutMs) > 0 ? Number(options.timeoutMs) : 15000)
     });
+    const responseHeaders = Object.fromEntries(response.headers.entries());
+    if (isSignedTenantManifestRoute(method, target.pathname)
+        && String(responseHeaders['x-opscore-candidate-guc-tamper'] || '') !== 'applied') {
+      throw new Error('CANDIDATE_GUC_TAMPER_NOT_CONFIRMED:' + method + ' ' + target.pathname);
+    }
     const responseBody = await response.text();
     if (Buffer.byteLength(responseBody, 'utf8') > 1024 * 1024) {
       throw new Error('CANDIDATE_HTTP_RESPONSE_TOO_LARGE');
     }
     let parsed = null;
     try { parsed = responseBody ? JSON.parse(responseBody) : null; } catch (_) {}
-    return { status: response.status, headers: Object.fromEntries(response.headers.entries()), body: parsed };
+    return { status: response.status, headers: responseHeaders, body: parsed };
   }
 
   return new Promise((resolve, reject) => {
@@ -4229,6 +4259,7 @@ if (require.main === module) {
 
 module.exports = {
   candidateOrigin,
+  isSignedTenantManifestRoute,
   validateCandidateProbeEnvironment,
   requireLocalAcceptanceUrl,
   queryHttp,
