@@ -14,6 +14,7 @@ const {
   signedWorkOrdersWriteEnabled,
   signedAssetsReadEnabled,
   signedSessionAutobindEnabled,
+  isCandidateProbeAuthorized,
   signedTenantContextRouteError,
   signedContextRequested: isSignedContextRequested
 } = require('./signed-tenant-context-policy');
@@ -1004,7 +1005,7 @@ function auditSafeAi(store,c,workOrderId,out){
     throw new Error('AI_AUDIT_EVIDENCE_REQUIRED');
   }
 }
-function runSignedWorkOrdersRead(res, c, reader, responseHeaders = {}) {
+function runSignedWorkOrdersRead(req, res, c, reader, responseHeaders = {}) {
   if (c.apiKeyId || !c.sessionId || !store.db || store.db.engine !== 'postgres'
       || typeof store.db.activateVerifiedTenantContext !== 'function') {
     return json(res, 401, { error: { code: 'SIGNED_TENANT_SESSION_REQUIRED' } }, { 'cache-control': 'no-store' });
@@ -1014,6 +1015,17 @@ function runSignedWorkOrdersRead(res, c, reader, responseHeaders = {}) {
     store.db.exec('BEGIN READ ONLY');
     transactionOpen = true;
     store.db.activateVerifiedTenantContext();
+
+    // Candidate-only red-team probe: after the signed context is bound to this
+    // backend/transaction, forge legacy GUCs before the route reads any rows.
+    // This is enabled only for requests bearing the exact candidate probe token
+    // while the Production hold remains active; ordinary Production traffic is
+    // never subjected to test mutations.
+    if (isCandidateProbeAuthorized(req, process.env, signedContextProductionReadiness)) {
+      store.db.prepare(
+        "SELECT set_config('app.tenant_id', ?, true), set_config('app.user_id', ?, true), set_config('app.access_mode', ?, true)"
+      ).run('candidate-probe-forged-tenant', 'candidate-probe-forged-user', 'backoffice');
+    }
 
     // CI-only red-team probe: signed RLS accessors must ignore these raw GUC values.
     if (process.env.CI === 'true'
@@ -1044,9 +1056,9 @@ function runSignedWorkOrdersRead(res, c, reader, responseHeaders = {}) {
 }
 function sendWorkOrderRead(req, res, c, reader, responseHeaders = {}) {
   if (!signedWorkOrdersReadEnabled(req, process.env, signedContextProductionReadiness)) return json(res, 200, reader(), responseHeaders);
-  return runSignedWorkOrdersRead(res, c, reader, responseHeaders);
+  return runSignedWorkOrdersRead(req, res, c, reader, responseHeaders);
 }
-function runSignedWorkOrderWrite(res, c, writer, responder) {
+function runSignedWorkOrderWrite(req, res, c, writer, responder) {
   if (c.apiKeyId || !c.sessionId || !store.db || store.db.engine !== 'postgres'
       || typeof store.db.activateVerifiedTenantContext !== 'function'
       || typeof store.withCallerManagedTransaction !== 'function') {
@@ -1077,6 +1089,14 @@ function runSignedWorkOrderWrite(res, c, writer, responder) {
     store.db.exec('BEGIN');
     transactionOpen = true;
     store.db.activateVerifiedTenantContext();
+
+    // Candidate-only red-team probe: forge legacy GUCs after signed context
+    // activation and before any domain write, under the exact probe token.
+    if (isCandidateProbeAuthorized(req, process.env, signedContextProductionReadiness)) {
+      store.db.prepare(
+        "SELECT set_config('app.tenant_id', ?, true), set_config('app.user_id', ?, true), set_config('app.access_mode', ?, true)"
+      ).run('candidate-probe-forged-tenant', 'candidate-probe-forged-user', 'backoffice');
+    }
 
     // CI-only red-team probe: tenant writes must use signed claims, not caller-settable GUCs.
     if (process.env.CI === 'true'
@@ -1244,7 +1264,7 @@ function safeDatabaseErrorCode(error) {
 }
 function runSignedRouteWrite(req, res, c, writer, responder) {
   if (!signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) return responder(writer(), {});
-  return runSignedWorkOrderWrite(res, c, writer, responder);
+  return runSignedWorkOrderWrite(req, res, c, writer, responder);
 }
 
 function route(req, res) {
