@@ -47,7 +47,7 @@ test('Production runbook and buyer residual register use the current observed Ne
   assert.match(current, /Current snapshot inventory contains \*\*one\*\* manual Primary snapshot/);
   assert.match(current, /snap-tiny-dream-bc58p5nj/);
   assert.match(buyerResiduals, /2 active branches/);
-  assert.match(buyerResiduals, /both branch records unprotected/i);
+  assert.match(buyerResiduals, /both records report protected=false/i);
   assert.match(buyerResiduals, /one listed manual snapshot/i);
   assert.doesNotMatch(current, /10 active branches \(10\/10 included\)/);
   assert.doesNotMatch(buyerResiduals, /10\/10 visible branches|all ten are unprotected/i);
@@ -76,7 +76,7 @@ test('Production key material, signed-route proof and snapshot generation are ac
   assert.match(current, /context_hmac_keys.*exists with the expected schema and ownership/);
   assert.match(current, /zero Production HMAC key rows/);
   assert.match(current, /live Production 67-route signed-session matrix remains \*\*NOT ESTABLISHED\*\*/);
-  assert.match(current, /restore branch br-odd-surf-bcps6nce reports restored_from=snap-tiny-dream-bc58p5nj/i);
+  assert.match(current, /br-odd-surf-bcps6nce.*restored_from=snap-tiny-dream-bc58p5nj/i);
   assert.match(current, /snapshot reflects the current 063–069 migration writes/);
   assert.match(current, /Snapshot creation and branch cleanup are complete/);
   assert.doesNotMatch(current, /context_hmac_keys table are absent on Primary/);
