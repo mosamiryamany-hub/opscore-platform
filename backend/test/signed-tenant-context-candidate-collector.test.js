@@ -502,3 +502,35 @@ test('manifest or inventory drift prevents the 67-route matrix from passing', ()
   assert.equal(evidence.manifestComplete, false);
   assert.equal(evidence.routes.length, 66);
 });
+
+
+test('candidate final residue proof includes every tenant event and external-delivery queue', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const gate = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'signed-tenant-context-postgres-gate.js'), 'utf8');
+  const deleteOrganization = gate.indexOf("DELETE FROM public.organizations WHERE id = ANY($1::text[])");
+  const residueStart = gate.indexOf('finalCleanupResidue = residue.rows[0] || {};');
+  const residueEnd = gate.indexOf('try { await owner.end(); }', residueStart);
+  assert.ok(deleteOrganization >= 0 && residueStart > deleteOrganization && residueEnd > residueStart,
+    'final queue residue must be inspected after synthetic organizations are deleted');
+
+  const residueBlock = gate.slice(residueStart, residueEnd);
+  for (const table of [
+    'integration_outbox',
+    'notifications',
+    'webhook_endpoints',
+    'webhook_deliveries',
+    'operational_jobs',
+    'operational_event_receipts',
+    'worker_guard_events',
+    'sync_events',
+    'gateway_circuit_events',
+    'signature_chain_events',
+    'operational_twin_chain_events',
+    'stripe_events'
+  ]) {
+    assert.ok(residueBlock.includes('public.' + table), table + ' must be included in final zero-residue proof');
+  }
+  assert.match(residueBlock, /FROM public\.operational_jobs WHERE organization_id = ANY\(\$1::text\[\]\)/,
+    'all candidate operational jobs must be counted, not only work-order and appointment jobs');
+});
