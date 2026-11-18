@@ -111,6 +111,7 @@ jobs:
             --data-urlencode "branch_id=${BRANCH_ID}" \
             --data-urlencode "database_name=${INPUT_DB}" \
             --data-urlencode "role_name=opscore_owner" \
+            --data-urlencode "endpoint_id=ep-dry-mouse-bbf5ozwy" \
             --data-urlencode "pooled=false" \
             "https://console.neon.tech/api/v2/projects/${PROJECT_ID}/connection_uri" \
             > "$RUNNER_TEMP/uri.json"
@@ -242,6 +243,7 @@ jobs:
             --data-urlencode "branch_id=${INPUT_BRANCH}" \
             --data-urlencode "database_name=${INPUT_DB}" \
             --data-urlencode "role_name=opscore_runtime" \
+            --data-urlencode "endpoint_id=ep-dry-mouse-bbf5ozwy" \
             --data-urlencode "pooled=false" \
             "https://console.neon.tech/api/v2/projects/${PROJECT_ID}/connection_uri" \
             > "$RUNNER_TEMP/runtime-uri.json"
