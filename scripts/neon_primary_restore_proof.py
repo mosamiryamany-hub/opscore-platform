@@ -15,7 +15,7 @@ from pathlib import Path
 
 PROJECT_ID = "summer-leaf-18448271"
 PRIMARY_BRANCH_ID = "br-proud-salad-bcshhdap"
-SNAPSHOT_ID = os.environ.get("OPSC_PRIMARY_SNAPSHOT_ID", "snap-floral-sea-bcug7fd3").strip()
+SNAPSHOT_ID = os.environ.get("OPSC_PRIMARY_SNAPSHOT_ID", "").strip()
 DATABASE_NAME = "opscore_acceptance"
 ROLE_NAME = "neondb_owner"
 RESTORE_NAME = "opscore-primary-snapshot-restore-proof"
@@ -167,6 +167,8 @@ def list_branches():
 
 
 def verify_snapshot():
+    if not SNAPSHOT_ID:
+        fail("PRODUCTION_SNAPSHOT_ID_REQUIRED")
     if not SNAPSHOT_RE.fullmatch(SNAPSHOT_ID):
         fail("PRODUCTION_SNAPSHOT_ID_INVALID")
     response = api("GET", "/snapshots")
