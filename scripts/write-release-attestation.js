@@ -63,6 +63,12 @@ function main() {
       evidenceSha256: productionAcceptanceVerified ? acceptanceEvidenceSha : null,
       scope: productionAcceptanceVerified ? 'commit-bound production evidence supplied to this CI run' : 'production acceptance is evaluated after deployment; this build-time statement does not assert live acceptance'
     },
+    residuals: [
+      'OPSC_APP_SECURITY was not defined or verified in the reviewed .18 source/package and Vercel environment-variable inventory; GitHub Actions secret names were not inspectable.',
+      'The 2026-11-14 Production tenant-context trust-boundary audit is historical and reports caller-settable tenant identity context; current Production-wide isolation remains NOT_CERTIFIED pending exact live remediation and retest.',
+      'GHSA-fc5q-39xc-vjpf / CVE-2026-112366 remains a documented picomatch build-toolchain allowlist exception, not an upstream fix.',
+      'Signed Android/iOS store artifacts, physical-device acceptance, native-speaker translation review, licensed maps and third-party provider provisioning remain environment-specific buyer residuals.'
+    ],
     officialRepo: String(process.env.CI_PROJECT_PATH || process.env.GITHUB_REPOSITORY || 'mosamiryamany-hub/opscore-platform'),
     generatedAt: new Date().toISOString(),
     note: 'The archive digest is calculated from the completed ZIP and stored externally to avoid a self-referential checksum. NOT_VERIFIED_AT_BUILD means the build did not receive matching commit-bound production acceptance inputs; it is not a claim about later live endpoint state. productionCertification remains false until separate formal isolation certification is recorded.'
