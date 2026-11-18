@@ -41,6 +41,23 @@ function candidateOrigin(value) {
   return url.origin;
 }
 
+function validateCandidateProbeEnvironment(env = process.env) {
+  const origin = candidateOrigin(env.OPSC_SIGNED_CONTEXT_CANDIDATE_HTTP_ORIGIN);
+  const probeToken = String(env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN || '').trim();
+  const oidcToken = String(env.VERCEL_TRUSTED_OIDC_TOKEN || '').trim();
+  if (!/^[a-f0-9]{64}$/i.test(probeToken)) throw new Error('CANDIDATE_PROBE_TOKEN_REQUIRED');
+  if (oidcToken.split('.').length !== 3) throw new Error('CANDIDATE_VERCEL_OIDC_TOKEN_REQUIRED');
+  if (String(env.VERCEL_ENV || '') !== 'production'
+      || String(env.OPSC_PRODUCTION_HOLD || '').toLowerCase() !== 'true'
+      || String(env.OPSC_RELEASE_VERIFIED || '').toLowerCase() !== 'false'
+      || String(env.OPSC_REQUIRE_SIGNED_TENANT_CONTEXT || '').toLowerCase() !== 'true'
+      || String(env.OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED || 'false').toLowerCase() === 'true'
+      || String(env.OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED || 'false').toLowerCase() === 'true') {
+    throw new Error('CANDIDATE_PROBE_RUNTIME_NOT_FAIL_CLOSED');
+  }
+  return origin;
+}
+
 async function neonApi(pathname, apiKey) {
   const response = await fetch('https://console.neon.tech/api/v2' + pathname, {
     method: 'GET',
@@ -220,19 +237,7 @@ async function main() {
   let remoteHttpOrigin = null;
 
   if (candidateMode) {
-    remoteHttpOrigin = candidateOrigin(process.env.OPSC_SIGNED_CONTEXT_CANDIDATE_HTTP_ORIGIN);
-    const probeToken = String(process.env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN || '').trim();
-    const oidcToken = String(process.env.VERCEL_TRUSTED_OIDC_TOKEN || '').trim();
-    if (!/^[a-f0-9]{64}$/i.test(probeToken)) throw new Error('CANDIDATE_PROBE_TOKEN_REQUIRED');
-    if (oidcToken.split('.').length !== 3) throw new Error('CANDIDATE_VERCEL_OIDC_TOKEN_REQUIRED');
-    if (String(process.env.VERCEL_ENV || '') !== 'production'
-        || String(process.env.OPSC_PRODUCTION_HOLD || '').toLowerCase() !== 'true'
-        || String(process.env.OPSC_RELEASE_VERIFIED || '').toLowerCase() !== 'false'
-        || String(process.env.OPSC_REQUIRE_SIGNED_TENANT_CONTEXT || '').toLowerCase() !== 'true'
-        || String(process.env.OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED || 'false').toLowerCase() === 'true'
-        || String(process.env.OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED || 'false').toLowerCase() === 'true') {
-      throw new Error('CANDIDATE_PROBE_RUNTIME_NOT_FAIL_CLOSED');
-    }
+    remoteHttpOrigin = validateCandidateProbeEnvironment(process.env);
     const config = {
       projectId: String(process.env.NEON_PROJECT_ID || '').trim(),
       branchId: String(process.env.OPSC_PRODUCTION_NEON_BRANCH_ID || '').trim(),
@@ -4099,7 +4104,18 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  process.stderr.write('SIGNED_CONTEXT_POSTGRES_GATE_FAILED:' + String(error && (error.code || error.message) || error).slice(0, 1200) + '\\n');
-  process.exitCode = 1;
-});
+if (require.main === module) {
+  main().catch((error) => {
+    process.stderr.write('SIGNED_CONTEXT_POSTGRES_GATE_FAILED:' + String(error && (error.code || error.message) || error).slice(0, 1200) + '\\n');
+    process.exitCode = 1;
+  });
+}
+
+module.exports = {
+  candidateOrigin,
+  validateCandidateProbeEnvironment,
+  requireLocalAcceptanceUrl,
+  queryHttp,
+  candidateDatabaseUrl,
+  main
+};
