@@ -528,9 +528,11 @@ test('candidate route permission is limited to the actual Preview policy allowli
 test('Production candidate probe allows exactly the approved 67 manifest route/method pairs without global flags', () => {
   const checked = [];
   for (const route of signedTenantRouteManifest.routes) {
-    const pathname = String(route.path)
-      .replace(/\\{[^/]+\\}/g, 'candidate-route-id')
-      .replace(/\\(\\\\d\\+\\)/g, '0');
+    const pathname = String(route.path).split('/').map(segment => {
+      if (segment === '{id}') return 'candidate-route-id';
+      if (segment.startsWith('(') && segment.includes('d+') && segment.endsWith(')')) return '0';
+      return segment;
+    }).join('/');
     const request = {
       method: String(route.method).toUpperCase(),
       url: pathname,
