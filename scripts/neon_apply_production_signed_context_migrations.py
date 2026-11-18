@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Apply the exact signed-context migration set to Neon Production.
+"""Verify the signed-context migration state already recorded in Neon Production.
 
-This is an approval-gated workflow helper, not an autonomous production action.
-It requires an owner-created, hash-pinned Neon snapshot restore proof before any
-Production SQL write. It uses the repository's guarded Node migration runner.
+This is an approval-gated, read-only workflow helper. It requires an owner-created,
+hash-pinned Neon snapshot restore proof and the repository's guarded migration
+runner to prove that the exact reviewed migrations are already applied.
 """
 import hashlib
 import json
@@ -23,14 +23,6 @@ PROJECT_ID = "summer-leaf-18448271"
 PRIMARY_BRANCH_ID = "br-proud-salad-bcshhdap"
 DATABASE_NAME = "opscore_acceptance"
 ROLE_NAME = "neondb_owner"
-REQUIRED_PENDING = {
-    "063_signed_tenant_context_verifier.sql",
-    "064_signed_tenant_context_work_orders_routing.sql",
-    "065_signed_tenant_context_evidence_upload_chunks.sql",
-    "066_signed_tenant_context_verifier_search_path_hardening.sql",
-    "067_signed_tenant_context_rls_policy_accessor_alignment.sql",
-    "069_technician_location_trail_tenant_persistence.sql",
-}
 PROOF_PATH = Path("docs/ops/evidence/PRODUCTION_PRIMARY_RESTORE_PROOF.json")
 SHA_RE = re.compile(r"^[a-f0-9]{64}$")
 BRANCH_RE = re.compile(r"^br-[a-z0-9-]{8,80}$")
@@ -330,7 +322,7 @@ def invoke_runner(root, env, apply):
 def main():
     if os.environ.get("GITHUB_REF") != "refs/heads/main":
         fail("PRODUCTION_MIGRATION_WORKFLOW_MUST_RUN_FROM_MAIN")
-    if os.environ.get("OPSC_CONFIRM_PRODUCTION_MIGRATION") != "APPLY_PRODUCTION_SIGNED_CONTEXT_MIGRATIONS":
+    if os.environ.get("OPSC_CONFIRM_PRODUCTION_MIGRATION") != "VERIFY_PRODUCTION_SIGNED_CONTEXT_MIGRATIONS":
         fail("PRODUCTION_MIGRATION_EXPLICIT_CONFIRMATION_REQUIRED")
 
     key = str(os.environ.get("NEON_API_KEY") or "").strip()
