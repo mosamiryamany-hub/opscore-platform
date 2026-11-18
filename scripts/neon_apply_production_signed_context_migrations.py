@@ -77,7 +77,7 @@ def load_and_verify_restore_proof(key):
     except Exception:
         fail("PRODUCTION_PRIMARY_RESTORE_PROOF_JSON_INVALID")
 
-    if proof.get("schemaVersion") != "opscore.neon-primary-restore-proof.v1":
+    if proof.get("schemaVersion") != "opscore.neon-primary-restore-proof.v2":
         fail("PRODUCTION_PRIMARY_RESTORE_PROOF_SCHEMA_INVALID")
     if proof.get("status") != "PASS":
         fail("PRODUCTION_PRIMARY_RESTORE_PROOF_NOT_PASS")
