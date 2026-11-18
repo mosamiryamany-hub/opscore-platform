@@ -96,7 +96,7 @@ const CANDIDATE_ROUTE_PROOF_REQUIREMENTS = Object.freeze({
   'GET /api/v1/technicians/trail.geojson': { a: ['session.technicianTrailGeoJsonTenantA'], b: ['session.technicianTrailGeoJsonTenantB'], cross: ['session.technicianTrailGeoJsonCrossTenantHidden'] },
   'GET /api/v1/work-orders': { a: ['checks.signedWorkOrdersTenantA'], b: ['checks.signedWorkOrdersTenantB'], cross: ['checks.signedWorkOrdersTenantA', 'checks.signedWorkOrdersTenantB'] },
   'POST /api/v1/work-orders': { a: ['write.createTenantA'], b: ['write.createTenantB'], cross: ['write.createIgnoresClientTenantClaim'] },
-  'GET /api/v1/work-orders/{id}': { a: ['checks.signedWorkOrderDetailTenantA'], b: ['checks.signedWorkOrderDetailTenantB'], cross: ['checks.signedWorkOrderDetailCrossTenantDenied'] },
+  'GET /api/v1/work-orders/{id}': { a: ['checks.signedWorkOrderDetailTenantA'], b: ['checks.signedWorkOrderDetailTenantB'], cross: ['session.signedWorkOrderDetailCrossTenantDenied'] },
   'PATCH /api/v1/work-orders/{id}': { a: ['write.patchTenantA'], b: ['write.patchTenantB'], cross: ['write.crossTenantPatchDenied', 'write.crossTenantPatchLeftForeignRowUnchanged'] },
   'GET /api/v1/work-orders/{id}/attachments': { a: ['read.attachmentsTenantA'], b: ['read.attachmentsTenantB'], cross: ['read.attachmentsForeignTenantDenied'] },
   'POST /api/v1/work-orders/{id}/attachments': { a: ['evidence.directAttachmentTenantA'], b: ['evidence.directAttachmentTenantB'], cross: ['evidence.crossTenantDirectAttachmentDenied'] },
