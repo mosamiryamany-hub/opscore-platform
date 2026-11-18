@@ -7,6 +7,11 @@ const {
   validateCandidateProbeEnvironment,
   validateCandidateRuntimeProofs,
   isSignedTenantManifestRoute,
+  findSignedTenantManifestRoute,
+  resetCandidateRouteObservations,
+  registerCandidateSessionToken,
+  getCandidateRouteObservations,
+  recordCandidateRouteObservation,
   queryHttp
 } = require('../scripts/signed-tenant-context-postgres-gate');
 
@@ -330,3 +335,66 @@ test('remote candidate manifest route requires explicit confirmation that GUC ta
   }
 });
 
+
+
+test('manifest route resolver binds path templates to exact manifest method and operation', () => {
+  const read = findSignedTenantManifestRoute('GET', '/api/v1/work-orders/wo_123/timeline');
+  assert.deepEqual(read, {
+    method: 'GET',
+    path: '/api/v1/work-orders/{id}/timeline',
+    operation: 'read'
+  });
+  const chunk = findSignedTenantManifestRoute('PUT', '/api/v1/evidence-uploads/up_123/chunks/9');
+  assert.deepEqual(chunk, {
+    method: 'PUT',
+    path: '/api/v1/evidence-uploads/{id}/chunks/(\\d+)',
+    operation: 'write'
+  });
+  assert.equal(findSignedTenantManifestRoute('POST', '/api/v1/work-orders/wo_123/timeline'), null);
+  assert.equal(findSignedTenantManifestRoute('GET', '/api/v1/work-orders/wo_123/not-in-manifest'), null);
+});
+
+test('candidate request observations are tenant-labelled, route-bound, and count only signed tamper-confirmed 2xx responses', () => {
+  resetCandidateRouteObservations();
+  registerCandidateSessionToken('synthetic-token-A', 'tenantA');
+  registerCandidateSessionToken('synthetic-token-B', 'tenantB');
+  const routeA = findSignedTenantManifestRoute('GET', '/api/v1/customers');
+  const routeB = findSignedTenantManifestRoute('GET', '/api/v1/customers');
+  recordCandidateRouteObservation(routeA, 'synthetic-token-A', {
+    status: 200,
+    headers: {
+      'x-opscore-signed-tenant-context': 'verified',
+      'x-opscore-candidate-guc-tamper': 'applied'
+    }
+  });
+  recordCandidateRouteObservation(routeB, 'synthetic-token-B', {
+    status: 200,
+    headers: {
+      'x-opscore-signed-tenant-context': 'verified',
+      'x-opscore-candidate-guc-tamper': 'applied'
+    }
+  });
+  recordCandidateRouteObservation(routeA, 'synthetic-token-A', {
+    status: 404,
+    headers: {
+      'x-opscore-signed-tenant-context': 'verified',
+      'x-opscore-candidate-guc-tamper': 'applied'
+    }
+  });
+  recordCandidateRouteObservation(routeA, 'unknown-token', {
+    status: 200,
+    headers: {
+      'x-opscore-signed-tenant-context': 'verified',
+      'x-opscore-candidate-guc-tamper': 'applied'
+    }
+  });
+  assert.deepEqual(getCandidateRouteObservations(), [{
+    method: 'GET',
+    path: '/api/v1/customers',
+    operation: 'read',
+    tenantA: { requests: 2, signed: 2, tamperApplied: 2, successful: 1 },
+    tenantB: { requests: 1, signed: 1, tamperApplied: 1, successful: 1 }
+  }]);
+  resetCandidateRouteObservations();
+  assert.deepEqual(getCandidateRouteObservations(), []);
+});
