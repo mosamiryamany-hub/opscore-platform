@@ -2305,7 +2305,9 @@ async function main() {
     // for this one HTTP call, then restore and verify the original member role.
     // The separate member-denial test above remains a distinct assertion.
     const managerRescheduleKey = 'signed-context-appointment-manager-reschedule-' + keyId;
-    synthetic.idempotencyKeys.push(managerRescheduleKey);
+    const appointmentRescheduleTenantAKey = 'signed-context-appointment-reschedule-tenant-a-' + keyId;
+    const appointmentRescheduleCrossKey = 'signed-context-appointment-reschedule-cross-' + keyId;
+    synthetic.idempotencyKeys.push(managerRescheduleKey, appointmentRescheduleTenantAKey, appointmentRescheduleCrossKey);
     const memberRoleBeforeReschedule = await owner.query(
       'SELECT role FROM public.memberships WHERE user_id=$1 AND organization_id=$2',
       [userB, tenantB]
@@ -2362,6 +2364,83 @@ async function main() {
       }
       signedSessionAutobindHttpProof.appointmentRescheduleManagerTenantB = 'PASS';
       signedSessionAutobindHttpProof.appointmentRescheduleAuditPersistedTenantB = 'PASS';
+
+      const memberRoleA = await owner.query(
+        'SELECT role FROM public.memberships WHERE user_id=$1 AND organization_id=$2',
+        [userA, tenantA]
+      );
+      if (memberRoleA.rows[0]?.role !== 'member') {
+        throw new Error('SIGNED_CONTEXT_APPOINTMENT_TENANT_A_MANAGER_FIXTURE_NOT_MEMBER');
+      }
+      const promoteTenantA = await owner.query(
+        "UPDATE public.memberships SET role='manager' WHERE user_id=$1 AND organization_id=$2 AND role='member'",
+        [userA, tenantA]
+      );
+      if (promoteTenantA.rowCount !== 1) {
+        throw new Error('SIGNED_CONTEXT_APPOINTMENT_TENANT_A_MANAGER_PROMOTION_FAILED');
+      }
+      let tenantARescheduleResponse;
+      try {
+        const tenantAStart = new Date(appointmentBase + 420 * 60 * 1000).toISOString();
+        const tenantAEnd = new Date(appointmentBase + 480 * 60 * 1000).toISOString();
+        tenantARescheduleResponse = await queryHttp(
+          port,
+          '/api/v1/appointments/' + encodeURIComponent(createAppointmentA.body.id) + '/reschedule',
+          tokenA,
+          {
+            method: 'POST',
+            headers: { 'idempotency-key': appointmentRescheduleTenantAKey },
+            body: { reason: 'CI Tenant A manager reschedule', startAt: tenantAStart, endAt: tenantAEnd }
+          }
+        );
+        if (tenantARescheduleResponse.status !== 200
+            || tenantARescheduleResponse.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+            || tenantARescheduleResponse.body?.auditStatus !== 'persisted'
+            || tenantARescheduleResponse.body?.appointment?.id !== createAppointmentA.body.id
+            || tenantARescheduleResponse.body?.appointment?.organization_id !== tenantA
+            || tenantARescheduleResponse.body?.appointment?.start_at !== tenantAStart
+            || tenantARescheduleResponse.body?.appointment?.end_at !== tenantAEnd) {
+          throw new Error('SIGNED_CONTEXT_APPOINTMENT_TENANT_A_MANAGER_RESCHEDULE_FAILED:' + JSON.stringify({
+            status: tenantARescheduleResponse.status, body: tenantARescheduleResponse.body
+          }));
+        }
+
+        const crossTenantReschedule = await queryHttp(
+          port,
+          '/api/v1/appointments/' + encodeURIComponent(createAppointmentB.body.id) + '/reschedule',
+          tokenA,
+          {
+            method: 'POST',
+            headers: { 'idempotency-key': appointmentRescheduleCrossKey },
+            body: {
+              reason: 'CI cross tenant appointment reschedule must be denied',
+              startAt: new Date(appointmentBase + 540 * 60 * 1000).toISOString(),
+              endAt: new Date(appointmentBase + 600 * 60 * 1000).toISOString()
+            }
+          }
+        );
+        if (crossTenantReschedule.status !== 404
+            || crossTenantReschedule.body?.error?.code !== 'NOT_FOUND'
+            || crossTenantReschedule.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+          throw new Error('SIGNED_CONTEXT_APPOINTMENT_RESCHEDULE_CROSS_TENANT_NOT_DENIED:' + JSON.stringify({
+            status: crossTenantReschedule.status, body: crossTenantReschedule.body
+          }));
+        }
+        signedSessionAutobindHttpProof.appointmentRescheduleTenantA = 'PASS';
+        signedSessionAutobindHttpProof.appointmentRescheduleCrossTenantDenied = 'PASS';
+      } finally {
+        const restoreA = await owner.query(
+          "UPDATE public.memberships SET role='member' WHERE user_id=$1 AND organization_id=$2 AND role='manager'",
+          [userA, tenantA]
+        );
+        const restoredA = await owner.query(
+          'SELECT role FROM public.memberships WHERE user_id=$1 AND organization_id=$2',
+          [userA, tenantA]
+        );
+        if (restoreA.rowCount !== 1 || restoredA.rows[0]?.role !== 'member') {
+          throw new Error('SIGNED_CONTEXT_APPOINTMENT_TENANT_A_ROLE_RESTORE_FAILED');
+        }
+      }
     } finally {
       roleRestoreResult = await owner.query(
         "UPDATE public.memberships SET role='member' WHERE user_id=$1 AND organization_id=$2 AND role='manager'",
