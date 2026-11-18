@@ -2929,6 +2929,20 @@ async function main() {
       }
     }
 
+    const crossWorkOrderDetail = await queryHttp(
+      port,
+      '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[1]),
+      tokenA
+    );
+    if (crossWorkOrderDetail.status !== 404
+        || crossWorkOrderDetail.body?.error?.code !== 'NOT_FOUND'
+        || crossWorkOrderDetail.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_WORK_ORDER_DETAIL_CROSS_TENANT_NOT_DENIED:' + JSON.stringify({
+        status: crossWorkOrderDetail.status, body: crossWorkOrderDetail.body
+      }));
+    }
+    candidateProofReport.checks.signedWorkOrderDetailCrossTenantDenied = 'PASS';
+
     const signedReadRouteCases = [
   {
     "key": "completionPackage",
@@ -3612,6 +3626,32 @@ async function main() {
     synthetic.evidenceUploadIds.push(evidenceInitB.body.uploadId);
     signedEvidenceRouteProof.initiateTenantB = 'PASS';
 
+    const evidenceInitCrossKey = 'signed-context-ci-evidence-init-cross-' + keyId;
+    synthetic.idempotencyKeys.push(evidenceInitCrossKey);
+    const evidenceInitCross = await queryHttp(
+      port,
+      '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[1]) + '/evidence-uploads',
+      tokenA,
+      {
+        method: 'POST',
+        headers: { 'idempotency-key': evidenceInitCrossKey },
+        body: {
+          fileName: 'cross-tenant-evidence.txt',
+          mediaType: 'text/plain',
+          totalBytes: evidenceBytesA.length,
+          sha256: evidenceShaA
+        }
+      }
+    );
+    if (evidenceInitCross.status !== 404
+        || evidenceInitCross.body?.error?.code !== 'NOT_FOUND'
+        || evidenceInitCross.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_EVIDENCE_INIT_CROSS_TENANT_NOT_DENIED:' + JSON.stringify({
+        status: evidenceInitCross.status, body: evidenceInitCross.body
+      }));
+    }
+    signedEvidenceRouteProof.initiateCrossTenantDenied = 'PASS';
+
     const foreignEvidenceChunk = await queryHttp(
       port,
       '/api/v1/evidence-uploads/' + encodeURIComponent(evidenceInitB.body.uploadId) + '/chunks/0',
@@ -4129,6 +4169,27 @@ async function main() {
     signedSessionAutobindHttpProof.faultTransitionTenantA = 'PASS';
     signedSessionAutobindHttpProof.faultTransitionTenantB = 'PASS';
 
+    const faultTransitionCrossKey = 'signed-context-fault-transition-cross-' + keyId;
+    synthetic.idempotencyKeys.push(faultTransitionCrossKey);
+    const faultTransitionCross = await queryHttp(
+      port,
+      '/api/v1/faults/' + encodeURIComponent(faultTicketB.body.workOrder.id) + '/transition',
+      tokenA,
+      {
+        method: 'POST',
+        headers: { 'idempotency-key': faultTransitionCrossKey },
+        body: { status: 'completed' }
+      }
+    );
+    if (faultTransitionCross.status !== 404
+        || faultTransitionCross.body?.error?.code !== 'NOT_FOUND'
+        || faultTransitionCross.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_FAULT_TRANSITION_CROSS_TENANT_NOT_DENIED:' + JSON.stringify({
+        status: faultTransitionCross.status, body: faultTransitionCross.body
+      }));
+    }
+    signedSessionAutobindHttpProof.faultTransitionCrossTenantDenied = 'PASS';
+
     const faultConfigKeyA = 'fault_unreachable:' + faultTicketA.body.workOrder.id;
     const faultConfigKeyB = 'fault_unreachable:' + faultTicketB.body.workOrder.id;
     synthetic.operationalConfigKeys.push(
@@ -4173,6 +4234,26 @@ async function main() {
     signedSessionAutobindHttpProof.faultUnreachableTenantA = 'PASS';
     signedSessionAutobindHttpProof.faultUnreachableTenantB = 'PASS';
 
+    const faultUnreachableCrossKey = 'signed-context-fault-unreachable-cross-' + keyId;
+    synthetic.idempotencyKeys.push(faultUnreachableCrossKey);
+    const faultUnreachableCross = await queryHttp(
+      port,
+      '/api/v1/faults/' + encodeURIComponent(faultTicketB.body.workOrder.id) + '/unreachable',
+      tokenA,
+      {
+        method: 'POST',
+        headers: { 'idempotency-key': faultUnreachableCrossKey },
+        body: { reasonCode: 'CI_CROSS_TENANT_DENIED', detail: 'cross-tenant fault action must not mutate Tenant B' }
+      }
+    );
+    if (faultUnreachableCross.status !== 404
+        || faultUnreachableCross.body?.error?.code !== 'NOT_FOUND'
+        || faultUnreachableCross.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_FAULT_UNREACHABLE_CROSS_TENANT_NOT_DENIED:' + JSON.stringify({
+        status: faultUnreachableCross.status, body: faultUnreachableCross.body
+      }));
+    }
+    signedSessionAutobindHttpProof.faultUnreachableCrossTenantDenied = 'PASS';
 
     if (!candidateMode) {
       clientA = new Client({ connectionString: runtimeUrl });
