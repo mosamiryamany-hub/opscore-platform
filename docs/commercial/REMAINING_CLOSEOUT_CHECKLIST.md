@@ -1,6 +1,6 @@
 # Seller-side closeout checklist — OpsCore v0.11.62 (.18)
 
-**Scope:** seller-owned isolated source-package release only. Production SaaS certification, buyer environment provisioning and the buyer's license grant are separate scopes.
+**Scope:** seller-owned isolated source-package release only. Production SaaS certification, buyer environment provisioning and the buyer's license grant are separate scopes.\n\nA named buyer, buyer signature, buyer-specific legal review, payment, or transaction schedule is **not** a prerequisite to complete seller-side product preparation, package closure, documentation or marketing readiness.
 
 ## Release identity and packaging
 
@@ -26,7 +26,7 @@
 - Licensed maps/routing and third-party provider contracts, keys and accounts.
 - Buyer-specific identity, messaging, telephony, payments, storage, KMS/HSM, cloud, deployment and operational acceptance.
 
-## Legal / delivery boundary
+## Transaction boundary — explicitly outside product closeout\n\nA signed License Schedule identifying the exact archive SHA-256 is required before granting the buyer licensed use or delivery rights. It governs use, modification, distribution, resale and sublicensing; it is not a prerequisite to complete seller-owned source work or market the offer.\n\n## Separate seller-hosted SaaS track\n\nThe 67-route signed-session HTTP acceptance matrix is a live Production certification task, not a source-code package release gate. Production certification remains NOT_ESTABLISHED until the exact deployment and live acceptance evidence pass. Do not treat this work as completed by source CI.\n\n## Legal / delivery boundary
 
 - [ ] Before buyer use or delivery, execute a License Schedule signed by the rights holder and named buyer, pinning the exact archive SHA-256 and specifying the granted rights.
 - [ ] Until then, keep licenseGrant=NONE_PENDING_RIGHTS_HOLDER_DECISION and distributionAuthorized=false.
