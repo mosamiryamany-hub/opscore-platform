@@ -291,7 +291,7 @@ This section supersedes earlier pre-window assumptions in the historical materia
 
 - Project: `summer-leaf-18448271`; Free plan; PostgreSQL 18; branch limit 10; history retention 21,600 seconds (6 hours); branch logical-size limit 1 GiB.
 - Current branch inventory: **2 active branches (2/10 included)**: Primary `br-proud-salad-bcshhdap` and non-primary restore `br-odd-surf-bcps6nce`. Both currently report `protected=false`; no branch protection is claimed.
-- Primary is the default branch and is ready. The non-finalizing restore `br-odd-surf-bcps6nce` is ready and reports `restored_from=snap-tiny-dream-bc58p5nj`, `restore_status=restored`, and `restored_as=br-proud-salad-bcshhdap`. The snapshot is from the current 063–069 migration generation; all seven ledger/source checksums match.
+- Primary is the default branch and is ready. The non-finalizing restore `br-odd-surf-bcps6nce` is ready and reports `restored_from=snap-tiny-dream-bc58p5nj`, `restore_status=restored`, and `restored_as=br-proud-salad-bcshhdap`. The snapshot reflects the current 063–069 migration writes; all seven ledger/source checksums match.
 - Current snapshot inventory contains **one** manual Primary snapshot: `snap-tiny-dream-bc58p5nj`, created 2026-11-18 01:22:39 UTC. Previous snapshot and restore identifiers are historical.
 - Snapshot creation and branch cleanup are complete for this proof attempt. No further branch or snapshot deletion is authorized by this record.
 
