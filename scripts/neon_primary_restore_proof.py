@@ -23,13 +23,14 @@ PROOF_PATH = Path("docs/ops/evidence/PRODUCTION_PRIMARY_RESTORE_PROOF.json")
 SHA_RE = re.compile(r"^[a-f0-9]{64}$")
 BRANCH_RE = re.compile(r"^br-[a-z0-9-]{8,80}$")
 SNAPSHOT_RE = re.compile(r"^snap-[a-z0-9-]{8,80}$")
-REQUIRED_PENDING = {
-    "063_signed_tenant_context_verifier.sql",
-    "064_signed_tenant_context_work_orders_routing.sql",
-    "065_signed_tenant_context_evidence_upload_chunks.sql",
-    "066_signed_tenant_context_verifier_search_path_hardening.sql",
-    "067_signed_tenant_context_rls_policy_accessor_alignment.sql",
-    "069_technician_location_trail_tenant_persistence.sql",
+REQUIRED_APPLIED_MIGRATIONS = {
+    "063_signed_tenant_context_verifier.sql": "74e944d47693d4928fd908478c17016c41b940c238e1542ed18052f00b0dcc6f",
+    "064_signed_tenant_context_work_orders_routing.sql": "30b9984589dcbe62cc2cc74fbb918a174bac29cdabe668f515ff13a4b51f6496",
+    "065_signed_tenant_context_evidence_upload_chunks.sql": "f8e847efb7257ebf4a45f9ca80aa8b1b464401ce0132825c3d0a8869c7f9285a",
+    "066_signed_tenant_context_verifier_search_path_hardening.sql": "e99c2a3ea2bd7d1590201ce572101624e2b4297e18b7096a042d97c582f6db34",
+    "067_signed_tenant_context_rls_policy_accessor_alignment.sql": "68180391111d9d660df946540dc932fc9dbb85092c71e2c08c5971a672c76b1d",
+    "068_opscore_app_role_privilege_lockdown.sql": "15f41e628bba840c36fc97a479726803d6010840d85c441356d9fb1c3c94daf1",
+    "069_technician_location_trail_tenant_persistence.sql": "9a88cd60350fcfb1dcf120f87506394e0b569f27dac21201a7313c7497039ef6",
 }
 
 SCHEMA_INVENTORY_SQL = r"""
@@ -330,6 +331,371 @@ def table_data_inventory(uri):
     return table_names, table_sha, content_sha
 
 
+def verify_required_migration_ledger(uri):
+    migration_dir = Path(__file__).resolve().parent.parent / "backend" / "sql" / "postgres"
+    for filename, expected_sha in REQUIRED_APPLIED_MIGRATIONS.items():
+        source_path = migration_dir / filename
+        if not source_path.is_file():
+            fail("RESTORE_PROOF_MIGRATION_SOURCE_FILE_MISSING", {"filename": filename})
+        source_sha = hashlib.sha256(source_path.read_bytes()).hexdigest()
+        if source_sha != expected_sha:
+            fail("RESTORE_PROOF_MIGRATION_SOURCE_SHA256_MISMATCH", {
+                "filename": filename,
+                "expected_sha256": expected_sha,
+                "actual_sha256": source_sha,
+            })
+
+    quoted_names = ",".join("'" + name.replace("'", "''") + "'" for name in REQUIRED_APPLIED_MIGRATIONS)
+    rows = psql(
+        uri,
+        "SELECT filename || '|' || lower(sha256) FROM public.schema_migrations "
+        "WHERE filename IN (" + quoted_names + ") ORDER BY filename",
+    )
+    observed = {}
+    for line in rows.splitlines():
+        parts = line.split("|", 1)
+        if len(parts) != 2 or parts[0] in observed:
+            fail("RESTORE_PROOF_MIGRATION_LEDGER_ROWS_INVALID", {"row": line[:300]})
+        observed[parts[0]] = parts[1].lower()
+    if observed != REQUIRED_APPLIED_MIGRATIONS:
+        fail("RESTORE_PROOF_MIGRATION_LEDGER_SOURCE_MISMATCH", {
+            "missing": sorted(set(REQUIRED_APPLIED_MIGRATIONS) - set(observed)),
+            "unexpected": sorted(set(observed) - set(REQUIRED_APPLIED_MIGRATIONS)),
+            "checksum_mismatches": {
+                name: {"ledger": observed.get(name), "source": expected}
+                for name, expected in REQUIRED_APPLIED_MIGRATIONS.items()
+                if name in observed and observed[name] != expected
+            },
+        })
+
+    ledger_stats = psql(
+        uri,
+        "SELECT count(*)::text || '|' || count(DISTINCT filename)::text || '|' || "
+        "count(*) FILTER (WHERE sha256 !~ '^[0-9a-f]{64} or os.environ.get("GITHUB_REF") != "refs/heads/main":
+        fail("RESTORE_PROOF_MAIN_MANUAL_DISPATCH_REQUIRED")
+    if os.environ.get("OPSC_CONFIRM_RESTORE_PROOF") != "CREATE_PRIMARY_RESTORE_PROOF":
+        fail("RESTORE_PROOF_TYPED_CONFIRMATION_REQUIRED")
+    KEY = str(os.environ.get("NEON_API_KEY") or "").strip()
+    if not KEY:
+        fail("NEON_API_KEY_MISSING")
+
+    snapshot = verify_snapshot()
+    branch = find_or_create_real_restore(snapshot)
+    branch_id = str(branch["id"])
+
+    primary_branch = api("GET", "/branches/" + PRIMARY_BRANCH_ID).get("branch") or {}
+    if (
+        primary_branch.get("id") != PRIMARY_BRANCH_ID
+        or not primary_branch.get("primary")
+        or not primary_branch.get("default")
+        or str(primary_branch.get("current_state") or "").lower() != "ready"
+    ):
+        fail("RESTORE_PROOF_CURRENT_PRIMARY_IDENTITY_INVALID")
+
+    primary_uri = direct_connection_uri(PRIMARY_BRANCH_ID)
+    restore_uri = direct_connection_uri(branch_id)
+
+    primary_identity = psql(primary_uri, "SELECT current_database() || '|' || current_user || '|' || current_setting('server_version')")
+    identity = psql(restore_uri, "SELECT current_database() || '|' || current_user || '|' || current_setting('server_version')")
+    for label, identity_value in (("primary", primary_identity), ("restore", identity)):
+        identity_parts = identity_value.split("|")
+        if len(identity_parts) != 3 or identity_parts[0] != DATABASE_NAME or identity_parts[1] != ROLE_NAME:
+            fail("RESTORE_PROOF_DATABASE_IDENTITY_MISMATCH", {"target": label, "identity": identity_value})
+    primary_version = primary_identity.split("|")[2]
+    database_version = identity.split("|")[2]
+    if primary_version != database_version:
+        fail("RESTORE_PROOF_POSTGRES_VERSION_MISMATCH")
+
+    primary_schema_count, primary_schema_sha = schema_inventory(primary_uri)
+    schema_item_count, schema_sha = schema_inventory(restore_uri)
+    if primary_schema_count != schema_item_count or primary_schema_sha != schema_sha:
+        fail("RESTORE_PROOF_SCHEMA_DIFFERS_FROM_CURRENT_PRIMARY", {
+            "primary_item_count": primary_schema_count,
+            "restore_item_count": schema_item_count,
+            "primary_schema_sha256": primary_schema_sha,
+            "restore_schema_sha256": schema_sha,
+        })
+
+    primary_tables, primary_table_sha, primary_data_sha = table_data_inventory(primary_uri)
+    table_names, table_sha, data_content_sha = table_data_inventory(restore_uri)
+    public_table_count = len(table_names)
+    if (
+        primary_tables != table_names
+        or primary_table_sha != table_sha
+        or primary_data_sha != data_content_sha
+    ):
+        fail("RESTORE_PROOF_TABLE_DATA_DIFFERS_FROM_CURRENT_PRIMARY", {
+            "primary_table_count": len(primary_tables),
+            "restore_table_count": public_table_count,
+            "primary_data_sha256": primary_data_sha,
+            "restore_data_sha256": data_content_sha,
+        })
+
+    ledger_count = verify_required_migration_ledger(restore_uri)
+    signed_context_catalog = verify_signed_context_catalog(restore_uri)
+
+    organizations_count = int(psql(restore_uri, "SELECT COUNT(*) FROM public.organizations"))
+    if organizations_count <= 0:
+        fail("RESTORE_PROOF_CORE_TABLE_EMPTY")
+
+    role_rows = psql(
+        restore_uri,
+        "SELECT rolname, rolsuper, rolbypassrls FROM pg_roles "
+        "WHERE rolname IN ('opscore_runtime','neondb_owner') ORDER BY rolname",
+    )
+    role_map = {}
+    for line in role_rows.splitlines():
+        fields = line.split("|")
+        if len(fields) != 3:
+            fail("RESTORE_PROOF_ROLE_QUERY_INVALID")
+        role_map[fields[0]] = (fields[1] == "t", fields[2] == "t")
+    if "opscore_runtime" not in role_map or "neondb_owner" not in role_map:
+        fail("RESTORE_PROOF_REQUIRED_DATABASE_ROLE_MISSING")
+    runtime_super, runtime_bypass = role_map["opscore_runtime"]
+    owner_super, owner_bypass = role_map["neondb_owner"]
+    if runtime_super or runtime_bypass or owner_super:
+        fail("RESTORE_PROOF_RUNTIME_ROLE_BOUNDARY_FAILED", {
+            "runtime_superuser": runtime_super,
+            "runtime_bypass_rls": runtime_bypass,
+            "owner_superuser": owner_super,
+        })
+    runtime_probe = psql(
+        restore_uri,
+        "BEGIN; SET LOCAL ROLE opscore_runtime; "
+        "SELECT current_user || '|' || COUNT(*)::text FROM public.organizations; ROLLBACK",
+    )
+    runtime_probe_parts = runtime_probe.split("|")
+    if runtime_probe_parts != ["opscore_runtime", "0"]:
+        fail("RESTORE_PROOF_RUNTIME_RLS_DEFAULT_DENY_FAILED", {"probe": runtime_probe})
+
+    rls_counts = psql(
+        restore_uri,
+        """
+        WITH public_tables AS (
+          SELECT c.oid, c.relrowsecurity, c.relforcerowsecurity,
+            EXISTS (
+              SELECT 1 FROM pg_catalog.pg_depend d
+              WHERE d.classid = 'pg_catalog.pg_class'::regclass
+                AND d.objid = c.oid
+                AND d.refclassid = 'pg_catalog.pg_extension'::regclass
+                AND d.deptype = 'e'
+            ) AS extension_owned
+          FROM pg_catalog.pg_class c
+          JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+          WHERE n.nspname = 'public' AND c.relkind = 'r'
+        )
+        SELECT
+          count(*) FILTER (WHERE NOT extension_owned)::text || '|' ||
+          count(*) FILTER (WHERE NOT extension_owned AND relrowsecurity)::text || '|' ||
+          count(*) FILTER (WHERE NOT extension_owned AND relforcerowsecurity)::text || '|' ||
+          count(*) FILTER (WHERE extension_owned)::text
+        FROM public_tables
+        """,
+    )
+    rls_parts = [int(value) for value in rls_counts.split("|")]
+    if len(rls_parts) != 4 or rls_parts[0] <= 0 or rls_parts[1] != rls_parts[0] or rls_parts[2] != rls_parts[0]:
+        fail("RESTORE_PROOF_RLS_INVENTORY_MISMATCH", {"counts": rls_parts})
+
+    proof = {
+        "schemaVersion": "opscore.neon-primary-restore-proof.v1",
+        "status": "PASS",
+        "projectId": PROJECT_ID,
+        "primaryBranchId": PRIMARY_BRANCH_ID,
+        "snapshotId": SNAPSHOT_ID,
+        "snapshotSourceBranchId": snapshot.get("source_branch_id"),
+        "restoreSnapshotId": SNAPSHOT_ID,
+        "restoreBranchId": branch_id,
+        "restoreBranchState": "ready",
+        "databaseName": DATABASE_NAME,
+        "databaseIdentity": {"databaseName": DATABASE_NAME, "roleName": ROLE_NAME},
+        "testedAt": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "schemaSha256": schema_sha,
+        "schemaInventoryItemCount": schema_item_count,
+        "tableInventorySha256": table_sha,
+        "dataContentSha256": data_content_sha,
+        "publicTableCount": public_table_count,
+        "checks": {
+            "snapshot_provenance": {
+                "status": "PASS",
+                "restoreStatus": branch.get("restore_status"),
+                "restoredAs": branch.get("restored_as"),
+            },
+            "restore_branch_ready": {
+                "status": "PASS",
+                "currentState": branch.get("current_state"),
+                "branchId": branch_id,
+            },
+            "database_identity": {"status": "PASS", "serverVersion": database_version},
+            "schema_catalog_read": {"status": "PASS", "schemaItemCount": schema_item_count, "definitionParityWithPrimary": True},
+            "public_table_inventory": {
+                "status": "PASS",
+                "publicTableCount": public_table_count,
+                "rlsEnabledTableCount": rls_parts[1],
+                "forceRlsEnabledTableCount": rls_parts[2],
+                "rlsExcludedExtensionOwnedTableCount": rls_parts[3],
+                "rowContentSha256": data_content_sha,
+                "rowContentParityWithPrimary": True,
+            },
+            "migration_ledger_read": {
+                "status": "PASS",
+                "schemaMigrationsCount": ledger_count,
+                "requiredMigrationCount": len(REQUIRED_APPLIED_MIGRATIONS),
+                "requiredMigrationsPresentAndChecksummed": True,
+                "technicianLocationTrailPresent": True,
+            },
+            "signed_context_schema": {
+                "status": "PASS",
+                **signed_context_catalog,
+            },
+            "core_table_read": {"status": "PASS", "organizationsCount": organizations_count},
+            "runtime_role_boundary": {
+                "status": "PASS",
+                "runtimeRoleSuperuser": runtime_super,
+                "runtimeRoleBypassRls": runtime_bypass,
+                "ownerRoleBypassRls": owner_bypass,
+                "organizationsVisibleWithoutTenantContext": 0,
+            },
+        },
+    }
+    PROOF_PATH.parent.mkdir(parents=True, exist_ok=True)
+    raw = (json.dumps(proof, indent=2, sort_keys=True) + "\n").encode("utf-8")
+    PROOF_PATH.write_bytes(raw)
+    digest = hashlib.sha256(raw).hexdigest()
+    if not SHA_RE.fullmatch(digest):
+        fail("RESTORE_PROOF_SHA256_INVALID")
+    print("RESTORE_PROOF_STATUS=PASS")
+    print("RESTORE_PROOF_BRANCH_ID=" + branch_id)
+    print("RESTORE_PROOF_SHA256=" + digest)
+    print("RESTORE_PROOF_PUBLIC_TABLES=" + str(public_table_count))
+    print("RESTORE_PROOF_MIGRATION_LEDGER_ROWS=" + str(ledger_count))
+
+
+if __name__ == "__main__":
+    main()
+)::text "
+        "FROM public.schema_migrations",
+    )
+    try:
+        total, distinct, invalid = [int(value) for value in ledger_stats.split("|")]
+    except Exception:
+        fail("RESTORE_PROOF_MIGRATION_LEDGER_STATS_INVALID", {"output": ledger_stats[:300]})
+    if total < len(REQUIRED_APPLIED_MIGRATIONS) or total != distinct or invalid != 0:
+        fail("RESTORE_PROOF_MIGRATION_LEDGER_INTEGRITY_FAILED", {
+            "total": total, "distinct": distinct, "invalid_hashes": invalid,
+        })
+    return total
+
+
+def verify_signed_context_catalog(uri):
+    catalog_sql = """
+    SELECT
+      COALESCE((
+        SELECT p.prosecdef
+          AND pg_catalog.pg_get_userbyid(p.proowner) = 'opscore_auth_definer'
+          AND p.proconfig @> ARRAY['search_path=pg_catalog, opscore_security, pg_temp']
+        FROM pg_catalog.pg_proc p
+        WHERE p.oid = 'opscore_security.verified_tenant_context()'::pg_catalog.regprocedure
+      ), false)::text || '|' ||
+      COALESCE((
+        SELECT pg_catalog.pg_get_functiondef(p.oid) LIKE '%verified_tenant_context%'
+        FROM pg_catalog.pg_proc p
+        WHERE p.oid = 'public.opscore_current_tenant()'::pg_catalog.regprocedure
+      ), false)::text || '|' ||
+      EXISTS (
+        SELECT 1 FROM pg_catalog.pg_roles r
+        WHERE r.rolname = 'opscore_auth_definer'
+          AND r.rolbypassrls AND NOT r.rolsuper AND NOT r.rolcanlogin
+      )::text || '|' ||
+      EXISTS (
+        SELECT 1
+        FROM pg_catalog.pg_class c
+        JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname = 'opscore_security'
+          AND c.relname = 'context_hmac_keys'
+          AND c.relkind = 'r'
+          AND pg_catalog.pg_get_userbyid(c.relowner) = 'opscore_auth_definer'
+          AND (
+            SELECT count(*) = 6
+            FROM information_schema.columns col
+            WHERE col.table_schema = 'opscore_security'
+              AND col.table_name = 'context_hmac_keys'
+              AND (
+                (col.column_name = 'key_id' AND col.data_type = 'text' AND col.is_nullable = 'NO')
+                OR (col.column_name = 'secret' AND col.data_type = 'bytea' AND col.is_nullable = 'NO')
+                OR (col.column_name = 'enabled' AND col.data_type = 'boolean' AND col.is_nullable = 'NO')
+                OR (col.column_name = 'not_before' AND col.data_type = 'timestamp with time zone' AND col.is_nullable = 'NO')
+                OR (col.column_name = 'not_after' AND col.data_type = 'timestamp with time zone')
+                OR (col.column_name = 'created_at' AND col.data_type = 'timestamp with time zone' AND col.is_nullable = 'NO')
+              )
+          )
+      )::text || '|' ||
+      EXISTS (
+        SELECT 1 FROM pg_catalog.pg_class c
+        WHERE c.oid = 'public.technician_location_trail'::regclass
+          AND c.relrowsecurity AND c.relforcerowsecurity
+      )::text || '|' ||
+      (
+        SELECT count(*) = 2
+          AND count(*) FILTER (
+            WHERE policyname = 'technician_location_trail_runtime_access'
+              AND permissive = 'PERMISSIVE'
+              AND cmd = 'ALL'
+              AND 'opscore_runtime' = ANY(roles)
+          ) = 1
+          AND count(*) FILTER (
+            WHERE policyname = 'technician_location_trail_tenant_guard'
+              AND permissive = 'RESTRICTIVE'
+              AND cmd = 'ALL'
+              AND qual LIKE '%opscore_current_tenant()%'
+              AND with_check LIKE '%opscore_current_tenant()%'
+          ) = 1
+        FROM pg_catalog.pg_policies
+        WHERE schemaname = 'public' AND tablename = 'technician_location_trail'
+      )::text || '|' ||
+      (
+        SELECT count(*) = 3
+        FROM pg_catalog.pg_constraint
+        WHERE conrelid = 'public.technician_location_trail'::regclass
+          AND convalidated
+          AND conname IN (
+            'technician_location_trail_technician_tenant_fk',
+            'technician_location_trail_appointment_tenant_fk',
+            'technician_location_trail_work_order_tenant_fk'
+          )
+      )::text || '|' ||
+      (
+        SELECT count(*)
+        FROM pg_catalog.pg_policies
+        WHERE schemaname = 'public'
+          AND (
+            COALESCE(qual, '') ILIKE '%current_setting%app.tenant_id%'
+            OR COALESCE(with_check, '') ILIKE '%current_setting%app.tenant_id%'
+          )
+      )::text
+    """
+    output = psql(uri, catalog_sql)
+    parts = output.split("|")
+    if len(parts) != 7:
+        fail("RESTORE_PROOF_SIGNED_CONTEXT_CATALOG_INVALID", {"output": output[:500]})
+    keys = [
+        "verifierFunctionValid",
+        "tenantAccessorUsesVerifier",
+        "authDefinerRoleValid",
+        "hmacKeyTableValid",
+        "technicianTrailForcedRls",
+        "technicianTrailPoliciesValid",
+        "directTenantGucPolicyResidualCount",
+    ]
+    values = dict(zip(keys, parts))
+    for key in keys[:-1]:
+        values[key] = values[key] == "t"
+    values["directTenantGucPolicyResidualCount"] = int(values["directTenantGucPolicyResidualCount"])
+    if not all(values[key] is True for key in keys[:-1]) or values["directTenantGucPolicyResidualCount"] != 0:
+        fail("RESTORE_PROOF_SIGNED_CONTEXT_POSTCONDITIONS_FAILED", values)
+    values["hmacKeyRowCount"] = int(psql(uri, "SELECT count(*) FROM opscore_security.context_hmac_keys"))
+    return values
+
+
 def main():
     global KEY
     if os.environ.get("GITHUB_EVENT_NAME") != "workflow_dispatch" or os.environ.get("GITHUB_REF") != "refs/heads/main":
@@ -392,26 +758,8 @@ def main():
             "restore_data_sha256": data_content_sha,
         })
 
-    ledger_count = int(psql(restore_uri, "SELECT COUNT(*) FROM public.schema_migrations"))
-    migration_rows = psql(
-        restore_uri,
-        "SELECT filename FROM public.schema_migrations WHERE filename IN ("
-        "'063_signed_tenant_context_verifier.sql',"
-        "'064_signed_tenant_context_work_orders_routing.sql',"
-        "'065_signed_tenant_context_evidence_upload_chunks.sql',"
-        "'066_signed_tenant_context_verifier_search_path_hardening.sql',"
-        "'067_signed_tenant_context_rls_policy_accessor_alignment.sql',"
-        "'068_opscore_app_role_privilege_lockdown.sql',"
-        "'069_technician_location_trail_tenant_persistence.sql') ORDER BY filename",
-    )
-    applied = set(migration_rows.splitlines()) if migration_rows else set()
-    expected = {"068_opscore_app_role_privilege_lockdown.sql"}
-    if applied != expected:
-        fail("RESTORE_PROOF_MIGRATION_LEDGER_BASELINE_MISMATCH", {"rows": sorted(applied)})
-    if ledger_count != 62:
-        fail("RESTORE_PROOF_MIGRATION_LEDGER_COUNT_MISMATCH", {"count": ledger_count})
-    if psql(restore_uri, "SELECT to_regclass('public.technician_location_trail') IS NULL") != "t":
-        fail("RESTORE_PROOF_TECHNICIAN_TRAIL_BASELINE_MISMATCH")
+    ledger_count = verify_required_migration_ledger(restore_uri)
+    signed_context_catalog = verify_signed_context_catalog(restore_uri)
 
     organizations_count = int(psql(restore_uri, "SELECT COUNT(*) FROM public.organizations"))
     if organizations_count <= 0:
@@ -449,13 +797,30 @@ def main():
 
     rls_counts = psql(
         restore_uri,
-        "SELECT count(*) || '|' || count(*) FILTER (WHERE c.relrowsecurity) || '|' || "
-        "count(*) FILTER (WHERE c.relforcerowsecurity) FROM pg_class c "
-        "JOIN pg_namespace n ON n.oid=c.relnamespace "
-        "WHERE n.nspname='public' AND c.relkind='r'",
+        """
+        WITH public_tables AS (
+          SELECT c.oid, c.relrowsecurity, c.relforcerowsecurity,
+            EXISTS (
+              SELECT 1 FROM pg_catalog.pg_depend d
+              WHERE d.classid = 'pg_catalog.pg_class'::regclass
+                AND d.objid = c.oid
+                AND d.refclassid = 'pg_catalog.pg_extension'::regclass
+                AND d.deptype = 'e'
+            ) AS extension_owned
+          FROM pg_catalog.pg_class c
+          JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+          WHERE n.nspname = 'public' AND c.relkind = 'r'
+        )
+        SELECT
+          count(*) FILTER (WHERE NOT extension_owned)::text || '|' ||
+          count(*) FILTER (WHERE NOT extension_owned AND relrowsecurity)::text || '|' ||
+          count(*) FILTER (WHERE NOT extension_owned AND relforcerowsecurity)::text || '|' ||
+          count(*) FILTER (WHERE extension_owned)::text
+        FROM public_tables
+        """,
     )
     rls_parts = [int(value) for value in rls_counts.split("|")]
-    if rls_parts != [135, 134, 134]:
+    if len(rls_parts) != 4 or rls_parts[0] <= 0 or rls_parts[1] != rls_parts[0] or rls_parts[2] != rls_parts[0]:
         fail("RESTORE_PROOF_RLS_INVENTORY_MISMATCH", {"counts": rls_parts})
 
     proof = {
@@ -494,14 +859,20 @@ def main():
                 "publicTableCount": public_table_count,
                 "rlsEnabledTableCount": rls_parts[1],
                 "forceRlsEnabledTableCount": rls_parts[2],
+                "rlsExcludedExtensionOwnedTableCount": rls_parts[3],
                 "rowContentSha256": data_content_sha,
                 "rowContentParityWithPrimary": True,
             },
             "migration_ledger_read": {
                 "status": "PASS",
                 "schemaMigrationsCount": ledger_count,
-                "migration068Present": True,
-                "migrations063to067And069Absent": True,
+                "requiredMigrationCount": len(REQUIRED_APPLIED_MIGRATIONS),
+                "requiredMigrationsPresentAndChecksummed": True,
+                "technicianLocationTrailPresent": True,
+            },
+            "signed_context_schema": {
+                "status": "PASS",
+                **signed_context_catalog,
             },
             "core_table_read": {"status": "PASS", "organizationsCount": organizations_count},
             "runtime_role_boundary": {
