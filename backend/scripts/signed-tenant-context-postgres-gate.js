@@ -33,7 +33,7 @@ function candidateOrigin(value) {
   const host = url.hostname.toLowerCase();
   if (url.protocol !== 'https:'
       || !host.startsWith('opscore-platform-')
-      || !host.endsWith('.vercel.app')
+      || !host.endsWith('-mosamiryamany-1692.vercel.app')
       || host === 'opscore-platform.vercel.app'
       || url.username || url.password || url.pathname !== '/' || url.search || url.hash) {
     throw new Error('CANDIDATE_HTTP_ORIGIN_NOT_UNALIASED_VERCEL_DEPLOYMENT');
