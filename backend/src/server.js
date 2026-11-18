@@ -2126,7 +2126,7 @@ function route(req, res) {
         reason: b.reason
       }, () => store.transitionWorkOrder(c, wtrans[1], b.toStatus, b.reason));
       if (!signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) return idemJson(res, write(), 200);
-      return runSignedWorkOrderWrite(res, c, write, (record, headers) => idemJson(res, record, 200, headers));
+      return runSignedWorkOrderWrite(req, res, c, write, (record, headers) => idemJson(res, record, 200, headers));
     }).catch(e => fail(res, e));
   }
   if (req.method === 'GET' && url.pathname === '/api/v1/escalations')
@@ -2723,7 +2723,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
       assets: 'asset'
     }[del[1]];
     if (del[1] === 'work-orders' && signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) {
-      return runSignedWorkOrderWrite(res, c,
+      return runSignedWorkOrderWrite(req, res, c,
         () => store.softDelete(c, 'work_order', del[2]),
         (result, headers) => json(res, 200, result, headers));
     }
@@ -2743,7 +2743,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
       assets: 'asset'
     }[rest[1]];
     if (rest[1] === 'work-orders' && signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) {
-      return runSignedWorkOrderWrite(res, c,
+      return runSignedWorkOrderWrite(req, res, c,
         () => store.restore(c, 'work_order', rest[2]),
         (result, headers) => json(res, 200, result, headers));
     }
@@ -2973,7 +2973,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
       const k = req.headers['idempotency-key'] || req.headers['x-idempotency-key'];
       const write = () => store.idempotentWrite(c, 'work_orders_bulk', k, b, () => store.bulkWorkOrders(c, b));
       if (!signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) return json(res, 200, write().payload);
-      return runSignedWorkOrderWrite(res, c, write, (record, headers) => json(res, 200, record.payload, headers));
+      return runSignedWorkOrderWrite(req, res, c, write, (record, headers) => json(res, 200, record.payload, headers));
     }).catch(e => fail(res, e));
   }
   if (req.method === 'POST' && url.pathname === '/api/v1/work-orders') {
@@ -2985,7 +2985,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
     return body(req).then(b => {
       const write = () => store.createWorkOrder(c, b);
       if (!signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) return json(res, 201, write());
-      return runSignedWorkOrderWrite(res, c, write, (result, headers) => json(res, 201, result, headers));
+      return runSignedWorkOrderWrite(req, res, c, write, (result, headers) => json(res, 201, result, headers));
     }).catch(e => fail(res, e));
   }
   const wcp = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/completion-package$/);
@@ -3019,7 +3019,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
         body: b
       }, () => store.updateWorkOrder(c, wm[1], b));
       if (!signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) return idemJson(res, write(), 200);
-      return runSignedWorkOrderWrite(res, c, write, (record, headers) => idemJson(res, record, 200, headers));
+      return runSignedWorkOrderWrite(req, res, c, write, (record, headers) => idemJson(res, record, 200, headers));
     }).catch(e => fail(res, e));
   }
   const wr = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/operational-risk$/);
@@ -3040,7 +3040,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
         body: b.body
       }, () => store.addComment(c, cm[1], b.body));
       if (!signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) return idemJson(res, write(), 201);
-      return runSignedWorkOrderWrite(res, c, write, (record, headers) => idemJson(res, record, 201, headers));
+      return runSignedWorkOrderWrite(req, res, c, write, (record, headers) => idemJson(res, record, 201, headers));
     }).catch(e => fail(res, e));
   }
   const eu = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/evidence-uploads$/);
@@ -3059,7 +3059,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
         ...b
       }));
       if (!signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) return idemJson(res, write(), 201);
-      return runSignedWorkOrderWrite(res, c, write, (record, headers) => idemJson(res, record, 201, headers));
+      return runSignedWorkOrderWrite(req, res, c, write, (record, headers) => idemJson(res, record, 201, headers));
     }).catch(e => fail(res, e));
   }
   const ec = url.pathname.match(/^\/api\/v1\/evidence-uploads\/([^/]+)\/chunks\/(\d+)$/);
@@ -3072,7 +3072,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
     return body(req, 800000).then(b => {
       const write = () => store.putEvidenceChunk(c, ec[1], ec[2], b.contentBase64);
       if (!signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) return json(res, 200, write());
-      return runSignedWorkOrderWrite(res, c, write, (result, headers) => json(res, 200, result, headers));
+      return runSignedWorkOrderWrite(req, res, c, write, (result, headers) => json(res, 200, result, headers));
     }).catch(e => fail(res, e));
   }
   const ex = url.pathname.match(/^\/api\/v1\/evidence-uploads\/([^/]+)\/complete$/);
@@ -3084,7 +3084,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
     }
     const write = () => store.completeEvidenceUpload(c, ex[1]);
     if (!signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) return json(res, 201, write());
-    return runSignedWorkOrderWrite(res, c, write, (result, headers) => json(res, 201, result, headers));
+    return runSignedWorkOrderWrite(req, res, c, write, (result, headers) => json(res, 201, result, headers));
   }
   const am = url.pathname.match(/^\/api\/v1\/work-orders\/([^/]+)\/attachments$/);
   if (am && req.method === 'GET')
@@ -3106,12 +3106,12 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
         ...b
       }));
       if (!signedWorkOrdersWriteEnabled(req, process.env, signedContextProductionReadiness)) return idemJson(res, write(), 201);
-      return runSignedWorkOrderWrite(res, c, write, (record, headers) => idemJson(res, record, 201, headers));
+      return runSignedWorkOrderWrite(req, res, c, write, (record, headers) => idemJson(res, record, 201, headers));
     }).catch(e => fail(res, e));
   }
   if (req.method === 'GET' && url.pathname === '/api/v1/assets') {
     if (signedAssetsReadEnabled(req, process.env, signedContextProductionReadiness)) {
-      return runSignedWorkOrdersRead(res, c, () => store.listAssets(c));
+      return runSignedWorkOrdersRead(req, res, c, () => store.listAssets(c));
     }
     return json(res, 200, store.listAssets(c));
   }
