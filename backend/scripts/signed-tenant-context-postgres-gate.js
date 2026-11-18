@@ -1556,6 +1556,25 @@ async function main() {
     signedSessionAutobindHttpProof.technicianProfileTenantA = 'PASS';
     signedSessionAutobindHttpProof.technicianProfileTenantB = 'PASS';
 
+    const foreignTechnicianProfile = await queryHttp(port, '/api/v1/technicians', tokenA, {
+      method: 'POST',
+      body: { userId: userB, latitude: 29.9765, longitude: 31.1313, active: true }
+    });
+    const foreignTechnicianProfileRows = await owner.query(
+      'SELECT COUNT(*)::int AS count FROM public.technician_profiles WHERE organization_id=$1 AND user_id=$2',
+      [tenantA, userB]
+    );
+    if (foreignTechnicianProfile.status < 400
+        || foreignTechnicianProfile.headers?.['x-opscore-signed-tenant-context'] === 'verified'
+        || Number(foreignTechnicianProfileRows.rows[0]?.count) !== 0) {
+      throw new Error('SIGNED_CONTEXT_TECHNICIAN_PROFILE_CROSS_TENANT_WRITE_NOT_DENIED:' + JSON.stringify({
+        status: foreignTechnicianProfile.status,
+        body: foreignTechnicianProfile.body,
+        rowsCreated: foreignTechnicianProfileRows.rows[0]?.count
+      }));
+    }
+    signedSessionAutobindHttpProof.technicianProfileCrossTenantDenied = 'PASS';
+
     const technicianSkillA = 'ci-signed-skill-a-' + keyId;
     const technicianSkillB = 'ci-signed-skill-b-' + keyId;
     const skillA = await queryHttp(port, '/api/v1/technicians/skills', tokenA, {
@@ -1585,6 +1604,26 @@ async function main() {
     }
     signedSessionAutobindHttpProof.technicianSkillTenantA = 'PASS';
     signedSessionAutobindHttpProof.technicianSkillTenantB = 'PASS';
+
+    const foreignTechnicianSkillName = 'ci-signed-skill-cross-' + keyId;
+    const foreignTechnicianSkill = await queryHttp(port, '/api/v1/technicians/skills', tokenA, {
+      method: 'POST',
+      body: { userId: userB, skill: foreignTechnicianSkillName, level: 2 }
+    });
+    const foreignTechnicianSkillRows = await owner.query(
+      'SELECT COUNT(*)::int AS count FROM public.technician_skills WHERE organization_id=$1 AND user_id=$2 AND skill=$3',
+      [tenantA, userB, foreignTechnicianSkillName]
+    );
+    if (foreignTechnicianSkill.status < 400
+        || foreignTechnicianSkill.headers?.['x-opscore-signed-tenant-context'] === 'verified'
+        || Number(foreignTechnicianSkillRows.rows[0]?.count) !== 0) {
+      throw new Error('SIGNED_CONTEXT_TECHNICIAN_SKILL_CROSS_TENANT_WRITE_NOT_DENIED:' + JSON.stringify({
+        status: foreignTechnicianSkill.status,
+        body: foreignTechnicianSkill.body,
+        rowsCreated: foreignTechnicianSkillRows.rows[0]?.count
+      }));
+    }
+    signedSessionAutobindHttpProof.technicianSkillCrossTenantDenied = 'PASS';
 
     const techniciansA = await queryHttp(port, '/api/v1/technicians', tokenA);
     const techniciansB = await queryHttp(port, '/api/v1/technicians', tokenB);
@@ -1868,6 +1907,19 @@ async function main() {
     signedSessionAutobindHttpProof.technicianAvailabilityTenantA = 'PASS';
     signedSessionAutobindHttpProof.technicianAvailabilityTenantB = 'PASS';
 
+    const availabilityCrossA = await queryHttp(
+      port,
+      '/api/v1/technicians/availability?technicianId=' + encodeURIComponent(userB)
+        + '&date=' + encodeURIComponent(appointmentStartB.slice(0, 10)),
+      tokenA
+    );
+    if (availabilityCrossA.status < 400
+        || availabilityCrossA.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_TECHNICIAN_AVAILABILITY_CROSS_TENANT_NOT_HIDDEN:' + JSON.stringify({
+        status: availabilityCrossA.status, body: availabilityCrossA.body
+      }));
+    }
+    signedSessionAutobindHttpProof.technicianAvailabilityCrossTenantHidden = 'PASS';
 
     // PostgreSQL trail storage is migration-backed (069) and must be present
     // before this signed read transaction. Exercise insert/list/GeoJSON per tenant.
@@ -1945,6 +1997,43 @@ async function main() {
     }
     signedSessionAutobindHttpProof.technicianTrailWriteTenantA = 'PASS';
     signedSessionAutobindHttpProof.technicianTrailWriteTenantB = 'PASS';
+
+    const crossTrailEventId = 'signed-context-trail-cross-' + keyId;
+    const crossTrailIdempotencyKey = 'signed-context-trail-cross-write-' + keyId;
+    synthetic.trailClientEventIds.push(crossTrailEventId);
+    synthetic.idempotencyKeys.push(crossTrailIdempotencyKey);
+    const crossTrailWrite = await queryHttp(port, '/api/v1/technicians/trail', tokenA, {
+      method: 'POST',
+      headers: { 'idempotency-key': crossTrailIdempotencyKey },
+      body: {
+        technicianId: userB,
+        latitude: 29.9765,
+        longitude: 31.1313,
+        accuracyMeters: 7,
+        recordedAt: new Date(Date.now() + 3000).toISOString(),
+        appointmentId: createAppointmentB.body.id,
+        workOrderId: synthetic.workOrderIds[1],
+        source: 'device',
+        clientEventId: crossTrailEventId
+      }
+    });
+    const crossTrailReadAfterWrite = await queryHttp(
+      port,
+      '/api/v1/technicians/trail?technicianId=' + encodeURIComponent(userB) + '&limit=20',
+      tokenA
+    );
+    if (crossTrailWrite.status < 400
+        || crossTrailWrite.headers?.['x-opscore-signed-tenant-context'] === 'verified'
+        || crossTrailReadAfterWrite.status !== 200
+        || crossTrailReadAfterWrite.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || crossTrailReadAfterWrite.body?.count !== 0
+        || crossTrailReadAfterWrite.body?.points?.length !== 0) {
+      throw new Error('SIGNED_CONTEXT_TECHNICIAN_TRAIL_CROSS_TENANT_WRITE_NOT_DENIED:' + JSON.stringify({
+        write: { status: crossTrailWrite.status, body: crossTrailWrite.body },
+        readAfterWrite: { status: crossTrailReadAfterWrite.status, body: crossTrailReadAfterWrite.body }
+      }));
+    }
+    signedSessionAutobindHttpProof.technicianTrailCrossTenantWriteDenied = 'PASS';
 
     const trailReadA = await queryHttp(
       port,
@@ -2025,6 +2114,21 @@ async function main() {
     signedSessionAutobindHttpProof.technicianTrailGeoJsonTenantA = 'PASS';
     signedSessionAutobindHttpProof.technicianTrailGeoJsonTenantB = 'PASS';
 
+    const trailGeoJsonCrossTenantA = await queryHttp(
+      port,
+      '/api/v1/technicians/trail.geojson?technicianId=' + encodeURIComponent(userB) + '&limit=20',
+      tokenA
+    );
+    if (trailGeoJsonCrossTenantA.status !== 200
+        || trailGeoJsonCrossTenantA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || trailGeoJsonCrossTenantA.body?.type !== 'FeatureCollection'
+        || trailGeoJsonCrossTenantA.body?.count !== 0
+        || trailGeoJsonCrossTenantA.body?.features?.length !== 0) {
+      throw new Error('SIGNED_CONTEXT_TECHNICIAN_TRAIL_GEOJSON_CROSS_TENANT_NOT_HIDDEN:' + JSON.stringify({
+        status: trailGeoJsonCrossTenantA.status, body: trailGeoJsonCrossTenantA.body
+      }));
+    }
+    signedSessionAutobindHttpProof.technicianTrailGeoJsonCrossTenantHidden = 'PASS';
 
     // Tenant-specific geofences: each shape is a real persisted Polygon row,
     // and assignment/evaluation must only resolve within the caller organization.
