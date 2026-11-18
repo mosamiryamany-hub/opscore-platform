@@ -31,24 +31,72 @@ const SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST = JSON.parse(fs.readFileSync(
   'utf8'
 ));
 
-function isSignedTenantManifestRoute(method, requestPath) {
+const candidateSessionTokenLabels = new Map();
+const candidateRouteObservations = new Map();
+let candidateModeForObservations = false;
+
+function findSignedTenantManifestRoute(method, requestPath) {
   const normalizedMethod = String(method || '').toUpperCase();
   const pathname = String(requestPath || '').split('?')[0];
-  return SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST.routes.some(route => {
+  return SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST.routes.find(route => {
     if (String(route.method || '').toUpperCase() !== normalizedMethod) return false;
     const template = String(route.path || '');
-    const expectedSegments = template.split('/');
-    const actualSegments = pathname.split('/');
-    return expectedSegments.length === actualSegments.length
-      && expectedSegments.every((segment, index) => {
-        if (segment === '{id}') return Boolean(actualSegments[index]);
-        if (segment.startsWith('(') && segment.includes('d+') && segment.endsWith(')')) {
-          return /^[0-9]+$/.test(actualSegments[index]);
-        }
-        return segment === actualSegments[index];
-      });
-  });
+    const markerPattern = /(\\{id\\}|\\(\\\\d\\+\\))/g;
+    const pieces = template.split(markerPattern);
+    let pattern = '^';
+    for (const piece of pieces) {
+      if (piece === '{id}') pattern += '[^/]+';
+      else if (piece === '(\\d+)') pattern += '[0-9]+';
+      else pattern += piece.replace(/[.*+?^$\\{\\}()|[\\]\\\\]/g, '\\\\$&');
+    }
+    return new RegExp(pattern + '$').test(pathname);
+  }) || null;
 }
+
+function isSignedTenantManifestRoute(method, requestPath) {
+  return Boolean(findSignedTenantManifestRoute(method, requestPath));
+}
+
+function resetCandidateRouteObservations() {
+  candidateSessionTokenLabels.clear();
+  candidateRouteObservations.clear();
+  candidateModeForObservations = false;
+}
+
+function getCandidateRouteObservations() {
+  return Array.from(candidateRouteObservations.values()).map(row => ({
+    ...row,
+    tenantA: { ...row.tenantA },
+    tenantB: { ...row.tenantB }
+  }));
+}
+
+function recordCandidateRouteObservation(route, token, response) {
+  const tenantLabel = candidateSessionTokenLabels.get(String(token || ''));
+  if (!route || !tenantLabel) return;
+  const key = String(route.method).toUpperCase() + ' ' + String(route.path);
+  let observation = candidateRouteObservations.get(key);
+  if (!observation) {
+    observation = {
+      method: String(route.method).toUpperCase(),
+      path: String(route.path),
+      operation: String(route.operation),
+      tenantA: { requests: 0, signed: 0, tamperApplied: 0, successful: 0 },
+      tenantB: { requests: 0, signed: 0, tamperApplied: 0, successful: 0 }
+    };
+    candidateRouteObservations.set(key, observation);
+  }
+  const tenant = observation[tenantLabel];
+  const headers = response && response.headers || {};
+  const signed = String(headers['x-opscore-signed-tenant-context'] || '').toLowerCase() === 'verified';
+  const tamperApplied = String(headers['x-opscore-candidate-guc-tamper'] || '').toLowerCase() === 'applied';
+  const status = Number(response && response.status);
+  tenant.requests += 1;
+  if (signed) tenant.signed += 1;
+  if (tamperApplied) tenant.tamperApplied += 1;
+  if (status >= 200 && status < 300 && signed && tamperApplied) tenant.successful += 1;
+}
+
 
 function candidateOrigin(value) {
   let url;
@@ -263,7 +311,8 @@ async function queryHttp(port, route, token, options = {}) {
       signal: AbortSignal.timeout(Number(options.timeoutMs) > 0 ? Number(options.timeoutMs) : 15000)
     });
     const responseHeaders = Object.fromEntries(response.headers.entries());
-    if (isSignedTenantManifestRoute(method, target.pathname)
+    const manifestRoute = findSignedTenantManifestRoute(method, target.pathname);
+    if (manifestRoute
         && String(responseHeaders['x-opscore-candidate-guc-tamper'] || '') !== 'applied') {
       throw new Error('CANDIDATE_GUC_TAMPER_NOT_CONFIRMED:' + method + ' ' + target.pathname);
     }
@@ -273,7 +322,9 @@ async function queryHttp(port, route, token, options = {}) {
     }
     let parsed = null;
     try { parsed = responseBody ? JSON.parse(responseBody) : null; } catch (_) {}
-    return { status: response.status, headers: responseHeaders, body: parsed };
+    const result = { status: response.status, headers: responseHeaders, body: parsed };
+    if (candidateModeForObservations) recordCandidateRouteObservation(manifestRoute, token, result);
+    return result;
   }
 
   return new Promise((resolve, reject) => {
@@ -364,6 +415,8 @@ async function tamperRawGucs(client, otherTenant) {
 async function main() {
   if (process.env.CI !== 'true') throw new Error('SIGNED_CONTEXT_POSTGRES_GATE_CI_ONLY');
   const candidateMode = String(process.env.OPSC_SIGNED_CONTEXT_CANDIDATE_MODE || '').trim().toLowerCase() === 'true';
+  resetCandidateRouteObservations();
+  candidateModeForObservations = candidateMode;
   let ownerUrl = process.env.OPSC_TENANT_CONTEXT_OWNER_URL;
   let runtimeUrl = process.env.OPSC_PG_ACCEPTANCE_URL;
   let remoteHttpOrigin = null;
@@ -420,6 +473,10 @@ async function main() {
   const sessionB = 'tc_session_b_' + crypto.randomUUID().replace(/-/g, '');
   const tokenA = crypto.randomBytes(32).toString('hex');
   const tokenB = crypto.randomBytes(32).toString('hex');
+  if (candidateMode) {
+    candidateSessionTokenLabels.set(tokenA, 'tenantA');
+    candidateSessionTokenLabels.set(tokenB, 'tenantB');
+  }
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
   const siteCleanupErrors = [];
   const geofenceCleanupErrors = [];
@@ -3782,6 +3839,7 @@ async function main() {
         signedWorkOrderSubresourceReads: signedReadRouteProof,
         signedWorkOrderWrites: signedWriteRouteProof,
         signedEvidenceWrites: signedEvidenceRouteProof,
+        candidateRouteObservations: candidateMode ? getCandidateRouteObservations() : [],
         workOrdersRawGucTamperingIgnored: candidateMode ? 'PASS_CANDIDATE_HTTP_ROUTE_PROBES' : 'PASS',
         readOnlyBoundTransaction: candidateMode ? 'NOT_VERIFIED_DIRECT_RUNTIME_REPLAY_SKIPPED' : 'PASS',
         rawGucTampering: candidateMode ? 'PASS_CANDIDATE_HTTP_ROUTE_PROBES' : 'PASS',
@@ -4369,6 +4427,10 @@ if (require.main === module) {
 module.exports = {
   candidateOrigin,
   isSignedTenantManifestRoute,
+  findSignedTenantManifestRoute,
+  resetCandidateRouteObservations,
+  getCandidateRouteObservations,
+  recordCandidateRouteObservation,
   validateCandidateProbeEnvironment,
   requireLocalAcceptanceUrl,
   queryHttp,
