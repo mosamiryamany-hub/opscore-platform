@@ -553,3 +553,16 @@ test('Production candidate probe allows exactly the approved 67 manifest route/m
   assert.equal(signedTenantRouteManifest.routeCount, 67);
   assert.equal(checked.length, 67);
 });
+
+
+test('signed work-order read reports 404 isolation only after confirmed rollback of a tenant-scoped NOT_FOUND', () => {
+  const start = server.indexOf('function runSignedWorkOrdersRead');
+  const end = server.indexOf('function sendWorkOrderRead', start);
+  assert.ok(start >= 0 && end > start, 'signed read wrapper must exist');
+  const block = server.slice(start, end);
+  assert.match(block, /let rollbackConfirmed = !transactionOpen/);
+  assert.match(block, /store\.db\.exec\('ROLLBACK'\)[\s\S]*?rollbackConfirmed = true/);
+  assert.match(block, /rollbackConfirmed && \(error\?\.code === 'NOT_FOUND' \|\| error\?\.message === 'NOT_FOUND'\)/);
+  assert.match(block, /json\(res, 404, \{ error: \{ code: 'NOT_FOUND' \} \}[\s\S]*?'x-opscore-signed-tenant-context': 'verified'/);
+  assert.match(block, /json\(res, 503, \{ error: \{ code: 'SIGNED_TENANT_WORK_ORDER_READ_FAILED' \} \}/);
+});
