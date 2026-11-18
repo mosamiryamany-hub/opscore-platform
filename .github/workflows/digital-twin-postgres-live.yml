@@ -528,6 +528,7 @@ jobs:
           API="https://console.neon.tech/api/v2/projects/${NEON_PROJECT_ID}"
           PITR_TIMESTAMP="$(date -u --date='5 minutes ago' '+%Y-%m-%dT%H:%M:%SZ')"
           BRANCH_NAME="opscore-pitr-ci-${GITHUB_RUN_ID}"
+          export PITR_TIMESTAMP BRANCH_NAME
           BRANCH_ID=""
           cleanup() {
             if [[ -n "${BRANCH_ID}" ]]; then
