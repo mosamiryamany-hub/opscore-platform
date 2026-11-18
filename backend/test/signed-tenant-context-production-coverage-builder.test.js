@@ -4,10 +4,17 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+let coverageBuilder;
+try {
+  coverageBuilder = require('../scripts/build-signed-tenant-context-production-coverage');
+} catch (error) {
+  process.stderr.write('COVERAGE_BUILDER_IMPORT_FAILURE:' + String(error && error.stack || error) + '\n');
+  throw error;
+}
 const {
   ROUTE_EVIDENCE,
   buildSignedTenantContextProductionCoverage
-} = require('../scripts/build-signed-tenant-context-production-coverage');
+} = coverageBuilder;
 
 const ROOT = path.join(__dirname, '..');
 const manifestBytes = fs.readFileSync(path.join(ROOT, 'docs/verification/SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST.json'));
