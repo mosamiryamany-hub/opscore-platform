@@ -1005,6 +1005,15 @@ function auditSafeAi(store,c,workOrderId,out){
     throw new Error('AI_AUDIT_EVIDENCE_REQUIRED');
   }
 }
+function applyCandidateProbeTenantGucTampering(req, res) {
+  if (!isCandidateProbeAuthorized(req, process.env, signedContextProductionReadiness)) return false;
+  store.db.prepare(
+    "SELECT set_config('app.tenant_id', ?, true), set_config('app.user_id', ?, true), set_config('app.access_mode', ?, true)"
+  ).run('candidate-probe-forged-tenant', 'candidate-probe-forged-user', 'backoffice');
+  res.setHeader('x-opscore-candidate-guc-tamper', 'applied');
+  return true;
+}
+
 function runSignedWorkOrdersRead(req, res, c, reader, responseHeaders = {}) {
   if (c.apiKeyId || !c.sessionId || !store.db || store.db.engine !== 'postgres'
       || typeof store.db.activateVerifiedTenantContext !== 'function') {
@@ -1016,16 +1025,8 @@ function runSignedWorkOrdersRead(req, res, c, reader, responseHeaders = {}) {
     transactionOpen = true;
     store.db.activateVerifiedTenantContext();
 
-    // Candidate-only red-team probe: after the signed context is bound to this
-    // backend/transaction, forge legacy GUCs before the route reads any rows.
-    // This is enabled only for requests bearing the exact candidate probe token
-    // while the Production hold remains active; ordinary Production traffic is
-    // never subjected to test mutations.
-    if (isCandidateProbeAuthorized(req, process.env, signedContextProductionReadiness)) {
-      store.db.prepare(
-        "SELECT set_config('app.tenant_id', ?, true), set_config('app.user_id', ?, true), set_config('app.access_mode', ?, true)"
-      ).run('candidate-probe-forged-tenant', 'candidate-probe-forged-user', 'backoffice');
-    }
+    // Candidate-only GUC tamper executes only after verified context activation.
+    applyCandidateProbeTenantGucTampering(req, res);
 
     // CI-only red-team probe: signed RLS accessors must ignore these raw GUC values.
     if (process.env.CI === 'true'
@@ -1090,13 +1091,8 @@ function runSignedWorkOrderWrite(req, res, c, writer, responder) {
     transactionOpen = true;
     store.db.activateVerifiedTenantContext();
 
-    // Candidate-only red-team probe: forge legacy GUCs after signed context
-    // activation and before any domain write, under the exact probe token.
-    if (isCandidateProbeAuthorized(req, process.env, signedContextProductionReadiness)) {
-      store.db.prepare(
-        "SELECT set_config('app.tenant_id', ?, true), set_config('app.user_id', ?, true), set_config('app.access_mode', ?, true)"
-      ).run('candidate-probe-forged-tenant', 'candidate-probe-forged-user', 'backoffice');
-    }
+    // Candidate-only GUC tamper executes only after verified context activation.
+    applyCandidateProbeTenantGucTampering(req, res);
 
     // CI-only red-team probe: tenant writes must use signed claims, not caller-settable GUCs.
     if (process.env.CI === 'true'
