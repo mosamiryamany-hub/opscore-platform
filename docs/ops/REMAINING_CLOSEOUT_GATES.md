@@ -35,3 +35,12 @@
 - **Package SHA + Secure Release run** authorize the **source artifact**.
 - **Live `/api/verify/release`** authorizes only the **deployed pin**.
 - Do not merge the two without a measured production upgrade.
+
+## POST_PROMOTE (2026-11-18)
+
+| Item | Status |
+|---|---|
+| Vercel promote to main tip | DONE — live commit moved off 4017497 |
+| Live  | UNVERIFIED / NOT_CERTIFIED until post-promote evidence |
+| Collect session + recovery on new pin | IN PROGRESS |
+| 67-route Production coverage PASS | REMAINING (PR #252 path / post-promote probes) |
