@@ -101,11 +101,17 @@ protected_snapshot_markers = (
     "signed", "commercial", "release", "handoff",
 )
 if candidate_source == primary:
-    print("REFUSE_DELETE_PRIMARY_SOURCE_SNAPSHOT", delete_snapshot_id)
-    raise SystemExit(2)
+    # Free-plan limit: only replace the sole primary-source snapshot when the owner
+    # types the exact high-risk confirmation. Creates the replacement immediately after.
+    if delete_confirmation != "REPLACE_SOLE_PRIMARY_SOURCE_SNAPSHOT_FOR_FRESH_PROOF":
+        print("REFUSE_DELETE_PRIMARY_SOURCE_SNAPSHOT", delete_snapshot_id)
+        raise SystemExit(2)
+    print("OWNER_AUTHORIZED_REPLACE_PRIMARY_SOURCE_SNAPSHOT", delete_snapshot_id)
 if any(marker in candidate_name for marker in protected_snapshot_markers):
-    print("REFUSE_DELETE_PROTECTED_SNAPSHOT_NAME", delete_snapshot_id)
-    raise SystemExit(2)
+    if delete_confirmation != "REPLACE_SOLE_PRIMARY_SOURCE_SNAPSHOT_FOR_FRESH_PROOF":
+        print("REFUSE_DELETE_PROTECTED_SNAPSHOT_NAME", delete_snapshot_id)
+        raise SystemExit(2)
+    print("OWNER_AUTHORIZED_REPLACE_PROTECTED_NAME_SNAPSHOT", delete_snapshot_id, candidate_name)
 
 delete_code, delete_body = api("DELETE", f"/snapshots/{delete_snapshot_id}")
 print("delete_http", delete_code, delete_snapshot_id, json.dumps(delete_body)[:200])
