@@ -3,12 +3,23 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
+  CANDIDATE_ROUTE_PROOF_REQUIREMENTS,
+  buildCandidateSignedTenantRouteCoverage,
   candidateOrigin,
   validateCandidateProbeEnvironment,
   validateCandidateRuntimeProofs,
   isSignedTenantManifestRoute,
   queryHttp
 } = require('../scripts/signed-tenant-context-postgres-gate');
+
+const fs = require('node:fs');
+const path = require('node:path');
+const manifestPath = path.join(__dirname, '..', 'docs', 'verification', 'SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST.json');
+const inventoryPath = path.join(__dirname, '..', 'docs', 'API_INVENTORY.json');
+const manifestBytes = fs.readFileSync(manifestPath);
+const inventoryBytes = fs.readFileSync(inventoryPath);
+const signedRouteManifest = JSON.parse(manifestBytes.toString('utf8'));
+const routeInventory = JSON.parse(inventoryBytes.toString('utf8'));
 
 const BASE = {
   OPSC_SIGNED_CONTEXT_CANDIDATE_HTTP_ORIGIN: 'https://opscore-platform-candidate123-mosamiryamany-1692.vercel.app',
@@ -330,3 +341,154 @@ test('remote candidate manifest route requires explicit confirmation that GUC ta
   }
 });
 
+
+
+function setProofPath(target, locator, value = 'PASS') {
+  const parts = locator.split('.');
+  let current = target;
+  for (const part of parts.slice(0, -1)) {
+    current[part] ||= {};
+    current = current[part];
+  }
+  current[parts[parts.length - 1]] = value;
+}
+
+function completeCandidateProofFixture() {
+  const proof = {};
+  for (const requirement of Object.values(CANDIDATE_ROUTE_PROOF_REQUIREMENTS)) {
+    for (const locator of [...requirement.a, ...requirement.b, ...requirement.cross]) {
+      setProofPath(proof, locator);
+    }
+  }
+  return proof;
+}
+
+test('candidate route proof requirements are a one-to-one inventory of the approved 67-route manifest', () => {
+  const manifestKeys = signedRouteManifest.routes.map(route =>
+    String(route.method).toUpperCase() + ' ' + route.path
+  );
+  const requirementKeys = Object.keys(CANDIDATE_ROUTE_PROOF_REQUIREMENTS);
+  assert.equal(signedRouteManifest.routeCount, 67);
+  assert.equal(signedRouteManifest.routes.length, 67);
+  assert.equal(requirementKeys.length, 67);
+  assert.deepEqual([...requirementKeys].sort(), [...manifestKeys].sort());
+  assert.equal(new Set(requirementKeys).size, 67);
+  assert.ok(CANDIDATE_ROUTE_PROOF_REQUIREMENTS[
+    'PUT /api/v1/evidence-uploads/{id}/chunks/(\\\\d+)'
+  ], 'numeric chunk route must match the manifest backslash encoding exactly');
+});
+
+test('candidate route coverage emits 67 individually bound rows and only passes with every A/B and cross-tenant proof', () => {
+  const evidence = buildCandidateSignedTenantRouteCoverage({
+    proof: completeCandidateProofFixture(),
+    manifest: signedRouteManifest,
+    inventory: routeInventory,
+    manifestBytes,
+    inventoryBytes,
+    candidateMode: true,
+    databaseName: 'opscore_acceptance',
+    parentBranchId: 'br-proud-salad-bcshhdap',
+    deploymentId: 'dpl_CandidateRouteProof123',
+    sourceCommitHint: 'a'.repeat(40),
+    pipelineId: '123456789'
+  });
+
+  assert.equal(evidence.status, 'PASS');
+  assert.equal(evidence.expectedRouteCount, 67);
+  assert.equal(evidence.coveredRouteCount, 67);
+  assert.equal(evidence.failedRouteCount, 0);
+  assert.equal(evidence.routes.length, 67);
+  assert.equal(evidence.routes.every(route =>
+    route.status === 'PASS'
+      && route.signedContextBound === true
+      && route.sessionBound === true
+      && route.transactionBound === true
+      && route.rawGucTamperDenied === true
+  ), true);
+  assert.equal(evidence.routes.some(route => route.operation === 'read'
+    && route.tenantARead === true && route.tenantBRead === true && route.crossTenantReadDenied === true), true);
+  assert.equal(evidence.routes.some(route => route.operation === 'write'
+    && route.tenantAWrite === true && route.tenantBWrite === true && route.crossTenantWriteDenied === true), true);
+  assert.match(evidence.routeManifestSha256, /^[a-f0-9]{64}$/);
+  assert.match(evidence.routeInventorySha256, /^[a-f0-9]{64}$/);
+  assert.equal(evidence.evidenceRebind, null);
+});
+
+test('missing per-route proof remains NOT_VERIFIED instead of being filled with synthetic PASS values', () => {
+  const proof = completeCandidateProofFixture();
+  delete proof.session.appointmentListTenantA;
+  delete proof.session.appointmentCrossTenantUpdateDenied;
+
+  const evidence = buildCandidateSignedTenantRouteCoverage({
+    proof,
+    manifest: signedRouteManifest,
+    inventory: routeInventory,
+    manifestBytes,
+    inventoryBytes,
+    candidateMode: true,
+    databaseName: 'opscore_acceptance',
+    parentBranchId: 'br-proud-salad-bcshhdap',
+    deploymentId: 'dpl_CandidateRouteProof123',
+    sourceCommitHint: 'a'.repeat(40),
+    pipelineId: '123456789'
+  });
+
+  assert.equal(evidence.status, 'NOT_VERIFIED');
+  assert.equal(evidence.routes.length, 67);
+  assert.equal(evidence.coveredRouteCount, 65);
+  assert.equal(evidence.failedRouteCount, 2);
+  const list = evidence.routes.find(route => route.method === 'GET' && route.path === '/api/v1/appointments');
+  assert.equal(list.status, 'NOT_VERIFIED');
+  assert.equal(list.tenantARead, false);
+  assert.equal(list.tenantBRead, true);
+  assert.equal(list.crossTenantReadDenied, true);
+  assert.ok(list.unresolvedReasons.includes('TENANT_A_ROUTE_PROOF_MISSING'));
+
+  const patch = evidence.routes.find(route => route.method === 'PATCH' && route.path === '/api/v1/appointments/{id}');
+  assert.equal(patch.crossTenantWriteDenied, false);
+  assert.ok(patch.unresolvedReasons.includes('CROSS_TENANT_WRITE_DENIAL_PROOF_MISSING'));
+});
+
+test('the route matrix cannot certify from local CI proof maps without candidate-mode GUC tamper confirmation', () => {
+  const evidence = buildCandidateSignedTenantRouteCoverage({
+    proof: completeCandidateProofFixture(),
+    manifest: signedRouteManifest,
+    inventory: routeInventory,
+    manifestBytes,
+    inventoryBytes,
+    candidateMode: false,
+    databaseName: 'opscore_http_acceptance',
+    parentBranchId: 'br-local-test-branch',
+    deploymentId: 'dpl_LocalFixture123',
+    sourceCommitHint: 'a'.repeat(40),
+    pipelineId: '123456789'
+  });
+  assert.equal(evidence.status, 'NOT_VERIFIED');
+  assert.equal(evidence.coveredRouteCount, 0);
+  assert.equal(evidence.failedRouteCount, 67);
+  assert.equal(evidence.routes.every(route => route.rawGucTamperDenied === false), true);
+});
+
+test('manifest or inventory drift prevents the 67-route matrix from passing', () => {
+  const driftedManifest = {
+    ...signedRouteManifest,
+    routes: signedRouteManifest.routes.slice(0, 66),
+    routeCount: 66
+  };
+  const evidence = buildCandidateSignedTenantRouteCoverage({
+    proof: completeCandidateProofFixture(),
+    manifest: driftedManifest,
+    inventory: routeInventory,
+    manifestBytes,
+    inventoryBytes,
+    candidateMode: true,
+    databaseName: 'opscore_acceptance',
+    parentBranchId: 'br-proud-salad-bcshhdap',
+    deploymentId: 'dpl_CandidateRouteProof123',
+    sourceCommitHint: 'a'.repeat(40),
+    pipelineId: '123456789'
+  });
+  assert.equal(evidence.status, 'NOT_VERIFIED');
+  assert.equal(evidence.manifestComplete, false);
+  assert.equal(evidence.routes.length, 66);
+});
