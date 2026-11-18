@@ -5,6 +5,8 @@ const assert = require('node:assert/strict');
 const {
   CANDIDATE_ROUTE_PROOF_REQUIREMENTS,
   buildCandidateSignedTenantRouteCoverage,
+  CANDIDATE_ROUTE_PROOF_REQUIREMENTS,
+  buildCandidateSignedTenantRouteCoverage,
   candidateOrigin,
   validateCandidateProbeEnvironment,
   validateCandidateRuntimeProofs,
@@ -503,4 +505,123 @@ test('manifest or inventory drift prevents the 67-route matrix from passing', ()
   assert.equal(evidence.status, 'NOT_VERIFIED');
   assert.equal(evidence.manifestComplete, false);
   assert.equal(evidence.routes.length, 66);
+});
+
+
+function setProofPath(target, locator) {
+  const parts = String(locator).split('.');
+  let cursor = target;
+  for (const part of parts.slice(0, -1)) {
+    cursor[part] ||= {};
+    cursor = cursor[part];
+  }
+  cursor[parts.at(-1)] = 'PASS';
+}
+
+function buildCandidateProofFixture() {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const manifestPath = path.join(__dirname, '..', 'docs', 'verification', 'SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST.json');
+  const inventoryPath = path.join(__dirname, '..', 'docs', 'API_INVENTORY.json');
+  const manifestBytes = fs.readFileSync(manifestPath);
+  const inventoryBytes = fs.readFileSync(inventoryPath);
+  const manifest = JSON.parse(manifestBytes.toString('utf8'));
+  const inventory = JSON.parse(inventoryBytes.toString('utf8'));
+  const proof = { session: {}, read: {}, write: {}, evidence: {}, checks: {} };
+
+  for (const requirement of Object.values(CANDIDATE_ROUTE_PROOF_REQUIREMENTS)) {
+    for (const locator of [...requirement.a, ...requirement.b, ...requirement.cross]) {
+      setProofPath(proof, locator);
+    }
+  }
+
+  return { manifest, inventory, manifestBytes, inventoryBytes, proof };
+}
+
+test('candidate route proof map has an exact one-to-one entry for all 67 approved manifest routes', () => {
+  const { manifest } = buildCandidateProofFixture();
+  const manifestKeys = manifest.routes.map(route => route.method + ' ' + route.path);
+  const mappedKeys = Object.keys(CANDIDATE_ROUTE_PROOF_REQUIREMENTS);
+
+  assert.equal(manifest.routeCount, 67);
+  assert.equal(manifest.routes.length, 67);
+  assert.equal(new Set(manifestKeys).size, 67);
+  assert.equal(mappedKeys.length, 67);
+  assert.deepEqual([...mappedKeys].sort(), [...manifestKeys].sort());
+
+  for (const [key, requirement] of Object.entries(CANDIDATE_ROUTE_PROOF_REQUIREMENTS)) {
+    assert.ok(Array.isArray(requirement.a), key + ' requires a Tenant A proof list');
+    assert.ok(Array.isArray(requirement.b), key + ' requires a Tenant B proof list');
+    assert.ok(Array.isArray(requirement.cross), key + ' requires an explicit cross-tenant proof list');
+  }
+});
+
+test('candidate route coverage refuses to certify routes without explicit cross-tenant denial evidence', () => {
+  const fixture = buildCandidateProofFixture();
+  const coverage = buildCandidateSignedTenantRouteCoverage({
+    ...fixture,
+    candidateMode: true,
+    databaseName: 'opscore_acceptance',
+    parentBranchId: 'br-proud-salad-bcshhdap',
+    deploymentId: 'dpl_CandidateIdentity123',
+    sourceCommitHint: 'a'.repeat(40),
+    pipelineId: '123456789',
+    testedAt: '2026-11-18T12:00:00.000Z'
+  });
+
+  assert.equal(coverage.schemaVersion, 'opscore.signed-tenant-context-production-coverage.v1');
+  assert.equal(coverage.environment, 'production');
+  assert.equal(coverage.expectedRouteCount, 67);
+  assert.equal(coverage.routes.length, 67);
+  assert.equal(coverage.manifestComplete, true);
+  assert.equal(coverage.status, 'NOT_VERIFIED');
+  assert.ok(coverage.failedRouteCount > 0);
+  assert.equal(coverage.coveredRouteCount + coverage.failedRouteCount, 67);
+
+  for (const route of coverage.routes.filter(row => row.status !== 'PASS')) {
+    assert.ok(route.unresolvedReasons.some(reason =>
+      reason === 'CROSS_TENANT_READ_DENIAL_PROOF_MISSING'
+      || reason === 'CROSS_TENANT_WRITE_DENIAL_PROOF_MISSING'
+    ), route.method + ' ' + route.path + ' must identify missing cross-tenant proof');
+  }
+});
+
+test('candidate route coverage fails closed when an explicit Tenant B proof is absent', () => {
+  const fixture = buildCandidateProofFixture();
+  const firstKey = Object.keys(CANDIDATE_ROUTE_PROOF_REQUIREMENTS)[0];
+  const requirement = CANDIDATE_ROUTE_PROOF_REQUIREMENTS[firstKey];
+  const locator = requirement.b[0];
+  const parts = locator.split('.');
+  let cursor = fixture.proof;
+  for (const part of parts.slice(0, -1)) cursor = cursor[part];
+  delete cursor[parts.at(-1)];
+
+  const coverage = buildCandidateSignedTenantRouteCoverage({
+    ...fixture,
+    candidateMode: true,
+    databaseName: 'opscore_acceptance',
+    parentBranchId: 'br-proud-salad-bcshhdap',
+    deploymentId: 'dpl_CandidateIdentity123',
+    sourceCommitHint: 'a'.repeat(40),
+    pipelineId: '123456789'
+  });
+  const affected = coverage.routes.find(route => route.method + ' ' + route.path === firstKey);
+  assert.equal(affected.status, 'NOT_VERIFIED');
+  assert.ok(affected.unresolvedReasons.includes('TENANT_B_ROUTE_PROOF_MISSING'));
+});
+
+test('local-only PostgreSQL candidate helper cannot emit a live Production coverage result', () => {
+  const fixture = buildCandidateProofFixture();
+  const coverage = buildCandidateSignedTenantRouteCoverage({
+    ...fixture,
+    candidateMode: false,
+    databaseName: 'opscore_acceptance',
+    parentBranchId: 'br-proud-salad-bcshhdap',
+    deploymentId: 'dpl_CandidateIdentity123',
+    sourceCommitHint: 'a'.repeat(40),
+    pipelineId: '123456789'
+  });
+  assert.equal(coverage.status, 'NOT_VERIFIED');
+  assert.equal(coverage.coveredRouteCount, 0);
+  assert.equal(coverage.failedRouteCount, 67);
 });
