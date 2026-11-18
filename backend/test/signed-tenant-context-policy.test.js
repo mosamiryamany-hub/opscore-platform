@@ -12,6 +12,10 @@ const server = fs.readFileSync(path.join(__dirname, '..', 'src', 'server.js'), '
 
 const apiInventory = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'docs', 'API_INVENTORY.json'), 'utf8'));
 
+const signedTenantRouteManifest = JSON.parse(fs.readFileSync(
+  path.join(__dirname, '..', 'docs', 'verification', 'SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST.json'), 'utf8'
+));
+
 test('signed route evidence policy is derived from actual Preview runtime allowlists', () => {
   const readPostPaths = new Set([
     'POST /api/v1/faults/classify',
@@ -518,4 +522,32 @@ test('candidate route permission is limited to the actual Preview policy allowli
   assert.equal(policy.signedTenantContextRouteError(unknown, candidateProbeEnvironment, candidateProbeReadiness),
     'SIGNED_TENANT_CONTEXT_ROUTE_NOT_ENABLED');
   assert.equal(policy.signedWorkOrdersContextEnabled(wrongMethod, candidateProbeEnvironment, candidateProbeReadiness), false);
+});
+
+
+test('Production candidate probe allows exactly the approved 67 manifest route/method pairs without global flags', () => {
+  const checked = [];
+  for (const route of signedTenantRouteManifest.routes) {
+    const pathname = String(route.path)
+      .replace(/\\{[^/]+\\}/g, 'candidate-route-id')
+      .replace(/\\(\\\\d\\+\\)/g, '0');
+    const request = {
+      method: String(route.method).toUpperCase(),
+      url: pathname,
+      headers: { 'x-opscore-signed-context-probe': candidateProbeToken }
+    };
+    assert.equal(
+      policy.signedWorkOrdersContextEnabled(request, candidateProbeEnvironment, candidateProbeReadiness),
+      true,
+      'candidate route denied: ' + request.method + ' ' + request.url + ' (' + route.operation + ')'
+    );
+    assert.equal(
+      policy.signedTenantContextRouteError(request, candidateProbeEnvironment, candidateProbeReadiness),
+      null,
+      'candidate route error: ' + request.method + ' ' + request.url
+    );
+    checked.push(request.method + ' ' + request.url);
+  }
+  assert.equal(signedTenantRouteManifest.routeCount, 67);
+  assert.equal(checked.length, 67);
 });
