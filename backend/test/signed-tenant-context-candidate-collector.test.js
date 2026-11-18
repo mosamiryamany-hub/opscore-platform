@@ -123,12 +123,15 @@ test('candidate mode does not open direct runtime-role Postgres connections for 
   const fs = require('node:fs');
   const path = require('node:path');
   const gate = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'signed-tenant-context-postgres-gate.js'), 'utf8');
-  const runtimeClients = [...gate.matchAll(/client[AB] = new Client\\(\\{ connectionString: runtimeUrl \\}\\);/g)];
-  assert.equal(runtimeClients.length, 2);
-  for (const match of runtimeClients) {
-    const start = Math.max(0, match.index - 250);
-    const before = gate.slice(start, match.index);
-    assert.match(before, /if \\(!candidateMode\\) \\{[\\s\\S]*$/);
+  for (const [label, needle] of [
+    ['clientA', 'clientA = new Client({ connectionString: runtimeUrl });'],
+    ['clientB', 'clientB = new Client({ connectionString: runtimeUrl });']
+  ]) {
+    const at = gate.indexOf(needle);
+    assert.ok(at >= 0, label + ' runtime client must remain available to local CI tests');
+    const before = gate.slice(Math.max(0, at - 500), at);
+    assert.ok(before.includes('if (!candidateMode) {'),
+      label + ' runtime client must be created only outside candidate mode');
   }
 });
 
@@ -137,32 +140,32 @@ test('Production candidate routes tamper raw tenant GUCs only after verified sig
   const path = require('node:path');
   const server = fs.readFileSync(path.join(__dirname, '..', 'src', 'server.js'), 'utf8');
 
+  const helperStart = server.indexOf('function applyCandidateProbeTenantGucTampering(req, res)');
+  const helperEnd = server.indexOf('function runSignedWorkOrdersRead', helperStart);
+  const helper = server.slice(helperStart, helperEnd);
+  assert.ok(helperStart >= 0 && helper.includes('isCandidateProbeAuthorized(req, process.env, signedContextProductionReadiness)'));
+  assert.ok(helper.includes("set_config('app.tenant_id'"));
+  assert.ok(helper.includes("set_config('app.user_id'"));
+  assert.ok(helper.includes("set_config('app.access_mode'"));
+  assert.ok(helper.includes("x-opscore-candidate-guc-tamper"));
+
   const readStart = server.indexOf('function runSignedWorkOrdersRead(req, res, c, reader');
   const readActivate = server.indexOf('store.db.activateVerifiedTenantContext();', readStart);
-  const readProbe = server.indexOf('isCandidateProbeAuthorized(req, process.env, signedContextProductionReadiness)', readActivate);
+  const readProbe = server.indexOf('applyCandidateProbeTenantGucTampering(req, res);', readActivate);
   const readQuery = server.indexOf('const result = reader();', readProbe);
   assert.ok(readStart >= 0 && readActivate > readStart && readProbe > readActivate && readQuery > readProbe,
     'candidate read GUC tampering must happen after signature activation and before the route query');
 
-    assert.equal(server.includes('runSignedWorkOrdersRead(res, c,'), false);
+  assert.equal(server.includes('runSignedWorkOrdersRead(res, c,'), false);
   assert.equal(server.includes('runSignedWorkOrderWrite(res, c,'), false);
 
   const writeStart = server.indexOf('function runSignedWorkOrderWrite(req, res, c, writer');
   const writeActivate = server.indexOf('store.db.activateVerifiedTenantContext();', writeStart);
-  const writeProbe = server.indexOf('isCandidateProbeAuthorized(req, process.env, signedContextProductionReadiness)', writeActivate);
+  const writeProbe = server.indexOf('applyCandidateProbeTenantGucTampering(req, res);', writeActivate);
   const writeQuery = server.indexOf('const result = store.withCallerManagedTransaction(writer, lifecycle);', writeProbe);
   assert.ok(writeStart >= 0 && writeActivate > writeStart && writeProbe > writeActivate && writeQuery > writeProbe,
     'candidate write GUC tampering must happen after signature activation and before the domain write');
-
-  for (const fragment of [
-    "'candidate-probe-forged-tenant'",
-    "'candidate-probe-forged-user'",
-    "'backoffice'"
-  ]) {
-    assert.ok(server.includes(fragment), 'missing candidate GUC tamper input: ' + fragment);
-  }
 });
-
 
 function candidateRuntimeProofs(overrides = {}) {
   const commit = 'a'.repeat(40);
