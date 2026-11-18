@@ -35,7 +35,7 @@ jobs:
           import json, os, re, urllib.request, urllib.error
           key=os.environ["NEON_API_KEY"]
           project="summer-leaf-18448271"
-          never={"br-proud-salad-bcshhdap","br-quiet-poetry-bc3uo0u3"}  # primary + active restore proof only
+          never={"br-proud-salad-bcshhdap"}  # primary only — stale proof branches may be replaced
           targets=[(os.environ["ID1"].strip(), os.environ["NAME1"].strip()), (os.environ["ID2"].strip(), os.environ["NAME2"].strip())]
           def api(method, path):
             req=urllib.request.Request(f"https://console.neon.tech/api/v2/projects/{project}{path}", method=method,
