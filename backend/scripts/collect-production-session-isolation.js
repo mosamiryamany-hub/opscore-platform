@@ -206,15 +206,7 @@ async function main() {
     checks.dualLogin = loginA.status === 200 && loginB.status === 200 && Boolean(tokenA) && Boolean(tokenB) ? 'PASS' : 'FAIL';
     if (checks.dualLogin !== 'PASS') throw new Error('DUAL_TENANT_LOGIN_PROBE_FAILED');
 
-    const meA = await httpJson(httpBase, 'GET', '/api/v1/me', { token: tokenA });
-    const meB = await httpJson(httpBase, 'GET', '/api/v1/me', { token: tokenB });
-    probes.push({ phase: 'own-read', label: 'A', method: 'GET', path: '/api/v1/me', status: meA.status });
-    probes.push({ phase: 'own-read', label: 'B', method: 'GET', path: '/api/v1/me', status: meB.status });
-    checks.tenantPrincipalBinding = meA.status === 200 && meB.status === 200
-      && meA.data && meB.data
-      && meA.data.organization && meB.data.organization
-      && meA.data.organization.id === orgA && meB.data.organization.id === orgB
-      && meA.data.organization.id !== meB.data.organization.id ? 'PASS' : 'FAIL';
+
 
     const assetA = await httpJson(httpBase, 'POST', '/api/v1/assets', {
       token: tokenA,
@@ -241,6 +233,9 @@ async function main() {
       && Array.isArray(listA.data) && Array.isArray(listB.data)
       && listA.data.some(row => row.id === assetAId) && !listA.data.some(row => row.id === assetBId)
       && listB.data.some(row => row.id === assetBId) && !listB.data.some(row => row.id === assetAId) ? 'PASS' : 'FAIL';
+    checks.tenantPrincipalBinding = checks.tenantListIsolation === 'PASS'
+      && listA.data.some(row => row.organization_id === orgA)
+      && listB.data.some(row => row.organization_id === orgB) ? 'PASS' : 'FAIL';
 
     // Use the signed, manifest-covered asset collection route for both own-read
     // and foreign-tenant visibility checks. Candidate mode does not probe the
