@@ -393,25 +393,23 @@ test('candidate route coverage emits 67 rows and passes only routes with complet
     sourceCommitHint: 'a'.repeat(40),
     pipelineId: '123456789'
   });
-  const expectedCompleteRequirements = Object.values(CANDIDATE_ROUTE_PROOF_REQUIREMENTS)
-    .filter(requirement => requirement.a.length > 0
-      && requirement.b.length > 0
-      && requirement.cross.length > 0).length;
-
-  assert.equal(evidence.status, 'NOT_VERIFIED',
-    'known incomplete route proofs must prevent the whole matrix from passing');
+  assert.equal(evidence.status, 'PASS',
+    'complete candidate-mode proofs for every approved route may pass the mapper contract');
   assert.equal(evidence.expectedRouteCount, 67);
-  assert.equal(evidence.coveredRouteCount, expectedCompleteRequirements);
-  assert.equal(evidence.failedRouteCount, 67 - expectedCompleteRequirements);
+  assert.equal(evidence.coveredRouteCount, 67);
+  assert.equal(evidence.failedRouteCount, 0);
   assert.equal(evidence.routes.length, 67);
+  assert.equal(evidence.routes.every(route => route.status === 'PASS'), true);
+  assert.equal(evidence.routes.every(route =>
+    route.signedContextBound === true
+      && route.sessionBound === true
+      && route.transactionBound === true
+      && route.rawGucTamperDenied === true
+  ), true);
   const completedRoute = evidence.routes.find(route =>
     route.method === 'PATCH' && route.path === '/api/v1/work-orders/{id}'
   );
   assert.equal(completedRoute.status, 'PASS');
-  assert.equal(completedRoute.signedContextBound, true);
-  assert.equal(completedRoute.sessionBound, true);
-  assert.equal(completedRoute.transactionBound, true);
-  assert.equal(completedRoute.rawGucTamperDenied, true);
   assert.equal(completedRoute.tenantAWrite, true);
   assert.equal(completedRoute.tenantBWrite, true);
   assert.equal(completedRoute.crossTenantWriteDenied, true);
