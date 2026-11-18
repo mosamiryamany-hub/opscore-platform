@@ -115,3 +115,32 @@ test('remote candidate HTTP helper refuses requests outside the candidate origin
     delete process.env.VERCEL_TRUSTED_OIDC_TOKEN;
   }
 });
+
+
+test('Production candidate routes tamper raw tenant GUCs only after verified signed context activation', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const server = fs.readFileSync(path.join(__dirname, '..', 'src', 'server.js'), 'utf8');
+
+  const readStart = server.indexOf('function runSignedWorkOrdersRead(req, res, c, reader');
+  const readActivate = server.indexOf('store.db.activateVerifiedTenantContext();', readStart);
+  const readProbe = server.indexOf('isCandidateProbeAuthorized(req, process.env, signedContextProductionReadiness)', readActivate);
+  const readQuery = server.indexOf('const result = reader();', readProbe);
+  assert.ok(readStart >= 0 && readActivate > readStart && readProbe > readActivate && readQuery > readProbe,
+    'candidate read GUC tampering must happen after signature activation and before the route query');
+
+  const writeStart = server.indexOf('function runSignedWorkOrderWrite(req, res, c, writer');
+  const writeActivate = server.indexOf('store.db.activateVerifiedTenantContext();', writeStart);
+  const writeProbe = server.indexOf('isCandidateProbeAuthorized(req, process.env, signedContextProductionReadiness)', writeActivate);
+  const writeQuery = server.indexOf('const result = store.withCallerManagedTransaction(writer, lifecycle);', writeProbe);
+  assert.ok(writeStart >= 0 && writeActivate > writeStart && writeProbe > writeActivate && writeQuery > writeProbe,
+    'candidate write GUC tampering must happen after signature activation and before the domain write');
+
+  for (const fragment of [
+    "'candidate-probe-forged-tenant'",
+    "'candidate-probe-forged-user'",
+    "'backoffice'"
+  ]) {
+    assert.ok(server.includes(fragment), 'missing candidate GUC tamper input: ' + fragment);
+  }
+});
