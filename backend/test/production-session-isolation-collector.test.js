@@ -32,7 +32,9 @@ test('production session write evidence is based on real HTTP probes and databas
   assert.match(collector, /assetAEventAfterCross === assetAEventAfterOwn/);
   assert.match(collector, /checks\.ownAssetCreate = assetA\.status === 201/);
   assert.match(collector, /checks\.ownAssetEventWrite = ownEvent\.status === 201/);
-  assert.match(collector, /checks\.crossTenantAssetReadDenied = isIsolationDenial\(crossIntelligence\.status\)/);
+  assert.match(collector, /checks\.crossTenantAssetReadDenied = listA\.status === 200/);
+  assert.match(collector, /!listA\.data\.some\(row => row\.id === assetBId\)/);
+  assert.match(collector, /!listB\.data\.some\(row => row\.id === assetAId\)/);
   assert.doesNotMatch(collector, /checks\.ownAssetCreate\s*=\s*['"]PASS['"]/);
   assert.doesNotMatch(collector, /checks\.crossTenantWriteDenied\s*=\s*['"]PASS['"]/);
   assert.match(collector, /opscore.production-session-isolation.v3/);
