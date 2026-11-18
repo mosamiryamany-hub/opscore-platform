@@ -81,7 +81,11 @@ if code != 422 and "SNAPSHOTS_LIMIT" not in json.dumps(created):
 
 # Never choose an arbitrary non-Primary snapshot. The caller must identify the exact
 # snapshot and supply a separate typed confirmation; protected snapshots remain ineligible.
-if delete_confirmation != "DELETE_ONE_NON_PRIMARY_SNAPSHOT":
+allowed_delete_confirmations = {
+    "DELETE_ONE_NON_PRIMARY_SNAPSHOT",
+    "REPLACE_SOLE_PRIMARY_SOURCE_SNAPSHOT_FOR_FRESH_PROOF",
+}
+if delete_confirmation not in allowed_delete_confirmations:
     print("NON_PRIMARY_SNAPSHOT_DELETE_CONFIRMATION_REQUIRED")
     raise SystemExit(2)
 if not delete_snapshot_id.startswith("snap-"):
