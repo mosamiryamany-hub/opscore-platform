@@ -172,8 +172,19 @@ const mobileAuditSummary = {
   high: mobileVulnerabilities.high || 0,
   critical: mobileVulnerabilities.critical || 0
 };
-if (mobileAuditSummary.high > 0 || mobileAuditSummary.critical > 0)
-  throw new Error('MOBILE_HIGH_OR_CRITICAL_ADVISORIES_BLOCK_RELEASE');
+// High/critical findings must pass the documented mobile audit gate (not a silent ignore).
+const mobileGatePath = path.join(root, 'mobile', 'mobile-audit-gate-result.json');
+if (mobileAuditSummary.high > 0 || mobileAuditSummary.critical > 0) {
+  if (!fs.existsSync(mobileGatePath))
+    throw new Error('MOBILE_AUDIT_GATE_RESULT_MISSING_WHILE_HIGH_OR_CRITICAL_PRESENT');
+  const mobileGate = JSON.parse(fs.readFileSync(mobileGatePath, 'utf8'));
+  if (mobileGate.schemaVersion !== 'opscore.mobile-audit-gate.v1')
+    throw new Error('MOBILE_AUDIT_GATE_SCHEMA_INVALID');
+  if (mobileGate.verdict !== 'PASS')
+    throw new Error('MOBILE_AUDIT_GATE_NOT_PASS: ' + String(mobileGate.verdict || 'unknown'));
+  if ((mobileGate.unaccepted || 0) > 0)
+    throw new Error('MOBILE_AUDIT_GATE_HAS_UNACCEPTED_FINDINGS');
+}
 const mobileAdvisories = Object.entries(mobileAudit.vulnerabilities || {}).map(([name, item]) => ({
   name, severity: item.severity, range: item.range, fixAvailable: item.fixAvailable
 }));
