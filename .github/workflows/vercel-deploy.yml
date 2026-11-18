@@ -300,7 +300,7 @@ jobs:
           echo "PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256=$HASH"
 
       - name: Collect live production recovery-point evidence (no rebind)
-        if: ${{ github.ref == 'refs/heads/main' }}
+        if: ${{ github.ref == 'refs/heads/main' && github.event_name != 'workflow_dispatch' }}
         env:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
           NEON_PROJECT_ID: summer-leaf-18448271
@@ -309,7 +309,7 @@ jobs:
           OPSC_PRODUCTION_OWNER_ROLE: neondb_owner
           OPSC_NEON_BRANCH_LIMIT: ${{ vars.OPSC_NEON_BRANCH_LIMIT || '10' }}
           GITHUB_SHA: ${{ github.sha }}
-          EXPECTED_PRODUCTION_COMMIT_SHA: ${{ github.sha }}
+          OPSC_EXPECTED_PRODUCTION_COMMIT_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
           sudo apt-get update -qq
@@ -317,7 +317,7 @@ jobs:
           node backend/scripts/collect-production-recovery-point.js
 
       - name: Collect live production session-isolation evidence (no rebind)
-        if: ${{ github.ref == 'refs/heads/main' }}
+        if: ${{ github.ref == 'refs/heads/main' && github.event_name != 'workflow_dispatch' }}
         env:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
           NEON_PROJECT_ID: summer-leaf-18448271
@@ -326,7 +326,7 @@ jobs:
           OPSC_PRODUCTION_HTTP_BASE: https://opscore-platform.vercel.app
           OPSC_PRODUCTION_NEON_BRANCH_ID: br-proud-salad-bcshhdap
           GITHUB_SHA: ${{ github.sha }}
-          EXPECTED_PRODUCTION_COMMIT_SHA: ${{ github.sha }}
+          OPSC_EXPECTED_PRODUCTION_COMMIT_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
           sudo apt-get update -qq
@@ -402,6 +402,7 @@ jobs:
           NODE
 
       - name: Require current-commit production evidence before creating staged deployment
+        if: ${{ github.event_name != 'workflow_dispatch' }}
         env:
           ACCEPTANCE_SHA: ${{ steps.generate_acceptance.outputs.evidence_sha }}
           ISOLATION_CERT: ${{ steps.isolation_cert.outputs.certified }}
@@ -638,6 +639,41 @@ jobs:
           VERCEL_SCOPE: mosamiryamany-1692
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_TRUSTED_OIDC_TOKEN: ${{ steps.vercel_oidc_domain.outputs.token }}
+
+
+      - name: Collect post-promote recovery-point evidence
+        if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' }}
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: summer-leaf-18448271
+          OPSC_PRODUCTION_NEON_BRANCH_ID: br-proud-salad-bcshhdap
+          OPSC_PRODUCTION_DATABASE_NAME: opscore_acceptance
+          OPSC_PRODUCTION_OWNER_ROLE: neondb_owner
+          OPSC_NEON_BRANCH_LIMIT: ${{ vars.OPSC_NEON_BRANCH_LIMIT || '10' }}
+          GITHUB_SHA: ${{ github.sha }}
+          OPSC_EXPECTED_PRODUCTION_COMMIT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq postgresql-client
+          node backend/scripts/collect-production-recovery-point.js
+
+      - name: Collect post-promote session-isolation evidence
+        if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' }}
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: summer-leaf-18448271
+          OPSC_PRODUCTION_DATABASE_NAME: opscore_acceptance
+          OPSC_PRODUCTION_OWNER_ROLE: neondb_owner
+          OPSC_PRODUCTION_HTTP_BASE: https://opscore-platform.vercel.app
+          OPSC_PRODUCTION_NEON_BRANCH_ID: br-proud-salad-bcshhdap
+          GITHUB_SHA: ${{ github.sha }}
+          OPSC_EXPECTED_PRODUCTION_COMMIT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq postgresql-client
+          node backend/scripts/collect-production-session-isolation.js
 
       - name: Fail unless production promotion and public-domain verification completed
         if: ${{ always() && !cancelled() }}
