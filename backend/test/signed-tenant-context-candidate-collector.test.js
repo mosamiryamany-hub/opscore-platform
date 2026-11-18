@@ -509,12 +509,12 @@ test('candidate final residue proof includes every tenant event and external-del
   const path = require('node:path');
   const gate = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'signed-tenant-context-postgres-gate.js'), 'utf8');
   const deleteOrganization = gate.indexOf("DELETE FROM public.organizations WHERE id = ANY($1::text[])");
-  const residueStart = gate.indexOf('finalCleanupResidue = residue.rows[0] || {};');
-  const residueEnd = gate.indexOf('try { await owner.end(); }', residueStart);
-  assert.ok(deleteOrganization >= 0 && residueStart > deleteOrganization && residueEnd > residueStart,
-    'final queue residue must be inspected after synthetic organizations are deleted');
+  const residueAssignment = gate.indexOf('finalCleanupResidue = residue.rows[0] || {};');
+  const residueQueryStart = gate.lastIndexOf('const residue = await owner.query(', residueAssignment);
+  assert.ok(deleteOrganization >= 0 && residueQueryStart > deleteOrganization && residueAssignment > residueQueryStart,
+    'final queue residue query must run after synthetic organizations are deleted');
 
-  const residueBlock = gate.slice(residueStart, residueEnd);
+  const residueBlock = gate.slice(residueQueryStart, residueAssignment);
   for (const table of [
     'integration_outbox',
     'notifications',
