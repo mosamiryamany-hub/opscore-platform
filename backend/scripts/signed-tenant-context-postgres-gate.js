@@ -1071,6 +1071,20 @@ async function main() {
     signedSessionAutobindHttpProof.customerServiceLineReadTenantA = 'PASS';
     signedSessionAutobindHttpProof.customerServiceLineReadTenantB = 'PASS';
 
+    const crossReadServiceLine = await queryHttp(
+      port,
+      '/api/v1/customers/' + encodeURIComponent(synthetic.customerIds[1]) + '/service-line',
+      tokenA
+    );
+    if (crossReadServiceLine.status !== 404
+        || crossReadServiceLine.body?.error?.code !== 'NOT_FOUND'
+        || crossReadServiceLine.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_CUSTOMER_SERVICE_LINE_CROSS_TENANT_READ_NOT_DENIED:' + JSON.stringify({
+        status: crossReadServiceLine.status, body: crossReadServiceLine.body
+      }));
+    }
+    signedSessionAutobindHttpProof.customerServiceLineCrossTenantReadDenied = 'PASS';
+
     // Exercise the authenticated sites list through its real signed read wrapper.
     // The response must include only the caller's site and its tenant-owned customer join.
     const signedSitesA = await queryHttp(port, '/api/v1/sites', tokenA);
@@ -2033,7 +2047,12 @@ async function main() {
     const createGeofenceA = await queryHttp(port, '/api/v1/geofences', tokenA, {
       method: 'POST',
       headers: { 'idempotency-key': geofenceKeyA },
-      body: { name: 'Signed Context Geofence A', geometry: geofenceGeometryA, enabled: true }
+      body: {
+        name: 'Signed Context Geofence A',
+        geometry: geofenceGeometryA,
+        enabled: true,
+        organizationId: tenantB
+      }
     });
     if (createGeofenceA.body?.id) synthetic.geofenceIds.push(createGeofenceA.body.id);
     if (createGeofenceA.status !== 201
@@ -2068,6 +2087,10 @@ async function main() {
     }
     signedSessionAutobindHttpProof.geofenceCreateTenantA = 'PASS';
     signedSessionAutobindHttpProof.geofenceCreateTenantB = 'PASS';
+    if (createGeofenceA.body?.organizationId !== tenantA) {
+      throw new Error('SIGNED_CONTEXT_GEOFENCE_CREATE_IGNORED_FOREIGN_TENANT_CLAIM_FAILED');
+    }
+    signedSessionAutobindHttpProof.geofenceCreateIgnoresClientTenantClaim = 'PASS';
 
     const geofencesA = await queryHttp(port, '/api/v1/geofences', tokenA);
     const geofencesB = await queryHttp(port, '/api/v1/geofences', tokenB);
@@ -2592,6 +2615,19 @@ async function main() {
     signedSessionAutobindHttpProof.geofenceAssertAccessTenantA = 'PASS';
     signedSessionAutobindHttpProof.geofenceAssertAccessTenantB = 'PASS';
 
+    const geoAccessCrossTenantA = await queryHttp(port, '/api/v1/geofences/assert-access', tokenA, {
+      method: 'POST',
+      body: { longitude: 31.1313, latitude: 29.9765 }
+    });
+    if (geoAccessCrossTenantA.status !== 200
+        || geoAccessCrossTenantA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || geoAccessCrossTenantA.body?.allow !== false) {
+      throw new Error('SIGNED_CONTEXT_GEOFENCE_ASSERT_ACCESS_CROSS_TENANT_NOT_DENIED:' + JSON.stringify({
+        status: geoAccessCrossTenantA.status, body: geoAccessCrossTenantA.body
+      }));
+    }
+    signedSessionAutobindHttpProof.geofenceAssertAccessCrossTenantDenied = 'PASS';
+
     const dynamicGeofenceSourceA = 'signed-context-dynamic-geofence-a-' + keyId;
     const dynamicGeofenceSourceB = 'signed-context-dynamic-geofence-b-' + keyId;
     const dynamicGeofenceKeyA = 'signed-context-dynamic-geofence-write-a-' + keyId;
@@ -2673,6 +2709,27 @@ async function main() {
     signedSessionAutobindHttpProof.dynamicGeofenceWriteTenantA = 'PASS';
     signedSessionAutobindHttpProof.dynamicGeofenceWriteTenantB = 'PASS';
     signedSessionAutobindHttpProof.dynamicGeofenceSourceEventReplay = 'PASS';
+
+    const dynamicGeofenceCrossKey = 'signed-context-dynamic-geofence-cross-' + keyId;
+    const dynamicGeofenceCrossEvent = {
+      ...dynamicGeofenceEventA,
+      sourceEventId: 'signed-context-dynamic-geofence-cross-source-' + keyId,
+      geofenceId: createGeofenceB.body.id
+    };
+    synthetic.idempotencyKeys.push(dynamicGeofenceCrossKey);
+    const dynamicGeofenceCrossTenant = await queryHttp(port, '/api/v1/geofences/dynamic-events', tokenA, {
+      method: 'POST',
+      headers: { 'idempotency-key': dynamicGeofenceCrossKey },
+      body: dynamicGeofenceCrossEvent
+    });
+    if (dynamicGeofenceCrossTenant.status !== 404
+        || !['GEOFENCE_NOT_FOUND', 'NOT_FOUND'].includes(dynamicGeofenceCrossTenant.body?.error?.code)
+        || dynamicGeofenceCrossTenant.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_DYNAMIC_GEOFENCE_CROSS_TENANT_WRITE_NOT_DENIED:' + JSON.stringify({
+        status: dynamicGeofenceCrossTenant.status, body: dynamicGeofenceCrossTenant.body
+      }));
+    }
+    signedSessionAutobindHttpProof.dynamicGeofenceCrossTenantDenied = 'PASS';
 
     // This route previously called ctx(req) a second time after the global
     // requireCtx gate, which would attempt to downgrade a signed field principal
