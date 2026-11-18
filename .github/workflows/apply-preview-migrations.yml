@@ -1,6 +1,13 @@
 name: apply-preview-migrations
 
 on:
+  push:
+    branches:
+      - ops/acceptance-neon-target-2026-11-19
+    paths:
+      - '.github/workflows/apply-preview-migrations.yml'
+      - 'backend/sql/postgres/**'
+      - 'backend/scripts/apply-postgres-migrations.js'
   workflow_dispatch:
     inputs:
       branch:
@@ -42,8 +49,8 @@ jobs:
         id: neon
         env:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
-          INPUT_BRANCH: ${{ github.event.inputs.branch }}
-          INPUT_DB: ${{ github.event.inputs.database }}
+          INPUT_BRANCH: ${{ github.event.inputs.branch || 'br-solitary-band-bbczy982' }}
+          INPUT_DB: ${{ github.event.inputs.database || 'opscore_acceptance' }}
         run: |
           set -euo pipefail
           test -n "${NEON_API_KEY:-}" || { echo "NEON_API_KEY_MISSING"; exit 1; }
@@ -196,3 +203,57 @@ jobs:
              );")
           test "$COUNT" = "6" || { echo "MIGRATION_VERIFY_COUNT=$COUNT"; exit 1; }
           echo "PREVIEW_MIGRATIONS_066_068_VERIFIED=PASS"
+
+      - name: Resolve least-privilege runtime connection for HTTP acceptance
+        id: acceptance
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          INPUT_BRANCH: ${{ steps.neon.outputs.branch_id }}
+          INPUT_DB: ${{ steps.neon.outputs.database }}
+          PROJECT_ID: ${{ steps.neon.outputs.project_id }}
+          EXPECTED_HOST: ${{ steps.neon.outputs.host }}
+        run: |
+          set -euo pipefail
+          test -n "${NEON_API_KEY:-}"
+          AUTH_H=(-H "Authorization: Bearer ${NEON_API_KEY}" -H "Accept: application/json")
+          curl -fsS -G "${AUTH_H[@]}" \
+            --data-urlencode "branch_id=${INPUT_BRANCH}" \
+            --data-urlencode "database_name=${INPUT_DB}" \
+            --data-urlencode "role_name=opscore_runtime" \
+            --data-urlencode "pooled=false" \
+            "https://console.neon.tech/api/v2/projects/${PROJECT_ID}/connection_uri" \
+            > "$RUNNER_TEMP/runtime-uri.json"
+          python3 - <<'PY'
+          import json,os,sys
+          from urllib.parse import urlsplit,urlunsplit,parse_qsl,urlencode
+          raw=json.load(open(os.environ["RUNNER_TEMP"]+"/runtime-uri.json"))["uri"]
+          p=urlsplit(raw)
+          if p.scheme not in ("postgres","postgresql") or not p.hostname or "-pooler" in p.hostname:
+            print("ACCEPTANCE_RUNTIME_DIRECT_POSTGRES_REQUIRED", file=sys.stderr); sys.exit(1)
+          if p.hostname != os.environ["EXPECTED_HOST"]:
+            print("ACCEPTANCE_RUNTIME_HOST_MISMATCH", file=sys.stderr); sys.exit(1)
+          if p.path.lstrip("/") != os.environ["INPUT_DB"]:
+            print("ACCEPTANCE_RUNTIME_DATABASE_MISMATCH", file=sys.stderr); sys.exit(1)
+          q=dict(parse_qsl(p.query, keep_blank_values=True))
+          q["sslmode"]="verify-full"
+          uri=urlunsplit((p.scheme,p.netloc,p.path,urlencode(q),p.fragment))
+          open(os.environ["RUNNER_TEMP"]+"/runtime.uri","w").write(uri)
+          print("ACCEPTANCE_RUNTIME_IDENTITY=PASS role=opscore_runtime host="+p.hostname+" database="+os.environ["INPUT_DB"])
+          PY
+          chmod 600 "$RUNNER_TEMP/runtime.uri"
+          URI="$(cat "$RUNNER_TEMP/runtime.uri")"
+          echo "::add-mask::$URI"
+          echo "url=$URI" >> "$GITHUB_OUTPUT"
+          echo "host=${EXPECTED_HOST}" >> "$GITHUB_OUTPUT"
+
+      - name: Run PostgreSQL HTTP commercial acceptance against isolated Neon
+        working-directory: backend
+        env:
+          OPSC_PG_ACCEPTANCE_URL: ${{ steps.acceptance.outputs.url }}
+          OPSC_PG_ACCEPTANCE_HOST: ${{ steps.acceptance.outputs.host }}
+          OPSC_PG_ACCEPTANCE_STRICT: 'true'
+          OPSC_PG_ACCEPTANCE_RESULT_FILE: ${{ github.workspace }}/POSTGRES_HTTP_ACCEPTANCE_RESULT.json
+          OPSC_WRITE_EVIDENCE: '1'
+          CI_COMMIT_SHA: ${{ github.sha }}
+          CI_PIPELINE_ID: ${{ github.run_id }}
+        run: node --test test/postgres-commercial-acceptance-http.test.js
