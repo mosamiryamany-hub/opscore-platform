@@ -90,26 +90,28 @@ jobs:
             exit 0
           fi
           actual="$(git diff --name-only "$RELEASE_BASE_SHA" "$GITHUB_SHA" | LC_ALL=C sort)"
-          expected="$(printf '%s\\n' \\
-            '.github/workflows/opscore-secure-release.yml' \\
-            'backend/docs/verification/I18N_FORENSIC_AUDIT_RESULT.sha256' \\
-            'backend/docs/verification/PRODUCTION_RECOVERY_POINT.json.sha256' \\
-            'backend/docs/verification/PRODUCTION_SESSION_ISOLATION.json.sha256' \\
-            'backend/docs/verification/RECOVERY_GATE_RESULT.sha256' \\
-            'backend/docs/verification/RELEASE_TEST_RUN_RESULT.sha256' \\
-            'docs/commercial/CLIENT_TRUST_PACK.md' \\
-            'docs/commercial/CLIENT_TRUST_PACK_v0.11.62.18.md' \\
-            'docs/commercial/COMMERCIAL_CLOSEOUT_FINAL.md' \\
-            'docs/commercial/REMAINING_CLOSEOUT_CHECKLIST.md' \\
-            'docs/ops/REMAINING_CLOSEOUT_GATES.md' \\
-            'docs/security/OPSC_APP_SECURITY_DISPOSITION.md' \\
-            'scripts/finalize-draft-release.js' \\
-            'scripts/package-release.js' \\
-            'scripts/refresh-evidence-sidecars.js' \\
-            'scripts/release-artifact-gate.js' \\
-            'scripts/write-release-attestation.js')"
+          expected="$(cat <<'EXPECTED_FILES'
+          .github/workflows/opscore-secure-release.yml
+          backend/docs/verification/I18N_FORENSIC_AUDIT_RESULT.sha256
+          backend/docs/verification/PRODUCTION_RECOVERY_POINT.json.sha256
+          backend/docs/verification/PRODUCTION_SESSION_ISOLATION.json.sha256
+          backend/docs/verification/RECOVERY_GATE_RESULT.sha256
+          backend/docs/verification/RELEASE_TEST_RUN_RESULT.sha256
+          docs/commercial/CLIENT_TRUST_PACK.md
+          docs/commercial/CLIENT_TRUST_PACK_v0.11.62.18.md
+          docs/commercial/COMMERCIAL_CLOSEOUT_FINAL.md
+          docs/commercial/REMAINING_CLOSEOUT_CHECKLIST.md
+          docs/ops/REMAINING_CLOSEOUT_GATES.md
+          docs/security/OPSC_APP_SECURITY_DISPOSITION.md
+          scripts/finalize-draft-release.js
+          scripts/package-release.js
+          scripts/refresh-evidence-sidecars.js
+          scripts/release-artifact-gate.js
+          scripts/write-release-attestation.js
+          EXPECTED_FILES
+          )"
           if [[ "$actual" != "$expected" ]]; then
-            printf 'ISOLATED_RELEASE_FILE_ALLOWLIST_MISMATCH\\nExpected:\\n%s\\nActual:\\n%s\\n' "$expected" "$actual" >&2
+            printf 'ISOLATED_RELEASE_FILE_ALLOWLIST_MISMATCH\nExpected:\n%s\nActual:\n%s\n' "$expected" "$actual" >&2
             exit 1
           fi
           echo "ISOLATED_COMMERCIAL_RELEASE_LINE_VERIFIED: base=$RELEASE_BASE_SHA tag=$ISOLATED_RELEASE_TAG"
