@@ -577,6 +577,7 @@ jobs:
               --data-urlencode "branch_id=${branch}" \
               --data-urlencode "database_name=${DATABASE_NAME}" \
               --data-urlencode "role_name=${RUNTIME_ROLE}" \
+              --data-urlencode "endpoint_id=ep-mute-sun-bcahhoei" \
               --data-urlencode "pooled=false" \
               "${API}/connection_uri" > "${file}.json"
             python3 - "${file}.json" "$file" "$DATABASE_NAME" <<'PY'
