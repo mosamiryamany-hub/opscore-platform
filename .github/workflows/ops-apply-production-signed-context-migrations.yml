@@ -1,12 +1,12 @@
-name: Apply Production signed-context migrations
+name: Verify Production signed-context migration state
 
-# Manual, exact-confirmation workflow. Verify GitHub Environment reviewer rules separately before dispatch.
+# Manual, exact-confirmation, read-only verification workflow. Verify GitHub Environment reviewer rules separately before dispatch.
 
 on:
   workflow_dispatch:
     inputs:
       confirm:
-        description: Type APPLY_PRODUCTION_SIGNED_CONTEXT_MIGRATIONS after reviewing the exact migration plan
+        description: Type VERIFY_PRODUCTION_SIGNED_CONTEXT_MIGRATIONS after reviewing the exact read-only verification plan
         required: true
         type: string
 
@@ -19,7 +19,7 @@ concurrency:
 
 jobs:
   migrate:
-    if: ${{ github.ref == 'refs/heads/main' && github.event.inputs.confirm == 'APPLY_PRODUCTION_SIGNED_CONTEXT_MIGRATIONS' }}
+    if: ${{ github.ref == 'refs/heads/main' && github.event.inputs.confirm == 'VERIFY_PRODUCTION_SIGNED_CONTEXT_MIGRATIONS' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     environment:
@@ -41,7 +41,7 @@ jobs:
         working-directory: backend
         run: npm ci --ignore-scripts
 
-      - name: Verify restore proof and apply the exact Production migration set
+      - name: Verify restore proof and the already-applied Production migration set
         env:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
           OPSC_PRODUCTION_RESTORE_PROOF_SHA256: ${{ secrets.OPSC_PRODUCTION_RESTORE_PROOF_SHA256 }}
@@ -53,7 +53,7 @@ jobs:
 
       - name: Explicit no-deploy boundary
         run: |
-          echo "Production schema migration completed only if the official runner reports APPLIED_AND_VERIFIED."
+          echo "Production migration state is verified read-only; already-applied migrations are not re-run."
           echo "No Vercel deployment was started."
           echo "No HMAC key was rotated."
           echo "No signed-route or traffic-hold flag was changed."
