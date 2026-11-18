@@ -1078,7 +1078,7 @@ async function main() {
     );
     if (crossReadServiceLine.status !== 404
         || crossReadServiceLine.body?.error?.code !== 'NOT_FOUND'
-        || crossReadServiceLine.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+        || crossReadServiceLine.headers?.['x-opscore-signed-tenant-context'] !== 'verified') {
       throw new Error('SIGNED_CONTEXT_CUSTOMER_SERVICE_LINE_CROSS_TENANT_READ_NOT_DENIED:' + JSON.stringify({
         status: crossReadServiceLine.status, body: crossReadServiceLine.body
       }));
@@ -1866,7 +1866,7 @@ async function main() {
     );
     if (crossAppointmentRead.status !== 404
         || crossAppointmentRead.body?.error?.code !== 'NOT_FOUND'
-        || crossAppointmentRead.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+        || crossAppointmentRead.headers?.['x-opscore-signed-tenant-context'] !== 'verified') {
       throw new Error('SIGNED_CONTEXT_APPOINTMENT_CROSS_TENANT_READ_EXPOSED:' + JSON.stringify({
         status: crossAppointmentRead.status, body: crossAppointmentRead.body
       }));
