@@ -108,7 +108,20 @@ jobs:
           echo "branch_name=$BRANCH_NAME" >> "$GITHUB_OUTPUT"
           echo "Resolved Preview branch: $BRANCH_NAME ($BRANCH_ID)"
           API="https://console.neon.tech/api/v2/projects/${PROJECT_ID}"
-          curl -fsS "${AUTH_H[@]}" "${API}/branches/${BRANCH_ID}/roles/opscore_owner/reveal_password" > "$RUNNER_TEMP/owner-password.json"
+          OWNER_HTTP_STATUS="$(curl -sS "${AUTH_H[@]}" -o "$RUNNER_TEMP/owner-password-response.json" -w "%{http_code}" "${API}/branches/${BRANCH_ID}/roles/opscore_owner/reveal_password")"
+          if [[ "$OWNER_HTTP_STATUS" != "200" ]]; then
+            python3 - <<'PY'
+          import json,os
+          p=os.environ["RUNNER_TEMP"]+"/owner-password-response.json"
+          try:
+            d=json.load(open(p))
+            print("PREVIEW_OWNER_PASSWORD_HTTP_FAILURE", d.get("code"), d.get("message") or d.get("error"))
+          except Exception:
+            print("PREVIEW_OWNER_PASSWORD_HTTP_FAILURE status="+os.environ.get("OWNER_HTTP_STATUS","unknown"))
+          PY
+            exit 1
+          fi
+          cp "$RUNNER_TEMP/owner-password-response.json" "$RUNNER_TEMP/owner-password.json"
           chmod 600 "$RUNNER_TEMP/owner-password.json"
           PASSWORD="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("password") or "")' "$RUNNER_TEMP/owner-password.json")"
           test -n "$PASSWORD" || { echo "PREVIEW_OWNER_PASSWORD_UNAVAILABLE" >&2; exit 1; }
