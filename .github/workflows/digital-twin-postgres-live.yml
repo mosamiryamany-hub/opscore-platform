@@ -551,6 +551,8 @@ jobs:
           CREATE="$(curl -fsS -X POST "${AUTH[@]}" -H "Content-Type: application/json" \
             --data-binary "@$RUNNER_TEMP/pitr-request.json" "${API}/branches")"
           BRANCH_ID="$(printf '%s' "$CREATE" | python3 -c 'import json,sys; print(json.load(sys.stdin)["branch"]["id"])')"
+          BRANCH_ENDPOINT_ID="$(printf '%s' "$CREATE" | python3 -c 'import json,sys; print((json.load(sys.stdin).get("endpoints") or [{}])[0].get("id") or "")')"
+          test -n "$BRANCH_ENDPOINT_ID" || { echo "PITR_BRANCH_ENDPOINT_MISSING"; exit 1; }
           test "${BRANCH_ID#br-}" != "${BRANCH_ID}" || { echo "PITR_BRANCH_ID_INVALID"; exit 1; }
           echo "PITR_SOURCE_ROOT_BRANCH=${ROOT_BRANCH_ID}"
           echo "PITR_HISTORICAL_BRANCH=${BRANCH_ID}"
@@ -572,12 +574,13 @@ jobs:
           sudo apt-get install -y -qq postgresql-client >/dev/null
           fetch_uri() {
             local branch="$1"
-            local file="$2"
+            local endpoint="$2"
+            local file="$3"
             curl -fsS -G "${AUTH[@]}" \
               --data-urlencode "branch_id=${branch}" \
               --data-urlencode "database_name=${DATABASE_NAME}" \
               --data-urlencode "role_name=${RUNTIME_ROLE}" \
-              --data-urlencode "endpoint_id=ep-mute-sun-bcahhoei" \
+              --data-urlencode "endpoint_id=${endpoint}" \
               --data-urlencode "pooled=false" \
               "${API}/connection_uri" > "${file}.json"
             python3 - "${file}.json" "$file" "$DATABASE_NAME" <<'PY'
@@ -594,8 +597,8 @@ jobs:
           PY
             chmod 600 "$file"
           }
-          fetch_uri "$BRANCH_ID" "$RUNNER_TEMP/pitr.uri"
-          fetch_uri "$ROOT_BRANCH_ID" "$RUNNER_TEMP/head.uri"
+          fetch_uri "$BRANCH_ID" "$BRANCH_ENDPOINT_ID" "$RUNNER_TEMP/pitr.uri"
+          fetch_uri "$ROOT_BRANCH_ID" "ep-mute-sun-bcahhoei" "$RUNNER_TEMP/head.uri"
           SQL="SELECT concat_ws('|', current_database(), (SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE'), (SELECT count(*) FROM public.schema_migrations), (SELECT md5(string_agg(filename||':'||sha256,E'\\n' ORDER BY filename)) FROM public.schema_migrations), (SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='r' AND c.relforcerowsecurity), (SELECT count(*) FROM pg_policies), (SELECT string_agg(extname||':'||extversion,',' ORDER BY extname) FROM pg_extension));"
           HISTORICAL="$(psql "$(cat "$RUNNER_TEMP/pitr.uri")" -X -v ON_ERROR_STOP=1 -Atc "$SQL")"
           HEAD="$(psql "$(cat "$RUNNER_TEMP/head.uri")" -X -v ON_ERROR_STOP=1 -Atc "$SQL")"
