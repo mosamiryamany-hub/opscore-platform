@@ -2,9 +2,14 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const routeManifest = require('../docs/verification/SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST.json');
+const apiInventory = require('../docs/API_INVENTORY.json');
 const {
   evaluateProductionGate,
-  isReadOnlyProductionVerificationRequest
+  isReadOnlyProductionVerificationRequest,
+  isAuthorizedProductionCandidateProbeRequest
 } = require('../src/production-hold');
 
 test('production hold blocks traffic while leaving only read-only verification GET routes available', () => {
@@ -32,6 +37,109 @@ test('production hold blocks traffic while leaving only read-only verification G
   assert.equal(isReadOnlyProductionVerificationRequest({ method: 'POST', url: '/api/verify/release' }), false);
   assert.equal(isReadOnlyProductionVerificationRequest({ method: 'GET', url: '/api/v1/assets' }), false);
   assert.equal(isReadOnlyProductionVerificationRequest({ method: 'POST', url: '/api/health' }), false);
+});
+
+test('production hold permits only token-authenticated signed candidate routes without opening operational traffic', () => {
+  const env = {
+    VERCEL_ENV: 'production',
+    VERCEL_URL: 'opscore-platform-candidate123-mosamiryamany-1692.vercel.app',
+    OPSC_PRODUCTION_HOLD: 'true',
+    OPSC_RELEASE_VERIFIED: 'false',
+    OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'true',
+    OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED: 'true',
+    OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN: 'a'.repeat(64)
+  };
+  const readiness = { productionReleaseVerified: false };
+  const request = (method, url, token = env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN) => ({
+    method,
+    url,
+    headers: {
+      host: env.VERCEL_URL,
+      'x-vercel-trusted-oidc-idp-token': 'header.payload.signature',
+      ...(token ? { 'x-opscore-signed-context-probe': token } : {})
+    }
+  });
+
+  assert.equal(isAuthorizedProductionCandidateProbeRequest(
+    request('GET', '/api/v1/work-orders/wo_123/timeline'), env, readiness
+  ), true);
+  assert.equal(isAuthorizedProductionCandidateProbeRequest(
+    request('POST', '/api/v1/customers'), env, readiness
+  ), true);
+  assert.equal(isAuthorizedProductionCandidateProbeRequest(
+    request('POST', '/api/v1/auth/mobile-login'), env, readiness
+  ), false);
+  assert.equal(isAuthorizedProductionCandidateProbeRequest(
+    request('GET', '/api/v1/admin/users'), env, readiness
+  ), false);
+  assert.equal(isAuthorizedProductionCandidateProbeRequest(
+    request('DELETE', '/api/v1/work-orders/wo_123/timeline'), env, readiness
+  ), false);
+  assert.equal(isAuthorizedProductionCandidateProbeRequest(
+    request('GET', '/api/v1/customers', 'b'.repeat(64)), env, readiness
+  ), false);
+  assert.equal(isAuthorizedProductionCandidateProbeRequest(
+    request('GET', '/api/v1/customers', null), env, readiness
+  ), false);
+  const aliasHostRequest = request('GET', '/api/v1/customers');
+  aliasHostRequest.headers.host = 'opscore-platform.vercel.app';
+  assert.equal(isAuthorizedProductionCandidateProbeRequest(aliasHostRequest, env, readiness), false);
+  const missingOidcRequest = request('GET', '/api/v1/customers');
+  delete missingOidcRequest.headers['x-vercel-trusted-oidc-idp-token'];
+  assert.equal(isAuthorizedProductionCandidateProbeRequest(missingOidcRequest, env, readiness), false);
+  assert.equal(isAuthorizedProductionCandidateProbeRequest(
+    request('GET', '/api/v1/customers'), { ...env, OPSC_PRODUCTION_HOLD: 'false' }, readiness
+  ), false);
+  assert.equal(isAuthorizedProductionCandidateProbeRequest(
+    request('GET', '/api/v1/customers'), env, { productionReleaseVerified: true }
+  ), false);
+  assert.equal(env.OPSC_PRODUCTION_HOLD, 'true');
+  assert.equal(env.OPSC_RELEASE_VERIFIED, 'false');
+});
+
+test('the HTTP server consults the candidate-probe allowlist before returning the production hold response', () => {
+  const serverPath = path.join(__dirname, '..', 'src', 'server.js');
+  const source = fs.readFileSync(serverPath, 'utf8');
+  assert.match(source, /!isAuthorizedProductionCandidateProbeRequest\(req, process\.env, signedContextProductionReadiness\)/);
+  assert.ok(source.indexOf('!isAuthorizedProductionCandidateProbeRequest(req, process.env, signedContextProductionReadiness)')
+    < source.indexOf("note: 'Operational traffic is disabled while Production release evidence is not verified."));
+});
+
+test('the hold exception matches all and only the signed-route manifest entries in the API inventory', () => {
+  const env = {
+    VERCEL_ENV: 'production',
+    VERCEL_URL: 'opscore-platform-candidate123-mosamiryamany-1692.vercel.app',
+    OPSC_PRODUCTION_HOLD: 'true',
+    OPSC_RELEASE_VERIFIED: 'false',
+    OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'true',
+    OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED: 'true',
+    OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN: 'c'.repeat(64)
+  };
+  const readiness = { productionReleaseVerified: false };
+  const token = env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN;
+  const routeKey = route => String(route.method).toUpperCase() + ' ' + route.path;
+  const manifestKeys = new Set(routeManifest.routes.map(routeKey));
+  const concretePath = route => String(route.path).replace(/\{[^/]+\}/g, 'hold-probe-id').replace(/\(\\d\+\)/g, '0');
+  const request = (route, pathValue = concretePath(route)) => ({
+    method: String(route.method).toUpperCase(),
+    url: pathValue,
+    headers: {
+      host: env.VERCEL_URL,
+      'x-vercel-trusted-oidc-idp-token': 'header.payload.signature',
+      'x-opscore-signed-context-probe': token
+    }
+  });
+
+  assert.equal(routeManifest.routeCount, 67);
+  for (const route of routeManifest.routes) {
+    assert.equal(isAuthorizedProductionCandidateProbeRequest(request(route), env, readiness), true, routeKey(route));
+  }
+  for (const route of apiInventory.routes) {
+    const key = String(route.method).toUpperCase() + ' ' + route.route;
+    if (manifestKeys.has(key)) continue;
+    const concrete = String(route.route).replace(/\{[^/]+\}/g, 'hold-probe-id').replace(/\(\\d\+\)/g, '0');
+    assert.equal(isAuthorizedProductionCandidateProbeRequest(request(route, concrete), env, readiness), false, key);
+  }
 });
 
 test('missing release evidence cannot be bypassed by setting hold false', () => {
