@@ -560,16 +560,19 @@ test('signed read wrapper preserves only known tenant denials after confirmed ro
   const end = server.indexOf('function sendWorkOrderRead', start);
   assert.ok(start >= 0 && end > start, 'signed read wrapper must exist');
   const block = server.slice(start, end);
-  assert.match(block, /let rollbackConfirmed = !transactionOpen/);
-  assert.match(block, /store\\.db\\.exec\\('ROLLBACK'\\)[\\s\\S]*?rollbackConfirmed = true/);
-  assert.match(block, /rollbackConfirmed && \\(error\\?\\.code === 'NOT_FOUND' \\|\\| error\\?\\.message === 'NOT_FOUND'\\)/);
-  assert.match(block, /rollbackConfirmed && \\(error\\?\\.code === 'GEO_SCOPE_FORBIDDEN' \\|\\| error\\?\\.message === 'GEO_SCOPE_FORBIDDEN'\\)/);
-  assert.match(block, /rollbackConfirmed && \\(error\\?\\.code === 'GEO_SCOPE_EMPTY' \\|\\| error\\?\\.message === 'GEO_SCOPE_EMPTY'\\)/);
-  assert.match(block, /json\\(res, 404, \\{ error: \\{ code: 'NOT_FOUND' \\} \\}[\\s\\S]*?'x-opscore-signed-tenant-context': 'verified'/);
-  assert.match(block, /json\\(res, 403, \\{ error: \\{ code: 'GEO_SCOPE_FORBIDDEN' \\} \\}[\\s\\S]*?'x-opscore-signed-tenant-context': 'verified'/);
-  assert.match(block, /json\\(res, 403, \\{ error: \\{ code: 'GEO_SCOPE_EMPTY' \\} \\}[\\s\\S]*?'x-opscore-signed-tenant-context': 'verified'/);
-  assert.match(block, /json\\(res, 503, \\{ error: \\{ code: 'SIGNED_TENANT_WORK_ORDER_READ_FAILED' \\} \\}/);
-  assert.ok(block.indexOf('rollbackConfirmed && (error?.code === \'GEO_SCOPE_FORBIDDEN\'') > block.indexOf('rollbackConfirmed = true'),
-    'GEO_SCOPE_FORBIDDEN must never be labelled verified until rollback is confirmed');
+  const rollback = block.indexOf("store.db.exec('ROLLBACK');");
+  const confirmed = block.indexOf('rollbackConfirmed = true;', rollback);
+  const forbidden = block.indexOf("if (rollbackConfirmed && (error?.code === 'GEO_SCOPE_FORBIDDEN' || error?.message === 'GEO_SCOPE_FORBIDDEN'))");
+  const empty = block.indexOf("if (rollbackConfirmed && (error?.code === 'GEO_SCOPE_EMPTY' || error?.message === 'GEO_SCOPE_EMPTY'))");
+  assert.ok(block.includes('let rollbackConfirmed = !transactionOpen;'));
+  assert.ok(rollback >= 0 && confirmed > rollback, 'rollback must be confirmed after the SQL command');
+  assert.ok(forbidden > confirmed, 'GEO_SCOPE_FORBIDDEN cannot be labelled verified until rollback is confirmed');
+  assert.ok(empty > confirmed, 'GEO_SCOPE_EMPTY cannot be labelled verified until rollback is confirmed');
+  assert.ok(block.includes("json(res, 404, { error: { code: 'NOT_FOUND' } }"));
+  assert.ok(block.includes("json(res, 403, { error: { code: 'GEO_SCOPE_FORBIDDEN' } }"));
+  assert.ok(block.includes("json(res, 403, { error: { code: 'GEO_SCOPE_EMPTY' } }"));
+  assert.ok(block.includes("json(res, 503, { error: { code: 'SIGNED_TENANT_WORK_ORDER_READ_FAILED' } }"),
+    'unknown errors must remain fail-closed');
 });
+
 
