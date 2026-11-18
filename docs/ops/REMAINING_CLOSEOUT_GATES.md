@@ -1,7 +1,8 @@
 # Current closeout gates — 2026-11-18
 
 **Repository:** mosamiryamany-hub/opscore-platform  
-**Current main:** 27d41476a115d81ddd3ad1b4f03025142a7e5be6  
+**Current main:** 88f0f7377244d89f063de7c07714f9c2849fbc57
+**Last application-code baseline:** 27d41476a115d81ddd3ad1b4f03025142a7e5be6 (PR #235 added documentation and the closeout consistency test only; product runtime source was unchanged)  
 **Decision:** seller-side source release remains **HOLD pending an exact-main Secure Release artifact and final handoff review**. This is not a buyer-acquisition hold.
 
 ## Completed seller engineering
@@ -10,8 +11,8 @@
 |---|---|
 | PR #232 — bytecode cleanup and required PostgreSQL check | Merged as 1054182e22bc0ef03e6f8cbc7655558ba09a31fd; the direct isolated PostgreSQL check is emitted on every PR while preserving the workflow path allowlist |
 | PR #234 — migration 068 absent-role postcondition correction | Merged as 27d41476a115d81ddd3ad1b4f03025142a7e5be6; verify, Vercel contract and isolated PostgreSQL 18 acceptance passed on the exact PR head |
-| Main OpsCore CI | Run [44203389751](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44203389751) — success on current main |
-| Main Vercel contract and isolated PostgreSQL acceptance | Run [44203389724](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44203389724) — contract PASS; deploy-bound isolated PostgreSQL acceptance PASS; Production deploy SKIPPED |
+| Main OpsCore CI | Run [44205567188](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44205567188) — SUCCESS on main 88f0f737… |
+| Main Vercel contract and isolated PostgreSQL acceptance | Run [44205566999](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44205566999) — contract PASS; deploy-bound isolated PostgreSQL acceptance PASS; Production deploy SKIPPED |
 
 ## Current Production database facts — read-only inspection
 
@@ -45,7 +46,7 @@ Neon currently reports Free plan, 6-hour history retention and a 1 GiB branch lo
 
 ## Vercel and hosted Production boundary
 
-The Vercel project read reports live=false, no custom domains, and the latest deployment has target=null. The current main contract workflow passed, but its deploy job was skipped. No Production deployment was made. Do not market this as a seller-hosted commercial SaaS or Production-certified service. Source-code sale is separate: a buyer provisions its own appropriately licensed hosting and domain.
+The Vercel project read reports live=false, no custom domains, and the latest deployment has target=null. The post-merge current-main contract workflow [44205566999](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44205566999) passed, but its Production deploy job was skipped. No Production deployment was made. Do not market this as a seller-hosted commercial SaaS or Production-certified service. Source-code sale is separate: a buyer provisions its own appropriately licensed hosting and domain.
 
 ## Mobile supply-chain advisory
 
