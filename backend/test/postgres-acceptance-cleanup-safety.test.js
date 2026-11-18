@@ -56,3 +56,20 @@ test('acceptance evidence stays temporary during parallel tests and is promoted 
   assert.doesNotMatch(source, /process\\.env\\.OPSC_WRITE_EVIDENCE/);
   assert.doesNotMatch(source, /EVIDENCE_PATH/);
 });
+
+const { validatePostgresAcceptanceTarget, ACCEPTANCE_DATABASES } = require('../scripts/validate-postgres-acceptance-target');
+
+test('PostgreSQL acceptance target permits only the two named disposable acceptance databases', () => {
+  assert.deepEqual([...ACCEPTANCE_DATABASES].sort(), ['opscore_acceptance', 'opscore_http_acceptance']);
+  for (const database of ACCEPTANCE_DATABASES) {
+    const target = validatePostgresAcceptanceTarget({
+      urlText: `postgresql://opscore_runtime:masked@ep-acceptance-test.c-15.us-east-1.aws.neon.tech/${database}?sslmode=verify-full`,
+      expectedHost: 'ep-acceptance-test.c-15.us-east-1.aws.neon.tech'
+    });
+    assert.equal(target.database, database);
+  }
+  assert.throws(() => validatePostgresAcceptanceTarget({
+    urlText: 'postgresql://user:masked@ep-acceptance-test.c-15.us-east-1.aws.neon.tech/neondb',
+    expectedHost: 'ep-acceptance-test.c-15.us-east-1.aws.neon.tech'
+  }), /OPSC_PG_ACCEPTANCE_DATABASE_NOT_ALLOWLISTED/);
+});
