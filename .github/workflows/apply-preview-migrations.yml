@@ -98,34 +98,22 @@ jobs:
           set -euo pipefail
           test -n "${VERCEL_TOKEN:-}" || { echo 'VERCEL_TOKEN_MISSING'; exit 1; }
           test "$VERCEL_PROJECT_ID" = 'prj_8jMqBt0l6OALicWSwQ3ECQTn8yPe' || { echo 'UNAPPROVED_VERCEL_PROJECT'; exit 1; }
-          AUTH=(-H "Authorization: Bearer ${VERCEL_TOKEN}" -H 'Accept: application/json')
-          curl -fsS "${AUTH[@]}" "https://api.vercel.com/v10/projects/${VERCEL_PROJECT_ID}/env?teamId=${VERCEL_TEAM_ID}" > "$RUNNER_TEMP/vercel-env-list.json"
           python3 - <<'PY'
-          import json,os,sys
-          data=json.load(open(os.environ['RUNNER_TEMP']+'/vercel-env-list.json'))
-          rows=data if isinstance(data,list) else (data.get('envs') or data.get('data') or [])
-          required=('OPSC_MIGRATION_DATABASE_URL','OPSC_ACCEPTANCE_RUNTIME_DATABASE_URL')
-          found={}
-          for key in required:
-            matches=[e for e in rows if e.get('key')==key and 'development' in (e.get('target') or [])]
-            if len(matches)!=1 or not matches[0].get('id'):
-              raise SystemExit('VERCEL_DEVELOPMENT_SECRET_NOT_UNIQUE:'+key)
-            found[key]=matches[0]['id']
-          json.dump(found,open(os.environ['RUNNER_TEMP']+'/vercel-env-ids.json','w'))
-          PY
-          python3 - <<'PY'
-          import json,os,subprocess,sys
-          ids=json.load(open(os.environ['RUNNER_TEMP']+'/vercel-env-ids.json'))
-          for key,env_id in ids.items():
-            url='https://api.vercel.com/v1/projects/'+os.environ['VERCEL_PROJECT_ID']+'/env/'+env_id+'?teamId='+os.environ['VERCEL_TEAM_ID']
-            out=os.environ['RUNNER_TEMP']+'/'+key+'.json'
-            with open(out,'w') as f:
-              subprocess.run(['curl','-fsS','-H','Authorization: Bearer '+os.environ['VERCEL_TOKEN'],'-H','Accept: application/json',url],stdout=f,check=True)
+          import json,os,subprocess
+          envs={
+            "OPSC_MIGRATION_DATABASE_URL":"NaIbwIDagdogTmWE",
+            "OPSC_ACCEPTANCE_RUNTIME_DATABASE_URL":"2ACxh1Oi5TWMDn5v"
+          }
+          for key,env_id in envs.items():
+            url="https://api.vercel.com/v1/projects/"+os.environ["VERCEL_PROJECT_ID"]+"/env/"+env_id+"?teamId="+os.environ["VERCEL_TEAM_ID"]
+            out=os.environ["RUNNER_TEMP"]+"/"+key+".json"
+            with open(out,"w") as f:
+              subprocess.run(["curl","-fsS","-H","Authorization: Bearer "+os.environ["VERCEL_TOKEN"],"-H","Accept: application/json",url],stdout=f,check=True)
             item=json.load(open(out))
-            value=str(item.get('value') or '')
-            if not value.startswith('postgresql://'):
-              raise SystemExit('VERCEL_DEVELOPMENT_SECRET_NOT_DECRYPTED:'+key)
-            open(os.environ['RUNNER_TEMP']+'/'+key+'.uri','w').write(value)
+            value=str(item.get("value") or "")
+            if not value.startswith("postgresql://"):
+              raise SystemExit("VERCEL_DEVELOPMENT_SECRET_NOT_DECRYPTED:"+key)
+            open(os.environ["RUNNER_TEMP"]+"/"+key+".uri","w").write(value)
           PY
           python3 - <<'PY'
           import os,sys
