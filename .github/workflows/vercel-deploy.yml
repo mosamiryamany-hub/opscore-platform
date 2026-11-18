@@ -87,7 +87,7 @@ jobs:
   deploy:
     needs: [verify, postgres-acceptance]
     # Production deploy is never automatic on push. Require explicit owner authorization and a separately reviewed staged-probe OIDC readiness flag.
-    if: false && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.event.inputs.confirm_production_deployment == 'I_AUTHORIZE_PRODUCTION_DEPLOYMENT' && vars.OPSC_PRODUCTION_AUTODEPLOY_ENABLED == 'true' && vars.OPSC_STAGED_PRODUCTION_PROBE_READY == 'true'
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.event.inputs.confirm_production_deployment == 'I_AUTHORIZE_PRODUCTION_DEPLOYMENT' && vars.OPSC_PRODUCTION_AUTODEPLOY_ENABLED == 'true' && vars.OPSC_STAGED_PRODUCTION_PROBE_READY == 'true'
     permissions:
       contents: read
       id-token: write
