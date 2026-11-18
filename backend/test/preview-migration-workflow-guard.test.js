@@ -17,6 +17,11 @@ test('Preview migrations require one exact pinned non-primary branch and the app
   assert.match(previewApply, /database:[\s\S]*?required: true[\s\S]*?default: "opscore_acceptance"/);
   assert.match(previewApply, /INPUT_DB.*opscore_acceptance/);
   assert.match(previewApply, /OPSC_MIGRATION_TARGET_CLASS: preview/);
+  assert.match(previewApply, /OPSC_MIGRATION_EXPECTED_OWNER_ROLE: opscore_owner/);
+  assert.match(previewApply, /OPSC_MIGRATION_PINNED_NEON_IDENTITY: '1'/);
+  assert.match(previewApply, /STATIC_EXACT_PREVIEW_TARGET/);
+  assert.match(previewApply, /DRY_RUN_NEON_PINNED_IDENTITY_MISMATCH/);
+  assert.match(previewApply, /APPLY_NEON_PINNED_IDENTITY_MISMATCH/);
   assert.match(previewApply, /OPSC_MIGRATION_EXPECTED_BRANCH_ID/);
   assert.match(previewApply, /OPSC_MIGRATION_CONFIRM_BRANCH_ID/);
   assert.match(previewApply, /BRANCH_ID=\x27br-solitary-band-bbczy982\x27/);
