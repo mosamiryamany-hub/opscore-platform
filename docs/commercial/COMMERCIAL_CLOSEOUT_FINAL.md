@@ -2,7 +2,7 @@
 
 > **Decision: SELLER SOURCE-RELEASE HOLD pending a current-main Secure Release artifact and final risk/handoff review. This is not a buyer-acquisition hold.**
 >
-> A named buyer, buyer signature, payment, buyer-specific legal review or transaction License Schedule is **not** required to complete seller engineering, prepare a release package, publish/list the offer, present the product, demonstrate it or negotiate. A named buyer and signed License Schedule are required only before granting that buyer licensed rights or delivering the licensed package. No license is granted by repository presence.
+> No prospective buyer or buyer signature is needed to complete the product. A named buyer, buyer signature, payment, buyer-specific legal review or transaction License Schedule is **not** required to complete seller engineering, prepare a release package, publish/list the offer, present the product, demonstrate it or negotiate. A named buyer and signed License Schedule are required only before granting that buyer licensed rights or delivering the licensed package. No license grant is made to a buyer until the rights holder and named buyer execute the Schedule pinned to the exact released commit/package digest. No license is granted by repository presence.
 
 **Updated:** 2026-11-18  
 **Current main:** 27d41476a115d81ddd3ad1b4f03025142a7e5be6  
