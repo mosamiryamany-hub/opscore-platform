@@ -12,6 +12,8 @@ const previewApply = fs.readFileSync(previewApplyPath, 'utf8');
 
 test('Preview migrations require one exact ready non-primary unprotected branch and the application database', () => {
   assert.match(previewApply, /branch:[\s\S]*?required: true[\s\S]*?default: "br-solitary-band-bbczy982"/);
+  assert.match(previewApply, /pull_request:[\\s\\S]*?branches:[\\s\\S]*?main[\\s\\S]*?paths:/);
+  assert.match(previewApply, /github\\.head_ref == 'ops\\/acceptance-neon-target-2026-11-19'/);
   assert.match(previewApply, /database:[\s\S]*?required: true[\s\S]*?default: "opscore_acceptance"/);
   assert.match(previewApply, /if not want\.startswith\("br-"\)/);
   assert.match(previewApply, /matches=\[b for b in branches if str\(b\.get\("id"\) or ""\) == want\]/);
