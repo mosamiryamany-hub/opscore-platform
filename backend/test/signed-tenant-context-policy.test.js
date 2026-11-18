@@ -360,3 +360,80 @@ test('server derives Production signed-context readiness from hasVerifiedProduct
   assert.match(server, /signedAssetsReadEnabled\(req, process\.env, signedContextProductionReadiness\)/);
   assert.match(server, /signedSessionAutobindEnabled\(process\.env, signedContextProductionReadiness\)/);
 });
+
+
+const candidateProbeToken = 'a'.repeat(64);
+const candidateProbeEnvironment = {
+  VERCEL_ENV: 'production',
+  OPSC_PRODUCTION_HOLD: 'true',
+  OPSC_RELEASE_VERIFIED: 'false',
+  OPSC_PRODUCTION_ISOLATION_CERTIFICATION: 'NOT_CERTIFIED',
+  OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'true',
+  OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED: 'true',
+  OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN: candidateProbeToken,
+  OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_READ_ENABLED: 'true',
+  OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_WRITE_ENABLED: 'true',
+  OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_ENABLED: 'true',
+  OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_WRITE_ENABLED: 'true',
+  OPSC_SIGNED_TENANT_CONTEXT_ASSETS_READ_ENABLED: 'true'
+};
+const candidateProbeReadiness = Object.freeze({ productionReleaseVerified: false });
+
+test('candidate-only signed probe requires the exact per-request token while Production hold stays active', () => {
+  const validRead = {
+    method: 'GET',
+    url: '/api/v1/customers',
+    headers: { 'x-opscore-signed-context-probe': candidateProbeToken }
+  };
+  const validWrite = {
+    method: 'POST',
+    url: '/api/v1/customers',
+    headers: { 'x-opscore-signed-context-probe': candidateProbeToken }
+  };
+  assert.equal(policy.signedWorkOrdersReadEnabled(validRead, candidateProbeEnvironment, candidateProbeReadiness), true);
+  assert.equal(policy.signedWorkOrdersWriteEnabled(validWrite, candidateProbeEnvironment, candidateProbeReadiness), true);
+  assert.equal(policy.signedTenantContextRouteError(validRead, candidateProbeEnvironment, candidateProbeReadiness), null);
+  assert.equal(policy.signedTenantContextRouteError(validWrite, candidateProbeEnvironment, candidateProbeReadiness), null);
+  assert.equal(candidateProbeEnvironment.OPSC_PRODUCTION_HOLD, 'true');
+  assert.equal(candidateProbeEnvironment.OPSC_RELEASE_VERIFIED, 'false');
+  assert.equal(policy.signedSessionAutobindEnabled(candidateProbeEnvironment, candidateProbeReadiness), false);
+});
+
+test('candidate-only signed probe rejects missing, incorrect, malformed and non-route tokens', () => {
+  const base = { method: 'GET', url: '/api/v1/customers' };
+  assert.equal(policy.signedWorkOrdersReadEnabled(base, candidateProbeEnvironment, candidateProbeReadiness), false);
+  assert.equal(policy.signedWorkOrdersReadEnabled({
+    ...base, headers: { 'x-opscore-signed-context-probe': 'b'.repeat(64) }
+  }, candidateProbeEnvironment, candidateProbeReadiness), false);
+  assert.equal(policy.signedWorkOrdersReadEnabled({
+    ...base, headers: { 'x-opscore-signed-context-probe': 'not-a-token' }
+  }, candidateProbeEnvironment, candidateProbeReadiness), false);
+  assert.equal(policy.signedWorkOrdersReadEnabled({
+    ...base, url: '/api/v1/autopilot/decision-memory',
+    headers: { 'x-opscore-signed-context-probe': candidateProbeToken }
+  }, candidateProbeEnvironment, candidateProbeReadiness), false);
+  assert.equal(policy.signedTenantContextRouteError(base, candidateProbeEnvironment, candidateProbeReadiness),
+    'SIGNED_TENANT_CONTEXT_ROUTE_NOT_ENABLED');
+});
+
+test('candidate-only signed probe closes when hold, release, production flag, readiness or global autobind changes', () => {
+  const request = {
+    method: 'GET',
+    url: '/api/v1/customers',
+    headers: { 'x-opscore-signed-context-probe': candidateProbeToken }
+  };
+  for (const changed of [
+    { OPSC_PRODUCTION_HOLD: 'false' },
+    { OPSC_RELEASE_VERIFIED: 'true' },
+    { OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED: 'true' },
+    { OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED: 'true' },
+    { OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'false' },
+    { VERCEL_ENV: 'preview' }
+  ]) {
+    const env = { ...candidateProbeEnvironment, ...changed };
+    assert.equal(policy.signedWorkOrdersReadEnabled(request, env, candidateProbeReadiness), false);
+  }
+  assert.equal(policy.signedWorkOrdersReadEnabled(
+    request, candidateProbeEnvironment, { productionReleaseVerified: true }
+  ), false);
+});
