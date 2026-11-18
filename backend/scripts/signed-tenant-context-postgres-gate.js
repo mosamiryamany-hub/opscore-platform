@@ -2941,7 +2941,7 @@ async function main() {
         status: crossWorkOrderDetail.status, body: crossWorkOrderDetail.body
       }));
     }
-    candidateProofReport.checks.signedWorkOrderDetailCrossTenantDenied = 'PASS';
+    signedSessionAutobindHttpProof.signedWorkOrderDetailCrossTenantDenied = 'PASS';
 
     const signedReadRouteCases = [
   {
@@ -4139,6 +4139,36 @@ async function main() {
     }
     signedSessionAutobindHttpProof.faultCreateTenantA = 'PASS';
     signedSessionAutobindHttpProof.faultCreateTenantB = 'PASS';
+
+    const faultCreateCrossKey = 'signed-context-fault-create-cross-' + keyId;
+    synthetic.idempotencyKeys.push(faultCreateCrossKey);
+    const faultCreateCross = await queryHttp(port, '/api/v1/faults', tokenA, {
+      method: 'POST',
+      headers: { 'idempotency-key': faultCreateCrossKey },
+      body: {
+        title: 'Cross tenant fault reference must be rejected ' + keyId,
+        description: 'A tenant A caller must not import tenant B customer/site/asset references',
+        priority: 'high',
+        customerId: synthetic.customerIds[1],
+        siteId: createSiteB.body.id,
+        assetId: createAssetB.body.id
+      }
+    });
+    const faultCreateCrossResidue = await owner.query(
+      "SELECT COUNT(*)::int AS count FROM public.work_orders WHERE organization_id=$1 AND title=?",
+      [tenantA, '[FAULT] Cross tenant fault reference must be rejected ' + keyId]
+    );
+    if (faultCreateCross.status < 400
+        || faultCreateCross.body?.error?.code !== 'INVALID_CUSTOMER'
+        || faultCreateCross.headers?.['x-opscore-signed-tenant-context'] === 'verified'
+        || Number(faultCreateCrossResidue.rows[0]?.count) !== 0) {
+      throw new Error('SIGNED_CONTEXT_FAULT_CREATE_FOREIGN_TENANT_REFERENCES_NOT_REJECTED:' + JSON.stringify({
+        status: faultCreateCross.status,
+        body: faultCreateCross.body,
+        residue: faultCreateCrossResidue.rows[0]
+      }));
+    }
+    signedSessionAutobindHttpProof.faultCreateForeignTenantReferencesNotImported = 'PASS';
 
     const faultTransitionA = await queryHttp(
       port,
