@@ -1681,6 +1681,27 @@ async function main() {
     signedSessionAutobindHttpProof.appointmentCreateTenantA = 'PASS';
     signedSessionAutobindHttpProof.appointmentCreateTenantB = 'PASS';
 
+    const appointmentCreateCrossKey = 'signed-context-appointment-create-cross-' + keyId;
+    synthetic.idempotencyKeys.push(appointmentCreateCrossKey);
+    const crossAppointmentCreate = await queryHttp(port, '/api/v1/appointments', tokenA, {
+      method: 'POST',
+      headers: { 'idempotency-key': appointmentCreateCrossKey },
+      body: {
+        workOrderId: synthetic.workOrderIds[1],
+        technicianId: userB,
+        startAt: new Date(appointmentBase + 8 * 60 * 60 * 1000).toISOString(),
+        endAt: new Date(appointmentBase + 9 * 60 * 60 * 1000).toISOString()
+      }
+    });
+    if (crossAppointmentCreate.status !== 404
+        || crossAppointmentCreate.body?.error?.code !== 'NOT_FOUND'
+        || crossAppointmentCreate.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_APPOINTMENT_CROSS_TENANT_CREATE_NOT_DENIED:' + JSON.stringify({
+        status: crossAppointmentCreate.status, body: crossAppointmentCreate.body
+      }));
+    }
+    signedSessionAutobindHttpProof.appointmentCrossTenantCreateDenied = 'PASS';
+
     const foreignAppointmentPatch = await queryHttp(
       port,
       '/api/v1/appointments/' + encodeURIComponent(createAppointmentB.body.id),
@@ -1785,6 +1806,19 @@ async function main() {
         }));
       }
     }
+    const crossAppointmentRead = await queryHttp(
+      port,
+      '/api/v1/appointments/' + encodeURIComponent(createAppointmentB.body.id),
+      tokenA
+    );
+    if (crossAppointmentRead.status !== 404
+        || crossAppointmentRead.body?.error?.code !== 'NOT_FOUND'
+        || crossAppointmentRead.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_APPOINTMENT_CROSS_TENANT_READ_EXPOSED:' + JSON.stringify({
+        status: crossAppointmentRead.status, body: crossAppointmentRead.body
+      }));
+    }
+    signedSessionAutobindHttpProof.appointmentCrossTenantReadDenied = 'PASS';
     signedSessionAutobindHttpProof.appointmentDetailTenantA = 'PASS';
     signedSessionAutobindHttpProof.appointmentDetailTenantB = 'PASS';
     signedSessionAutobindHttpProof.appointmentListTenantA = 'PASS';
@@ -2377,6 +2411,23 @@ async function main() {
     signedSessionAutobindHttpProof.appointmentOnMyWayTenantA = 'PASS';
     signedSessionAutobindHttpProof.appointmentOnMyWayTenantB = 'PASS';
 
+    const appointmentOnWayCrossKey = 'signed-context-appointment-on-way-cross-' + keyId;
+    synthetic.idempotencyKeys.push(appointmentOnWayCrossKey);
+    const crossOnMyWay = await queryHttp(
+      port,
+      '/api/v1/appointments/' + encodeURIComponent(createAppointmentB.body.id) + '/on-my-way',
+      tokenA,
+      { method: 'POST', headers: { 'idempotency-key': appointmentOnWayCrossKey } }
+    );
+    if (crossOnMyWay.status !== 404
+        || crossOnMyWay.body?.error?.code !== 'NOT_FOUND'
+        || crossOnMyWay.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_APPOINTMENT_ON_MY_WAY_CROSS_TENANT_NOT_DENIED:' + JSON.stringify({
+        status: crossOnMyWay.status, body: crossOnMyWay.body
+      }));
+    }
+    signedSessionAutobindHttpProof.appointmentOnMyWayCrossTenantDenied = 'PASS';
+
     const unreachableA = await queryHttp(
       port,
       '/api/v1/appointments/' + encodeURIComponent(createAppointmentA.body.id) + '/unreachable',
@@ -2416,6 +2467,27 @@ async function main() {
     }
     signedSessionAutobindHttpProof.appointmentUnreachableTenantA = 'PASS';
     signedSessionAutobindHttpProof.appointmentUnreachableTenantB = 'PASS';
+
+    const appointmentUnreachableCrossKey = 'signed-context-appointment-unreachable-cross-' + keyId;
+    synthetic.idempotencyKeys.push(appointmentUnreachableCrossKey);
+    const crossAppointmentUnreachable = await queryHttp(
+      port,
+      '/api/v1/appointments/' + encodeURIComponent(createAppointmentB.body.id) + '/unreachable',
+      tokenA,
+      {
+        method: 'POST',
+        headers: { 'idempotency-key': appointmentUnreachableCrossKey },
+        body: { reasonCode: 'CI_CROSS_TENANT_DENIED', detail: 'cross-tenant request must not mutate Tenant B appointment' }
+      }
+    );
+    if (crossAppointmentUnreachable.status !== 404
+        || crossAppointmentUnreachable.body?.error?.code !== 'NOT_FOUND'
+        || crossAppointmentUnreachable.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_APPOINTMENT_UNREACHABLE_CROSS_TENANT_NOT_DENIED:' + JSON.stringify({
+        status: crossAppointmentUnreachable.status, body: crossAppointmentUnreachable.body
+      }));
+    }
+    signedSessionAutobindHttpProof.appointmentUnreachableCrossTenantDenied = 'PASS';
 
     // Signed geo-access assertion and dynamic-geofence event persistence.
     const geoAccessA = await queryHttp(port, '/api/v1/geofences/assert-access', tokenA, {
