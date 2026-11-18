@@ -322,7 +322,7 @@ test('server checks the route gate before its legacy unsigned field-context fall
   assert.ok(guardAt >= 0, 'server must call the signed route guard');
   assert.ok(unsignedBindAt > guardAt, 'signed route guard must run before legacy unsigned field binding');
   assert.match(server, /SIGNED_TENANT_CONTEXT_ROUTE_NOT_ENABLED/);
-  assert.match(server, /if \(signedAssetsReadEnabled\(req, process\.env, signedContextProductionReadiness\)\)\s*\{\s*return runSignedWorkOrdersRead\(res, c, \(\) => store\.listAssets\(c\)\);/);
+  assert.match(server, /if \(signedAssetsReadEnabled\(req, process\.env, signedContextProductionReadiness\)\)\s*\{\s*return runSignedWorkOrdersRead\(req, res, c, \(\) => store\.listAssets\(c\)\);/);
 });
 
 
