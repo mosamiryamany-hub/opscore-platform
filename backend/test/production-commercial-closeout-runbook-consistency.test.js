@@ -69,7 +69,7 @@ test('Live 67-route acceptance remains a Production certification task, not a so
   assert.doesNotMatch(sourceReleaseSection, /67-route signed-session/);
   assert.match(hostedServiceSection, /67-route signed-session HTTP acceptance matrix/);
   assert.match(hostedServiceSection, /not a source-code package release gate/);
-  assert.match(hostedServiceSection, /Production certification NOT_ESTABLISHED/);
+  assert.match(hostedServiceSection, /Production certification (?:remains )?NOT_ESTABLISHED/);
 });
 
 test('Production key material, signed-route proof and snapshot generation are accurately recorded', () => {
