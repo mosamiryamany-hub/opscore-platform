@@ -21,6 +21,13 @@ test('Primary restore proof workflow is manual, main-only, and uses the pinned c
   assert.ok(workflow.includes('if-no-files-found: error'));
 });
 
+test('proof runner requires an explicit snapshot ID and rejects stale implicit defaults', () => {
+  assert.ok(runner.includes('SNAPSHOT_ID = os.environ.get("OPSC_PRIMARY_SNAPSHOT_ID", "").strip()'));
+  assert.ok(runner.includes('PRODUCTION_SNAPSHOT_ID_REQUIRED'));
+  assert.ok(workflow.includes('OPSC_PRIMARY_SNAPSHOT_ID: ${{ github.event.inputs.snapshot_id }}'));
+  assert.ok(!runner.includes('snap-floral-sea-bcug7fd3'));
+});
+
 test('proof runner calls Neon Restore Snapshot endpoint and explicitly prevents finalization', () => {
   assert.ok(runner.includes('"/snapshots/" + SNAPSHOT_ID + "/restore"'));
   assert.ok(runner.includes('"finalize_restore": False'));
