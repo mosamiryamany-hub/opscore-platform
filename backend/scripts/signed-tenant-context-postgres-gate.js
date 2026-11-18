@@ -72,6 +72,18 @@ function resetCandidateRouteObservations() {
   candidateModeForObservations = false;
 }
 
+function registerCandidateSessionToken(token, tenantLabel) {
+  if (!['tenantA', 'tenantB'].includes(String(tenantLabel))) {
+    throw new Error('CANDIDATE_TENANT_LABEL_INVALID');
+  }
+  const value = String(token || '');
+  if (!value || candidateSessionTokenLabels.has(value)) {
+    throw new Error('CANDIDATE_SESSION_TOKEN_INVALID_OR_DUPLICATE');
+  }
+  candidateSessionTokenLabels.set(value, tenantLabel);
+}
+
+
 function getCandidateRouteObservations() {
   return Array.from(candidateRouteObservations.values()).map(row => ({
     ...row,
@@ -483,8 +495,8 @@ async function main() {
   const tokenA = crypto.randomBytes(32).toString('hex');
   const tokenB = crypto.randomBytes(32).toString('hex');
   if (candidateMode) {
-    candidateSessionTokenLabels.set(tokenA, 'tenantA');
-    candidateSessionTokenLabels.set(tokenB, 'tenantB');
+    registerCandidateSessionToken(tokenA, 'tenantA');
+    registerCandidateSessionToken(tokenB, 'tenantB');
   }
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
   const siteCleanupErrors = [];
@@ -4438,6 +4450,7 @@ module.exports = {
   isSignedTenantManifestRoute,
   findSignedTenantManifestRoute,
   resetCandidateRouteObservations,
+  registerCandidateSessionToken,
   getCandidateRouteObservations,
   recordCandidateRouteObservation,
   validateCandidateProbeEnvironment,
