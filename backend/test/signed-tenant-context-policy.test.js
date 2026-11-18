@@ -51,6 +51,46 @@ const previewWrite = {
 
 
 
+test('signed route coverage binds to the tested candidate deployment, not the final deployment ID', () => {
+  const manifestPath = path.join(__dirname, '..', 'docs', 'verification', 'SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST.json');
+  const inventoryPath = path.join(__dirname, '..', 'docs', 'API_INVENTORY.json');
+  const temporaryDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-signed-route-candidate-binding-'));
+  try {
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    const evidencePath = path.join(temporaryDirectory, 'evidence.json');
+    fs.writeFileSync(evidencePath, JSON.stringify({
+      schemaVersion: 'opscore.signed-tenant-context-production-coverage.v1',
+      environment: 'production',
+      status: 'PASS',
+      databaseName: 'opscore_acceptance',
+      expectedRouteCount: 67,
+      coveredRouteCount: 67,
+      failedRouteCount: 0,
+      routeManifestSha256: 'a'.repeat(64),
+      routeInventorySha256: 'b'.repeat(64),
+      sourceCommitHint: manifest.sourceCommit,
+      pipelineId: '123456789',
+      parentBranchId: 'br-proud-salad-bcshhdap',
+      deploymentId: 'dpl_ProbeCandidate123',
+      routes: []
+    }));
+    const result = readProductionSignedTenantRouteCoverageEvidence(evidencePath, {
+      OPSC_RELEASE_CI_COMMIT: manifest.sourceCommit,
+      OPSC_RELEASE_CI_PIPELINE_ID: '123456789',
+      OPSC_PRODUCTION_NEON_BRANCH_ID: 'br-proud-salad-bcshhdap',
+      OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID: 'dpl_ProbeCandidate123',
+      VERCEL_DEPLOYMENT_ID: 'dpl_FinalRelease456'
+    }, manifestPath, inventoryPath);
+    assert.equal(result.deploymentIdBound, true,
+      'the final release must use the candidate deployment ID that received the live route probes');
+    assert.equal(result.routeResultsValid, false,
+      'candidate identity alone must never substitute for route-level results');
+    assert.equal(result.status, 'NOT_VERIFIED');
+  } finally {
+    fs.rmSync(temporaryDirectory, { recursive: true, force: true });
+  }
+});
+
 test('67-route source manifest is inventory-bound while Production route evidence remains unverified', () => {
   const manifestPath = path.join(__dirname, '..', 'docs', 'verification', 'SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST.json');
   const inventoryPath = path.join(__dirname, '..', 'docs', 'API_INVENTORY.json');
