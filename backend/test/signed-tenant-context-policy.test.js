@@ -411,11 +411,6 @@ const candidateProbeEnvironment = {
   OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'true',
   OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED: 'true',
   OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN: candidateProbeToken,
-  OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_READ_ENABLED: 'true',
-  OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_WRITE_ENABLED: 'true',
-  OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_ENABLED: 'true',
-  OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_WRITE_ENABLED: 'true',
-  OPSC_SIGNED_TENANT_CONTEXT_ASSETS_READ_ENABLED: 'true'
 };
 const candidateProbeReadiness = Object.freeze({ productionReleaseVerified: false });
 
@@ -476,4 +471,51 @@ test('candidate-only signed probe closes when hold, release, production flag, re
   assert.equal(policy.signedWorkOrdersReadEnabled(
     request, candidateProbeEnvironment, { productionReleaseVerified: true }
   ), false);
+});
+
+
+test('candidate probe enables only approved signed routes without opening global route flags', () => {
+  const allowed = [
+    [{ method: 'GET', url: '/api/v1/customers' }, 'read'],
+    [{ method: 'POST', url: '/api/v1/customers' }, 'write'],
+    [{ method: 'GET', url: '/api/v1/work-orders/wo_123/timeline' }, 'read'],
+    [{ method: 'POST', url: '/api/v1/work-orders/wo_123/comments' }, 'write'],
+    [{ method: 'PUT', url: '/api/v1/evidence-uploads/up_123/chunks/12' }, 'write'],
+    [{ method: 'POST', url: '/api/v1/faults/classify' }, 'read'],
+    [{ method: 'POST', url: '/api/v1/geofences/assert-access' }, 'read'],
+    [{ method: 'GET', url: '/api/v1/assets' }, 'read']
+  ];
+  for (const [request, operation] of allowed) {
+    const withToken = {
+      ...request,
+      headers: { 'x-opscore-signed-context-probe': candidateProbeToken }
+    };
+    assert.equal(policy.signedWorkOrdersContextEnabled(withToken, candidateProbeEnvironment, candidateProbeReadiness), true,
+      operation + ' candidate route should enter the signed transaction wrapper');
+    assert.equal(policy.signedTenantContextRouteError(withToken, candidateProbeEnvironment, candidateProbeReadiness), null);
+  }
+
+  assert.equal(candidateProbeEnvironment.OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_READ_ENABLED, undefined);
+  assert.equal(candidateProbeEnvironment.OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_WRITE_ENABLED, undefined);
+  assert.equal(candidateProbeEnvironment.OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_ENABLED, undefined);
+  assert.equal(candidateProbeEnvironment.OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_WRITE_ENABLED, undefined);
+  assert.equal(candidateProbeEnvironment.OPSC_SIGNED_TENANT_CONTEXT_ASSETS_READ_ENABLED, undefined);
+  assert.equal(policy.signedSessionAutobindEnabled(candidateProbeEnvironment, candidateProbeReadiness), false);
+});
+
+test('candidate route permission is limited to the actual Preview policy allowlist', () => {
+  const unknown = {
+    method: 'GET',
+    url: '/api/v1/autopilot/decision-memory',
+    headers: { 'x-opscore-signed-context-probe': candidateProbeToken }
+  };
+  const wrongMethod = {
+    method: 'POST',
+    url: '/api/v1/work-orders/wo_123/timeline',
+    headers: { 'x-opscore-signed-context-probe': candidateProbeToken }
+  };
+  assert.equal(policy.signedWorkOrdersContextEnabled(unknown, candidateProbeEnvironment, candidateProbeReadiness), false);
+  assert.equal(policy.signedTenantContextRouteError(unknown, candidateProbeEnvironment, candidateProbeReadiness),
+    'SIGNED_TENANT_CONTEXT_ROUTE_NOT_ENABLED');
+  assert.equal(policy.signedWorkOrdersContextEnabled(wrongMethod, candidateProbeEnvironment, candidateProbeReadiness), false);
 });
