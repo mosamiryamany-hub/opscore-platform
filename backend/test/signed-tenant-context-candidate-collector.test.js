@@ -374,7 +374,7 @@ test('candidate route proof requirements are a one-to-one inventory of the appro
   assert.deepEqual([...requirementKeys].sort(), [...manifestKeys].sort());
   assert.equal(new Set(requirementKeys).size, 67);
   assert.ok(CANDIDATE_ROUTE_PROOF_REQUIREMENTS[
-    'PUT /api/v1/evidence-uploads/{id}/chunks/(\\\\d+)'
+    'PUT /api/v1/evidence-uploads/{id}/chunks/(\\d+)'
   ], 'numeric chunk route must match the manifest backslash encoding exactly');
 });
 
