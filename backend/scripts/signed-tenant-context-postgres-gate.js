@@ -37,21 +37,16 @@ function isSignedTenantManifestRoute(method, requestPath) {
   return SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST.routes.some(route => {
     if (String(route.method || '').toUpperCase() !== normalizedMethod) return false;
     const template = String(route.path || '');
-    if (template.includes('/chunks/')) {
-      const marker = template.lastIndexOf('/chunks/');
-      const expectedPrefix = template.slice(0, marker + '/chunks/'.length);
-      const numericIndex = pathname.slice(expectedPrefix.length);
-      if (!pathname.startsWith(expectedPrefix)) return false;
-      if (template.slice(expectedPrefix.length) === '(\\\\d+)') {
-        return /^[0-9]+$/.test(numericIndex);
-      }
-    }
     const expectedSegments = template.split('/');
     const actualSegments = pathname.split('/');
     return expectedSegments.length === actualSegments.length
-      && expectedSegments.every((segment, index) =>
-        segment === '{id}' ? Boolean(actualSegments[index]) : segment === actualSegments[index]
-      );
+      && expectedSegments.every((segment, index) => {
+        if (segment === '{id}') return Boolean(actualSegments[index]);
+        if (segment.startsWith('(') && segment.includes('d+') && segment.endsWith(')')) {
+          return /^[0-9]+$/.test(actualSegments[index]);
+        }
+        return segment === actualSegments[index];
+      });
   });
 }
 
@@ -3787,15 +3782,22 @@ async function main() {
         signedWorkOrderSubresourceReads: signedReadRouteProof,
         signedWorkOrderWrites: signedWriteRouteProof,
         signedEvidenceWrites: signedEvidenceRouteProof,
-        workOrdersRawGucTamperingIgnored: 'PASS',
-        readOnlyBoundTransaction: 'PASS',
-        rawGucTampering: 'PASS',
-        unsignedGucDenied: 'PASS',
-        invalidSignatureDenied: 'PASS',
-        sameBackendNextTransactionReplayDenied: 'PASS',
-        differentBackendReplayDenied: 'PASS'
+        workOrdersRawGucTamperingIgnored: candidateMode ? 'PASS_CANDIDATE_HTTP_ROUTE_PROBES' : 'PASS',
+        readOnlyBoundTransaction: candidateMode ? 'NOT_VERIFIED_DIRECT_RUNTIME_REPLAY_SKIPPED' : 'PASS',
+        rawGucTampering: candidateMode ? 'PASS_CANDIDATE_HTTP_ROUTE_PROBES' : 'PASS',
+        unsignedGucDenied: candidateMode ? 'NOT_VERIFIED_DIRECT_RUNTIME_REPLAY_SKIPPED' : 'PASS',
+        invalidSignatureDenied: candidateMode ? 'NOT_VERIFIED_DIRECT_RUNTIME_REPLAY_SKIPPED' : 'PASS',
+        sameBackendNextTransactionReplayDenied: candidateMode ? 'NOT_VERIFIED_DIRECT_RUNTIME_REPLAY_SKIPPED' : 'PASS',
+        differentBackendReplayDenied: candidateMode ? 'NOT_VERIFIED_DIRECT_RUNTIME_REPLAY_SKIPPED' : 'PASS'
       },
-      environment: {
+      environment: candidateMode ? {
+        database: candidateRuntimeIdentity && candidateRuntimeIdentity.databaseName || null,
+        ownerRole: 'neondb_owner',
+        runtimeRole: candidateRuntimeIdentity && candidateRuntimeIdentity.currentUser || null,
+        runtimeBypassesRls: candidateRuntimeIdentity && candidateRuntimeIdentity.runtimeRole
+          ? candidateRuntimeIdentity.runtimeRole.bypass_rls
+          : null
+      } : {
         database: 'opscore_http_acceptance',
         ownerRole: 'neondb_owner',
         runtimeRole: 'opscore_runtime',
