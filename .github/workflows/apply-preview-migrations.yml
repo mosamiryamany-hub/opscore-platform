@@ -138,6 +138,8 @@ jobs:
       - name: Dry-run migrations on Preview
         env:
           OPSC_MIGRATION_TARGET_CLASS: preview
+          OPSC_MIGRATION_EXPECTED_OWNER_ROLE: opscore_owner
+          OPSC_MIGRATION_PINNED_NEON_IDENTITY: '1'
           OPSC_MIGRATION_EXPECTED_DATABASE: ${{ steps.neon.outputs.database }}
           OPSC_MIGRATION_EXPECTED_HOST: ${{ steps.neon.outputs.host }}
           OPSC_MIGRATION_EXPECTED_PROJECT_ID: ${{ steps.neon.outputs.project_id }}
@@ -160,6 +162,9 @@ jobs:
           pending=obj.get("pending") or []
           print("pending_count", len(pending))
           for p in pending: print(" pending", p.get("filename"))
+          identity=obj.get("neonIdentity") or {}
+          if identity.get("pinned") is not True or identity.get("projectId") != "sweet-union-58466913" or identity.get("branchId") != "br-solitary-band-bbczy982" or identity.get("host") != "ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech":
+            print("DRY_RUN_NEON_PINNED_IDENTITY_MISMATCH"); sys.exit(1)
           if obj.get("status") != "DRY_RUN_PASS":
             print(json.dumps(obj, indent=2)[:2500]); sys.exit(1)
           PY
@@ -167,6 +172,8 @@ jobs:
       - name: Apply migrations on Preview only
         env:
           OPSC_MIGRATION_TARGET_CLASS: preview
+          OPSC_MIGRATION_EXPECTED_OWNER_ROLE: opscore_owner
+          OPSC_MIGRATION_PINNED_NEON_IDENTITY: '1'
           OPSC_MIGRATION_EXPECTED_DATABASE: ${{ steps.neon.outputs.database }}
           OPSC_MIGRATION_EXPECTED_HOST: ${{ steps.neon.outputs.host }}
           OPSC_MIGRATION_EXPECTED_PROJECT_ID: ${{ steps.neon.outputs.project_id }}
@@ -191,6 +198,9 @@ jobs:
           if not obj:
             print(raw[-2500:]); print("APPLY_PARSE_FAIL"); sys.exit(1)
           print(json.dumps({k:obj.get(k) for k in ("status","applied","target","neonIdentity","serverVersion")}, indent=2, default=str)[:4000])
+          identity=obj.get("neonIdentity") or {}
+          if identity.get("pinned") is not True or identity.get("projectId") != "sweet-union-58466913" or identity.get("branchId") != "br-solitary-band-bbczy982" or identity.get("host") != "ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech":
+            print("APPLY_NEON_PINNED_IDENTITY_MISMATCH"); sys.exit(1)
           st=str(obj.get("status") or "")
           if "FAIL" in st.upper() or st in ("ERROR",):
             sys.exit(1)
