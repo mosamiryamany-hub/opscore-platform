@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const {
   candidateOrigin,
   validateCandidateProbeEnvironment,
+  validateCandidateRuntimeProofs,
   queryHttp
 } = require('../scripts/signed-tenant-context-postgres-gate');
 
@@ -156,4 +157,130 @@ test('Production candidate routes tamper raw tenant GUCs only after verified sig
   ]) {
     assert.ok(server.includes(fragment), 'missing candidate GUC tamper input: ' + fragment);
   }
+});
+
+
+function candidateRuntimeProofs(overrides = {}) {
+  const commit = 'a'.repeat(40);
+  const deploymentResponse = {
+    status: 200,
+    body: {
+      status: 'identified',
+      source: { commitSha: commit, ref: 'main' },
+      deployment: { environment: 'production', id: 'dpl_CandidateIdentity123' }
+    }
+  };
+  const databaseResponse = {
+    status: 200,
+    body: {
+      schemaVersion: 'opscore.production-runtime-database-diagnostic.v1',
+      deployment: { commitSha: commit, pipelineId: '123456789', ref: 'main' },
+      environment: {
+        vercelEnvironment: 'production',
+        nodeEnvironmentProduction: true,
+        databaseEnginePostgres: true,
+        applicationDatabaseUrlAligned: true,
+        migrationDatabaseUrlAbsent: true,
+        bootstrapDatabaseUrlAbsent: true,
+        productionHoldEffectiveActive: true,
+        releaseVerifiedEffective: false,
+        releaseProofVerified: false
+      },
+      database: {
+        status: 'IDENTITY_RESOLVED',
+        identityScope: 'APPLICATION_DATABASE',
+        applicationDatabaseBinding: 'PRESENT',
+        connectionSource: 'OPSC_DATABASE_URL',
+        writeOperations: 0,
+        identity: {
+          database_name: 'opscore_acceptance',
+          session_user: 'opscore_runtime',
+          current_user: 'opscore_runtime',
+          transaction_read_only: 'on'
+        },
+        roles: [{
+          role_name: 'opscore_runtime',
+          role_exists: true,
+          can_login: true,
+          superuser: false,
+          bypass_rls: false,
+          create_role: false,
+          create_db: false,
+          elevated_role_membership: false
+        }]
+      }
+    }
+  };
+  if (overrides.deploymentResponse) Object.assign(deploymentResponse, overrides.deploymentResponse);
+  if (overrides.databaseResponse) {
+    Object.assign(databaseResponse, overrides.databaseResponse);
+    if (overrides.databaseResponse.body) {
+      databaseResponse.body = {
+        ...databaseResponse.body,
+        ...overrides.databaseResponse.body,
+        deployment: {
+          ...databaseResponse.body.deployment,
+          ...(overrides.databaseResponse.body.deployment || {})
+        },
+        environment: {
+          ...databaseResponse.body.environment,
+          ...(overrides.databaseResponse.body.environment || {})
+        },
+        database: {
+          ...databaseResponse.body.database,
+          ...(overrides.databaseResponse.body.database || {}),
+          identity: {
+            ...databaseResponse.body.database.identity,
+            ...((overrides.databaseResponse.body.database || {}).identity || {})
+          },
+          roles: (overrides.databaseResponse.body.database || {}).roles || databaseResponse.body.database.roles
+        }
+      };
+    }
+  }
+  return { deploymentResponse, databaseResponse, commit };
+}
+
+test('candidate runtime identity requires exact deployment, application database, runtime role and active hold', () => {
+  const { deploymentResponse, databaseResponse, commit } = candidateRuntimeProofs();
+  const proof = validateCandidateRuntimeProofs(deploymentResponse, databaseResponse, {
+    GITHUB_SHA: commit,
+    GITHUB_RUN_ID: '123456789',
+    OPSC_PRODUCTION_DATABASE_NAME: 'opscore_acceptance'
+  });
+  assert.equal(proof.deploymentId, 'dpl_CandidateIdentity123');
+  assert.equal(proof.sourceCommit, commit);
+  assert.equal(proof.pipelineId, '123456789');
+  assert.equal(proof.databaseName, 'opscore_acceptance');
+  assert.equal(proof.currentUser, 'opscore_runtime');
+  assert.equal(proof.readOnlyInspection, true);
+  assert.equal(proof.writeOperations, 0);
+  assert.equal(proof.holdActive, true);
+  assert.equal(proof.releaseVerified, false);
+  assert.equal(proof.releaseProofVerified, false);
+});
+
+test('candidate runtime identity rejects a different commit, pipeline, domain or database role', () => {
+  const { deploymentResponse, databaseResponse, commit } = candidateRuntimeProofs();
+  const env = {
+    GITHUB_SHA: commit,
+    GITHUB_RUN_ID: '123456789',
+    OPSC_PRODUCTION_DATABASE_NAME: 'opscore_acceptance'
+  };
+  assert.throws(() => validateCandidateRuntimeProofs({
+    ...deploymentResponse,
+    body: { ...deploymentResponse.body, source: { ...deploymentResponse.body.source, commitSha: 'b'.repeat(40) } }
+  }, databaseResponse, env), /CANDIDATE_DEPLOYMENT_IDENTITY_MISMATCH/);
+  assert.throws(() => validateCandidateRuntimeProofs(deploymentResponse, {
+    ...databaseResponse,
+    body: { ...databaseResponse.body, deployment: { ...databaseResponse.body.deployment, pipelineId: '999999999' } }
+  }, env), /CANDIDATE_RUNTIME_DATABASE_IDENTITY_MISMATCH/);
+  assert.throws(() => validateCandidateRuntimeProofs(deploymentResponse, {
+    ...databaseResponse,
+    body: { ...databaseResponse.body, environment: { ...databaseResponse.body.environment, productionHoldEffectiveActive: false } }
+  }, env), /CANDIDATE_RUNTIME_DATABASE_IDENTITY_MISMATCH/);
+  assert.throws(() => validateCandidateRuntimeProofs(deploymentResponse, {
+    ...databaseResponse,
+    body: { ...databaseResponse.body, database: { ...databaseResponse.body.database, identity: { ...databaseResponse.body.database.identity, current_user: 'neondb_owner' } } }
+  }, env), /CANDIDATE_RUNTIME_DATABASE_IDENTITY_MISMATCH/);
 });
