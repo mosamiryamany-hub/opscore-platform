@@ -26,6 +26,8 @@ test('Preview migrations require one exact ready non-primary unprotected branch 
   assert.match(previewApply, /OPSC_MIGRATION_CONFIRM_BRANCH_ID/);
   assert.match(previewApply, /sslmode.*verify-full/);
   assert.match(previewApply, /roles\/opscore_owner\/reveal_password/);
+  assert.match(previewApply, /NEON_BRANCH_INVENTORY_HTTP_FAILURE/);
+  assert.match(previewApply, /BRANCH_HTTP_STATUS/);
   assert.match(previewApply, /PREVIEW_OWNER_PASSWORD_UNAVAILABLE/);
   assert.match(previewApply, /PREVIEW_OWNER_CONNECTION_IDENTITY_INVALID/);
   assert.match(previewApply, /roles\/opscore_runtime\/reveal_password/);
