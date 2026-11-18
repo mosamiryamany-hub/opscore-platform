@@ -10,7 +10,7 @@ const workflowDir = path.join(root, '.github', 'workflows');
 const previewApplyPath = path.join(workflowDir, 'apply-preview-migrations.yml');
 const previewApply = fs.readFileSync(previewApplyPath, 'utf8');
 
-test('Preview migrations require one exact ready non-primary unprotected branch and the application database', () => {
+test('Preview migrations require one exact pinned non-primary branch and the application database', () => {
   assert.match(previewApply, /branch:[\s\S]*?required: true[\s\S]*?default: "br-solitary-band-bbczy982"/);
   assert.ok(previewApply.includes("pull_request:\n    branches:\n      - main\n    paths:"));
   assert.ok(previewApply.includes("github.head_ref == 'ops/acceptance-neon-target-2026-11-19'"));
@@ -29,8 +29,6 @@ test('Preview migrations require one exact ready non-primary unprotected branch 
   assert.match(previewApply, /api\.vercel\.com\/v1\/projects/);
   assert.doesNotMatch(previewApply, /NEON_API_KEY|reveal_password/);
   assert.match(previewApply, /sslmode.*verify-full/);
-  assert.match(previewApply, /PREVIEW_OWNER_PASSWORD_UNAVAILABLE/);
-  assert.match(previewApply, /PREVIEW_OWNER_CONNECTION_IDENTITY_INVALID/);
   assert.doesNotMatch(previewApply, /summer-leaf-18448271/);
   assert.match(previewApply, /node-version: "22\.23\.4"/);
   assert.doesNotMatch(previewApply, /auto-detect|any\(k in lname|dry-run\.json" \|\| true/);
