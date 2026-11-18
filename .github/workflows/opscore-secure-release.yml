@@ -83,6 +83,7 @@ jobs:
               'docs/commercial/COMMERCIAL_CLOSEOUT_FINAL.md' \
               'docs/ops/REMAINING_CLOSEOUT_GATES.md' \
               'scripts/package-release.js' \
+              'scripts/refresh-evidence-sidecars.js' \
               'scripts/release-artifact-gate.js')"
             if [[ "$actual" != "$expected" ]]; then
               printf 'ISOLATED_RELEASE_FILE_ALLOWLIST_MISMATCH\nExpected:\n%s\nActual:\n%s\n' "$expected" "$actual" >&2
@@ -190,6 +191,13 @@ jobs:
       - name: Audit backend dependencies
         working-directory: backend
         run: npm audit --audit-level=high
+
+      - name: Rebind sidecars for evidence regenerated in this run
+        run: |
+          node scripts/refresh-evidence-sidecars.js \
+            I18N_FORENSIC_AUDIT_RESULT \
+            RECOVERY_GATE_RESULT \
+            RELEASE_TEST_RUN_RESULT
 
       - name: Build buyer release archive
         env:
