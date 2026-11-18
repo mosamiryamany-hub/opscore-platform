@@ -37,10 +37,14 @@ function isSignedTenantManifestRoute(method, requestPath) {
   return SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST.routes.some(route => {
     if (String(route.method || '').toUpperCase() !== normalizedMethod) return false;
     const template = String(route.path || '');
-    if (template.endsWith('/chunks/(\\d+)')) {
-      const prefix = template.slice(0, -'/chunks/(\\d+)'.length);
-      return pathname.startsWith(prefix + '/chunks/')
-        && /^\\d+$/.test(pathname.slice((prefix + '/chunks/').length));
+    if (template.includes('/chunks/')) {
+      const marker = template.lastIndexOf('/chunks/');
+      const expectedPrefix = template.slice(0, marker + '/chunks/'.length);
+      const numericIndex = pathname.slice(expectedPrefix.length);
+      if (!pathname.startsWith(expectedPrefix)) return false;
+      if (template.slice(expectedPrefix.length) === '(\\\\d+)') {
+        return /^[0-9]+$/.test(numericIndex);
+      }
     }
     const expectedSegments = template.split('/');
     const actualSegments = pathname.split('/');
