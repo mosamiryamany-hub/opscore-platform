@@ -37,6 +37,8 @@
 
 ## Commercial status string
 
+No prospective buyer or buyer signature is needed to complete the product or seller-side source-package closeout. Buyer license rights and delivery authorization remain separately gated by a signed License Schedule that names the exact package SHA-256; repository access or a ZIP download alone grants no rights.
+
 `PASS_WITH_BUYER_RESIDUALS` — seller source package closed; buyer residuals and optional hosted-upgrade path remain outside the package gate.
 
 Generated for tip `deba977d…` on 2026-11-18.
