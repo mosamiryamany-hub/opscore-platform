@@ -23,10 +23,12 @@ test('Preview migrations require one exact pinned non-primary branch and the app
   assert.match(previewApply, /PRIMARY_BRANCH_ID=\x27br-weathered-tree-bbha3dx4\x27/);
   assert.match(previewApply, /OPSC_MIGRATION_DATABASE_URL/);
   assert.match(previewApply, /OPSC_ACCEPTANCE_RUNTIME_DATABASE_URL/);
-  assert.match(previewApply, /VERCEL_DEVELOPMENT_SECRET_NOT_UNIQUE/);
   assert.match(previewApply, /VERCEL_NEON_CONNECTION_IDENTITY_MISMATCH/);
   assert.match(previewApply, /api\.vercel\.com\/v10\/projects/);
   assert.match(previewApply, /api\.vercel\.com\/v1\/projects/);
+  assert.match(previewApply, /NaIbwIDagdogTmWE/);
+  assert.match(previewApply, /2ACxh1Oi5TWMDn5v/);
+  assert.doesNotMatch(previewApply, /api\\.vercel\\.com\\/v10\\/projects/);
   assert.doesNotMatch(previewApply, /NEON_API_KEY|reveal_password/);
   assert.match(previewApply, /sslmode.*verify-full/);
   assert.doesNotMatch(previewApply, /summer-leaf-18448271/);
