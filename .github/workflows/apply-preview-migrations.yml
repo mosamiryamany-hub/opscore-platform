@@ -6,7 +6,7 @@ on:
       branch:
         description: Exact Neon Preview branch ID (primary, default, and protected branches are rejected)
         required: true
-        default: "br-fragrant-king-bcr9928f"
+        default: "br-solitary-band-bbczy982"
       database:
         description: Application database name (fixed to opscore_acceptance)
         required: true
@@ -47,7 +47,7 @@ jobs:
         run: |
           set -euo pipefail
           test -n "${NEON_API_KEY:-}" || { echo "NEON_API_KEY_MISSING"; exit 1; }
-          PROJECT_ID="summer-leaf-18448271"
+          PROJECT_ID="sweet-union-58466913"
           AUTH_H=(-H "Authorization: Bearer ${NEON_API_KEY}" -H "Accept: application/json")
           BRANCHES=$(curl -fsS "${AUTH_H[@]}" "https://console.neon.tech/api/v2/projects/${PROJECT_ID}/branches")
           echo "$BRANCHES" | python3 -c '
@@ -55,7 +55,7 @@ jobs:
           data=json.load(sys.stdin)
           branches=data.get("branches") or data
           want=(os.environ.get("INPUT_BRANCH") or "").strip()
-          project_id="summer-leaf-18448271"
+          project_id="sweet-union-58466913"
           if not want.startswith("br-"):
             print("EXACT_PREVIEW_BRANCH_ID_REQUIRED", file=sys.stderr); sys.exit(1)
           matches=[b for b in branches if str(b.get("id") or "") == want]
@@ -81,7 +81,7 @@ jobs:
           curl -fsS -G "${AUTH_H[@]}" \
             --data-urlencode "branch_id=${BRANCH_ID}" \
             --data-urlencode "database_name=${INPUT_DB}" \
-            --data-urlencode "role_name=neondb_owner" \
+            --data-urlencode "role_name=opscore_owner" \
             --data-urlencode "pooled=false" \
             "https://console.neon.tech/api/v2/projects/${PROJECT_ID}/connection_uri" \
             > "$RUNNER_TEMP/uri.json"
