@@ -80,13 +80,20 @@ async function uploadAsset(uploadBase, name, bytes, contentType, digest, existin
   }
   return asset;
 }
-function replaceSection(body, section) {
-  const start = body.indexOf(SECTION_START);
-  if (start < 0) return body.trimEnd() + '\n\n' + section + '\n';
-  const end = body.indexOf(SECTION_END, start);
-  assert(end >= 0, 'EXISTING_RELEASE_SECTION_UNTERMINATED');
-  const after = end + SECTION_END.length;
-  return body.slice(0, start).trimEnd() + '\n\n' + section + '\n' + body.slice(after).trimStart();
+function replaceSection(_body, section) {
+  // Keep the release description single-source-of-truth: no stale commit,
+  // archive filename, digest, or old run remains above the current build.
+  return [
+    '## OpsCore v0.11.62 — isolated commercial source package (.18)',
+    '',
+    'This release is a draft/pre-release source-package candidate. The exact versioned archive, source commit, SHA-256 and Secure Release run below are authoritative.',
+    '',
+    'All older assets retained in the release history are historical and superseded. Do not use them for verification or handoff.',
+    '',
+    'The release grants no license, authorizes no distribution, and does not certify Production. See the buyer trust pack inside the exact archive for security and environment residuals.',
+    '',
+    section
+  ].join('\\n') + '\\n';
 }
 
 async function main() {
