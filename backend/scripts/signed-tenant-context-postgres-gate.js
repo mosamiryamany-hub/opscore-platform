@@ -3541,12 +3541,12 @@ async function main() {
     signedSessionAutobindHttpProof.faultUnreachableTenantB = 'PASS';
 
 
-    clientA = new Client({ connectionString: runtimeUrl });
-    clientB = new Client({ connectionString: runtimeUrl });
-    await clientA.connect();
-    await clientB.connect();
-
     if (!candidateMode) {
+      clientA = new Client({ connectionString: runtimeUrl });
+      clientB = new Client({ connectionString: runtimeUrl });
+      await clientA.connect();
+      await clientB.connect();
+
       // Without an assertion, raw GUCs alone must expose no rows.
       await clientA.query('BEGIN READ ONLY');
       await tamperRawGucs(clientA, tenantA);
