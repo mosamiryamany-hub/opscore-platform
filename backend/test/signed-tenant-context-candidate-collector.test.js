@@ -1,0 +1,117 @@
+'use strict';
+
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const {
+  candidateOrigin,
+  validateCandidateProbeEnvironment,
+  queryHttp
+} = require('../scripts/signed-tenant-context-postgres-gate');
+
+const BASE = {
+  OPSC_SIGNED_CONTEXT_CANDIDATE_HTTP_ORIGIN: 'https://opscore-platform-candidate123-mosamiryamany-1692.vercel.app',
+  OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN: 'a'.repeat(64),
+  VERCEL_TRUSTED_OIDC_TOKEN: 'header.payload.signature',
+  VERCEL_ENV: 'production',
+  OPSC_PRODUCTION_HOLD: 'true',
+  OPSC_RELEASE_VERIFIED: 'false',
+  OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'true',
+  OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED: 'false',
+  OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED: 'false'
+};
+
+test('candidate origin accepts only an HTTPS unaliased Vercel deployment for this project/team', () => {
+  assert.equal(
+    candidateOrigin(BASE.OPSC_SIGNED_CONTEXT_CANDIDATE_HTTP_ORIGIN),
+    'https://opscore-platform-candidate123-mosamiryamany-1692.vercel.app'
+  );
+  for (const value of [
+    'https://opscore-platform.vercel.app',
+    'http://opscore-platform-candidate123-mosamiryamany-1692.vercel.app',
+    'https://opscore-platform-candidate123-other-team.vercel.app',
+    'https://example.com',
+    'https://opscore-platform-candidate123-mosamiryamany-1692.vercel.app/path',
+    'https://user:password@opscore-platform-candidate123-mosamiryamany-1692.vercel.app'
+  ]) {
+    assert.throws(() => candidateOrigin(value));
+  }
+});
+
+test('candidate probe configuration requires Production plus an active hold and no release/autobind', () => {
+  assert.equal(validateCandidateProbeEnvironment(BASE),
+    'https://opscore-platform-candidate123-mosamiryamany-1692.vercel.app');
+
+  const blocked = [
+    { OPSC_PRODUCTION_HOLD: 'false' },
+    { OPSC_RELEASE_VERIFIED: 'true' },
+    { OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'false' },
+    { OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED: 'true' },
+    { OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED: 'true' },
+    { VERCEL_ENV: 'preview' },
+    { OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN: 'not-a-256-bit-hex-token' },
+    { VERCEL_TRUSTED_OIDC_TOKEN: 'not-a-jwt' }
+  ];
+  for (const change of blocked) {
+    assert.throws(() => validateCandidateProbeEnvironment({ ...BASE, ...change }));
+  }
+});
+
+test('remote candidate HTTP requests carry the tenant probe token and Vercel Trusted OIDC token', async () => {
+  const previousFetch = global.fetch;
+  const previousToken = process.env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN;
+  const previousOidc = process.env.VERCEL_TRUSTED_OIDC_TOKEN;
+  let observed = null;
+  process.env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN = BASE.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN;
+  process.env.VERCEL_TRUSTED_OIDC_TOKEN = BASE.VERCEL_TRUSTED_OIDC_TOKEN;
+  global.fetch = async (url, options) => {
+    observed = { url: String(url), options };
+    return {
+      status: 200,
+      headers: { entries: () => [['content-type', 'application/json']] },
+      text: async () => JSON.stringify({ ok: true })
+    };
+  };
+  try {
+    const result = await queryHttp(
+      'https://opscore-platform-candidate123-mosamiryamany-1692.vercel.app',
+      '/api/v1/customers',
+      'synthetic-session-token',
+      { method: 'GET' }
+    );
+    assert.equal(result.status, 200);
+    assert.equal(result.body.ok, true);
+    assert.equal(observed.url,
+      'https://opscore-platform-candidate123-mosamiryamany-1692.vercel.app/api/v1/customers');
+    assert.equal(observed.options.headers.authorization, 'Bearer synthetic-session-token');
+    assert.equal(observed.options.headers['x-opscore-signed-context-probe'], BASE.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN);
+    assert.equal(observed.options.headers['x-vercel-trusted-oidc-idp-token'], BASE.VERCEL_TRUSTED_OIDC_TOKEN);
+    assert.equal(observed.options.redirect, 'manual');
+  } finally {
+    global.fetch = previousFetch;
+    if (previousToken === undefined) delete process.env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN;
+    else process.env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN = previousToken;
+    if (previousOidc === undefined) delete process.env.VERCEL_TRUSTED_OIDC_TOKEN;
+    else process.env.VERCEL_TRUSTED_OIDC_TOKEN = previousOidc;
+  }
+});
+
+test('remote candidate HTTP helper refuses requests outside the candidate origin and API namespace', async () => {
+  const previousFetch = global.fetch;
+  process.env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN = BASE.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN;
+  process.env.VERCEL_TRUSTED_OIDC_TOKEN = BASE.VERCEL_TRUSTED_OIDC_TOKEN;
+  global.fetch = async () => { throw new Error('FETCH_MUST_NOT_RUN'); };
+  try {
+    await assert.rejects(
+      queryHttp('https://opscore-platform-candidate123-mosamiryamany-1692.vercel.app', 'https://example.com/api/v1/customers', 'token'),
+      /CANDIDATE_HTTP_ROUTE_ORIGIN_INVALID/
+    );
+    await assert.rejects(
+      queryHttp('https://opscore-platform-candidate123-mosamiryamany-1692.vercel.app', '/api/../admin', 'token'),
+      /CANDIDATE_HTTP_ROUTE_ORIGIN_INVALID/
+    );
+  } finally {
+    global.fetch = previousFetch;
+    delete process.env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN;
+    delete process.env.VERCEL_TRUSTED_OIDC_TOKEN;
+  }
+});
