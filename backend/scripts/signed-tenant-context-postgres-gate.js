@@ -2723,9 +2723,9 @@ async function main() {
       method: 'POST',
       body: { longitude: 31.1313, latitude: 29.9765 }
     });
-    if (geoAccessCrossTenantA.status !== 200
+    if (geoAccessCrossTenantA.status !== 403
         || geoAccessCrossTenantA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
-        || geoAccessCrossTenantA.body?.allow !== false) {
+        || geoAccessCrossTenantA.body?.error?.code !== 'GEO_SCOPE_FORBIDDEN') {
       throw new Error('SIGNED_CONTEXT_GEOFENCE_ASSERT_ACCESS_CROSS_TENANT_NOT_DENIED:' + JSON.stringify({
         status: geoAccessCrossTenantA.status, body: geoAccessCrossTenantA.body
       }));
