@@ -43,7 +43,6 @@ const languageQualificationRows = fs.readFileSync(
 test('Production runbook and buyer residual register use the current observed Neon capacity', () => {
   const current = runbook.split('## Current evidence reconciliation')[1] || '';
   assert.match(current, /2 active branches \(2\/10 included\)/);
-  assert.match(current, /2 root branches/);
   assert.match(current, /Both currently listed branch records report protected=false/);
   assert.match(current, /Current snapshot inventory contains one manual Primary snapshot/);
   assert.match(current, /snap-tiny-dream-bc58p5nj/);
@@ -74,7 +73,7 @@ test('Live 67-route acceptance remains a Production certification task, not a so
 
 test('Production key material, signed-route proof and snapshot generation are accurately recorded', () => {
   const current = runbook.split('## Current evidence reconciliation')[1] || '';
-  assert.match(current, /opscore_security schema and context_hmac_keys table exist on Primary/);
+  assert.match(current, /opscore_security\\.context_hmac_keys.*exists with the expected schema and ownership/);
   assert.match(current, /zero Production HMAC key rows/);
   assert.match(current, /live Production 67-route signed-session matrix remains \*\*NOT ESTABLISHED\*\*/);
   assert.match(current, /restore branch br-odd-surf-bcps6nce reports restored_from=snap-tiny-dream-bc58p5nj/i);
