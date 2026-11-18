@@ -93,10 +93,16 @@ async function candidateDatabaseUrl(roleName, config) {
     + '/endpoints?limit=100', config.apiKey);
   const hits = (Array.isArray(endpointsPayload.endpoints) ? endpointsPayload.endpoints : [])
     .filter(endpoint => String(endpoint.id || '') === endpointId);
-  if (hits.length !== 1
-      || String(hits[0].branch_id || '') !== config.branchId
-      || String(hits[0].type || '').toLowerCase() !== 'read_write') {
-    throw new Error('NEON_ENDPOINT_BRANCH_OR_TYPE_MISMATCH');
+  if (hits.length !== 1) throw new Error('NEON_ENDPOINT_NOT_UNIQUELY_RESOLVED');
+  const endpoint = hits[0];
+  const apiHost = String(endpoint.host || (endpoint.hosts && endpoint.hosts.read_write_host) || '').trim().toLowerCase();
+  const normalizedApiHost = apiHost.replace(/-pooler(?=\\.)/, '');
+  const normalizedConnectionHost = url.hostname.toLowerCase().replace(/-pooler(?=\\.)/, '');
+  if (String(endpoint.project_id || '') !== config.projectId
+      || String(endpoint.branch_id || '') !== config.branchId
+      || normalizedApiHost !== normalizedConnectionHost
+      || String(endpoint.type || '').toLowerCase() !== 'read_write') {
+    throw new Error('NEON_ENDPOINT_PROJECT_BRANCH_HOST_OR_TYPE_MISMATCH');
   }
   return connectionString;
 }
