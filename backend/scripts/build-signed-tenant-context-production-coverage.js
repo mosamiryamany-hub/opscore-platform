@@ -348,6 +348,7 @@ function buildSignedTenantContextProductionCoverage({
   manifestBytes,
   inventoryBytes,
   parentBranchId,
+  expectedParentBranchId,
   expectedCommit,
   expectedPipelineId,
   expectedDeploymentId,
@@ -407,25 +408,26 @@ function buildSignedTenantContextProductionCoverage({
     const proofA = Boolean(spec && assertionPass(checks, spec.a));
     const proofB = Boolean(spec && assertionPass(checks, spec.b));
     const ownProofsPass = proofA && proofB;
-    const tamperPass = Boolean(observation
+    const tenantAOwnPass = Boolean(observation
       && Number(tenantA.successful) > 0
-      && Number(tenantB.successful) > 0
-      && Number(tenantA.tamperApplied) >= Number(tenantA.successful)
-      && Number(tenantB.tamperApplied) >= Number(tenantB.successful)
-      && ownProofsPass);
-    const commonPass = Boolean(observation
-      && Number(tenantA.successful) > 0
-      && Number(tenantB.successful) > 0
       && Number(tenantA.signed) > 0
+      && Number(tenantA.tamperApplied) >= Number(tenantA.successful)
+      && proofA);
+    const tenantBOwnPass = Boolean(observation
+      && Number(tenantB.successful) > 0
       && Number(tenantB.signed) > 0
-      && ownProofsPass);
+      && Number(tenantB.tamperApplied) >= Number(tenantB.successful)
+      && proofB);
+    const ownProofsPass = proofA && proofB;
+    const tamperPass = Boolean(tenantAOwnPass && tenantBOwnPass && ownProofsPass);
+    const commonPass = Boolean(tenantAOwnPass && tenantBOwnPass && ownProofsPass);
     const crossRead = spec && allAssertionsPass(checks, spec.crossRead);
     const crossWrite = spec && allAssertionsPass(checks, spec.crossWrite);
     const routeRead = route.operation === 'read';
-    const tenantARead = routeRead && commonPass;
-    const tenantBRead = routeRead && commonPass;
-    const tenantAWrite = !routeRead && commonPass;
-    const tenantBWrite = !routeRead && commonPass;
+    const tenantARead = routeRead && tenantAOwnPass;
+    const tenantBRead = routeRead && tenantBOwnPass;
+    const tenantAWrite = !routeRead && tenantAOwnPass;
+    const tenantBWrite = !routeRead && tenantBOwnPass;
     const crossTenantReadDenied = Boolean(routeRead && crossRead);
     const crossTenantWriteDenied = Boolean(!routeRead && crossWrite);
     const signedContextBound = commonPass;
@@ -468,6 +470,8 @@ function buildSignedTenantContextProductionCoverage({
     && /^dpl_[A-Za-z0-9]+$/.test(String(expectedDeploymentId || ''))
     && String(runtime.deploymentId) === String(expectedDeploymentId)
     && /^[a-z0-9-]{8,80}$/.test(String(parentBranchId || '').trim())
+    && /^[a-z0-9-]{8,80}$/.test(String(expectedParentBranchId || '').trim())
+    && String(parentBranchId) === String(expectedParentBranchId)
     && String(databaseName) === runtime.databaseName
     && manifestRoutes.length === 67;
   const inventoryBound = manifestBound
@@ -549,6 +553,7 @@ function main(argv = process.argv.slice(2)) {
     expectedCommit: options.commit || process.env.GITHUB_SHA || process.env.OPSC_RELEASE_CI_COMMIT,
     expectedPipelineId: options['pipeline-id'] || process.env.GITHUB_RUN_ID || process.env.OPSC_RELEASE_CI_PIPELINE_ID,
     expectedDeploymentId: options['deployment-id'] || process.env.OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID,
+    expectedParentBranchId: options['expected-parent-branch-id'] || process.env.OPSC_PRODUCTION_NEON_BRANCH_ID,
     databaseName: options['database-name'] || process.env.OPSC_PRODUCTION_DATABASE_NAME || 'opscore_acceptance'
   });
   fs.mkdirSync(path.dirname(outputPath), { recursive: true });
