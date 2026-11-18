@@ -66,7 +66,8 @@ test('GitHub Actions: CI/release workflows use immutable full-SHA action referen
     const uses = [...workflow.matchAll(/uses:\s*([^\s#]+)(?:\s+#.*)?/g)].map((m) => m[1]);
     assert.ok(uses.length > 0, `${name} must declare workflow actions`);
     for (const ref of uses) {
-      assert.match(ref, /^[^@]+@[0-9a-f]{40}$/i, `${name}: action reference must be a full 40-character commit SHA: ${ref}`);
+      if (ref.startsWith('./')) continue; // local reusable workflows are versioned with this repository
+      assert.match(ref, /^[^@]+@[0-9a-f]{40}$/i, `${name}: external action reference must be a full 40-character commit SHA: ${ref}`);
     }
   }
 });
