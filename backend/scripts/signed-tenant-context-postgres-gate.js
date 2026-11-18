@@ -4913,7 +4913,18 @@ async function main() {
           "(SELECT COUNT(*)::int FROM public.technician_skills WHERE organization_id = ANY($1::text[]) AND user_id = ANY($2::text[])) AS technician_skills, " +
           "(SELECT COUNT(*)::int FROM public.technician_location_trail WHERE organization_id = ANY($1::text[]) AND (technician_id = ANY($2::text[]) OR client_event_id = ANY($11::text[]))) AS location_points, " +
           "(SELECT COUNT(*)::int FROM public.dynamic_geofence_events WHERE id = ANY($12::text[]) OR (organization_id = ANY($1::text[]) AND source_event_id = ANY($13::text[]))) AS dynamic_geofence_events, " +
-          "(SELECT COUNT(*)::int FROM public.operational_jobs WHERE organization_id = ANY($1::text[]) AND ((entity_type='appointment' AND entity_id = ANY($9::text[])) OR (entity_type='work_order' AND entity_id = ANY($4::text[])))) AS operational_jobs, " +
+          "(SELECT COUNT(*)::int FROM public.operational_jobs WHERE organization_id = ANY($1::text[])) AS operational_jobs, " +
+          "(SELECT COUNT(*)::int FROM public.operational_event_receipts WHERE organization_id = ANY($1::text[])) AS operational_event_receipts, " +
+          "(SELECT COUNT(*)::int FROM public.integration_outbox WHERE organization_id = ANY($1::text[])) AS integration_outbox, " +
+          "(SELECT COUNT(*)::int FROM public.notifications WHERE organization_id = ANY($1::text[])) AS notifications, " +
+          "(SELECT COUNT(*)::int FROM public.webhook_endpoints WHERE organization_id = ANY($1::text[])) AS webhook_endpoints, " +
+          "(SELECT COUNT(*)::int FROM public.webhook_deliveries WHERE organization_id = ANY($1::text[])) AS webhook_deliveries, " +
+          "(SELECT COUNT(*)::int FROM public.worker_guard_events WHERE organization_id = ANY($1::text[])) AS worker_guard_events, " +
+          "(SELECT COUNT(*)::int FROM public.sync_events WHERE organization_id = ANY($1::text[])) AS sync_events, " +
+          "(SELECT COUNT(*)::int FROM public.gateway_circuit_events WHERE organization_id = ANY($1::text[])) AS gateway_circuit_events, " +
+          "(SELECT COUNT(*)::int FROM public.signature_chain_events WHERE organization_id = ANY($1::text[])) AS signature_chain_events, " +
+          "(SELECT COUNT(*)::int FROM public.operational_twin_chain_events WHERE organization_id = ANY($1::text[])) AS operational_twin_chain_events, " +
+          "(SELECT COUNT(*)::int FROM public.stripe_events WHERE organization_id = ANY($1::text[])) AS stripe_events, " +
           "(SELECT COUNT(*)::int FROM public.operational_configs WHERE organization_id = ANY($1::text[]) AND config_key = ANY($14::text[])) AS operational_configs, " +
           "(SELECT COUNT(*)::int FROM public.evidence_uploads WHERE id = ANY($15::text[]) OR organization_id = ANY($1::text[])) AS evidence_uploads, " +
           "(SELECT COUNT(*)::int FROM public.evidence_upload_chunks WHERE upload_id = ANY($15::text[])) AS evidence_upload_chunks, " +
