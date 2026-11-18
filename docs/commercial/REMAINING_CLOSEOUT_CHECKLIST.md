@@ -24,7 +24,7 @@ A named buyer, buyer signature, buyer-specific legal review, payment, or transac
 ## Buyer/environment residuals (do not misclassify as seller source-build failures)
 
 - Signed Android/iOS artifacts, device acceptance and store publication.
-- Native-speaker translation review (current record: 0/114 reviewed; 0/114 production-qualified).
+- Runtime Contact Center locale manifest: 105 selectable locales. Separate source-language qualification matrix: 114 rows, 0/114 native-speaker-reviewed and 0/114 production-qualified.
 - Licensed maps/routing and third-party provider contracts, keys and accounts.
 - Buyer-specific identity, messaging, telephony, payments, storage, KMS/HSM, cloud, deployment and operational acceptance.
 
