@@ -7,6 +7,10 @@ on:
         description: Type CREATE_PRIMARY_RESTORE_PROOF after reviewing the exact Primary snapshot
         required: true
         type: string
+      snapshot_id:
+        description: Exact primary snapshot id to restore from (must be current primary source)
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -32,7 +36,7 @@ jobs:
       - name: Create or reuse a real non-finalizing snapshot restore and verify it
         env:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
-          OPSC_PRIMARY_SNAPSHOT_ID: snap-holy-salad-bcvyvzv9
+          OPSC_PRIMARY_SNAPSHOT_ID: ${{ github.event.inputs.snapshot_id }}
           OPSC_CONFIRM_RESTORE_PROOF: ${{ github.event.inputs.confirm }}
         run: |
           set -euo pipefail
