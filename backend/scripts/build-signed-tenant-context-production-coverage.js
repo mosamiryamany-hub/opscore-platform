@@ -418,7 +418,6 @@ function buildSignedTenantContextProductionCoverage({
       && Number(tenantB.signed) > 0
       && Number(tenantB.tamperApplied) >= Number(tenantB.successful)
       && proofB);
-    const ownProofsPass = proofA && proofB;
     const tamperPass = Boolean(tenantAOwnPass && tenantBOwnPass && ownProofsPass);
     const commonPass = Boolean(tenantAOwnPass && tenantBOwnPass && ownProofsPass);
     const crossRead = spec && allAssertionsPass(checks, spec.crossRead);
