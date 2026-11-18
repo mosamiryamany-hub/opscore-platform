@@ -53,7 +53,3 @@ The operational Neon database inspected is opscore_acceptance; neondb on the pri
 The only listed manual Neon snapshot predates those migrations. Its restore branch has valid provenance for that snapshot but is not schema-identical to the current Primary after later migration writes. The project is Free, allows one snapshot, and automatic snapshot schedule is empty. Do not delete the retained snapshot without a deliberate replacement/retention decision. Current Production restore parity proof, RPO/RTO and 67-route signed-session certification remain unestablished. The HMAC key table has zero keys, so signed Production routes are not activated.
 
 Vercel currently reports live=false, no custom domains and latest deployment target=null. No Production deployment was made by the current-main contract run. This source-code package is not seller-hosted SaaS; the buyer provisions its own hosting, providers and domain.
-
-## Production truth
-
-Production database behavior and isolation, backup/restore, TLS/WAF, KMS, observability, live integrations and native application acceptance must be verified separately in the buyer environment. Production certification remains NOT_ESTABLISHED.
