@@ -1066,6 +1066,21 @@ function runSignedWorkOrdersRead(req, res, c, reader, responseHeaders = {}) {
         'x-opscore-signed-tenant-context': 'verified'
       });
     }
+    // A spatial-policy denial is a real authorization outcome, not a database
+    // failure. Preserve the domain's 403 only after PostgreSQL confirms rollback.
+    // Do not serialize error.details (which may contain internal scope metadata).
+    if (rollbackConfirmed && (error?.code === 'GEO_SCOPE_FORBIDDEN' || error?.message === 'GEO_SCOPE_FORBIDDEN')) {
+      return json(res, 403, { error: { code: 'GEO_SCOPE_FORBIDDEN' } }, {
+        'cache-control': 'no-store',
+        'x-opscore-signed-tenant-context': 'verified'
+      });
+    }
+    if (rollbackConfirmed && (error?.code === 'GEO_SCOPE_EMPTY' || error?.message === 'GEO_SCOPE_EMPTY')) {
+      return json(res, 403, { error: { code: 'GEO_SCOPE_EMPTY' } }, {
+        'cache-control': 'no-store',
+        'x-opscore-signed-tenant-context': 'verified'
+      });
+    }
     warn('signed_work_order_read_failed', {
       errorCode: safeDatabaseErrorCode(error),
       organizationId: c.organizationId
