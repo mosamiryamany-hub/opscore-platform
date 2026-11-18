@@ -68,7 +68,7 @@ const CANDIDATE_ROUTE_PROOF_REQUIREMENTS = Object.freeze({
   'PATCH /api/v1/customers/{id}': { a: ['session.customersUpdateTenantA'], b: ['session.customersUpdateTenantB'], cross: ['session.customersCrossTenantUpdateDenied'] },
   'GET /api/v1/customers/{id}/service-line': { a: ['session.customerServiceLineReadTenantA'], b: ['session.customerServiceLineReadTenantB'], cross: [] },
   'POST /api/v1/customers/{id}/service-line': { a: ['session.customerServiceLineAssignTenantA'], b: ['session.customerServiceLineAssignTenantB'], cross: ['session.customerServiceLineCrossTenantAssignDenied'] },
-  'PUT /api/v1/evidence-uploads/{id}/chunks/(\\d+)': { a: ['evidence.chunkTenantA', 'evidence.chunkTenantAPersisted'], b: ['evidence.chunkTenantB', 'evidence.chunkTenantBPersisted'], cross: ['evidence.crossTenantChunkDenied'] },
+  'PUT /api/v1/evidence-uploads/{id}/chunks/(\\\\d+)': { a: ['evidence.chunkTenantA', 'evidence.chunkTenantAPersisted'], b: ['evidence.chunkTenantB', 'evidence.chunkTenantBPersisted'], cross: ['evidence.crossTenantChunkDenied'] },
   'POST /api/v1/evidence-uploads/{id}/complete': { a: ['evidence.completeTenantA'], b: ['evidence.completeTenantB'], cross: ['evidence.crossTenantCompleteDenied'] },
   'POST /api/v1/faults': { a: ['session.faultCreateTenantA'], b: ['session.faultCreateTenantB'], cross: [] },
   'POST /api/v1/faults/{id}/transition': { a: ['session.faultTransitionTenantA'], b: ['session.faultTransitionTenantB'], cross: [] },
@@ -4566,7 +4566,14 @@ async function main() {
         } else {
           const resultPath = path.join(workspace, 'SIGNED_TENANT_CONTEXT_CANDIDATE_RESULT.json');
           fs.writeFileSync(resultPath, JSON.stringify(finalReport, null, 2) + '\\n', { flag: 'w', mode: 0o600 });
-          process.stdout.write(JSON.stringify({ status: 'PASS', resultPath: path.basename(resultPath), cleanup: finalCleanupStatus }) + '\\n');
+          const candidateStatus = finalReport.signedTenantRouteCoverage?.status === 'PASS' ? 'PASS' : 'NOT_VERIFIED';
+          process.stdout.write(JSON.stringify({
+            status: candidateStatus,
+            resultPath: path.basename(resultPath),
+            cleanup: finalCleanupStatus,
+            coveredRoutes: finalReport.signedTenantRouteCoverage?.coveredRouteCount || 0,
+            failedRoutes: finalReport.signedTenantRouteCoverage?.failedRouteCount ?? 67
+          }) + '\\n');
         }
       } else {
         process.stdout.write(JSON.stringify(finalReport) + '\\n');
