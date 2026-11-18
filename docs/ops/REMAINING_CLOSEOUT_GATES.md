@@ -5,7 +5,7 @@
 | Item | Evidence |
 |---|---|
 | Secure Release on `deba977db586…` | Actions runs 44211443240 / 44211989356 **success** |
-| ZIP + SHA-256 | `f0bdd0f3989e815e7cb0764a44b461ea46a505995ed9d1f87de9495d24f2128f` |
+| ZIP + SHA-256 | `32263497d02e1c943fd15a64239d2c0da1d7f9a95d765b2a9254830e9758313a` |
 | Mobile documented risk gate | `mobile-audit-gate-result` PASS; package-release honors gate (#237) |
 | Tag | `v0.11.62.16-commercial-source-package` |
 

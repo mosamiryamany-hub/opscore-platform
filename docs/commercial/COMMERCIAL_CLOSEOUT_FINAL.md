@@ -12,8 +12,8 @@
 | Source commit | `deba977db586f19128a1f53377fec183beab44d0` |
 | Tag | `v0.11.62.16-commercial-source-package` |
 | Archive | `OpsCore-release.zip` |
-| SHA-256 | `f0bdd0f3989e815e7cb0764a44b461ea46a505995ed9d1f87de9495d24f2128f` |
-| Bytes | 2381175 |
+| SHA-256 | `32263497d02e1c943fd15a64239d2c0da1d7f9a95d765b2a9254830e9758313a` |
+| Bytes | 2381387 |
 | License grant | **NONE** until a signed License Schedule names this SHA |
 | Distribution | **Not authorized** without that schedule |
 
