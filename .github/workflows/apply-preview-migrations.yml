@@ -8,6 +8,7 @@ on:
       - '.github/workflows/apply-preview-migrations.yml'
       - 'backend/sql/postgres/**'
       - 'backend/scripts/apply-postgres-migrations.js'
+      - 'backend/scripts/validate-postgres-acceptance-target.js'
   workflow_dispatch:
     inputs:
       branch:
