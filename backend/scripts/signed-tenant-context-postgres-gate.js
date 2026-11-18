@@ -2936,7 +2936,7 @@ async function main() {
     );
     if (crossWorkOrderDetail.status !== 404
         || crossWorkOrderDetail.body?.error?.code !== 'NOT_FOUND'
-        || crossWorkOrderDetail.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+        || crossWorkOrderDetail.headers?.['x-opscore-signed-tenant-context'] !== 'verified') {
       throw new Error('SIGNED_CONTEXT_WORK_ORDER_DETAIL_CROSS_TENANT_NOT_DENIED:' + JSON.stringify({
         status: crossWorkOrderDetail.status, body: crossWorkOrderDetail.body
       }));
