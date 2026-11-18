@@ -9,6 +9,14 @@ on:
       - 'backend/sql/postgres/**'
       - 'backend/scripts/apply-postgres-migrations.js'
       - 'backend/scripts/validate-postgres-acceptance-target.js'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/apply-preview-migrations.yml'
+      - 'backend/sql/postgres/**'
+      - 'backend/scripts/apply-postgres-migrations.js'
+      - 'backend/scripts/validate-postgres-acceptance-target.js'
   workflow_dispatch:
     inputs:
       branch:
@@ -29,6 +37,7 @@ concurrency:
 
 jobs:
   apply-preview-only:
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'ops/acceptance-neon-target-2026-11-19'
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
