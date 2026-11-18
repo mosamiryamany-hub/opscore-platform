@@ -135,6 +135,8 @@ async function main() {
   fs.writeFileSync(archivePath + '.sha256', checksumBytes);
 
   const base = API + '/repos/' + repository;
+  const branchRef = await apiJson(base + '/git/ref/heads/' + encodeURIComponent('release/v0.11.62.18-commercial-source-package'));
+  assert(branchRef.object && branchRef.object.sha === sourceCommit, 'STALE_RELEASE_RUN_BRANCH_HEAD_MISMATCH');
   const release = await apiJson(base + '/releases/tags/' + encodeURIComponent(TAG));
   assert(release.tag_name === TAG, 'DRAFT_RELEASE_TAG_MISMATCH');
   assert(release.draft === true && release.prerelease === true && release.published_at === null,
@@ -156,7 +158,16 @@ async function main() {
   assert(currentRef.object && currentRef.object.type === 'commit', 'RELEASE_TAG_NOT_LIGHTWEIGHT_COMMIT');
   const currentSha = String(currentRef.object.sha || '').toLowerCase();
   if (currentSha !== sourceCommit) {
-    assert(currentSha === EXPECTED_OLD_TAG_SHA, 'RELEASE_TAG_MOVED_UNEXPECTEDLY:' + currentSha);
+    let isPriorIsolatedReleaseTag = currentSha === EXPECTED_OLD_TAG_SHA;
+    if (!isPriorIsolatedReleaseTag) {
+      const comparison = await apiJson(base + '/compare/' + encodeURIComponent(currentSha + '...' + sourceCommit));
+      isPriorIsolatedReleaseTag = comparison.status === 'ahead' &&
+        Number(comparison.ahead_by) >= 1 &&
+        comparison.base_commit && comparison.base_commit.sha === currentSha;
+    }
+    assert(isPriorIsolatedReleaseTag, 'RELEASE_TAG_NOT_ON_ISOLATED_ANCESTRY:' + currentSha);
+    const latestBranchRef = await apiJson(base + '/git/ref/heads/' + encodeURIComponent('release/v0.11.62.18-commercial-source-package'));
+    assert(latestBranchRef.object && latestBranchRef.object.sha === sourceCommit, 'STALE_RELEASE_RUN_BEFORE_TAG_ADVANCE');
     await apiJson(refPatchUrl, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
