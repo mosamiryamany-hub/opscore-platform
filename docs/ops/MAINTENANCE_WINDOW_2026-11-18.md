@@ -281,3 +281,49 @@ deployment, HMAC rotation, or signed-route activation was started.
 - Public table data inventory: all 135 tables compared; SHA-256 `fe5063af3ca6cfbad6a0325f6eda972731fb80a960af471f2075f51896400341`, identical between Primary and restore. The runner now repeats this comparison immediately before the Production migration dry-run.
 - Neon snapshot creation against Primary returned `snapshots limit exceeded`. The only listed manual snapshot remains `snap-floral-sea-bcug7fd3` from 17 November 10:08:56Z. The automatic snapshot schedule remains empty and Primary remains unprotected.
 - Therefore the 18 November 02:00–04:00 Africa/Cairo window is **NO-GO** with the currently observed Neon capacity. Reconsider only after safe capacity is available, a fresh snapshot and non-finalizing restore are proven, and the GitHub Environment proof digest is updated.
+
+
+## Current evidence reconciliation — 2026-11-18 00:04 UTC
+
+This section supersedes earlier pre-window assumptions in the historical material above. The earlier snapshot, migration, branch-count and HMAC-table statements are retained only as dated history.
+
+### Current Neon inventory (read-only)
+
+- Project: summer-leaf-18448271; Free plan; PostgreSQL 18; branch limit 10; history retention 21,600 seconds (6 hours); branch logical-size limit 1 GiB.
+- Current branch inventory: **6 active branches (6/10 included)** and **3 root branches**. All six currently listed branch records report protected=false.
+- Primary: br-proud-salad-bcshhdap. Restore branch br-damp-surf-bciz4n1b reports restored_from=snap-holy-salad-bcvyvzv9, restore_status=restored and restored_as=br-proud-salad-bcshhdap. This is a valid provenance link to the retained snapshot, but that snapshot predates the 063–067/069 migration writes.
+- A second older restore branch, br-quiet-poetry-bc3uo0u3, references the earlier snapshot snap-floral-sea-bcug7fd3. That snapshot is no longer in the current snapshot list.
+- Current snapshot inventory contains **one** manual snapshot: snap-holy-salad-bcvyvzv9, source Primary, created 2026-11-17 21:47:40Z. Automatic Primary snapshot schedule is empty.
+- New snapshot creation returned SNAPSHOTS_LIMIT_EXCEEDED. The rotation workflow stopped at SNAPSHOT_DELETE_CONFIRMATION_REQUIRED. No snapshot was deleted. Do not delete the one retained snapshot without explicit owner authorization and a safe replacement/retention plan.
+
+The retained snap-holy-salad restore is from the pre-migration schema generation. It is expected to differ from the live Primary because migrations 063–067 and 069 were committed after the snapshot was taken. The failed current-primary parity proof is not evidence that Neon restored from the wrong snapshot. A matching proof for the current Primary generation requires a new snapshot created after those migration writes, then a new non-finalizing restore.
+
+### Current Primary database and migration ledger
+
+The operational database is opscore_acceptance (not neondb, which remains empty). Read-only inspection reports:
+- schema_migrations: 68 rows; migrations 063–067, 068 and 069 are present.
+- public.technician_location_trail exists and currently has 0 rows.
+- opscore_security schema and context_hmac_keys table exist on Primary; there are **zero Production HMAC key rows**.
+- 136 public relations/tables; 135 have RLS enabled and 135 have FORCE RLS.
+- opscore_runtime has no superuser or BYPASSRLS privilege and does not have SELECT access to the HMAC key table; the restricted definer has the required access.
+
+The previous migration workflow 44189975492 failed after the migration transactions because its old postcondition query attempted to look up the intentionally absent opscore_app role. PR #234 corrected the runner and passed isolated PostgreSQL tests, but no post-fix Production APPLIED_AND_VERIFIED workflow has run. Do not reapply migrations already present in the ledger.
+
+### Production proof and activation boundary
+
+The live Production 67-route signed-session matrix remains **NOT ESTABLISHED**. CI's isolated route matrix is not Production certification. The 67-route Production collector/evidence path is not established by the evidence reviewed here. The Production HMAC table is empty; signed Production routes are not activated. Production isolation/certification remains NOT_ESTABLISHED.
+
+GitHub Environment protection rules / Required reviewers remain **UNVERIFIED** through the current integration. Verify Settings → Environments → production before any Production workflow dispatch.
+
+### Current Vercel firewall read-only inspection
+
+The active firewall config reports firewallEnabled=true, version 4:
+- CRS Generic, RCE, SQLi and XSS rules are active but in log-only mode.
+- Bot Protection is active but in log-only mode.
+- IP allow/deny rules list is empty.
+- The custom POST login/mobile-login rate-limit rule is 60 requests per source IP per fixed 60-second window.
+- No firewall action was changed. Do not switch the log rules to deny without a representative baseline, false-positive review and Preview rehearsal.
+
+### Current release boundary
+
+Main is 27d41476a115d81ddd3ad1b4f03025142a7e5be6. Main CI and contract/isolated PostgreSQL checks pass, but Vercel deploy is skipped. Vercel reports live=false, no custom domains and latest deployment target=null. The Secure Release workflow has not produced a current-main ZIP/statement. This remains a source-release package gate; the Neon and Vercel hosted-service work remains a separate seller-hosted Production track.
