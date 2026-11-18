@@ -43,7 +43,7 @@ const languageQualificationRows = fs.readFileSync(
 test('Production runbook and buyer residual register use the current observed Neon capacity', () => {
   const current = runbook.split('## Current evidence reconciliation')[1] || '';
   assert.match(current, /2 active branches \(2\/10 included\)/);
-  assert.match(current, /Both currently listed branch records report protected=false/);
+  assert.match(current, /Both currently report `protected=false`/);
   assert.match(current, /Current snapshot inventory contains one manual Primary snapshot/);
   assert.match(current, /snap-tiny-dream-bc58p5nj/);
   assert.match(buyerResiduals, /2 active branches/);
