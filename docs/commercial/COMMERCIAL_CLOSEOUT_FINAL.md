@@ -1,46 +1,49 @@
-# Seller-side commercial closeout — OpsCore v0.11.62
+# Seller-side commercial closeout record — OpsCore v0.11.62
 
-> **Decision: SELLER SOURCE PACKAGE CLOSED** on exact main tip  
-> `deba977db586f19128a1f53377fec183beab44d0`  
-> Secure Release **success** — runs [44211443240](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44211443240) and [44211989356](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44211989356).
+> **Scope:** isolated seller source-package line `v0.11.62.17-commercial-source-package`.  
+> **Lineage anchor:** `deba977db586f19128a1f53377fec183beab44d0`.  
+> **Release branch:** `docs/commercial-source-package-closed-deba977d`.
 
-## Package identity (authoritative)
+## Package identity
 
-| Field | Value |
+| Field | Authority |
 |---|---|
-| Version | 0.11.62 |
-| Source commit | `deba977db586f19128a1f53377fec183beab44d0` |
-| Tag | `v0.11.62.16-commercial-source-package` |
-| Archive | `OpsCore-release.zip` |
-| SHA-256 | `f0bdd0f3989e815e7cb0764a44b461ea46a505995ed9d1f87de9495d24f2128f` |
-| Bytes | 2381175 |
-| License grant | **NONE** until a signed License Schedule names this SHA |
-| Distribution | **Not authorized** without that schedule |
+| Product version | `0.11.62` |
+| Intended release tag | `v0.11.62.17-commercial-source-package` |
+| Exact source commit | External `COMMERCIAL_RELEASE_STATEMENT.json` supplied with the archive |
+| Secure Release run | External `COMMERCIAL_RELEASE_STATEMENT.json` supplied with the archive |
+| Archive SHA-256 and byte length | External `COMMERCIAL_RELEASE_STATEMENT.json` supplied with the archive |
+| License grant | **NONE** pending a signed License Schedule for the exact archive SHA-256 |
+| Distribution authorization | **NOT AUTHORIZED** until that Schedule is executed |
 
-## Seller gates
+The archive cannot contain its own final ZIP digest without a self-referential hash. The companion external release statement, generated after archive creation, is the authoritative source for the source commit, run identity, byte length, SHA-256, and package-specific results. Do not reuse the digest, bytes, commit, tag, or run belonging to the earlier `.16` package.
 
-| Gate | Status |
-|---|---|
-| Secure Release (tests, SBOM path, package, audits) | **PASS** on tip above |
-| Mobile audit gate (picomatch GHSA documented, time-boxed) | **PASS** |
-| Main CI (verify, vercel-contract) | **PASS** on release tip |
-| Primary restore proof (Neon) | **PASS** (see evidence file; not a production migration certificate) |
-| Live production isolation (deployed pin) | **CERTIFIED** on `4017497068defa9c1d0761fcb07bc746925e002a` |
+## Isolated release-line scope
 
-## Explicit non-claims (prevent contradiction)
+- This line starts from the recorded v0.11.62 source baseline and is maintained independently of subsequent product work on `main`.
+- No later product commits from `main` are included in this line.
+- The package-integrity repair moves evidence redaction ahead of provenance and checksum generation, refreshes adjacent evidence sidecars, regenerates backend provenance after sanitization, and runs the artifact gate against the sanitized staged tree.
+- PR #268 merged the integrity repair and buyer-independent closeout wording into the dedicated release branch. Its PR validation runs are recorded in GitHub; the tag-specific Secure Release result remains authoritative for the final archive.
 
-1. **Hosted Production pin** remains `4017497…` until a separate, gated production upgrade. Source package closure does **not** auto-promote Vercel Production.
-2. **Signed-context migrations 063–067 / 069** are **not** asserted applied on Production primary by this closeout.
-3. **Production HMAC / 67-route live matrix** are **not** asserted for the new tip.
-4. **Buyer residuals** remain buyer-owned: mobile store signing, native human translation QA, licensed street maps.
-5. **No license** is granted by repository presence, ZIP download, or this document.
+## Seller-owned release acceptance
 
-## Commercial status string
+The package-specific Secure Release must complete successfully for the exact intended tag. The generated archive and staged package must pass their release gates, provenance verification, sidecar checks, integrated manifest and SHA-256 checks, and archive round-trip verification. The uploaded artifact must then be independently downloaded and hashed before it is treated as the customer candidate.
 
-No license grant is made to a buyer until the rights holder and buyer execute a signed License Schedule naming this exact package SHA-256. Until then, distribution and licensed use remain unauthorized.
+This in-tree record is a governance and scope document, not the result of that tag-specific build. The exact result belongs to the companion external release statement. A green PR check alone is not a substitute for the tagged release build or independent verification of the uploaded ZIP.
 
-No prospective buyer or buyer signature is needed to complete the product or seller-side source-package closeout. Buyer license rights and delivery authorization remain separately gated by a signed License Schedule that names the exact package SHA-256; repository access or a ZIP download alone grants no rights.
+## Explicit non-claims
 
-`PASS_WITH_BUYER_RESIDUALS` — seller source package closed; buyer residuals and optional hosted-upgrade path remain outside the package gate.
+1. This source-package line does not promote or certify a new Vercel Production deployment.
+2. It does not claim that migrations 063–067 / 069 were applied to Production primary.
+3. It does not claim Production HMAC activation or the live 67-route signed-session matrix for this source-package commit.
+4. Isolated PostgreSQL CI evidence is not a substitute for production-wide, live-route certification.
+5. Mobile store signing, native-speaker translation QA, licensed maps, and third-party provider accounts/contracts remain disclosed buyer/environment responsibilities unless separately contracted.
+6. Repository presence or possession of a ZIP does not grant a license or authorize distribution.
 
-Generated for tip `deba977d…` on 2026-11-18.
+## Commercial boundary
+
+No license grant is made to a buyer until the rights holder and buyer execute a signed License Schedule naming the exact package SHA-256. Until then, distribution and licensed use remain unauthorized.
+
+No prospective buyer or buyer signature is needed to complete the product or seller-side source-package closeout. Buyer license rights and delivery authorization remain separately gated by that signed License Schedule; repository access or a ZIP download alone grants no rights.
+
+The exact release outcome must be read from the companion external statement. This document does not assert a tag-specific release PASS, buyer license grant, or authorization to distribute.
