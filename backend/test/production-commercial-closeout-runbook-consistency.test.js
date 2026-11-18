@@ -77,7 +77,7 @@ test('Production key material, signed-route proof and snapshot generation are ac
   assert.match(current, /opscore_security schema and context_hmac_keys table exist on Primary/);
   assert.match(current, /zero Production HMAC key rows/);
   assert.match(current, /live Production 67-route signed-session matrix remains \*\*NOT ESTABLISHED\*\*/);
-  assert.match(current, /restore branch br-damp-surf-bciz4n1b reports restored_from=snap-holy-salad-bcvyvzv9/);
+  assert.match(current, /restore branch br-damp-surf-bciz4n1b reports restored_from=snap-holy-salad-bcvyvzv9/i);
   assert.match(current, /snapshot predates the 063–067\/069 migration writes/);
   assert.match(current, /No snapshot was deleted/);
   assert.doesNotMatch(current, /context_hmac_keys table are absent on Primary/);
