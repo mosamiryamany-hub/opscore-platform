@@ -19,7 +19,29 @@ const PIPELINE = '123456789';
 const DEPLOYMENT = 'dpl_CandidateFixture123';
 const BRANCH = 'br-proud-salad-bcshhdap';
 
-function makeCandidate() {
+function syntheticCompleteRouteEvidenceMap() {
+  const result = new Map(ROUTE_EVIDENCE);
+  let sequence = 0;
+  for (const route of manifest.routes) {
+    const key = route.method.toUpperCase() + ' ' + route.path;
+    const existing = result.get(key) || {};
+    sequence += 1;
+    result.set(key, {
+      ...existing,
+      a: existing.a || { bucket: 'signedAuthenticatedSessionRoutes', key: 'syntheticTenantA' + sequence },
+      b: existing.b || { bucket: 'signedAuthenticatedSessionRoutes', key: 'syntheticTenantB' + sequence },
+      crossRead: route.operation === 'read'
+        ? (existing.crossRead || [{ bucket: 'signedAuthenticatedSessionRoutes', key: 'syntheticCrossRead' + sequence }])
+        : existing.crossRead,
+      crossWrite: route.operation === 'write'
+        ? (existing.crossWrite || [{ bucket: 'signedAuthenticatedSessionRoutes', key: 'syntheticCrossWrite' + sequence }])
+        : existing.crossWrite
+    });
+  }
+  return result;
+}
+
+function makeCandidate(routeEvidenceMap = ROUTE_EVIDENCE) {
   const checks = {
     tenantAHttpSession: 'PASS',
     tenantBHttpSession: 'PASS',
@@ -38,7 +60,7 @@ function makeCandidate() {
     }))
   };
 
-  for (const spec of ROUTE_EVIDENCE.values()) {
+  for (const spec of routeEvidenceMap.values()) {
     for (const assertion of [spec.a, spec.b, ...(spec.crossRead || []), ...(spec.crossWrite || [])]) {
       if (!assertion) continue;
       const target = assertion.bucket === 'checks'
@@ -113,8 +135,9 @@ test('route evidence map defines every approved manifest row exactly once', () =
   }
 });
 
-test('all-green candidate fixture builds 67 fully bound rows with exact route and identity pins', () => {
-  const evidence = build(makeCandidate());
+test('all-green synthetic candidate fixture builds 67 fully bound rows with exact route and identity pins', () => {
+  const routeEvidenceMap = syntheticCompleteRouteEvidenceMap();
+  const evidence = build(makeCandidate(routeEvidenceMap), { routeEvidenceMap });
   assert.equal(evidence.status, 'PASS');
   assert.equal(evidence.expectedRouteCount, 67);
   assert.equal(evidence.coveredRouteCount, 67);
@@ -135,9 +158,10 @@ test('all-green candidate fixture builds 67 fully bound rows with exact route an
 });
 
 test('a missing negative cross-tenant proof keeps only the affected route unverified', () => {
-  const candidate = makeCandidate();
+  const routeEvidenceMap = syntheticCompleteRouteEvidenceMap();
+  const candidate = makeCandidate(routeEvidenceMap);
   delete candidate.checks.signedAuthenticatedSessionRoutes.customersCrossTenantUpdateDenied;
-  const evidence = build(candidate);
+  const evidence = build(candidate, { routeEvidenceMap });
   const target = evidence.routes.find(route =>
     route.method === 'PATCH' && route.path === '/api/v1/customers/{id}'
   );
@@ -151,12 +175,13 @@ test('a missing negative cross-tenant proof keeps only the affected route unveri
 });
 
 test('a missing tenant B successful signed request blocks only that exact route', () => {
-  const candidate = makeCandidate();
+  const routeEvidenceMap = syntheticCompleteRouteEvidenceMap();
+  const candidate = makeCandidate(routeEvidenceMap);
   const row = candidate.checks.candidateRouteObservations.find(route =>
     route.method === 'GET' && route.path === '/api/v1/customers'
   );
   row.tenantB.successful = 0;
-  const evidence = build(candidate);
+  const evidence = build(candidate, { routeEvidenceMap });
   const target = evidence.routes.find(route =>
     route.method === 'GET' && route.path === '/api/v1/customers'
   );
@@ -166,11 +191,12 @@ test('a missing tenant B successful signed request blocks only that exact route'
 });
 
 test('duplicate or foreign observations cannot certify the 67-route manifest', () => {
-  const candidate = makeCandidate();
+  const routeEvidenceMap = syntheticCompleteRouteEvidenceMap();
+  const candidate = makeCandidate(routeEvidenceMap);
   candidate.checks.candidateRouteObservations[1] = {
     ...candidate.checks.candidateRouteObservations[0]
   };
-  const evidence = build(candidate);
+  const evidence = build(candidate, { routeEvidenceMap });
   assert.equal(evidence.status, 'NOT_VERIFIED');
   assert.equal(evidence.summary.observationKeysUnique, false);
   assert.equal(evidence.summary.routesNotVerified.length > 0, true);
@@ -183,11 +209,12 @@ test('non-zero fixture residue is rejected before any coverage matrix is built',
 });
 
 test('wrong commit, pipeline, candidate deployment or Neon branch prevents PASS', () => {
-  const candidate = makeCandidate();
-  assert.equal(build(candidate, { expectedCommit: 'b'.repeat(40) }).status, 'NOT_VERIFIED');
-  assert.equal(build(candidate, { expectedPipelineId: '987654321' }).status, 'NOT_VERIFIED');
-  assert.equal(build(candidate, { expectedDeploymentId: 'dpl_Different123' }).status, 'NOT_VERIFIED');
-  assert.equal(build(candidate, { parentBranchId: 'br-another-branch' }).status, 'NOT_VERIFIED');
+  const routeEvidenceMap = syntheticCompleteRouteEvidenceMap();
+  const candidate = makeCandidate(routeEvidenceMap);
+  assert.equal(build(candidate, { routeEvidenceMap, expectedCommit: 'b'.repeat(40) }).status, 'NOT_VERIFIED');
+  assert.equal(build(candidate, { routeEvidenceMap, expectedPipelineId: '987654321' }).status, 'NOT_VERIFIED');
+  assert.equal(build(candidate, { routeEvidenceMap, expectedDeploymentId: 'dpl_Different123' }).status, 'NOT_VERIFIED');
+  assert.equal(build(candidate, { routeEvidenceMap, parentBranchId: 'br-another-branch' }).status, 'NOT_VERIFIED');
 });
 
 test('manifest bytes must bind to exact current API inventory', () => {
