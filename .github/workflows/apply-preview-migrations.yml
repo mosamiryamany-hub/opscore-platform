@@ -149,7 +149,6 @@ jobs:
 
       - name: Dry-run migrations on Preview
         env:
-          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
           OPSC_MIGRATION_TARGET_CLASS: preview
           OPSC_MIGRATION_EXPECTED_DATABASE: ${{ steps.neon.outputs.database }}
           OPSC_MIGRATION_EXPECTED_HOST: ${{ steps.neon.outputs.host }}
@@ -179,7 +178,6 @@ jobs:
 
       - name: Apply migrations on Preview only
         env:
-          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
           OPSC_MIGRATION_TARGET_CLASS: preview
           OPSC_MIGRATION_EXPECTED_DATABASE: ${{ steps.neon.outputs.database }}
           OPSC_MIGRATION_EXPECTED_HOST: ${{ steps.neon.outputs.host }}
@@ -249,7 +247,6 @@ jobs:
           export OPSC_PG_ACCEPTANCE_STRICT='true'
           export OPSC_PG_ACCEPTANCE_RESULT_FILE="${GITHUB_WORKSPACE}/POSTGRES_HTTP_ACCEPTANCE_RESULT.json"
           export OPSC_WRITE_EVIDENCE='1'
-          export CI_COMMIT_SHA='${GITHUB_SHA}'
-          export CI_PIPELINE_ID='${GITHUB_RUN_ID}'
+          export CI_COMMIT_SHA="${GITHUB_SHA}"
+          export CI_PIPELINE_ID="${GITHUB_RUN_ID}"
           node --test test/postgres-commercial-acceptance-http.test.js
-        run: node --test test/postgres-commercial-acceptance-http.test.js
