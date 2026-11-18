@@ -566,7 +566,7 @@ def main():
         fail("RESTORE_PROOF_RLS_INVENTORY_MISMATCH", {"counts": rls_parts})
 
     proof = {
-        "schemaVersion": "opscore.neon-primary-restore-proof.v1",
+        "schemaVersion": "opscore.neon-primary-restore-proof.v2",
         "status": "PASS",
         "projectId": PROJECT_ID,
         "primaryBranchId": PRIMARY_BRANCH_ID,
