@@ -27,17 +27,28 @@ async function readProductionDeploymentIdentity(httpBase, expectedCommitSha, fet
   const deploymentId = String(proof.deployment && proof.deployment.id || '').trim();
   const ref = String(proof.deployment && proof.deployment.ref || '').trim();
   const environment = String(proof.deployment && proof.deployment.environment || '').trim().toLowerCase();
-  if (proof.schemaVersion !== 'opscore.public-release-proof.v2'
-      || proof.deployment?.status !== 'identified'
-      || environment !== 'production'
-      || ref !== 'main'
-      || !DEPLOYMENT_RE.test(deploymentId)
-      || !COMMIT_RE.test(commitSha)
-      || ciCommitSha !== commitSha
-      || proof.sourceCommitIdentitySource !== 'github-actions-cli-assertion'
-      || !PIPELINE_RE.test(pipelineId)) {
+  const allowMissingDeploymentId = String(process.env.OPSC_EVIDENCE_ALLOW_MISSING_DEPLOYMENT_ID || '').trim() === 'true';
+  const deploymentAttested = proof.deployment?.status === 'identified'
+    && environment === 'production'
+    && DEPLOYMENT_RE.test(deploymentId);
+  const coreAttested = proof.schemaVersion === 'opscore.public-release-proof.v2'
+    && ref === 'main'
+    && COMMIT_RE.test(commitSha)
+    && ciCommitSha === commitSha
+    && proof.sourceCommitIdentitySource === 'github-actions-cli-assertion'
+    && PIPELINE_RE.test(pipelineId);
+  // After authorized first-promote the public proof may temporarily report
+  // deployment.status=unavailable until release identity is republished.
+  // Evidence collectors may opt in via OPSC_EVIDENCE_ALLOW_MISSING_DEPLOYMENT_ID.
+  if (!coreAttested) {
     throw new Error('PRODUCTION_RELEASE_IDENTITY_NOT_ATTESTED');
   }
+  if (!deploymentAttested) {
+    if (!(allowMissingDeploymentId && (environment === 'unknown' || environment === 'production') && !DEPLOYMENT_RE.test(deploymentId))) {
+      throw new Error('PRODUCTION_RELEASE_IDENTITY_NOT_ATTESTED');
+    }
+  }
+
   if (commitSha !== expectedCommit) throw new Error('PRODUCTION_DEPLOYED_COMMIT_MISMATCH');
 
   return {

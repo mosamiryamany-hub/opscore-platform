@@ -81,6 +81,7 @@ jobs:
           OPSC_PRODUCTION_OWNER_ROLE: ${{ inputs.production_owner_role }}
           OPSC_PRODUCTION_HTTP_BASE: https://opscore-platform.vercel.app
           OPSC_EXPECTED_PRODUCTION_COMMIT_SHA: ${{ inputs.expected_production_commit_sha }}
+          OPSC_EVIDENCE_ALLOW_MISSING_DEPLOYMENT_ID: "true"
           OPSC_NEON_BRANCH_LIMIT: ${{ inputs.neon_branch_limit }}
           GITHUB_SHA: ${{ github.sha }}
         run: node backend/scripts/collect-production-recovery-point.js
@@ -117,6 +118,7 @@ jobs:
           OPSC_PRODUCTION_OWNER_ROLE: ${{ inputs.production_owner_role }}
           OPSC_PRODUCTION_HTTP_BASE: https://opscore-platform.vercel.app
           OPSC_EXPECTED_PRODUCTION_COMMIT_SHA: ${{ inputs.expected_production_commit_sha }}
+          OPSC_EVIDENCE_ALLOW_MISSING_DEPLOYMENT_ID: "true"
           GITHUB_SHA: ${{ github.sha }}
         run: node backend/scripts/collect-production-session-isolation.js
       - name: Upload session-isolation evidence
