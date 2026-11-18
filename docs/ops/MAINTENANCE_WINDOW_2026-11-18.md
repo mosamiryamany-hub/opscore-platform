@@ -315,11 +315,11 @@ GitHub Environment protection rules / Required reviewers remain **UNVERIFIED** t
 ### Current Vercel firewall read-only inspection
 
 The active firewall config reports firewallEnabled=true, version 4:
-- CRS Generic, RCE, SQLi and XSS rules are active but in log-only mode.
-- Bot Protection is active but in log-only mode.
+- CRS Generic, RCE, SQLi and XSS rules are active but `log` only.
+- Bot Protection is active but `log` only.
 - IP allow/deny rules list is empty.
 - The custom POST login/mobile-login rate-limit rule is 60 requests per source IP per fixed 60-second window.
-- No firewall action was changed. Do not switch the log rules to deny without a representative baseline, false-positive review and Preview rehearsal.
+- The prior 24-hour review reported no anomalies in its reviewed window; that is not a continuing guarantee. No firewall action was changed. Do not flip the current `log` rules to `deny` without a representative baseline, false-positive review and Preview rehearsal.
 
 ### Current release boundary
 
