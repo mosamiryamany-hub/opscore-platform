@@ -238,7 +238,10 @@ const releaseStatement = {
     describeAuditResidual('Root PostgreSQL runtime', rootAuditSummary),
     'Signed Android/iOS store artifacts, buyer-specific EAS accounts, physical-device acceptance and app-store publication remain buyer-owned.',
     'External provider accounts, licenses, credentials and live acceptance for identity, messaging/carrier/call-center services, payments, webhooks, storage, KMS/HSM, maps/road-routing and cloud remain buyer-owned.',
-    'Production session/tenant/recovery acceptance and production-wide isolation certification are not established by this build.'
+    'Production session/tenant/recovery acceptance and production-wide isolation certification are not established by this build.',
+    'OPSC_APP_SECURITY is not defined or verified in the reviewed .18 source/package and Vercel environment-variable inventory; GitHub Actions secret names were not inspectable.',
+    'The 2026-11-14 Production tenant-context trust-boundary audit is historical and reports caller-settable tenant identity context; current Production-wide isolation remains NOT_CERTIFIED pending exact live remediation and retest.',
+    'GHSA-fc5q-39xc-vjpf / CVE-2026-112366 remains a documented picomatch build-toolchain allowlist exception, not an upstream fix.'
   ]
 };
 fs.writeFileSync(statementPath, JSON.stringify(releaseStatement, null, 2) + '\n');
