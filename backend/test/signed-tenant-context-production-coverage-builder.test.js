@@ -158,6 +158,30 @@ test('all-green synthetic candidate fixture builds 67 fully bound rows with exac
   ));
 });
 
+test('production evidence map leaves routes without explicit route-specific negative proof unverified', () => {
+  const candidate = makeCandidate(ROUTE_EVIDENCE);
+  const evidence = build(candidate);
+  assert.equal(evidence.status, 'NOT_VERIFIED');
+
+  const managerOnlyReschedule = evidence.routes.find(route =>
+    route.method === 'POST' && route.path === '/api/v1/appointments/{id}/reschedule'
+  );
+  const faultCreate = evidence.routes.find(route =>
+    route.method === 'POST' && route.path === '/api/v1/faults'
+  );
+  const provenAssetCreate = evidence.routes.find(route =>
+    route.method === 'POST' && route.path === '/api/v1/assets'
+  );
+
+  assert.equal(managerOnlyReschedule.status, 'NOT_VERIFIED',
+    'tenant A lacks a proven manager-authorized reschedule operation');
+  assert.equal(faultCreate.crossTenantWriteDenied, false,
+    'a normal fault create is not a cross-tenant denial probe');
+  assert.equal(faultCreate.status, 'NOT_VERIFIED');
+  assert.equal(provenAssetCreate.crossTenantWriteDenied, true,
+    'the explicit client organization claim spoof probe is mapped for asset creation');
+});
+
 test('a missing negative cross-tenant proof keeps only the affected route unverified', () => {
   const routeEvidenceMap = syntheticCompleteRouteEvidenceMap();
   const candidate = makeCandidate(routeEvidenceMap);
