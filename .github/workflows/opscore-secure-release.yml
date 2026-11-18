@@ -72,14 +72,14 @@ jobs:
             git merge-base --is-ancestor "$RELEASE_BASE_SHA" "$GITHUB_SHA"
             test "$(git rev-parse "${GITHUB_REF_NAME}^{commit}")" = "$GITHUB_SHA"
             actual="$(git diff --name-only "$RELEASE_BASE_SHA" "$GITHUB_SHA" | LC_ALL=C sort)"
-            expected="$(printf '%s\\n' \
+            expected="$(printf '%s\n' \
               '.github/workflows/opscore-secure-release.yml' \
               'docs/commercial/CLIENT_TRUST_PACK.md' \
               'docs/commercial/COMMERCIAL_CLOSEOUT_FINAL.md' \
               'docs/ops/REMAINING_CLOSEOUT_GATES.md' \
               'scripts/package-release.js')"
             if [[ "$actual" != "$expected" ]]; then
-              printf 'ISOLATED_RELEASE_FILE_ALLOWLIST_MISMATCH\\nExpected:\\n%s\\nActual:\\n%s\\n' "$expected" "$actual" >&2
+              printf 'ISOLATED_RELEASE_FILE_ALLOWLIST_MISMATCH\nExpected:\n%s\nActual:\n%s\n' "$expected" "$actual" >&2
               exit 1
             fi
             echo "ISOLATED_COMMERCIAL_RELEASE_LINE_VERIFIED: base=$RELEASE_BASE_SHA tag=$GITHUB_REF_NAME"
