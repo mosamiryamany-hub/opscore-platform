@@ -128,6 +128,7 @@ def load_and_verify_restore_proof(key):
         "schema_catalog_read",
         "public_table_inventory",
         "migration_ledger_read",
+        "signed_context_schema",
         "core_table_read",
         "runtime_role_boundary",
     }
