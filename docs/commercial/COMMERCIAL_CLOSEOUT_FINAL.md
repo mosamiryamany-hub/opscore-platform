@@ -1,8 +1,15 @@
 # Seller-side commercial closeout — OpsCore v0.11.62
 
 > **Decision: SELLER SOURCE PACKAGE CLOSED** on exact main tip  
+>
+> No prospective buyer or buyer signature is needed to complete the product or seller source package. Buyer-specific licensed use or distribution rights remain gated by the signed License Schedule that names the exact package SHA.
+
 > `deba977db586f19128a1f53377fec183beab44d0`  
 > Secure Release **success** — runs [44211443240](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44211443240) and [44211989356](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44211989356).
+>
+> No prospective buyer, buyer signature, or transaction schedule is required to complete the seller-side source package. Buyer-specific licensed use or distribution rights remain gated by the signed License Schedule naming the exact package SHA.
+>
+> No license grant is made to a buyer until the buyer-specific License Schedule is signed and names this exact package SHA.
 
 ## Package identity (authoritative)
 

@@ -21,6 +21,13 @@ test('Primary restore proof workflow is manual, main-only, and uses the pinned c
   assert.ok(workflow.includes('if-no-files-found: error'));
 });
 
+test('proof runner requires an explicit snapshot ID and rejects stale implicit defaults', () => {
+  assert.ok(runner.includes('SNAPSHOT_ID = os.environ.get("OPSC_PRIMARY_SNAPSHOT_ID", "").strip()'));
+  assert.ok(runner.includes('PRODUCTION_SNAPSHOT_ID_REQUIRED'));
+  assert.ok(workflow.includes('OPSC_PRIMARY_SNAPSHOT_ID: ${{ github.event.inputs.snapshot_id }}'));
+  assert.ok(!runner.includes('snap-floral-sea-bcug7fd3'));
+});
+
 test('proof runner calls Neon Restore Snapshot endpoint and explicitly prevents finalization', () => {
   assert.ok(runner.includes('"/snapshots/" + SNAPSHOT_ID + "/restore"'));
   assert.ok(runner.includes('"finalize_restore": False'));
@@ -75,7 +82,7 @@ test('Production migration preflight accepts only the proof checks object-map co
   assert.ok(migrationRunner.includes('PRODUCTION_RESTORE_PROOF_SCHEMA_NO_LONGER_MATCHES_PRIMARY'));
   assert.ok(migrationRunner.includes('PRODUCTION_RESTORE_PROOF_PUBLIC_TABLE_DATA_NO_LONGER_MATCHES_PRIMARY'));
   const helperStart = runner.indexOf('def table_data_inventory(uri):');
-  const helperEnd = runner.indexOf('\n\ndef main():', helperStart);
+  const helperEnd = runner.indexOf('\n\ndef verify_signed_context_catalog(uri):', helperStart);
   const inventoryHelper = runner.slice(helperStart, helperEnd);
   const mainBody = runner.slice(runner.indexOf('def main():'));
   assert.ok(inventoryHelper.includes('psql(uri,'));
@@ -84,30 +91,19 @@ test('Production migration preflight accepts only the proof checks object-map co
   assert.ok(migrationRunner.includes('dataContentSha256'));
   assert.ok(migrationRunner.includes('schemaInventoryItemCount'));
   assert.ok(migrationRunner.includes('rowContentParityWithPrimary'));
+  assert.ok(migrationRunner.includes('REQUIRED_APPLIED_MIGRATIONS'));
+  assert.ok(migrationRunner.includes('VERIFY_PRODUCTION_SIGNED_CONTEXT_MIGRATIONS'));
+  assert.ok(migrationRunner.includes('PRODUCTION_SCHEMA_WRITES=0'));
   assert.ok(!migrationRunner.includes('if not isinstance(checks, list):'));
 });
 
-test('checked-in restore proof is bound to the real Neon-restored branch and all eight PASS checks', () => {
+test('checked-in historical v1 restore proof cannot satisfy the current v2 signed-context gate', () => {
   const proof = JSON.parse(fs.readFileSync(
     path.join(root, 'docs', 'ops', 'evidence', 'PRODUCTION_PRIMARY_RESTORE_PROOF.json'),
     'utf8'
   ));
-  const required = [
-    'snapshot_provenance', 'restore_branch_ready', 'database_identity',
-    'schema_catalog_read', 'public_table_inventory', 'migration_ledger_read',
-    'core_table_read', 'runtime_role_boundary'
-  ];
-  assert.equal(proof.status, 'PASS');
-  assert.equal(proof.restoreBranchId, 'br-damp-surf-bciz4n1b');
-  assert.equal(proof.schemaSha256, '2deab77e3b25f816c5a17aad24cebce83fbd7065dc26407898b3ebf584553fb5');
-  assert.equal(proof.schemaInventoryItemCount, 6096);
-  assert.equal(proof.dataContentSha256, 'fe5063af3ca6cfbad6a0325f6eda972731fb80a960af471f2075f51896400341');
-  assert.equal(proof.checks.schema_catalog_read.definitionParityWithPrimary, true);
-  assert.equal(proof.checks.public_table_inventory.rowContentSha256, proof.dataContentSha256);
-  assert.equal(proof.checks.public_table_inventory.rowContentParityWithPrimary, true);
-  assert.equal(proof.checks.snapshot_provenance.restoreStatus, 'restored');
-  assert.equal(proof.checks.snapshot_provenance.restoredAs, proof.primaryBranchId);
-  assert.deepEqual(Object.keys(proof.checks).sort(), required.sort());
-  for (const name of required) assert.equal(proof.checks[name].status, 'PASS', name);
-  assert.equal(proof.checks.runtime_role_boundary.organizationsVisibleWithoutTenantContext, 0);
+  assert.equal(proof.status, 'SUPERSEDED');
+  assert.equal(proof.schemaVersion, 'opscore.neon-primary-restore-proof.v1');
+  assert.equal(proof.checks.signed_context_schema, undefined);
+  assert.equal(proof.checks.migration_ledger_read.requiredMigrationsPresentAndChecksummed, undefined);
 });

@@ -62,7 +62,9 @@
   "schemaVersion": "opscore.neon-primary-restore-proof.v1",
   "snapshotId": "snap-holy-salad-bcvyvzv9",
   "snapshotSourceBranchId": "br-proud-salad-bcshhdap",
-  "status": "PASS",
+  "status": "SUPERSEDED",
   "tableInventorySha256": "fbe28eb39056c46866c88dcd4cd37d8da55ba58b3887f2d5503287dba80a51be",
-  "testedAt": "2026-11-17T21:55:57.867337Z"
+  "testedAt": "2026-11-17T21:55:57.867337Z",
+  "supersededAt": "2026-11-18T00:00:00Z",
+  "supersededReason": "Historical restore proof predates current Production primary state and does not include checksum-verified migrations 063–069 or signed_context_schema. It is not eligible for Production promotion."
 }

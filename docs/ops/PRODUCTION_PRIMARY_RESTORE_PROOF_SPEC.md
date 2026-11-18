@@ -20,7 +20,7 @@ Required fields:
 
 | Field | Requirement |
 |---|---|
-| `schemaVersion` | `opscore.neon-primary-restore-proof.v1` |
+| `schemaVersion` | `opscore.neon-primary-restore-proof.v2` |
 | `status` | `PASS`, only after a real Neon restore test |
 | `projectId` | `summer-leaf-18448271` |
 | `primaryBranchId` | `br-proud-salad-bcshhdap` |
@@ -37,7 +37,7 @@ Required fields:
 | `tableInventorySha256` | 64-character lowercase SHA-256 of the sorted public table-name inventory |
 | `dataContentSha256` | 64-character lowercase SHA-256 over per-table row counts and per-row SHA-256 digests for all public tables |
 | `publicTableCount` | Positive integer |
-| `checks` | All eight required checks listed below, each with `status: "PASS"`; `schema_catalog_read` includes `schemaItemCount` and `definitionParityWithPrimary=true`; `public_table_inventory` includes `rowContentSha256` and `rowContentParityWithPrimary=true` |
+| `checks` | All nine required checks listed below, each with `status: "PASS"`; `schema_catalog_read` includes `schemaItemCount` and `definitionParityWithPrimary=true`; `public_table_inventory` includes `rowContentSha256`, `rowContentParityWithPrimary=true`, and `rlsExcludedExtensionOwnedTableCount` |
 
 Required check IDs:
 
@@ -46,19 +46,22 @@ Required check IDs:
 - `database_identity`
 - `schema_catalog_read`
 - `public_table_inventory`
-- `migration_ledger_read`
+- `migration_ledger_read` (the exact source SHA-256 values for migrations 063–069 must match the restore ledger; no 62-row pre-migration baseline is accepted)
+- `signed_context_schema` (verified tenant-context definer/accessor, HMAC key-table schema, technician-trail RLS policies and tenant FKs, no direct tenant-GUC policy residuals; record key-row count without reading secret bytes)
 - `core_table_read`
 - `runtime_role_boundary`
 
 The workflow independently rechecks the snapshot's existence and source branch,
 the restore branch's readiness and `restored_from` snapshot identity, and the
-proof's project, database, branch, timestamp and hash bindings. It then runs the
-official migration runner in dry-run mode and requires the exact pending set
-063–067 plus 069 before the first Production write.
+proof's project, database, branch, timestamp and hash bindings. The read-only migration-state verifier then runs the official migration
+runner in dry-run mode, requires no pending migrations, verifies exact
+source-checksum skips for 063–069, and repeats schema/data parity plus
+signed-context catalog checks. It performs zero Production schema writes and
+must never reapply an already recorded migration.
 
 ## Evidence boundary
 
-The proof is not a Production isolation certificate, not a backup portability or RPO/RTO guarantee, and not a substitute for the Production 67-route signed-session evidence. It proves the stated snapshot/restore provenance, a canonical schema-catalog fingerprint, and normalized row-content fingerprints for the 135 public tables at the recorded test time only. Sequence current values, large objects, external object storage, and changes occurring after `testedAt` are outside that row-content fingerprint.
+The proof is not a Production isolation certificate, not a backup portability or RPO/RTO guarantee, and not a substitute for the Production 67-route signed-session evidence. It proves the stated snapshot/restore provenance, a canonical schema-catalog fingerprint, and normalized row-content fingerprints for the public tables included in the inventory at the recorded test time only. Sequence current values, large objects, external object storage, and changes occurring after `testedAt` are outside that row-content fingerprint.
 
 The schema fingerprint covers non-system namespaces and their owners/ACLs, extensions, relations and RLS flags, columns and defaults, constraints, indexes, policies, user functions, triggers, views, types/enums, and sequence definitions. The data fingerprint sorts each table's row JSON representation, computes a SHA-256 per row, and then hashes the table-name/count/digest inventory. The proof generator compares both fingerprints between the restored branch and the live Primary before writing the proof; the Production migration runner repeats that comparison immediately before its migration dry-run.
 
@@ -80,7 +83,9 @@ Before writing the proof, the runner independently requires a ready non-primary
 branch whose Neon metadata reports all of:
 `restored_from == snapshotId`, `restore_status == "restored"`, and
 `restored_as == primaryBranchId`. It then verifies direct database identity,
-schema/table SHA-256 inventories, the exact 62-row migration baseline, the
-absence of migrations 063–067 and 069, 135 public tables, the 134/134 RLS and
-FORCE RLS counts, and the non-superuser/non-BYPASSRLS runtime role. It never
-finalizes the restore or mutates Primary.
+schema/table SHA-256 inventories, the exact source-checksummed migration
+records 063–069, signed-context schema postconditions, all non-extension-owned
+public application tables with both RLS and FORCE RLS (extension-owned objects
+such as PostGIS `spatial_ref_sys` are explicitly excluded), and the
+non-superuser/non-BYPASSRLS runtime role. It never finalizes the restore or
+mutates Primary.

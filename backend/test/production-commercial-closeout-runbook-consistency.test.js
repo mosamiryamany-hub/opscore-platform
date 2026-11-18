@@ -42,13 +42,12 @@ const languageQualificationRows = fs.readFileSync(
 
 test('Production runbook and buyer residual register use the current observed Neon capacity', () => {
   const current = runbook.split('## Current evidence reconciliation')[1] || '';
-  assert.match(current, /6 active branches \(6\/10 included\)/);
-  assert.match(current, /3 root branches/);
-  assert.match(current, /All six currently listed branch records report protected=false/);
-  assert.match(current, /Primary snapshot schedule is empty/);
-  assert.match(current, /SNAPSHOTS_LIMIT_EXCEEDED/);
-  assert.match(buyerResiduals, /6 active branches/);
-  assert.match(buyerResiduals, /all six branch records unprotected/i);
+  assert.match(current, /2 active branches \(2\/10 included\)/);
+  assert.match(current, /Both currently report `protected=false`/);
+  assert.match(current, /Current snapshot inventory contains \*\*one\*\* manual Primary snapshot/);
+  assert.match(current, /snap-tiny-dream-bc58p5nj/);
+  assert.match(buyerResiduals, /2 active branches/);
+  assert.match(buyerResiduals, /both records report protected=false/i);
   assert.match(buyerResiduals, /one listed manual snapshot/i);
   assert.doesNotMatch(current, /10 active branches \(10\/10 included\)/);
   assert.doesNotMatch(buyerResiduals, /10\/10 visible branches|all ten are unprotected/i);
@@ -74,19 +73,20 @@ test('Live 67-route acceptance remains a Production certification task, not a so
 
 test('Production key material, signed-route proof and snapshot generation are accurately recorded', () => {
   const current = runbook.split('## Current evidence reconciliation')[1] || '';
-  assert.match(current, /opscore_security schema and context_hmac_keys table exist on Primary/);
+  assert.match(current, /context_hmac_keys.*exists with the expected schema and ownership/);
   assert.match(current, /zero Production HMAC key rows/);
   assert.match(current, /live Production 67-route signed-session matrix remains \*\*NOT ESTABLISHED\*\*/);
-  assert.match(current, /restore branch br-damp-surf-bciz4n1b reports restored_from=snap-holy-salad-bcvyvzv9/i);
-  assert.match(current, /snapshot predates the 063–067\/069 migration writes/);
-  assert.match(current, /No snapshot was deleted/);
+  assert.match(current, /br-odd-surf-bcps6nce.*restored_from=snap-tiny-dream-bc58p5nj/i);
+  assert.match(current, /snapshot reflects the current 063–069 migration writes/);
+  assert.match(current, /Snapshot creation and branch cleanup are complete/);
   assert.doesNotMatch(current, /context_hmac_keys table are absent on Primary/);
   assert.doesNotMatch(current, /valid non-finalizing restore proof now exists in the PR #219 branch/);
 });
 
 test('Production migration and rotation remain manual, confirmation-gated, and traffic-neutral', () => {
   assert.match(migrationWorkflow, /workflow_dispatch:/);
-  assert.match(migrationWorkflow, /APPLY_PRODUCTION_SIGNED_CONTEXT_MIGRATIONS/);
+  assert.match(migrationWorkflow, /VERIFY_PRODUCTION_SIGNED_CONTEXT_MIGRATIONS/);
+  assert.match(migrationWorkflow, /read-only/);
   assert.match(migrationWorkflow, /environment:\s*\n\s+name: production/);
   assert.match(migrationWorkflow, /No Vercel deployment was started/);
   assert.match(migrationWorkflow, /No HMAC key was rotated/);

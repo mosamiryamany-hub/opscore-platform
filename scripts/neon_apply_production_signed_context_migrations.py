@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Apply the exact signed-context migration set to Neon Production.
+"""Verify the signed-context migration state already recorded in Neon Production.
 
-This is an approval-gated workflow helper, not an autonomous production action.
-It requires an owner-created, hash-pinned Neon snapshot restore proof before any
-Production SQL write. It uses the repository's guarded Node migration runner.
+This is an approval-gated, read-only workflow helper. It requires an owner-created,
+hash-pinned Neon snapshot restore proof and the repository's guarded migration
+runner to prove that the exact reviewed migrations are already applied.
 """
 import hashlib
 import json
@@ -23,14 +23,6 @@ PROJECT_ID = "summer-leaf-18448271"
 PRIMARY_BRANCH_ID = "br-proud-salad-bcshhdap"
 DATABASE_NAME = "opscore_acceptance"
 ROLE_NAME = "neondb_owner"
-REQUIRED_PENDING = {
-    "063_signed_tenant_context_verifier.sql",
-    "064_signed_tenant_context_work_orders_routing.sql",
-    "065_signed_tenant_context_evidence_upload_chunks.sql",
-    "066_signed_tenant_context_verifier_search_path_hardening.sql",
-    "067_signed_tenant_context_rls_policy_accessor_alignment.sql",
-    "069_technician_location_trail_tenant_persistence.sql",
-}
 PROOF_PATH = Path("docs/ops/evidence/PRODUCTION_PRIMARY_RESTORE_PROOF.json")
 SHA_RE = re.compile(r"^[a-f0-9]{64}$")
 BRANCH_RE = re.compile(r"^br-[a-z0-9-]{8,80}$")
@@ -85,7 +77,7 @@ def load_and_verify_restore_proof(key):
     except Exception:
         fail("PRODUCTION_PRIMARY_RESTORE_PROOF_JSON_INVALID")
 
-    if proof.get("schemaVersion") != "opscore.neon-primary-restore-proof.v1":
+    if proof.get("schemaVersion") != "opscore.neon-primary-restore-proof.v2":
         fail("PRODUCTION_PRIMARY_RESTORE_PROOF_SCHEMA_INVALID")
     if proof.get("status") != "PASS":
         fail("PRODUCTION_PRIMARY_RESTORE_PROOF_NOT_PASS")
@@ -128,6 +120,7 @@ def load_and_verify_restore_proof(key):
         "schema_catalog_read",
         "public_table_inventory",
         "migration_ledger_read",
+        "signed_context_schema",
         "core_table_read",
         "runtime_role_boundary",
     }
@@ -165,7 +158,14 @@ def load_and_verify_restore_proof(key):
     inventory_check = checks["public_table_inventory"]
     if inventory_check.get("publicTableCount") != proof["publicTableCount"]:
         fail("PRODUCTION_PRIMARY_RESTORE_PROOF_TABLE_COUNT_MISMATCH")
-    if inventory_check.get("rlsEnabledTableCount") != inventory_check.get("forceRlsEnabledTableCount"):
+    extension_excluded = inventory_check.get("rlsExcludedExtensionOwnedTableCount")
+    if not isinstance(extension_excluded, int) or extension_excluded < 0:
+        fail("PRODUCTION_PRIMARY_RESTORE_PROOF_RLS_EXTENSION_EXCLUSION_INVALID")
+    rls_required_count = proof["publicTableCount"] - extension_excluded
+    if (
+        inventory_check.get("rlsEnabledTableCount") != rls_required_count
+        or inventory_check.get("forceRlsEnabledTableCount") != rls_required_count
+    ):
         fail("PRODUCTION_PRIMARY_RESTORE_PROOF_RLS_FORCE_MISMATCH")
     if (
         inventory_check.get("rowContentSha256") != proof["dataContentSha256"]
@@ -173,8 +173,26 @@ def load_and_verify_restore_proof(key):
     ):
         fail("PRODUCTION_PRIMARY_RESTORE_PROOF_ROW_CONTENT_INVENTORY_INVALID")
     migration_check = checks["migration_ledger_read"]
-    if migration_check.get("migration068Present") is not True or migration_check.get("migrations063to067And069Absent") is not True:
-        fail("PRODUCTION_PRIMARY_RESTORE_PROOF_MIGRATION_BASELINE_INVALID")
+    if (
+        migration_check.get("requiredMigrationsPresentAndChecksummed") is not True
+        or migration_check.get("technicianLocationTrailPresent") is not True
+        or migration_check.get("requiredMigrationCount") != len(restore_proof.REQUIRED_APPLIED_MIGRATIONS)
+    ):
+        fail("PRODUCTION_PRIMARY_RESTORE_PROOF_MIGRATION_SOURCE_MISMATCH")
+    signed_context_check = checks["signed_context_schema"]
+    required_signed_checks = [
+        "verifierFunctionValid",
+        "tenantAccessorUsesVerifier",
+        "authDefinerRoleValid",
+        "hmacKeyTableValid",
+        "technicianTrailForcedRls",
+        "technicianTrailPoliciesValid",
+    ]
+    if (
+        any(signed_context_check.get(name) is not True for name in required_signed_checks)
+        or signed_context_check.get("directTenantGucPolicyResidualCount") != 0
+    ):
+        fail("PRODUCTION_PRIMARY_RESTORE_PROOF_SIGNED_CONTEXT_SCHEMA_INVALID")
     runtime_check = checks["runtime_role_boundary"]
     if runtime_check.get("runtimeRoleSuperuser") is not False or runtime_check.get("runtimeRoleBypassRls") is not False:
         fail("PRODUCTION_PRIMARY_RESTORE_PROOF_RUNTIME_ROLE_INVALID")
@@ -304,7 +322,7 @@ def invoke_runner(root, env, apply):
 def main():
     if os.environ.get("GITHUB_REF") != "refs/heads/main":
         fail("PRODUCTION_MIGRATION_WORKFLOW_MUST_RUN_FROM_MAIN")
-    if os.environ.get("OPSC_CONFIRM_PRODUCTION_MIGRATION") != "APPLY_PRODUCTION_SIGNED_CONTEXT_MIGRATIONS":
+    if os.environ.get("OPSC_CONFIRM_PRODUCTION_MIGRATION") != "VERIFY_PRODUCTION_SIGNED_CONTEXT_MIGRATIONS":
         fail("PRODUCTION_MIGRATION_EXPLICIT_CONFIRMATION_REQUIRED")
 
     key = str(os.environ.get("NEON_API_KEY") or "").strip()
@@ -330,8 +348,9 @@ def main():
         "OPSC_MIGRATION_CONFIRM_BRANCH_ID": PRIMARY_BRANCH_ID,
     })
 
-    # No writes occur until the official runner has proven that exactly the
-    # reviewed six migrations are pending and no unrelated migration is queued.
+    # These migrations were found already recorded on both the live Primary
+    # and the exact non-finalizing snapshot restore. Never reapply them. The
+    # guarded runner must report a clean no-pending plan and exact checksum skips.
     plan = invoke_runner(root, env, False)
     if plan.get("status") != "DRY_RUN_PASS":
         fail("PRODUCTION_MIGRATION_DRY_RUN_NOT_PASS", {
@@ -340,38 +359,58 @@ def main():
         })
     pending_rows = plan.get("pending") or []
     pending = {str(item.get("filename") or "") for item in pending_rows if isinstance(item, dict)}
-    if len(pending_rows) != len(REQUIRED_PENDING) or pending != REQUIRED_PENDING:
-        fail("PRODUCTION_MIGRATION_PENDING_SET_MISMATCH", {
+    if pending:
+        fail("PRODUCTION_MIGRATION_UNEXPECTED_PENDING_SET", {
             "pending": sorted(pending),
-            "required": sorted(REQUIRED_PENDING),
+            "required_state": "already-applied-and-checksum-verified",
         })
 
-    print("PRODUCTION_MIGRATION_DRY_RUN=PASS")
+    skipped_rows = plan.get("skipped") or []
+    skipped_by_name = {
+        str(item.get("filename") or ""): item
+        for item in skipped_rows
+        if isinstance(item, dict)
+    }
+    unverified = {
+        filename: skipped_by_name.get(filename, {}).get("reason")
+        for filename in restore_proof.REQUIRED_APPLIED_MIGRATIONS
+        if skipped_by_name.get(filename, {}).get("reason") != "exact-ledger-checksum-match"
+    }
+    if unverified:
+        fail("PRODUCTION_MIGRATION_ALREADY_APPLIED_CHECKSUM_PLAN_INVALID", {"migrations": unverified})
+
+    ledger_rows = restore_proof.psql(
+        uri,
+        "SELECT filename || '|' || lower(sha256) FROM public.schema_migrations WHERE filename IN ("
+        + ",".join("'" + name.replace("'", "''") + "'" for name in restore_proof.REQUIRED_APPLIED_MIGRATIONS)
+        + ") ORDER BY filename",
+    )
+    actual_ledger = {}
+    for line in ledger_rows.splitlines():
+        parts = line.split("|", 1)
+        if len(parts) != 2:
+            fail("PRODUCTION_MIGRATION_LEDGER_ROW_INVALID", {"row": line[:300]})
+        actual_ledger[parts[0]] = parts[1].lower()
+    if actual_ledger != restore_proof.REQUIRED_APPLIED_MIGRATIONS:
+        fail("PRODUCTION_MIGRATION_LEDGER_SOURCE_MISMATCH", {
+            "missing": sorted(set(restore_proof.REQUIRED_APPLIED_MIGRATIONS) - set(actual_ledger)),
+            "unexpected": sorted(set(actual_ledger) - set(restore_proof.REQUIRED_APPLIED_MIGRATIONS)),
+            "checksum_mismatches": {
+                name: {"ledger": actual_ledger.get(name), "source": digest}
+                for name, digest in restore_proof.REQUIRED_APPLIED_MIGRATIONS.items()
+                if name in actual_ledger and actual_ledger[name] != digest
+            },
+        })
+
+    signed_catalog = restore_proof.verify_signed_context_catalog(uri)
+    print("PRODUCTION_MIGRATION_PLAN=DRY_RUN_PASS")
+    print("PRODUCTION_MIGRATIONS_ALREADY_APPLIED_AND_VERIFIED=PASS")
     print("PRODUCTION_MIGRATION_TARGET=exact-primary")
     print("PRODUCTION_MIGRATION_RESTORE_PROOF_SHA256=" + proof_sha)
-    for item in sorted(pending_rows, key=lambda row: row.get("filename", "")):
-        print("PRODUCTION_MIGRATION_PENDING", item["filename"], item["sha256"])
-
-    report = invoke_runner(root, env, True)
-    if report.get("status") != "APPLIED_AND_VERIFIED":
-        fail("PRODUCTION_MIGRATION_APPLY_POSTCONDITIONS_NOT_PASS", {
-            "status": report.get("status"),
-            "postconditions": report.get("postconditions"),
-        })
-    applied = report.get("applied") or []
-    applied_by_name = {str(item.get("filename") or ""): item for item in applied}
-    if set(applied_by_name) != REQUIRED_PENDING:
-        fail("PRODUCTION_MIGRATION_APPLIED_SET_MISMATCH", {
-            "applied": sorted(applied_by_name),
-            "required": sorted(REQUIRED_PENDING),
-        })
-    for filename in sorted(REQUIRED_PENDING):
-        digest = str(applied_by_name[filename].get("sha256") or "").lower()
-        if not SHA_RE.fullmatch(digest):
-            fail("PRODUCTION_MIGRATION_LEDGER_SHA_INVALID", {"filename": filename})
-        print("PRODUCTION_MIGRATION_LEDGER_APPLIED", filename, digest)
-
-    print("PRODUCTION_MIGRATION_APPLY=PASS")
+    print("PRODUCTION_MIGRATION_LEDGER_ROWS_VERIFIED=" + str(len(actual_ledger)))
+    print("PRODUCTION_SIGNED_CONTEXT_CATALOG=PASS")
+    print("PRODUCTION_HMAC_KEY_ROWS=" + str(signed_catalog["hmacKeyRowCount"]))
+    print("PRODUCTION_SCHEMA_WRITES=0")
     print("PRODUCTION_PRIMARY_BRANCH_UNCHANGED=" + PRIMARY_BRANCH_ID)
     print("PRODUCTION_MIGRATION_DEPLOYMENT_NOT_STARTED=true")
 
