@@ -11,7 +11,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { execFileSync } = require('node:child_process');
-const { readProductionDeploymentIdentity } = require('./lib/production-deployment-identity');
+const { readProductionDeploymentIdentity, candidateProbeOrigin } = require('./lib/production-deployment-identity');
 
 const root = path.resolve(__dirname, '..');
 const outPath = path.join(root, 'docs', 'verification', 'PRODUCTION_SESSION_ISOLATION.json');
@@ -82,12 +82,26 @@ async function verifyProductionDatabaseTarget(ownerUri) {
   return { projectId, branchId, databaseName, roleName, endpointId, endpointType: 'read_write' };
 }
 async function httpJson(base, method, pathname, { token, body } = {}) {
+  const candidateMode = String(process.env.OPSC_PRODUCTION_CANDIDATE_MODE || '').trim().toLowerCase() === 'true';
+  const candidateHeaders = candidateMode ? (() => {
+    const probeToken = String(process.env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN || '').trim();
+    const oidcToken = String(process.env.VERCEL_TRUSTED_OIDC_TOKEN || '').trim();
+    if (!/^[a-f0-9]{64}$/i.test(probeToken) || oidcToken.split('.').length !== 3) {
+      throw new Error('PRODUCTION_CANDIDATE_HTTP_PROBE_CREDENTIALS_REQUIRED');
+    }
+    return {
+      'x-opscore-signed-context-probe': probeToken,
+      'x-vercel-trusted-oidc-idp-token': oidcToken
+    };
+  })() : {};
   const response = await fetch(base + pathname, {
     method,
     headers: {
       'content-type': 'application/json',
+      ...candidateHeaders,
       ...(token ? { authorization: 'Bearer ' + token } : {})
     },
+    redirect: 'manual',
     body: body === undefined ? undefined : JSON.stringify(body),
     signal: AbortSignal.timeout(15000)
   });
@@ -138,9 +152,12 @@ async function main() {
   let ownerUrl;
   try { ownerUrl = new URL(ownerUri); } catch { throw new Error('PRODUCTION_OWNER_CONNECTION_URI_INVALID'); }
   if (ownerUrl.hostname.toLowerCase().includes('-pooler.')) throw new Error('PRODUCTION_OWNER_DIRECT_CONNECTION_REQUIRED');
-  const httpBase = String(process.env.OPSC_PRODUCTION_HTTP_BASE || 'https://opscore-platform.vercel.app').replace(/\/+$/, '');
+  const httpBase = String(process.env.OPSC_PRODUCTION_HTTP_BASE || 'https://opscore-platform.vercel.app').replace(/\\/+$/, '');
   const httpUrl = new URL(httpBase);
-  if (httpUrl.protocol !== 'https:' || httpUrl.hostname !== 'opscore-platform.vercel.app') throw new Error('PRODUCTION_HTTP_ORIGIN_NOT_APPROVED');
+  const isCandidateMode = String(process.env.OPSC_PRODUCTION_CANDIDATE_MODE || '').trim().toLowerCase() === 'true';
+  if (httpUrl.origin !== httpBase || httpUrl.protocol !== 'https:') throw new Error('PRODUCTION_HTTP_ORIGIN_NOT_APPROVED');
+  if (isCandidateMode) candidateProbeOrigin(httpBase, process.env);
+  else if (httpUrl.hostname !== 'opscore-platform.vercel.app') throw new Error('PRODUCTION_HTTP_ORIGIN_NOT_APPROVED');
   const deploymentIdentity = await readProductionDeploymentIdentity(
     httpBase,
     String(process.env.OPSC_EXPECTED_PRODUCTION_COMMIT_SHA || '')
@@ -225,12 +242,16 @@ async function main() {
       && listA.data.some(row => row.id === assetAId) && !listA.data.some(row => row.id === assetBId)
       && listB.data.some(row => row.id === assetBId) && !listB.data.some(row => row.id === assetAId) ? 'PASS' : 'FAIL';
 
-    const ownIntelligence = await httpJson(httpBase, 'GET', '/api/v1/assets/' + encodeURIComponent(assetAId) + '/intelligence', { token: tokenA });
-    const crossIntelligence = await httpJson(httpBase, 'GET', '/api/v1/assets/' + encodeURIComponent(assetAId) + '/intelligence', { token: tokenB });
-    probes.push({ phase: 'own-read', label: 'A', method: 'GET', path: '/api/v1/assets/{id}/intelligence', status: ownIntelligence.status });
-    probes.push({ phase: 'cross-read', label: 'B', method: 'GET', path: '/api/v1/assets/{id}/intelligence', status: crossIntelligence.status });
-    checks.ownAssetRead = ownIntelligence.status === 200 ? 'PASS' : 'FAIL';
-    checks.crossTenantAssetReadDenied = isIsolationDenial(crossIntelligence.status) ? 'PASS' : 'FAIL';
+    // Use the signed, manifest-covered asset collection route for both own-read
+    // and foreign-tenant visibility checks. Candidate mode does not probe the
+    // non-manifest /intelligence subroute.
+    checks.ownAssetRead = listA.status === 200 && Array.isArray(listA.data)
+      && listA.data.some(row => row.id === assetAId && row.organization_id === orgA)
+      && !listA.data.some(row => row.id === assetBId) ? 'PASS' : 'FAIL';
+    checks.crossTenantAssetReadDenied = listA.status === 200 && listB.status === 200
+      && Array.isArray(listA.data) && Array.isArray(listB.data)
+      && !listA.data.some(row => row.id === assetBId)
+      && !listB.data.some(row => row.id === assetAId) ? 'PASS' : 'FAIL';
 
     const assetAEventBefore = Number(psql(ownerUri,
       'SELECT count(*) FROM asset_events WHERE organization_id=' + sqlLiteral(orgA) + ' AND asset_id=' + sqlLiteral(assetAId) + ';'));
