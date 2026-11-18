@@ -14,7 +14,7 @@ permissions:
   attestations: write
 
 concurrency:
-  group: opscore-release-${{ github.ref }}
+  group: opscore-release-${{ github.ref }}-${{ github.sha }}
   cancel-in-progress: false
 
 jobs:
