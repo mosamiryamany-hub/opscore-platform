@@ -86,7 +86,8 @@ test('Production key material, signed-route proof and snapshot generation are ac
 
 test('Production migration and rotation remain manual, confirmation-gated, and traffic-neutral', () => {
   assert.match(migrationWorkflow, /workflow_dispatch:/);
-  assert.match(migrationWorkflow, /APPLY_PRODUCTION_SIGNED_CONTEXT_MIGRATIONS/);
+  assert.match(migrationWorkflow, /VERIFY_PRODUCTION_SIGNED_CONTEXT_MIGRATIONS/);
+  assert.match(migrationWorkflow, /read-only/);
   assert.match(migrationWorkflow, /environment:\s*\n\s+name: production/);
   assert.match(migrationWorkflow, /No Vercel deployment was started/);
   assert.match(migrationWorkflow, /No HMAC key was rotated/);
