@@ -100,7 +100,7 @@ test('rejects Preview, missing deployment IDs, and non-CI identity', async () =>
 test('does not call external hosts, accept non-success status, or accept malformed JSON', async () => {
   await assert.rejects(
     readProductionDeploymentIdentity('https://example.com', expectedCommit, async () => response(200, proof)),
-    /PRODUCTION_HTTP_ORIGIN_NOT_APPROVED/
+    /PRODUCTION_CANDIDATE_HTTP_ORIGIN_NOT_APPROVED/
   );
   await assert.rejects(
     readProductionDeploymentIdentity('https://opscore-platform.vercel.app', expectedCommit, async () => response(503, {})),
