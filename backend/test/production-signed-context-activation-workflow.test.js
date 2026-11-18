@@ -15,6 +15,10 @@ const helper = fs.readFileSync(
   path.join(root, 'scripts', 'neon_apply_production_signed_context_migrations.py'),
   'utf8'
 );
+const proofRunner = fs.readFileSync(
+  path.join(root, 'scripts', 'neon_primary_restore_proof.py'),
+  'utf8'
+);
 const restoreProofSpec = fs.readFileSync(
   path.join(root, 'docs', 'ops', 'PRODUCTION_PRIMARY_RESTORE_PROOF_SPEC.md'),
   'utf8'
@@ -55,7 +59,7 @@ test('Production migration-state verification requires 063–069 already applied
     '068_opscore_app_role_privilege_lockdown.sql',
     '069_technician_location_trail_tenant_persistence.sql',
   ]) {
-    assert.ok(helper.includes(filename), 'missing required Production migration ' + filename);
+    assert.ok(proofRunner.includes(filename), 'missing required Production migration ' + filename);
   }
   assert.ok(helper.includes('plan.get("status") != "DRY_RUN_PASS"'));
   assert.match(helper, /PRODUCTION_MIGRATION_UNEXPECTED_PENDING_SET/);
