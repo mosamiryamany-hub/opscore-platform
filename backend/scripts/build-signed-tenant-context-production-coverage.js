@@ -352,7 +352,8 @@ function buildSignedTenantContextProductionCoverage({
   expectedPipelineId,
   expectedDeploymentId,
   databaseName = 'opscore_acceptance',
-  testedAt = new Date().toISOString()
+  testedAt = new Date().toISOString(),
+  routeEvidenceMap = ROUTE_EVIDENCE
 }) {
   const runtime = validateCandidateResult(candidate);
   const rawManifest = manifestBytes || Buffer.from(JSON.stringify(manifest));
@@ -399,7 +400,7 @@ function buildSignedTenantContextProductionCoverage({
 
   for (const route of manifestRoutes) {
     const key = routeKey(route.method, route.path);
-    const spec = ROUTE_EVIDENCE.get(key);
+    const spec = routeEvidenceMap.get(key);
     const observation = observationByKey.get(key);
     const tenantA = observation && observation.tenantA || {};
     const tenantB = observation && observation.tenantB || {};
@@ -503,7 +504,7 @@ function buildSignedTenantContextProductionCoverage({
       observationKeysUnique: observationsUnique,
       manifestBound,
       inventoryBound,
-      mappedRouteCount: rows.filter(row => ROUTE_EVIDENCE.has(routeKey(row.method, row.path))).length,
+      mappedRouteCount: rows.filter(row => routeEvidenceMap.has(routeKey(row.method, row.path))).length,
       unmappedRoutes: rows.filter(row => !ROUTE_EVIDENCE.has(routeKey(row.method, row.path))).map(row => row.method + ' ' + row.path),
       routesNotVerified: rows.filter(row => row.status !== 'PASS').map(row => row.method + ' ' + row.path)
     }
