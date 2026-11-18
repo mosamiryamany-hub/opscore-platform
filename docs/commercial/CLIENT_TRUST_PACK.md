@@ -1,86 +1,59 @@
-# OpsCore — Client Trust Pack (Seller-facing / Buyer diligence)
+# OpsCore — Client Trust Pack (Source package / Buyer diligence)
 
-**Document date:** 2026-11-17  
+**Document date:** 2026-11-18  
 **Product version:** 0.11.62  
-**Pinned production source commit:** `4017497068defa9c1d0761fcb07bc746925e002a`  
-**Package fingerprint (SHA-256):** `dea02a40c556fee6abfc84c372fb153009317867593bf9dafe8f21e171b02880`
+**Isolated source-package line:** `v0.11.62.17-commercial-source-package`
 
-> **License:** No license is granted by this pack alone. Rights transfer only under a signed per-buyer License Schedule (tiers A use / B modify / C modify+distribute).
+## 1. Package identity and authority
 
-## 1. What the buyer can verify without credentials
+This handoff document describes the isolated v0.11.62 source-package line. It does not itself attest that a release archive passed its build, integrity, or distribution gates.
+
+The exact source commit, Secure Release run, archive byte length, archive SHA-256, SBOM/provenance references, and package-specific gate results are recorded in the **external `COMMERCIAL_RELEASE_STATEMENT.json` supplied with the exact archive**. That external statement is the authority for the build output. The archive does not embed its own final ZIP digest; doing so would create a self-referential hash.
+
+The previous `v0.11.62.16-commercial-source-package` archive and its digest are not the identity of this `.17` release line. Do not substitute an older archive, digest, or Actions run when checking this package.
+
+> **License and distribution:** No license is granted by this pack, repository access, or ZIP possession. Sale, delivery, use, modification, resale, redistribution, and sublicensing remain unauthorized until the rights holder and buyer execute a signed License Schedule that identifies the exact archive SHA-256 and defines the granted rights.
+
+## 2. What the buyer can verify without credentials
 
 | Check | URL / reference |
 |---|---|
-| Live health | https://opscore-platform.vercel.app/api/health |
-| Release proof (gates, commit, package, CI) | https://opscore-platform.vercel.app/api/verify/release |
 | Source repository | https://github.com/mosamiryamany-hub/opscore-platform |
-| Pinned production commit | https://github.com/mosamiryamany-hub/opscore-platform/commit/4017497068defa9c1d0761fcb07bc746925e002a |
-| CI pipeline bound to production embed | https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/43827648670 |
-| Fresh session/recovery evidence run | https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44029395474 |
-| Commercial closeout status | https://github.com/mosamiryamany-hub/opscore-platform/blob/main/docs/commercial/COMMERCIAL_CLOSEOUT_FINAL.md |
+| Live service health (deployed service only) | https://opscore-platform.vercel.app/api/health |
+| Live deployed release proof (deployed service only) | https://opscore-platform.vercel.app/api/verify/release |
 | NO LICENSE GRANT notice | https://github.com/mosamiryamany-hub/opscore-platform/blob/main/NO_LICENSE_GRANT_NOTICE.txt |
 
-## 2. Production gate snapshot (runtime)
+For the source archive, verify the exact tag and source commit against the external release statement, then independently download the archive and calculate SHA-256 over the downloaded bytes. A READY deployment or a successful test of a different commit is not package identity evidence.
 
-| Gate | Status |
-|---|---|
-| Overall | PASS_WITH_BUYER_RESIDUALS |
-| Tenant isolation certification | CERTIFIED |
-| Session tenant boundary | PASS_PRODUCTION |
-| Recovery bundle | PASS_PRODUCTION |
-| Mobile store artifacts | REMAINING_BUYER |
-| Native human translation review | REMAINING_BUYER |
-| Licensed street maps | REMAINING_BUYER |
+## 3. Deployed service is a separate identity
 
-## 3. Platforms in scope
+The last deployment identity recorded in the prior operational evidence is source commit `4017497068defa9c1d0761fcb07bc746925e002a`. That is a historical deployed-service pin, not the source commit of this isolated package line.
 
-1. **Application (Vercel Production)** — API + web surface, release verifier, application firewall/rate limits  
-2. **Database (Neon PostgreSQL 18)** — multi-tenant RLS, runtime least privilege, recovery branch-point evidence  
-3. **Source & CI (GitHub)** — protected `main`, required checks, evidence workflows  
+This source-package repair did not deploy a new Vercel version, change a Neon database, apply migrations, rotate secrets, or change firewall rules. Any live endpoint response must be checked independently at the time it is relied upon. Production certification for the new source-package commit is not claimed by this pack or by isolated CI tests.
 
-## 4. Buyer residuals (explicit — not hidden)
+## 4. Buyer/environment residuals
 
-- Mobile app store signing and listings  
-- Human translation QA (UI may show machine-translation notice)  
-- Licensed map tiles / provider contracts  
-- Neon paid plan if multi-day PITR and scheduled primary snapshots are required  
-- Edge WAF rule promotion (log → deny) on the buyer’s Vercel plan  
-- Optional: deploy a newer `main` tip only after a new authorized production evidence cycle  
+The following items are not silently included as seller-completed deliverables:
 
-## 5. Diligence steps (no secrets required)
+- Android/iOS store signing, store accounts, listings, and publication.
+- Native-speaker translation review. The source records distinguish selectable machine-assisted/fallback locales from language qualification; no native-speaker approval or production-language qualification is claimed.
+- Licensed map tiles, routing data, and provider contracts/keys.
+- External identity, messaging/carrier/call-center, payment, webhook, storage, KMS/HSM, and cloud provider accounts, contracts, and credentials.
+- Any customer-specific deployment, data migration, security acceptance, or operational certification not explicitly included in a signed agreement.
 
-1. Open `/api/health` → `ok: true`, version `0.11.62`  
-2. Open `/api/verify/release` → `sourceCommit` matches pin; isolation CERTIFIED  
-3. Open CI pipeline URL → matches embedded pipeline id  
-4. Open evidence Actions run → session + recovery PASS for same commit  
-5. Review License Schedule template and residuals before signing  
+## 5. Diligence sequence
+
+1. Obtain the archive and its companion external `COMMERCIAL_RELEASE_STATEMENT.json`.
+2. Confirm that the statement identifies tag `v0.11.62.17-commercial-source-package`, the exact source commit, the corresponding successful Secure Release run, and the archive SHA-256.
+3. Independently hash the downloaded archive and compare the result and byte length with the external statement.
+4. Inspect the SBOM, provenance/attestation, integrity manifests, declared residuals, and the NO LICENSE GRANT notice.
+5. Complete legal and commercial review. Execute a License Schedule naming that exact archive SHA-256 before any licensed use or delivery is authorized.
 
 ## 6. What this pack is not
 
-- Not a license grant  
-- Not transfer of cloud accounts, domains, or billing  
-- Not a claim of zero residual work  
-- Not certification of every future `main` commit until re-verified on a new production deploy
+- Not a license grant, sale contract, or transfer of cloud accounts, domains, billing, or third-party rights.
+- Not a production deployment or certification of the new source-package commit.
+- Not a claim that every route, device, provider integration, or buyer environment has been independently accepted.
+- Not a warranty of zero defects or zero buyer configuration work.
 
-## REMAINING_BUYER (immutable without buyer action)
-
-These are **not** seller defects for commercial close of the seller-operated pin:
-
-1. **Mobile store artifacts** — signing, listings, Apple/Google review  
-2. **Native human translation review** — zero native-speaker QA claimed  
-3. **Licensed street maps** — provider contract and keys  
-
-Seller release status remains `PASS_WITH_BUYER_RESIDUALS` while isolation is CERTIFIED on the pinned production commit.
-
-## Seller source package (2026-11-18)
-
-| Field | Value |
-|---|---|
-| Commit | `deba977db586f19128a1f53377fec183beab44d0` |
-| Tag | `v0.11.62.16-commercial-source-package` |
-| ZIP SHA-256 | `f0bdd0f3989e815e7cb0764a44b461ea46a505995ed9d1f87de9495d24f2128f` |
-| Secure Release | https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44211989356 |
-| License | **No grant** until signed License Schedule cites this SHA |
-
-Live production isolation remains CERTIFIED on pin `4017497068defa9c1d0761fcb07bc746925e002a` and is independent of the source package tip.
-
+Seller-side product completion and preparation of the source package do not require a prospective buyer, buyer signature, or buyer-specific transaction. Granting rights and authorizing delivery to a buyer remain separate, exact-digest transaction gates.
