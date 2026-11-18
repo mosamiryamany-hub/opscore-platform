@@ -1,59 +1,58 @@
-# OpsCore — Client Trust Pack (Source package / Buyer diligence)
+# OpsCore v0.11.62 — Client Trust Pack (.18)
 
-**Document date:** 2026-11-18  
-**Product version:** 0.11.62  
-**Isolated source-package line:** `v0.11.62.17-commercial-source-package`
+**Purpose:** source-package diligence for the isolated seller release line.  
+**Release line:** v0.11.62.18-commercial-source-package  
+**Branch:** release/v0.11.62.18-commercial-source-package
 
-## 1. Package identity and authority
+## 1. What identifies the deliverable
 
-This handoff document describes the isolated v0.11.62 source-package line. It does not itself attest that a release archive passed its build, integrity, or distribution gates.
+The companion external COMMERCIAL_RELEASE_STATEMENT.json supplied with the exact ZIP is authoritative for that build's source commit and release tag, GitHub Actions run and workflow URL, archive filename, byte length and SHA-256, and declared commercial and production-acceptance status.
 
-The exact source commit, Secure Release run, archive byte length, archive SHA-256, SBOM/provenance references, and package-specific gate results are recorded in the **external `COMMERCIAL_RELEASE_STATEMENT.json` supplied with the exact archive**. That external statement is the authority for the build output. The archive does not embed its own final ZIP digest; doing so would create a self-referential hash.
+Use the external statement supplied with the exact ZIP. Do not use a digest, build number, commit or asset from an earlier package. The ZIP cannot contain its own final digest without creating a self-referential hash.
 
-Do not substitute any previously published archive, digest, or Actions run when checking this package.
+The release page may retain historical assets. The authoritative candidate is the versioned archive whose commit, tag, run, byte length and digest match the companion statement. Any earlier unversioned .18 asset is superseded when a later exact-run statement is issued.
 
-> **License and distribution:** No license is granted by this pack, repository access, or ZIP possession. Sale, delivery, use, modification, resale, redistribution, and sublicensing remain unauthorized until the rights holder and buyer execute a signed License Schedule that identifies the exact archive SHA-256 and defines the granted rights.
+## 2. Independent buyer verification
 
-## 2. What the buyer can verify without credentials
+1. Open the source repository and confirm the release tag and source commit named in the external statement.
+2. Open the exact GitHub Actions run named in that statement and confirm its conclusion is success.
+3. Download the archive identified by the statement and independently calculate SHA-256 over the downloaded bytes.
+4. Compare the calculated digest and byte length with artifact.sha256.value and artifact.bytes in the statement.
+5. Inspect the included SBOM, provenance attestation, evidence manifests and the residual/security disclosures in this pack.
+6. Do not infer Production acceptance from source CI, a healthy URL, a different deployed commit or repository presence.
 
-| Check | URL / reference |
-|---|---|
-| Source repository | https://github.com/mosamiryamany-hub/opscore-platform |
-| Live service health (deployed service only) | https://opscore-platform.vercel.app/api/health |
-| Live deployed release proof (deployed service only) | https://opscore-platform.vercel.app/api/verify/release |
-| NO LICENSE GRANT notice | https://github.com/mosamiryamany-hub/opscore-platform/blob/main/NO_LICENSE_GRANT_NOTICE.txt |
+Repository: https://github.com/mosamiryamany-hub/opscore-platform  
+Release page: https://github.com/mosamiryamany-hub/opscore-platform/releases  
+No-license notice: https://github.com/mosamiryamany-hub/opscore-platform/blob/main/NO_LICENSE_GRANT_NOTICE.txt
 
-For the source archive, verify the exact tag and source commit against the external release statement, then independently download the archive and calculate SHA-256 over the downloaded bytes. A READY deployment or a successful test of a different commit is not package identity evidence.
+## 3. Security and production boundary
 
-## 3. Deployed service is a separate identity
+**This source package is not a Production security certification.** The .18 build workflow runs source, regression, dependency, migration-preflight, security-transaction, resilience, recovery and package-integrity checks. Those checks do not prove that the current Production database, deployment, WAF, secrets, backup retention or tenant trust boundary has passed live acceptance for this exact source commit.
 
-The last deployment identity recorded in the prior operational evidence is source commit `4017497068defa9c1d0761fcb07bc746925e002a`. That is a historical deployed-service pin, not the source commit of this isolated package line.
+The repository contains a dated Production tenant-context audit (2026-11-14) that reported a trust-boundary failure: caller-settable tenant/user/access-mode context and an unrestricted membership helper could be used by a holder of the runtime database credential to impersonate another tenant. That report is historical evidence and has not been re-certified against this .18 build or a current Production deployment. Until a current isolated remediation and live acceptance prove otherwise, Production-wide tenant isolation remains **NOT CERTIFIED**.
 
-This source-package repair did not deploy a new Vercel version, change a Neon database, apply migrations, rotate secrets, or change firewall rules. Any live endpoint response must be checked independently at the time it is relied upon. Production certification for the new source-package commit is not claimed by this pack or by isolated CI tests.
+The named control OPSC_APP_SECURITY was not found as a defined gate in the inspected .18 repository/package, nor as a Vercel project environment-variable name in the inventory checked on 2026-11-18. GitHub Actions secret names were not inspectable in this review. Therefore this named gate is **NOT VERIFIED / NOT DEFINED IN THE REVIEWED EVIDENCE**; it must not be represented as PASS.
 
-## 4. Buyer/environment residuals
+## 4. Dependency advisory disclosure
 
-The following items are not silently included as seller-completed deliverables:
+The mobile dependency evidence in the release archive records a time-limited allowlist exception for GHSA-fc5q-39xc-vjpf / CVE-2026-112366, affecting picomatch versions through 4.0.7. The allowlist describes the dependency path as build-toolchain-only and notes no patched upstream release at the time it was written. The archive's npm audit summary is zero findings because this advisory is handled by that documented exception; that is **not** evidence that the vulnerable upstream code has been fixed.
 
-- Android/iOS store signing, store accounts, listings, and publication.
-- Native-speaker translation review. The source records distinguish selectable machine-assisted/fallback locales from language qualification; no native-speaker approval or production-language qualification is claimed.
-- Licensed map tiles, routing data, and provider contracts/keys.
-- External identity, messaging/carrier/call-center, payment, webhook, storage, KMS/HSM, and cloud provider accounts, contracts, and credentials.
-- Any customer-specific deployment, data migration, security acceptance, or operational certification not explicitly included in a signed agreement.
+The GitHub Advisory Database currently describes this as High severity (CVSS v4 8.7), with affected versions through 4.0.7 and no patched version specified. See https://github.com/advisories/GHSA-fc5q-39xc-vjpf. The exception must remain visible until an upstream fix is available and verified, or the toolchain dependency is replaced and re-audited.
 
-## 5. Diligence sequence
+## 5. Disclosed buyer/environment residuals
 
-1. Obtain the archive and its companion external `COMMERCIAL_RELEASE_STATEMENT.json`.
-2. Confirm that the statement identifies tag `v0.11.62.17-commercial-source-package`, the exact source commit, the corresponding successful Secure Release run, and the archive SHA-256.
-3. Independently hash the downloaded archive and compare the result and byte length with the external statement.
-4. Inspect the SBOM, provenance/attestation, integrity manifests, declared residuals, and the NO LICENSE GRANT notice.
-5. Complete legal and commercial review. Execute a License Schedule naming that exact archive SHA-256 before any licensed use or delivery is authorized.
+Unless a separate signed statement says otherwise, the source ZIP does not include signed Android AAB / iOS IPA, physical-device acceptance, store accounts, review or publication; native-speaker translation review (the catalogue contains 114 selectable language entries, but native-reviewed languages remain 0/114 and production-qualified languages remain 0/114); licensed map tiles, routing-data contracts, provider keys or external identity, messaging, telephony/call-center, payment, webhook, storage, KMS/HSM and cloud accounts; or customer-specific deployment, migration, security acceptance, recovery certification or operational service-level commitments.
 
-## 6. What this pack is not
+## 6. Commercial and legal authority
 
-- Not a license grant, sale contract, or transfer of cloud accounts, domains, billing, or third-party rights.
-- Not a production deployment or certification of the new source-package commit.
-- Not a claim that every route, device, provider integration, or buyer environment has been independently accepted.
-- Not a warranty of zero defects or zero buyer configuration work.
+The package statement must remain explicit:
 
-Seller-side product completion and preparation of the source package do not require a prospective buyer, buyer signature, or buyer-specific transaction. Granting rights and authorizing delivery to a buyer remain separate, exact-digest transaction gates.
+- licenseGrant: NONE_PENDING_RIGHTS_HOLDER_DECISION
+- distributionAuthorized: false
+- productionCertification: false
+
+This pack, repository access, a demonstration, negotiation, a draft release or possession of a ZIP grants no buyer rights. The rights holder and named buyer must execute a written License Schedule identifying the exact archive SHA-256 and the permitted rights before licensed use, modification, delivery, resale, redistribution or sublicensing is authorized.
+
+## 7. What this pack is not
+
+This is not a license, warranty, zero-defect claim, hosted-service acceptance, Production security certification, mobile store approval or confirmation that every third-party service is provisioned. It is a diligence record for a source package with explicit, inspectable boundaries.
