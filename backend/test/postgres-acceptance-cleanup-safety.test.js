@@ -85,7 +85,7 @@ test('Neon PITR verification uses libpq system trust roots with full hostname ve
 test('Production PITR runtime probe stays within read-only catalog grants and never reads the protected migration ledger', () => {
   const workflowPath = path.join(__dirname, '..', '..', '.github', 'workflows', 'digital-twin-postgres-live.yml');
   const workflow = fs.readFileSync(workflowPath, 'utf8');
-  const start = workflow.indexOf('PITR_TARGET_TIMESTAMP=');
+  const start = workflow.indexOf('PITR_TIMESTAMP=');
   const end = workflow.indexOf('PITR_TEST_BRANCH_CLEANUP=PASS');
   assert.ok(start >= 0 && end > start);
   const probe = workflow.slice(start, end);
