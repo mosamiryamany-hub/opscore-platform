@@ -198,6 +198,7 @@ jobs:
             ${{ runner.temp }}/OpsCore-release.zip
             ${{ runner.temp }}/COMMERCIAL_RELEASE_STATEMENT.json
             mobile/mobile-dependency-audit.json
+            mobile/mobile-audit-gate-result.json
             root-dependency-audit.json
             backend/docs/verification/I18N_FORENSIC_AUDIT_RESULT.json
             backend/docs/verification/I18N_FORENSIC_AUDIT_RESULT.sha256
