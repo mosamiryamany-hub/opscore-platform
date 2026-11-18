@@ -64,7 +64,7 @@ jobs:
       - name: Verify source commit belongs to an authorized release line
         env:
           RELEASE_BASE_SHA: deba977db586f19128a1f53377fec183beab44d0
-          ISOLATED_RELEASE_TAG: v0.11.62.17-commercial-source-package
+          ISOLATED_RELEASE_TAG: v0.11.62.18-commercial-source-package
         run: |
           set -euo pipefail
           if [[ "$GITHUB_REF_TYPE" == "tag" && "$GITHUB_REF_NAME" == "$ISOLATED_RELEASE_TAG" ]]; then
@@ -74,10 +74,16 @@ jobs:
             actual="$(git diff --name-only "$RELEASE_BASE_SHA" "$GITHUB_SHA" | LC_ALL=C sort)"
             expected="$(printf '%s\n' \
               '.github/workflows/opscore-secure-release.yml' \
+              'backend/docs/verification/I18N_FORENSIC_AUDIT_RESULT.sha256' \
+              'backend/docs/verification/PRODUCTION_RECOVERY_POINT.json.sha256' \
+              'backend/docs/verification/PRODUCTION_SESSION_ISOLATION.json.sha256' \
+              'backend/docs/verification/RECOVERY_GATE_RESULT.sha256' \
+              'backend/docs/verification/RELEASE_TEST_RUN_RESULT.sha256' \
               'docs/commercial/CLIENT_TRUST_PACK.md' \
               'docs/commercial/COMMERCIAL_CLOSEOUT_FINAL.md' \
               'docs/ops/REMAINING_CLOSEOUT_GATES.md' \
-              'scripts/package-release.js')"
+              'scripts/package-release.js' \
+              'scripts/release-artifact-gate.js')"
             if [[ "$actual" != "$expected" ]]; then
               printf 'ISOLATED_RELEASE_FILE_ALLOWLIST_MISMATCH\nExpected:\n%s\nActual:\n%s\n' "$expected" "$actual" >&2
               exit 1
