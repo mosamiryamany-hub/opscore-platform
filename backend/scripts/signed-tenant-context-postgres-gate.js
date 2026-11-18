@@ -26,19 +26,111 @@ function requireLocalAcceptanceUrl(value, expectedRole, label) {
   return url;
 }
 
-function queryHttp(port, route, token, options = {}) {
-  return new Promise((resolve, reject) => {
-    const method = String(options.method || 'GET').toUpperCase();
-    const hasBody = options.body !== undefined;
-    const requestBody = hasBody ? JSON.stringify(options.body) : '';
+function candidateOrigin(value) {
+  let url;
+  try { url = new URL(String(value || '').trim()); }
+  catch { throw new Error('CANDIDATE_HTTP_ORIGIN_INVALID'); }
+  const host = url.hostname.toLowerCase();
+  if (url.protocol !== 'https:'
+      || !host.startsWith('opscore-platform-')
+      || !host.endsWith('.vercel.app')
+      || host === 'opscore-platform.vercel.app'
+      || url.username || url.password || url.pathname !== '/' || url.search || url.hash) {
+    throw new Error('CANDIDATE_HTTP_ORIGIN_NOT_UNALIASED_VERCEL_DEPLOYMENT');
+  }
+  return url.origin;
+}
+
+async function neonApi(pathname, apiKey) {
+  const response = await fetch('https://console.neon.tech/api/v2' + pathname, {
+    method: 'GET',
+    headers: { accept: 'application/json', authorization: 'Bearer ' + apiKey },
+    signal: AbortSignal.timeout(15000)
+  });
+  const raw = await response.text();
+  if (!response.ok) throw new Error('NEON_API_REJECTED:' + response.status);
+  try { return JSON.parse(raw); } catch { throw new Error('NEON_API_RESPONSE_INVALID'); }
+}
+
+async function candidateDatabaseUrl(roleName, config) {
+  const query = new URLSearchParams({
+    branch_id: config.branchId,
+    database_name: config.databaseName,
+    role_name: roleName,
+    pooled: 'false'
+  });
+  const result = await neonApi('/projects/' + encodeURIComponent(config.projectId)
+    + '/connection_uri?' + query.toString(), config.apiKey);
+  const connectionString = String(result.uri || '').trim();
+  if (!connectionString) throw new Error('NEON_CONNECTION_URI_MISSING:' + roleName);
+  const url = new URL(connectionString);
+  if (!['postgres:', 'postgresql:'].includes(url.protocol)
+      || decodeURIComponent(url.pathname.replace(/^\\/+/, '')) !== config.databaseName
+      || decodeURIComponent(url.username) !== roleName
+      || url.hostname.toLowerCase().includes('-pooler.')) {
+    throw new Error('NEON_CONNECTION_URI_IDENTITY_INVALID:' + roleName);
+  }
+  const endpointId = url.hostname.toLowerCase().split('.')[0].replace(/-pooler$/, '');
+  if (!/^ep-[a-z0-9-]+$/.test(endpointId)) throw new Error('NEON_ENDPOINT_ID_INVALID');
+  const endpointsPayload = await neonApi('/projects/' + encodeURIComponent(config.projectId)
+    + '/endpoints?limit=100', config.apiKey);
+  const hits = (Array.isArray(endpointsPayload.endpoints) ? endpointsPayload.endpoints : [])
+    .filter(endpoint => String(endpoint.id || '') === endpointId);
+  if (hits.length !== 1
+      || String(hits[0].branch_id || '') !== config.branchId
+      || String(hits[0].type || '').toLowerCase() !== 'read_write') {
+    throw new Error('NEON_ENDPOINT_BRANCH_OR_TYPE_MISMATCH');
+  }
+  return connectionString;
+}
+
+async function queryHttp(port, route, token, options = {}) {
+  const method = String(options.method || 'GET').toUpperCase();
+  const hasBody = options.body !== undefined;
+  const requestBody = hasBody ? JSON.stringify(options.body) : '';
+  const baseHeaders = {
+    authorization: 'Bearer ' + token,
+    accept: 'application/json',
+    ...(hasBody ? { 'content-type': 'application/json' } : {}),
+    ...(options.headers && typeof options.headers === 'object' ? options.headers : {})
+  };
+
+  if (typeof port === 'string') {
     const headers = {
-      authorization: 'Bearer ' + token,
-      accept: 'application/json',
-      ...(hasBody ? {
-        'content-type': 'application/json',
-        'content-length': String(Buffer.byteLength(requestBody, 'utf8'))
-      } : {}),
-      ...(options.headers && typeof options.headers === 'object' ? options.headers : {})
+      ...baseHeaders,
+      'x-opscore-signed-context-probe': String(process.env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN || ''),
+      'x-vercel-trusted-oidc-idp-token': String(process.env.VERCEL_TRUSTED_OIDC_TOKEN || '')
+    };
+    if (!/^[a-f0-9]{64}$/i.test(headers['x-opscore-signed-context-probe'])) {
+      throw new Error('CANDIDATE_PROBE_TOKEN_INVALID');
+    }
+    if (headers['x-vercel-trusted-oidc-idp-token'].split('.').length !== 3) {
+      throw new Error('CANDIDATE_VERCEL_OIDC_TOKEN_INVALID');
+    }
+    const target = new URL(String(route || ''), port);
+    if (target.origin !== port || !target.pathname.startsWith('/api/')) {
+      throw new Error('CANDIDATE_HTTP_ROUTE_ORIGIN_INVALID');
+    }
+    const response = await fetch(target, {
+      method,
+      headers,
+      body: hasBody ? requestBody : undefined,
+      redirect: 'manual',
+      signal: AbortSignal.timeout(Number(options.timeoutMs) > 0 ? Number(options.timeoutMs) : 15000)
+    });
+    const responseBody = await response.text();
+    if (Buffer.byteLength(responseBody, 'utf8') > 1024 * 1024) {
+      throw new Error('CANDIDATE_HTTP_RESPONSE_TOO_LARGE');
+    }
+    let parsed = null;
+    try { parsed = responseBody ? JSON.parse(responseBody) : null; } catch (_) {}
+    return { status: response.status, headers: Object.fromEntries(response.headers.entries()), body: parsed };
+  }
+
+  return new Promise((resolve, reject) => {
+    const headers = {
+      ...baseHeaders,
+      ...(hasBody ? { 'content-length': String(Buffer.byteLength(requestBody, 'utf8')) } : {})
     };
     const request = http.request({
       hostname: '127.0.0.1',
@@ -62,7 +154,6 @@ function queryHttp(port, route, token, options = {}) {
     request.end(requestBody || undefined);
   });
 }
-
 async function choosePort() {
   const server = net.createServer();
   await new Promise((resolve, reject) => server.listen(0, '127.0.0.1', resolve).once('error', reject));
@@ -123,13 +214,43 @@ async function tamperRawGucs(client, otherTenant) {
 
 async function main() {
   if (process.env.CI !== 'true') throw new Error('SIGNED_CONTEXT_POSTGRES_GATE_CI_ONLY');
-  const ownerUrl = process.env.OPSC_TENANT_CONTEXT_OWNER_URL;
-  const runtimeUrl = process.env.OPSC_PG_ACCEPTANCE_URL;
-  requireLocalAcceptanceUrl(ownerUrl, 'neondb_owner', 'OWNER');
-  requireLocalAcceptanceUrl(runtimeUrl, 'opscore_runtime', 'RUNTIME');
+  const candidateMode = String(process.env.OPSC_SIGNED_CONTEXT_CANDIDATE_MODE || '').trim().toLowerCase() === 'true';
+  let ownerUrl = process.env.OPSC_TENANT_CONTEXT_OWNER_URL;
+  let runtimeUrl = process.env.OPSC_PG_ACCEPTANCE_URL;
+  let remoteHttpOrigin = null;
+
+  if (candidateMode) {
+    remoteHttpOrigin = candidateOrigin(process.env.OPSC_SIGNED_CONTEXT_CANDIDATE_HTTP_ORIGIN);
+    const probeToken = String(process.env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN || '').trim();
+    const oidcToken = String(process.env.VERCEL_TRUSTED_OIDC_TOKEN || '').trim();
+    if (!/^[a-f0-9]{64}$/i.test(probeToken)) throw new Error('CANDIDATE_PROBE_TOKEN_REQUIRED');
+    if (oidcToken.split('.').length !== 3) throw new Error('CANDIDATE_VERCEL_OIDC_TOKEN_REQUIRED');
+    if (String(process.env.VERCEL_ENV || '') !== 'production'
+        || String(process.env.OPSC_PRODUCTION_HOLD || '').toLowerCase() !== 'true'
+        || String(process.env.OPSC_RELEASE_VERIFIED || '').toLowerCase() !== 'false'
+        || String(process.env.OPSC_REQUIRE_SIGNED_TENANT_CONTEXT || '').toLowerCase() !== 'true'
+        || String(process.env.OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED || 'false').toLowerCase() === 'true'
+        || String(process.env.OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED || 'false').toLowerCase() === 'true') {
+      throw new Error('CANDIDATE_PROBE_RUNTIME_NOT_FAIL_CLOSED');
+    }
+    const config = {
+      projectId: String(process.env.NEON_PROJECT_ID || '').trim(),
+      branchId: String(process.env.OPSC_PRODUCTION_NEON_BRANCH_ID || '').trim(),
+      databaseName: String(process.env.OPSC_PRODUCTION_DATABASE_NAME || '').trim(),
+      apiKey: String(process.env.NEON_API_KEY || '').trim()
+    };
+    if (!config.projectId || !config.branchId || !config.databaseName || !config.apiKey) {
+      throw new Error('CANDIDATE_NEON_TARGET_EXPECTATIONS_REQUIRED');
+    }
+    ownerUrl = await candidateDatabaseUrl('neondb_owner', config);
+    runtimeUrl = await candidateDatabaseUrl('opscore_runtime', config);
+  } else {
+    requireLocalAcceptanceUrl(ownerUrl, 'neondb_owner', 'OWNER');
+    requireLocalAcceptanceUrl(runtimeUrl, 'opscore_runtime', 'RUNTIME');
+  }
 
   const owner = new Client({ connectionString: ownerUrl });
-  const runtimeProbe = new Client({ connectionString: runtimeUrl });
+  const runtimeProbe = candidateMode ? null : new Client({ connectionString: runtimeUrl });
   let serverProcess = null;
   let serverOutput = '';
   let clientA = null;
@@ -140,13 +261,15 @@ async function main() {
   let evidenceRollbackTriggerInstalled = false;
   const signedSessionAutobindHttpProof = {};
 
-  const keyId = 'ci-' + crypto.randomUUID();
-  const key = crypto.randomBytes(32);
-  const keyHex = key.toString('hex');
+  const keyId = (candidateMode ? 'probe-' : 'ci-') + crypto.randomUUID();
+  const key = candidateMode ? null : crypto.randomBytes(32);
+  const keyHex = key ? key.toString('hex') : null;
   const priorSigningKey = process.env.OPSC_TENANT_CONTEXT_HMAC_KEY;
   const priorSigningKeyId = process.env.OPSC_TENANT_CONTEXT_KEY_ID;
-  process.env.OPSC_TENANT_CONTEXT_HMAC_KEY = keyHex;
-  process.env.OPSC_TENANT_CONTEXT_KEY_ID = keyId;
+  if (!candidateMode) {
+    process.env.OPSC_TENANT_CONTEXT_HMAC_KEY = keyHex;
+    process.env.OPSC_TENANT_CONTEXT_KEY_ID = keyId;
+  }
   const tenantA = 'tc_org_a_' + crypto.randomUUID().replace(/-/g, '');
   const tenantB = 'tc_org_b_' + crypto.randomUUID().replace(/-/g, '');
   const userA = 'tc_user_a_' + crypto.randomUUID().replace(/-/g, '');
@@ -191,44 +314,54 @@ async function main() {
 
   try {
     await owner.connect();
-    await runtimeProbe.connect();
+    if (runtimeProbe) await runtimeProbe.connect();
 
     const ownerIdentity = await owner.query('SELECT current_user AS role_name, current_database() AS database_name');
-    const runtimeIdentity = await runtimeProbe.query(
-      "SELECT current_user AS role_name, current_database() AS database_name, (SELECT rolbypassrls FROM pg_roles WHERE rolname=current_user) AS bypass_rls"
-    );
     if (ownerIdentity.rows[0].role_name !== 'neondb_owner'
-        || ownerIdentity.rows[0].database_name !== 'opscore_http_acceptance'
-        || runtimeIdentity.rows[0].role_name !== 'opscore_runtime'
-        || runtimeIdentity.rows[0].database_name !== 'opscore_http_acceptance'
-        || runtimeIdentity.rows[0].bypass_rls !== false) {
-      throw new Error('SIGNED_CONTEXT_DATABASE_IDENTITY_INVALID');
+        || ownerIdentity.rows[0].database_name !== (candidateMode
+          ? String(process.env.OPSC_PRODUCTION_DATABASE_NAME || '')
+          : 'opscore_http_acceptance')) {
+      throw new Error('SIGNED_CONTEXT_OWNER_DATABASE_IDENTITY_INVALID');
+    }
+    if (runtimeProbe) {
+      const runtimeIdentity = await runtimeProbe.query(
+        "SELECT current_user AS role_name, current_database() AS database_name, (SELECT rolbypassrls FROM pg_roles WHERE rolname=current_user) AS bypass_rls"
+      );
+      if (runtimeIdentity.rows[0].role_name !== 'opscore_runtime'
+          || runtimeIdentity.rows[0].database_name !== 'opscore_http_acceptance'
+          || runtimeIdentity.rows[0].bypass_rls !== false) {
+        throw new Error('SIGNED_CONTEXT_RUNTIME_DATABASE_IDENTITY_INVALID');
+      }
     }
 
-    const definer = await owner.query("SELECT 1 FROM pg_roles WHERE rolname='opscore_auth_definer'");
-    if (definer.rowCount === 1) {
-      await owner.query('SET ROLE opscore_auth_definer');
-      activeVerifierRole = true;
+    if (!candidateMode) {
+      const definer = await owner.query("SELECT 1 FROM pg_roles WHERE rolname='opscore_auth_definer'");
+      if (definer.rowCount === 1) {
+        await owner.query('SET ROLE opscore_auth_definer');
+        activeVerifierRole = true;
+      }
+      await owner.query(
+        'INSERT INTO opscore_security.context_hmac_keys(key_id,secret,enabled,not_before,not_after) VALUES($1,$2,true,now()-interval \'1 minute\',now()+interval \'1 hour\')',
+        [keyId, key]
+      );
+      if (activeVerifierRole) {
+        await owner.query('RESET ROLE');
+        activeVerifierRole = false;
+      }
+  
+      await owner.query(
+        'CREATE TABLE IF NOT EXISTS opscore_security.context_probe_rows (id text PRIMARY KEY, organization_id text NOT NULL, probe_value text NOT NULL)'
+      );
+      await owner.query('ALTER TABLE opscore_security.context_probe_rows ENABLE ROW LEVEL SECURITY');
+      await owner.query('ALTER TABLE opscore_security.context_probe_rows FORCE ROW LEVEL SECURITY');
+      await owner.query('DROP POLICY IF EXISTS context_probe_rows_signed_tenant ON opscore_security.context_probe_rows');
+      await owner.query(
+        'CREATE POLICY context_probe_rows_signed_tenant ON opscore_security.context_probe_rows FOR SELECT TO opscore_runtime USING (organization_id = (opscore_security.verified_tenant_context()->>\'tenant_id\'))'
+      );
+      await owner.query('GRANT SELECT ON TABLE opscore_security.context_probe_rows TO opscore_runtime');
+  
+  
     }
-    await owner.query(
-      'INSERT INTO opscore_security.context_hmac_keys(key_id,secret,enabled,not_before,not_after) VALUES($1,$2,true,now()-interval \'1 minute\',now()+interval \'1 hour\')',
-      [keyId, key]
-    );
-    if (activeVerifierRole) {
-      await owner.query('RESET ROLE');
-      activeVerifierRole = false;
-    }
-
-    await owner.query(
-      'CREATE TABLE IF NOT EXISTS opscore_security.context_probe_rows (id text PRIMARY KEY, organization_id text NOT NULL, probe_value text NOT NULL)'
-    );
-    await owner.query('ALTER TABLE opscore_security.context_probe_rows ENABLE ROW LEVEL SECURITY');
-    await owner.query('ALTER TABLE opscore_security.context_probe_rows FORCE ROW LEVEL SECURITY');
-    await owner.query('DROP POLICY IF EXISTS context_probe_rows_signed_tenant ON opscore_security.context_probe_rows');
-    await owner.query(
-      'CREATE POLICY context_probe_rows_signed_tenant ON opscore_security.context_probe_rows FOR SELECT TO opscore_runtime USING (organization_id = (opscore_security.verified_tenant_context()->>\'tenant_id\'))'
-    );
-    await owner.query('GRANT SELECT ON TABLE opscore_security.context_probe_rows TO opscore_runtime');
 
     await owner.query(
       'INSERT INTO public.organizations(id,name,created_at) VALUES($1,$2,now()::text),($3,$4,now()::text)',
@@ -286,79 +419,91 @@ async function main() {
        synthetic.assetIds[1], tenantB, 'Signed Context Asset B', 'network_asset', 'active', synthetic.siteIds[1]]
     );
 
-    // The knowledge service uses a secondary node-postgres Pool, not the main
-    // synchronous bridge. Prove that this independent connection also binds a
-    // signed principal to its own backend/xid and ignores forged legacy GUCs.
-    signedContextPool = createPostgresPool({ connectionString: runtimeUrl, max: 2 });
-    const secondaryPoolProof = {};
-    for (const [label, principal, expectedTenant, foreignTenant] of [
-      ['tenantA', { sessionId: sessionA, userId: userA, tenantId: tenantA }, tenantA, tenantB],
-      ['tenantB', { sessionId: sessionB, userId: userB, tenantId: tenantB }, tenantB, tenantA]
-    ]) {
-      const rows = await withSignedTenantClient(signedContextPool, principal, async (client) => {
-        await client.query(
-          "SELECT set_config('app.tenant_id',$1,true), set_config('app.user_id',$2,true), set_config('app.access_mode',$3,true)",
-          [foreignTenant, 'forged-secondary-pool-user', 'backoffice']
-        );
-        return (await client.query(
-          'SELECT id, organization_id, probe_value FROM opscore_security.context_probe_rows ORDER BY id'
-        )).rows;
-      });
-      if (rows.length !== 1 || rows[0].organization_id !== expectedTenant
-          || rows[0].id !== 'row-' + (label === 'tenantA' ? sessionA : sessionB)) {
-        throw new Error('SIGNED_SECONDARY_POOL_TENANT_BOUNDARY_FAILED:' + JSON.stringify({
-          label, returnedTenants: rows.map(row => row.organization_id), returnedIds: rows.map(row => row.id)
-        }));
+    let secondaryPoolProof = { status: 'SKIPPED_CANDIDATE_REMOTE' };
+    if (!candidateMode) {
+      // The knowledge service uses a secondary node-postgres Pool, not the main
+      // synchronous bridge. Prove that this independent connection also binds a
+      // signed principal to its own backend/xid and ignores forged legacy GUCs.
+      signedContextPool = createPostgresPool({ connectionString: runtimeUrl, max: 2 });
+      const secondaryPoolProof = {};
+      for (const [label, principal, expectedTenant, foreignTenant] of [
+        ['tenantA', { sessionId: sessionA, userId: userA, tenantId: tenantA }, tenantA, tenantB],
+        ['tenantB', { sessionId: sessionB, userId: userB, tenantId: tenantB }, tenantB, tenantA]
+      ]) {
+        const rows = await withSignedTenantClient(signedContextPool, principal, async (client) => {
+          await client.query(
+            "SELECT set_config('app.tenant_id',$1,true), set_config('app.user_id',$2,true), set_config('app.access_mode',$3,true)",
+            [foreignTenant, 'forged-secondary-pool-user', 'backoffice']
+          );
+          return (await client.query(
+            'SELECT id, organization_id, probe_value FROM opscore_security.context_probe_rows ORDER BY id'
+          )).rows;
+        });
+        if (rows.length !== 1 || rows[0].organization_id !== expectedTenant
+            || rows[0].id !== 'row-' + (label === 'tenantA' ? sessionA : sessionB)) {
+          throw new Error('SIGNED_SECONDARY_POOL_TENANT_BOUNDARY_FAILED:' + JSON.stringify({
+            label, returnedTenants: rows.map(row => row.organization_id), returnedIds: rows.map(row => row.id)
+          }));
+        }
+        secondaryPoolProof[label] = 'PASS';
       }
-      secondaryPoolProof[label] = 'PASS';
+      secondaryPoolProof.rawGucTamperingIgnored = 'PASS';
+  
+  
     }
-    secondaryPoolProof.rawGucTamperingIgnored = 'PASS';
 
-    const port = await choosePort();
-    evidenceRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-signed-evidence-root-'));
-    const serverEnv = {
-      ...process.env,
-      NODE_ENV: 'test',
-      DATABASE_ENGINE: 'postgres',
-      DATABASE_URL: runtimeUrl,
-      OPSC_DATABASE_URL: runtimeUrl,
-      HOST: '127.0.0.1',
-      PORT: String(port),
-      PUBLIC_ORIGIN: 'http://127.0.0.1:' + port,
-      AUTH_MODE: 'local',
-      VERCEL_ENV: 'preview',
-      OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'true',
-      OPSC_TENANT_CONTEXT_PROOF_ENABLED: 'true',
-      OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_ENABLED: 'true',
-      OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_WRITE_ENABLED: 'true',
-      OPSC_SIGNED_TENANT_CONTEXT_ASSETS_READ_ENABLED: 'true',
-      OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_READ_ENABLED: 'true',
-      OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_WRITE_ENABLED: 'true',
-      OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED: 'true',
-      OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_TAMPER_TEST: 'true',
-      OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_TAMPER_TEST: 'true',
-      OPSC_TENANT_CONTEXT_HMAC_KEY: keyHex,
-      OPSC_TENANT_CONTEXT_KEY_ID: keyId,
-      OPSC_RELEASE_VERIFICATION_ROOT: evidenceRoot,
-      OPSC_PG_SSL_MODE: 'disable'
-    };
-    delete serverEnv.OPSC_TENANT_CONTEXT_OWNER_URL;
-    delete serverEnv.OPSC_PG_ACCEPTANCE_URL;
-    delete serverEnv.OPSC_MIGRATION_DATABASE_URL;
-    delete serverEnv.OPSC_CI_MIGRATION_OWNER_PASSWORD;
-    delete serverEnv.OPSC_PG_TEST_URL;
-
-    serverProcess = spawn(process.execPath, [path.join(__dirname, '..', 'src', 'server.js')], {
-      cwd: path.join(__dirname, '..'),
-      env: serverEnv,
-      stdio: ['ignore', 'pipe', 'pipe']
-    });
-    for (const stream of [serverProcess.stdout, serverProcess.stderr]) {
-      stream.on('data', (chunk) => {
-        serverOutput = (serverOutput + chunk.toString('utf8')).slice(-6000);
+    let port;
+    if (candidateMode) {
+      port = remoteHttpOrigin;
+    } else {
+      port = await choosePort();
+      evidenceRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-signed-evidence-root-'));
+      const serverEnv = {
+        ...process.env,
+        NODE_ENV: 'test',
+        DATABASE_ENGINE: 'postgres',
+        DATABASE_URL: runtimeUrl,
+        OPSC_DATABASE_URL: runtimeUrl,
+        HOST: '127.0.0.1',
+        PORT: String(port),
+        PUBLIC_ORIGIN: 'http://127.0.0.1:' + port,
+        AUTH_MODE: 'local',
+        VERCEL_ENV: 'preview',
+        OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'true',
+        OPSC_TENANT_CONTEXT_PROOF_ENABLED: 'true',
+        OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_ENABLED: 'true',
+        OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_WRITE_ENABLED: 'true',
+        OPSC_SIGNED_TENANT_CONTEXT_ASSETS_READ_ENABLED: 'true',
+        OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_READ_ENABLED: 'true',
+        OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_WRITE_ENABLED: 'true',
+        OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED: 'true',
+        OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_TAMPER_TEST: 'true',
+        OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_TAMPER_TEST: 'true',
+        OPSC_TENANT_CONTEXT_HMAC_KEY: keyHex,
+        OPSC_TENANT_CONTEXT_KEY_ID: keyId,
+        OPSC_RELEASE_VERIFICATION_ROOT: evidenceRoot,
+        OPSC_PG_SSL_MODE: 'disable'
+      };
+      delete serverEnv.OPSC_TENANT_CONTEXT_OWNER_URL;
+      delete serverEnv.OPSC_PG_ACCEPTANCE_URL;
+      delete serverEnv.OPSC_MIGRATION_DATABASE_URL;
+      delete serverEnv.OPSC_CI_MIGRATION_OWNER_PASSWORD;
+      delete serverEnv.OPSC_PG_TEST_URL;
+  
+      serverProcess = spawn(process.execPath, [path.join(__dirname, '..', 'src', 'server.js')], {
+        cwd: path.join(__dirname, '..'),
+        env: serverEnv,
+        stdio: ['ignore', 'pipe', 'pipe']
       });
+      for (const stream of [serverProcess.stdout, serverProcess.stderr]) {
+        stream.on('data', (chunk) => {
+          serverOutput = (serverOutput + chunk.toString('utf8')).slice(-6000);
+        });
+      }
+      await waitForServer(port, serverProcess);
+  
+  
     }
-    await waitForServer(port, serverProcess);
 
     // Exercise a normal authenticated Store route outside the work-order allowlist.
     // The PostgreSQL worker tampers legacy tenant/user/access-mode GUCs after the
@@ -2862,37 +3007,41 @@ async function main() {
     signedEvidenceRouteProof.chunkTenantA = 'PASS';
     signedEvidenceRouteProof.chunkTenantAPersisted = 'PASS';
 
-    const evidenceChunkPolicies = await owner.query(
-      `SELECT policyname, permissive, roles, cmd, qual, with_check
-       FROM pg_policies
-       WHERE schemaname='public' AND tablename='evidence_upload_chunks'
-       ORDER BY policyname`
-    );
-    await runtimeProbe.query('BEGIN READ ONLY');
-    const evidenceRuntimeIdentity = await beginReadOnly(runtimeProbe);
-    const evidenceRuntimeAssertion = createSignedTenantContext({
-      principal: { sessionId: sessionA, userId: userA, tenantId: tenantA },
-      backendPid: evidenceRuntimeIdentity.backendPid,
-      transactionId: evidenceRuntimeIdentity.transactionId,
-      env: { OPSC_TENANT_CONTEXT_HMAC_KEY: keyHex, OPSC_TENANT_CONTEXT_KEY_ID: keyId }
-    });
-    await bindAssertion(runtimeProbe, evidenceRuntimeAssertion);
-    const evidenceRuntimeVisibility = await runtimeProbe.query(
-      `SELECT public.opscore_current_tenant() AS signed_tenant,
-              (SELECT COUNT(*)::int FROM public.evidence_uploads WHERE id=$1 AND organization_id=$2) AS parent_count,
-              (SELECT COUNT(*)::int FROM public.evidence_upload_chunks WHERE upload_id=$1) AS chunk_count`,
-      [evidenceInitA.body.uploadId, tenantA]
-    );
-    await runtimeProbe.query('COMMIT');
-    if (evidenceRuntimeVisibility.rows[0]?.signed_tenant !== tenantA
-        || evidenceRuntimeVisibility.rows[0]?.parent_count !== 1
-        || evidenceRuntimeVisibility.rows[0]?.chunk_count !== 1) {
-      throw new Error('SIGNED_CONTEXT_EVIDENCE_CHUNK_RUNTIME_RLS_VISIBILITY_DIAGNOSTIC:' + JSON.stringify({
-        visibility: evidenceRuntimeVisibility.rows[0] || null,
-        policies: evidenceChunkPolicies.rows
-      }));
+    if (!candidateMode) {
+      const evidenceChunkPolicies = await owner.query(
+        `SELECT policyname, permissive, roles, cmd, qual, with_check
+         FROM pg_policies
+         WHERE schemaname='public' AND tablename='evidence_upload_chunks'
+         ORDER BY policyname`
+      );
+      await runtimeProbe.query('BEGIN READ ONLY');
+      const evidenceRuntimeIdentity = await beginReadOnly(runtimeProbe);
+      const evidenceRuntimeAssertion = createSignedTenantContext({
+        principal: { sessionId: sessionA, userId: userA, tenantId: tenantA },
+        backendPid: evidenceRuntimeIdentity.backendPid,
+        transactionId: evidenceRuntimeIdentity.transactionId,
+        env: { OPSC_TENANT_CONTEXT_HMAC_KEY: keyHex, OPSC_TENANT_CONTEXT_KEY_ID: keyId }
+      });
+      await bindAssertion(runtimeProbe, evidenceRuntimeAssertion);
+      const evidenceRuntimeVisibility = await runtimeProbe.query(
+        `SELECT public.opscore_current_tenant() AS signed_tenant,
+                (SELECT COUNT(*)::int FROM public.evidence_uploads WHERE id=$1 AND organization_id=$2) AS parent_count,
+                (SELECT COUNT(*)::int FROM public.evidence_upload_chunks WHERE upload_id=$1) AS chunk_count`,
+        [evidenceInitA.body.uploadId, tenantA]
+      );
+      await runtimeProbe.query('COMMIT');
+      if (evidenceRuntimeVisibility.rows[0]?.signed_tenant !== tenantA
+          || evidenceRuntimeVisibility.rows[0]?.parent_count !== 1
+          || evidenceRuntimeVisibility.rows[0]?.chunk_count !== 1) {
+        throw new Error('SIGNED_CONTEXT_EVIDENCE_CHUNK_RUNTIME_RLS_VISIBILITY_DIAGNOSTIC:' + JSON.stringify({
+          visibility: evidenceRuntimeVisibility.rows[0] || null,
+          policies: evidenceChunkPolicies.rows
+        }));
+      }
+      signedEvidenceRouteProof.runtimeSignedChunkVisibility = 'PASS';
+  
+  
     }
-    signedEvidenceRouteProof.runtimeSignedChunkVisibility = 'PASS';
 
     const duplicateEvidenceChunkA = await queryHttp(
       port,
@@ -3052,7 +3201,7 @@ async function main() {
       'SELECT status,last_error FROM public.evidence_uploads WHERE id=$1 AND organization_id=$2',
       [mismatchInit.body.uploadId, tenantA]
     );
-    const mismatchTemp = path.join(
+    const mismatchTemp = candidateMode ? null : path.join(
       evidenceRoot, tenantA, '.evidence', mismatchInit.body.uploadId, 'assembled.bin'
     );
     if (mismatchComplete.status < 400
@@ -3060,7 +3209,7 @@ async function main() {
         || mismatchComplete.headers?.['x-opscore-signed-tenant-context'] === 'verified'
         || mismatchState.rows[0]?.status !== 'failed'
         || mismatchState.rows[0]?.last_error !== 'EVIDENCE_INTEGRITY_MISMATCH'
-        || fs.existsSync(mismatchTemp)) {
+        || (!candidateMode && fs.existsSync(mismatchTemp))) {
       throw new Error('SIGNED_CONTEXT_EVIDENCE_MISMATCH_STATE_NOT_COMMITTED:' + JSON.stringify({
         status: mismatchComplete.status, body: mismatchComplete.body,
         headers: mismatchComplete.headers, state: mismatchState.rows[0] || null,
@@ -3152,66 +3301,70 @@ async function main() {
     synthetic.attachmentIds.push(directAttachmentB.body.id);
     signedEvidenceRouteProof.directAttachmentTenantB = 'PASS';
 
-    // Force a database failure after storeAttachment writes the file and row,
-    // but before idempotency persistence. The outer signed transaction must
-    // roll back and execute its filesystem compensation callback.
-    const rollbackIdempotencyKey = 'signed-context-ci-force-evidence-rollback-' + keyId;
-    synthetic.idempotencyKeys.push(rollbackIdempotencyKey);
-    await owner.query(`
-      CREATE OR REPLACE FUNCTION opscore_security.ci_reject_signed_evidence_rollback()
-      RETURNS trigger LANGUAGE plpgsql AS $rollback$
-      BEGIN
-        IF NEW.idempotency_key = '${rollbackIdempotencyKey}' THEN
-          RAISE EXCEPTION 'CI_FORCED_SIGNED_EVIDENCE_ROLLBACK';
-        END IF;
-        RETURN NEW;
-      END
-      $rollback$
-    `);
-    await owner.query('DROP TRIGGER IF EXISTS ci_reject_signed_evidence_rollback ON public.idempotency_records');
-    await owner.query(`
-      CREATE TRIGGER ci_reject_signed_evidence_rollback
-      BEFORE INSERT ON public.idempotency_records
-      FOR EACH ROW EXECUTE FUNCTION opscore_security.ci_reject_signed_evidence_rollback()
-    `);
-    evidenceRollbackTriggerInstalled = true;
-
-    const forcedRollback = await queryHttp(
-      port,
-      '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[0]) + '/attachments',
-      tokenA,
-      {
-        method: 'POST',
-        headers: { 'idempotency-key': rollbackIdempotencyKey },
-        body: {
-          fileName: 'rollback-cleanup.txt',
-          mediaType: 'text/plain',
-          contentBase64: Buffer.from('must be removed after rollback ' + keyId, 'utf8').toString('base64')
+    if (!candidateMode) {
+      // Force a database failure after storeAttachment writes the file and row,
+      // but before idempotency persistence. The outer signed transaction must
+      // roll back and execute its filesystem compensation callback.
+      const rollbackIdempotencyKey = 'signed-context-ci-force-evidence-rollback-' + keyId;
+      synthetic.idempotencyKeys.push(rollbackIdempotencyKey);
+      await owner.query(`
+        CREATE OR REPLACE FUNCTION opscore_security.ci_reject_signed_evidence_rollback()
+        RETURNS trigger LANGUAGE plpgsql AS $rollback$
+        BEGIN
+          IF NEW.idempotency_key = '${rollbackIdempotencyKey}' THEN
+            RAISE EXCEPTION 'CI_FORCED_SIGNED_EVIDENCE_ROLLBACK';
+          END IF;
+          RETURN NEW;
+        END
+        $rollback$
+      `);
+      await owner.query('DROP TRIGGER IF EXISTS ci_reject_signed_evidence_rollback ON public.idempotency_records');
+      await owner.query(`
+        CREATE TRIGGER ci_reject_signed_evidence_rollback
+        BEFORE INSERT ON public.idempotency_records
+        FOR EACH ROW EXECUTE FUNCTION opscore_security.ci_reject_signed_evidence_rollback()
+      `);
+      evidenceRollbackTriggerInstalled = true;
+  
+      const forcedRollback = await queryHttp(
+        port,
+        '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[0]) + '/attachments',
+        tokenA,
+        {
+          method: 'POST',
+          headers: { 'idempotency-key': rollbackIdempotencyKey },
+          body: {
+            fileName: 'rollback-cleanup.txt',
+            mediaType: 'text/plain',
+            contentBase64: Buffer.from('must be removed after rollback ' + keyId, 'utf8').toString('base64')
+          }
         }
+      );
+      const rollbackAttachmentRows = await owner.query(
+        "SELECT COUNT(*)::int AS count FROM public.attachments WHERE organization_id=$1 AND work_order_id=$2 AND file_name='rollback-cleanup.txt'",
+        [tenantA, synthetic.workOrderIds[0]]
+      );
+      const tenantAStorageRoot = path.join(evidenceRoot, tenantA);
+      const rollbackFileExists = fs.existsSync(tenantAStorageRoot)
+        && fs.readdirSync(tenantAStorageRoot).some(name => name.endsWith('-rollback-cleanup.txt'));
+      await owner.query('DROP TRIGGER IF EXISTS ci_reject_signed_evidence_rollback ON public.idempotency_records');
+      await owner.query('DROP FUNCTION IF EXISTS opscore_security.ci_reject_signed_evidence_rollback()');
+      evidenceRollbackTriggerInstalled = false;
+      if (forcedRollback.status < 400
+          || forcedRollback.headers?.['x-opscore-signed-tenant-context'] === 'verified'
+          || rollbackAttachmentRows.rows[0]?.count !== 0
+          || rollbackFileExists) {
+        throw new Error('SIGNED_CONTEXT_EVIDENCE_ROLLBACK_COMPENSATION_FAILED:' + JSON.stringify({
+          status: forcedRollback.status, body: forcedRollback.body,
+          headers: forcedRollback.headers,
+          databaseRows: rollbackAttachmentRows.rows[0]?.count,
+          fileExists: rollbackFileExists
+        }));
       }
-    );
-    const rollbackAttachmentRows = await owner.query(
-      "SELECT COUNT(*)::int AS count FROM public.attachments WHERE organization_id=$1 AND work_order_id=$2 AND file_name='rollback-cleanup.txt'",
-      [tenantA, synthetic.workOrderIds[0]]
-    );
-    const tenantAStorageRoot = path.join(evidenceRoot, tenantA);
-    const rollbackFileExists = fs.existsSync(tenantAStorageRoot)
-      && fs.readdirSync(tenantAStorageRoot).some(name => name.endsWith('-rollback-cleanup.txt'));
-    await owner.query('DROP TRIGGER IF EXISTS ci_reject_signed_evidence_rollback ON public.idempotency_records');
-    await owner.query('DROP FUNCTION IF EXISTS opscore_security.ci_reject_signed_evidence_rollback()');
-    evidenceRollbackTriggerInstalled = false;
-    if (forcedRollback.status < 400
-        || forcedRollback.headers?.['x-opscore-signed-tenant-context'] === 'verified'
-        || rollbackAttachmentRows.rows[0]?.count !== 0
-        || rollbackFileExists) {
-      throw new Error('SIGNED_CONTEXT_EVIDENCE_ROLLBACK_COMPENSATION_FAILED:' + JSON.stringify({
-        status: forcedRollback.status, body: forcedRollback.body,
-        headers: forcedRollback.headers,
-        databaseRows: rollbackAttachmentRows.rows[0]?.count,
-        fileExists: rollbackFileExists
-      }));
+      signedEvidenceRouteProof.outerRollbackRemovedFileAndRow = 'PASS';
+  
+  
     }
-    signedEvidenceRouteProof.outerRollbackRemovedFileAndRow = 'PASS';
 
     const attachmentsA = await queryHttp(
       port, '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[0]) + '/attachments', tokenA
@@ -3380,78 +3533,82 @@ async function main() {
     await clientA.connect();
     await clientB.connect();
 
-    // Without an assertion, raw GUCs alone must expose no rows.
-    await clientA.query('BEGIN READ ONLY');
-    await tamperRawGucs(clientA, tenantA);
-    const unsignedRows = await readProbeRows(clientA, tenantA);
-    await clientA.query('COMMIT');
-    if (unsignedRows.length !== 0) throw new Error('SIGNED_CONTEXT_UNSIGNED_GUC_EXPOSED_ROWS');
-
-    // A valid READ ONLY assertion remains Tenant A despite raw GUC tampering to Tenant B.
-    await clientA.query('BEGIN READ ONLY');
-    const identityA = await beginReadOnly(clientA);
-    const validA = createSignedTenantContext({
-      principal: { sessionId: sessionA, userId: userA, tenantId: tenantA },
-      backendPid: identityA.backendPid,
-      transactionId: identityA.transactionId,
-      env: { OPSC_TENANT_CONTEXT_HMAC_KEY: keyHex, OPSC_TENANT_CONTEXT_KEY_ID: keyId }
-    });
-    await bindAssertion(clientA, validA);
-    await tamperRawGucs(clientA, tenantB);
-    assertSingleTenantRow(await readProbeRows(clientA, tenantA), tenantA);
-    await clientA.query('COMMIT');
-
-    // Altering the signature must fail closed.
-    await clientA.query('BEGIN READ ONLY');
-    const invalidIdentity = await beginReadOnly(clientA);
-    const invalid = createSignedTenantContext({
-      principal: { sessionId: sessionA, userId: userA, tenantId: tenantA },
-      backendPid: invalidIdentity.backendPid,
-      transactionId: invalidIdentity.transactionId,
-      env: { OPSC_TENANT_CONTEXT_HMAC_KEY: keyHex, OPSC_TENANT_CONTEXT_KEY_ID: keyId }
-    });
-    const badSignature = (invalid.signature[0] === '0' ? '1' : '0') + invalid.signature.slice(1);
-    await clientA.query(
-      "SELECT set_config('app.signed_context_payload',$1,true), set_config('app.signed_context_signature',$2,true)",
-      [invalid.payload, badSignature]
-    );
-    const invalidRows = await readProbeRows(clientA, tenantA);
-    await clientA.query('COMMIT');
-    if (invalidRows.length !== 0) throw new Error('SIGNED_CONTEXT_INVALID_SIGNATURE_EXPOSED_ROWS');
-
-    // Same-backend replay in a later transaction must be rejected.
-    await clientA.query('BEGIN READ ONLY');
-    const replayIdentity = await beginReadOnly(clientA);
-    const replay = createSignedTenantContext({
-      principal: { sessionId: sessionA, userId: userA, tenantId: tenantA },
-      backendPid: replayIdentity.backendPid,
-      transactionId: replayIdentity.transactionId,
-      env: { OPSC_TENANT_CONTEXT_HMAC_KEY: keyHex, OPSC_TENANT_CONTEXT_KEY_ID: keyId }
-    });
-    await bindAssertion(clientA, replay);
-    assertSingleTenantRow(await readProbeRows(clientA, tenantA), tenantA);
-    await clientA.query('COMMIT');
-    await clientA.query('BEGIN READ ONLY');
-    await bindAssertion(clientA, replay);
-    const sameBackendReplayRows = await readProbeRows(clientA, tenantA);
-    await clientA.query('COMMIT');
-    if (sameBackendReplayRows.length !== 0) throw new Error('SIGNED_CONTEXT_SAME_BACKEND_REPLAY_EXPOSED_ROWS');
-
-    // An assertion created for one backend cannot be replayed on another backend.
-    await clientA.query('BEGIN READ ONLY');
-    const otherBackendIdentity = await beginReadOnly(clientA);
-    const crossBackend = createSignedTenantContext({
-      principal: { sessionId: sessionA, userId: userA, tenantId: tenantA },
-      backendPid: otherBackendIdentity.backendPid,
-      transactionId: otherBackendIdentity.transactionId,
-      env: { OPSC_TENANT_CONTEXT_HMAC_KEY: keyHex, OPSC_TENANT_CONTEXT_KEY_ID: keyId }
-    });
-    await clientA.query('COMMIT');
-    await clientB.query('BEGIN READ ONLY');
-    await bindAssertion(clientB, crossBackend);
-    const differentBackendRows = await readProbeRows(clientB, tenantA);
-    await clientB.query('COMMIT');
-    if (differentBackendRows.length !== 0) throw new Error('SIGNED_CONTEXT_DIFFERENT_BACKEND_REPLAY_EXPOSED_ROWS');
+    if (!candidateMode) {
+      // Without an assertion, raw GUCs alone must expose no rows.
+      await clientA.query('BEGIN READ ONLY');
+      await tamperRawGucs(clientA, tenantA);
+      const unsignedRows = await readProbeRows(clientA, tenantA);
+      await clientA.query('COMMIT');
+      if (unsignedRows.length !== 0) throw new Error('SIGNED_CONTEXT_UNSIGNED_GUC_EXPOSED_ROWS');
+  
+      // A valid READ ONLY assertion remains Tenant A despite raw GUC tampering to Tenant B.
+      await clientA.query('BEGIN READ ONLY');
+      const identityA = await beginReadOnly(clientA);
+      const validA = createSignedTenantContext({
+        principal: { sessionId: sessionA, userId: userA, tenantId: tenantA },
+        backendPid: identityA.backendPid,
+        transactionId: identityA.transactionId,
+        env: { OPSC_TENANT_CONTEXT_HMAC_KEY: keyHex, OPSC_TENANT_CONTEXT_KEY_ID: keyId }
+      });
+      await bindAssertion(clientA, validA);
+      await tamperRawGucs(clientA, tenantB);
+      assertSingleTenantRow(await readProbeRows(clientA, tenantA), tenantA);
+      await clientA.query('COMMIT');
+  
+      // Altering the signature must fail closed.
+      await clientA.query('BEGIN READ ONLY');
+      const invalidIdentity = await beginReadOnly(clientA);
+      const invalid = createSignedTenantContext({
+        principal: { sessionId: sessionA, userId: userA, tenantId: tenantA },
+        backendPid: invalidIdentity.backendPid,
+        transactionId: invalidIdentity.transactionId,
+        env: { OPSC_TENANT_CONTEXT_HMAC_KEY: keyHex, OPSC_TENANT_CONTEXT_KEY_ID: keyId }
+      });
+      const badSignature = (invalid.signature[0] === '0' ? '1' : '0') + invalid.signature.slice(1);
+      await clientA.query(
+        "SELECT set_config('app.signed_context_payload',$1,true), set_config('app.signed_context_signature',$2,true)",
+        [invalid.payload, badSignature]
+      );
+      const invalidRows = await readProbeRows(clientA, tenantA);
+      await clientA.query('COMMIT');
+      if (invalidRows.length !== 0) throw new Error('SIGNED_CONTEXT_INVALID_SIGNATURE_EXPOSED_ROWS');
+  
+      // Same-backend replay in a later transaction must be rejected.
+      await clientA.query('BEGIN READ ONLY');
+      const replayIdentity = await beginReadOnly(clientA);
+      const replay = createSignedTenantContext({
+        principal: { sessionId: sessionA, userId: userA, tenantId: tenantA },
+        backendPid: replayIdentity.backendPid,
+        transactionId: replayIdentity.transactionId,
+        env: { OPSC_TENANT_CONTEXT_HMAC_KEY: keyHex, OPSC_TENANT_CONTEXT_KEY_ID: keyId }
+      });
+      await bindAssertion(clientA, replay);
+      assertSingleTenantRow(await readProbeRows(clientA, tenantA), tenantA);
+      await clientA.query('COMMIT');
+      await clientA.query('BEGIN READ ONLY');
+      await bindAssertion(clientA, replay);
+      const sameBackendReplayRows = await readProbeRows(clientA, tenantA);
+      await clientA.query('COMMIT');
+      if (sameBackendReplayRows.length !== 0) throw new Error('SIGNED_CONTEXT_SAME_BACKEND_REPLAY_EXPOSED_ROWS');
+  
+      // An assertion created for one backend cannot be replayed on another backend.
+      await clientA.query('BEGIN READ ONLY');
+      const otherBackendIdentity = await beginReadOnly(clientA);
+      const crossBackend = createSignedTenantContext({
+        principal: { sessionId: sessionA, userId: userA, tenantId: tenantA },
+        backendPid: otherBackendIdentity.backendPid,
+        transactionId: otherBackendIdentity.transactionId,
+        env: { OPSC_TENANT_CONTEXT_HMAC_KEY: keyHex, OPSC_TENANT_CONTEXT_KEY_ID: keyId }
+      });
+      await clientA.query('COMMIT');
+      await clientB.query('BEGIN READ ONLY');
+      await bindAssertion(clientB, crossBackend);
+      const differentBackendRows = await readProbeRows(clientB, tenantA);
+      await clientB.query('COMMIT');
+      if (differentBackendRows.length !== 0) throw new Error('SIGNED_CONTEXT_DIFFERENT_BACKEND_REPLAY_EXPOSED_ROWS');
+  
+  
+    }
 
     process.stdout.write(JSON.stringify({
       schemaVersion: 'opscore.signed-tenant-context-ci-proof.v1',
@@ -3511,7 +3668,7 @@ async function main() {
     try { await owner.query('DELETE FROM public.evidence_upload_chunks WHERE upload_id = ANY($1::text[])', [synthetic.evidenceUploadIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.attachments WHERE id = ANY($1::text[]) OR organization_id = ANY($2::text[])', [synthetic.attachmentIds, synthetic.tenantIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.evidence_uploads WHERE id = ANY($1::text[]) OR organization_id = ANY($2::text[])', [synthetic.evidenceUploadIds, synthetic.tenantIds]); } catch (_) {}
-    try { fs.rmSync(evidenceRoot, { recursive: true, force: true }); } catch (_) {}
+    if (evidenceRoot) { try { fs.rmSync(evidenceRoot, { recursive: true, force: true }); } catch (_) {} }
     try { await owner.query('DELETE FROM public.comments WHERE organization_id = ANY($1::text[]) AND work_order_id = ANY($2::text[])', [synthetic.tenantIds, synthetic.workOrderIds]); } catch (_) {}
     try { await owner.query("DELETE FROM public.activity_log WHERE organization_id = ANY($1::text[]) AND entity_type='work_order' AND entity_id = ANY($2::text[])", [synthetic.tenantIds, synthetic.workOrderIds]); } catch (_) {}
     try { await owner.query("DELETE FROM public.audit_log WHERE organization_id = ANY($1::text[]) AND resource_type='work_order' AND resource_id = ANY($2::text[])", [synthetic.tenantIds, synthetic.workOrderIds]); } catch (_) {}
@@ -3925,14 +4082,18 @@ async function main() {
     }
     try { await owner.query('DELETE FROM public.users WHERE id = ANY($1::text[])', [synthetic.userIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.organizations WHERE id = ANY($1::text[])', [synthetic.tenantIds]); } catch (_) {}
-    try { await owner.query('DELETE FROM opscore_security.context_hmac_keys WHERE key_id=$1', [synthetic.keyId]); } catch (_) {}
-    try { await owner.query('DROP TABLE IF EXISTS opscore_security.context_probe_rows'); } catch (_) {}
+    if (!candidateMode) {
+      try { await owner.query('DELETE FROM opscore_security.context_hmac_keys WHERE key_id=$1', [synthetic.keyId]); } catch (_) {}
+      try { await owner.query('DROP TABLE IF EXISTS opscore_security.context_probe_rows'); } catch (_) {}
+    }
     try { await owner.end(); } catch (_) {}
-    try { await runtimeProbe.end(); } catch (_) {}
-    if (priorSigningKey === undefined) delete process.env.OPSC_TENANT_CONTEXT_HMAC_KEY;
-    else process.env.OPSC_TENANT_CONTEXT_HMAC_KEY = priorSigningKey;
-    if (priorSigningKeyId === undefined) delete process.env.OPSC_TENANT_CONTEXT_KEY_ID;
-    else process.env.OPSC_TENANT_CONTEXT_KEY_ID = priorSigningKeyId;
+    if (runtimeProbe) { try { await runtimeProbe.end(); } catch (_) {} }
+    if (!candidateMode) {
+      if (priorSigningKey === undefined) delete process.env.OPSC_TENANT_CONTEXT_HMAC_KEY;
+      else process.env.OPSC_TENANT_CONTEXT_HMAC_KEY = priorSigningKey;
+      if (priorSigningKeyId === undefined) delete process.env.OPSC_TENANT_CONTEXT_KEY_ID;
+      else process.env.OPSC_TENANT_CONTEXT_KEY_ID = priorSigningKeyId;
+    }
   }
 }
 
