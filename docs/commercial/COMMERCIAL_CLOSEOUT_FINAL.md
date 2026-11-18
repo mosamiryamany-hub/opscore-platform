@@ -15,7 +15,7 @@
 | Distribution authorization | **FALSE** pending that Schedule |
 | Production certification | **FALSE / NOT CLAIMED** |
 
-The external statement and independently verified archive digest are authoritative. Do not copy a previous candidate's commit, run, bytes or digest into a later candidate's evidence.
+The external statement and independently verified archive digest are authoritative. Do not copy a previous candidate's commit, run, bytes or digest into a later candidate's evidence.\n\nNo prospective buyer or buyer signature is needed to complete the product or the seller-owned source package. No license grant is made to a buyer until the rights holder and that named buyer execute a License Schedule identifying the exact archive digest and permitted rights.
 
 ## Seller-owned source-package acceptance
 
