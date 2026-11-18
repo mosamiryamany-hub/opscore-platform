@@ -57,6 +57,11 @@ function redactCommercialEvidence(dir) {
         text = JSON.stringify(obj, null, 2) + '\n';
       } catch (_) {}
       fs.writeFileSync(fp, text);
+      // Redaction changes JSON bytes; refresh any adjacent digest sidecars immediately.
+      const digest = sha(fp);
+      for (const sidecar of [fp + '.sha256', fp.replace(/\.json$/i, '.sha256')]) {
+        if (sidecar !== fp && fs.existsSync(sidecar)) fs.writeFileSync(sidecar, `${digest}  ${name}\n`);
+      }
       n += 1;
     }
   }
@@ -296,8 +301,10 @@ for (const rel of forbidden) {
   if (fs.existsSync(path.join(releaseDir, rel)))
     throw new Error(`FORBIDDEN_RELEASE_PATH_PRESENT:${ rel }`);
 }
-// Redact connection metadata before hashing. The backend provenance manifests
-// must describe the exact sanitized files that ship in the archive.
+// Redact connection metadata before any checksum/provenance generation. Refresh
+// evidence sidecars, then regenerate backend manifests from the exact sanitized bytes.
+const evidenceRedaction = redactCommercialEvidence(releaseDir);
+console.log('COMMERCIAL_EVIDENCE_REDACTION=' + JSON.stringify(evidenceRedaction));
 run('regenerate backend provenance after evidence redaction', 'require(\'./scripts/generate-provenance.js\')', path.join(releaseDir, 'backend'));
 run('verify staged backend provenance after evidence redaction', 'require(\'./scripts/verify.js\')', path.join(releaseDir, 'backend'), { OPSC_VERIFY_RECORDED_TEST_EVIDENCE: 'true' });
 // Verification exercises real SQLite/attachment paths. Remove those generated runtime
@@ -314,13 +321,11 @@ if (fs.existsSync(path.join(releaseDir, 'data', 'files')))
     recursive: true,
     force: true
   });
-run('release artifact gate after staged runtime cleanup', 'require(\'./scripts/release-artifact-gate.js\')', releaseDir);
+run('release artifact gate after evidence redaction and provenance refresh', 'require(\'./scripts/release-artifact-gate.js\')', releaseDir);
 // Rebuild the buyer evidence checksum list from the exact staged tree. The evidence list
 // excludes itself plus the two top-level integrity metadata files to avoid cyclic hashes;
 // the integrated manifest and sums are generated immediately afterward and cover every
 // other release file, including this evidence checksum list.
-const evidenceRedaction = redactCommercialEvidence(releaseDir);
-console.log('COMMERCIAL_EVIDENCE_REDACTION=' + JSON.stringify(evidenceRedaction));
 const evidenceSumPath = path.join(releaseDir, 'evidence-pack', 'SHA256SUMS.txt');
 if (!fs.existsSync(evidenceSumPath)) throw new Error('EVIDENCE_CHECKSUM_MANIFEST_MISSING');
 const evidenceExcluded = new Set([

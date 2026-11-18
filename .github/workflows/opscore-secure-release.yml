@@ -61,8 +61,31 @@ jobs:
         if: github.event_name == 'workflow_dispatch'
         run: test "$GITHUB_REF" = "refs/heads/main"
 
-      - name: Verify source commit is contained in main
-        run: git merge-base --is-ancestor "$(git rev-parse HEAD)" origin/main
+      - name: Verify source commit belongs to an authorized release line
+        env:
+          RELEASE_BASE_SHA: deba977db586f19128a1f53377fec183beab44d0
+          ISOLATED_RELEASE_TAG: v0.11.62.17-commercial-source-package
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF_TYPE" == "tag" && "$GITHUB_REF_NAME" == "$ISOLATED_RELEASE_TAG" ]]; then
+            git cat-file -e "${RELEASE_BASE_SHA}^{commit}"
+            git merge-base --is-ancestor "$RELEASE_BASE_SHA" "$GITHUB_SHA"
+            test "$(git rev-parse "${GITHUB_REF_NAME}^{commit}")" = "$GITHUB_SHA"
+            actual="$(git diff --name-only "$RELEASE_BASE_SHA" "$GITHUB_SHA" | LC_ALL=C sort)"
+            expected="$(printf '%s\n' \
+              '.github/workflows/opscore-secure-release.yml' \
+              'docs/commercial/CLIENT_TRUST_PACK.md' \
+              'docs/commercial/COMMERCIAL_CLOSEOUT_FINAL.md' \
+              'docs/ops/REMAINING_CLOSEOUT_GATES.md' \
+              'scripts/package-release.js')"
+            if [[ "$actual" != "$expected" ]]; then
+              printf 'ISOLATED_RELEASE_FILE_ALLOWLIST_MISMATCH\nExpected:\n%s\nActual:\n%s\n' "$expected" "$actual" >&2
+              exit 1
+            fi
+            echo "ISOLATED_COMMERCIAL_RELEASE_LINE_VERIFIED: base=$RELEASE_BASE_SHA tag=$GITHUB_REF_NAME"
+          else
+            git merge-base --is-ancestor "$(git rev-parse HEAD)" origin/main
+          fi
 
       - name: Install backend dependencies from lockfile
         working-directory: backend
