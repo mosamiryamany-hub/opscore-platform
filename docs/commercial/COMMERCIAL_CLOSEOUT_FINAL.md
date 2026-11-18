@@ -5,15 +5,16 @@
 > No prospective buyer or buyer signature is needed to complete the product. A named buyer, buyer signature, payment, buyer-specific legal review or transaction License Schedule is **not** required to complete seller engineering, prepare a release package, publish/list the offer, present the product, demonstrate it or negotiate. A named buyer and signed License Schedule are required only before granting that buyer licensed rights or delivering the licensed package. No license grant is made to a buyer until the rights holder and named buyer execute the Schedule pinned to the exact released commit/package digest. No license is granted by repository presence.
 
 **Updated:** 2026-11-18  
-**Current main:** 27d41476a115d81ddd3ad1b4f03025142a7e5be6  
+**Current main:** 88f0f7377244d89f063de7c07714f9c2849fbc57  
+**Last application-code baseline:** 27d41476a115d81ddd3ad1b4f03025142a7e5be6 (PR #235 was documentation and closeout-test reconciliation only; product runtime source did not change)  
 **Current product source:** Expo SDK 58.0.26 / React 19.3.1 / React Native 0.88.1; backend v0.11.62; mobile v0.1.16.
 
 ## 1. Current source/CI evidence
 
 | Gate | Exact current result | Meaning |
 |---|---|---|
-| OpsCore CI | [Run 44203389751](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44203389751) — SUCCESS on main 27d41476… | Current-main source/verification CI passed; mobile audit gate passes under the time-bounded allowlist entry described below |
-| Vercel contract | [Run 44203389724](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44203389724) — contract PASS | Bound isolated PostgreSQL 18 acceptance PASS; deploy step SKIPPED; no Production deployment |
+| OpsCore CI | [Run 44205567188](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44205567188) — SUCCESS on current main 88f0f737… | Post-merge source/verification CI passed; mobile audit gate passes under the time-bounded allowlist entry described below |
+| Vercel contract | [Run 44205566999](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44205566999) — contract PASS | Bound isolated PostgreSQL 18 acceptance PASS; deploy step SKIPPED; no Production deployment |
 | Required direct PostgreSQL check | [Run 44203166108](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44203166108) — PASS on PR #234 exact head before merge | Isolated PostgreSQL 18 RLS/HTTP acceptance; not Production certification |
 | PR #232 | Merged as 1054182e… | Removed tracked Python bytecode and ensured required PostgreSQL acceptance check is emitted on every PR |
 | PR #234 | Merged as 27d41476… | Fixed migration runner postconditions for the intentionally absent legacy opscore_app role; isolated CI passed before merge |
@@ -30,7 +31,7 @@ Do not describe the advisory as fixed, false-positive, dev-only, or absent from 
 
 ## 3. Secure Release artifact — not yet produced for current main
 
-The current-main Secure Release workflow has not been run successfully for commit 27d41476a115d81ddd3ad1b4f03025142a7e5be6. Consequently there is no verified current-main ZIP, external commercial release statement, matching archive SHA-256, SBOM/provenance pair or exact-run package evidence available for handoff in this closeout.
+The current-main Secure Release workflow has not been run successfully for repository commit 88f0f7377244d89f063de7c07714f9c2849fbc57. The latest application-code baseline remains 27d41476a115d81ddd3ad1b4f03025142a7e5be6, but a documentation-only merge still changes the exact repository commit and archive identity. Consequently there is no verified current-main ZIP, external commercial release statement, matching archive SHA-256, SBOM/provenance pair or exact-run package evidence available for handoff in this closeout.
 
 A manual Secure Release dispatch was attempted through the signed-in workflow browser, but the automation did not start because its separate wallet balance was -$0.12. No workflow run was created. This is an execution-tool funding blocker, not a product-code test failure. Historical artifacts must not be reused as current-main delivery evidence.
 

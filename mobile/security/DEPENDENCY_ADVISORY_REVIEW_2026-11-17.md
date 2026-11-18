@@ -256,7 +256,7 @@ Backend runtime audit success and the passing PostgreSQL 18 isolated test do not
 
 ## Current main reconciliation — 2026-11-18
 
-Current main is 27d41476a115d81ddd3ad1b4f03025142a7e5be6. The current mobile manifest resolves Expo 58.0.26, React 19.3.1 and React Native 0.88.1. OpsCore CI run [44203389751](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44203389751) passed, and Vercel contract run [44203389724](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44203389724) passed the contract and isolated PostgreSQL acceptance with the deployment job skipped.
+Current repository main is 88f0f7377244d89f063de7c07714f9c2849fbc57; the last application-code baseline is 27d41476a115d81ddd3ad1b4f03025142a7e5be6 because PR #235 changed closeout documents and a consistency test only. The current mobile manifest resolves Expo 58.0.26, React 19.3.1 and React Native 0.88.1. Post-merge OpsCore CI run [44205567188](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44205567188) passed, and Vercel contract run [44205566999](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44205566999) passed the contract and isolated PostgreSQL acceptance with the Production deployment job skipped.
 
 The reason the current main audit gate can pass is explicitly recorded in mobile/audit-allowlist.json:
 - GHSA-fc5q-39xc-vjpf remains allowlisted as a documented residual.
@@ -266,6 +266,6 @@ The reason the current main audit gate can pass is explicitly recorded in mobile
 
 This is a temporary configuration-level exception. The reviewed file does not contain an authorized risk-owner identity, signature, or separately signed risk-acceptance record. Therefore **formal seller risk acceptance remains NOT EVIDENCED**. Do not state that the advisory is fixed, that the mobile audit is clean, or that the entry is a VEX/not-affected declaration.
 
-PR #230, which pins picomatch to 4.0.7, remains Draft/HOLD. The override alone does not remediate the advisory. The current-main Secure Release workflow has not yet produced a ZIP/statement for commit 27d41476a115d81ddd3ad1b4f03025142a7e5be6; the manual dispatch attempt did not start because the separate browser automation wallet balance was -$0.12. No workflow run or release artifact was created.
+PR #230, which pins picomatch to 4.0.7, remains Draft/HOLD. The override alone does not remediate the advisory. The current-main Secure Release workflow has not yet produced a ZIP/statement for repository commit 88f0f7377244d89f063de7c07714f9c2849fbc57; the manual dispatch attempt did not start because the separate browser automation wallet balance was -$0.12. No workflow run or release artifact was created.
 
 Until an authorized seller security/risk owner documents and signs the disposition, treat the exception as time-limited CI gate policy only. Continue to preserve the advisory and reassess before 2026-12-18 or earlier if the registry state changes.

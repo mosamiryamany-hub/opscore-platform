@@ -33,16 +33,17 @@ The package includes Expo source only. Buyer owns EAS project/account linkage, A
 Use only audit, test, SBOM and release evidence produced by the same exact-head Secure Release workflow that creates the package.
 
 Current source baseline on main (2026-11-18):
-- Repository commit: 27d41476a115d81ddd3ad1b4f03025142a7e5be6.
+- Current repository main commit: 88f0f7377244d89f063de7c07714f9c2849fbc57.
+- Last application-code baseline: 27d41476a115d81ddd3ad1b4f03025142a7e5be6 (PR #235 changed commercial/ops documentation and the matching consistency test, not product runtime source).
 - Expo SDK 58.0.26, React 19.3.1, React Native 0.88.1.
-- Main OpsCore CI [44203389751](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44203389751) passed.
-- Main Vercel contract [44203389724](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44203389724) passed its contract and isolated PostgreSQL acceptance; deployment was skipped. Production has not been deployed by this run.
+- Post-merge main OpsCore CI [44205567188](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44205567188) passed on commit 88f0f737… .
+- Post-merge Vercel contract [44205566999](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44205566999) passed its contract and isolated PostgreSQL acceptance; deployment was skipped. Production has not been deployed by this run.
 
 Mobile dependency security remains explicitly unresolved: the current main audit gate allows GHSA-fc5q-39xc-vjpf only through the documented, time-limited allowlist entry reviewed by 2026-12-18. The installed picomatch 4.0.7 override is not an upstream fix. A gate PASS under this entry is not a clean audit or signed risk acceptance. PR #230 remains Draft/HOLD. Review the advisory note before making any security claim.
 
 ### Exact release package identity
 
-No successful Secure Release run has yet produced a ZIP and external release statement for current main commit 27d41476a115d81ddd3ad1b4f03025142a7e5be6. Do not use older ZIPs, artifact IDs or digests as current handoff evidence. A manual dispatch was attempted but did not start because the browser automation wallet balance was -$0.12; no GitHub Actions run was created. This is an execution-tool limitation, not a product CI failure.
+No successful Secure Release run has yet produced a ZIP and external release statement for current repository main commit 88f0f7377244d89f063de7c07714f9c2849fbc57. Do not use older ZIPs, artifact IDs or digests as current handoff evidence. A manual dispatch was attempted but did not start because the browser automation wallet balance was -$0.12; no GitHub Actions run was created. This is an execution-tool limitation, not a product CI failure.
 
 The seller-side source release remains HOLD until one successful exact-main Secure Release run produces the ZIP, external statement, archive SHA-256, SBOM, provenance, test reports, mobile audit and i18n forensic evidence, followed by archive review. This is seller-owned work and does not depend on identifying a buyer or obtaining a buyer signature.
 
