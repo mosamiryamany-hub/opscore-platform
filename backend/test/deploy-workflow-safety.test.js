@@ -8,11 +8,13 @@ const root = path.resolve(__dirname, '..', '..');
 const deploy = fs.readFileSync(path.join(root, '.github/workflows/vercel-deploy.yml'), 'utf8');
 const postgres = fs.readFileSync(path.join(root, '.github/workflows/digital-twin-postgres-live.yml'), 'utf8');
 
-test('production promotion remains disabled until the staged OIDC probe path is independently reviewed and enabled', () => {
-  assert.match(deploy, /if: false && github\.event_name == 'workflow_dispatch'/);
+test('production promotion requires an exact owner dispatch and staged OIDC readiness gates', () => {
+  assert.doesNotMatch(deploy, /if: false && github\.event_name == 'workflow_dispatch'/);
+  assert.match(deploy, /if: github\.event_name == 'workflow_dispatch' && github\.ref == 'refs\/heads\/main'/);
   assert.match(deploy, /vars\.OPSC_STAGED_PRODUCTION_PROBE_READY == 'true'/);
   assert.match(deploy, /I_AUTHORIZE_PRODUCTION_DEPLOYMENT/);
   assert.match(deploy, /vars\.OPSC_PRODUCTION_AUTODEPLOY_ENABLED == 'true'/);
+  assert.match(deploy, /environment:\s*\n\s+name: production/);
 });
 
 test('production deploy pins the declared backend Node engine before installing and running tooling', () => {
