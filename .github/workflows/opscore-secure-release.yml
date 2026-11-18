@@ -222,7 +222,8 @@ jobs:
 
       - name: Build buyer release archive
         env:
-          CI_COMMIT_TAG: ${{ github.ref_type == 'tag' && github.ref_name || (github.ref == 'refs/heads/release/v0.11.62.18-commercial-source-package' && 'v0.11.62.18-commercial-source-package') || '' }}
+          CI_COMMIT_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+          OPSC_RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || (github.ref == 'refs/heads/release/v0.11.62.18-commercial-source-package' && 'v0.11.62.18-commercial-source-package') || '' }}
           CI_COMMIT_SHA: ${{ github.sha }}
           CI_PIPELINE_ID: ${{ github.run_id }}
           CI_PIPELINE_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
@@ -243,7 +244,8 @@ jobs:
 
       - name: Write external commercial archive statement
         env:
-          CI_COMMIT_TAG: ${{ github.ref_type == 'tag' && github.ref_name || (github.ref == 'refs/heads/release/v0.11.62.18-commercial-source-package' && 'v0.11.62.18-commercial-source-package') || '' }}
+          CI_COMMIT_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+          OPSC_RELEASE_TAG: ${{ github.ref_type == 'tag' && github.ref_name || (github.ref == 'refs/heads/release/v0.11.62.18-commercial-source-package' && 'v0.11.62.18-commercial-source-package') || '' }}
           CI_COMMIT_SHA: ${{ github.sha }}
           CI_PIPELINE_ID: ${{ github.run_id }}
           CI_PIPELINE_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
