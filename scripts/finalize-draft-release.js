@@ -113,6 +113,13 @@ async function main() {
   assert(statement.artifact && statement.artifact.bytes === archiveBytes.length, 'RELEASE_STATEMENT_BYTES_MISMATCH');
   assert(statement.artifact.sha256 && statement.artifact.sha256.algorithm === 'SHA-256', 'RELEASE_STATEMENT_HASH_ALGORITHM_INVALID');
   assert(statement.artifact.sha256.value === archiveDigest, 'RELEASE_STATEMENT_HASH_MISMATCH');
+  assert(statement.commercialClosure === 'PASS_WITH_BUYER_RESIDUALS', 'COMMERCIAL_CLOSURE_STATUS_NOT_ACCEPTABLE');
+  assert(statement.licenseGrant === 'NONE_PENDING_RIGHTS_HOLDER_DECISION', 'UNEXPECTED_LICENSE_GRANT_STATE');
+  assert(statement.distributionAuthorized === false, 'UNEXPECTED_DISTRIBUTION_AUTHORIZATION');
+  assert(statement.productionCertification === false, 'UNEXPECTED_PRODUCTION_CERTIFICATION');
+  assert(Array.isArray(statement.residuals), 'RELEASE_STATEMENT_RESIDUALS_MISSING');
+  assert(statement.residuals.some(item => String(item).includes('OPSC_APP_SECURITY')), 'OPSC_APP_SECURITY_RESIDUAL_NOT_DISCLOSED');
+  assert(statement.residuals.some(item => String(item).includes('GHSA-fc5q-39xc-vjpf')), 'PICOMATCH_ADVISORY_RESIDUAL_NOT_DISCLOSED');
 
   const suffix = 'v0.11.62.18-' + sourceCommit.slice(0, 12) + '-' + runId;
   const archiveName = 'OpsCore-release-' + suffix + '.zip';
