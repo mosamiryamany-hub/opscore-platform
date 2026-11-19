@@ -1381,14 +1381,24 @@ function route(req, res) {
     return sendFile(res, path.resolve(__dirname, '..', 'docs', 'openapi.json'));
   if (req.method === 'GET' && url.pathname === '/api/verify/deployment') {
     const identity = readEmbeddedBuildIdentity();
-    const deploymentEnv = identity ? {
-      ...process.env,
-      OPSC_RELEASE_DEPLOYMENT_SOURCE: identity.deploymentSource,
-      OPSC_RELEASE_CI_COMMIT: identity.commitSha,
-      OPSC_RELEASE_CI_PIPELINE_ID: identity.pipelineId,
-      OPSC_RELEASE_CI_REF: identity.ref,
-      OPSC_SOURCE_COMMIT_SHA: identity.commitSha
-    } : process.env;
+    // Environment variables may outlive the deployment that originally created them.
+    // They are configuration, not proof that this exact bundle was built by GitHub Actions.
+    // Only the generated identity file embedded in this deployed bundle may assert CLI provenance.
+    const deploymentEnv = { ...process.env };
+    for (const key of [
+      'OPSC_RELEASE_DEPLOYMENT_SOURCE',
+      'OPSC_RELEASE_CI_COMMIT',
+      'OPSC_RELEASE_CI_PIPELINE_ID',
+      'OPSC_RELEASE_CI_REF',
+      'OPSC_SOURCE_COMMIT_SHA'
+    ]) delete deploymentEnv[key];
+    if (identity) {
+      deploymentEnv.OPSC_RELEASE_DEPLOYMENT_SOURCE = identity.deploymentSource;
+      deploymentEnv.OPSC_RELEASE_CI_COMMIT = identity.commitSha;
+      deploymentEnv.OPSC_RELEASE_CI_PIPELINE_ID = identity.pipelineId;
+      deploymentEnv.OPSC_RELEASE_CI_REF = identity.ref;
+      deploymentEnv.OPSC_SOURCE_COMMIT_SHA = identity.commitSha;
+    }
     const proof = createDeploymentProof(deploymentEnv);
     return json(res, proof.status === 'identified' ? 200 : 503, proof);
   }
