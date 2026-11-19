@@ -140,7 +140,7 @@ jobs:
       - name: Provision locked legacy application role required by historical grants
         run: |
           set -euo pipefail
-          export PGURI="$(cat "$RUNNER_TEMP/owner.uri")"
+          export PGURI="$(cat "$RUNNER_TEMP/owner.uri")"; case "$PGURI" in *"?"*) PGURI="$PGURI&sslrootcert=system";; *) PGURI="$PGURI?sslrootcert=system";; esac; export PGURI
           test -n "${PGURI}" || { echo "OWNER_URI_MISSING" >&2; exit 1; }
           psql "$PGURI" -v ON_ERROR_STOP=1 -q <<'SQL'
           DO $$
@@ -168,7 +168,7 @@ jobs:
         working-directory: backend
         run: |
           set -euo pipefail
-          export OPSC_MIGRATION_DATABASE_URL="$(cat "$RUNNER_TEMP/owner.uri")"
+          export OPSC_MIGRATION_DATABASE_URL="$(cat "$RUNNER_TEMP/owner.uri")"; case "$OPSC_MIGRATION_DATABASE_URL" in *"?"*) OPSC_MIGRATION_DATABASE_URL="$OPSC_MIGRATION_DATABASE_URL&sslrootcert=system";; *) OPSC_MIGRATION_DATABASE_URL="$OPSC_MIGRATION_DATABASE_URL?sslrootcert=system";; esac; export OPSC_MIGRATION_DATABASE_URL
           node scripts/apply-postgres-migrations.js | tee "$RUNNER_TEMP/dry-run.json"
           python3 - <<'PY'
           import json,os,sys,re
@@ -206,7 +206,7 @@ jobs:
         working-directory: backend
         run: |
           set -euo pipefail
-          export OPSC_MIGRATION_DATABASE_URL="$(cat "$RUNNER_TEMP/owner.uri")"
+          export OPSC_MIGRATION_DATABASE_URL="$(cat "$RUNNER_TEMP/owner.uri")"; case "$OPSC_MIGRATION_DATABASE_URL" in *"?"*) OPSC_MIGRATION_DATABASE_URL="$OPSC_MIGRATION_DATABASE_URL&sslrootcert=system";; *) OPSC_MIGRATION_DATABASE_URL="$OPSC_MIGRATION_DATABASE_URL?sslrootcert=system";; esac; export OPSC_MIGRATION_DATABASE_URL
           unset OPSC_MIGRATION_ALLOW_PRODUCTION || true
           node scripts/apply-postgres-migrations.js --apply | tee "$RUNNER_TEMP/apply.json"
           python3 - <<'PY'
@@ -231,7 +231,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client >/dev/null
-          URI="$(cat "$RUNNER_TEMP/owner.uri")"
+          URI="$(cat "$RUNNER_TEMP/owner.uri")"; case "$URI" in *"?"*) URI="$URI&sslrootcert=system";; *) URI="$URI?sslrootcert=system";; esac; export URI
           psql "$URI" -v ON_ERROR_STOP=1 -c \
             "SELECT filename, left(sha256,12) AS sha12, applied_at
              FROM public.schema_migrations
