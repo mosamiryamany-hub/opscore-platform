@@ -1,9 +1,9 @@
 # OpsCore — Buyer Evidence Index
 
-**Evidence cut:** 2026-11-19 14:52 UTC  
-**Current protected main:** [`66d1b564886c42a42dbc9775da91af672d45e04c`](https://github.com/mosamiryamany-hub/opscore-platform/commit/66d1b564886c42a42dbc9775da91af672d45e04c)  
+**Evidence cut:** 2026-11-19 15:17 UTC  
+**Current protected main:** [`d672dce8f18e1d7095aed3126aedb0f995796144`](https://github.com/mosamiryamany-hub/opscore-platform/commit/d672dce8f18e1d7095aed3126aedb0f995796144)  
 **Live Production deployment:** `dpl_AgWqB4kaSRXhdsmKfvXg9qgeQgt9`  
-**Live Production application-code SHA:** `68505535f1c2fabd2a786094f8f64d234d26e123` — matches deployed application code; current main adds documentation only
+**Live Production application-code SHA:** `68505535f1c2fabd2a786094f8f64d234d26e123` — Production is still pinned to this earlier application revision; current protected main `d672dce8...` includes PR #292 trust-proof UI changes not yet in Production
 
 > This index separates merged source from deployed Production. Provider READY, green CI, and RLS catalog state are not equivalent to Production release certification.
 
@@ -18,16 +18,16 @@
 
 ## Main and CI references
 
-- Current protected main: https://github.com/mosamiryamany-hub/opscore-platform/commit/66d1b564886c42a42dbc9775da91af672d45e04c
+- Current protected main: https://github.com/mosamiryamany-hub/opscore-platform/commit/d672dce8f18e1d7095aed3126aedb0f995796144
 - Deployed application-code commit: https://github.com/mosamiryamany-hub/opscore-platform/commit/68505535f1c2fabd2a786094f8f64d234d26e123
 - PR #290 — live login route: https://github.com/mosamiryamany-hub/opscore-platform/pull/290
 - PR #291 — evidence traceability ledger: https://github.com/mosamiryamany-hub/opscore-platform/pull/291
-- Latest OpsCore CI: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44547562235
-- Latest PostgreSQL 18 isolated acceptance: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44547562215
+- Latest OpsCore CI: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44552772156
+- Latest PostgreSQL 18 isolated acceptance: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44552772494
 - PR #287 — login route and HTTP smoke test: https://github.com/mosamiryamany-hub/opscore-platform/pull/287
 - PR #288 — fail-closed trust-proof correction: https://github.com/mosamiryamany-hub/opscore-platform/pull/288
-- Current-main OpsCore CI: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44547562235
-- Current-main source/PostgreSQL 18/contract workflow: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44547562215
+- Current-main OpsCore CI: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44552772156
+- Current-main source/PostgreSQL 18/contract workflow: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44552772494
 - Earlier authorized Production workflow attempt: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44529428910
 
 ## Current status
@@ -37,8 +37,9 @@
 | Current main and branch protection | Verified |
 | Current-main source regression CI | PASS |
 | Disposable PostgreSQL 18 and contract acceptance | PASS |
-| Current Production app-code source | Matches current main application code; latest main addition is docs-only |
-| Vercel live deployment source | `68505535...`; current main's only later change is docs-only |
+| Current Production app-code source | NOT CURRENT — Production remains on `68505535...`; current main `d672dce8...` includes PR #292 UI code |
+| Vercel live deployment source | `68505535...`; does not yet include current main `d672dce8...` |
+| Current-main Preview build | READY — `dpl_DCQk2TbxtCoMHLDCEQ8pN4W33ay1`, exact SHA `d672dce8...`; SSO-protected; not Production |
 | Live health | Healthy / PostgreSQL / 0.11.62 |
 | Live `/login` | Redirects to `/control-plane.html` |
 | Live release proof | UNVERIFIED |
@@ -58,7 +59,7 @@ Neon Free, PostgreSQL 18.7. Production database is `opscore_acceptance`; Primary
 
 ## Latest CI evidence scope
 
-The latest completed runs on PR #291 passed: OpsCore source/regression/performance/security/mobile CI (`44547562235`) and disposable PostgreSQL 18 acceptance (`44547562215`), including signed tenant context, 67-route CI matrix, RLS, composite tenant FKs, HTTP runtime acceptance and a real logical dump/restore drill. Production deploy, Neon Preview and Production PITR jobs were skipped. These successes are valid CI evidence, not Production certificates. The deployed app code `68505535...` and tested PR revision `f3ab1791...` differ only by the traceability documentation file; application code is unchanged.
+The latest completed current-main push runs on `d672dce8...` passed: OpsCore source/regression/performance/security/mobile CI (`44552772156`) and source plus disposable PostgreSQL 18 acceptance (`44552772494`). The isolated database job reported a 346-route source-derived CI matrix and a 137-table logical restore drill, with RLS, composite tenant FKs, HTTP runtime acceptance and cleanup checks. Production deploy, Neon Preview migration/HTTP acceptance and Production PITR jobs were skipped. These results are CI/disposable-database evidence only, not Production certificates. Production remains on application SHA `68505535...`; PR #292's trust-proof UI is merged to main and built as an SSO-protected Preview only.
 
 ## Commercial boundary
 
