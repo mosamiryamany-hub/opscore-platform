@@ -181,8 +181,22 @@ function signedTenantContextRequired(env = process.env) {
   return enabled(env.OPSC_REQUIRE_SIGNED_TENANT_CONTEXT);
 }
 
+// Binary attachment download is intentionally a separate, single-route
+// authorization exception. It is NOT part of the 67-route certification inventory,
+// but it must still bind the authenticated session to signed PostgreSQL context.
+// Candidate probes require the same per-request secret while Production is held;
+// a real released Production runtime requires the full production signed-context gate.
+function signedAttachmentDownloadContextEnabled(req, env = process.env, readiness = {}) {
+  const method = String(req && req.method || '').toUpperCase();
+  const pathname = String(req && req.url || '').split('?')[0];
+  if (method !== 'GET' || !/^\\/api\\/v1\\/attachments\\/[^/]+$/.test(pathname)) return false;
+  return isCandidateProbeAuthorized(req, env, readiness)
+    || isSignedContextEnvironment(env, readiness, req);
+}
+
 function signedContextRequested(req, env = process.env, readiness = {}) {
-  return signedSessionAutobindEnabled(env, readiness)
+  return signedAttachmentDownloadContextEnabled(req, env, readiness)
+    || signedSessionAutobindEnabled(env, readiness)
     || signedWorkOrdersContextEnabled(req, env, readiness)
     || signedAssetsReadEnabled(req, env, readiness);
 }
