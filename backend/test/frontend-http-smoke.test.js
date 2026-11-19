@@ -15,6 +15,17 @@ test('frontend console API smoke covers every static UI GET route over HTTP',asy
  const child=spawn(process.execPath,['src/server.js'],{cwd:path.resolve(__dirname,'..'),env:{...process.env,NODE_ENV:'test',PORT:String(port),HOST:'127.0.0.1',SQLITE_PATH:path.join(dir,'db.sqlite'),OPSC_REPOSITORY_PATH:path.join(dir,'files')},stdio:['ignore','pipe','pipe']});
  try{await waitForServer(child);const base=`http://127.0.0.1:${port}`;
   const req=async(p,o={})=>fetch(base+p,{...o,headers:{...(o.body?{'content-type':'application/json'}:{}),...(o.headers||{})}});
+  const login=await req('/login',{redirect:'manual'});
+  assert.equal(login.status,307,'/login must route to the authenticated Control Plane login surface');
+  assert.equal(login.headers.get('location'),'/control-plane.html');
+  assert.equal(login.headers.get('cache-control'),'no-store');
+  const loginHead=await req('/login',{method:'HEAD',redirect:'manual'});
+  assert.equal(loginHead.status,307,'HEAD /login must preserve the deterministic login redirect');
+  const controlPlane=await req('/control-plane.html');
+  assert.equal(controlPlane.status,200);
+  const controlPlaneHtml=await controlPlane.text();
+  assert.match(controlPlaneHtml,/id="loginPanel"/,'login destination must include its authentication panel');
+  assert.match(controlPlaneHtml,/id="loginForm"/,'login destination must include its submit form');
   const retiredBridge=await req('/command-bridge.html',{redirect:'manual'});
   assert.equal(retiredBridge.status,307,'legacy Mission Control route must redirect');
   assert.equal(retiredBridge.headers.get('location'),'/control-plane.html');
