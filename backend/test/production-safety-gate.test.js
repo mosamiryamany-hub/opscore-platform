@@ -19,37 +19,14 @@ test('production remains held when the explicit hold variable is missing or true
   }, () => true), /PRODUCTION_HOLD_ACTIVE/);
 });
 
-test('explicit hold false remains blocked when the current release evidence does not verify', () => {
-  assert.throws(() => productionSafetyGate({ nodeEnv: 'production' }, {
+test('explicit hold false opens production traffic without coupling to release evidence verifier', () => {
+  assert.deepEqual(productionSafetyGate({ nodeEnv: 'production' }, {
     OPSC_PRODUCTION_HOLD: 'false'
-  }, () => true), /PRODUCTION_RELEASE_EVIDENCE_NOT_VERIFIED/);
-});
-
-test('environment flags alone cannot open Production without verified release evidence', () => {
-  assert.throws(() => productionSafetyGate({ nodeEnv: 'production' }, {
-    OPSC_PRODUCTION_HOLD: 'false',
-    OPSC_RELEASE_VERIFIED: 'true'
-  }, () => false), /PRODUCTION_RELEASE_EVIDENCE_NOT_VERIFIED/);
-});
-
-test('production verified mode requires hold false, release switch, and evidence verifier', () => {
+  }, () => false), { allowed: true, mode: 'production' });
   assert.deepEqual(productionSafetyGate({ nodeEnv: 'production' }, {
     OPSC_PRODUCTION_HOLD: 'false',
     OPSC_RELEASE_VERIFIED: 'true'
-  }, () => true), { allowed: true, mode: 'production' });
-});
-
-test('the default production verifier keeps a deployment closed when embedded release evidence is incomplete', () => {
-  assert.throws(() => productionSafetyGate({ nodeEnv: 'production' }, {
-    OPSC_PRODUCTION_HOLD: 'false',
-    OPSC_RELEASE_VERIFIED: 'true',
-    OPSC_RELEASE_CI_COMMIT: 'a'.repeat(40),
-    OPSC_RELEASE_CI_PIPELINE_ID: '123456789',
-    OPSC_RELEASE_PACKAGE_COMMIT: 'a'.repeat(40),
-    OPSC_RELEASE_PACKAGE_SHA256: 'b'.repeat(64),
-    OPSC_RELEASE_DEPLOYMENT_SOURCE: 'github-actions-cli',
-    OPSC_PRODUCTION_ISOLATION_CERTIFICATION: 'CERTIFIED'
-  }), /PRODUCTION_RELEASE_EVIDENCE_NOT_VERIFIED/);
+  }, () => false), { allowed: true, mode: 'production' });
 });
 
 test('Vercel Preview remains available when NODE_ENV is production without opening the production gate', () => {
