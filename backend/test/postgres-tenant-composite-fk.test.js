@@ -9,6 +9,7 @@ const root = path.resolve(__dirname, '..');
 const migration = fs.readFileSync(path.join(root, 'sql/postgres/054_tenant_composite_foreign_keys.sql'), 'utf8');
 const gate = fs.readFileSync(path.join(root, 'scripts/postgres-tenant-composite-fk-gate.js'), 'utf8');
 const workflow = fs.readFileSync(path.resolve(root, '..', '.github/workflows/digital-twin-postgres-live.yml'), 'utf8');
+const callerWorkflow = fs.readFileSync(path.resolve(root, '..', '.github/workflows/vercel-deploy.yml'), 'utf8');
 
 const versionMigration = fs.readFileSync(path.join(root, 'sql/postgres/055_completion_policy_version.sql'), 'utf8');
 const localControlPlane = fs.readFileSync(path.join(root, 'src/local-control-plane.js'), 'utf8');
@@ -65,7 +66,11 @@ test('PostgreSQL 18 gate verifies two-tenant writes and delete actions under the
   }
   assert.match(gate, /assert\.equal\(runtime\.rolsuper, false,/);
   assert.match(gate, /assert\.equal\(runtime\.rolbypassrls, false,/);
-  assert.match(workflow, /backend\/sql\/postgres\/\*\*/);
+  assert.match(workflow, /workflow_call:/);
+  assert.doesNotMatch(workflow, /^\s+pull_request:/m);
+  assert.match(callerWorkflow, /postgres-acceptance:\s*\n\s+name: deploy-bound-postgres-18-acceptance\s*\n\s+if: >-\s*\n\s+\(github\.event_name == 'pull_request' && github\.base_ref == 'main'\)/);
+  assert.match(callerWorkflow, /uses: \.\/\.github\/workflows\/digital-twin-postgres-live\.yml/);
+  assert.match(callerWorkflow, /verify:\s*\n\s+name: vercel-contract-verify\s*\n\s+needs: \[source-verify, postgres-acceptance\]/);
   assert.match(workflow, /scripts\/postgres-tenant-composite-fk-gate\.js/);
   assert.match(workflow, /image: postgis\/postgis:18-3\.7/);
   assert.match(workflow, /postgresql-18-pgvector/);
