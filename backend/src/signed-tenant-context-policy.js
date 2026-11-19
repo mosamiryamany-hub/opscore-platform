@@ -14,25 +14,28 @@ function isPreview(env = process.env) {
 // A Production environment switch is insufficient: the deployment's immutable
 // release proof must already certify the exact 67-route Production evidence,
 // and the global traffic hold must be explicitly open.
-function isCandidateProbeAuthorized(req, env = process.env, readiness = {}) {
-  if (String(env.VERCEL_ENV || '') !== 'production'
-      || !enabled(env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED)
-      || String(env.OPSC_PRODUCTION_HOLD || '').trim().toLowerCase() !== 'true'
-      || enabled(env.OPSC_RELEASE_VERIFIED)
-      || enabled(env.OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED)
-      || enabled(env.OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED)
-      || String(env.OPSC_REQUIRE_SIGNED_TENANT_CONTEXT || '').trim().toLowerCase() !== 'true'
-      || readiness.productionReleaseVerified === true) return false;
-
+function candidateProbeDenialReason(req, env = process.env, readiness = {}) {
+  if (String(env.VERCEL_ENV || '') !== 'production') return 'vercel_env';
+  if (!enabled(env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED)) return 'probe_disabled';
+  if (String(env.OPSC_PRODUCTION_HOLD || '').trim().toLowerCase() !== 'true') return 'hold_not_true';
+  if (enabled(env.OPSC_RELEASE_VERIFIED)) return 'release_verified';
+  if (enabled(env.OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED)) return 'production_signed_enabled';
+  if (enabled(env.OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED)) return 'session_autobind_enabled';
+  if (String(env.OPSC_REQUIRE_SIGNED_TENANT_CONTEXT || '').trim().toLowerCase() !== 'true') return 'require_signed_missing';
+  if (readiness.productionReleaseVerified === true) return 'readiness_release_verified';
   const expected = String(env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN || '').trim();
   const supplied = String(req && req.headers && req.headers['x-opscore-signed-context-probe'] || '').trim();
-  if (!/^[a-f0-9]{64}$/i.test(expected) || !/^[a-f0-9]{64}$/i.test(supplied)) return false;
-
+  if (!/^[a-f0-9]{64}$/i.test(expected)) return 'expected_token_invalid';
+  if (!/^[a-f0-9]{64}$/i.test(supplied)) return 'supplied_token_invalid';
   const expectedBytes = Buffer.from(expected, 'hex');
   const suppliedBytes = Buffer.from(supplied, 'hex');
-  return expectedBytes.length === 32
-    && suppliedBytes.length === expectedBytes.length
-    && crypto.timingSafeEqual(expectedBytes, suppliedBytes);
+  if (expectedBytes.length !== 32 || suppliedBytes.length !== expectedBytes.length) return 'token_length';
+  if (!crypto.timingSafeEqual(expectedBytes, suppliedBytes)) return 'token_mismatch';
+  return null;
+}
+
+function isCandidateProbeAuthorized(req, env = process.env, readiness = {}) {
+  return candidateProbeDenialReason(req, env, readiness) === null;
 }
 
 function isSignedContextEnvironment(env = process.env, readiness = {}, req = null) {
@@ -235,6 +238,7 @@ module.exports = {
   signedSessionAutobindEnabled,
   signedTenantContextRequired,
   isCandidateProbeAuthorized,
+  candidateProbeDenialReason,
   signedContextRequested,
   signedTenantContextRouteError,
   isSignedTenantContextRouteDefinition

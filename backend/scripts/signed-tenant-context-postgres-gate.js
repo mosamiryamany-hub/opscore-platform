@@ -526,7 +526,8 @@ async function queryHttp(port, route, token, options = {}) {
     const manifestRoute = findSignedTenantManifestRoute(method, target.pathname);
     if (manifestRoute
         && String(responseHeaders['x-opscore-candidate-guc-tamper'] || '') !== 'applied') {
-      throw new Error('CANDIDATE_GUC_TAMPER_NOT_CONFIRMED:' + method + ' ' + target.pathname);
+      const observed = String(responseHeaders['x-opscore-candidate-guc-tamper'] || 'missing');
+      throw new Error('CANDIDATE_GUC_TAMPER_NOT_CONFIRMED:' + method + ' ' + target.pathname + ':' + observed + ':http_' + response.status);
     }
     const responseBody = await response.text();
     if (Buffer.byteLength(responseBody, 'utf8') > 1024 * 1024) {
