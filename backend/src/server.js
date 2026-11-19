@@ -1316,7 +1316,7 @@ function sendAttachment(res, attachment) {
   const headers = {
     'content-type': mediaType,
     'content-length': String(attachment.buffer.length),
-    'content-disposition': \`attachment; filename="\${fileName}"\`,
+    'content-disposition': 'attachment; filename="' + fileName + '"',
     'cache-control': 'no-store',
     'x-content-type-options': 'nosniff',
     'x-frame-options': 'DENY',
