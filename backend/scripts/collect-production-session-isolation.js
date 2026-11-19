@@ -152,7 +152,7 @@ async function main() {
   let ownerUrl;
   try { ownerUrl = new URL(ownerUri); } catch { throw new Error('PRODUCTION_OWNER_CONNECTION_URI_INVALID'); }
   if (ownerUrl.hostname.toLowerCase().includes('-pooler.')) throw new Error('PRODUCTION_OWNER_DIRECT_CONNECTION_REQUIRED');
-  const httpBase = String(process.env.OPSC_PRODUCTION_HTTP_BASE || 'https://opscore-platform.vercel.app').replace(/\\/+$/, '');
+  const httpBase = String(process.env.OPSC_PRODUCTION_HTTP_BASE || 'https://opscore-platform.vercel.app').replace(/\/+$/, '');
   const httpUrl = new URL(httpBase);
   const isCandidateMode = String(process.env.OPSC_PRODUCTION_CANDIDATE_MODE || '').trim().toLowerCase() === 'true';
   if (httpUrl.origin !== httpBase || httpUrl.protocol !== 'https:') throw new Error('PRODUCTION_HTTP_ORIGIN_NOT_APPROVED');
