@@ -191,10 +191,28 @@ async function prepare(options = {}) {
   process.stdout.write('::add-mask::' + probeToken + '\n');
 
   for (const [key, value] of Object.entries(FAIL_CLOSED_VALUES)) {
-    await upsertProductionEnv(key, value, 'encrypted', options);
+    await upsertProductionEnv(key, value, 'plain', options);
   }
-  await upsertProductionEnv('OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED', 'true', 'encrypted', options);
+  await upsertProductionEnv('OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED', 'true', 'plain', options);
   await upsertProductionEnv('OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN', probeToken, 'sensitive', options);
+  await upsertProductionEnv('OPSC_PRODUCTION_CANDIDATE_MODE', 'true', 'plain', options);
+
+  // Fail closed if Production env API does not retain candidate probe flags after upsert.
+  const after = await listProjectEnvs(options);
+  for (const key of [
+    'OPSC_PRODUCTION_HOLD',
+    'OPSC_RELEASE_VERIFIED',
+    'OPSC_REQUIRE_SIGNED_TENANT_CONTEXT',
+    'OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED',
+    'OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED',
+    'OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED',
+    'OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN',
+    'OPSC_PRODUCTION_CANDIDATE_MODE'
+  ]) {
+    if (!productionHits(after, key).length) {
+      throw new Error('CANDIDATE_ENV_UPSERT_NOT_VISIBLE:' + key);
+    }
+  }
   process.stdout.write('PRODUCTION_CANDIDATE_ENV_PREPARED=PASS\n');
 }
 

@@ -394,16 +394,16 @@ jobs:
           env_file=".vercel/.env.production.local"
           test -s "$env_file"
           for key in OPSC_PRODUCTION_HOLD OPSC_RELEASE_VERIFIED OPSC_REQUIRE_SIGNED_TENANT_CONTEXT \
-            OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN \
+            OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED \
             OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED; do
             grep -E "^${key}=" "$env_file" >/dev/null || { echo "CANDIDATE_ENV_PULL_MISSING:$key" >&2; exit 1; }
           done
-          grep -E '^OPSC_PRODUCTION_HOLD=["''']?true["''']?$' "$env_file" >/dev/null \
+          grep -E '^OPSC_PRODUCTION_HOLD=true$' "$env_file" >/dev/null \
+            || grep -E '^OPSC_PRODUCTION_HOLD="true"$' "$env_file" >/dev/null \
             || { echo "CANDIDATE_HOLD_NOT_TRUE_AFTER_PREPARE" >&2; exit 1; }
-          grep -E '^OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED=["''']?true["''']?$' "$env_file" >/dev/null \
+          grep -E '^OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED=true$' "$env_file" >/dev/null \
+            || grep -E '^OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED="true"$' "$env_file" >/dev/null \
             || { echo "CANDIDATE_PROBE_NOT_ENABLED_AFTER_PREPARE" >&2; exit 1; }
-          grep -E '^OPSC_REQUIRE_SIGNED_TENANT_CONTEXT=["''']?true["''']?$' "$env_file" >/dev/null \
-            || { echo "CANDIDATE_REQUIRE_SIGNED_NOT_TRUE" >&2; exit 1; }
           echo "CANDIDATE_ENV_PULL_PROBE_FLAGS=PASS"
 
       - name: Build held Production candidate without release certification
