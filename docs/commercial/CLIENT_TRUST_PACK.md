@@ -1,26 +1,27 @@
 # OpsCore — Client Trust Pack
 
-**Evidence cut:** 2026-11-19 14:52 UTC  
-**Current protected main:** `66d1b564886c42a42dbc9775da91af672d45e04c`  
+**Evidence cut:** 2026-11-19  
+**Protected main at evidence cut:** `d672dce8f18e1d7095aed3126aedb0f995796144`  
 **Current live Production application-code source:** `68505535f1c2fabd2a786094f8f64d234d26e123`  
 **Live Production deployment:** `dpl_AgWqB4kaSRXhdsmKfvXg9qgeQgt9`  
 **Public site:** https://opscore-platform.vercel.app
 
-> **Client diligence notice:** This document reports what is deployed and what is only merged in source. The website is healthy and current application code `68505535...` is deployed; the only later main change is documentation-only PR #291. Release status is UNVERIFIED because the bundle lacks a validated GitHub Actions identity artifact. Production-wide isolation remains NOT_CERTIFIED. This is evidence disclosure, not a certificate, warranty, or license grant.
+> **Client diligence notice:** This document distinguishes the protected main revision at the evidence cut from live Production. PR #292 merged trust-proof UI changes at `d672dce8...`; a Vercel Preview from that exact commit is READY but SSO-protected. Public Production remains on `68505535...` and does not yet contain PR #292. Release status remains UNVERIFIED; Production-wide isolation remains NOT_CERTIFIED. This is evidence disclosure, not a certificate, warranty, or license grant.
 
 ## 1. Current source and hosted pin
 
 | Item | Current evidence |
 |---|---|
 | GitHub repository | [mosamiryamany-hub/opscore-platform](https://github.com/mosamiryamany-hub/opscore-platform) |
-| Protected main | [`66d1b564886c42a42dbc9775da91af672d45e04c`](https://github.com/mosamiryamany-hub/opscore-platform/commit/66d1b564886c42a42dbc9775da91af672d45e04c) |
+| Protected main | [`d672dce8f18e1d7095aed3126aedb0f995796144`](https://github.com/mosamiryamany-hub/opscore-platform/commit/d672dce8f18e1d7095aed3126aedb0f995796144) |
 | Vercel Production | `dpl_AgWqB4kaSRXhdsmKfvXg9qgeQgt9` — READY |
-| Deployed application-code source | `68505535f1c2fabd2a786094f8f64d234d26e123` — matches current application code in main |
+| Deployed application-code source | `68505535f1c2fabd2a786094f8f64d234d26e123` — live Production SHA; NOT current main after PR #292 |
 | Product version reported by live health | `0.11.62` |
 | PR #287 | Merged: adds explicit login route and test |
 | PR #288 | Merged: makes deployment/release trust proofs fail closed on unbound environment-only values |
+| PR #292 | Merged: distinguishes successful CI evidence from Production certification in the trust-proof UI |
 
-PR #291 adds a documentation-only file after deployed app commit `68505535...`; the running application code is therefore the current main application-code state. The latest Production deployment is `dpl_AgWq...`.
+PR #291 was documentation-only, but PR #292 subsequently changed the trust-proof UI and merged as main at the evidence cut `d672dce8...`. A separate Vercel Preview build `dpl_DCQk2TbxtCoMHLDCEQ8pN4W33ay1` is READY from that exact commit and remains SSO-protected. The latest public Production deployment is still `dpl_AgWq...` on application SHA `68505535...`; no Production promotion occurred.
 
 ## 2. Public verification endpoints
 
@@ -38,7 +39,7 @@ PR #291 adds a documentation-only file after deployed app commit `68505535...`; 
 | Gate | Live response | Customer-safe interpretation |
 |---|---|---|
 | Source identity method | `unverified` | Embedded GitHub Actions identity is not established by this endpoint |
-| Commit | `68505535...` | This is the live application-code SHA; main's only later addition is documentation |
+| Commit | `68505535...` | This is the live Production application-code SHA; main at the evidence cut is `d672dce8...` and contains the merged PR #292 UI change |
 | Embedded CI attestation | `UNVERIFIED`, no pipeline ID | Separate successful CI runs exist, but no CI assertion is embedded in this exact deployed bundle |
 | Commercial release closure | `UNVERIFIED` | Release is not commercially closed |
 | Production acceptance | `NOT_VERIFIED` | No current exact-deployment acceptance proof |
@@ -65,12 +66,12 @@ Root cause: the previous deployment verifier could use stale Vercel environment 
 ## 5. CI evidence boundary
 
 Current-main runs:
-- [OpsCore CI 44547562235](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44547562235) — SUCCESS (source/regression/performance/security/mobile)
-- [Vercel source / PostgreSQL 18 / contract workflow 44547562215](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44547562215) — SUCCESS (disposable PostgreSQL 18 acceptance, 67-route CI matrix, RLS, composite FKs, HTTP and logical restore drill)
+- [OpsCore CI 44552772156](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44552772156) — SUCCESS (source/regression/performance/security/mobile)
+- [Vercel source / PostgreSQL 18 / contract workflow 44552772494](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44552772494) — SUCCESS (disposable PostgreSQL 18 acceptance, 346-route CI matrix, RLS, composite FKs, HTTP and logical restore drill)
 
-The latest run 44547562215 passed source verification and the disposable PostgreSQL 18 acceptance jobs. Production deploy, Neon Preview acceptance and Production Neon PITR jobs were skipped. The earlier authorized Production attempt [44529428910](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44529428910) passed source/CI/PostgreSQL/contract checks but failed at paid-plan and branch-capacity preflight; candidate build and Production probes were skipped.
+Current-main run 44552772494 passed source verification, disposable PostgreSQL 18 acceptance and the contract job. Its isolated matrix covered 346 source-derived routes and its logical restore drill covered 137 tables; Production deploy, Neon Preview migration/HTTP acceptance and Production Neon PITR jobs were skipped. The earlier authorized Production attempt [44529428910](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44529428910) passed source/CI/PostgreSQL/contract checks but failed at paid-plan and branch-capacity preflight; candidate build and Production probes were skipped.
 
-The 67-route matrix passing in disposable PostgreSQL CI is not 67/67 live Production tenant-session coverage.
+The 346-route matrix passing in disposable PostgreSQL CI is not live Production tenant-session coverage or a Production isolation certificate.
 
 ## 6. Database and isolation evidence
 
@@ -125,4 +126,4 @@ The authorized workflow's read-only preflight permits Vercel Pro/Enterprise and 
 
 ## ملخص الثقة للعميل
 
-الموقع يعمل، و`/login` يحوّل إلى صفحة Control Plane. كود التطبيق `68505535` منشور؛ والالتزام الأحدث في `main` يضيف توثيق الأدلة فقط. اختبارات CI وPostgreSQL 18 نجحت، بما فيها مصفوفة 67 مسارًا وتجربة استعادة منطقية داخل قاعدة اختبار معزولة، لكنها لا تثبت عزل المستأجرين أو استعادة Production. إثبات النشر يحدد مصدر Git من Vercel، وإثبات الإصدار يظل UNVERIFIED لغياب هوية GitHub Actions المضمّنة وبصمة الحزمة الموقعة. إعدادات RLS الحية مثبتة على مستوى الكتالوج فقط. فرع Neon الأساسي غير محمي والنسخ المجدول غير متاح، وفرع الاستعادة يختلف عن Primary في ستة جداول. لا توجد حزمة موقعة أو ترخيص استخدام/إعادة بيع.
+الموقع العام يعمل، و`/login` يحوّل إلى صفحة Control Plane. Production ما زالت على كود التطبيق `68505535`، بينما `main` عند `d672dce8` ويتضمن تحديث واجهة إثبات الثقة في PR #292؛ نسخة Preview من هذا الالتزام جاهزة لكنها محمية بـSSO ولم تُرقَّ إلى Production. اختبارات CI وPostgreSQL 18 الحالية نجحت، بما فيها مصفوفة 346 مسارًا وتجربة استعادة منطقية لـ137 جدولًا داخل قواعد اختبار معزولة، لكنها لا تثبت عزل المستأجرين أو استعادة Production. إثبات النشر يحدد مصدر Git من Vercel، وإثبات الإصدار يظل UNVERIFIED لغياب هوية GitHub Actions المضمّنة وبصمة الحزمة الموقعة. إعدادات RLS الحية مثبتة على مستوى الكتالوج فقط. فرع Neon الأساسي غير محمي والنسخ المجدول غير متاح، وفرع الاستعادة يختلف عن Primary في ستة جداول. لا توجد حزمة موقعة أو ترخيص استخدام/إعادة بيع.

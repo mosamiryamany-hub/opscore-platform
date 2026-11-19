@@ -11,9 +11,11 @@ const html = fs.readFileSync(path.join(webRoot, 'release.html'), 'utf8');
 const script = fs.readFileSync(path.join(webRoot, 'release-proof.js'), 'utf8');
 
 test('release proof page publishes successful CI evidence separately from Production certification', () => {
-  assert.match(html, /PASS — CI · Run 44547562235/);
-  assert.match(html, /PASS — isolated CI · Run 44547562215/);
-  assert.match(html, /CI-tested source revision/);
+  assert.match(html, /PASS — CI · Run 44552772156/);
+  assert.match(html, /PASS — isolated CI · Run 44552772494/);
+  assert.match(html, /CI-tested main revision/);
+  assert.match(html, /d672dce8f18e1d7095aed3126aedb0f995796144/);
+  assert.match(html, /346-route disposable CI matrix/);
   assert.match(html, /NOT VERIFIED — no Production route results/);
   assert.match(html, /NOT VERIFIED — PITR probe not run/);
   assert.match(html, /NOT PRODUCED — no verified signed archive/);
