@@ -574,6 +574,62 @@ async function queryHttp(port, route, token, options = {}) {
     request.end(requestBody || undefined);
   });
 }
+async function queryHttpBytes(port, route, token) {
+  const headers = { authorization: 'Bearer ' + token, accept: '*/*' };
+  if (typeof port === 'string') {
+    const oidcToken = String(process.env.VERCEL_TRUSTED_OIDC_TOKEN || '').trim();
+    headers['x-opscore-signed-context-probe'] = String(process.env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN || '');
+    headers['x-opscore-trusted-oidc-idp-token'] = oidcToken;
+    headers['x-vercel-trusted-oidc-idp-token'] = oidcToken;
+    if (!/^[a-f0-9]{64}$/i.test(headers['x-opscore-signed-context-probe'])
+        || oidcToken.split('.').length !== 3) {
+      throw new Error('CANDIDATE_BINARY_PROBE_CREDENTIALS_INVALID');
+    }
+    const target = new URL(String(route || ''), port);
+    if (target.origin !== port || !target.pathname.startsWith('/api/')) {
+      throw new Error('CANDIDATE_BINARY_HTTP_ROUTE_ORIGIN_INVALID');
+    }
+    const response = await fetch(target, {
+      method: 'GET',
+      headers,
+      redirect: 'manual',
+      signal: AbortSignal.timeout(15000)
+    });
+    const bytes = Buffer.from(await response.arrayBuffer());
+    if (bytes.length > 1024 * 1024) throw new Error('CANDIDATE_BINARY_HTTP_RESPONSE_TOO_LARGE');
+    return { status: response.status, headers: Object.fromEntries(response.headers.entries()), body: bytes };
+  }
+
+  return new Promise((resolve, reject) => {
+    const request = http.request({
+      hostname: '127.0.0.1',
+      port,
+      path: route,
+      method: 'GET',
+      headers,
+      timeout: 5000
+    }, (response) => {
+      const chunks = [];
+      let size = 0;
+      response.on('data', (chunk) => {
+        size += chunk.length;
+        if (size > 1024 * 1024) {
+          request.destroy(new Error('BINARY_HTTP_RESPONSE_TOO_LARGE'));
+          return;
+        }
+        chunks.push(Buffer.from(chunk));
+      });
+      response.on('end', () => {
+        resolve({ status: response.statusCode, headers: response.headers, body: Buffer.concat(chunks) });
+      });
+      response.on('error', reject);
+    });
+    request.on('timeout', () => request.destroy(new Error('BINARY_HTTP_ACCEPTANCE_TIMEOUT')));
+    request.on('error', reject);
+    request.end();
+  });
+}
+
 async function choosePort() {
   const server = net.createServer();
   await new Promise((resolve, reject) => server.listen(0, '127.0.0.1', resolve).once('error', reject));
@@ -3791,14 +3847,24 @@ async function main() {
       }));
     }
     const persistedChunkA = await owner.query(
-      'SELECT COUNT(*)::int AS count FROM public.evidence_upload_chunks WHERE upload_id=$1 AND chunk_index=0',
-      [evidenceInitA.body.uploadId]
+      `SELECT u.storage_provider, c.bytes, c.sha256,
+              CASE WHEN c.content IS NULL THEN NULL ELSE encode(c.content,'base64') END AS content_base64
+         FROM public.evidence_uploads u
+         JOIN public.evidence_upload_chunks c ON c.upload_id=u.id
+        WHERE u.id=$1 AND c.chunk_index=0 AND u.organization_id=$2`,
+      [evidenceInitA.body.uploadId, tenantA]
     );
-    if (persistedChunkA.rows[0]?.count !== 1) {
-      throw new Error('SIGNED_CONTEXT_EVIDENCE_CHUNK_A_NOT_PERSISTED_AFTER_HTTP_COMMIT:' + JSON.stringify(persistedChunkA.rows[0]));
+    const persistedChunkRowA = persistedChunkA.rows[0];
+    if (persistedChunkA.rowCount !== 1
+        || persistedChunkRowA.storage_provider !== 'postgres'
+        || Number(persistedChunkRowA.bytes) !== evidenceBytesA.length
+        || persistedChunkRowA.sha256 !== evidenceShaA
+        || persistedChunkRowA.content_base64 !== evidenceBase64A) {
+      throw new Error('SIGNED_CONTEXT_EVIDENCE_CHUNK_BYTEA_PERSISTENCE_MISMATCH:' + JSON.stringify(persistedChunkRowA || null));
     }
     signedEvidenceRouteProof.chunkTenantA = 'PASS';
     signedEvidenceRouteProof.chunkTenantAPersisted = 'PASS';
+    signedEvidenceRouteProof.postgresChunkByteaVerified = 'PASS';
 
     if (!candidateMode) {
       const evidenceChunkPolicies = await owner.query(
@@ -3819,13 +3885,15 @@ async function main() {
       const evidenceRuntimeVisibility = await runtimeProbe.query(
         `SELECT public.opscore_current_tenant() AS signed_tenant,
                 (SELECT COUNT(*)::int FROM public.evidence_uploads WHERE id=$1 AND organization_id=$2) AS parent_count,
-                (SELECT COUNT(*)::int FROM public.evidence_upload_chunks WHERE upload_id=$1) AS chunk_count`,
+                (SELECT COUNT(*)::int FROM public.evidence_upload_chunks WHERE upload_id=$1) AS chunk_count,
+                (SELECT encode(content,'base64') FROM public.evidence_upload_chunks WHERE upload_id=$1 AND chunk_index=0) AS chunk_content_base64`,
         [evidenceInitA.body.uploadId, tenantA]
       );
       await runtimeProbe.query('COMMIT');
       if (evidenceRuntimeVisibility.rows[0]?.signed_tenant !== tenantA
           || evidenceRuntimeVisibility.rows[0]?.parent_count !== 1
-          || evidenceRuntimeVisibility.rows[0]?.chunk_count !== 1) {
+          || evidenceRuntimeVisibility.rows[0]?.chunk_count !== 1
+          || evidenceRuntimeVisibility.rows[0]?.chunk_content_base64 !== evidenceBase64A) {
         throw new Error('SIGNED_CONTEXT_EVIDENCE_CHUNK_RUNTIME_RLS_VISIBILITY_DIAGNOSTIC:' + JSON.stringify({
           visibility: evidenceRuntimeVisibility.rows[0] || null,
           policies: evidenceChunkPolicies.rows
@@ -3912,6 +3980,65 @@ async function main() {
     }
     synthetic.attachmentIds.push(evidenceCompleteA.body.id);
     signedEvidenceRouteProof.completeTenantA = 'PASS';
+
+    const completedAttachmentA = await owner.query(
+      `SELECT storage_provider, bytes, sha256,
+              CASE WHEN content IS NULL THEN NULL ELSE encode(content,'base64') END AS content_base64
+         FROM public.attachments
+        WHERE id=$1 AND organization_id=$2`,
+      [evidenceCompleteA.body.id, tenantA]
+    );
+    const completedAttachmentRowA = completedAttachmentA.rows[0];
+    const clearedChunkA = await owner.query(
+      'SELECT content IS NULL AS content_cleared FROM public.evidence_upload_chunks WHERE upload_id=$1 AND chunk_index=0',
+      [evidenceInitA.body.uploadId]
+    );
+    if (completedAttachmentA.rowCount !== 1
+        || completedAttachmentRowA.storage_provider !== 'postgres'
+        || Number(completedAttachmentRowA.bytes) !== evidenceBytesA.length
+        || completedAttachmentRowA.sha256 !== evidenceShaA
+        || completedAttachmentRowA.content_base64 !== evidenceBase64A
+        || clearedChunkA.rows[0]?.content_cleared !== true) {
+      throw new Error('SIGNED_CONTEXT_EVIDENCE_ATTACHMENT_BYTEA_COMPLETION_MISMATCH:' + JSON.stringify({
+        attachment: completedAttachmentRowA || null,
+        chunkContentCleared: clearedChunkA.rows[0]?.content_cleared ?? null
+      }));
+    }
+    signedEvidenceRouteProof.postgresAttachmentByteaVerified = 'PASS';
+    signedEvidenceRouteProof.duplicateChunkBytesClearedAfterCompletion = 'PASS';
+
+    if (!candidateMode) {
+      const ownDownloadA = await queryHttpBytes(
+        port,
+        '/api/v1/attachments/' + encodeURIComponent(evidenceCompleteA.body.id),
+        tokenA
+      );
+      if (ownDownloadA.status !== 200
+          || !ownDownloadA.body.equals(evidenceBytesA)
+          || String(ownDownloadA.headers['content-type'] || '').split(';')[0] !== 'text/plain'
+          || ownDownloadA.headers['x-content-type-options'] !== 'nosniff'
+          || ownDownloadA.headers['cache-control'] !== 'no-store') {
+        throw new Error('SIGNED_CONTEXT_EVIDENCE_ATTACHMENT_DOWNLOAD_TENANT_A_FAILED:' + JSON.stringify({
+          status: ownDownloadA.status,
+          bytes: ownDownloadA.body.length,
+          headers: ownDownloadA.headers
+        }));
+      }
+      const foreignDownloadA = await queryHttp(
+        port,
+        '/api/v1/attachments/' + encodeURIComponent(evidenceCompleteA.body.id),
+        tokenB
+      );
+      if (foreignDownloadA.status !== 404
+          || foreignDownloadA.body?.error?.code !== 'NOT_FOUND') {
+        throw new Error('SIGNED_CONTEXT_EVIDENCE_ATTACHMENT_CROSS_TENANT_DOWNLOAD_NOT_DENIED:' + JSON.stringify({
+          status: foreignDownloadA.status,
+          body: foreignDownloadA.body
+        }));
+      }
+      signedEvidenceRouteProof.attachmentDownloadTenantA = 'PASS';
+      signedEvidenceRouteProof.attachmentDownloadCrossTenantDenied = 'PASS';
+    }
 
     const evidenceCompleteReplayA = await queryHttp(
       port,
@@ -4093,6 +4220,35 @@ async function main() {
     }
     synthetic.attachmentIds.push(directAttachmentB.body.id);
     signedEvidenceRouteProof.directAttachmentTenantB = 'PASS';
+
+    const directStoredA = await owner.query(
+      `SELECT storage_provider, bytes, sha256, encode(content,'base64') AS content_base64
+         FROM public.attachments WHERE id=$1 AND organization_id=$2`,
+      [directAttachmentA.body.id, tenantA]
+    );
+    const directStoredB = await owner.query(
+      `SELECT storage_provider, bytes, sha256, encode(content,'base64') AS content_base64
+         FROM public.attachments WHERE id=$1 AND organization_id=$2`,
+      [directAttachmentB.body.id, tenantB]
+    );
+    const directRowA = directStoredA.rows[0];
+    const directRowB = directStoredB.rows[0];
+    const directShaA = crypto.createHash('sha256').update(directAttachmentBytesA).digest('hex');
+    const directShaB = crypto.createHash('sha256').update(directAttachmentBytesB).digest('hex');
+    if (directStoredA.rowCount !== 1 || directRowA.storage_provider !== 'postgres'
+        || Number(directRowA.bytes) !== directAttachmentBytesA.length
+        || directRowA.sha256 !== directShaA
+        || directRowA.content_base64 !== directAttachmentBytesA.toString('base64')
+        || directStoredB.rowCount !== 1 || directRowB.storage_provider !== 'postgres'
+        || Number(directRowB.bytes) !== directAttachmentBytesB.length
+        || directRowB.sha256 !== directShaB
+        || directRowB.content_base64 !== directAttachmentBytesB.toString('base64')) {
+      throw new Error('SIGNED_CONTEXT_DIRECT_ATTACHMENT_BYTEA_PERSISTENCE_MISMATCH:' + JSON.stringify({
+        tenantA: directRowA || null,
+        tenantB: directRowB || null
+      }));
+    }
+    signedEvidenceRouteProof.directAttachmentByteaVerified = 'PASS';
 
     if (!candidateMode) {
       // Force a database failure after storeAttachment writes the file and row,
