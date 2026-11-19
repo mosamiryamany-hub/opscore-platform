@@ -612,6 +612,9 @@ jobs:
                 && recovery.databaseName === 'opscore_acceptance'
                 && Number(recovery.tableCountCompared) >= 130
                 && Number(recovery.mismatchCount) === 0
+                && recovery.temporaryBranch === true
+                && recovery.cleanup?.status === 'PASS'
+                && recovery.cleanup?.recoveryBranchDeleted === true
                 && exactPipeline(recovery) && sourceCommitMatches(recovery)
                 && sourceBranchMatches(recovery) && exactDeployment(recovery) && noEvidenceRebind(recovery);
               return sOk && rOk && signedRoutesOk;
