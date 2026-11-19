@@ -7,7 +7,7 @@
 **Production application-code SHA:** `68505535f1c2fabd2a786094f8f64d234d26e123`  
 **Product/runtime version reported live:** `0.11.62`
 
-> **Decision:** Engineering source checks are green on current `main`, but current-main is not deployed to the public Production alias. The live site is healthy, yet the release proof is UNVERIFIED and Production isolation is NOT_CERTIFIED. This is not a Production or commercial closeout.
+> **Decision:** The deployed application-code commit is current at `68505535...`; the only later main commit adds documentation. The live site and `/login` route are healthy. Release proof remains UNVERIFIED because the deployed bundle lacks embedded GitHub Actions identity; Production isolation remains NOT_CERTIFIED. This is not a Production or commercial closeout.
 
 ## 1. Immutable and live references
 
@@ -43,7 +43,7 @@ Public endpoints were fetched directly at approximately 2026-11-19 13:35 UTC.
 |---|---|---|
 | [`/api/health`](https://opscore-platform.vercel.app/api/health) | HTTP 200-equivalent response; `healthy`, PostgreSQL, version `0.11.62` | Site/runtime availability only |
 | [`/login`](https://opscore-platform.vercel.app/login) | **307 redirect** to `/control-plane.html` | PR #290 is deployed |
-| [`/api/verify/release`](https://opscore-platform.vercel.app/api/verify/release) | `UNVERIFIED`; source identity `unverified`; CI `PASS`; Production acceptance `NOT_VERIFIED` | No release certification |
+| [`/api/verify/release`](https://opscore-platform.vercel.app/api/verify/release) | `UNVERIFIED`; source identity `unverified`; embedded CI `UNVERIFIED`; package SHA null; Production acceptance `NOT_VERIFIED` | No release certification; CI passes are linked separately |
 | [`/api/verify/deployment`](https://opscore-platform.vercel.app/api/verify/deployment) | `identified`; `commitIdentitySource=vercel-git-metadata` | Native Vercel Git source identity; not a GitHub Actions assertion |
 | [`/api/verify/database-security`](https://opscore-platform.vercel.app/api/verify/database-security) | `IDENTITY_PLANE_RLS_ENFORCED`; 135/136 public tables RLS+FORCE RLS; runtime least-privilege status present | Live catalog controls, not cross-tenant behavioral certification |
 
@@ -52,7 +52,7 @@ Public endpoints were fetched directly at approximately 2026-11-19 13:35 UTC.
 The current live deployment includes PR #288's fail-closed verifier:
 - `/api/verify/deployment` used raw Vercel Production environment values when the generated identity file was absent.
 - `/api/verify/release` separately required the embedded identity file, but stale environment values could still make CI and package fingerprint fields appear `PASS` / `PUBLISHED`.
-- This explains the contradictory public results: deployment identity asserted CLI provenance while release identity remained unverified.
+- This explains why native Git deployment identification does not create a signed Actions attestation: the deployment verifier reports Vercel Git metadata, while the release verifier requires a separate identity artifact embedded in the deployed bundle.
 
 PR #288 is merged in current main and changes both verifiers:
 - environment-only `OPSC_RELEASE_DEPLOYMENT_SOURCE`, `OPSC_RELEASE_CI_*`, source-commit, package-fingerprint, CI, and release-tag values are discarded when the identity artifact is absent;
@@ -102,7 +102,7 @@ The live database-security endpoint reports 135/136 public base tables with RLS 
 | Gate | State | Closure evidence |
 |---|---|---|
 | Current-main CI | **PASS** | Runs 44533918767 and 44533918970 |
-| Current-main deployed to Production | **OPEN** | New deployment SHA must equal `4ac54611c0456728a2db010e6beb9d018d9d560b` |
+| Current application code deployed to Production | **PASS** | Deployment `dpl_AgWq...` runs `68505535...`; current main's only later change is docs-only |
 | Live `/login` route | **PASS** | Production redirects to `/control-plane.html` |
 | Trust-proof discrepancy | **RESOLVED** | Deployment proof identifies Vercel Git metadata; release proof correctly remains unverified without embedded Actions identity |
 | Embedded build identity and package fingerprint | **OPEN** | Must be generated and embedded in the exact deployed bundle; environment-only variables do not count |
@@ -131,7 +131,7 @@ No buyer signature is required to record the engineering state of the project. H
 ## 8. Current closeout decision
 
 **Engineering source:** main green at `4ac54611`; PR #287 and PR #288 are merged.  
-**Hosted Production:** healthy but behind main at `e1d6c1b7`; `/login` still 404; trust endpoint conflict remains live.  
+**Hosted Production:** healthy; application-code SHA `68505535...` is deployed; `/login` redirects to Control Plane; deployment proof uses native Vercel Git metadata.  
 **Production certification:** open; no 67-route live certification, exact Production session proof, or exact Production recovery proof.  
 **Commercial/legal delivery:** open; current-main release archive/provenance and license grant not established.
 
