@@ -1,50 +1,58 @@
 # OpsCore — Buyer Evidence Index
 
-**Evidence date:** 2026-11-19  
-**Current source:** `e1d6c1b7939684e0f55d9f95f102b53687f9544b`  
-**Current Production deployment:** `dpl_9BbbFdVocyY73Mh7dTRyTAPy71J3` (Vercel reports READY / Production)
+**Evidence cut:** 2026-11-19 13:35 UTC  
+**Current protected source:** [`4ac54611c0456728a2db010e6beb9d018d9d560b`](https://github.com/mosamiryamany-hub/opscore-platform/commit/4ac54611c0456728a2db010e6beb9d018d9d560b)  
+**Live Production deployment:** `dpl_9BbbFdVocyY73Mh7dTRyTAPy71J3`  
+**Live Production SHA:** `e1d6c1b7939684e0f55d9f95f102b53687f9544b` — behind current main
 
-> This index separates evidence classes. A production deployment marked READY is not a release certification. Disposable CI acceptance is not Production behavioral acceptance. No license grant is made here.
+> This index separates merged source from deployed Production. Provider READY, green CI, and RLS catalog state are not equivalent to Production release certification.
 
 ## Public live checks
 
 - Health: https://opscore-platform.vercel.app/api/health
+- Login (currently 404 in live Production): https://opscore-platform.vercel.app/login
 - Release proof: https://opscore-platform.vercel.app/api/verify/release
 - Deployment identity: https://opscore-platform.vercel.app/api/verify/deployment
 - Database security: https://opscore-platform.vercel.app/api/verify/database-security
-- Human-readable proof: https://opscore-platform.vercel.app/verify/release.html
+- Human-readable release proof: https://opscore-platform.vercel.app/verify/release.html
 
-## Source and CI references
+## Main and CI references
 
-- Protected main commit: https://github.com/mosamiryamany-hub/opscore-platform/commit/e1d6c1b7939684e0f55d9f95f102b53687f9544b
-- OpsCore CI, same commit: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44520992630
-- Vercel contract/source/PostgreSQL workflow, same commit: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44520992632
-- Authorized production attempt: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44529428910
-- CI signed-tenant artifact from run 44529428910: `14532353558`, disposable PostgreSQL 18 scope only
+- Current protected main: https://github.com/mosamiryamany-hub/opscore-platform/commit/4ac54611c0456728a2db010e6beb9d018d9d560b
+- PR #287 — login route and HTTP smoke test: https://github.com/mosamiryamany-hub/opscore-platform/pull/287
+- PR #288 — fail-closed trust-proof correction: https://github.com/mosamiryamany-hub/opscore-platform/pull/288
+- Current-main OpsCore CI: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44533918767
+- Current-main source/PostgreSQL 18/contract workflow: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44533918970
+- Earlier authorized Production workflow attempt: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44529428910
 
 ## Current status
 
 | Evidence | State |
 |---|---|
-| Main protection and commit | Verified |
-| Source/CI regression checks | PASS |
-| Disposable PostgreSQL 18 acceptance | PASS |
-| Signed-tenant route matrix | 67/67 in CI only |
-| Current Vercel Production source commit | Matches current main |
-| Embedded GitHub Actions deployment identity | UNVERIFIED |
+| Current main and branch protection | Verified |
+| Current-main source regression CI | PASS |
+| Disposable PostgreSQL 18 and contract acceptance | PASS |
+| Current-main auto-deployment | Intentionally skipped on push |
+| Vercel live deployment source | Older SHA `e1d6c1b7...` |
+| Live health | Healthy / PostgreSQL / 0.11.62 |
+| Live `/login` | 404; source fix merged, not deployed |
+| Live release proof | UNVERIFIED |
+| Live deployment proof | Conflicting CLI assertion; PR #288 corrects source, not yet deployed |
+| Current-main identity/package attestation | Not established in live Production |
 | Production acceptance evidence | NOT_VERIFIED |
+| 67-route signed-session Production coverage | NOT_VERIFIED (CI-only route coverage is not Production) |
 | Production session tenant boundary | NOT_VERIFIED |
-| Production recovery bundle / full data parity | NOT_VERIFIED |
+| Production recovery / full data parity | NOT_VERIFIED |
 | Production-wide isolation certification | NOT_CERTIFIED |
-| Current-main commercial archive/provenance | Not produced |
+| Current-main release archive/SBOM/provenance | Not produced |
 | Buyer-specific license | Not granted |
 
 ## Neon restore note
 
-Primary and the retained restore branch have matching table inventory, but current row-content comparison differs in six tables: `activity_log`, `audit_log`, `firewall_rate_buckets`, `integration_outbox`, `organizations`, and `users`. Preserve Primary; do not promote the restore branch as an exact-parity restore.
+Neon Free, PostgreSQL 18.7. Primary `br-proud-salad-bcshhdap` is ready/default but unprotected; snapshot schedule is empty. Four branches are retained. Primary vs restore branch content differs in six tables: `activity_log`, `audit_log`, `firewall_rate_buckets`, `integration_outbox`, `organizations`, `users`. Preserve Primary and recovery artefacts; do not promote the restore branch as exact full parity.
 
 ## Commercial boundary
 
-The package is `UNLICENSED`. No use, modification, resale, or distribution rights are granted until the rights holder and buyer execute a License Schedule bound to the exact delivered archive SHA-256. Pricing and governing-law fields remain negotiated/blank in the repository template.
+The repository package is `UNLICENSED`. No use, modification, resale, or distribution rights are granted by the repository, website, or this evidence index. Current-main archive SHA-256, SBOM/provenance, and a rights-holder-authorized License Schedule must exist before a buyer-specific grant is made. This does not make a buyer signature a prerequisite for describing the engineering state of the project.
 
-See the complete [Client Trust Pack](CLIENT_TRUST_PACK.md), [Current closeout gates](../ops/REMAINING_CLOSEOUT_GATES.md), [License Schedule template](LICENSE_SCHEDULE_TEMPLATE.md), and [No License Grant notice](../../NO_LICENSE_GRANT_NOTICE.txt).
+See the full [Client Trust Pack](CLIENT_TRUST_PACK.md), [Current closeout ledger](../ops/REMAINING_CLOSEOUT_GATES.md), [License Schedule template](LICENSE_SCHEDULE_TEMPLATE.md), and [No License Grant notice](../../NO_LICENSE_GRANT_NOTICE.txt).
