@@ -28,23 +28,42 @@ function isReadOnlyProductionVerificationRequest(req) {
     && READ_ONLY_PRODUCTION_VERIFICATION_PATHS.has(requestPath(req));
 }
 
-function isCandidateRequestOnExactDeployment(req, env = process.env, readiness = {}) {
-  if (!signedTenantContextPolicy.isCandidateProbeAuthorized(req, env, readiness)) return false;
+function candidateProbeBoundaryDenialReason(req, env = process.env, readiness = {}) {
+  const suppliedProbe = String(req && req.headers && req.headers['x-opscore-signed-context-probe'] || '').trim();
+  if (!suppliedProbe) return 'probe_header_missing';
+
+  const policyReason = signedTenantContextPolicy.candidateProbeDenialReason(req, env, readiness);
+  if (policyReason) return policyReason;
+
   const deploymentUrl = String(env.VERCEL_URL || '').trim();
+  if (!deploymentUrl) return 'deployment_url_missing';
   let deploymentHost = '';
   try {
     const parsed = new URL('https://' + deploymentUrl);
-    if (parsed.username || parsed.password || parsed.port || parsed.pathname !== '/' || parsed.search || parsed.hash) return false;
+    if (parsed.username || parsed.password || parsed.port || parsed.pathname !== '/' || parsed.search || parsed.hash) {
+      return 'deployment_url_invalid';
+    }
     deploymentHost = parsed.hostname.toLowerCase();
   } catch {
-    return false;
+    return 'deployment_url_invalid';
   }
+  if (!CANDIDATE_DEPLOYMENT_HOST.test(deploymentHost)) return 'deployment_host_not_allowed';
+
   const requestHost = String(req && req.headers && req.headers.host || '').trim().toLowerCase();
+  if (!requestHost) return 'request_host_missing';
+  if (requestHost !== deploymentHost) return 'request_host_mismatch';
+
   const trustedOidcToken = String(req && req.headers && req.headers['x-vercel-trusted-oidc-idp-token'] || '').trim();
-  return CANDIDATE_DEPLOYMENT_HOST.test(deploymentHost)
-    && requestHost === deploymentHost
-    && trustedOidcToken.split('.').length === 3
-    && trustedOidcToken.split('.').every(part => part.length > 0);
+  if (!trustedOidcToken) return 'trusted_oidc_header_missing';
+  const oidcParts = trustedOidcToken.split('.');
+  if (oidcParts.length !== 3 || oidcParts.some(part => !/^[A-Za-z0-9_-]+$/.test(part))) {
+    return 'trusted_oidc_header_invalid';
+  }
+  return null;
+}
+
+function isCandidateRequestOnExactDeployment(req, env = process.env, readiness = {}) {
+  return candidateProbeBoundaryDenialReason(req, env, readiness) === null;
 }
 
 function isAuthorizedProductionCandidateProbeRequest(req, env = process.env, readiness = {}) {
@@ -82,6 +101,7 @@ function evaluateProductionGate(config, env, productionSafetyGate) {
 module.exports = {
   evaluateProductionGate,
   isReadOnlyProductionVerificationRequest,
+  candidateProbeBoundaryDenialReason,
   isAuthorizedProductionCandidateProbeRequest,
   isAuthorizedProductionCandidateDatabaseIdentityRequest
 };
