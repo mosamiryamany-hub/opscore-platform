@@ -3064,7 +3064,7 @@ class Store {
         fs.mkdirSync(path.dirname(abs), { recursive: true });
         fs.writeFileSync(abs, buf, { flag: 'wx' });
         this.registerCallerManagedRollback(() => fs.rmSync(abs, { force: true }));
-        this.db.prepare('INSERT INTO attachments VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)').run(
+        this.db.prepare('INSERT INTO attachments (id,organization_id,work_order_id,entity_type,entity_id,storage_provider,storage_key,file_name,media_type,bytes,sha256,uploaded_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)').run(
           aid, ctx.organizationId, workOrderId, 'work_order', workOrderId, 'local', key, safe,
           mediaType || 'application/octet-stream', buf.length, digest, ctx.userId, t
         );
@@ -3333,7 +3333,7 @@ class Store {
       finalPath = absFinal;
       this.registerCallerManagedRollback(() => fs.rmSync(absFinal, { force: true }));
       const aid = id('att'), t = now();
-      this.db.prepare('INSERT INTO attachments VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)').run(aid, ctx.organizationId, u.work_order_id, 'work_order', u.work_order_id, 'local', relFinal, u.file_name, u.media_type, u.total_bytes, u.expected_sha256, ctx.userId, t);
+      this.db.prepare('INSERT INTO attachments (id,organization_id,work_order_id,entity_type,entity_id,storage_provider,storage_key,file_name,media_type,bytes,sha256,uploaded_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)').run(aid, ctx.organizationId, u.work_order_id, 'work_order', u.work_order_id, 'local', relFinal, u.file_name, u.media_type, u.total_bytes, u.expected_sha256, ctx.userId, t);
       const upd = this.db.prepare("UPDATE evidence_uploads SET status='committed',storage_key=?,committed_attachment_id=?,updated_at=?,last_error=NULL WHERE id=? AND organization_id=? AND status<>'committed'").run(relFinal, aid, t, uploadId, ctx.organizationId);
       if (upd.changes !== 1) throw new Error('EVIDENCE_UPLOAD_CLOSED');
       this._activity(ctx, 'work_order', u.work_order_id, 'evidence_committed', `${ u.file_name } evidence committed`, { uploadId, attachmentId: aid, sha256: u.expected_sha256 });
