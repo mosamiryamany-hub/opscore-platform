@@ -1,26 +1,26 @@
 # OpsCore — current-main, live Production, and closeout ledger
 
-**Evidence cut:** 2026-11-19 15:17 UTC  
+**Evidence cut:** 2026-11-19  
 **Repository:** `mosamiryamany-hub/opscore-platform`  
-**Current protected main:** `d672dce8f18e1d7095aed3126aedb0f995796144`  
+**Protected main at evidence cut:** `d672dce8f18e1d7095aed3126aedb0f995796144`  
 **Latest live Production deployment:** `dpl_AgWqB4kaSRXhdsmKfvXg9qgeQgt9`  
 **Production application-code SHA:** `68505535f1c2fabd2a786094f8f64d234d26e123`  
 **Product/runtime version reported live:** `0.11.62`
 
-> **Decision:** Current protected `main` is `d672dce8...` after PR #292, which changes the trust-proof UI. Production remains on the earlier application SHA `68505535...`; the new main commit has a READY but SSO-protected Preview only. The live site and `/login` route remain healthy. Release proof remains UNVERIFIED; Production isolation remains NOT_CERTIFIED. This is not a Production or commercial closeout.
+> **Decision:** Protected `main` at this evidence cut is `d672dce8...` after PR #292, which changes the trust-proof UI. Production remains on the earlier application SHA `68505535...`; the new main commit has a READY but SSO-protected Preview only. The live site and `/login` route remain healthy. Release proof remains UNVERIFIED; Production isolation remains NOT_CERTIFIED. This is not a Production or commercial closeout.
 
 ## 1. Immutable and live references
 
 | System | Verified state |
 |---|---|
-| GitHub main | Protected; `d672dce8f18e1d7095aed3126aedb0f995796144` |
+| GitHub main at evidence cut | Protected; `d672dce8f18e1d7095aed3126aedb0f995796144` |
 | PR #287 | Merged; added explicit `GET/HEAD /login` redirect and HTTP smoke coverage |
 | PR #288 | Merged at current main; hardens public source/CI/package trust proofs against stale environment-only assertions |
 | Vercel project | `opscore-platform` / `prj_8jMqBt0l6OALicWSwQ3ECQTn8yPe` |
 | Current-main Preview | READY; `dpl_DCQk2TbxtCoMHLDCEQ8pN4W33ay1`; SSO-protected; no Production promotion |
 | Vercel Production deployment | `dpl_AgWqB4kaSRXhdsmKfvXg9qgeQgt9`, READY |
 | Public Production alias | https://opscore-platform.vercel.app |
-| Live application-code SHA | `68505535f1c2fabd2a786094f8f64d234d26e123` — prior Production version; it does not include current main `d672dce8...` |
+| Live application-code SHA | `68505535f1c2fabd2a786094f8f64d234d26e123` — prior Production version; it does not include evidence-cut main revision `d672dce8...` |
 | Neon project | `summer-leaf-18448271` / PostgreSQL 18.7 |
 | Neon Primary | `br-proud-salad-bcshhdap` / ready / primary / default / **not protected** |
 | Neon restore branch | `br-calm-poetry-bc7l7wik` / ready; restored from `snap-aged-thunder-bcsxc1a5` |
@@ -102,8 +102,8 @@ The live database-security endpoint reports 135/136 public base tables with RLS 
 
 | Gate | State | Closure evidence |
 |---|---|---|
-| Current-main CI | **PASS** | Runs 44533918767 and 44533918970 |
-| Current application code deployed to Production | **NOT CURRENT** | Deployment `dpl_AgWq...` runs `68505535...`; current main `d672dce8...` includes PR #292 trust UI not yet in Production; Preview only is READY |
+| Current-main CI | **PASS** | Current evidence-cut runs `44552772156` and `44552772494` (see links above) |
+| Current application code deployed to Production | **NOT CURRENT** | Deployment `dpl_AgWq...` runs `68505535...`; evidence-cut main revision `d672dce8...` includes PR #292 trust UI not yet in Production; Preview only is READY |
 | Live `/login` route | **PASS** | Production redirects to `/control-plane.html` |
 | Trust-proof discrepancy | **RESOLVED** | Deployment proof identifies Vercel Git metadata; release proof correctly remains unverified without embedded Actions identity |
 | Embedded build identity and package fingerprint | **OPEN** | Must be generated and embedded in the exact deployed bundle; environment-only variables do not count |
@@ -131,7 +131,7 @@ No buyer signature is required to record the engineering state of the project. H
 
 ## 8. Current closeout decision
 
-**Engineering source:** protected `main` at `d672dce8...`; PR #292 is merged and current-main source/isolated PostgreSQL CI passed in runs `44552772156` and `44552772494`.  
+**Engineering source:** protected `main` at the evidence cut (`d672dce8...`); PR #292 is merged and current-main source/isolated PostgreSQL CI passed in runs `44552772156` and `44552772494`.  
 **Hosted Production:** healthy but not current; deployment `dpl_AgWq...` still runs application SHA `68505535...`; `/login` redirects to Control Plane. The `d672dce8...` Preview is READY and SSO-protected, not promoted.  
 **Production certification:** open; no 67-route live certification, exact Production session proof, or exact Production recovery proof.  
 **Commercial/legal delivery:** open; current-main release archive/provenance and license grant not established.
