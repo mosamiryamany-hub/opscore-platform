@@ -5127,10 +5127,10 @@ async function main() {
           const inventory = JSON.parse(inventoryBytes.toString('utf8'));
           const coverage = buildCandidateSignedTenantRouteCoverage({
             proof: {
-              session: signedSessionAutobindHttpProof,
-              read: signedReadRouteProof,
-              write: signedWriteRouteProof,
-              evidence: signedEvidenceRouteProof,
+              session: candidateProofReport.checks.signedAuthenticatedSessionRoutes,
+              read: candidateProofReport.checks.signedWorkOrderSubresourceReads,
+              write: candidateProofReport.checks.signedWorkOrderWrites,
+              evidence: candidateProofReport.checks.signedEvidenceWrites,
               checks: candidateProofReport.checks
             },
             manifest,
