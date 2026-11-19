@@ -10,7 +10,8 @@ const {
   evaluateProductionGate,
   isReadOnlyProductionVerificationRequest,
   isAuthorizedProductionCandidateProbeRequest,
-  isAuthorizedProductionCandidateDatabaseIdentityRequest
+  isAuthorizedProductionCandidateDatabaseIdentityRequest,
+  candidateProbeBoundaryDenialReason
 } = require('../src/production-hold');
 
 test('production hold blocks traffic while leaving only read-only verification GET routes available', () => {
@@ -216,4 +217,51 @@ test('Preview remains available even when NODE_ENV is production', () => {
     () => ({ allowed: true, mode: 'preview' })
   );
   assert.deepEqual(gate, { blocked: false, mode: 'preview', reasonCode: null });
+});
+
+test('candidate hold diagnostics identify the exact failed deployment-boundary check without authorizing it', () => {
+  const env = {
+    VERCEL_ENV: 'production',
+    VERCEL_URL: 'opscore-platform-candidate123-mosamiryamany-1692.vercel.app',
+    OPSC_PRODUCTION_HOLD: 'true',
+    OPSC_RELEASE_VERIFIED: 'false',
+    OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'true',
+    OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED: 'true',
+    OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN: 'a'.repeat(64)
+  };
+  const readiness = { productionReleaseVerified: false };
+  const request = () => ({
+    method: 'GET',
+    url: '/api/v1/customers',
+    headers: {
+      host: env.VERCEL_URL,
+      'x-opscore-signed-context-probe': env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN,
+      'x-vercel-trusted-oidc-idp-token': 'header.payload.signature'
+    }
+  });
+
+  assert.equal(candidateProbeBoundaryDenialReason(request(), env, readiness), null);
+  assert.equal(isAuthorizedProductionCandidateProbeRequest(request(), env, readiness), true);
+
+  const missingProbe = request();
+  delete missingProbe.headers['x-opscore-signed-context-probe'];
+  assert.equal(candidateProbeBoundaryDenialReason(missingProbe, env, readiness), 'probe_header_missing');
+  assert.equal(isAuthorizedProductionCandidateProbeRequest(missingProbe, env, readiness), false);
+
+  const mismatchedHost = request();
+  mismatchedHost.headers.host = 'opscore-platform.vercel.app';
+  assert.equal(candidateProbeBoundaryDenialReason(mismatchedHost, env, readiness), 'request_host_mismatch');
+  assert.equal(isAuthorizedProductionCandidateProbeRequest(mismatchedHost, env, readiness), false);
+
+  const missingOidc = request();
+  delete missingOidc.headers['x-vercel-trusted-oidc-idp-token'];
+  assert.equal(candidateProbeBoundaryDenialReason(missingOidc, env, readiness), 'trusted_oidc_header_missing');
+  assert.equal(isAuthorizedProductionCandidateProbeRequest(missingOidc, env, readiness), false);
+
+  const malformedOidc = request();
+  malformedOidc.headers['x-vercel-trusted-oidc-idp-token'] = 'not-a-jwt';
+  assert.equal(candidateProbeBoundaryDenialReason(malformedOidc, env, readiness), 'trusted_oidc_header_invalid');
+  assert.equal(isAuthorizedProductionCandidateProbeRequest(malformedOidc, env, readiness), false);
+
+  assert.equal(candidateProbeBoundaryDenialReason(request(), { ...env, VERCEL_URL: '' }, readiness), 'deployment_url_missing');
 });
