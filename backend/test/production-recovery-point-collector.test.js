@@ -49,7 +49,8 @@ test('release certification requires the exact application database and explicit
   assert.match(releaseProof, /evidence.databaseName === expectedDatabaseName/);
   assert.match(releaseProof, /evidence.coreTenantTableRowCountsMatch === true/);
   assert.match(releaseProof, /branch-clone-public-table-count-and-core-tenant-row-counts-only/);
-  assert.match(releaseProof, /deploymentIdBound/);\n  assert.match(releaseProof, /evidence\.temporaryBranch === true/);\n  assert.match(releaseProof, /evidence\.cleanup\.recoveryBranchDeleted === true/);
+  assert.match(releaseProof, /deploymentIdBound/);
+  assert.match(releaseProof, /evidence\.temporaryBranch === true/);\n  assert.match(releaseProof, /evidence\.cleanup\.recoveryBranchDeleted === true/);
 });
 
 
