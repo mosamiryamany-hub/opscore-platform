@@ -132,7 +132,7 @@
   "migrationLedgerAudit": {
     "ledgerRowCount": 68,
     "sourceFileCount": 68,
-    "matchedSourceFiles": 47,
+    "matchedSourceFiles": 57,
     "mismatchedSourceFiles": 0,
     "filenameSetEqual": false,
     "source": "main",
@@ -371,6 +371,56 @@
       {
         "filename": "048_system_table_app_grants.sql",
         "sha256": "093534137ed72ef5972f2fd203abc369aa89933c48bdc373620c25c23f6baea1",
+        "sourceMatches": true
+      },
+      {
+        "filename": "049_app_role_table_privileges.sql",
+        "sha256": "d2225d45849b029cb611d918fbf09eacd88c7df29b17f1f14029c0cb95ed8e7b",
+        "sourceMatches": true
+      },
+      {
+        "filename": "050_app_role_schema_create.sql",
+        "sha256": "417e6ac6d00e8b393d71f2ba833df15fce91947633a6bb3043991ca7b939a900",
+        "sourceMatches": true
+      },
+      {
+        "filename": "051_revoke_runtime_role_ddl_privileges.sql",
+        "sha256": "b1057ee7c46e81322cf9e3e5a4feae72322bed5f56f9501d08d164b134ddc2b5",
+        "sourceMatches": true
+      },
+      {
+        "filename": "052_runtime_policy_function_grants.sql",
+        "sha256": "26e3841807406356ddfb56830c73467848b662c698382e846d3e5b928b01d408",
+        "sourceMatches": true
+      },
+      {
+        "filename": "053_control_plane_restrictive_tenant_guards.sql",
+        "sha256": "238863ead435124fc0975a353aeb2c135382f8e5bfc464e14dd7e22f427041ed",
+        "sourceMatches": true
+      },
+      {
+        "filename": "054_tenant_composite_foreign_keys.sql",
+        "sha256": "acce8245849f74b25c774881d580d0d1b14577c422e9566e80d6b15df31734a0",
+        "sourceMatches": true
+      },
+      {
+        "filename": "055_completion_policy_version.sql",
+        "sha256": "199d90a9a978114ce655c2ac81f13caf5af26442f56ec07d196b7b3c312f9af7",
+        "sourceMatches": true
+      },
+      {
+        "filename": "056_runtime_auth_definer_function_grants.sql",
+        "sha256": "c089750bef8830ac5fc29548580698efcc7c94457dd63e9d2fa5ad4f99006e8c",
+        "sourceMatches": true
+      },
+      {
+        "filename": "057_read_only_runtime_migration_ledger_attestation.sql",
+        "sha256": "dd0e1628e82ed7a825b6d4c1a442721e09b5d3a9f44f6e05ba99ac90543112ed",
+        "sourceMatches": true
+      },
+      {
+        "filename": "058_security_definer_search_path_hardening.sql",
+        "sha256": "634f5f2228c02888ec2e3653a661ed6703ee741a73f00a44d6a2caead1cc681c",
         "sourceMatches": true
       }
     ]
