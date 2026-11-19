@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const VERCEL_API_ORIGIN = 'https://api.vercel.com';
 const NEON_API_ORIGIN = 'https://console.neon.tech/api/v2';
 const ALLOWED_VERCEL_PLANS = new Set(['pro', 'enterprise']);
-const ALLOWED_NEON_PAID_PLANS = new Set(['launch', 'scale', 'agent', 'business', 'enterprise']);
+const ALLOWED_NEON_PRIMARY_PROTECTION_PLANS = new Set(['scale', 'business', 'enterprise']);
 
 function required(env, key, code) {
   const value = String(env[key] || '').trim();
@@ -94,8 +94,8 @@ async function runCandidatePlanPreflight(options = {}) {
   );
   if (String(neonOrg.id || '') !== neonOrgId) throw new Error('NEON_ORGANIZATION_IDENTITY_MISMATCH');
   const neonPlan = String(neonOrg.plan || '').trim().toLowerCase();
-  if (!ALLOWED_NEON_PAID_PLANS.has(neonPlan)) {
-    throw new Error('NEON_PLAN_NOT_ELIGIBLE:' + (neonPlan || 'unknown'));
+  if (!ALLOWED_NEON_PRIMARY_PROTECTION_PLANS.has(neonPlan)) {
+    throw new Error('NEON_PLAN_NOT_ELIGIBLE_FOR_PRIMARY_PROTECTION:' + (neonPlan || 'unknown'));
   }
 
   const branchPayload = await requestJson(
@@ -110,6 +110,7 @@ async function runCandidatePlanPreflight(options = {}) {
   if (parent.primary !== true || parent.default !== true || parent.current_state !== 'ready') {
     throw new Error('NEON_PRIMARY_BRANCH_NOT_READY_OR_NOT_PRIMARY');
   }
+  if (parent.protected !== true) throw new Error('NEON_PRIMARY_BRANCH_NOT_PROTECTED');
   const branchLimit = Number(env.OPSC_NEON_BRANCH_LIMIT || 10);
   if (!Number.isInteger(branchLimit) || branchLimit < 2 || branchLimit > 100) {
     throw new Error('NEON_BRANCH_LIMIT_INVALID');
@@ -134,6 +135,7 @@ async function runCandidatePlanPreflight(options = {}) {
     neonOrganizationId: neonOrgId,
     neonPlan,
     neonPrimaryBranchId: expectedPrimaryBranchId,
+    neonPrimaryBranchProtected: true,
     neonBranchCount: branches.length,
     neonBranchLimit: branchLimit,
     neonPrimaryLogicalSizeBytes: parentLogicalSize,
@@ -174,7 +176,7 @@ if (require.main === module) {
 
 module.exports = {
   ALLOWED_VERCEL_PLANS,
-  ALLOWED_NEON_PAID_PLANS,
+  ALLOWED_NEON_PRIMARY_PROTECTION_PLANS,
   requestJson,
   parseNeonProject,
   parseBranches,
