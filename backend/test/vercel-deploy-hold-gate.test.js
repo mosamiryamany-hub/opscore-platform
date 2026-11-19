@@ -25,7 +25,7 @@ test('pull requests run the verification job without invoking the production dep
   assert.match(verifyHeader, /github\.event_name == 'pull_request' \|\| github\.ref == 'refs\/heads\/main'/);
   const deployHeader = deploy.slice(0, deploy.indexOf('      - uses: actions/checkout'));
   assert.match(deployHeader, /needs: \[verify, postgres-acceptance\]/);
-  assert.match(deployHeader, /github\.event_name == 'workflow_dispatch' && github\.ref == 'refs\/heads\/main'/);
+  assert.match(deployHeader, /github\.event_name == 'workflow_dispatch'\s*&&\s*github\.ref == 'refs\/heads\/main'/);
   assert.match(deployHeader, /confirm_production_deployment == 'I_AUTHORIZE_PRODUCTION_DEPLOYMENT'/);
   const acceptanceStart = workflow.indexOf('  postgres-acceptance:' + String.fromCharCode(10));
   const acceptanceEnd = workflow.indexOf('  deploy:' + String.fromCharCode(10), acceptanceStart);
@@ -65,7 +65,7 @@ test('staged deployment is immutable to the live domain until Runtime identity a
 
 test('staged production promotion remains fail-closed even after explicit manual dispatch authorization', () => {
   const smoke = step('Verify staged production HTTP, database, security and release proofs');
-  assert.match(smoke, /if: steps\.production_runtime\.outputs\.allowed == 'true'/,
+  assert.match(smoke, /if:.*run_mode == 'AUTHORIZE_PRODUCTION_RELEASE'.*steps\.production_runtime\.outputs\.allowed == 'true'/,
     'smoke must stay gated by Runtime attestation');
   const promote = step('Promote only the verified staged deployment');
   assert.match(promote,
