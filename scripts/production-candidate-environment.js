@@ -299,9 +299,9 @@ async function verifyRestored(options = {}) {
   }
   const outputPath = String(env.GITHUB_OUTPUT || '').trim();
   if (outputPath) {
-    fs.appendFileSync(outputPath, 'restore_verified=true\\n', { encoding: 'utf8', mode: 0o600 });
+    fs.appendFileSync(outputPath, 'restore_verified=true\n', { encoding: 'utf8', mode: 0o600 });
   }
-  process.stdout.write('PRODUCTION_CANDIDATE_ENV_RESTORE_VERIFIED=PASS\\n');
+  process.stdout.write('PRODUCTION_CANDIDATE_ENV_RESTORE_VERIFIED=PASS\n');
   return { status: 'PASS', baselineKeysVerified: BASELINE_KEYS.length, candidateKeysAbsent: CANDIDATE_KEYS.length };
 }
 
@@ -309,7 +309,8 @@ async function main(argv = process.argv.slice(2), options = {}) {
   const mode = String(argv[0] || '').trim();
   if (mode === 'prepare') return prepare(options);
   if (mode === 'publish') return publish(options);
-  if (mode === 'restore') return restore(options);\n  if (mode === 'verify-restored') return verifyRestored(options);
+  if (mode === 'restore') return restore(options);
+  if (mode === 'verify-restored') return verifyRestored(options);
   throw new Error('PRODUCTION_CANDIDATE_ENV_MODE_INVALID');
 }
 
@@ -337,5 +338,6 @@ module.exports = {
   prepare,
   publish,
   restore,
+  verifyRestored,
   main
 };
