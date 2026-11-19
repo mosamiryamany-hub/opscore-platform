@@ -16,6 +16,7 @@ const {
   signedSessionAutobindEnabled,
   isCandidateProbeAuthorized,
   signedTenantContextRouteError,
+  isSignedTenantContextRouteDefinition,
   signedContextRequested: isSignedContextRequested
 } = require('./signed-tenant-context-policy');
 const { createDeploymentProof } = require('./deployment-proof');
@@ -1105,7 +1106,7 @@ function sendWorkOrderRead(req, res, c, reader, responseHeaders = {}) {
     const method = String(req && req.method || '').trim().toUpperCase();
     const pathname = String(req && req.url || '/').split('?')[0];
     const candidateRoute = ['read', 'write'].some(operation =>
-      require('./signed-tenant-context-policy').isSignedTenantContextRouteDefinition(method, pathname, operation)
+      isSignedTenantContextRouteDefinition(method, pathname, operation)
     );
     const denial = candidateRoute
       ? candidateProbeBoundaryDenialReason(req, process.env, signedContextProductionReadiness)
