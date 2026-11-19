@@ -1248,7 +1248,7 @@ function requireCtx(req, res) {
       store.db.setSession({ tenantId: c.organizationId, userId: c.userId || '', accessMode: 'field' });
     }
   } catch (sessionError) {
-    warn('postgres_tenant_session_bind_failed', { organizationId: c.organizationId, error: sessionError });
+    warn('postgres_tenant_session_bind_failed', { organizationId: c.organizationId, errorCode: safeDatabaseErrorCode(sessionError) });
     const errorCode = sessionError && sessionError.code === 'SIGNED_TENANT_CONTEXT_ROUTE_NOT_ENABLED'
       ? sessionError.code
       : 'DATABASE_SECURITY_CONTEXT_FAILED';
