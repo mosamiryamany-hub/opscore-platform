@@ -200,6 +200,9 @@ async function prepare(options = {}) {
 
 async function publish(options = {}) {
   const env = options.env || process.env;
+  if (String(env.ISOLATION_CERT || '') !== 'CERTIFIED' || String(env.BEHAVIORAL || '') !== 'true') {
+    throw new Error('PRODUCTION_BEHAVIORAL_CERTIFICATION_REQUIRED');
+  }
   const values = {
     OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: env.OPSC_EVIDENCE_SHA256,
     OPSC_PRODUCTION_ISOLATION_CERTIFICATION: 'CERTIFIED',
