@@ -1,16 +1,16 @@
 # OpsCore — Buyer Evidence Index
 
-**Evidence cut:** 2026-11-19 13:35 UTC  
-**Current protected source:** [`4ac54611c0456728a2db010e6beb9d018d9d560b`](https://github.com/mosamiryamany-hub/opscore-platform/commit/4ac54611c0456728a2db010e6beb9d018d9d560b)  
-**Live Production deployment:** `dpl_9BbbFdVocyY73Mh7dTRyTAPy71J3`  
-**Live Production SHA:** `e1d6c1b7939684e0f55d9f95f102b53687f9544b` — behind current main
+**Evidence cut:** 2026-11-19 14:52 UTC  
+**Current protected main:** [`66d1b564886c42a42dbc9775da91af672d45e04c`](https://github.com/mosamiryamany-hub/opscore-platform/commit/66d1b564886c42a42dbc9775da91af672d45e04c)  
+**Live Production deployment:** `dpl_AgWqB4kaSRXhdsmKfvXg9qgeQgt9`  
+**Live Production application-code SHA:** `68505535f1c2fabd2a786094f8f64d234d26e123` — matches deployed application code; current main adds documentation only
 
 > This index separates merged source from deployed Production. Provider READY, green CI, and RLS catalog state are not equivalent to Production release certification.
 
 ## Public live checks
 
 - Health: https://opscore-platform.vercel.app/api/health
-- Login (currently 404 in live Production): https://opscore-platform.vercel.app/login
+- Login (live 307 redirect to Control Plane): https://opscore-platform.vercel.app/login
 - Release proof: https://opscore-platform.vercel.app/api/verify/release
 - Deployment identity: https://opscore-platform.vercel.app/api/verify/deployment
 - Database security: https://opscore-platform.vercel.app/api/verify/database-security
@@ -18,11 +18,16 @@
 
 ## Main and CI references
 
-- Current protected main: https://github.com/mosamiryamany-hub/opscore-platform/commit/4ac54611c0456728a2db010e6beb9d018d9d560b
+- Current protected main: https://github.com/mosamiryamany-hub/opscore-platform/commit/66d1b564886c42a42dbc9775da91af672d45e04c
+- Deployed application-code commit: https://github.com/mosamiryamany-hub/opscore-platform/commit/68505535f1c2fabd2a786094f8f64d234d26e123
+- PR #290 — live login route: https://github.com/mosamiryamany-hub/opscore-platform/pull/290
+- PR #291 — evidence traceability ledger: https://github.com/mosamiryamany-hub/opscore-platform/pull/291
+- Latest OpsCore CI: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44547562235
+- Latest PostgreSQL 18 isolated acceptance: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44547562215
 - PR #287 — login route and HTTP smoke test: https://github.com/mosamiryamany-hub/opscore-platform/pull/287
 - PR #288 — fail-closed trust-proof correction: https://github.com/mosamiryamany-hub/opscore-platform/pull/288
-- Current-main OpsCore CI: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44533918767
-- Current-main source/PostgreSQL 18/contract workflow: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44533918970
+- Current-main OpsCore CI: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44547562235
+- Current-main source/PostgreSQL 18/contract workflow: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44547562215
 - Earlier authorized Production workflow attempt: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44529428910
 
 ## Current status
@@ -33,11 +38,11 @@
 | Current-main source regression CI | PASS |
 | Disposable PostgreSQL 18 and contract acceptance | PASS |
 | Current-main auto-deployment | Intentionally skipped on push |
-| Vercel live deployment source | Older SHA `e1d6c1b7...` |
+| Vercel live deployment source | `68505535...`; current main's only later change is docs-only |
 | Live health | Healthy / PostgreSQL / 0.11.62 |
-| Live `/login` | 404; source fix merged, not deployed |
+| Live `/login` | Redirects to `/control-plane.html` |
 | Live release proof | UNVERIFIED |
-| Live deployment proof | Conflicting CLI assertion; PR #288 corrects source, not yet deployed |
+| Live deployment proof | Identified through `vercel-git-metadata`; this is native Git identity, not a GitHub Actions signature |
 | Current-main identity/package attestation | Not established in live Production |
 | Production acceptance evidence | NOT_VERIFIED |
 | 67-route signed-session Production coverage | NOT_VERIFIED (CI-only route coverage is not Production) |
@@ -49,7 +54,11 @@
 
 ## Neon restore note
 
-Neon Free, PostgreSQL 18.7. Primary `br-proud-salad-bcshhdap` is ready/default but unprotected; snapshot schedule is empty. Four branches are retained. Primary vs restore branch content differs in six tables: `activity_log`, `audit_log`, `firewall_rate_buckets`, `integration_outbox`, `organizations`, `users`. Preserve Primary and recovery artefacts; do not promote the restore branch as exact full parity.
+Neon Free, PostgreSQL 18.7. Production database is `opscore_acceptance`; Primary `br-proud-salad-bcshhdap` is ready/default but unprotected; automatic snapshot schedule is empty. Four branches and one manual snapshot are retained. Fresh read-only comparison of Primary vs restore branch `br-calm-poetry-bc7l7wik`: `activity_log` 20/17 rows; `audit_log` 59/54; `firewall_rate_buckets` 1/1 but content digest differs; `integration_outbox` 20/17; `organizations` 18/16; `users` 18/16. No row contents were returned or changed. Exact parity is not proven; preserve Primary and all recovery artefacts.
+
+## Latest CI evidence scope
+
+The latest completed runs on PR #291 passed: OpsCore source/regression/performance/security/mobile CI (`44547562235`) and disposable PostgreSQL 18 acceptance (`44547562215`), including signed tenant context, 67-route CI matrix, RLS, composite tenant FKs, HTTP runtime acceptance and a real logical dump/restore drill. Production deploy, Neon Preview and Production PITR jobs were skipped. These successes are valid CI evidence, not Production certificates. The deployed app code `68505535...` and tested PR revision `f3ab1791...` differ only by the traceability documentation file; application code is unchanged.
 
 ## Commercial boundary
 
