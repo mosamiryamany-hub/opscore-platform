@@ -153,8 +153,9 @@ test('Production promotion requires exact 67-route signed-session evidence befor
   const proof = fs.readFileSync(path.join(__dirname, '..', 'src', 'release-proof.js'), 'utf8');
   assert.ok(certification.includes('SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE.json'));
   assert.ok(certification.includes('routeRows.length === 67'));
-  assert.ok(certification.includes('session.pipelineId'));
-  assert.ok(certification.includes('recovery.pipelineId'));
+  assert.ok(certification.includes('exactPipeline(session)'));
+  assert.ok(certification.includes('exactPipeline(recovery)'));
+  assert.ok(certification.includes('expectedPipeline'));
   assert.ok(proof.includes('readProductionSignedTenantRouteCoverageEvidence'));
   assert.ok(proof.includes("productionIsolationCertification === 'CERTIFIED'"));
   assert.ok(!proof.includes("'NOT_CERTIFIED', 'CERTIFIED'"));
