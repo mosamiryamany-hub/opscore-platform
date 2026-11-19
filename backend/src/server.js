@@ -3572,9 +3572,13 @@ const server = http.createServer({ maxHeaderSize: config.httpMaxHeaders * 1024 }
       && !isReadOnlyProductionVerificationRequest(req)
       && !isAuthorizedProductionCandidateProbeRequest(req, process.env, signedContextProductionReadiness)
       && !isAuthorizedProductionCandidateDatabaseIdentityRequest(req, process.env, signedContextProductionReadiness)) {
-    const probeSupplied = String(req && req.headers && req.headers['x-opscore-signed-context-probe'] || '').trim();
-    const denial = probeSupplied
-      ? candidateProbeDenialReason(req, process.env, signedContextProductionReadiness)
+    const method = String(req && req.method || '').trim().toUpperCase();
+    const pathname = String(req && req.url || '/').split('?')[0];
+    const candidateRoute = ['read', 'write'].some(operation =>
+      require('./signed-tenant-context-policy').isSignedTenantContextRouteDefinition(method, pathname, operation)
+    );
+    const denial = candidateRoute
+      ? candidateProbeBoundaryDenialReason(req, process.env, signedContextProductionReadiness)
       : null;
     const holdHeaders = {
       'retry-after': '60',
