@@ -4738,7 +4738,11 @@ async function main() {
     if (evidenceRoot) { try { fs.rmSync(evidenceRoot, { recursive: true, force: true }); } catch (_) {} }
     try { await owner.query('DELETE FROM public.comments WHERE organization_id = ANY($1::text[]) AND work_order_id = ANY($2::text[])', [synthetic.tenantIds, synthetic.workOrderIds]); } catch (_) {}
     try { await owner.query("DELETE FROM public.activity_log WHERE organization_id = ANY($1::text[]) AND entity_type='work_order' AND entity_id = ANY($2::text[])", [synthetic.tenantIds, synthetic.workOrderIds]); } catch (_) {}
-    try { await owner.query("DELETE FROM public.audit_log WHERE organization_id = ANY($1::text[]) AND resource_type='work_order' AND resource_id = ANY($2::text[])", [synthetic.tenantIds, synthetic.workOrderIds]); } catch (_) {}
+    // The gate creates multiple audited resource types (work orders, uploads,
+    // attachments and other routes). The fixture tenant IDs are unique random
+    // values in this disposable database, so clean every audit row for these
+    // two tenants before enforcing the final zero-residue assertion.
+    try { await owner.query('DELETE FROM public.audit_log WHERE organization_id = ANY($1::text[])', [synthetic.tenantIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.work_order_sla WHERE organization_id = ANY($1::text[]) AND work_order_id = ANY($2::text[])', [synthetic.tenantIds, synthetic.workOrderIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.work_order_bulk_jobs WHERE organization_id = ANY($1::text[]) AND id = ANY($2::text[])', [synthetic.tenantIds, synthetic.bulkJobIds]); } catch (_) {}
     try { await owner.query("DELETE FROM public.audit_log WHERE organization_id = ANY($1::text[]) AND resource_type='work_order_bulk_job' AND resource_id = ANY($2::text[])", [synthetic.tenantIds, synthetic.bulkJobIds]); } catch (_) {}
