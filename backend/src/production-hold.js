@@ -11,6 +11,9 @@ const READ_ONLY_PRODUCTION_VERIFICATION_PATHS = new Set([
   '/api/verify/database-security'
 ]);
 
+const PRODUCTION_DATABASE_IDENTITY_PATH = '/api/internal/production-database-identity';
+const CANDIDATE_DEPLOYMENT_HOST = /^opscore-platform-[a-z0-9-]+-mosamiryamany-1692\\.vercel\\.app$/;
+
 function requestPath(req) {
   try {
     const host = String(req && req.headers && req.headers.host || 'localhost');
@@ -25,7 +28,7 @@ function isReadOnlyProductionVerificationRequest(req) {
     && READ_ONLY_PRODUCTION_VERIFICATION_PATHS.has(requestPath(req));
 }
 
-function isAuthorizedProductionCandidateProbeRequest(req, env = process.env, readiness = {}) {
+function isCandidateRequestOnExactDeployment(req, env = process.env, readiness = {}) {
   if (!signedTenantContextPolicy.isCandidateProbeAuthorized(req, env, readiness)) return false;
   const deploymentUrl = String(env.VERCEL_URL || '').trim();
   let deploymentHost = '';
@@ -38,12 +41,29 @@ function isAuthorizedProductionCandidateProbeRequest(req, env = process.env, rea
   }
   const requestHost = String(req && req.headers && req.headers.host || '').trim().toLowerCase();
   const trustedOidcToken = String(req && req.headers && req.headers['x-vercel-trusted-oidc-idp-token'] || '').trim();
-  if (!deploymentHost.endsWith('.vercel.app') || requestHost !== deploymentHost || !trustedOidcToken) return false;
+  return CANDIDATE_DEPLOYMENT_HOST.test(deploymentHost)
+    && requestHost === deploymentHost
+    && trustedOidcToken.split('.').length === 3
+    && trustedOidcToken.split('.').every(part => part.length > 0);
+}
+
+function isAuthorizedProductionCandidateProbeRequest(req, env = process.env, readiness = {}) {
+  if (!isCandidateRequestOnExactDeployment(req, env, readiness)) return false;
   const method = String(req && req.method || '').trim().toUpperCase();
   const pathname = requestPath(req);
   return ['read', 'write'].some(operation =>
     signedTenantContextPolicy.isSignedTenantContextRouteDefinition(method, pathname, operation)
   );
+}
+
+// The candidate collectors need one narrowly scoped read-only database identity
+// inspection while the staged deployment is held. It is intentionally not part of
+// the 67 business-route manifest and cannot be reached without both candidate-token
+// authorization and a Vercel-trusted OIDC request to this exact unaliased deployment.
+function isAuthorizedProductionCandidateDatabaseIdentityRequest(req, env = process.env, readiness = {}) {
+  return String(req && req.method || '').trim().toUpperCase() === 'GET'
+    && requestPath(req) === PRODUCTION_DATABASE_IDENTITY_PATH
+    && isCandidateRequestOnExactDeployment(req, env, readiness);
 }
 
 function evaluateProductionGate(config, env, productionSafetyGate) {
@@ -62,5 +82,6 @@ function evaluateProductionGate(config, env, productionSafetyGate) {
 module.exports = {
   evaluateProductionGate,
   isReadOnlyProductionVerificationRequest,
-  isAuthorizedProductionCandidateProbeRequest
+  isAuthorizedProductionCandidateProbeRequest,
+  isAuthorizedProductionCandidateDatabaseIdentityRequest
 };
