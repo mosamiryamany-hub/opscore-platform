@@ -491,7 +491,11 @@ jobs:
 
   production-neon-pitr-history-probe:
     name: Production Neon PITR historical branch probe (read-only)
-    if: github.event_name == 'pull_request' && github.head_ref == 'fix/vercel-evidence-postgres-storage-2026-11-19'
+    # Require non-empty NEON_API_KEY so missing/blank secret does not fail the whole acceptance suite.
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.head_ref == 'fix/vercel-evidence-postgres-storage-2026-11-19' &&
+      secrets.NEON_API_KEY != ''
     needs: live-rls
     runs-on: ubuntu-24.04
     timeout-minutes: 12

@@ -92,6 +92,7 @@ jobs:
       (github.event_name == 'pull_request' && github.base_ref == 'main') ||
       ((github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main')
     uses: ./.github/workflows/digital-twin-postgres-live.yml
+    secrets: inherit
 
   # Keep the existing branch-protected check name, but require both real source
   # verification and the disposable PostgreSQL 18 acceptance workflow to pass.
