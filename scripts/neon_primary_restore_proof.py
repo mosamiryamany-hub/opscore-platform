@@ -377,7 +377,7 @@ def verify_signed_context_catalog(uri):
     """
     output = psql(uri, sql)
     parts = output.split("|")
-    if len(parts) != 7:
+    if len(parts) != 8:
         fail("RESTORE_PROOF_SIGNED_CONTEXT_CATALOG_INVALID", {"output": output[:500]})
     names = ["verifierFunctionValid", "tenantAccessorUsesVerifier", "authDefinerRoleValid",
              "hmacKeyTableValid", "technicianTrailForcedRls", "technicianTrailPoliciesValid",
