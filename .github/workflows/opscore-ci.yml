@@ -42,6 +42,7 @@ jobs:
           node --check backend/scripts/postgres-logical-restore-drill.js
           node --check backend/src/production-database-identity-route.js
           node --check scripts/verify-production-environment.js
+          node --check scripts/performance-regression-gate.js
       - name: Production deployment smoke contract tests
         run: node --test backend/test/production-deployment-smoke.test.js
       - name: Production environment preflight contract tests
@@ -56,6 +57,8 @@ jobs:
       - name: Backend release regression suite
         working-directory: backend
         run: OPSC_RELEASE_TEST_CONCURRENCY=4 node scripts/release-test-runner.js
+      - name: Deterministic performance regression gate
+        run: node scripts/performance-regression-gate.js
       - name: Verify recorded release evidence and provenance
         working-directory: backend
         env:

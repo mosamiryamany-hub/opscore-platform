@@ -148,6 +148,19 @@ function extractNeonEndpointId(hostname) {
  if(!match)throw new Error('MIGRATION_NEON_ENDPOINT_ID_INVALID');
  return match[1];
 }
+function expectedMigrationOwnerRole(env=process.env) {
+ const target=String(env.OPSC_MIGRATION_TARGET_CLASS||'').trim().toLowerCase();
+ const configured=String(env.OPSC_MIGRATION_EXPECTED_OWNER_ROLE||'').trim();
+ if(target==='production'||target==='test'){
+  if(configured&&configured!=='neondb_owner')throw new Error('MIGRATION_OWNER_ROLE_NOT_ALLOWED');
+  return 'neondb_owner';
+ }
+ if(target==='preview'){
+  if(configured&& !['neondb_owner','opscore_owner'].includes(configured))throw new Error('MIGRATION_OWNER_ROLE_NOT_ALLOWED');
+  return configured||'neondb_owner';
+ }
+ throw new Error('MIGRATION_TARGET_CLASS_REQUIRED');
+}
 async function verifyNeonEndpointIdentity(url,env=process.env,fetchImpl=globalThis.fetch) {
  const target=String(env.OPSC_MIGRATION_TARGET_CLASS||'').trim().toLowerCase();
  if(target==='test')return {verified:false,skipped:true,reason:'loopback-test-target'};
@@ -155,6 +168,14 @@ async function verifyNeonEndpointIdentity(url,env=process.env,fetchImpl=globalTh
  const endpointId=extractNeonEndpointId(hostname);
  const projectId=String(env.OPSC_MIGRATION_EXPECTED_PROJECT_ID||'').trim();
  const branchId=String(env.OPSC_MIGRATION_EXPECTED_BRANCH_ID||'').trim();
+ if(target==='preview'&&env.OPSC_MIGRATION_PINNED_NEON_IDENTITY==='1'){
+  const exact={projectId:'sweet-union-58466913',branchId:'br-solitary-band-bbczy982',host:'ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech',endpointId:'ep-dry-mouse-bbf5ozwy',database:'opscore_acceptance'};
+  const database=String(url.pathname||'').replace(/^\/+/, '');
+  if(projectId!==exact.projectId||branchId!==exact.branchId||hostname!==exact.host||endpointId!==exact.endpointId||database!==exact.database){
+   throw new Error('MIGRATION_PINNED_NEON_IDENTITY_MISMATCH');
+  }
+  return {verified:false,skipped:true,pinned:true,verification:'STATIC_EXACT_PREVIEW_TARGET',endpointId,projectId,branchId,host:hostname,database,endpointType:'configured-read-write'};
+ }
  const apiKey=String(env.NEON_API_KEY||'').trim();
  if(!projectId||!branchId)throw new Error('MIGRATION_NEON_IDENTITY_EXPECTATIONS_REQUIRED');
  if(!apiKey)throw new Error('MIGRATION_NEON_API_KEY_REQUIRED');
@@ -259,14 +280,16 @@ async function main(){
  try{
   client=await pool.connect();
   const info=(await client.query("SELECT current_database() AS database,current_user AS role,current_setting('server_version') AS server_version,r.rolsuper AS superuser,r.rolbypassrls AS bypass_rls FROM pg_roles r WHERE r.rolname=current_user")).rows[0];
-  if(!info||info.role!=='neondb_owner'||info.superuser||!info.bypass_rls)throw new Error('MIGRATION_ROLE_NOT_ALLOWED');
+  if(!info)throw new Error('MIGRATION_ROLE_NOT_ALLOWED');
+  const targetClass=assertTarget(url,info.database,apply);
+  const expectedOwnerRole=expectedMigrationOwnerRole();
+  if(info.role!==expectedOwnerRole||info.superuser||!info.bypass_rls)throw new Error('MIGRATION_ROLE_NOT_ALLOWED');
   const runtimePreflight=(await client.query(`SELECT r.rolcanlogin,r.rolsuper,r.rolbypassrls,r.rolcreaterole,r.rolcreatedb,
     (SELECT count(*) FROM pg_roles elevated
      WHERE (elevated.rolsuper OR elevated.rolbypassrls OR elevated.rolcreaterole OR elevated.rolcreatedb)
        AND pg_has_role(r.rolname,elevated.oid,'MEMBER')) AS elevated_membership_count
     FROM pg_roles r WHERE r.rolname='opscore_runtime'`)).rows[0];
   if(!runtimePreflight||!runtimePreflight.rolcanlogin||runtimePreflight.rolsuper||runtimePreflight.rolbypassrls||runtimePreflight.rolcreaterole||runtimePreflight.rolcreatedb||Number(runtimePreflight.elevated_membership_count)!==0)throw new Error('MIGRATION_RUNTIME_ROLE_NOT_LEAST_PRIVILEGED');
-  const targetClass=assertTarget(url,info.database,apply);
   const neonIdentity=await verifyNeonEndpointIdentity(url);
   await client.query("SELECT pg_advisory_lock(hashtext(current_database()),hashtext('opscore-schema-migrations'))");locked=true;
   const ledgerExists=(await client.query("SELECT to_regclass('public.schema_migrations') AS ledger")).rows[0]?.ledger;
@@ -322,7 +345,7 @@ async function main(){
   for(const migration of plan.pending){
    await client.query('BEGIN');
    try{
-    await client.query("SELECT set_config('opscore.app_role','opscore_app',true),set_config('opscore.fn_owner','neondb_owner',true)");
+    await client.query("SELECT set_config('opscore.app_role','opscore_app',true),set_config('opscore.fn_owner',$1,true)",[info.role]);
     await client.query(unwrapOuterTransaction(migration.content,migration.filename));
     await client.query('INSERT INTO public.schema_migrations(filename,sha256,applied_at) VALUES ($1,$2,clock_timestamp())',[migration.filename,migration.sha256]);
     await client.query('COMMIT');applied.push({filename:migration.filename,sha256:migration.sha256});
@@ -499,4 +522,4 @@ SELECT
 if (require.main === module) {
  main().catch(error=>emit({status:'FAIL',reason:error.message||String(error),note:'Connection values are never emitted; no production fallback is used.'},1));
 }
-module.exports = { readMigrations, verifyLegacy042Catalog, verifyControlPlane053Catalog, assertTarget, unwrapOuterTransaction, extractNeonEndpointId, verifyNeonEndpointIdentity, tenantPolicyExprValid, validateAppRolePreflight, validateAppRolePostconditions };
+module.exports = { readMigrations, verifyLegacy042Catalog, verifyControlPlane053Catalog, assertTarget, expectedMigrationOwnerRole, unwrapOuterTransaction, extractNeonEndpointId, verifyNeonEndpointIdentity, tenantPolicyExprValid, validateAppRolePreflight, validateAppRolePostconditions };

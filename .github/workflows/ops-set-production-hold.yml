@@ -1,0 +1,76 @@
+name: ops-set-production-hold
+on:
+  workflow_dispatch:
+    inputs:
+      hold_value:
+        description: 'false opens traffic; true restores hold'
+        required: true
+        type: choice
+        options: ['false', 'true']
+      confirm:
+        description: 'Must equal I_AUTHORIZE_PRODUCTION_HOLD_CHANGE'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  set-hold:
+    if: github.event.inputs.confirm == 'I_AUTHORIZE_PRODUCTION_HOLD_CHANGE'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Set OPSC_PRODUCTION_HOLD on Vercel Production
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          HOLD_VALUE: ${{ github.event.inputs.hold_value }}
+        run: |
+          set -euo pipefail
+          test -n "${VERCEL_TOKEN}" && test -n "${VERCEL_ORG_ID}" && test -n "${VERCEL_PROJECT_ID}"
+          test "${HOLD_VALUE}" = "true" -o "${HOLD_VALUE}" = "false"
+          code=$(curl -sS -o /tmp/envlist.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+            "https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}/env?teamId=${VERCEL_ORG_ID}")
+          echo "list_code=${code}"
+          env_id=$(python3 - <<'PY'
+          import json
+          data=json.load(open("/tmp/envlist.json"))
+          envs=data if isinstance(data,list) else data.get("envs") or []
+          for e in envs:
+            if e.get("key")=="OPSC_PRODUCTION_HOLD" and "production" in (e.get("target") or []):
+              print(e.get("id",""))
+              break
+          PY
+          )
+          if [ -n "${env_id}" ]; then
+            curl -sS -X PATCH \
+              -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+              -H "Content-Type: application/json" \
+              "https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}/env/${env_id}?teamId=${VERCEL_ORG_ID}" \
+              -d "{\"value\":\"${HOLD_VALUE}\",\"type\":\"plain\"}"
+            echo "UPDATED id=${env_id} value=${HOLD_VALUE}"
+          else
+            curl -sS -X POST \
+              -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+              -H "Content-Type: application/json" \
+              "https://api.vercel.com/v10/projects/${VERCEL_PROJECT_ID}/env?teamId=${VERCEL_ORG_ID}" \
+              -d "{\"key\":\"OPSC_PRODUCTION_HOLD\",\"value\":\"${HOLD_VALUE}\",\"type\":\"plain\",\"target\":[\"production\"]}"
+            echo "CREATED value=${HOLD_VALUE}"
+          fi
+          curl -sS -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+            "https://api.vercel.com/v6/deployments?projectId=${VERCEL_PROJECT_ID}&target=production&limit=1&teamId=${VERCEL_ORG_ID}" \
+            -o /tmp/depls.json
+          uid=$(python3 -c 'import json;d=json.load(open("/tmp/depls.json"));print((d.get("deployments") or [{}])[0].get("uid",""))')
+          echo "prod_uid=${uid}"
+          if [ -n "${uid}" ]; then
+            curl -sS -X POST \
+              -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+              -H "Content-Type: application/json" \
+              "https://api.vercel.com/v13/deployments?forceNew=1&teamId=${VERCEL_ORG_ID}" \
+              -d "{\"name\":\"opscore-platform\",\"deploymentId\":\"${uid}\",\"target\":\"production\"}" \
+              -o /tmp/redeploy.json || true
+            python3 -c 'import json;d=json.load(open("/tmp/redeploy.json"));print(d.get("id") or d.get("url") or d.get("error") or d)'
+          fi

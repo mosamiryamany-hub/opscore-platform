@@ -1,5 +1,7 @@
 'use strict';
 
+const signedTenantContextPolicy = require('./signed-tenant-context-policy');
+
 const READ_ONLY_PRODUCTION_VERIFICATION_PATHS = new Set([
   '/api/health',
   '/api/verify/deployment',
@@ -23,6 +25,27 @@ function isReadOnlyProductionVerificationRequest(req) {
     && READ_ONLY_PRODUCTION_VERIFICATION_PATHS.has(requestPath(req));
 }
 
+function isAuthorizedProductionCandidateProbeRequest(req, env = process.env, readiness = {}) {
+  if (!signedTenantContextPolicy.isCandidateProbeAuthorized(req, env, readiness)) return false;
+  const deploymentUrl = String(env.VERCEL_URL || '').trim();
+  let deploymentHost = '';
+  try {
+    const parsed = new URL('https://' + deploymentUrl);
+    if (parsed.username || parsed.password || parsed.port || parsed.pathname !== '/' || parsed.search || parsed.hash) return false;
+    deploymentHost = parsed.hostname.toLowerCase();
+  } catch {
+    return false;
+  }
+  const requestHost = String(req && req.headers && req.headers.host || '').trim().toLowerCase();
+  const trustedOidcToken = String(req && req.headers && req.headers['x-vercel-trusted-oidc-idp-token'] || '').trim();
+  if (!deploymentHost.endsWith('.vercel.app') || requestHost !== deploymentHost || !trustedOidcToken) return false;
+  const method = String(req && req.method || '').trim().toUpperCase();
+  const pathname = requestPath(req);
+  return ['read', 'write'].some(operation =>
+    signedTenantContextPolicy.isSignedTenantContextRouteDefinition(method, pathname, operation)
+  );
+}
+
 function evaluateProductionGate(config, env, productionSafetyGate) {
   try {
     const decision = productionSafetyGate(config, env);
@@ -38,5 +61,6 @@ function evaluateProductionGate(config, env, productionSafetyGate) {
 
 module.exports = {
   evaluateProductionGate,
-  isReadOnlyProductionVerificationRequest
+  isReadOnlyProductionVerificationRequest,
+  isAuthorizedProductionCandidateProbeRequest
 };

@@ -1,12 +1,40 @@
 name: apply-preview-migrations
 
 on:
+  workflow_call:
+    inputs:
+      branch:
+        description: Exact non-default Neon acceptance branch ID
+        required: false
+        type: string
+        default: "br-solitary-band-bbczy982"
+      database:
+        description: Exact isolated application database
+        required: false
+        type: string
+        default: "opscore_acceptance"
+  push:
+    branches:
+      - ops/acceptance-neon-target-2026-11-19
+    paths:
+      - '.github/workflows/apply-preview-migrations.yml'
+      - 'backend/sql/postgres/**'
+      - 'backend/scripts/apply-postgres-migrations.js'
+      - 'backend/scripts/validate-postgres-acceptance-target.js'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/apply-preview-migrations.yml'
+      - 'backend/sql/postgres/**'
+      - 'backend/scripts/apply-postgres-migrations.js'
+      - 'backend/scripts/validate-postgres-acceptance-target.js'
   workflow_dispatch:
     inputs:
       branch:
         description: Exact Neon Preview branch ID (primary, default, and protected branches are rejected)
         required: true
-        default: "br-fragrant-king-bcr9928f"
+        default: "br-solitary-band-bbczy982"
       database:
         description: Application database name (fixed to opscore_acceptance)
         required: true
@@ -21,6 +49,7 @@ concurrency:
 
 jobs:
   apply-preview-only:
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'ops/acceptance-neon-target-2026-11-19'
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -38,76 +67,100 @@ jobs:
         working-directory: backend
         run: npm ci --omit=dev
 
-      - name: Resolve Preview connection (Neon API)
+      - name: Bind exact isolated Neon acceptance branch
         id: neon
         env:
-          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
-          INPUT_BRANCH: ${{ github.event.inputs.branch }}
-          INPUT_DB: ${{ github.event.inputs.database }}
+          INPUT_BRANCH: ${{ inputs.branch || github.event.inputs.branch || 'br-solitary-band-bbczy982' }}
+          INPUT_DB: ${{ inputs.database || github.event.inputs.database || 'opscore_acceptance' }}
         run: |
           set -euo pipefail
-          test -n "${NEON_API_KEY:-}" || { echo "NEON_API_KEY_MISSING"; exit 1; }
-          PROJECT_ID="summer-leaf-18448271"
-          AUTH_H=(-H "Authorization: Bearer ${NEON_API_KEY}" -H "Accept: application/json")
-          BRANCHES=$(curl -fsS "${AUTH_H[@]}" "https://console.neon.tech/api/v2/projects/${PROJECT_ID}/branches")
-          echo "$BRANCHES" | python3 -c '
-          import json,os,sys
-          data=json.load(sys.stdin)
-          branches=data.get("branches") or data
-          want=(os.environ.get("INPUT_BRANCH") or "").strip()
-          project_id="summer-leaf-18448271"
-          if not want.startswith("br-"):
-            print("EXACT_PREVIEW_BRANCH_ID_REQUIRED", file=sys.stderr); sys.exit(1)
-          matches=[b for b in branches if str(b.get("id") or "") == want]
-          if len(matches) != 1:
-            print("PREVIEW_BRANCH_NOT_UNIQUELY_RESOLVED", file=sys.stderr); sys.exit(1)
-          chosen=matches[0]
-          if chosen.get("primary") or chosen.get("default") or chosen.get("protected"):
-            print("REFUSING_PRIMARY_DEFAULT_OR_PROTECTED_BRANCH", file=sys.stderr); sys.exit(1)
-          if str(chosen.get("current_state") or "").lower() != "ready":
-            print("PREVIEW_BRANCH_NOT_READY", file=sys.stderr); sys.exit(1)
-          if os.environ.get("INPUT_DB") != "opscore_acceptance":
-            print("PREVIEW_APPLICATION_DATABASE_REQUIRED", file=sys.stderr); sys.exit(1)
-          open(os.environ["RUNNER_TEMP"]+"/branch.json","w").write(json.dumps({
-            "id": chosen["id"], "name": chosen.get("name"), "project_id": project_id
-          }))
-          print("branch", chosen.get("name"), chosen["id"])
-          '
-          BRANCH_ID=$(python3 -c 'import json,os;print(json.load(open(os.environ["RUNNER_TEMP"]+"/branch.json"))["id"])')
-          BRANCH_NAME=$(python3 -c 'import json,os;print(json.load(open(os.environ["RUNNER_TEMP"]+"/branch.json"))["name"])')
+          PROJECT_ID='sweet-union-58466913'
+          PRIMARY_BRANCH_ID='br-weathered-tree-bbha3dx4'
+          BRANCH_ID='br-solitary-band-bbczy982'
+          HOST='ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech'
+          test "$INPUT_BRANCH" = "$BRANCH_ID" || { echo 'EXACT_ACCEPTANCE_BRANCH_REQUIRED'; exit 1; }
+          test "$INPUT_DB" = 'opscore_acceptance' || { echo 'EXACT_ACCEPTANCE_DATABASE_REQUIRED'; exit 1; }
+          test "$BRANCH_ID" != "$PRIMARY_BRANCH_ID" || { echo 'REFUSING_NEON_PRIMARY_BRANCH'; exit 1; }
           echo "branch_id=$BRANCH_ID" >> "$GITHUB_OUTPUT"
-          echo "branch_name=$BRANCH_NAME" >> "$GITHUB_OUTPUT"
-          echo "Resolved Preview branch: $BRANCH_NAME ($BRANCH_ID)"
-          curl -fsS -G "${AUTH_H[@]}" \
-            --data-urlencode "branch_id=${BRANCH_ID}" \
-            --data-urlencode "database_name=${INPUT_DB}" \
-            --data-urlencode "role_name=neondb_owner" \
-            --data-urlencode "pooled=false" \
-            "https://console.neon.tech/api/v2/projects/${PROJECT_ID}/connection_uri" \
-            > "$RUNNER_TEMP/uri.json"
-          python3 - <<'PY'
-          import json,os,sys
-          from urllib.parse import urlsplit,urlunsplit,parse_qsl,urlencode
-          u=json.load(open(os.environ["RUNNER_TEMP"]+"/uri.json"))["uri"]
-          p=urlsplit(u)
-          if p.scheme not in ("postgres","postgresql") or not p.hostname or "-pooler" in p.hostname:
-            print("PREVIEW_DIRECT_POSTGRES_ENDPOINT_REQUIRED", file=sys.stderr); sys.exit(1)
-          q=dict(parse_qsl(p.query, keep_blank_values=True))
-          q["sslmode"]="verify-full"
-          u=urlunsplit((p.scheme,p.netloc,p.path,urlencode(q),p.fragment))
-          open(os.environ["RUNNER_TEMP"]+"/preview.uri","w").write(u)
-          PY
-          chmod 600 "$RUNNER_TEMP/preview.uri"
-          HOST=$(python3 -c 'from urllib.parse import urlparse; print(urlparse(open("'"$RUNNER_TEMP"'/preview.uri").read()).hostname)')
+          echo "branch_name=acceptance/migrations-2026-11-19" >> "$GITHUB_OUTPUT"
+          echo "database=$INPUT_DB" >> "$GITHUB_OUTPUT"
+          echo "project_id=$PROJECT_ID" >> "$GITHUB_OUTPUT"
           echo "host=$HOST" >> "$GITHUB_OUTPUT"
-          echo "database=${INPUT_DB}" >> "$GITHUB_OUTPUT"
-          echo "project_id=${PROJECT_ID}" >> "$GITHUB_OUTPUT"
-          echo "endpoint host=$HOST db=$INPUT_DB"
+          echo "NEON_ACCEPTANCE_TARGET=PASS project=$PROJECT_ID branch=$BRANCH_ID database=$INPUT_DB host=$HOST"
+          # STATIC_EXACT_PREVIEW_TARGET guard: exactly one pinned non-primary branch.
+          case "${BRANCH_ID}" in ""|*,*) echo "STATIC_EXACT_PREVIEW_TARGET_VIOLATION branch=$BRANCH_ID" >&2; exit 1 ;; esac
+
+      - name: Resolve isolated Neon owner and runtime connections from Vercel Development secrets
+        id: connections
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TEAM_ID: team_xysgxd2E3CsVIYklf0nxOKop
+        run: |
+          set -euo pipefail
+          test -n "${VERCEL_TOKEN:-}" || { echo 'VERCEL_TOKEN_MISSING'; exit 1; }
+          test "$VERCEL_PROJECT_ID" = 'prj_8jMqBt0l6OALicWSwQ3ECQTn8yPe' || { echo 'UNAPPROVED_VERCEL_PROJECT'; exit 1; }
+          python3 - <<'PY'
+          import json,os,subprocess
+          envs={
+            "OPSC_MIGRATION_DATABASE_URL":"NaIbwIDagdogTmWE",
+            "OPSC_ACCEPTANCE_RUNTIME_DATABASE_URL":"2ACxh1Oi5TWMDn5v"
+          }
+          for key,env_id in envs.items():
+            url="https://api.vercel.com/v1/projects/"+os.environ["VERCEL_PROJECT_ID"]+"/env/"+env_id+"?teamId="+os.environ["VERCEL_TEAM_ID"]
+            out=os.environ["RUNNER_TEMP"]+"/"+key+".json"
+            with open(out,"w") as f:
+              subprocess.run(["curl","-fsS","-H","Authorization: Bearer "+os.environ["VERCEL_TOKEN"],"-H","Accept: application/json",url],stdout=f,check=True)
+            item=json.load(open(out))
+            value=str(item.get("value") or "")
+            if not value.startswith("postgresql://"):
+              raise SystemExit("VERCEL_DEVELOPMENT_SECRET_NOT_DECRYPTED:"+key)
+            open(os.environ["RUNNER_TEMP"]+"/"+key+".uri","w").write(value)
+          PY
+          python3 - <<'PY'
+          import os,sys
+          from urllib.parse import urlsplit,parse_qs
+          root=os.environ['RUNNER_TEMP']+'/'
+          expected_host='ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech'
+          expected_db='opscore_acceptance'
+          checks=[('OPSC_MIGRATION_DATABASE_URL','opscore_owner'),('OPSC_ACCEPTANCE_RUNTIME_DATABASE_URL','opscore_runtime')]
+          for key,role in checks:
+            value=open(root+key+'.uri').read().strip()
+            u=urlsplit(value)
+            q=parse_qs(u.query)
+            if u.scheme!='postgresql' or u.username!=role or u.hostname!=expected_host or u.path.lstrip('/')!=expected_db or q.get('sslmode')!=['verify-full'] or q.get('channel_binding')!=['require']:
+              raise SystemExit('VERCEL_NEON_CONNECTION_IDENTITY_MISMATCH:'+key)
+            print('::add-mask::'+value)
+            target=root+('owner.uri' if role=='opscore_owner' else 'runtime.uri')
+            open(target,'w').write(value)
+          PY
+          chmod 600 "$RUNNER_TEMP/owner.uri" "$RUNNER_TEMP/runtime.uri"
+          echo 'NEON_MIGRATION_AND_RUNTIME_CONNECTIONS=PASS roles=opscore_owner,opscore_runtime TLS=verify-full'
+
+      - name: Provision locked legacy application role required by historical grants
+        run: |
+          set -euo pipefail
+          export PGURI="$(cat "$RUNNER_TEMP/owner.uri")"; case "$PGURI" in *"?"*) PGURI="$PGURI&sslrootcert=system";; *) PGURI="$PGURI?sslrootcert=system";; esac; export PGURI
+          test -n "${PGURI}" || { echo "OWNER_URI_MISSING" >&2; exit 1; }
+          psql "$PGURI" -v ON_ERROR_STOP=1 -q <<'SQL'
+          DO $$
+          BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'opscore_app') THEN
+              CREATE ROLE opscore_app NOLOGIN NOINHERIT NOCREATEROLE NOCREATEDB NOBYPASSRLS;
+              RAISE NOTICE 'OPSC_LEGACY_APP_ROLE_PROVISIONED_LOCKED';
+            ELSE
+              RAISE NOTICE 'OPSC_LEGACY_APP_ROLE_ALREADY_PRESENT';
+            END IF;
+          END $$;
+          SQL
+          psql "$PGURI" -Atc "SELECT rolname||'|canlogin='||rolcanlogin||'|inherit='||rolinherit||'|bypassrls='||rolbypassrls FROM pg_roles WHERE rolname='opscore_app'"
+          echo "LEGACY_APP_ROLE_PROVISION=PASS"
 
       - name: Dry-run migrations on Preview
         env:
-          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
           OPSC_MIGRATION_TARGET_CLASS: preview
+          OPSC_MIGRATION_EXPECTED_OWNER_ROLE: opscore_owner
+          OPSC_MIGRATION_PINNED_NEON_IDENTITY: '1'
           OPSC_MIGRATION_EXPECTED_DATABASE: ${{ steps.neon.outputs.database }}
           OPSC_MIGRATION_EXPECTED_HOST: ${{ steps.neon.outputs.host }}
           OPSC_MIGRATION_EXPECTED_PROJECT_ID: ${{ steps.neon.outputs.project_id }}
@@ -115,7 +168,7 @@ jobs:
         working-directory: backend
         run: |
           set -euo pipefail
-          export OPSC_MIGRATION_DATABASE_URL="$(cat "$RUNNER_TEMP/preview.uri")"
+          export OPSC_MIGRATION_DATABASE_URL="$(cat "$RUNNER_TEMP/owner.uri")"; case "$OPSC_MIGRATION_DATABASE_URL" in *"?"*) OPSC_MIGRATION_DATABASE_URL="$OPSC_MIGRATION_DATABASE_URL&sslrootcert=system";; *) OPSC_MIGRATION_DATABASE_URL="$OPSC_MIGRATION_DATABASE_URL?sslrootcert=system";; esac; export OPSC_MIGRATION_DATABASE_URL
           node scripts/apply-postgres-migrations.js | tee "$RUNNER_TEMP/dry-run.json"
           python3 - <<'PY'
           import json,os,sys,re
@@ -130,14 +183,18 @@ jobs:
           pending=obj.get("pending") or []
           print("pending_count", len(pending))
           for p in pending: print(" pending", p.get("filename"))
+          identity=obj.get("neonIdentity") or {}
+          if identity.get("pinned") is not True or identity.get("projectId") != "sweet-union-58466913" or identity.get("branchId") != "br-solitary-band-bbczy982" or identity.get("host") != "ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech":
+            print("DRY_RUN_NEON_PINNED_IDENTITY_MISMATCH"); sys.exit(1)
           if obj.get("status") != "DRY_RUN_PASS":
             print(json.dumps(obj, indent=2)[:2500]); sys.exit(1)
           PY
 
       - name: Apply migrations on Preview only
         env:
-          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
           OPSC_MIGRATION_TARGET_CLASS: preview
+          OPSC_MIGRATION_EXPECTED_OWNER_ROLE: opscore_owner
+          OPSC_MIGRATION_PINNED_NEON_IDENTITY: '1'
           OPSC_MIGRATION_EXPECTED_DATABASE: ${{ steps.neon.outputs.database }}
           OPSC_MIGRATION_EXPECTED_HOST: ${{ steps.neon.outputs.host }}
           OPSC_MIGRATION_EXPECTED_PROJECT_ID: ${{ steps.neon.outputs.project_id }}
@@ -149,7 +206,7 @@ jobs:
         working-directory: backend
         run: |
           set -euo pipefail
-          export OPSC_MIGRATION_DATABASE_URL="$(cat "$RUNNER_TEMP/preview.uri")"
+          export OPSC_MIGRATION_DATABASE_URL="$(cat "$RUNNER_TEMP/owner.uri")"; case "$OPSC_MIGRATION_DATABASE_URL" in *"?"*) OPSC_MIGRATION_DATABASE_URL="$OPSC_MIGRATION_DATABASE_URL&sslrootcert=system";; *) OPSC_MIGRATION_DATABASE_URL="$OPSC_MIGRATION_DATABASE_URL?sslrootcert=system";; esac; export OPSC_MIGRATION_DATABASE_URL
           unset OPSC_MIGRATION_ALLOW_PRODUCTION || true
           node scripts/apply-postgres-migrations.js --apply | tee "$RUNNER_TEMP/apply.json"
           python3 - <<'PY'
@@ -162,6 +219,9 @@ jobs:
           if not obj:
             print(raw[-2500:]); print("APPLY_PARSE_FAIL"); sys.exit(1)
           print(json.dumps({k:obj.get(k) for k in ("status","applied","target","neonIdentity","serverVersion")}, indent=2, default=str)[:4000])
+          identity=obj.get("neonIdentity") or {}
+          if identity.get("pinned") is not True or identity.get("projectId") != "sweet-union-58466913" or identity.get("branchId") != "br-solitary-band-bbczy982" or identity.get("host") != "ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech":
+            print("APPLY_NEON_PINNED_IDENTITY_MISMATCH"); sys.exit(1)
           st=str(obj.get("status") or "")
           if "FAIL" in st.upper() or st in ("ERROR",):
             sys.exit(1)
@@ -171,7 +231,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client >/dev/null
-          URI="$(cat "$RUNNER_TEMP/preview.uri")"
+          URI="$(cat "$RUNNER_TEMP/owner.uri")"; case "$URI" in *"?"*) URI="$URI&sslrootcert=system";; *) URI="$URI?sslrootcert=system";; esac; export URI
           psql "$URI" -v ON_ERROR_STOP=1 -c \
             "SELECT filename, left(sha256,12) AS sha12, applied_at
              FROM public.schema_migrations
@@ -196,3 +256,16 @@ jobs:
              );")
           test "$COUNT" = "6" || { echo "MIGRATION_VERIFY_COUNT=$COUNT"; exit 1; }
           echo "PREVIEW_MIGRATIONS_066_068_VERIFIED=PASS"
+
+      - name: Run PostgreSQL HTTP commercial acceptance against isolated Neon
+        working-directory: backend
+        run: |
+          set -euo pipefail
+          export OPSC_PG_ACCEPTANCE_URL="$(cat "$RUNNER_TEMP/runtime.uri")"
+          export OPSC_PG_ACCEPTANCE_HOST='ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech'
+          export OPSC_PG_ACCEPTANCE_STRICT='true'
+          export OPSC_PG_ACCEPTANCE_RESULT_FILE="${GITHUB_WORKSPACE}/POSTGRES_HTTP_ACCEPTANCE_RESULT.json"
+          export OPSC_WRITE_EVIDENCE='1'
+          export CI_COMMIT_SHA="${GITHUB_SHA}"
+          export CI_PIPELINE_ID="${GITHUB_RUN_ID}"
+          node --test test/postgres-commercial-acceptance-http.test.js

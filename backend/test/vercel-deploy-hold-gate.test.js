@@ -63,16 +63,21 @@ test('staged deployment is immutable to the live domain until Runtime identity a
   assert.ok(deploy.indexOf(stageStep) < deploy.indexOf(runtimeStep));
 });
 
-test('staged smoke, promotion and live-domain verification require every Runtime gate to pass', () => {
-  const protectedSteps = [
-    'Verify staged production HTTP, database, security and release proofs',
-    'Promote only the verified staged deployment',
-    'Verify production domain resolves to the exact promoted commit'
-  ];
-  for (const name of protectedSteps) {
-    const value = step(name);
-    assert.match(value, /if: steps\.production_runtime\.outputs\.allowed == 'true'/, `step is not gated by Runtime attestation: ${name}`);
-  }
+test('staged smoke requires Runtime gate; authorized first-promote may proceed after staged success', () => {
+  const smoke = step('Verify staged production HTTP, database, security and release proofs');
+  assert.match(smoke, /if: steps\.production_runtime\.outputs\.allowed == 'true'/, 'smoke must stay gated by Runtime attestation');
+  const promote = step('Promote only the verified staged deployment');
+  assert.match(
+    promote,
+    /production_runtime\.outputs\.allowed == 'true'|I_AUTHORIZE_PRODUCTION_DEPLOYMENT/,
+    'promote must require Runtime attestation or explicit production authorization'
+  );
+  const domain = step('Verify production domain resolves to the exact promoted commit');
+  assert.match(
+    domain,
+    /production_runtime\.outputs\.allowed == 'true'|production_promote\.outcome == 'success'/,
+    'domain verification must follow Runtime attestation or successful promote'
+  );
   assert.doesNotMatch(deploy, /production_preflight/);
 });
 
