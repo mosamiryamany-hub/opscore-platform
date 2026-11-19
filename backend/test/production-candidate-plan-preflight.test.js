@@ -10,7 +10,7 @@ function response(status, value) {
   return { status, ok: status >= 200 && status < 300, text: async () => JSON.stringify(value) };
 }
 
-function fixture({ vercelPlan = 'pro', neonPlan = 'launch', branches = 4, logicalSize = 166117376 } = {}) {
+function fixture({ vercelPlan = 'pro', neonPlan = 'scale', branches = 4, logicalSize = 166117376, primaryProtected = true } = {}) {
   const calls = [];
   const env = {
     VERCEL_TOKEN: 'vercel-test-token',
@@ -46,6 +46,7 @@ function fixture({ vercelPlan = 'pro', neonPlan = 'launch', branches = 4, logica
         primary: index === 0,
         default: index === 0,
         current_state: 'ready',
+        protected: index === 0 ? primaryProtected : false,
         logical_size: index === 0 ? logicalSize : 83197952
       }));
       return response(200, { branches: items });
@@ -55,13 +56,14 @@ function fixture({ vercelPlan = 'pro', neonPlan = 'launch', branches = 4, logica
   return { env, calls, fetchImpl };
 }
 
-test('candidate plan preflight accepts only paid Vercel and Neon plans with primary capacity', async () => {
+test('candidate plan preflight accepts commercial Vercel and Neon plans only with protected Primary and capacity', async () => {
   const f = fixture();
   const result = await runCandidatePlanPreflight({ env: f.env, fetchImpl: f.fetchImpl });
   assert.equal(result.status, 'PASS');
   assert.equal(result.candidateEvidenceOnly, true);
   assert.equal(result.productionPromotionAuthorized, false);
   assert.equal(result.neonBranchCount, 4);
+  assert.equal(result.neonPrimaryBranchProtected, true);
   assert.equal(f.calls.every(call => call.method === 'GET'), true);
 });
 
@@ -79,7 +81,7 @@ test('candidate plan preflight blocks Neon Free before branch lookup', async () 
   const f = fixture({ neonPlan: 'free' });
   await assert.rejects(
     () => runCandidatePlanPreflight({ env: f.env, fetchImpl: f.fetchImpl }),
-    /NEON_PLAN_NOT_ELIGIBLE:free/
+    /NEON_PLAN_NOT_ELIGIBLE_FOR_PRIMARY_PROTECTION:free/
   );
   assert.equal(f.calls.some(call => call.url.endsWith('/branches')), false);
   assert.equal(f.calls.every(call => call.method === 'GET'), true);
@@ -116,5 +118,22 @@ test('candidate plan preflight blocks a primary branch at its logical size limit
   await assert.rejects(
     () => runCandidatePlanPreflight({ env: f.env, fetchImpl: f.fetchImpl }),
     /NEON_PRIMARY_BRANCH_LOGICAL_SIZE_NOT_ELIGIBLE/
+  );
+});
+
+test('candidate plan preflight rejects Neon Launch when Primary branch protection is required', async () => {
+  const f = fixture({ neonPlan: 'launch' });
+  await assert.rejects(
+    () => runCandidatePlanPreflight({ env: f.env, fetchImpl: f.fetchImpl }),
+    /NEON_PLAN_NOT_ELIGIBLE_FOR_PRIMARY_PROTECTION:launch/
+  );
+  assert.equal(f.calls.some(call => call.url.endsWith('/branches')), false);
+});
+
+test('candidate plan preflight rejects an unprotected Neon Primary even on an eligible plan', async () => {
+  const f = fixture({ primaryProtected: false });
+  await assert.rejects(
+    () => runCandidatePlanPreflight({ env: f.env, fetchImpl: f.fetchImpl }),
+    /NEON_PRIMARY_BRANCH_NOT_PROTECTED/
   );
 });
