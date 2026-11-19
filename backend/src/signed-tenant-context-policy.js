@@ -65,7 +65,9 @@ const OPERATIONAL_SIGNED_READ_ROUTES = [
   ['GET', /^\/api\/v1\/customers\/[^/]+\/service-line$/],
   ['POST', /^\/api\/v1\/faults\/classify$/],
   ['POST', /^\/api\/v1\/geofences\/assert-access$/],
-  ['POST', /^\/api\/v1\/geofences\/evaluate$/]
+  ['POST', /^\/api\/v1\/geofences\/evaluate$/],
+  // Binary attachment download used by evidence-upload candidate proof (PR #304).
+  ['GET', /^\/api\/v1\/attachments\/[^/]+$/]
 ];
 
 const OPERATIONAL_SIGNED_WRITE_ROUTES = [
