@@ -48,7 +48,7 @@ PR #291 adds a documentation-only file after deployed app commit `68505535...`; 
 | Production recovery bundle | `NOT_VERIFIED` | No current exact-deployment recovery proof |
 | Production-wide isolation certification | `NOT_CERTIFIED` | No certification claim |
 
-The live endpoint still shows a package fingerprint as `PUBLISHED`, but it is not accepted as current-main package attestation. The old implementation could derive package and CI status from persistent environment variables even when the identity artifact was absent. PR #288 removes that fallback in source; the live deployment has not yet received it.
+The live release endpoint reports package fingerprint SHA-256 `UNVERIFIED` with a null value. PR #288's fail-closed verifier is deployed: stale environment-only CI/package values are not accepted when the validated identity JSON is absent. This is a correct unverified result, not a failed SHA-256 calculation.
 
 ## 4. Trust-proof discrepancy — disclosed and fixed in source
 
