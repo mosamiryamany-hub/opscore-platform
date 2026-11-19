@@ -38,12 +38,15 @@ ALTER TABLE public.evidence_uploads
   ADD COLUMN IF NOT EXISTS storage_provider TEXT NOT NULL DEFAULT 'local';
 
 ALTER TABLE public.evidence_uploads
+  DROP CONSTRAINT IF EXISTS evidence_uploads_storage_provider_check;
+ALTER TABLE public.evidence_uploads
   ADD CONSTRAINT evidence_uploads_storage_provider_check
   CHECK (storage_provider IN ('local', 'postgres'));
 
 ALTER TABLE public.evidence_upload_chunks
   ADD COLUMN IF NOT EXISTS content BYTEA;
-
+ALTER TABLE public.evidence_upload_chunks
+  DROP CONSTRAINT IF EXISTS evidence_upload_chunks_content_size_check;
 ALTER TABLE public.evidence_upload_chunks
   ADD CONSTRAINT evidence_upload_chunks_content_size_check
   CHECK (content IS NULL OR octet_length(content) = bytes);
