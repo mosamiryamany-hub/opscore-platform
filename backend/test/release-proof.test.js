@@ -210,7 +210,7 @@ test('release proof does not trust environment-only CLI provenance without embed
     OPSC_RELEASE_PACKAGE_COMMIT: SHA256_COMMIT,
     OPSC_RELEASE_PACKAGE_SHA256: PACKAGE_SHA
   }), fixedNow);
-  assert.equal(proof.sourceCommit, SHA256_COMMIT);
+  assert.equal(proof.sourceCommit, SHA,'native Vercel Git metadata may identify the source, but environment-only CLI values must not override it');
   assert.equal(proof.status, 'UNVERIFIED');
   assert.equal(proof.sourceCommitIdentitySource, 'unverified');
   assert.equal(proof.deployment.ref, 'main');
