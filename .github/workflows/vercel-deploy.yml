@@ -655,7 +655,7 @@ jobs:
           const out = process.env.GITHUB_OUTPUT;
           fs.appendFileSync(out, 'certified=' + (ok ? 'CERTIFIED' : 'NOT_CERTIFIED') + '\n', { mode: 0o600 });
           fs.appendFileSync(out, 'behavioral=' + (ok ? 'true' : 'false') + '\n', { mode: 0o600 });
-          console.log('PRODUCTION_CANDIDATE_ISOLATION_CERTIFICATION', ok ? 'CERTIFIED' : 'NOT_CERTIFIED');
+          console.log('CANDIDATE_EVIDENCE_QUALIFICATION', ok ? 'PASS_NOT_PUBLISHED' : 'NOT_VERIFIED');
           if (!ok) process.exitCode = 1;
           NODE
 
