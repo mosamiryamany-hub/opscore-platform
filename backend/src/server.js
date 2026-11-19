@@ -46,7 +46,7 @@ store.databaseEngineResolved = opened.engine;
 store.postgresRuntimeWired = opened.postgresRuntimeWired;
 const {authProviderGate, verifyOidcIdToken} = require('./security');
 const {inspectRequest,productionSafetyGate,createRateLimiter,createLoginRateLimiter,assertTenantAlignment}=require('./firewall');
-const {evaluateProductionGate,isReadOnlyProductionVerificationRequest,isAuthorizedProductionCandidateProbeRequest}=require('./production-hold');
+const {evaluateProductionGate,isReadOnlyProductionVerificationRequest,isAuthorizedProductionCandidateProbeRequest,isAuthorizedProductionCandidateDatabaseIdentityRequest}=require('./production-hold');
 const {can: rbacCan}=require('./rbac');
 const {breaker}=require('./enterprise-value-additions');
 breaker.setDb?.(db);
@@ -3519,7 +3519,8 @@ const server = http.createServer({ maxHeaderSize: config.httpMaxHeaders * 1024 }
   };
   if (productionGate.blocked
       && !isReadOnlyProductionVerificationRequest(req)
-      && !isAuthorizedProductionCandidateProbeRequest(req, process.env, signedContextProductionReadiness)) {
+      && !isAuthorizedProductionCandidateProbeRequest(req, process.env, signedContextProductionReadiness)
+      && !isAuthorizedProductionCandidateDatabaseIdentityRequest(req, process.env, signedContextProductionReadiness)) {
     return json(res, 503, {
       schemaVersion: 'opscore.production-hold-response.v1',
       status: 'MAINTENANCE',
