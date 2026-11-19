@@ -46,7 +46,9 @@ store.databaseEngineResolved = opened.engine;
 store.postgresRuntimeWired = opened.postgresRuntimeWired;
 const {authProviderGate, verifyOidcIdToken} = require('./security');
 const {inspectRequest,productionSafetyGate,createRateLimiter,createLoginRateLimiter,assertTenantAlignment}=require('./firewall');
-const {evaluateProductionGate,isReadOnlyProductionVerificationRequest,isAuthorizedProductionCandidateProbeRequest}=require('./production-hold');
+const {evaluateProductionGate,isReadOnlyProductionVerificationRequest,isAuthorizedProductionCandidateProbeRequest,isAuthorizedProductionCandidateDatabaseIdentityRequest}=require('./production-hold');
+const {createProductionDatabaseIdentityHandler}=require('./production-database-identity-route');
+const productionDatabaseIdentityHandler=createProductionDatabaseIdentityHandler();
 const {can: rbacCan}=require('./rbac');
 const {breaker}=require('./enterprise-value-additions');
 breaker.setDb?.(db);
@@ -1303,6 +1305,9 @@ function route(req, res) {
   if (String(req.url || '').length > config.maxUrlLength)
     return json(res, 414, { error: { code: 'URI_TOO_LONG' } });
   const url = new URL(req.url, config.publicOrigin);
+  if (url.pathname === '/api/internal/production-database-identity') {
+    return productionDatabaseIdentityHandler(req, res, process.env, process.env);
+  }
   const suppliedCorrelationId = String(req.headers['x-correlation-id'] || '').trim();
   const correlationId = /^[A-Za-z0-9._:-]{1,128}$/.test(suppliedCorrelationId)
     ? suppliedCorrelationId
@@ -3519,7 +3524,8 @@ const server = http.createServer({ maxHeaderSize: config.httpMaxHeaders * 1024 }
   };
   if (productionGate.blocked
       && !isReadOnlyProductionVerificationRequest(req)
-      && !isAuthorizedProductionCandidateProbeRequest(req, process.env, signedContextProductionReadiness)) {
+      && !isAuthorizedProductionCandidateProbeRequest(req, process.env, signedContextProductionReadiness)
+      && !isAuthorizedProductionCandidateDatabaseIdentityRequest(req, process.env, signedContextProductionReadiness)) {
     return json(res, 503, {
       schemaVersion: 'opscore.production-hold-response.v1',
       status: 'MAINTENANCE',

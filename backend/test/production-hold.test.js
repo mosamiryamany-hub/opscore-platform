@@ -9,7 +9,8 @@ const apiInventory = require('../docs/API_INVENTORY.json');
 const {
   evaluateProductionGate,
   isReadOnlyProductionVerificationRequest,
-  isAuthorizedProductionCandidateProbeRequest
+  isAuthorizedProductionCandidateProbeRequest,
+  isAuthorizedProductionCandidateDatabaseIdentityRequest
 } = require('../src/production-hold');
 
 test('production hold blocks traffic while leaving only read-only verification GET routes available', () => {
@@ -101,6 +102,7 @@ test('the HTTP server consults the candidate-probe allowlist before returning th
   const serverPath = path.join(__dirname, '..', 'src', 'server.js');
   const source = fs.readFileSync(serverPath, 'utf8');
   assert.match(source, /!isAuthorizedProductionCandidateProbeRequest\(req, process\.env, signedContextProductionReadiness\)/);
+  assert.match(source, /!isAuthorizedProductionCandidateDatabaseIdentityRequest\(req, process\.env, signedContextProductionReadiness\)/);
   assert.ok(source.indexOf('!isAuthorizedProductionCandidateProbeRequest(req, process.env, signedContextProductionReadiness)')
     < source.indexOf("note: 'Operational traffic is disabled while Production release evidence is not verified."));
 });
@@ -140,6 +142,41 @@ test('the hold exception matches all and only the signed-route manifest entries 
     const concrete = String(route.route).replace(/\{[^/]+\}/g, 'hold-probe-id').replace(/\(\\d\+\)/g, '0');
     assert.equal(isAuthorizedProductionCandidateProbeRequest(request(route, concrete), env, readiness), false, key);
   }
+});
+
+test('held candidate permits only exact GET database-identity diagnostics with candidate token and Vercel OIDC', () => {
+  const env = {
+    VERCEL_ENV: 'production',
+    VERCEL_URL: 'opscore-platform-candidate123-mosamiryamany-1692.vercel.app',
+    OPSC_PRODUCTION_HOLD: 'true',
+    OPSC_RELEASE_VERIFIED: 'false',
+    OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'true',
+    OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED: 'true',
+    OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN: 'd'.repeat(64)
+  };
+  const readiness = { productionReleaseVerified: false };
+  const req = (method = 'GET', url = '/api/internal/production-database-identity', token = env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN, oidc = 'header.payload.signature') => ({
+    method, url, headers: {
+      host: env.VERCEL_URL,
+      ...(token ? { 'x-opscore-signed-context-probe': token } : {}),
+      ...(oidc ? { 'x-vercel-trusted-oidc-idp-token': oidc } : {})
+    }
+  });
+
+  assert.equal(isReadOnlyProductionVerificationRequest(req()), false);
+  assert.equal(isAuthorizedProductionCandidateDatabaseIdentityRequest(req(), env, readiness), true);
+  assert.equal(isAuthorizedProductionCandidateDatabaseIdentityRequest(req('POST'), env, readiness), false);
+  assert.equal(isAuthorizedProductionCandidateDatabaseIdentityRequest(req('GET', '/api/internal/production-database-identity/'), env, readiness), false);
+  assert.equal(isAuthorizedProductionCandidateDatabaseIdentityRequest(req('GET', '/api/internal/production-database-identity?debug=true'), env, readiness), true);
+  assert.equal(isAuthorizedProductionCandidateDatabaseIdentityRequest(req('GET', undefined, 'e'.repeat(64)), env, readiness), false);
+  assert.equal(isAuthorizedProductionCandidateDatabaseIdentityRequest(req('GET', undefined, env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN, 'not-a-jwt'), env, readiness), false);
+
+  const alias = req();
+  alias.headers.host = 'opscore-platform.vercel.app';
+  assert.equal(isAuthorizedProductionCandidateDatabaseIdentityRequest(alias, env, readiness), false);
+  assert.equal(isAuthorizedProductionCandidateDatabaseIdentityRequest(req(), { ...env, OPSC_PRODUCTION_HOLD: 'false' }, readiness), false);
+  assert.equal(isAuthorizedProductionCandidateDatabaseIdentityRequest(req(), { ...env, OPSC_RELEASE_VERIFIED: 'true' }, readiness), false);
+  assert.equal(isAuthorizedProductionCandidateDatabaseIdentityRequest(req(), { ...env, OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED: 'false' }, readiness), false);
 });
 
 test('missing release evidence cannot be bypassed by setting hold false', () => {
