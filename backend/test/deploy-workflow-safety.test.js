@@ -10,7 +10,7 @@ const postgres = fs.readFileSync(path.join(root, '.github/workflows/digital-twin
 
 test('production promotion requires an exact owner dispatch and staged OIDC readiness gates', () => {
   assert.doesNotMatch(deploy, /if: false && github\.event_name == 'workflow_dispatch'/);
-  assert.match(deploy, /if: github\.event_name == 'workflow_dispatch' && github\.ref == 'refs\/heads\/main'/);
+  assert.match(deploy, /if: >-\s*github\.event_name == 'workflow_dispatch'\s*&&\s*github\.ref == 'refs\/heads\/main'/);
   assert.match(deploy, /vars\.OPSC_STAGED_PRODUCTION_PROBE_READY == 'true'/);
   assert.match(deploy, /I_AUTHORIZE_PRODUCTION_DEPLOYMENT/);
   assert.match(deploy, /vars\.OPSC_PRODUCTION_AUTODEPLOY_ENABLED == 'true'/);
