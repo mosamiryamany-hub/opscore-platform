@@ -47,3 +47,25 @@ test('production acceptance consumes caller-bound CI evidence and certifies isol
   assert.match(postgres, /LOGICAL_RESTORE_EVIDENCE_INCOMPLETE_OR_SCOPE_MISMATCH/);
   assert.match(postgres, /DISPOSABLE_POSTGRESQL_18_LOGICAL_RESTORE_CI/);
 });
+
+test('signed tenant 67-route evidence is executed and uploaded from disposable PostgreSQL 18 CI only', () => {
+  const runGate = postgres.indexOf('Verify signed tenant context through the real Node PostgreSQL worker');
+  const validate = postgres.indexOf('Validate exact disposable PostgreSQL 18 signed-tenant 67-route evidence');
+  const upload = postgres.indexOf('Upload disposable PostgreSQL 18 signed-tenant route evidence');
+  const nextGate = postgres.indexOf('Verify logical restore drill safety contracts', upload);
+  assert.ok(runGate >= 0 && validate > runGate && upload > validate && nextGate > upload);
+  const segment = postgres.slice(runGate, upload);
+  assert.match(segment, /OPSC_SIGNED_TENANT_CONTEXT_CI_ROUTE_COVERAGE: 'true'/);
+  assert.match(segment, /SIGNED_TENANT_CONTEXT_CI_ROUTE_COVERAGE\.json/);
+  assert.ok(segment.includes('GITHUB_SHA: $' + '{{ github.sha }}'));
+  assert.ok(segment.includes('GITHUB_RUN_ID: $' + '{{ github.run_id }}'));
+  assert.doesNotMatch(segment, /VERCEL_TOKEN|NEON_API_KEY|OPSC_PRODUCTION_NEON_BRANCH_ID/);
+  const validationBlock = postgres.slice(validate, upload);
+  assert.match(validationBlock, /DISPOSABLE_POSTGRESQL_18_CI_ROUTE_PROBES/);
+  assert.match(validationBlock, /productionCertification !== false/);
+  assert.match(validationBlock, /productionPromotionPerformed !== false/);
+  assert.match(validationBlock, /coveredRouteCount !== 67/);
+  assert.match(validationBlock, /failedRouteCount !== 0/);
+  assert.match(postgres.slice(upload, nextGate), /actions\/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9/);
+  assert.match(postgres.slice(upload, nextGate), /if-no-files-found: error/);
+});

@@ -121,13 +121,22 @@ test('candidate plan preflight blocks a primary branch at its logical size limit
   );
 });
 
-test('candidate plan preflight rejects Neon Launch when Primary branch protection is required', async () => {
-  const f = fixture({ neonPlan: 'launch' });
+test('candidate plan preflight accepts Neon Launch only when Primary is actually protected', async () => {
+  const f = fixture({ neonPlan: 'launch', primaryProtected: true });
+  const result = await runCandidatePlanPreflight({ env: f.env, fetchImpl: f.fetchImpl });
+  assert.equal(result.status, 'PASS');
+  assert.equal(result.neonPlan, 'launch');
+  assert.equal(result.neonPrimaryBranchProtected, true);
+  assert.equal(f.calls.some(call => call.url.endsWith('/branches')), true);
+});
+
+test('candidate plan preflight rejects Neon Launch when Primary protection is not active', async () => {
+  const f = fixture({ neonPlan: 'launch', primaryProtected: false });
   await assert.rejects(
     () => runCandidatePlanPreflight({ env: f.env, fetchImpl: f.fetchImpl }),
-    /NEON_PLAN_NOT_ELIGIBLE_FOR_PRIMARY_PROTECTION:launch/
+    /NEON_PRIMARY_BRANCH_NOT_PROTECTED/
   );
-  assert.equal(f.calls.some(call => call.url.endsWith('/branches')), false);
+  assert.equal(f.calls.some(call => call.url.endsWith('/branches')), true);
 });
 
 test('candidate plan preflight rejects an unprotected Neon Primary even on an eligible plan', async () => {

@@ -151,8 +151,13 @@ function buildCandidateSignedTenantRouteCoverage({
   deploymentId = '',
   sourceCommitHint = '',
   pipelineId = '',
-  testedAt = new Date().toISOString()
+  testedAt = new Date().toISOString(),
+  evidenceMode = 'production_candidate'
 }) {
+  if (!['production_candidate', 'postgresql18_ci'].includes(evidenceMode)) {
+    throw new Error('SIGNED_TENANT_ROUTE_EVIDENCE_MODE_INVALID');
+  }
+  const isCiEvidence = evidenceMode === 'postgresql18_ci';
   const rows = Array.isArray(manifest && manifest.routes) ? manifest.routes : [];
   const inventoryRows = Array.isArray(inventory && inventory.routes) ? inventory.routes : [];
   const inventorySha256 = inventoryBytes
@@ -173,7 +178,7 @@ function buildCandidateSignedTenantRouteCoverage({
     const validManifestRoute = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(method)
       && routePath.startsWith('/api/')
       && ['read', 'write'].includes(operation);
-    const common = candidateMode && Boolean(requirement) && validManifestRoute && tenantA && tenantB && cross;
+    const common = (candidateMode || isCiEvidence) && Boolean(requirement) && validManifestRoute && tenantA && tenantB && cross;
     const reasons = [];
     if (!requirement) reasons.push('ROUTE_PROOF_REQUIREMENT_NOT_DEFINED');
     if (!validManifestRoute) reasons.push('MANIFEST_ROUTE_INVALID');
@@ -216,12 +221,18 @@ function buildCandidateSignedTenantRouteCoverage({
   const status = manifestComplete && routes.length === 67 && coveredRouteCount === 67 ? 'PASS' : 'NOT_VERIFIED';
 
   return {
-    schemaVersion: 'opscore.signed-tenant-context-production-coverage.v1',
-    evidenceClass: 'LIVE_PRODUCTION_CANDIDATE_ROUTE_PROBES',
-    environment: 'production',
+    schemaVersion: isCiEvidence
+      ? 'opscore.signed-tenant-context-ci-route-coverage.v1'
+      : 'opscore.signed-tenant-context-production-coverage.v1',
+    evidenceClass: isCiEvidence
+      ? 'DISPOSABLE_POSTGRESQL_18_CI_ROUTE_PROBES'
+      : 'LIVE_PRODUCTION_CANDIDATE_ROUTE_PROBES',
+    environment: isCiEvidence ? 'ci' : 'production',
     status,
     databaseName: databaseName || null,
-    verificationScope: '67-route-dual-tenant-session-transaction-guc-tamper-and-cross-tenant-denial',
+    verificationScope: isCiEvidence
+      ? '67-route-dual-tenant-session-transaction-guc-tamper-and-cross-tenant-denial-on-disposable-postgresql-18'
+      : '67-route-dual-tenant-session-transaction-guc-tamper-and-cross-tenant-denial',
     expectedRouteCount: 67,
     coveredRouteCount,
     failedRouteCount,
@@ -229,8 +240,13 @@ function buildCandidateSignedTenantRouteCoverage({
     routeInventorySha256: inventorySha256,
     sourceCommitHint: sourceCommitHint || null,
     pipelineId: String(pipelineId || '') || null,
-    parentBranchId: parentBranchId || null,
-    deploymentId: deploymentId || null,
+    parentBranchId: isCiEvidence ? null : (parentBranchId || null),
+    deploymentId: isCiEvidence ? null : (deploymentId || null),
+    ...(isCiEvidence ? {
+      runtimeRole: 'opscore_runtime',
+      productionCertification: false,
+      productionPromotionPerformed: false
+    } : {}),
     testedAt,
     evidenceRebind: null,
     manifestComplete,
@@ -5088,6 +5104,75 @@ async function main() {
           }) + '\\n');
         }
       } else {
+        if (String(process.env.OPSC_SIGNED_TENANT_CONTEXT_CI_ROUTE_COVERAGE || '').trim().toLowerCase() === 'true') {
+          if (finalReport.status !== 'PASS' || finalCleanupStatus !== 'PASS') {
+            throw new Error('CI_SIGNED_TENANT_ROUTE_COVERAGE_REQUIRES_PASS_AND_CLEANUP');
+          }
+          const expectedCommit = String(process.env.GITHUB_SHA || '').trim().toLowerCase();
+          const expectedPipeline = String(process.env.GITHUB_RUN_ID || '').trim();
+          if (!/^[a-f0-9]{40}$/.test(expectedCommit) || !/^[1-9][0-9]{0,14}$/.test(expectedPipeline)) {
+            throw new Error('CI_SIGNED_TENANT_ROUTE_COVERAGE_IDENTITY_REQUIRED');
+          }
+          const outputPath = path.resolve(String(process.env.OPSC_CI_SIGNED_TENANT_ROUTE_COVERAGE_PATH || '').trim());
+          const runnerTemp = path.resolve(String(process.env.RUNNER_TEMP || '').trim());
+          if (!process.env.OPSC_CI_SIGNED_TENANT_ROUTE_COVERAGE_PATH || !process.env.RUNNER_TEMP
+              || path.dirname(outputPath) !== runnerTemp) {
+            throw new Error('CI_SIGNED_TENANT_ROUTE_COVERAGE_OUTPUT_MUST_BE_IN_RUNNER_TEMP');
+          }
+          const manifestPath = path.join(__dirname, '..', 'docs', 'verification', 'SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST.json');
+          const inventoryPath = path.join(__dirname, '..', 'docs', 'API_INVENTORY.json');
+          const manifestBytes = fs.readFileSync(manifestPath);
+          const inventoryBytes = fs.readFileSync(inventoryPath);
+          const manifest = JSON.parse(manifestBytes.toString('utf8'));
+          const inventory = JSON.parse(inventoryBytes.toString('utf8'));
+          const coverage = buildCandidateSignedTenantRouteCoverage({
+            proof: {
+              session: candidateProofReport.checks.signedAuthenticatedSessionRoutes,
+              read: candidateProofReport.checks.signedWorkOrderSubresourceReads,
+              write: candidateProofReport.checks.signedWorkOrderWrites,
+              evidence: candidateProofReport.checks.signedEvidenceWrites,
+              checks: candidateProofReport.checks
+            },
+            manifest,
+            inventory,
+            manifestBytes,
+            inventoryBytes,
+            evidenceMode: 'postgresql18_ci',
+            databaseName: 'opscore_http_acceptance',
+            sourceCommitHint: expectedCommit,
+            pipelineId: expectedPipeline
+          });
+          if (coverage.status !== 'PASS' || coverage.manifestComplete !== true
+              || coverage.expectedRouteCount !== 67 || coverage.coveredRouteCount !== 67
+              || coverage.failedRouteCount !== 0
+              || coverage.routes.some(route => route.status !== 'PASS'
+                || route.signedContextBound !== true || route.sessionBound !== true
+                || route.transactionBound !== true || route.rawGucTamperDenied !== true)
+              || coverage.environment !== 'ci' || coverage.productionCertification !== false
+              || coverage.productionPromotionPerformed !== false
+              || coverage.parentBranchId !== null || coverage.deploymentId !== null) {
+            throw new Error('CI_SIGNED_TENANT_ROUTE_COVERAGE_NOT_EXACT');
+          }
+          const bytes = Buffer.from(JSON.stringify(coverage, null, 2) + '\n', 'utf8');
+          const digest = crypto.createHash('sha256').update(bytes).digest('hex');
+          fs.writeFileSync(outputPath, bytes, { flag: 'wx', mode: 0o600 });
+          fs.writeFileSync(outputPath + '.sha256',
+            digest + '  ' + path.basename(outputPath) + '\n',
+            { flag: 'wx', mode: 0o600 });
+          finalReport.signedTenantContextCiRouteCoverage = {
+            schemaVersion: coverage.schemaVersion,
+            status: coverage.status,
+            expectedRouteCount: coverage.expectedRouteCount,
+            coveredRouteCount: coverage.coveredRouteCount,
+            failedRouteCount: coverage.failedRouteCount,
+            sourceCommitHint: coverage.sourceCommitHint,
+            pipelineId: coverage.pipelineId,
+            sha256: digest,
+            evidencePath: path.basename(outputPath)
+          };
+          process.stdout.write('SIGNED_TENANT_CONTEXT_CI_ROUTE_COVERAGE=PASS 67/67\n');
+          process.stdout.write('SIGNED_TENANT_CONTEXT_CI_ROUTE_COVERAGE_SHA256=' + digest + '\n');
+        }
         process.stdout.write(JSON.stringify(finalReport) + '\\n');
       }
     }

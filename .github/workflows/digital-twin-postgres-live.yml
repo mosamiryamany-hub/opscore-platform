@@ -273,10 +273,78 @@ jobs:
         working-directory: backend
         env:
           OPSC_PG_SSL_MODE: disable
+          OPSC_SIGNED_TENANT_CONTEXT_CI_ROUTE_COVERAGE: 'true'
+          OPSC_CI_SIGNED_TENANT_ROUTE_COVERAGE_PATH: ${{ runner.temp }}/SIGNED_TENANT_CONTEXT_CI_ROUTE_COVERAGE.json
+          RUNNER_TEMP: ${{ runner.temp }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
         run: |
           set -euo pipefail
           export OPSC_TENANT_CONTEXT_OWNER_URL="postgresql://neondb_owner:${OPSC_CI_MIGRATION_OWNER_PASSWORD}@127.0.0.1:5432/opscore_http_acceptance"
           node scripts/signed-tenant-context-postgres-gate.js
+
+      - name: Validate exact disposable PostgreSQL 18 signed-tenant 67-route evidence
+        env:
+          COVERAGE_PATH: ${{ runner.temp }}/SIGNED_TENANT_CONTEXT_CI_ROUTE_COVERAGE.json
+          EXPECTED_COMMIT: ${{ github.sha }}
+          EXPECTED_PIPELINE: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const crypto = require('node:crypto');
+          const file = process.env.COVERAGE_PATH;
+          const raw = fs.readFileSync(file);
+          const evidence = JSON.parse(raw.toString('utf8'));
+          const manifestPath = path.join(process.env.GITHUB_WORKSPACE,
+            'backend/docs/verification/SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST.json');
+          const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+          const key = row => String(row.method || '').toUpperCase() + ' ' + String(row.path || '');
+          const actual = Array.isArray(evidence.routes) ? evidence.routes : [];
+          const expectedKeys = manifest.routes.map(key).sort();
+          const actualKeys = actual.map(key).sort();
+          const digest = crypto.createHash('sha256').update(raw).digest('hex');
+          const sidecar = fs.readFileSync(file + '.sha256', 'utf8');
+          if (evidence.schemaVersion !== 'opscore.signed-tenant-context-ci-route-coverage.v1' ||
+              evidence.evidenceClass !== 'DISPOSABLE_POSTGRESQL_18_CI_ROUTE_PROBES' ||
+              evidence.environment !== 'ci' ||
+              evidence.status !== 'PASS' ||
+              evidence.databaseName !== 'opscore_http_acceptance' ||
+              evidence.runtimeRole !== 'opscore_runtime' ||
+              evidence.expectedRouteCount !== 67 ||
+              evidence.coveredRouteCount !== 67 ||
+              evidence.failedRouteCount !== 0 ||
+              evidence.manifestComplete !== true ||
+              evidence.productionCertification !== false ||
+              evidence.productionPromotionPerformed !== false ||
+              evidence.parentBranchId !== null ||
+              evidence.deploymentId !== null ||
+              String(evidence.sourceCommitHint || '').toLowerCase() !== String(process.env.EXPECTED_COMMIT || '').toLowerCase() ||
+              String(evidence.pipelineId || '') !== String(process.env.EXPECTED_PIPELINE || '') ||
+              expectedKeys.length !== 67 || actual.length !== 67 ||
+              new Set(actualKeys).size !== 67 ||
+              JSON.stringify(actualKeys) !== JSON.stringify(expectedKeys) ||
+              actual.some(route => route.status !== 'PASS' ||
+                route.signedContextBound !== true || route.sessionBound !== true ||
+                route.transactionBound !== true || route.rawGucTamperDenied !== true) ||
+              sidecar !== digest + '  ' + path.basename(file) + '\n') {
+            throw new Error('DISPOSABLE_PG18_SIGNED_TENANT_67_ROUTE_EVIDENCE_INVALID');
+          }
+          console.log('DISPOSABLE_POSTGRESQL_18_SIGNED_TENANT_ROUTE_COVERAGE=PASS 67/67');
+          console.log('PRODUCTION_CERTIFICATION=false');
+          console.log('SIGNED_TENANT_CI_ROUTE_COVERAGE_SHA256=' + digest);
+          NODE
+
+      - name: Upload disposable PostgreSQL 18 signed-tenant route evidence
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: signed-tenant-postgres-18-ci-coverage-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/SIGNED_TENANT_CONTEXT_CI_ROUTE_COVERAGE.json
+            ${{ runner.temp }}/SIGNED_TENANT_CONTEXT_CI_ROUTE_COVERAGE.json.sha256
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Verify logical restore drill safety contracts
         working-directory: backend
