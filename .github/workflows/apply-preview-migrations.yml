@@ -137,6 +137,25 @@ jobs:
           chmod 600 "$RUNNER_TEMP/owner.uri" "$RUNNER_TEMP/runtime.uri"
           echo 'NEON_MIGRATION_AND_RUNTIME_CONNECTIONS=PASS roles=opscore_owner,opscore_runtime TLS=verify-full'
 
+      - name: Provision locked legacy application role required by historical grants
+        run: |
+          set -euo pipefail
+          export PGURI="$(cat "$RUNNER_TEMP/owner.uri")"
+          test -n "${PGURI}" || { echo "OWNER_URI_MISSING" >&2; exit 1; }
+          psql "$PGURI" -v ON_ERROR_STOP=1 -q <<'SQL'
+          DO $$
+          BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'opscore_app') THEN
+              CREATE ROLE opscore_app NOLOGIN NOINHERIT NOCREATEROLE NOCREATEDB NOBYPASSRLS;
+              RAISE NOTICE 'OPSC_LEGACY_APP_ROLE_PROVISIONED_LOCKED';
+            ELSE
+              RAISE NOTICE 'OPSC_LEGACY_APP_ROLE_ALREADY_PRESENT';
+            END IF;
+          END $$;
+          SQL
+          psql "$PGURI" -Atc "SELECT rolname||'|canlogin='||rolcanlogin||'|inherit='||rolinherit||'|bypassrls='||rolbypassrls FROM pg_roles WHERE rolname='opscore_app'"
+          echo "LEGACY_APP_ROLE_PROVISION=PASS"
+
       - name: Dry-run migrations on Preview
         env:
           OPSC_MIGRATION_TARGET_CLASS: preview
