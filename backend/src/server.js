@@ -1308,15 +1308,15 @@ function sendFile(res, file, download) {
 function sendAttachment(res, attachment) {
   if (!attachment || !attachment.meta) return json(res, 404, { error: { code: 'NOT_FOUND' } });
   if (!Buffer.isBuffer(attachment.buffer)) return sendFile(res, attachment.path, true);
-  const fileName = path.basename(String(attachment.meta.file_name || 'attachment.bin')).replace(/[^\\w.-]/g, '_');
+  const fileName = path.basename(String(attachment.meta.file_name || 'attachment.bin')).replace(/[^\w.-]/g, '_');
   const mediaType = String(attachment.meta.media_type || 'application/octet-stream').trim();
-  if (!/^[A-Za-z0-9!#function safeDatabaseErrorCode(error) {^_.+-]+\\/[A-Za-z0-9!#function safeDatabaseErrorCode(error) {^_.+-]+$/.test(mediaType)) {
+  if (!/^[A-Za-z0-9!#$&^_.+-]+\/[A-Za-z0-9!#$&^_.+-]+$/.test(mediaType)) {
     return json(res, 500, { error: { code: 'ATTACHMENT_MEDIA_TYPE_INVALID' } });
   }
   const headers = {
     'content-type': mediaType,
     'content-length': String(attachment.buffer.length),
-    'content-disposition': `attachment; filename="${fileName}"`,
+    'content-disposition': \`attachment; filename="\${fileName}"\`,
     'cache-control': 'no-store',
     'x-content-type-options': 'nosniff',
     'x-frame-options': 'DENY',
@@ -1329,7 +1329,6 @@ function sendAttachment(res, attachment) {
   res.writeHead(200, headers);
   return res.end(attachment.buffer);
 }
-
 function safeDatabaseErrorCode(error) {
   const code = String(error && error.code || '').trim().toUpperCase();
   if (/^[A-Z0-9_]{1,64}$/.test(code)) return code;
