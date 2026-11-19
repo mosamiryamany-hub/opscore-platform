@@ -364,12 +364,24 @@ test('manifest route resolver binds path templates to exact manifest method and 
   assert.equal(findSignedTenantManifestRoute('GET', '/api/v1/work-orders/wo_123/not-in-manifest'), null);
 });
 
+function completeCandidateProofFixture() {
+  const proof = { session: {} };
+  for (const requirement of Object.values(CANDIDATE_ROUTE_PROOF_REQUIREMENTS)) {
+    for (const locator of [...requirement.a, ...requirement.b, ...requirement.cross]) {
+      const parts = String(locator).split('.');
+      let node = proof;
+      for (const part of parts.slice(0, -1)) node = node[part] = node[part] || {};
+      node[parts[parts.length - 1]] = 'PASS';
+    }
+  }
+  return proof;
+}
+
 test('candidate request observations are tenant-labelled, route-bound, and count only signed tamper-confirmed 2xx responses', () => {
   resetCandidateRouteObservations();
   registerCandidateSessionToken('synthetic-token-A', 'tenantA');
   registerCandidateSessionToken('synthetic-token-B', 'tenantB');
   const routeA = findSignedTenantManifestRoute('GET', '/api/v1/customers');
-  const routeB = findSignedTenantManifestRoute('GET', '/api/v1/customers');
   recordCandidateRouteObservation(routeA, 'synthetic-token-A', {
     status: 200,
     headers: {
@@ -377,7 +389,7 @@ test('candidate request observations are tenant-labelled, route-bound, and count
       'x-opscore-candidate-guc-tamper': 'applied'
     }
   });
-  recordCandidateRouteObservation(routeB, 'synthetic-token-B', {
+  recordCandidateRouteObservation(routeA, 'synthetic-token-B', {
     status: 200,
     headers: {
       'x-opscore-signed-tenant-context': 'verified',
@@ -391,6 +403,12 @@ test('candidate request observations are tenant-labelled, route-bound, and count
       'x-opscore-candidate-guc-tamper': 'applied'
     }
   });
+  recordCandidateRouteObservation(routeA, 'synthetic-token-A', {
+    status: 200,
+    headers: {
+      'x-opscore-signed-tenant-context': 'verified'
+    }
+  });
   recordCandidateRouteObservation(routeA, 'unknown-token', {
     status: 200,
     headers: {
@@ -398,12 +416,138 @@ test('candidate request observations are tenant-labelled, route-bound, and count
       'x-opscore-candidate-guc-tamper': 'applied'
     }
   });
-  assert.deepEqual(getCandidateRouteObservations(), [{
-    method: 'GET',
-    path: '/api/v1/customers',
-    operation: 'read',
-    tenantA: { requests: 2, signed: 2, tamperApplied: 2, successful: 1 },
-    tenantB: { requests: 1, signed: 1, tamperApplied: 1, successful: 1 }
-  }]);
+  const observations = getCandidateRouteObservations();
+  assert.equal(observations.length, 1);
+  const observation = observations[0];
+  assert.equal(observation.method, 'GET');
+  assert.equal(observation.path, '/api/v1/customers');
+  assert.equal(observation.operation, 'read');
+  assert.equal(observation.tenantA.requests, 3);
+  assert.equal(observation.tenantA.signed, 3);
+  assert.equal(observation.tenantA.tamperApplied, 2);
+  assert.equal(observation.tenantA.successful, 1);
+  assert.equal(observation.tenantB.requests, 1);
+  assert.equal(observation.tenantB.signed, 1);
+  assert.equal(observation.tenantB.tamperApplied, 1);
+  assert.equal(observation.tenantB.successful, 1);
   resetCandidateRouteObservations();
-  assert.deepEqual(getCandidateRouteObservations(), []);});
+  assert.equal(getCandidateRouteObservations().length, 0);
+});
+
+test('complete candidate-mode proofs pass the full 67-route matrix', () => {
+  const evidence = buildCandidateSignedTenantRouteCoverage({
+    proof: completeCandidateProofFixture(),
+    manifest: signedRouteManifest,
+    inventory: routeInventory,
+    manifestBytes,
+    inventoryBytes,
+    candidateMode: true
+  });
+  assert.equal(evidence.status, 'PASS',
+    'complete candidate-mode proofs for every approved route may pass the mapper contract');
+  assert.equal(evidence.expectedRouteCount, 67);
+  assert.equal(evidence.coveredRouteCount, 67);
+  assert.equal(evidence.failedRouteCount, 0);
+  assert.equal(evidence.routes.length, 67);
+  assert.equal(evidence.routes.every(route => route.status === 'PASS'), true);
+  assert.equal(evidence.routes.every(route =>
+    route.signedContextBound === true
+      && route.sessionBound === true
+      && route.transactionBound === true
+      && route.rawGucTamperDenied === true
+  ), true);
+  const completedRoute = evidence.routes.find(route =>
+    route.method === 'PATCH' && route.path === '/api/v1/work-orders/{id}'
+  );
+  assert.equal(completedRoute.status, 'PASS');
+  assert.equal(completedRoute.tenantAWrite, true);
+  assert.equal(completedRoute.tenantBWrite, true);
+  assert.equal(completedRoute.crossTenantWriteDenied, true);
+  assert.match(evidence.routeManifestSha256, /^[a-f0-9]{64}$/);
+  assert.match(evidence.routeInventorySha256, /^[a-f0-9]{64}$/);
+  assert.equal(evidence.evidenceRebind, null);
+});
+
+test('missing per-route proof reduces the covered count and keeps the affected rows NOT_VERIFIED', () => {
+  const proof = completeCandidateProofFixture();
+  const baseline = buildCandidateSignedTenantRouteCoverage({
+    proof,
+    manifest: signedRouteManifest,
+    inventory: routeInventory,
+    manifestBytes,
+    inventoryBytes,
+    candidateMode: true
+  });
+  assert.equal(baseline.coveredRouteCount, 67);
+  const partial = JSON.parse(JSON.stringify(proof));
+  partial.session.customersTenantA = 'FAIL';
+  const reduced = buildCandidateSignedTenantRouteCoverage({
+    proof: partial,
+    manifest: signedRouteManifest,
+    inventory: routeInventory,
+    manifestBytes,
+    inventoryBytes,
+    candidateMode: true
+  });
+  assert.equal(reduced.status, 'NOT_VERIFIED');
+  assert.equal(reduced.coveredRouteCount, 66);
+  assert.equal(reduced.failedRouteCount, 1);
+  const affected = reduced.routes.find(route => route.method === 'GET' && route.path === '/api/v1/customers');
+  assert.equal(affected.status, 'NOT_VERIFIED');
+  assert.deepEqual(affected.unresolvedReasons, ['TENANT_A_ROUTE_PROOF_MISSING','CROSS_TENANT_READ_DENIAL_PROOF_MISSING']);
+});
+
+test('manifest or inventory drift prevents the 67-route matrix from passing', () => {
+  const driftedManifest = {
+    ...signedRouteManifest,
+    routes: signedRouteManifest.routes.slice(0, 66),
+    routeCount: 66
+  };
+  const evidence = buildCandidateSignedTenantRouteCoverage({
+    proof: completeCandidateProofFixture(),
+    manifest: driftedManifest,
+    inventory: routeInventory,
+    manifestBytes,
+    inventoryBytes,
+    candidateMode: true,
+    databaseName: 'opscore_acceptance',
+    parentBranchId: 'br-proud-salad-bcshhdap',
+    deploymentId: 'dpl_CandidateRouteProof123',
+    sourceCommitHint: 'a'.repeat(40),
+    pipelineId: '123456789'
+  });
+  assert.equal(evidence.status, 'NOT_VERIFIED');
+  assert.equal(evidence.manifestComplete, false);
+  assert.equal(evidence.routes.length, 66);
+});
+
+test('candidate final residue proof includes every tenant event and external-delivery queue', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const gate = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'signed-tenant-context-postgres-gate.js'), 'utf8');
+  const deleteOrganization = gate.indexOf("DELETE FROM public.organizations WHERE id = ANY($1::text[])");
+  const residueAssignment = gate.indexOf('finalCleanupResidue = residue.rows[0] || {};');
+  const residueQueryStart = gate.lastIndexOf('const residue = await owner.query(', residueAssignment);
+  assert.ok(deleteOrganization >= 0 && residueQueryStart > deleteOrganization && residueAssignment > residueQueryStart,
+    'final queue residue query must run after synthetic organizations are deleted');
+
+  const residueBlock = gate.slice(residueQueryStart, residueAssignment);
+  for (const table of [
+    'integration_outbox',
+    'notifications',
+    'webhook_endpoints',
+    'webhook_deliveries',
+    'operational_jobs',
+    'operational_event_receipts',
+    'worker_guard_events',
+    'sync_events',
+    'gateway_circuit_events',
+    'signature_chain_events',
+    'operational_twin_chain_events',
+    'stripe_events'
+  ]) {
+    assert.ok(residueBlock.includes('public.' + table), table + ' must be included in final zero-residue proof');
+  }
+  assert.match(residueBlock, /FROM public\.operational_jobs WHERE organization_id = ANY\(\$1::text\[\]\)/,
+    'all candidate operational jobs must be counted, not only work-order and appointment jobs');
+});

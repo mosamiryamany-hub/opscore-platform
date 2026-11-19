@@ -1045,8 +1045,41 @@ function runSignedWorkOrdersRead(req, res, c, reader, responseHeaders = {}) {
       'x-opscore-signed-tenant-context': 'verified'
     });
   } catch (error) {
+    let rollbackConfirmed = !transactionOpen;
     if (transactionOpen) {
-      try { store.db.exec('ROLLBACK'); } catch (_) { /* request teardown rolls back if necessary */ }
+      try {
+        store.db.exec('ROLLBACK');
+        transactionOpen = false;
+        rollbackConfirmed = true;
+      } catch (rollbackError) {
+        warn('signed_work_order_read_rollback_failed', {
+          errorCode: safeDatabaseErrorCode(rollbackError),
+          organizationId: c.organizationId
+        });
+      }
+    }
+    // A tenant-scoped NOT_FOUND is a safe, explicit denial result. Never
+    // convert arbitrary database/runtime failures into an isolation proof.
+    if (rollbackConfirmed && (error?.code === 'NOT_FOUND' || error?.message === 'NOT_FOUND')) {
+      return json(res, 404, { error: { code: 'NOT_FOUND' } }, {
+        'cache-control': 'no-store',
+        'x-opscore-signed-tenant-context': 'verified'
+      });
+    }
+    // A spatial-policy denial is a real authorization outcome, not a database
+    // failure. Preserve the domain's 403 only after PostgreSQL confirms rollback.
+    // Do not serialize error.details (which may contain internal scope metadata).
+    if (rollbackConfirmed && (error?.code === 'GEO_SCOPE_FORBIDDEN' || error?.message === 'GEO_SCOPE_FORBIDDEN')) {
+      return json(res, 403, { error: { code: 'GEO_SCOPE_FORBIDDEN' } }, {
+        'cache-control': 'no-store',
+        'x-opscore-signed-tenant-context': 'verified'
+      });
+    }
+    if (rollbackConfirmed && (error?.code === 'GEO_SCOPE_EMPTY' || error?.message === 'GEO_SCOPE_EMPTY')) {
+      return json(res, 403, { error: { code: 'GEO_SCOPE_EMPTY' } }, {
+        'cache-control': 'no-store',
+        'x-opscore-signed-tenant-context': 'verified'
+      });
     }
     warn('signed_work_order_read_failed', {
       errorCode: safeDatabaseErrorCode(error),

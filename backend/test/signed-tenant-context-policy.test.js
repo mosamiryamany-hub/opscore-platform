@@ -553,3 +553,26 @@ test('Production candidate probe allows exactly the approved 67 manifest route/m
   assert.equal(signedTenantRouteManifest.routeCount, 67);
   assert.equal(checked.length, 67);
 });
+
+
+test('signed read wrapper preserves only known tenant denials after confirmed rollback', () => {
+  const start = server.indexOf('function runSignedWorkOrdersRead');
+  const end = server.indexOf('function sendWorkOrderRead', start);
+  assert.ok(start >= 0 && end > start, 'signed read wrapper must exist');
+  const block = server.slice(start, end);
+  const rollback = block.indexOf("store.db.exec('ROLLBACK');");
+  const confirmed = block.indexOf('rollbackConfirmed = true;', rollback);
+  const forbidden = block.indexOf("if (rollbackConfirmed && (error?.code === 'GEO_SCOPE_FORBIDDEN' || error?.message === 'GEO_SCOPE_FORBIDDEN'))");
+  const empty = block.indexOf("if (rollbackConfirmed && (error?.code === 'GEO_SCOPE_EMPTY' || error?.message === 'GEO_SCOPE_EMPTY'))");
+  assert.ok(block.includes('let rollbackConfirmed = !transactionOpen;'));
+  assert.ok(rollback >= 0 && confirmed > rollback, 'rollback must be confirmed after the SQL command');
+  assert.ok(forbidden > confirmed, 'GEO_SCOPE_FORBIDDEN cannot be labelled verified until rollback is confirmed');
+  assert.ok(empty > confirmed, 'GEO_SCOPE_EMPTY cannot be labelled verified until rollback is confirmed');
+  assert.ok(block.includes("json(res, 404, { error: { code: 'NOT_FOUND' } }"));
+  assert.ok(block.includes("json(res, 403, { error: { code: 'GEO_SCOPE_FORBIDDEN' } }"));
+  assert.ok(block.includes("json(res, 403, { error: { code: 'GEO_SCOPE_EMPTY' } }"));
+  assert.ok(block.includes("json(res, 503, { error: { code: 'SIGNED_TENANT_WORK_ORDER_READ_FAILED' } }"),
+    'unknown errors must remain fail-closed');
+});
+
+

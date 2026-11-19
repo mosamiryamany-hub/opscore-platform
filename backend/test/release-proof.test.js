@@ -781,3 +781,80 @@ test('Production signed-session route validator rejects structurally consistent 
     fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+
+test('Production session and recovery evidence bind to the explicit probe deployment rather than rebinding to the final deployment', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-probe-deployment-evidence-'));
+  const probeDeploymentId = 'dpl_CandidateProbe123';
+  const finalDeploymentId = 'dpl_FinalRelease456';
+  const baseEnv = {
+    OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE: 'true',
+    OPSC_PRODUCTION_DATABASE_NAME: 'opscore_acceptance',
+    OPSC_PRODUCTION_NEON_BRANCH_ID: 'br-proud-salad-bcshhdap',
+    OPSC_RELEASE_CI_COMMIT: SHA,
+    OPSC_RELEASE_CI_PIPELINE_ID: '2978538209',
+    OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID: probeDeploymentId,
+    VERCEL_DEPLOYMENT_ID: finalDeploymentId
+  };
+
+  try {
+    const session = writeJsonEvidence(dir, 'session.json', {
+      schemaVersion: 'opscore.production-session-isolation.v3',
+      status: 'PASS',
+      environment: 'production',
+      databaseName: 'opscore_acceptance',
+      verificationScope: 'dual-tenant-http-asset-create-read-event-write-denial-and-cleanup',
+      sourceCommitHint: SHA,
+      pipelineId: '2978538209',
+      parentBranchId: 'br-proud-salad-bcshhdap',
+      deploymentId: probeDeploymentId,
+      evidenceRebind: null,
+      checks: {
+        dualLogin: 'PASS',
+        tenantPrincipalBinding: 'PASS',
+        ownAssetCreate: 'PASS',
+        ownAssetRead: 'PASS',
+        tenantListIsolation: 'PASS',
+        crossTenantAssetReadDenied: 'PASS',
+        ownAssetEventWrite: 'PASS',
+        crossTenantWriteDenied: 'PASS',
+        unauthenticatedDenied: 'PASS',
+        cleanupComplete: 'PASS'
+      }
+    });
+
+    const recovery = writeJsonEvidence(dir, 'recovery.json', {
+      schemaVersion: 'opscore.production-recovery-point.v3',
+      status: 'PASS',
+      databaseName: 'opscore_acceptance',
+      verificationScope: 'branch-clone-public-table-count-and-core-tenant-row-counts-only',
+      recoveryBranchId: 'br-candidate-recovery-20261118',
+      tableCountCompared: 137,
+      coreTenantTableRowCountsMatch: true,
+      mismatchCount: 0,
+      sourceCommitHint: SHA,
+      pipelineId: '2978538209',
+      parentBranchId: 'br-proud-salad-bcshhdap',
+      deploymentId: probeDeploymentId,
+      evidenceRebind: null
+    });
+
+    const sessionProof = readProductionSessionIsolationEvidence(session.path, baseEnv);
+    const recoveryProof = readProductionRecoveryPointEvidence(recovery.path, baseEnv);
+    assert.equal(sessionProof.status, 'PASS');
+    assert.equal(sessionProof.deploymentIdBound, true);
+    assert.equal(recoveryProof.status, 'PASS');
+    assert.equal(recoveryProof.deploymentIdBound, true);
+
+    const withoutProbePin = { ...baseEnv };
+    delete withoutProbePin.OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID;
+    assert.equal(readProductionSessionIsolationEvidence(session.path, withoutProbePin).status, 'NOT_VERIFIED');
+    assert.equal(readProductionRecoveryPointEvidence(recovery.path, withoutProbePin).status, 'NOT_VERIFIED');
+
+    const wrongProbePin = { ...baseEnv, OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID: 'dpl_UnrelatedProbe789' };
+    assert.equal(readProductionSessionIsolationEvidence(session.path, wrongProbePin).status, 'NOT_VERIFIED');
+    assert.equal(readProductionRecoveryPointEvidence(recovery.path, wrongProbePin).status, 'NOT_VERIFIED');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

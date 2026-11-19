@@ -64,12 +64,12 @@ function findSignedTenantManifestRoute(method, requestPath) {
 
 const CANDIDATE_ROUTE_PROOF_REQUIREMENTS = Object.freeze({
   'GET /api/v1/appointments': { a: ['session.appointmentListTenantA'], b: ['session.appointmentListTenantB'], cross: ['session.appointmentListTenantA', 'session.appointmentListTenantB'] },
-  'POST /api/v1/appointments': { a: ['session.appointmentCreateTenantA'], b: ['session.appointmentCreateTenantB'], cross: [] },
-  'GET /api/v1/appointments/{id}': { a: ['session.appointmentDetailTenantA'], b: ['session.appointmentDetailTenantB'], cross: [] },
+  'POST /api/v1/appointments': { a: ['session.appointmentCreateTenantA'], b: ['session.appointmentCreateTenantB'], cross: ['session.appointmentCrossTenantCreateDenied'] },
+  'GET /api/v1/appointments/{id}': { a: ['session.appointmentDetailTenantA'], b: ['session.appointmentDetailTenantB'], cross: ['session.appointmentCrossTenantReadDenied'] },
   'PATCH /api/v1/appointments/{id}': { a: ['session.appointmentUpdateTenantA'], b: ['session.appointmentUpdateTenantB'], cross: ['session.appointmentCrossTenantUpdateDenied'] },
-  'POST /api/v1/appointments/{id}/on-my-way': { a: ['session.appointmentOnMyWayTenantA'], b: ['session.appointmentOnMyWayTenantB'], cross: [] },
-  'POST /api/v1/appointments/{id}/reschedule': { a: [], b: ['session.appointmentRescheduleManagerTenantB'], cross: [] },
-  'POST /api/v1/appointments/{id}/unreachable': { a: ['session.appointmentUnreachableTenantA'], b: ['session.appointmentUnreachableTenantB'], cross: [] },
+  'POST /api/v1/appointments/{id}/on-my-way': { a: ['session.appointmentOnMyWayTenantA'], b: ['session.appointmentOnMyWayTenantB'], cross: ['session.appointmentOnMyWayCrossTenantDenied'] },
+  'POST /api/v1/appointments/{id}/reschedule': { a: ['session.appointmentRescheduleTenantA'], b: ['session.appointmentRescheduleManagerTenantB'], cross: ['session.appointmentRescheduleCrossTenantDenied'] },
+  'POST /api/v1/appointments/{id}/unreachable': { a: ['session.appointmentUnreachableTenantA'], b: ['session.appointmentUnreachableTenantB'], cross: ['session.appointmentUnreachableCrossTenantDenied'] },
   'GET /api/v1/assets': { a: ['session.assetsTenantA'], b: ['session.assetsTenantB'], cross: ['session.assetsTenantA', 'session.assetsTenantB'] },
   'POST /api/v1/assets': { a: ['session.assetsCreateTenantA'], b: ['session.assetsCreateTenantB'], cross: ['session.assetsCreateIgnoresClientTenantClaim'] },
   'PATCH /api/v1/assets/{id}': { a: ['session.assetsUpdateTenantA'], b: ['session.assetsUpdateTenantB'], cross: ['session.assetsCrossTenantUpdateDenied'] },
@@ -77,37 +77,37 @@ const CANDIDATE_ROUTE_PROOF_REQUIREMENTS = Object.freeze({
   'GET /api/v1/customers': { a: ['session.customersTenantA'], b: ['session.customersTenantB'], cross: ['session.customersTenantA', 'session.customersTenantB'] },
   'POST /api/v1/customers': { a: ['session.customersCreateTenantA'], b: ['session.customersCreateTenantB'], cross: ['session.customersCreateIgnoresClientTenantClaim'] },
   'PATCH /api/v1/customers/{id}': { a: ['session.customersUpdateTenantA'], b: ['session.customersUpdateTenantB'], cross: ['session.customersCrossTenantUpdateDenied'] },
-  'GET /api/v1/customers/{id}/service-line': { a: ['session.customerServiceLineReadTenantA'], b: ['session.customerServiceLineReadTenantB'], cross: [] },
+  'GET /api/v1/customers/{id}/service-line': { a: ['session.customerServiceLineReadTenantA'], b: ['session.customerServiceLineReadTenantB'], cross: ['session.customerServiceLineCrossTenantReadDenied'] },
   'POST /api/v1/customers/{id}/service-line': { a: ['session.customerServiceLineAssignTenantA'], b: ['session.customerServiceLineAssignTenantB'], cross: ['session.customerServiceLineCrossTenantAssignDenied'] },
   'PUT /api/v1/evidence-uploads/{id}/chunks/(\\d+)': { a: ['evidence.chunkTenantA', 'evidence.chunkTenantAPersisted'], b: ['evidence.chunkTenantB', 'evidence.chunkTenantBPersisted'], cross: ['evidence.crossTenantChunkDenied'] },
   'POST /api/v1/evidence-uploads/{id}/complete': { a: ['evidence.completeTenantA'], b: ['evidence.completeTenantB'], cross: ['evidence.crossTenantCompleteDenied'] },
-  'POST /api/v1/faults': { a: ['session.faultCreateTenantA'], b: ['session.faultCreateTenantB'], cross: [] },
-  'POST /api/v1/faults/{id}/transition': { a: ['session.faultTransitionTenantA'], b: ['session.faultTransitionTenantB'], cross: [] },
-  'POST /api/v1/faults/{id}/unreachable': { a: ['session.faultUnreachableTenantA'], b: ['session.faultUnreachableTenantB'], cross: [] },
+  'POST /api/v1/faults': { a: ['session.faultCreateTenantA'], b: ['session.faultCreateTenantB'], cross: ['session.faultCreateForeignTenantReferencesNotImported'] },
+  'POST /api/v1/faults/{id}/transition': { a: ['session.faultTransitionTenantA'], b: ['session.faultTransitionTenantB'], cross: ['session.faultTransitionCrossTenantDenied'] },
+  'POST /api/v1/faults/{id}/unreachable': { a: ['session.faultUnreachableTenantA'], b: ['session.faultUnreachableTenantB'], cross: ['session.faultUnreachableCrossTenantDenied'] },
   'POST /api/v1/faults/classify': { a: ['session.faultClassificationTenantA'], b: ['session.faultClassificationTenantB'], cross: ['session.faultClassificationForeignTenantHidden'] },
-  'GET /api/v1/geofences': { a: ['session.geofenceListTenantA'], b: ['session.geofenceListTenantB'], cross: [] },
-  'POST /api/v1/geofences': { a: ['session.geofenceCreateTenantA'], b: ['session.geofenceCreateTenantB'], cross: [] },
+  'GET /api/v1/geofences': { a: ['session.geofenceListTenantA'], b: ['session.geofenceListTenantB'], cross: ['session.geofenceListTenantA', 'session.geofenceListTenantB'] },
+  'POST /api/v1/geofences': { a: ['session.geofenceCreateTenantA'], b: ['session.geofenceCreateTenantB'], cross: ['session.geofenceCreateIgnoresClientTenantClaim'] },
   'POST /api/v1/geofences/{id}/technicians': { a: ['session.geofenceAssignTechnicianTenantA'], b: ['session.geofenceAssignTechnicianTenantB'], cross: ['session.geofenceCrossTenantAssignmentDenied'] },
-  'POST /api/v1/geofences/assert-access': { a: ['session.geofenceAssertAccessTenantA'], b: ['session.geofenceAssertAccessTenantB'], cross: [] },
-  'POST /api/v1/geofences/dynamic-events': { a: ['session.dynamicGeofenceWriteTenantA'], b: ['session.dynamicGeofenceWriteTenantB'], cross: [] },
+  'POST /api/v1/geofences/assert-access': { a: ['session.geofenceAssertAccessTenantA'], b: ['session.geofenceAssertAccessTenantB'], cross: ['session.geofenceAssertAccessCrossTenantDenied'] },
+  'POST /api/v1/geofences/dynamic-events': { a: ['session.dynamicGeofenceWriteTenantA'], b: ['session.dynamicGeofenceWriteTenantB'], cross: ['session.dynamicGeofenceCrossTenantDenied'] },
   'POST /api/v1/geofences/evaluate': { a: ['session.geofenceEvaluationTenantA'], b: ['session.geofenceEvaluationTenantB'], cross: ['session.geofenceEvaluationForeignTenantHidden'] },
-  'GET /api/v1/geofences/role-polygons': { a: ['session.geofenceRolePolygonsTenantA'], b: ['session.geofenceRolePolygonsTenantB'], cross: [] },
-  'GET /api/v1/map/viewport': { a: ['session.mapViewportTenantA'], b: ['session.mapViewportTenantB'], cross: [] },
-  'GET /api/v1/sites': { a: ['session.sitesTenantA', 'session.sitesCustomerJoinTenantScoped'], b: ['session.sitesTenantB', 'session.sitesCustomerJoinTenantScoped'], cross: [] },
+  'GET /api/v1/geofences/role-polygons': { a: ['session.geofenceRolePolygonsTenantA'], b: ['session.geofenceRolePolygonsTenantB'], cross: ['session.geofenceRolePolygonsTenantA', 'session.geofenceRolePolygonsTenantB'] },
+  'GET /api/v1/map/viewport': { a: ['session.mapViewportTenantA'], b: ['session.mapViewportTenantB'], cross: ['session.mapViewportTenantA', 'session.mapViewportTenantB'] },
+  'GET /api/v1/sites': { a: ['session.sitesTenantA', 'session.sitesCustomerJoinTenantScoped'], b: ['session.sitesTenantB', 'session.sitesCustomerJoinTenantScoped'], cross: ['session.sitesTenantA', 'session.sitesTenantB'] },
   'POST /api/v1/sites': { a: ['session.sitesCreateTenantA'], b: ['session.sitesCreateTenantB'], cross: ['session.sitesCreateIgnoresClientTenantClaim'] },
   'PATCH /api/v1/sites/{id}': { a: ['session.sitesUpdateTenantA'], b: ['session.sitesUpdateTenantB'], cross: ['session.sitesCrossTenantUpdateDenied'] },
-  'GET /api/v1/technicians': { a: ['session.technicianListTenantA'], b: ['session.technicianListTenantB'], cross: [] },
-  'POST /api/v1/technicians': { a: ['session.technicianProfileTenantA'], b: ['session.technicianProfileTenantB'], cross: [] },
-  'GET /api/v1/technicians/{id}/geofences': { a: ['session.technicianGeofenceReadTenantA'], b: ['session.technicianGeofenceReadTenantB'], cross: [] },
-  'GET /api/v1/technicians/availability': { a: ['session.technicianAvailabilityTenantA'], b: ['session.technicianAvailabilityTenantB'], cross: [] },
-  'GET /api/v1/technicians/skills': { a: ['session.technicianSkillsListTenantA'], b: ['session.technicianSkillsListTenantB'], cross: [] },
-  'POST /api/v1/technicians/skills': { a: ['session.technicianSkillTenantA'], b: ['session.technicianSkillTenantB'], cross: [] },
+  'GET /api/v1/technicians': { a: ['session.technicianListTenantA'], b: ['session.technicianListTenantB'], cross: ['session.technicianListTenantA', 'session.technicianListTenantB'] },
+  'POST /api/v1/technicians': { a: ['session.technicianProfileTenantA'], b: ['session.technicianProfileTenantB'], cross: ['session.technicianProfileCrossTenantDenied'] },
+  'GET /api/v1/technicians/{id}/geofences': { a: ['session.technicianGeofenceReadTenantA'], b: ['session.technicianGeofenceReadTenantB'], cross: ['session.technicianGeofenceReadTenantA', 'session.technicianGeofenceReadTenantB'] },
+  'GET /api/v1/technicians/availability': { a: ['session.technicianAvailabilityTenantA'], b: ['session.technicianAvailabilityTenantB'], cross: ['session.technicianAvailabilityCrossTenantHidden'] },
+  'GET /api/v1/technicians/skills': { a: ['session.technicianSkillsListTenantA'], b: ['session.technicianSkillsListTenantB'], cross: ['session.technicianSkillsListTenantA', 'session.technicianSkillsListTenantB'] },
+  'POST /api/v1/technicians/skills': { a: ['session.technicianSkillTenantA'], b: ['session.technicianSkillTenantB'], cross: ['session.technicianSkillCrossTenantDenied'] },
   'GET /api/v1/technicians/trail': { a: ['session.technicianTrailReadTenantA'], b: ['session.technicianTrailReadTenantB'], cross: ['session.technicianTrailCrossTenantHidden'] },
-  'POST /api/v1/technicians/trail': { a: ['session.technicianTrailWriteTenantA'], b: ['session.technicianTrailWriteTenantB'], cross: [] },
-  'GET /api/v1/technicians/trail.geojson': { a: ['session.technicianTrailGeoJsonTenantA'], b: ['session.technicianTrailGeoJsonTenantB'], cross: [] },
+  'POST /api/v1/technicians/trail': { a: ['session.technicianTrailWriteTenantA'], b: ['session.technicianTrailWriteTenantB'], cross: ['session.technicianTrailCrossTenantWriteDenied'] },
+  'GET /api/v1/technicians/trail.geojson': { a: ['session.technicianTrailGeoJsonTenantA'], b: ['session.technicianTrailGeoJsonTenantB'], cross: ['session.technicianTrailGeoJsonCrossTenantHidden'] },
   'GET /api/v1/work-orders': { a: ['checks.signedWorkOrdersTenantA'], b: ['checks.signedWorkOrdersTenantB'], cross: ['checks.signedWorkOrdersTenantA', 'checks.signedWorkOrdersTenantB'] },
   'POST /api/v1/work-orders': { a: ['write.createTenantA'], b: ['write.createTenantB'], cross: ['write.createIgnoresClientTenantClaim'] },
-  'GET /api/v1/work-orders/{id}': { a: ['checks.signedWorkOrderDetailTenantA'], b: ['checks.signedWorkOrderDetailTenantB'], cross: [] },
+  'GET /api/v1/work-orders/{id}': { a: ['checks.signedWorkOrderDetailTenantA'], b: ['checks.signedWorkOrderDetailTenantB'], cross: ['session.signedWorkOrderDetailCrossTenantDenied'] },
   'PATCH /api/v1/work-orders/{id}': { a: ['write.patchTenantA'], b: ['write.patchTenantB'], cross: ['write.crossTenantPatchDenied', 'write.crossTenantPatchLeftForeignRowUnchanged'] },
   'GET /api/v1/work-orders/{id}/attachments': { a: ['read.attachmentsTenantA'], b: ['read.attachmentsTenantB'], cross: ['read.attachmentsForeignTenantDenied'] },
   'POST /api/v1/work-orders/{id}/attachments': { a: ['evidence.directAttachmentTenantA'], b: ['evidence.directAttachmentTenantB'], cross: ['evidence.crossTenantDirectAttachmentDenied'] },
@@ -117,7 +117,7 @@ const CANDIDATE_ROUTE_PROOF_REQUIREMENTS = Object.freeze({
   'GET /api/v1/work-orders/{id}/completion-assurance': { a: ['read.completionAssuranceTenantA'], b: ['read.completionAssuranceTenantB'], cross: ['read.completionAssuranceForeignTenantDenied'] },
   'GET /api/v1/work-orders/{id}/completion-package': { a: ['read.completionPackageTenantA'], b: ['read.completionPackageTenantB'], cross: ['read.completionPackageForeignTenantDenied'] },
   'GET /api/v1/work-orders/{id}/dispatch-candidates': { a: ['read.dispatchCandidatesTenantA'], b: ['read.dispatchCandidatesTenantB'], cross: ['read.dispatchCandidatesForeignTenantDenied'] },
-  'POST /api/v1/work-orders/{id}/evidence-uploads': { a: ['evidence.initiateTenantA'], b: ['evidence.initiateTenantB'], cross: [] },
+  'POST /api/v1/work-orders/{id}/evidence-uploads': { a: ['evidence.initiateTenantA'], b: ['evidence.initiateTenantB'], cross: ['evidence.initiateCrossTenantDenied'] },
   'GET /api/v1/work-orders/{id}/first-time-right': { a: ['read.firstTimeRightTenantA'], b: ['read.firstTimeRightTenantB'], cross: ['read.firstTimeRightForeignTenantDenied'] },
   'GET /api/v1/work-orders/{id}/handoff': { a: ['read.handoffTenantA'], b: ['read.handoffTenantB'], cross: ['read.handoffForeignTenantDenied'] },
   'GET /api/v1/work-orders/{id}/operational-risk': { a: ['read.operationalRiskTenantA'], b: ['read.operationalRiskTenantB'], cross: ['read.operationalRiskForeignTenantDenied'] },
@@ -1147,6 +1147,20 @@ async function main() {
     signedSessionAutobindHttpProof.customerServiceLineReadTenantA = 'PASS';
     signedSessionAutobindHttpProof.customerServiceLineReadTenantB = 'PASS';
 
+    const crossReadServiceLine = await queryHttp(
+      port,
+      '/api/v1/customers/' + encodeURIComponent(synthetic.customerIds[1]) + '/service-line',
+      tokenA
+    );
+    if (crossReadServiceLine.status !== 404
+        || crossReadServiceLine.body?.error?.code !== 'NOT_FOUND'
+        || crossReadServiceLine.headers?.['x-opscore-signed-tenant-context'] !== 'verified') {
+      throw new Error('SIGNED_CONTEXT_CUSTOMER_SERVICE_LINE_CROSS_TENANT_READ_NOT_DENIED:' + JSON.stringify({
+        status: crossReadServiceLine.status, body: crossReadServiceLine.body
+      }));
+    }
+    signedSessionAutobindHttpProof.customerServiceLineCrossTenantReadDenied = 'PASS';
+
     // Exercise the authenticated sites list through its real signed read wrapper.
     // The response must include only the caller's site and its tenant-owned customer join.
     const signedSitesA = await queryHttp(port, '/api/v1/sites', tokenA);
@@ -1618,6 +1632,25 @@ async function main() {
     signedSessionAutobindHttpProof.technicianProfileTenantA = 'PASS';
     signedSessionAutobindHttpProof.technicianProfileTenantB = 'PASS';
 
+    const foreignTechnicianProfile = await queryHttp(port, '/api/v1/technicians', tokenA, {
+      method: 'POST',
+      body: { userId: userB, latitude: 29.9765, longitude: 31.1313, active: true }
+    });
+    const foreignTechnicianProfileRows = await owner.query(
+      'SELECT COUNT(*)::int AS count FROM public.technician_profiles WHERE organization_id=$1 AND user_id=$2',
+      [tenantA, userB]
+    );
+    if (foreignTechnicianProfile.status < 400
+        || foreignTechnicianProfile.headers?.['x-opscore-signed-tenant-context'] === 'verified'
+        || Number(foreignTechnicianProfileRows.rows[0]?.count) !== 0) {
+      throw new Error('SIGNED_CONTEXT_TECHNICIAN_PROFILE_CROSS_TENANT_WRITE_NOT_DENIED:' + JSON.stringify({
+        status: foreignTechnicianProfile.status,
+        body: foreignTechnicianProfile.body,
+        rowsCreated: foreignTechnicianProfileRows.rows[0]?.count
+      }));
+    }
+    signedSessionAutobindHttpProof.technicianProfileCrossTenantDenied = 'PASS';
+
     const technicianSkillA = 'ci-signed-skill-a-' + keyId;
     const technicianSkillB = 'ci-signed-skill-b-' + keyId;
     const skillA = await queryHttp(port, '/api/v1/technicians/skills', tokenA, {
@@ -1647,6 +1680,26 @@ async function main() {
     }
     signedSessionAutobindHttpProof.technicianSkillTenantA = 'PASS';
     signedSessionAutobindHttpProof.technicianSkillTenantB = 'PASS';
+
+    const foreignTechnicianSkillName = 'ci-signed-skill-cross-' + keyId;
+    const foreignTechnicianSkill = await queryHttp(port, '/api/v1/technicians/skills', tokenA, {
+      method: 'POST',
+      body: { userId: userB, skill: foreignTechnicianSkillName, level: 2 }
+    });
+    const foreignTechnicianSkillRows = await owner.query(
+      'SELECT COUNT(*)::int AS count FROM public.technician_skills WHERE organization_id=$1 AND user_id=$2 AND skill=$3',
+      [tenantA, userB, foreignTechnicianSkillName]
+    );
+    if (foreignTechnicianSkill.status < 400
+        || foreignTechnicianSkill.headers?.['x-opscore-signed-tenant-context'] === 'verified'
+        || Number(foreignTechnicianSkillRows.rows[0]?.count) !== 0) {
+      throw new Error('SIGNED_CONTEXT_TECHNICIAN_SKILL_CROSS_TENANT_WRITE_NOT_DENIED:' + JSON.stringify({
+        status: foreignTechnicianSkill.status,
+        body: foreignTechnicianSkill.body,
+        rowsCreated: foreignTechnicianSkillRows.rows[0]?.count
+      }));
+    }
+    signedSessionAutobindHttpProof.technicianSkillCrossTenantDenied = 'PASS';
 
     const techniciansA = await queryHttp(port, '/api/v1/technicians', tokenA);
     const techniciansB = await queryHttp(port, '/api/v1/technicians', tokenB);
@@ -1757,6 +1810,27 @@ async function main() {
     signedSessionAutobindHttpProof.appointmentCreateTenantA = 'PASS';
     signedSessionAutobindHttpProof.appointmentCreateTenantB = 'PASS';
 
+    const appointmentCreateCrossKey = 'signed-context-appointment-create-cross-' + keyId;
+    synthetic.idempotencyKeys.push(appointmentCreateCrossKey);
+    const crossAppointmentCreate = await queryHttp(port, '/api/v1/appointments', tokenA, {
+      method: 'POST',
+      headers: { 'idempotency-key': appointmentCreateCrossKey },
+      body: {
+        workOrderId: synthetic.workOrderIds[1],
+        technicianId: userB,
+        startAt: new Date(appointmentBase + 8 * 60 * 60 * 1000).toISOString(),
+        endAt: new Date(appointmentBase + 9 * 60 * 60 * 1000).toISOString()
+      }
+    });
+    if (crossAppointmentCreate.status !== 404
+        || crossAppointmentCreate.body?.error?.code !== 'NOT_FOUND'
+        || crossAppointmentCreate.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_APPOINTMENT_CROSS_TENANT_CREATE_NOT_DENIED:' + JSON.stringify({
+        status: crossAppointmentCreate.status, body: crossAppointmentCreate.body
+      }));
+    }
+    signedSessionAutobindHttpProof.appointmentCrossTenantCreateDenied = 'PASS';
+
     const foreignAppointmentPatch = await queryHttp(
       port,
       '/api/v1/appointments/' + encodeURIComponent(createAppointmentB.body.id),
@@ -1861,6 +1935,19 @@ async function main() {
         }));
       }
     }
+    const crossAppointmentRead = await queryHttp(
+      port,
+      '/api/v1/appointments/' + encodeURIComponent(createAppointmentB.body.id),
+      tokenA
+    );
+    if (crossAppointmentRead.status !== 404
+        || crossAppointmentRead.body?.error?.code !== 'NOT_FOUND'
+        || crossAppointmentRead.headers?.['x-opscore-signed-tenant-context'] !== 'verified') {
+      throw new Error('SIGNED_CONTEXT_APPOINTMENT_CROSS_TENANT_READ_EXPOSED:' + JSON.stringify({
+        status: crossAppointmentRead.status, body: crossAppointmentRead.body
+      }));
+    }
+    signedSessionAutobindHttpProof.appointmentCrossTenantReadDenied = 'PASS';
     signedSessionAutobindHttpProof.appointmentDetailTenantA = 'PASS';
     signedSessionAutobindHttpProof.appointmentDetailTenantB = 'PASS';
     signedSessionAutobindHttpProof.appointmentListTenantA = 'PASS';
@@ -1896,6 +1983,19 @@ async function main() {
     signedSessionAutobindHttpProof.technicianAvailabilityTenantA = 'PASS';
     signedSessionAutobindHttpProof.technicianAvailabilityTenantB = 'PASS';
 
+    const availabilityCrossA = await queryHttp(
+      port,
+      '/api/v1/technicians/availability?technicianId=' + encodeURIComponent(userB)
+        + '&date=' + encodeURIComponent(appointmentStartB.slice(0, 10)),
+      tokenA
+    );
+    if (availabilityCrossA.status < 400
+        || availabilityCrossA.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_TECHNICIAN_AVAILABILITY_CROSS_TENANT_NOT_HIDDEN:' + JSON.stringify({
+        status: availabilityCrossA.status, body: availabilityCrossA.body
+      }));
+    }
+    signedSessionAutobindHttpProof.technicianAvailabilityCrossTenantHidden = 'PASS';
 
     // PostgreSQL trail storage is migration-backed (069) and must be present
     // before this signed read transaction. Exercise insert/list/GeoJSON per tenant.
@@ -1973,6 +2073,43 @@ async function main() {
     }
     signedSessionAutobindHttpProof.technicianTrailWriteTenantA = 'PASS';
     signedSessionAutobindHttpProof.technicianTrailWriteTenantB = 'PASS';
+
+    const crossTrailEventId = 'signed-context-trail-cross-' + keyId;
+    const crossTrailIdempotencyKey = 'signed-context-trail-cross-write-' + keyId;
+    synthetic.trailClientEventIds.push(crossTrailEventId);
+    synthetic.idempotencyKeys.push(crossTrailIdempotencyKey);
+    const crossTrailWrite = await queryHttp(port, '/api/v1/technicians/trail', tokenA, {
+      method: 'POST',
+      headers: { 'idempotency-key': crossTrailIdempotencyKey },
+      body: {
+        technicianId: userB,
+        latitude: 29.9765,
+        longitude: 31.1313,
+        accuracyMeters: 7,
+        recordedAt: new Date(Date.now() + 3000).toISOString(),
+        appointmentId: createAppointmentB.body.id,
+        workOrderId: synthetic.workOrderIds[1],
+        source: 'device',
+        clientEventId: crossTrailEventId
+      }
+    });
+    const crossTrailReadAfterWrite = await queryHttp(
+      port,
+      '/api/v1/technicians/trail?technicianId=' + encodeURIComponent(userB) + '&limit=20',
+      tokenA
+    );
+    if (crossTrailWrite.status < 400
+        || crossTrailWrite.headers?.['x-opscore-signed-tenant-context'] === 'verified'
+        || crossTrailReadAfterWrite.status !== 200
+        || crossTrailReadAfterWrite.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || crossTrailReadAfterWrite.body?.count !== 0
+        || crossTrailReadAfterWrite.body?.points?.length !== 0) {
+      throw new Error('SIGNED_CONTEXT_TECHNICIAN_TRAIL_CROSS_TENANT_WRITE_NOT_DENIED:' + JSON.stringify({
+        write: { status: crossTrailWrite.status, body: crossTrailWrite.body },
+        readAfterWrite: { status: crossTrailReadAfterWrite.status, body: crossTrailReadAfterWrite.body }
+      }));
+    }
+    signedSessionAutobindHttpProof.technicianTrailCrossTenantWriteDenied = 'PASS';
 
     const trailReadA = await queryHttp(
       port,
@@ -2053,6 +2190,21 @@ async function main() {
     signedSessionAutobindHttpProof.technicianTrailGeoJsonTenantA = 'PASS';
     signedSessionAutobindHttpProof.technicianTrailGeoJsonTenantB = 'PASS';
 
+    const trailGeoJsonCrossTenantA = await queryHttp(
+      port,
+      '/api/v1/technicians/trail.geojson?technicianId=' + encodeURIComponent(userB) + '&limit=20',
+      tokenA
+    );
+    if (trailGeoJsonCrossTenantA.status !== 200
+        || trailGeoJsonCrossTenantA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || trailGeoJsonCrossTenantA.body?.type !== 'FeatureCollection'
+        || trailGeoJsonCrossTenantA.body?.count !== 0
+        || trailGeoJsonCrossTenantA.body?.features?.length !== 0) {
+      throw new Error('SIGNED_CONTEXT_TECHNICIAN_TRAIL_GEOJSON_CROSS_TENANT_NOT_HIDDEN:' + JSON.stringify({
+        status: trailGeoJsonCrossTenantA.status, body: trailGeoJsonCrossTenantA.body
+      }));
+    }
+    signedSessionAutobindHttpProof.technicianTrailGeoJsonCrossTenantHidden = 'PASS';
 
     // Tenant-specific geofences: each shape is a real persisted Polygon row,
     // and assignment/evaluation must only resolve within the caller organization.
@@ -2075,7 +2227,12 @@ async function main() {
     const createGeofenceA = await queryHttp(port, '/api/v1/geofences', tokenA, {
       method: 'POST',
       headers: { 'idempotency-key': geofenceKeyA },
-      body: { name: 'Signed Context Geofence A', geometry: geofenceGeometryA, enabled: true }
+      body: {
+        name: 'Signed Context Geofence A',
+        geometry: geofenceGeometryA,
+        enabled: true,
+        organizationId: tenantB
+      }
     });
     if (createGeofenceA.body?.id) synthetic.geofenceIds.push(createGeofenceA.body.id);
     if (createGeofenceA.status !== 201
@@ -2110,6 +2267,10 @@ async function main() {
     }
     signedSessionAutobindHttpProof.geofenceCreateTenantA = 'PASS';
     signedSessionAutobindHttpProof.geofenceCreateTenantB = 'PASS';
+    if (createGeofenceA.body?.organizationId !== tenantA) {
+      throw new Error('SIGNED_CONTEXT_GEOFENCE_CREATE_IGNORED_FOREIGN_TENANT_CLAIM_FAILED');
+    }
+    signedSessionAutobindHttpProof.geofenceCreateIgnoresClientTenantClaim = 'PASS';
 
     const geofencesA = await queryHttp(port, '/api/v1/geofences', tokenA);
     const geofencesB = await queryHttp(port, '/api/v1/geofences', tokenB);
@@ -2347,7 +2508,9 @@ async function main() {
     // for this one HTTP call, then restore and verify the original member role.
     // The separate member-denial test above remains a distinct assertion.
     const managerRescheduleKey = 'signed-context-appointment-manager-reschedule-' + keyId;
-    synthetic.idempotencyKeys.push(managerRescheduleKey);
+    const appointmentRescheduleTenantAKey = 'signed-context-appointment-reschedule-tenant-a-' + keyId;
+    const appointmentRescheduleCrossKey = 'signed-context-appointment-reschedule-cross-' + keyId;
+    synthetic.idempotencyKeys.push(managerRescheduleKey, appointmentRescheduleTenantAKey, appointmentRescheduleCrossKey);
     const memberRoleBeforeReschedule = await owner.query(
       'SELECT role FROM public.memberships WHERE user_id=$1 AND organization_id=$2',
       [userB, tenantB]
@@ -2404,6 +2567,83 @@ async function main() {
       }
       signedSessionAutobindHttpProof.appointmentRescheduleManagerTenantB = 'PASS';
       signedSessionAutobindHttpProof.appointmentRescheduleAuditPersistedTenantB = 'PASS';
+
+      const memberRoleA = await owner.query(
+        'SELECT role FROM public.memberships WHERE user_id=$1 AND organization_id=$2',
+        [userA, tenantA]
+      );
+      if (memberRoleA.rows[0]?.role !== 'member') {
+        throw new Error('SIGNED_CONTEXT_APPOINTMENT_TENANT_A_MANAGER_FIXTURE_NOT_MEMBER');
+      }
+      const promoteTenantA = await owner.query(
+        "UPDATE public.memberships SET role='manager' WHERE user_id=$1 AND organization_id=$2 AND role='member'",
+        [userA, tenantA]
+      );
+      if (promoteTenantA.rowCount !== 1) {
+        throw new Error('SIGNED_CONTEXT_APPOINTMENT_TENANT_A_MANAGER_PROMOTION_FAILED');
+      }
+      let tenantARescheduleResponse;
+      try {
+        const tenantAStart = new Date(appointmentBase + 420 * 60 * 1000).toISOString();
+        const tenantAEnd = new Date(appointmentBase + 480 * 60 * 1000).toISOString();
+        tenantARescheduleResponse = await queryHttp(
+          port,
+          '/api/v1/appointments/' + encodeURIComponent(createAppointmentA.body.id) + '/reschedule',
+          tokenA,
+          {
+            method: 'POST',
+            headers: { 'idempotency-key': appointmentRescheduleTenantAKey },
+            body: { reason: 'CI Tenant A manager reschedule', startAt: tenantAStart, endAt: tenantAEnd }
+          }
+        );
+        if (tenantARescheduleResponse.status !== 200
+            || tenantARescheduleResponse.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+            || tenantARescheduleResponse.body?.auditStatus !== 'persisted'
+            || tenantARescheduleResponse.body?.appointment?.id !== createAppointmentA.body.id
+            || tenantARescheduleResponse.body?.appointment?.organization_id !== tenantA
+            || tenantARescheduleResponse.body?.appointment?.start_at !== tenantAStart
+            || tenantARescheduleResponse.body?.appointment?.end_at !== tenantAEnd) {
+          throw new Error('SIGNED_CONTEXT_APPOINTMENT_TENANT_A_MANAGER_RESCHEDULE_FAILED:' + JSON.stringify({
+            status: tenantARescheduleResponse.status, body: tenantARescheduleResponse.body
+          }));
+        }
+
+        const crossTenantReschedule = await queryHttp(
+          port,
+          '/api/v1/appointments/' + encodeURIComponent(createAppointmentB.body.id) + '/reschedule',
+          tokenA,
+          {
+            method: 'POST',
+            headers: { 'idempotency-key': appointmentRescheduleCrossKey },
+            body: {
+              reason: 'CI cross tenant appointment reschedule must be denied',
+              startAt: new Date(appointmentBase + 540 * 60 * 1000).toISOString(),
+              endAt: new Date(appointmentBase + 600 * 60 * 1000).toISOString()
+            }
+          }
+        );
+        if (crossTenantReschedule.status !== 404
+            || crossTenantReschedule.body?.error?.code !== 'NOT_FOUND'
+            || crossTenantReschedule.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+          throw new Error('SIGNED_CONTEXT_APPOINTMENT_RESCHEDULE_CROSS_TENANT_NOT_DENIED:' + JSON.stringify({
+            status: crossTenantReschedule.status, body: crossTenantReschedule.body
+          }));
+        }
+        signedSessionAutobindHttpProof.appointmentRescheduleTenantA = 'PASS';
+        signedSessionAutobindHttpProof.appointmentRescheduleCrossTenantDenied = 'PASS';
+      } finally {
+        const restoreA = await owner.query(
+          "UPDATE public.memberships SET role='member' WHERE user_id=$1 AND organization_id=$2 AND role='manager'",
+          [userA, tenantA]
+        );
+        const restoredA = await owner.query(
+          'SELECT role FROM public.memberships WHERE user_id=$1 AND organization_id=$2',
+          [userA, tenantA]
+        );
+        if (restoreA.rowCount !== 1 || restoredA.rows[0]?.role !== 'member') {
+          throw new Error('SIGNED_CONTEXT_APPOINTMENT_TENANT_A_ROLE_RESTORE_FAILED');
+        }
+      }
     } finally {
       roleRestoreResult = await owner.query(
         "UPDATE public.memberships SET role='member' WHERE user_id=$1 AND organization_id=$2 AND role='manager'",
@@ -2453,6 +2693,23 @@ async function main() {
     signedSessionAutobindHttpProof.appointmentOnMyWayTenantA = 'PASS';
     signedSessionAutobindHttpProof.appointmentOnMyWayTenantB = 'PASS';
 
+    const appointmentOnWayCrossKey = 'signed-context-appointment-on-way-cross-' + keyId;
+    synthetic.idempotencyKeys.push(appointmentOnWayCrossKey);
+    const crossOnMyWay = await queryHttp(
+      port,
+      '/api/v1/appointments/' + encodeURIComponent(createAppointmentB.body.id) + '/on-my-way',
+      tokenA,
+      { method: 'POST', headers: { 'idempotency-key': appointmentOnWayCrossKey } }
+    );
+    if (crossOnMyWay.status !== 404
+        || crossOnMyWay.body?.error?.code !== 'NOT_FOUND'
+        || crossOnMyWay.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_APPOINTMENT_ON_MY_WAY_CROSS_TENANT_NOT_DENIED:' + JSON.stringify({
+        status: crossOnMyWay.status, body: crossOnMyWay.body
+      }));
+    }
+    signedSessionAutobindHttpProof.appointmentOnMyWayCrossTenantDenied = 'PASS';
+
     const unreachableA = await queryHttp(
       port,
       '/api/v1/appointments/' + encodeURIComponent(createAppointmentA.body.id) + '/unreachable',
@@ -2493,6 +2750,27 @@ async function main() {
     signedSessionAutobindHttpProof.appointmentUnreachableTenantA = 'PASS';
     signedSessionAutobindHttpProof.appointmentUnreachableTenantB = 'PASS';
 
+    const appointmentUnreachableCrossKey = 'signed-context-appointment-unreachable-cross-' + keyId;
+    synthetic.idempotencyKeys.push(appointmentUnreachableCrossKey);
+    const crossAppointmentUnreachable = await queryHttp(
+      port,
+      '/api/v1/appointments/' + encodeURIComponent(createAppointmentB.body.id) + '/unreachable',
+      tokenA,
+      {
+        method: 'POST',
+        headers: { 'idempotency-key': appointmentUnreachableCrossKey },
+        body: { reasonCode: 'CI_CROSS_TENANT_DENIED', detail: 'cross-tenant request must not mutate Tenant B appointment' }
+      }
+    );
+    if (crossAppointmentUnreachable.status !== 404
+        || crossAppointmentUnreachable.body?.error?.code !== 'NOT_FOUND'
+        || crossAppointmentUnreachable.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_APPOINTMENT_UNREACHABLE_CROSS_TENANT_NOT_DENIED:' + JSON.stringify({
+        status: crossAppointmentUnreachable.status, body: crossAppointmentUnreachable.body
+      }));
+    }
+    signedSessionAutobindHttpProof.appointmentUnreachableCrossTenantDenied = 'PASS';
+
     // Signed geo-access assertion and dynamic-geofence event persistence.
     const geoAccessA = await queryHttp(port, '/api/v1/geofences/assert-access', tokenA, {
       method: 'POST', body: { longitude: 31.2357, latitude: 30.0444 }
@@ -2516,6 +2794,19 @@ async function main() {
     }
     signedSessionAutobindHttpProof.geofenceAssertAccessTenantA = 'PASS';
     signedSessionAutobindHttpProof.geofenceAssertAccessTenantB = 'PASS';
+
+    const geoAccessCrossTenantA = await queryHttp(port, '/api/v1/geofences/assert-access', tokenA, {
+      method: 'POST',
+      body: { longitude: 31.1313, latitude: 29.9765 }
+    });
+    if (geoAccessCrossTenantA.status !== 403
+        || geoAccessCrossTenantA.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
+        || geoAccessCrossTenantA.body?.error?.code !== 'GEO_SCOPE_FORBIDDEN') {
+      throw new Error('SIGNED_CONTEXT_GEOFENCE_ASSERT_ACCESS_CROSS_TENANT_NOT_DENIED:' + JSON.stringify({
+        status: geoAccessCrossTenantA.status, body: geoAccessCrossTenantA.body
+      }));
+    }
+    signedSessionAutobindHttpProof.geofenceAssertAccessCrossTenantDenied = 'PASS';
 
     const dynamicGeofenceSourceA = 'signed-context-dynamic-geofence-a-' + keyId;
     const dynamicGeofenceSourceB = 'signed-context-dynamic-geofence-b-' + keyId;
@@ -2598,6 +2889,27 @@ async function main() {
     signedSessionAutobindHttpProof.dynamicGeofenceWriteTenantA = 'PASS';
     signedSessionAutobindHttpProof.dynamicGeofenceWriteTenantB = 'PASS';
     signedSessionAutobindHttpProof.dynamicGeofenceSourceEventReplay = 'PASS';
+
+    const dynamicGeofenceCrossKey = 'signed-context-dynamic-geofence-cross-' + keyId;
+    const dynamicGeofenceCrossEvent = {
+      ...dynamicGeofenceEventA,
+      sourceEventId: 'signed-context-dynamic-geofence-cross-source-' + keyId,
+      geofenceId: createGeofenceB.body.id
+    };
+    synthetic.idempotencyKeys.push(dynamicGeofenceCrossKey);
+    const dynamicGeofenceCrossTenant = await queryHttp(port, '/api/v1/geofences/dynamic-events', tokenA, {
+      method: 'POST',
+      headers: { 'idempotency-key': dynamicGeofenceCrossKey },
+      body: dynamicGeofenceCrossEvent
+    });
+    if (dynamicGeofenceCrossTenant.status !== 404
+        || !['GEOFENCE_NOT_FOUND', 'NOT_FOUND'].includes(dynamicGeofenceCrossTenant.body?.error?.code)
+        || dynamicGeofenceCrossTenant.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_DYNAMIC_GEOFENCE_CROSS_TENANT_WRITE_NOT_DENIED:' + JSON.stringify({
+        status: dynamicGeofenceCrossTenant.status, body: dynamicGeofenceCrossTenant.body
+      }));
+    }
+    signedSessionAutobindHttpProof.dynamicGeofenceCrossTenantDenied = 'PASS';
 
     // This route previously called ctx(req) a second time after the global
     // requireCtx gate, which would attempt to downgrade a signed field principal
@@ -2692,6 +3004,20 @@ async function main() {
         }));
       }
     }
+
+    const crossWorkOrderDetail = await queryHttp(
+      port,
+      '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[1]),
+      tokenA
+    );
+    if (crossWorkOrderDetail.status !== 404
+        || crossWorkOrderDetail.body?.error?.code !== 'NOT_FOUND'
+        || crossWorkOrderDetail.headers?.['x-opscore-signed-tenant-context'] !== 'verified') {
+      throw new Error('SIGNED_CONTEXT_WORK_ORDER_DETAIL_CROSS_TENANT_NOT_DENIED:' + JSON.stringify({
+        status: crossWorkOrderDetail.status, body: crossWorkOrderDetail.body
+      }));
+    }
+    signedSessionAutobindHttpProof.signedWorkOrderDetailCrossTenantDenied = 'PASS';
 
     const signedReadRouteCases = [
   {
@@ -2791,13 +3117,14 @@ async function main() {
       const foreignResponse = await queryHttp(
         port, '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[1]) + routeCase.suffix, tokenA
       );
-      const foreignWasHidden = foreignResponse.status === 503
+      const foreignWasHidden = (foreignResponse.status === 404
+          && foreignResponse.body?.error?.code === 'NOT_FOUND'
+          && foreignResponse.headers?.['x-opscore-signed-tenant-context'] === 'verified')
         || (foreignResponse.status === 200
           && Array.isArray(foreignResponse.body)
           && foreignResponse.body.length === 0
           && foreignResponse.headers?.['x-opscore-signed-tenant-context'] === 'verified');
-      if (!foreignWasHidden
-          || (foreignResponse.status === 503 && foreignResponse.headers?.['x-opscore-signed-tenant-context'] === 'verified')) {
+      if (!foreignWasHidden) {
         throw new Error('SIGNED_CONTEXT_WORK_ORDER_CROSS_TENANT_READ_EXPOSED:' + JSON.stringify({
           route: routeCase.key,
           status: foreignResponse.status,
@@ -3376,6 +3703,32 @@ async function main() {
     synthetic.evidenceUploadIds.push(evidenceInitB.body.uploadId);
     signedEvidenceRouteProof.initiateTenantB = 'PASS';
 
+    const evidenceInitCrossKey = 'signed-context-ci-evidence-init-cross-' + keyId;
+    synthetic.idempotencyKeys.push(evidenceInitCrossKey);
+    const evidenceInitCross = await queryHttp(
+      port,
+      '/api/v1/work-orders/' + encodeURIComponent(synthetic.workOrderIds[1]) + '/evidence-uploads',
+      tokenA,
+      {
+        method: 'POST',
+        headers: { 'idempotency-key': evidenceInitCrossKey },
+        body: {
+          fileName: 'cross-tenant-evidence.txt',
+          mediaType: 'text/plain',
+          totalBytes: evidenceBytesA.length,
+          sha256: evidenceShaA
+        }
+      }
+    );
+    if (evidenceInitCross.status !== 404
+        || evidenceInitCross.body?.error?.code !== 'NOT_FOUND'
+        || evidenceInitCross.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_EVIDENCE_INIT_CROSS_TENANT_NOT_DENIED:' + JSON.stringify({
+        status: evidenceInitCross.status, body: evidenceInitCross.body
+      }));
+    }
+    signedEvidenceRouteProof.initiateCrossTenantDenied = 'PASS';
+
     const foreignEvidenceChunk = await queryHttp(
       port,
       '/api/v1/evidence-uploads/' + encodeURIComponent(evidenceInitB.body.uploadId) + '/chunks/0',
@@ -3864,6 +4217,36 @@ async function main() {
     signedSessionAutobindHttpProof.faultCreateTenantA = 'PASS';
     signedSessionAutobindHttpProof.faultCreateTenantB = 'PASS';
 
+    const faultCreateCrossKey = 'signed-context-fault-create-cross-' + keyId;
+    synthetic.idempotencyKeys.push(faultCreateCrossKey);
+    const faultCreateCross = await queryHttp(port, '/api/v1/faults', tokenA, {
+      method: 'POST',
+      headers: { 'idempotency-key': faultCreateCrossKey },
+      body: {
+        title: 'Cross tenant fault reference must be rejected ' + keyId,
+        description: 'A tenant A caller must not import tenant B customer/site/asset references',
+        priority: 'high',
+        customerId: synthetic.customerIds[1],
+        siteId: createSiteB.body.id,
+        assetId: createAssetB.body.id
+      }
+    });
+    const faultCreateCrossResidue = await owner.query(
+      'SELECT COUNT(*)::int AS count FROM public.work_orders WHERE organization_id=$1 AND title=$2',
+      [tenantA, '[FAULT] Cross tenant fault reference must be rejected ' + keyId]
+    );
+    if (faultCreateCross.status < 400
+        || faultCreateCross.body?.error?.code !== 'INVALID_CUSTOMER'
+        || faultCreateCross.headers?.['x-opscore-signed-tenant-context'] === 'verified'
+        || Number(faultCreateCrossResidue.rows[0]?.count) !== 0) {
+      throw new Error('SIGNED_CONTEXT_FAULT_CREATE_FOREIGN_TENANT_REFERENCES_NOT_REJECTED:' + JSON.stringify({
+        status: faultCreateCross.status,
+        body: faultCreateCross.body,
+        residue: faultCreateCrossResidue.rows[0]
+      }));
+    }
+    signedSessionAutobindHttpProof.faultCreateForeignTenantReferencesNotImported = 'PASS';
+
     const faultTransitionA = await queryHttp(
       port,
       '/api/v1/faults/' + encodeURIComponent(faultTicketA.body.workOrder.id) + '/transition',
@@ -3892,6 +4275,27 @@ async function main() {
     }
     signedSessionAutobindHttpProof.faultTransitionTenantA = 'PASS';
     signedSessionAutobindHttpProof.faultTransitionTenantB = 'PASS';
+
+    const faultTransitionCrossKey = 'signed-context-fault-transition-cross-' + keyId;
+    synthetic.idempotencyKeys.push(faultTransitionCrossKey);
+    const faultTransitionCross = await queryHttp(
+      port,
+      '/api/v1/faults/' + encodeURIComponent(faultTicketB.body.workOrder.id) + '/transition',
+      tokenA,
+      {
+        method: 'POST',
+        headers: { 'idempotency-key': faultTransitionCrossKey },
+        body: { status: 'completed' }
+      }
+    );
+    if (faultTransitionCross.status !== 404
+        || faultTransitionCross.body?.error?.code !== 'NOT_FOUND'
+        || faultTransitionCross.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_FAULT_TRANSITION_CROSS_TENANT_NOT_DENIED:' + JSON.stringify({
+        status: faultTransitionCross.status, body: faultTransitionCross.body
+      }));
+    }
+    signedSessionAutobindHttpProof.faultTransitionCrossTenantDenied = 'PASS';
 
     const faultConfigKeyA = 'fault_unreachable:' + faultTicketA.body.workOrder.id;
     const faultConfigKeyB = 'fault_unreachable:' + faultTicketB.body.workOrder.id;
@@ -3937,6 +4341,26 @@ async function main() {
     signedSessionAutobindHttpProof.faultUnreachableTenantA = 'PASS';
     signedSessionAutobindHttpProof.faultUnreachableTenantB = 'PASS';
 
+    const faultUnreachableCrossKey = 'signed-context-fault-unreachable-cross-' + keyId;
+    synthetic.idempotencyKeys.push(faultUnreachableCrossKey);
+    const faultUnreachableCross = await queryHttp(
+      port,
+      '/api/v1/faults/' + encodeURIComponent(faultTicketB.body.workOrder.id) + '/unreachable',
+      tokenA,
+      {
+        method: 'POST',
+        headers: { 'idempotency-key': faultUnreachableCrossKey },
+        body: { reasonCode: 'CI_CROSS_TENANT_DENIED', detail: 'cross-tenant fault action must not mutate Tenant B' }
+      }
+    );
+    if (faultUnreachableCross.status !== 404
+        || faultUnreachableCross.body?.error?.code !== 'NOT_FOUND'
+        || faultUnreachableCross.headers?.['x-opscore-signed-tenant-context'] === 'verified') {
+      throw new Error('SIGNED_CONTEXT_FAULT_UNREACHABLE_CROSS_TENANT_NOT_DENIED:' + JSON.stringify({
+        status: faultUnreachableCross.status, body: faultUnreachableCross.body
+      }));
+    }
+    signedSessionAutobindHttpProof.faultUnreachableCrossTenantDenied = 'PASS';
 
     if (!candidateMode) {
       clientA = new Client({ connectionString: runtimeUrl });
@@ -4566,7 +4990,18 @@ async function main() {
           "(SELECT COUNT(*)::int FROM public.technician_skills WHERE organization_id = ANY($1::text[]) AND user_id = ANY($2::text[])) AS technician_skills, " +
           "(SELECT COUNT(*)::int FROM public.technician_location_trail WHERE organization_id = ANY($1::text[]) AND (technician_id = ANY($2::text[]) OR client_event_id = ANY($11::text[]))) AS location_points, " +
           "(SELECT COUNT(*)::int FROM public.dynamic_geofence_events WHERE id = ANY($12::text[]) OR (organization_id = ANY($1::text[]) AND source_event_id = ANY($13::text[]))) AS dynamic_geofence_events, " +
-          "(SELECT COUNT(*)::int FROM public.operational_jobs WHERE organization_id = ANY($1::text[]) AND ((entity_type='appointment' AND entity_id = ANY($9::text[])) OR (entity_type='work_order' AND entity_id = ANY($4::text[])))) AS operational_jobs, " +
+          "(SELECT COUNT(*)::int FROM public.operational_jobs WHERE organization_id = ANY($1::text[])) AS operational_jobs, " +
+          "(SELECT COUNT(*)::int FROM public.operational_event_receipts WHERE organization_id = ANY($1::text[])) AS operational_event_receipts, " +
+          "(SELECT COUNT(*)::int FROM public.integration_outbox WHERE organization_id = ANY($1::text[])) AS integration_outbox, " +
+          "(SELECT COUNT(*)::int FROM public.notifications WHERE organization_id = ANY($1::text[])) AS notifications, " +
+          "(SELECT COUNT(*)::int FROM public.webhook_endpoints WHERE organization_id = ANY($1::text[])) AS webhook_endpoints, " +
+          "(SELECT COUNT(*)::int FROM public.webhook_deliveries WHERE organization_id = ANY($1::text[])) AS webhook_deliveries, " +
+          "(SELECT COUNT(*)::int FROM public.worker_guard_events WHERE organization_id = ANY($1::text[])) AS worker_guard_events, " +
+          "(SELECT COUNT(*)::int FROM public.sync_events WHERE organization_id = ANY($1::text[])) AS sync_events, " +
+          "(SELECT COUNT(*)::int FROM public.gateway_circuit_events WHERE organization_id = ANY($1::text[])) AS gateway_circuit_events, " +
+          "(SELECT COUNT(*)::int FROM public.signature_chain_events WHERE organization_id = ANY($1::text[])) AS signature_chain_events, " +
+          "(SELECT COUNT(*)::int FROM public.operational_twin_chain_events WHERE organization_id = ANY($1::text[])) AS operational_twin_chain_events, " +
+          "(SELECT COUNT(*)::int FROM public.stripe_events WHERE organization_id = ANY($1::text[])) AS stripe_events, " +
           "(SELECT COUNT(*)::int FROM public.operational_configs WHERE organization_id = ANY($1::text[]) AND config_key = ANY($14::text[])) AS operational_configs, " +
           "(SELECT COUNT(*)::int FROM public.evidence_uploads WHERE id = ANY($15::text[]) OR organization_id = ANY($1::text[])) AS evidence_uploads, " +
           "(SELECT COUNT(*)::int FROM public.evidence_upload_chunks WHERE upload_id = ANY($15::text[])) AS evidence_upload_chunks, " +
