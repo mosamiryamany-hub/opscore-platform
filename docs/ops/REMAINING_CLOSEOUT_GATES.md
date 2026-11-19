@@ -1,96 +1,138 @@
-# Current source, hosted Production, and commercial closeout — 2026-11-19
+# OpsCore — current-main, live Production, and closeout ledger
 
-This register is the current evidence ledger. It distinguishes source/CI acceptance, Vercel deployment identity, Production behavioral certification, Neon recovery parity, and commercial/legal rights. No state is upgraded from UNVERIFIED to PASS by documentation alone.
+**Evidence cut:** 2026-11-19 13:35 UTC  
+**Repository:** `mosamiryamany-hub/opscore-platform`  
+**Current protected main:** `4ac54611c0456728a2db010e6beb9d018d9d560b`  
+**Latest live Production deployment:** `dpl_9BbbFdVocyY73Mh7dTRyTAPy71J3`  
+**Production deployment source SHA:** `e1d6c1b7939684e0f55d9f95f102b53687f9544b`  
+**Product/runtime version reported live:** `0.11.62`
 
-## Immutable references
+> **Decision:** Engineering source checks are green on current `main`, but current-main is not deployed to the public Production alias. The live site is healthy, yet the release proof is UNVERIFIED and Production isolation is NOT_CERTIFIED. This is not a Production or commercial closeout.
 
-| System | Current state |
+## 1. Immutable and live references
+
+| System | Verified state |
 |---|---|
-| GitHub repository | `mosamiryamany-hub/opscore-platform` |
-| Current main | `e1d6c1b7939684e0f55d9f95f102b53687f9544b` |
-| Main protection | Enabled |
+| GitHub main | Protected; `4ac54611c0456728a2db010e6beb9d018d9d560b` |
+| PR #287 | Merged; added explicit `GET/HEAD /login` redirect and HTTP smoke coverage |
+| PR #288 | Merged at current main; hardens public source/CI/package trust proofs against stale environment-only assertions |
 | Vercel project | `opscore-platform` / `prj_8jMqBt0l6OALicWSwQ3ECQTn8yPe` |
-| Current Vercel Production deployment | `dpl_9BbbFdVocyY73Mh7dTRyTAPy71J3`, READY |
-| Production alias | `opscore-platform.vercel.app` |
-| Production deployment source SHA | `e1d6c1b7939684e0f55d9f95f102b53687f9544b` |
-| Neon project | `summer-leaf-18448271` |
-| Neon Primary | `br-proud-salad-bcshhdap` / `main` |
-| Neon restore branch | `br-calm-poetry-bc7l7wik` |
-| Product version | `0.11.62` |
+| Vercel Production deployment | `dpl_9BbbFdVocyY73Mh7dTRyTAPy71J3`, READY |
+| Public Production alias | https://opscore-platform.vercel.app |
+| Live deployment SHA | `e1d6c1b7939684e0f55d9f95f102b53687f9544b` — behind current main |
+| Neon project | `summer-leaf-18448271` / PostgreSQL 18.7 |
+| Neon Primary | `br-proud-salad-bcshhdap` / ready / primary / default / **not protected** |
+| Neon restore branch | `br-calm-poetry-bc7l7wik` / ready; restored from `snap-aged-thunder-bcsxc1a5` |
 
-## GitHub and CI
+## 2. Current-main CI
 
-| Run | Result | Boundary |
+| Run | Result | What it proves |
 |---|---|---|
-| [44520992630 OpsCore CI](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44520992630) | SUCCESS | Same-commit source/regression CI |
-| [44520992632 vercel-deploy push](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44520992632) | SUCCESS | Source verify + disposable PostgreSQL 18 acceptance + contract gate; Production deploy job skipped |
-| [44529428910 authorized workflow_dispatch](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44529428910) | FAILURE at deploy step 13 | Source verify, disposable PostgreSQL 18 acceptance, and contract gate passed; paid-plan/capacity preflight failed; later candidate and promotion steps skipped |
+| [OpsCore CI — 44533918767](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44533918767) | SUCCESS | Current-main source/regression suite |
+| [vercel-deploy — 44533918970](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44533918970) | SUCCESS | Source verification, disposable PostgreSQL 18 acceptance, and contract gate all passed |
+| [PR #288 — 44533613579](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44533613579) | SUCCESS | Trust-hardening regression checks on the pre-merge head |
+| [PR #288 Vercel contracts — 44533613473](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44533613473) | SUCCESS | Source, disposable PostgreSQL 18, and vercel-contract checks |
 
-Run 44529428910 produced CI artifact `14532353558`, named `signed-tenant-postgres-18-ci-coverage-44529428910`. Its route coverage is CI/disposable PostgreSQL scope. It does not certify 67 Production routes.
+Run 44533918970 is a `push` event. Its `deploy` job is **SKIPPED by design**, because the workflow only runs the deploy job for an explicitly dispatched `workflow_dispatch` run. A green workflow on a push is not a Production deployment.
 
-## Vercel Production pin versus release identity
+## 3. Exact live endpoint results
 
-Vercel metadata confirms the Production deployment is READY, targets the Production environment, owns `opscore-platform.vercel.app`, and records the exact current main SHA. However, the deployment's Git metadata is not the required embedded `github-actions-cli-assertion`.
+Public endpoints were fetched directly at approximately 2026-11-19 13:35 UTC.
 
-The latest operator-provided `/api/verify/release` report states:
-- `sourceCommitIdentitySource = unverified`
-- commit-bound CI verification = PASS
-- commercial release closure = UNVERIFIED
-- Production acceptance evidence = NOT_VERIFIED
-- Production session tenant boundary = NOT_VERIFIED
-- Production recovery bundle = NOT_VERIFIED
-- Production-wide isolation certification = NOT_CERTIFIED
+| Endpoint | Live result | Interpretation |
+|---|---|---|
+| [`/api/health`](https://opscore-platform.vercel.app/api/health) | HTTP 200-equivalent response; `healthy`, PostgreSQL, version `0.11.62` | Site/runtime availability only |
+| [`/login`](https://opscore-platform.vercel.app/login) | **404** | PR #287 fix is in main but is not on current Production |
+| [`/api/verify/release`](https://opscore-platform.vercel.app/api/verify/release) | `UNVERIFIED`; source identity `unverified`; CI `PASS`; Production acceptance `NOT_VERIFIED` | No release certification |
+| [`/api/verify/deployment`](https://opscore-platform.vercel.app/api/verify/deployment) | `identified`; claims `github-actions-cli-assertion` | Conflicts with release proof; not to be relied on as independent attestation |
+| [`/api/verify/database-security`](https://opscore-platform.vercel.app/api/verify/database-security) | `IDENTITY_PLANE_RLS_ENFORCED`; 135/136 public tables RLS+FORCE RLS; runtime least-privilege status present | Live catalog controls, not cross-tenant behavioral certification |
 
-The Production deployment was created outside the authorized GitHub Actions candidate/promotion chain. The generated identity file is intentionally ignored by Git and is created during the workflow. The subsequent workflow run failed at preflight before candidate build, evidence embedding, staged deployment, or promotion. Do not fabricate that identity or rebind a different run to this deployment.
+### Live trust-proof discrepancy — root cause and code fix
 
-## Current Neon state
+The current live deployment still contains the older implementation:
+- `/api/verify/deployment` used raw Vercel Production environment values when the generated identity file was absent.
+- `/api/verify/release` separately required the embedded identity file, but stale environment values could still make CI and package fingerprint fields appear `PASS` / `PUBLISHED`.
+- This explains the contradictory public results: deployment identity asserted CLI provenance while release identity remained unverified.
+
+PR #288 is merged in current main and changes both verifiers:
+- environment-only `OPSC_RELEASE_DEPLOYMENT_SOURCE`, `OPSC_RELEASE_CI_*`, source-commit, package-fingerprint, CI, and release-tag values are discarded when the identity artifact is absent;
+- only a validated identity JSON embedded in that exact deployed bundle may assert GitHub Actions CLI identity, pipeline, and package fingerprint;
+- tests inject stale/forged variables to verify fail-closed behavior.
+
+**Important:** this code correction is not yet running on the public alias. Until a new authorized Production candidate is built and deployed, the live discrepancy remains. The previous live `packageFingerprint.status=PUBLISHED` is not accepted as a current-main artifact attestation because the old endpoint could derive it from environment-only values.
+
+## 4. Why Production did not update
+
+The workflow `.github/workflows/vercel-deploy.yml` explicitly prevents automatic Production deployment on push. The deploy job requires a manual dispatch on `main` using either:
+- `CANDIDATE_EVIDENCE_ONLY`, or
+- `AUTHORIZE_PRODUCTION_RELEASE` plus the explicit confirmation and owner-controlled readiness variables.
+
+The authorized attempt [44529428910](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44529428910) passed source verification, disposable PostgreSQL 18 acceptance, and the contract check, but failed at step 13, **Preflight Vercel and Neon paid-plan and branch capacity**. Candidate build, evidence embedding, live 67-route probes, session/recovery probes, certification, and promotion were skipped.
+
+The read-only preflight source requires:
+- Vercel team plan `Pro` or `Enterprise`;
+- Neon organization plan `Launch`, `Scale`, `Business`, or `Enterprise`;
+- Neon Primary branch ready, primary/default, and `protected=true`;
+- branch capacity and logical-size checks.
+
+Current Neon API data reports the organization plan as `free_v3`; Primary `protected=false`; 4 branches retained out of the configured limit 10; no scheduled snapshot/PITR schedule. The most recent Vercel project metadata does not expose its billing tier; the last failed deploy-preflight is the authoritative observed gate failure. Prior account inspection identified the Vercel Hobby tier; verify the current team billing page before purchase or dispatch.
+
+No plan upgrade or billing change was made.
+
+## 5. Neon data recovery posture
 
 | Check | Result |
 |---|---|
-| PostgreSQL version | 18.7 |
-| Organization plan | Free |
-| Branch count | 4 retained branches |
-| Primary branch ready | Yes |
-| Primary branch protected | No |
-| Scheduled snapshot schedule | Empty |
-| Manual snapshot | `snap-aged-thunder-bcsxc1a5` |
-| Restore branch state | Ready; restored from the recorded snapshot |
-| Full row-content parity | NOT VERIFIED |
+| PostgreSQL | 18.7 |
+| Neon organization plan | Free (`free_v3`) |
+| Primary state | Ready / primary / default |
+| Primary protection | `false` |
+| Branches retained | 4 |
+| Scheduled snapshot/PITR schedule | Empty |
+| Retained snapshot | `snap-aged-thunder-bcsxc1a5` |
+| Restore branch | `br-calm-poetry-bc7l7wik`, ready |
+| Exact row-content parity | **NOT VERIFIED** |
 
-Read-only row-content hashes over the 136 public base tables differ in six tables: `activity_log`, `audit_log`, `firewall_rate_buckets`, `integration_outbox`, `organizations`, and `users`. This may represent expected data drift after the snapshot; it is not proof of snapshot corruption. It prevents an exact full-parity claim. Preserve Primary and all recovery branches.
+A read-only comparison over 136 public base tables found six differing tables between Primary and the retained restore branch: `activity_log`, `audit_log`, `firewall_rate_buckets`, `integration_outbox`, `organizations`, and `users`. The differences may reflect legitimate writes since the snapshot; they are not proof of snapshot corruption. They do mean full data parity is not established. Keep Primary and every recovery branch/snapshot; do not promote or delete the restore artefacts.
 
-The earlier 2026-11-19 read-only Primary catalog audit recorded 135/136 public base tables with RLS enabled and FORCE RLS; `spatial_ref_sys` was the PostGIS extension-owned exception. It counted 278 policies and 11/11 public SECURITY DEFINER functions with pinned search paths. Its source commit was `0edd7d8c855e1dd4645979c05fd30be105dff369`; a new exact-current-deployment behavioral proof remains open.
+The live database-security endpoint reports 135/136 public base tables with RLS enabled and FORCE RLS; the single catalog exception is PostGIS-owned `spatial_ref_sys`, whose runtime write access count is zero. It also reports no non-PostGIS table lacking RLS/FORCE RLS and a least-privilege runtime role. This remains catalog evidence, not a two-tenant live application behavior test.
 
-## Credentials
+## 6. Current hard gates
 
-Vercel environment metadata confirms the production database URLs and tenant-context HMAC values are stored as Sensitive/Secret variables. Secret bytes were not read into this register and must never be copied into buyer material. The `AUTH_MODE` production setting is `local`; the Control Plane login form is configured in source. A separate login route is being added in this branch and is not live until merged and deployed.
-
-## Open hard gates
-
-| Gate | Current status | Required evidence |
+| Gate | State | Closure evidence |
 |---|---|---|
-| GitHub Actions embedded deployment identity | OPEN | Deployment built and staged through the authorized workflow with matching identity file, run ID, attempt, commit and package SHA |
-| Current Production acceptance proof | NOT_VERIFIED | Exact-deployment evidence file present, SHA-256 recomputed and verified in the running bundle |
-| 67-route Production signed-tenant coverage | NOT ESTABLISHED | All 67 routes with two signed tenants, exact deployment/run/Primary binding, and zero residue |
-| Production session tenant boundary | NOT_VERIFIED | Exact-deployment dual-tenant session/PID/transaction binding, cross-tenant denial and cleanup |
-| Production recovery bundle | NOT_VERIFIED | Exact-Primary recovery-point evidence, cleanup, signed manifest and full data parity |
-| Production-wide isolation certification | NOT_CERTIFIED | The complete route, session, recovery, acceptance, identity and certification gates must pass together |
-| Neon Primary protection/backups | PLAN-LIMITED | Eligible Neon plan, protected Primary, supported automated snapshot/PITR schedule, and fresh verified restore |
-| Vercel commercial plan eligibility | PLAN-LIMITED | Commercial plan entitlement that passes the source preflight |
-| Current-main buyer release archive | NOT PRODUCED | Successful Secure Release workflow on the exact current main; archive, SHA-256, SBOM, provenance and external release statement |
-| License / distribution authority | NOT GRANTED | Rights-holder approval and completed buyer-specific signed License Schedule bound to the archive SHA-256 |
-| Terms / Privacy / Pricing pages | NOT PUBLISHED | Legal entity, jurisdiction, data-controller/processor details, retention, contact, commercial model and approved price copy |
-| External 60-second monitor | NOT CONFIGURED | A supported external monitor/provider and authorized budget; GitHub scheduled workflows are not a 60-second monitor |
+| Current-main CI | **PASS** | Runs 44533918767 and 44533918970 |
+| Current-main deployed to Production | **OPEN** | New deployment SHA must equal `4ac54611c0456728a2db010e6beb9d018d9d560b` |
+| Live `/login` route | **OPEN** | Current Production must return the expected 307 to `/control-plane.html`; currently 404 |
+| Trust-proof contradiction | **FIX MERGED / NOT LIVE** | Deploy PR #288 merge commit, then re-fetch both public endpoints and require consistent identity |
+| Embedded build identity and package fingerprint | **OPEN** | Must be generated and embedded in the exact deployed bundle; environment-only variables do not count |
+| Current Production acceptance evidence | **NOT_VERIFIED** | Exact deployment/run/database-bound evidence file and recomputed SHA-256 |
+| 67-route signed-tenant Production coverage | **NOT_VERIFIED** | All 67 routes, two signed tenants, exact deployment/run/Primary binding, cleanup verified |
+| Production session tenant boundary | **NOT_VERIFIED** | Exact-deployment dual-tenant HTTP session proof, cross-tenant denial, cleanup |
+| Production recovery / PITR | **NOT_VERIFIED** | Exact Primary recovery point, verified restore, data parity, and signed manifest |
+| Production-wide isolation certification | **NOT_CERTIFIED** | All route, session, recovery, acceptance, identity, and explicit certification gates pass together |
+| Neon Primary protection and automated backups | **PLAN-LIMITED** | Eligible plan, protected Primary, supported schedule, and fresh verified restore |
+| Current-main buyer release archive / SBOM / provenance | **NOT PRODUCED** | Successful Secure Release workflow on exact current main |
+| Terms / Privacy / Pricing pages | **NOT PUBLISHED** | Approved legal entity, jurisdiction, data practices, contact, and price copy |
+| External 60-second monitoring | **NOT CONFIGURED** | Supported external monitor and authorized budget |
+| License / distribution authority | **NOT GRANTED** | Rights-holder authority and signed License Schedule bound to delivered archive SHA-256 |
 
-## Operational boundaries
+No buyer signature is required to record the engineering state of the project. However, no buyer-specific use, resale, or distribution rights are granted until the rights-holder executes the relevant License Schedule.
 
-1. Do not set release/certification flags manually.
-2. Do not promote the current Vercel deployment as certified; it is the hosted pin, not an attested release.
-3. Do not change Neon Primary data, finalize a different restore, delete any branch/snapshot, or rewrite connection credentials as a substitute for proof.
-4. Do not rerun migrations 063–069; the prior Primary migration audit matched source content for those recorded migration entries.
-5. Do not create legal, privacy, pricing, or license statements with invented legal entities, terms, prices or rights.
-6. Keep all customer-facing claims aligned to the public live proof endpoints and exact artifact SHA.
+## 7. Operational boundaries
 
-## Closeout decision
+1. Do not mark a release or isolation certification flag manually.
+2. Do not use direct Vercel API deployment/promotion as a substitute for the authorized workflow or embedded identity.
+3. Do not change Primary data, promote the restore branch, delete any branch/snapshot, or rewrite database credentials to make a gate appear green.
+4. Do not disable SSO or security controls to expose Preview deployment endpoints.
+5. Do not create legal, privacy, pricing, or license terms with invented legal entity details or rights.
+6. Keep all buyer-facing claims bound to the live public proof endpoints and exact archive SHA-256.
 
-**Production and commercial closeout are still OPEN.** The hosting pin is current and the source/CI acceptance is green, but Production release identity, Production tenant behavior, restore parity, current-main source package, plan eligibility, and buyer-specific rights are not yet proven.
+## 8. Current closeout decision
+
+**Engineering source:** main green at `4ac54611`; PR #287 and PR #288 are merged.  
+**Hosted Production:** healthy but behind main at `e1d6c1b7`; `/login` still 404; trust endpoint conflict remains live.  
+**Production certification:** open; no 67-route live certification, exact Production session proof, or exact Production recovery proof.  
+**Commercial/legal delivery:** open; current-main release archive/provenance and license grant not established.
+
+This is the honest, buyer-safe state. It must not be described as Production-ready, commercially closed, or fully certified.
