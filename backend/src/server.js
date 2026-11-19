@@ -1103,7 +1103,7 @@ function runSignedWorkOrdersRead(req, res, c, reader, responseHeaders = {}) {
 function sendWorkOrderRead(req, res, c, reader, responseHeaders = {}) {
   if (!signedWorkOrdersReadEnabled(req, process.env, signedContextProductionReadiness)) {
     const method = String(req && req.method || '').trim().toUpperCase();
-    const pathname = requestPath(req);
+    const pathname = String(req && req.url || '/').split('?')[0];
     const candidateRoute = ['read', 'write'].some(operation =>
       require('./signed-tenant-context-policy').isSignedTenantContextRouteDefinition(method, pathname, operation)
     );
