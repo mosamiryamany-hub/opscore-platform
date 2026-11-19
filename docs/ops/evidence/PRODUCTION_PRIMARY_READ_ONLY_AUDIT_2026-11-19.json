@@ -132,7 +132,7 @@
   "migrationLedgerAudit": {
     "ledgerRowCount": 68,
     "sourceFileCount": 68,
-    "matchedSourceFiles": 17,
+    "matchedSourceFiles": 27,
     "mismatchedSourceFiles": 0,
     "filenameSetEqual": false,
     "source": "main",
@@ -221,6 +221,56 @@
       {
         "filename": "019_worker_circuit_geofence_signoff_hardening.sql",
         "sha256": "0d0a5793fa384dc634e95258d443fc7b51201e40ba6d5bfc80ff9a7792b460c6",
+        "sourceMatches": true
+      },
+      {
+        "filename": "020_shared_runtime_security_state.sql",
+        "sha256": "d2b5dfc75dffc893c49661a9097dfe5f329461108492def1bb9c0e498791a83b",
+        "sourceMatches": true
+      },
+      {
+        "filename": "021_platform_intelligence_layer.sql",
+        "sha256": "664135591946bdf3496d1c1c894a4afd750917d5178776496e43d366e44083f5",
+        "sourceMatches": true
+      },
+      {
+        "filename": "022_field_value_extensions.sql",
+        "sha256": "cfd67775ccc84c8d3c6b84b78db4042cef18a3561a96c203e23f73b81f62f1eb",
+        "sourceMatches": true
+      },
+      {
+        "filename": "023_contextual_sync_and_rls.sql",
+        "sha256": "56377ea333a5b85035385b4bcd85a12a01657cde28e50004f236f46151f3f113",
+        "sourceMatches": true
+      },
+      {
+        "filename": "024_governance_envelopes_idempotency_config.sql",
+        "sha256": "467925933d090b96395316bdf63ed64724fdcd6ca3a4b085b6019a1bb997baa5",
+        "sourceMatches": true
+      },
+      {
+        "filename": "025_gateway_scope.sql",
+        "sha256": "44185ea09a8fc20781d3b9299134c21ff6795b8f17f0e7e389daa162da28a189",
+        "sourceMatches": true
+      },
+      {
+        "filename": "026_generalize_service_line_reference.sql",
+        "sha256": "9daec04cf1e61f53799bb9dae4f04d007f42012ad49175eba908d64a25020b71",
+        "sourceMatches": true
+      },
+      {
+        "filename": "027_2026_ai_and_operations.sql",
+        "sha256": "84d0e43a4f4eb96aaa4516fd078086fcc92701b32eede7867319e3aac094223e",
+        "sourceMatches": true
+      },
+      {
+        "filename": "028_runtime_performance_hardening.sql",
+        "sha256": "7ac6b711379350e9d326beba52af0e2f87cf42958c0726a0b868798a79c8d936",
+        "sourceMatches": true
+      },
+      {
+        "filename": "029_oidc_and_field_signoff_challenges.sql",
+        "sha256": "27a391f06b69b8e7314e3f4a37e0757085064c75951ffa599541e82f92fde132",
         "sourceMatches": true
       }
     ]
