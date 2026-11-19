@@ -352,6 +352,9 @@ jobs:
           NEON_ORG_ID: org-red-bread-35633140
           OPSC_PRODUCTION_NEON_BRANCH_ID: br-proud-salad-bcshhdap
           OPSC_NEON_BRANCH_LIMIT: ${{ vars.OPSC_NEON_BRANCH_LIMIT || '10' }}
+          # Operator path: allow candidate evidence on Hobby/Free until commercial plan upgrade after first sale.
+          # Does not fabricate CERTIFIED; plan residuals remain explicit in preflight status.
+          OPSC_ALLOW_FREE_TIER_CANDIDATE_EVIDENCE: 'true'
 
       - name: Prepare Production candidate environment with fail-closed flags
         id: prepare_candidate_env
