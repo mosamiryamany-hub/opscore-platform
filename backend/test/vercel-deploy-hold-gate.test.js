@@ -224,6 +224,9 @@ test('candidate evidence-only mode is separated from Production certification an
   assert.ok(deploy.indexOf(verifyRestored) < deploy.indexOf(manifest));
   assert.match(manifest, /productionCertification: false/);
   assert.match(manifest, /productionPromotionPerformed: false/);
+  assert.match(manifest, /routes\.manifestComplete !== true/);
+  assert.doesNotMatch(manifest, /routeResultsValid/);
+  assert.doesNotMatch(artifact, /API_ROUTE_ACCEPTANCE_RESULT\.json/);
   assert.match(artifact, /actions\/upload-artifact@/);
   assert.ok(deploy.indexOf(artifact) < deploy.indexOf(step('Discard successful Production environment rollback snapshot')));
 });
