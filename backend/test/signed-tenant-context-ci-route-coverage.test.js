@@ -44,7 +44,6 @@ function buildCiCoverage(proof = completeProof()) {
     inventory,
     manifestBytes,
     inventoryBytes,
-    candidateMode: true,
     evidenceMode: 'postgresql18_ci',
     databaseName: 'opscore_http_acceptance',
     sourceCommitHint: 'a'.repeat(40),
@@ -60,7 +59,7 @@ test('the signed-tenant proof matrix maps every one of the 67 manifest routes ex
   assert.equal(manifest.routeCount, 67);
   assert.equal(manifest.routes.length, 67);
   assert.equal(new Set(keys).size, 67);
-  assert.deepEqual(new Set(keys), new Set(manifestKeys));
+  assert.deepEqual([...keys].sort(), [...manifestKeys].sort());
 });
 
 test('complete two-tenant session, transaction, GUC-tamper, and cross-tenant proofs yield CI-only 67/67 evidence', () => {
