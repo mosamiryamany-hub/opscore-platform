@@ -1,17 +1,21 @@
 {
   "schemaVersion": "opscore.mobile-audit-allowlist.v1",
   "policy": "Every high/critical npm-audit finding fails the gate unless its root advisory is listed here with a written justification. An entry auto-voids when the npm registry publishes any version newer than maxAcceptedVersions, when reviewBy passes, or when the registry check itself fails — all three re-open the failure immediately.",
-  "updated": "2026-11-17",
+  "updated": "2026-11-18",
   "entries": [
     {
       "ghsa": "GHSA-fc5q-39xc-vjpf",
       "title": "picomatch ReDoS through single-branch repeated extglobs",
       "severity": "high",
-      "packages": ["picomatch"],
+      "packages": [
+        "picomatch"
+      ],
       "scope": "build-toolchain-only",
-      "justification": "As of 2026-11-17 every published picomatch version (latest 4.0.7, 2026-08-24) is inside the advisory range (<=4.0.7) and no patched release exists upstream (GHSA patched_versions = null; upstream fixes remain unmerged PRs #238/#246). Every path that pulls picomatch into this app is build/CLI toolchain only — expo/@expo/cli, @expo/metro*, metro-file-map, jest-worker/jest-util, react-native community-cli-plugin via tinyglobby/fdir (verified with npm ls picomatch --all); application source contains zero picomatch references, so the vulnerable code is not shipped in the runtime bundle. npm's only suggested 'fix' is a semver-major downgrade (expo 58 -> 54.0.33, react-native 0.88.1 -> 0.83.10), which reduces the security baseline rather than improving it. Downgrading or vendoring an unmerged patch would be cosmetic; a documented, self-expiring acceptance is the honest control until upstream publishes a fix.",
+      "justification": "As of 2026-11-18 the GitHub-reviewed advisory GHSA-fc5q-39xc-vjpf / CVE-2026-112366 affects picomatch versions through 4.0.7 and publishes no patched version (patched_versions is null). The mobile lockfile resolves picomatch 4.0.7 transitively through Expo CLI, @expo/metro-config and tinyglobby; two older nested copies resolve to 2.3.2. Mobile application source search found no direct picomatch import, but that alone does not prove the vulnerable package is absent from every generated bundle or unreachable in every build path. Treat this as a transitive build-toolchain exposure with runtime reachability not independently certified, not as a fixed vulnerability. Upstream candidate remediation PR #238 and the repeated-extglob fix PR #264 remain unmerged; PR #246 is unrelated and is not counted as a security fix. Do not pin 4.0.7 as a remediation or vendor an unmerged patch. The only safe current repository disposition is a documented, self-expiring high-severity exception until the upstream project publishes and we validate a patched release or the dependency path is removed. The mobile app does not declare picomatch as a direct dependency.",
       "firstRecorded": "2026-11-17",
-      "maxAcceptedVersions": { "picomatch": "4.0.7" },
+      "maxAcceptedVersions": {
+        "picomatch": "4.0.7"
+      },
       "reviewBy": "2026-12-18"
     }
   ]
