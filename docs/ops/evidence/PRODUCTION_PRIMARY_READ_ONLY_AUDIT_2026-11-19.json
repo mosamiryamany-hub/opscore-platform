@@ -132,7 +132,7 @@
   "migrationLedgerAudit": {
     "ledgerRowCount": 68,
     "sourceFileCount": 68,
-    "matchedSourceFiles": 57,
+    "matchedSourceFiles": 68,
     "mismatchedSourceFiles": 0,
     "filenameSetEqual": false,
     "source": "main",
@@ -421,6 +421,61 @@
       {
         "filename": "058_security_definer_search_path_hardening.sql",
         "sha256": "634f5f2228c02888ec2e3653a661ed6703ee741a73f00a44d6a2caead1cc681c",
+        "sourceMatches": true
+      },
+      {
+        "filename": "059_runtime_system_table_policy_and_privilege_alignment.sql",
+        "sha256": "a3adba142b8e9383f572a88d40346e45e88ecc76d78168a5afe776ab7c9e1fb8",
+        "sourceMatches": true
+      },
+      {
+        "filename": "060_firewall_rate_bucket_expiry_index.sql",
+        "sha256": "5471638f449b5aea332188ef761e456bcb3227fe68ad2fb81089a7a5eb8ccf75",
+        "sourceMatches": true
+      },
+      {
+        "filename": "061_operational_autopilot_tenant_persistence.sql",
+        "sha256": "c44f383e0095ac3815743b754876f7403cc8eb69e33b3faddbf1bbef5bd286dd",
+        "sourceMatches": true
+      },
+      {
+        "filename": "062_autopilot_table_privilege_minimization.sql",
+        "sha256": "4c5dc413fde4b5beebaa47b9cca65c01e466e8f41a0ad40d8e480eb97625ae65",
+        "sourceMatches": true
+      },
+      {
+        "filename": "063_signed_tenant_context_verifier.sql",
+        "sha256": "74e944d47693d4928fd908478c17016c41b940c238e1542ed18052f00b0dcc6f",
+        "sourceMatches": true
+      },
+      {
+        "filename": "064_signed_tenant_context_work_orders_routing.sql",
+        "sha256": "30b9984589dcbe62cc2cc74fbb918a174bac29cdabe668f515ff13a4b51f6496",
+        "sourceMatches": true
+      },
+      {
+        "filename": "065_signed_tenant_context_evidence_upload_chunks.sql",
+        "sha256": "f8e847efb7257ebf4a45f9ca80aa8b1b464401ce0132825c3d0a8869c7f9285a",
+        "sourceMatches": true
+      },
+      {
+        "filename": "066_signed_tenant_context_verifier_search_path_hardening.sql",
+        "sha256": "e99c2a3ea2bd7d1590201ce572101624e2b4297e18b7096a042d97c582f6db34",
+        "sourceMatches": true
+      },
+      {
+        "filename": "067_signed_tenant_context_rls_policy_accessor_alignment.sql",
+        "sha256": "68180391111d9d660df946540dc932fc9dbb85092c71e2c08c5971a672c76b1d",
+        "sourceMatches": true
+      },
+      {
+        "filename": "068_opscore_app_role_privilege_lockdown.sql",
+        "sha256": "15f41e628bba840c36fc97a479726803d6010840d85c441356d9fb1c3c94daf1",
+        "sourceMatches": true
+      },
+      {
+        "filename": "069_technician_location_trail_tenant_persistence.sql",
+        "sha256": "9a88cd60350fcfb1dcf120f87506394e0b569f27dac21201a7313c7497039ef6",
         "sourceMatches": true
       }
     ]
