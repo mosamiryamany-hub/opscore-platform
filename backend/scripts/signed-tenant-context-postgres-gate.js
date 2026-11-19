@@ -178,7 +178,7 @@ function buildCandidateSignedTenantRouteCoverage({
     const validManifestRoute = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(method)
       && routePath.startsWith('/api/')
       && ['read', 'write'].includes(operation);
-    const common = candidateMode && Boolean(requirement) && validManifestRoute && tenantA && tenantB && cross;
+    const common = (candidateMode || isCiEvidence) && Boolean(requirement) && validManifestRoute && tenantA && tenantB && cross;
     const reasons = [];
     if (!requirement) reasons.push('ROUTE_PROOF_REQUIREMENT_NOT_DEFINED');
     if (!validManifestRoute) reasons.push('MANIFEST_ROUTE_INVALID');
@@ -5137,7 +5137,6 @@ async function main() {
             inventory,
             manifestBytes,
             inventoryBytes,
-            candidateMode: true,
             evidenceMode: 'postgresql18_ci',
             databaseName: 'opscore_http_acceptance',
             sourceCommitHint: expectedCommit,
