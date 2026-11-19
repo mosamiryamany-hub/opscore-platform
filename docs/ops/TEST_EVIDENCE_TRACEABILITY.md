@@ -1,11 +1,35 @@
 # OpsCore — Test Evidence Traceability
 
-**Evidence date:** 2026-11-19  
+**Evidence date:** 2026-11-19 14:52 UTC  
 **Repository:** `mosamiryamany-hub/opscore-platform`  
-**Current main:** `68505535f1c2fabd2a786094f8f64d234d26e123` (PR #290 merged)  
+**Current main:** `66d1b564886c42a42dbc9775da91af672d45e04c` (PR #291 evidence ledger merged)
+**Current Production application-code SHA:** `68505535f1c2fabd2a786094f8f64d234d26e123`  
 **Evidence rule:** A successful job proves only the environment and scope it actually exercised. CI/isolated PostgreSQL evidence is not Production tenant-isolation certification.
 
-## 1. Verified successful test runs
+## 1. Latest successful test runs
+
+### Run 44547562235 — OpsCore CI for PR #291
+
+[Open workflow run](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44547562235)
+
+**Result: SUCCESS.** Completed steps included syntax and production deployment/preflight/identity contracts; OIDC and logical restore safety; hardened metadata; backend release regression; deterministic performance regression; provenance; security dependency audit; mobile source/contract verification; and mobile dependency audit.
+
+### Run 44547562215 — source and disposable PostgreSQL 18 acceptance
+
+[Open workflow run](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44547562215)
+
+| Job | Result | Verified work | Scope boundary |
+|---|---|---|---|
+| `vercel-source-verify` | SUCCESS | Source syntax, runtime/identity/restore contracts, regression, provenance, dependency and route contracts | Source/CI |
+| `isolated-postgres-rls-and-http-acceptance` | SUCCESS | PostgreSQL 18 disposable DBs, least-privilege roles, full migrations, signed tenant context, 67-route matrix, RLS, composite FK, HTTP acceptance, login throttling, logical dump/restore and evidence export | Disposable DB, not Production |
+| `vercel-contract-verify` | SUCCESS | Enforces source and isolated PostgreSQL acceptance | Contract gate |
+| Production deploy | SKIPPED | Not run in PR workflow | No Production evidence |
+| Neon Preview acceptance | SKIPPED | Not run | No Preview evidence |
+| Production Neon PITR probe | SKIPPED | Not run | No Production recovery evidence |
+
+PR #291 head `f3ab1791cf5979eda49702b19802db7dc4d0f8e4` differed from deployed application commit `68505535...` only by the added evidence ledger file; application code was unchanged. It was merged as `66d1b564...`.
+
+## 1A. Earlier successful test runs retained as history
 
 ### Run 44533918970 — current-main push workflow before PR #290
 

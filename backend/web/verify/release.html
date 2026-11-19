@@ -26,23 +26,36 @@
 <body>
   <div class="card">
     <h1>OpsCore — Live Release Proof</h1>
-    <p class="muted">This page reads the attestation from the running deployment. A CI pass is not, by itself, blanket certification of production tenant isolation.</p>
+    <p class="muted">This page separates recorded CI test results from deployment-bound release and Production certificates. A CI pass is valuable evidence, but it does not by itself certify Production tenant isolation.</p>
     <div id="status" role="status" aria-live="polite">Loading live release evidence…</div>
     <div class="section">Deployment identity</div>
     <div class="row"><span>Version</span><strong class="value">0.11.62</strong></div>
     <div class="row"><span>Release tag</span><code class="value" id="releaseTag">NOT PUBLISHED</code></div>
     <div class="row"><span>Source commit</span><code class="value" id="sourceCommit">UNVERIFIED</code></div>
-    <div class="row"><span>CI pipeline</span><a class="value" id="pipeline" href="#" rel="noreferrer">UNVERIFIED</a></div>
+    <div class="row"><span>Embedded CI pipeline in deployment attestation</span><a class="value" id="pipeline" href="#" rel="noreferrer">UNVERIFIED</a></div>
     <div class="row"><span>Running deployment</span><code class="value" id="deploymentId">UNVERIFIED</code></div>
     <div class="section">Qualification gates</div>
-    <div class="row"><span>Source identity method</span><strong class="value" id="identitySource">UNVERIFIED</strong></div>
-    <div class="row"><span>Commit-bound CI verification</span><strong class="value" id="ciGate">UNVERIFIED</strong></div>
+    <div class="row"><span>GitHub Actions identity embedded in deployed bundle</span><strong class="value" id="identitySource">UNVERIFIED</strong></div>
+    <div class="row"><span>Embedded CI assertion in release proof</span><strong class="value" id="ciGate">UNVERIFIED</strong></div>
     <div class="row"><span>Commercial release closure</span><strong class="value" id="commercialGate">UNVERIFIED</strong></div>
     <div class="row"><span>Production acceptance evidence</span><strong class="value" id="acceptanceGate">NOT VERIFIED</strong></div>
-    <div class="row"><span>PostgreSQL / RLS behavioral gate</span><strong class="value" id="rlsGate">UNVERIFIED</strong></div>
+    <div class="row"><span>Release-bound PostgreSQL / RLS acceptance proof</span><strong class="value" id="rlsGate">UNVERIFIED</strong></div>
     <div class="row"><span>Production session tenant boundary</span><strong class="value" id="sessionGate">NOT VERIFIED</strong></div>
     <div class="row"><span>Production Recovery bundle</span><strong class="value" id="recoveryGate">NOT VERIFIED</strong></div>
     <div class="row"><span>Production-wide isolation certification</span><strong class="value" id="isolationGate">NOT CERTIFIED</strong></div>
+    <div class="section">Verified engineering evidence — separate scopes</div>
+    <p class="muted">The following CI runs completed successfully. They verify source/regression checks and isolated PostgreSQL acceptance, not authenticated tenant behavior or recovery on Production.</p>
+    <div class="row"><span>OpsCore source, regression, performance, security and mobile CI</span><a class="value" href="https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44547562235" rel="noreferrer">PASS — CI · Run 44547562235</a></div>
+    <div class="row"><span>PostgreSQL 18 isolated acceptance, signed tenant context, 67 routes, RLS, composite FKs and logical restore drill</span><a class="value" href="https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44547562215" rel="noreferrer">PASS — isolated CI · Run 44547562215</a></div>
+    <div class="row"><span>CI-tested source revision</span><code class="value">f3ab1791cf5979eda49702b19802db7dc4d0f8e4</code></div>
+    <p class="muted small">The CI-tested revision differs from the deployed application-code commit only by the added documentation file <code>docs/ops/TEST_EVIDENCE_TRACEABILITY.md</code>; the application code was unchanged. The CI results remain CI/disposable-database scope.</p>
+    <div class="row"><span>Native Production deployment source identity</span><strong class="value" id="deploymentSourceEvidence">CHECKING</strong></div>
+    <div class="row"><span>Production deployment source commit</span><code class="value" id="deployedCommitEvidence">CHECKING</code></div>
+    <div class="row"><span>Live PostgreSQL catalog configuration</span><strong class="value" id="databaseCatalogEvidence">CHECKING</strong></div>
+    <p class="muted small" id="dbCatalogDetails">The live database endpoint is checked independently. Catalog policy configuration is not a two-tenant behavioral isolation certificate.</p>
+    <div class="row"><span>Production signed-session tenant routes</span><strong class="value warn">NOT VERIFIED — no Production route results (0 tested)</strong></div>
+    <div class="row"><span>Neon Production PITR / exact restore parity</span><strong class="value warn">NOT VERIFIED — PITR probe not run; restore differs in six application tables</strong></div>
+    <div class="row"><span>Signed current-main release archive / SHA-256</span><strong class="value warn">NOT PRODUCED — no verified signed archive bound to this deployment</strong></div>
     <div class="section">Release artifact</div>
     <div class="row"><span>Package SHA-256</span><code class="value" id="packageSha">UNVERIFIED</code></div>
     <div class="row"><span>Package fingerprint state</span><strong class="value" id="packageState">UNVERIFIED</strong></div>
