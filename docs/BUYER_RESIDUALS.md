@@ -15,7 +15,7 @@ This register supersedes stale deployment, key, and restore statements in earlie
 | Neon database catalog | 136 public base tables, 2 public views, 135 tables with RLS and FORCE RLS | `public.spatial_ref_sys` is the sole public base-table RLS exception and is PostGIS reference data, not an application tenant table. |
 | Neon restore drill | Snapshot `snap-tiny-dream-bc58p5nj` restored non-finalizing to `br-odd-surf-bcps6nce`; branch metadata reports `restored` | Selected catalog counts and migration-ledger fingerprint match Primary. A canonical v2 schema/data fingerprint package has not been generated; no PITR time-target proof or RPO/RTO guarantee is established. |
 | Neon Primary | `br-proud-salad-bcshhdap`, ready, primary/default, `protected=false` | Plan is Free, history retention is 6 hours, and automatic snapshot schedule is empty. |
-| Vercel firewall | Firewall enabled; Managed CRS and Bot Protection run in `log` mode; login/mobile-login rate-limit rule exists | No representative false-positive review or Preview enforcement rehearsal has been completed. Do not switch to Deny based only on a short/no-anomaly window. |
+| Vercel firewall | Firewall enabled; Managed CRS and Bot Protection run in `log` mode; login/mobile-login rate-limit rule exists. Vercel firewall enforcement posture: rules are log-only; do not flip to Deny without a false-positive review. | No representative false-positive review or Preview enforcement rehearsal has been completed. Do not switch to Deny based only on a short/no-anomaly window. |
 
 ## Seller-owned engineering residuals
 
@@ -55,3 +55,5 @@ This register supersedes stale deployment, key, and restore statements in earlie
 - Do not claim 114 languages are reviewed or production-qualified.
 - Do not claim Vercel Hobby/Free infrastructure is a commercial hosted SaaS entitlement.
 - Do not claim a buyer has resale, redistribution or production rights before a signed rights grant.
+
+| Runtime localization | **105 selectable Contact Center locales** (1 source, 100 machine drafts, 4 English fallbacks; 9 withdrawn). 0/105 production-qualified; the 114-row qualification matrix remains `planned_not_qualified` pending native-speaker review. |

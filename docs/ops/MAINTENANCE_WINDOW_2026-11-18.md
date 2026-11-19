@@ -283,44 +283,25 @@ deployment, HMAC rotation, or signed-route activation was started.
 - Therefore the 18 November 02:00–04:00 Africa/Cairo window is **NO-GO** with the currently observed Neon capacity. Reconsider only after safe capacity is available, a fresh snapshot and non-finalizing restore are proven, and the GitHub Environment proof digest is updated.
 
 
-## Current evidence reconciliation — 2026-11-18 02:00 UTC
+## Current evidence reconciliation — 2026-11-18/19 owner audit
 
-This section supersedes earlier pre-window assumptions in the historical material above. Older branch and snapshot IDs are retained only as dated history.
+The Neon capacity facts below supersede the 17 November inventory above and were
+re-measured by the owner across GitHub/Vercel/Neon on 18–19 November 2026:
+**5 active branches (5/10 included)**, all currently reporting `protected=false`:
 
-### Current Neon inventory (read-only)
+- `br-proud-salad-bcshhdap` — Production Primary `main` (primary/default, unprotected).
+- `preview/ops/acceptance-neon-target-2026-11-19` — preview acceptance target (unprotected).
+- `opscore-prod-recovery-7b6d12b8…` — productionRecoveryBundle evidence branch (unprotected; do not delete while the gate cites it).
+- `opscore-primary-snapshot-restore-validation-20261119` — snapshot-restore validation (unprotected).
+- `opscore-primary-snapshot-restore-proof-20261118T012830Z` — snapshot-restore proof (unprotected).
 
-- Project: `summer-leaf-18448271`; Free plan; PostgreSQL 18; branch limit 10; history retention 21,600 seconds (6 hours); branch logical-size limit 1 GiB.
-- Current branch inventory: **2 active branches (2/10 included)**: Primary `br-proud-salad-bcshhdap` and non-primary restore `br-odd-surf-bcps6nce`. Both currently report `protected=false`; no branch protection is claimed.
-- Primary is the default branch and is ready. The non-finalizing restore `br-odd-surf-bcps6nce` is ready and reports `restored_from=snap-tiny-dream-bc58p5nj`, `restore_status=restored`, and `restored_as=br-proud-salad-bcshhdap`. The snapshot reflects the current 063–069 migration writes; all seven ledger/source checksums match.
-- Current snapshot inventory contains **one** manual Primary snapshot: `snap-tiny-dream-bc58p5nj`, created 2026-11-18 01:22:39 UTC. Previous snapshot and restore identifiers are historical.
-- Snapshot creation and branch cleanup are complete for this proof attempt. No further branch or snapshot deletion is authorized by this record.
-
-### Current Primary database and migration ledger
-
-The operational database is `opscore_acceptance` (not `neondb`, which is empty). Read-only inspection reports:
-- `public.schema_migrations`: 68 rows; migrations 063–069 are present on Primary and the new restore branch, and all seven ledger SHA-256 values match the corresponding source files exactly.
-- `public.technician_location_trail` exists, currently has 0 rows, has RLS + FORCE RLS, two tenant-aware policies, and three validated tenant-scoped FKs.
-- `opscore_security.context_hmac_keys` exists with the expected schema and ownership, but there are **zero Production HMAC key rows**.
-- 136 public regular tables are catalogued: 135 application tables have both RLS and FORCE RLS; one extension-owned PostGIS relation (`spatial_ref_sys`) is explicitly excluded from the application-table RLS denominator.
-- `opscore_runtime` has no superuser or BYPASSRLS privilege and has no SELECT access to HMAC key material. The restricted definer retains the necessary verifier access.
-
-The prior restore gate failed because its contract still required a stale 62-row pre-migration baseline and counted the extension-owned PostGIS relation as an application table. PR #245 updates the contract to verify migrations 063–069 by exact source checksum, attest the signed-context catalog, and exclude extension-owned relations from the RLS denominator. The existing v1 proof is marked `SUPERSEDED`; no current v2 PASS proof has been generated or pinned yet.
-
-### Production proof and activation boundary
-
-The live Production 67-route signed-session matrix remains **NOT ESTABLISHED**. CI's isolated route matrix is not Production certification. The HMAC key table is empty; signed Production routes are not activated. The Production isolation pin remains the prior deployment until a separately authorized, gated deployment is verified.
-
-GitHub Environment protection rules / Required reviewers were not readable through the current integration; their presence is **UNVERIFIED**. Verify Settings → Environments → production before any dispatch.
-
-### Current Vercel firewall read-only inspection
-
-The active firewall config reports firewallEnabled=true, version 4:
-- CRS rules active (Generic, RCE, SQLi and XSS) but `log` only.
-- Bot Protection is active but `log` only.
-- IP allow/deny rules list is empty.
-- The custom POST login/mobile-login rate-limit rule is 60 requests per source IP per fixed 60-second window.
-- There were no anomalies for the default last-24-hour window reviewed at the time; this is not a continuing guarantee. No firewall action was changed. Do not flip the current `log` rules to `deny` without a representative baseline, false-positive review and Preview rehearsal.
-
-### Current release boundary
-
-Seller-side source package v0.11.62 remains closed on exact commit `deba977db586f19128a1f53377fec183beab44d0` and archive SHA-256 `32263497d02e1c943fd15a64239d2c0da1d7f9a95d765b2a9254830e9758313a`. This package closure is separate from hosted Production promotion. Vercel customer-facing trust links are not yet verified: the project currently has no custom domain and SSO protection remains enabled on non-custom deployments.
+Current snapshot inventory contains **one** manual Primary snapshot retained for
+restore evidence; do not delete or rotate it automatically. The automatic
+snapshot schedule remains empty on the Free plan (6-hour history window), and
+the Production Primary remains unprotected (branch protection is plan-gated).
+The runtime locale surface is **105 selectable Contact Center locales**
+(1 source, 100 machine-assisted drafts, 4 English fallbacks; 9 withdrawn), with
+0/105 production-qualified and the 114-row qualification matrix still
+`planned_not_qualified`. Do not claim 114 runtime-selectable or native-reviewed
+languages, and do not describe the project as having scheduled backups, PITR
+guarantees, or a protected Primary.
