@@ -1012,8 +1012,17 @@ function applyCandidateProbeTenantGucTampering(req, res) {
   store.db.prepare(
     "SELECT set_config('app.tenant_id', ?, true), set_config('app.user_id', ?, true), set_config('app.access_mode', ?, true)"
   ).run('candidate-probe-forged-tenant', 'candidate-probe-forged-user', 'backoffice');
+  // Always set both ways: setHeader for intermediate observers, and return true so
+  // callers can pass the header through json()/writeHead explicitly (Node writeHead
+  // merges, but some serverless adapters only forward the writeHead map).
   res.setHeader('x-opscore-candidate-guc-tamper', 'applied');
   return true;
+}
+
+function candidateGucTamperResponseHeaders(req, res) {
+  return applyCandidateProbeTenantGucTampering(req, res)
+    ? { 'x-opscore-candidate-guc-tamper': 'applied' }
+    : {};
 }
 
 function runSignedWorkOrdersRead(req, res, c, reader, responseHeaders = {}) {
@@ -1028,7 +1037,7 @@ function runSignedWorkOrdersRead(req, res, c, reader, responseHeaders = {}) {
     store.db.activateVerifiedTenantContext();
 
     // Candidate-only GUC tamper executes only after verified context activation.
-    applyCandidateProbeTenantGucTampering(req, res);
+    const gucTamperHeaders = candidateGucTamperResponseHeaders(req, res);
 
     // CI-only red-team probe: signed RLS accessors must ignore these raw GUC values.
     if (process.env.CI === 'true'
@@ -1043,6 +1052,7 @@ function runSignedWorkOrdersRead(req, res, c, reader, responseHeaders = {}) {
     transactionOpen = false;
     return json(res, 200, result, {
       ...responseHeaders,
+      ...gucTamperHeaders,
       'cache-control': 'no-store',
       'x-opscore-signed-tenant-context': 'verified'
     });
@@ -1127,7 +1137,7 @@ function runSignedWorkOrderWrite(req, res, c, writer, responder) {
     store.db.activateVerifiedTenantContext();
 
     // Candidate-only GUC tamper executes only after verified context activation.
-    applyCandidateProbeTenantGucTampering(req, res);
+    const gucTamperHeaders = candidateGucTamperResponseHeaders(req, res);
 
     // CI-only red-team probe: tenant writes must use signed claims, not caller-settable GUCs.
     if (process.env.CI === 'true'
@@ -1143,7 +1153,8 @@ function runSignedWorkOrderWrite(req, res, c, writer, responder) {
     transactionOpen = false;
     return responder(result, {
       'cache-control': 'no-store',
-      'x-opscore-signed-tenant-context': 'verified'
+      'x-opscore-signed-tenant-context': 'verified',
+      ...gucTamperHeaders
     });
   } catch (caughtError) {
     let error = caughtError;

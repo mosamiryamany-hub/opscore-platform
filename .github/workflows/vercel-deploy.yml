@@ -388,6 +388,24 @@ jobs:
           done
           echo "HELD_CANDIDATE_EVIDENCE_WORKSPACE=FRESH"
 
+      - name: Verify held candidate probe flags after Production env pull
+        run: |
+          set -euo pipefail
+          env_file=".vercel/.env.production.local"
+          test -s "$env_file"
+          for key in OPSC_PRODUCTION_HOLD OPSC_RELEASE_VERIFIED OPSC_REQUIRE_SIGNED_TENANT_CONTEXT \
+            OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN \
+            OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED; do
+            grep -E "^${key}=" "$env_file" >/dev/null || { echo "CANDIDATE_ENV_PULL_MISSING:$key" >&2; exit 1; }
+          done
+          grep -E '^OPSC_PRODUCTION_HOLD=["''']?true["''']?$' "$env_file" >/dev/null \
+            || { echo "CANDIDATE_HOLD_NOT_TRUE_AFTER_PREPARE" >&2; exit 1; }
+          grep -E '^OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED=["''']?true["''']?$' "$env_file" >/dev/null \
+            || { echo "CANDIDATE_PROBE_NOT_ENABLED_AFTER_PREPARE" >&2; exit 1; }
+          grep -E '^OPSC_REQUIRE_SIGNED_TENANT_CONTEXT=["''']?true["''']?$' "$env_file" >/dev/null \
+            || { echo "CANDIDATE_REQUIRE_SIGNED_NOT_TRUE" >&2; exit 1; }
+          echo "CANDIDATE_ENV_PULL_PROBE_FLAGS=PASS"
+
       - name: Build held Production candidate without release certification
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:
@@ -405,6 +423,12 @@ jobs:
           OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE: 'false'
           OPSC_RELEASE_VERIFIED: 'false'
           OPSC_PRODUCTION_HOLD: 'true'
+          OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'true'
+          OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED: 'false'
+          OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED: 'false'
+          OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED: 'true'
+          OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN: ${{ steps.prepare_candidate_env.outputs.probe_token }}
+          OPSC_PRODUCTION_CANDIDATE_MODE: 'true'
           OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: ${{ steps.generate_acceptance.outputs.evidence_sha }}
 
       - name: Create held staged Production candidate without changing the live domain
