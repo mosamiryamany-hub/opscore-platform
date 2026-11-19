@@ -964,7 +964,7 @@ jobs:
           if (routes.schemaVersion !== 'opscore.signed-tenant-context-production-coverage.v1' ||
               routes.status !== 'PASS' || routes.environment !== 'production' ||
               Number(routes.expectedRouteCount) !== 67 || Number(routes.coveredRouteCount) !== 67 ||
-              Number(routes.failedRouteCount) !== 0 || routes.routeResultsValid !== true || !exact(routes)) {
+              Number(routes.failedRouteCount) !== 0 || routes.manifestComplete !== true || !exact(routes)) {
             throw new Error('CANDIDATE_SIGNED_TENANT_ROUTE_EVIDENCE_INVALID');
           }
           if (session.schemaVersion !== 'opscore.production-session-isolation.v3' ||
@@ -1013,7 +1013,6 @@ jobs:
             backend/docs/verification/PRODUCTION_RECOVERY_POINT.json
             backend/docs/verification/PRODUCTION_ACCEPTANCE_RESULT.json
             backend/docs/verification/POSTGRES_HTTP_ACCEPTANCE_RESULT.json
-            backend/docs/verification/API_ROUTE_ACCEPTANCE_RESULT.json
           if-no-files-found: error
           retention-days: 14
 
