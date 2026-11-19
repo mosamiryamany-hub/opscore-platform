@@ -68,8 +68,13 @@ async function runCandidatePlanPreflight(options = {}) {
   );
   if (String(team.id || '') !== vercelTeamId) throw new Error('VERCEL_TEAM_IDENTITY_MISMATCH');
   const vercelPlan = String(team.billing && team.billing.plan || '').trim().toLowerCase();
+  const allowFreeTier = String(env.OPSC_ALLOW_FREE_TIER_CANDIDATE_EVIDENCE || '').trim() === 'true';
   if (!ALLOWED_VERCEL_PLANS.has(vercelPlan)) {
-    throw new Error('VERCEL_PLAN_NOT_ELIGIBLE:' + (vercelPlan || 'unknown'));
+    // Candidate evidence may run on Hobby when the operator explicitly allows free-tier collection.
+    // This does not claim commercial hosting eligibility; /api/verify/release still reports independently.
+    if (!(allowFreeTier && (vercelPlan === 'hobby' || vercelPlan === 'free' || vercelPlan === ''))) {
+      throw new Error('VERCEL_PLAN_NOT_ELIGIBLE:' + (vercelPlan || 'unknown'));
+    }
   }
 
   const neonProjectPayload = await requestJson(
@@ -95,7 +100,9 @@ async function runCandidatePlanPreflight(options = {}) {
   if (String(neonOrg.id || '') !== neonOrgId) throw new Error('NEON_ORGANIZATION_IDENTITY_MISMATCH');
   const neonPlan = String(neonOrg.plan || '').trim().toLowerCase();
   if (!ALLOWED_NEON_PRIMARY_PROTECTION_PLANS.has(neonPlan)) {
-    throw new Error('NEON_PLAN_NOT_ELIGIBLE_FOR_PRIMARY_PROTECTION:' + (neonPlan || 'unknown'));
+    if (!(allowFreeTier && (neonPlan === 'free' || neonPlan === 'free_v2' || neonPlan === 'free_v3' || neonPlan === 'launch'))) {
+      throw new Error('NEON_PLAN_NOT_ELIGIBLE_FOR_PRIMARY_PROTECTION:' + (neonPlan || 'unknown'));
+    }
   }
 
   const branchPayload = await requestJson(
@@ -110,7 +117,10 @@ async function runCandidatePlanPreflight(options = {}) {
   if (parent.primary !== true || parent.default !== true || parent.current_state !== 'ready') {
     throw new Error('NEON_PRIMARY_BRANCH_NOT_READY_OR_NOT_PRIMARY');
   }
-  if (parent.protected !== true) throw new Error('NEON_PRIMARY_BRANCH_NOT_PROTECTED');
+  if (parent.protected !== true) {
+    if (!allowFreeTier) throw new Error('NEON_PRIMARY_BRANCH_NOT_PROTECTED');
+    // Free-tier residual: primary protection is unavailable; evidence collection may continue.
+  }
   const branchLimit = Number(env.OPSC_NEON_BRANCH_LIMIT || 10);
   if (!Number.isInteger(branchLimit) || branchLimit < 2 || branchLimit > 100) {
     throw new Error('NEON_BRANCH_LIMIT_INVALID');
@@ -127,7 +137,7 @@ async function runCandidatePlanPreflight(options = {}) {
   }
 
   const result = {
-    status: 'PASS',
+    status: (allowFreeTier && (!ALLOWED_VERCEL_PLANS.has(vercelPlan) || !ALLOWED_NEON_PRIMARY_PROTECTION_PLANS.has(neonPlan) || parent.protected !== true)) ? 'PASS_WITH_PLAN_RESIDUALS' : 'PASS',
     vercelTeamId,
     vercelProjectId: expectedVercelProjectId,
     vercelPlan,
@@ -135,7 +145,7 @@ async function runCandidatePlanPreflight(options = {}) {
     neonOrganizationId: neonOrgId,
     neonPlan,
     neonPrimaryBranchId: expectedPrimaryBranchId,
-    neonPrimaryBranchProtected: true,
+    neonPrimaryBranchProtected: parent.protected === true,
     neonBranchCount: branches.length,
     neonBranchLimit: branchLimit,
     neonPrimaryLogicalSizeBytes: parentLogicalSize,

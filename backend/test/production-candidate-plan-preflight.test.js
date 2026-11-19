@@ -77,6 +77,17 @@ test('candidate plan preflight blocks Vercel Hobby before any Neon lookup', asyn
   assert.equal(f.calls.every(call => call.method === 'GET'), true);
 });
 
+
+test('candidate plan preflight allows Hobby when free-tier candidate evidence is explicitly authorized', async () => {
+  const f = fixture({ vercelPlan: 'hobby', neonPlan: 'free', primaryProtected: false });
+  f.env.OPSC_ALLOW_FREE_TIER_CANDIDATE_EVIDENCE = 'true';
+  const result = await runCandidatePlanPreflight({ env: f.env, fetchImpl: f.fetchImpl });
+  assert.equal(result.status, 'PASS_WITH_PLAN_RESIDUALS');
+  assert.equal(result.vercelPlan, 'hobby');
+  assert.equal(result.neonPlan, 'free');
+  assert.equal(result.neonPrimaryBranchProtected, false);
+});
+
 test('candidate plan preflight blocks Neon Free before branch lookup', async () => {
   const f = fixture({ neonPlan: 'free' });
   await assert.rejects(
