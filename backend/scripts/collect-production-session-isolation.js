@@ -91,7 +91,7 @@ async function httpJson(base, method, pathname, { token, body } = {}) {
     }
     return {
       'x-opscore-signed-context-probe': probeToken,
-      'x-vercel-trusted-oidc-idp-token': oidcToken
+      'x-opscore-trusted-oidc-idp-token': oidcToken, 'x-vercel-trusted-oidc-idp-token': oidcToken
     };
   })() : {};
   const response = await fetch(base + pathname, {

@@ -150,7 +150,7 @@ async function runTrustedOidcFetch(baseUrl, requestPath, options = {}) {
     const response = await fetchImpl(new URL(pathValue, deployment.origin).toString(), {
       method: 'GET',
       headers: {
-        'x-vercel-trusted-oidc-idp-token': token,
+        'x-opscore-trusted-oidc-idp-token': token, 'x-vercel-trusted-oidc-idp-token': token,
         accept: '*/*'
       },
       redirect: 'manual',

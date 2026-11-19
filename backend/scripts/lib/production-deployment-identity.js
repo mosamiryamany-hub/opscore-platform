@@ -40,7 +40,7 @@ async function readProductionDeploymentIdentity(httpBase, expectedCommitSha, fet
     headers: {
       accept: 'application/json',
       'cache-control': 'no-cache',
-      ...(candidate ? { 'x-vercel-trusted-oidc-idp-token': candidate.oidcToken } : {})
+      ...(candidate ? { 'x-opscore-trusted-oidc-idp-token': candidate.oidcToken, 'x-vercel-trusted-oidc-idp-token': candidate.oidcToken } : {})
     },
     signal: AbortSignal.timeout(15000)
   });
