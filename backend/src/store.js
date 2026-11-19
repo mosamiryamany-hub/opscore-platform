@@ -12,6 +12,7 @@ const {recordAuthorizationDecision, listAuthorizationDecisions} = require('./aut
 const {integrityGraph} = require('./integrity-graph');
 const {signPdfBuffer, verifyPdfSignature} = require('./pdf-signing');
 const {warn} = require('./observability');
+const {resolveEvidenceStorageRoot} = require('./candidate-evidence-storage');
 
 function isMissingPostgresFunction(error, functionName) {
   if (error?.code !== '42883') return false;
@@ -43,18 +44,11 @@ const WO_PRIORITY = [
   'high',
   'urgent'
 ];
-// Resolved lazily (not cached at module load) so tests and multi-config
-// callers can point attachment storage at an isolated directory via
-// OPSC_REPOSITORY_PATH before the first write, without needing to reload
-// this module. A frozen module-level constant here previously caused every
-// test run to silently write real attachment fixtures into the shipped
-// package's own ./data/files directory regardless of what a test set the
-// env var to, since the module had already been required (and the constant
-// already resolved) before any test body ran.
+// Candidate-only HTTP evidence fixtures use the function's writable temporary
+// volume while Production HOLD is active. This path is not durable storage and
+// ordinary Production uploads continue to use the configured store.
 function fileRootPath() {
-  // Release verification may force an isolated repository root even when a
-  // test intentionally clears OPSC_REPOSITORY_PATH during cleanup.
-  return path.resolve(process.env.OPSC_RELEASE_VERIFICATION_ROOT || process.env.OPSC_REPOSITORY_PATH || './data/files');
+  return resolveEvidenceStorageRoot(process.env);
 }
 const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 const EVIDENCE_CHUNK_BYTES = 512 * 1024;
