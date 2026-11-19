@@ -30,6 +30,12 @@ function normalizePostgresConnectionString(connectionString, env = process.env) 
   const tls = {};
   for (const [parameter, property] of Object.entries(CONNECTION_STRING_SSL_OPTIONS)) {
     const filePath = url.searchParams.get(parameter);
+    // libpq accepts sslrootcert=system for the OS trust store. node-pg has no
+    // file in that case; leave ca unset so rejectUnauthorized uses platform CAs.
+    if (parameter === 'sslrootcert' && String(filePath || '').trim().toLowerCase() === 'system') {
+      url.searchParams.delete(parameter);
+      continue;
+    }
     if (filePath && !(parameter === 'sslrootcert' && String(env.OPSC_PG_CA_CERT || '').trim())) {
       try {
         tls[property] = fs.readFileSync(filePath);

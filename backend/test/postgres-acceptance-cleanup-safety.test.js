@@ -56,3 +56,43 @@ test('acceptance evidence stays temporary during parallel tests and is promoted 
   assert.doesNotMatch(source, /process\\.env\\.OPSC_WRITE_EVIDENCE/);
   assert.doesNotMatch(source, /EVIDENCE_PATH/);
 });
+
+const { validatePostgresAcceptanceTarget, ACCEPTANCE_DATABASES } = require('../scripts/validate-postgres-acceptance-target');
+
+test('PostgreSQL acceptance target permits only the two named disposable acceptance databases', () => {
+  assert.deepEqual([...ACCEPTANCE_DATABASES].sort(), ['opscore_acceptance', 'opscore_http_acceptance']);
+  for (const database of ACCEPTANCE_DATABASES) {
+    const target = validatePostgresAcceptanceTarget({
+      urlText: `postgresql://opscore_runtime:masked@ep-acceptance-test.c-15.us-east-1.aws.neon.tech/${database}?sslmode=verify-full`,
+      expectedHost: 'ep-acceptance-test.c-15.us-east-1.aws.neon.tech'
+    });
+    assert.equal(target.database, database);
+  }
+  assert.throws(() => validatePostgresAcceptanceTarget({
+    urlText: 'postgresql://user:masked@ep-acceptance-test.c-15.us-east-1.aws.neon.tech/neondb',
+    expectedHost: 'ep-acceptance-test.c-15.us-east-1.aws.neon.tech'
+  }), /OPSC_PG_ACCEPTANCE_DATABASE_NOT_ALLOWLISTED/);
+});
+
+test('Neon PITR verification uses libpq system trust roots with full hostname verification', () => {
+  const workflowPath = path.join(__dirname, '..', '..', '.github', 'workflows', 'digital-twin-postgres-live.yml');
+  const workflow = fs.readFileSync(workflowPath, 'utf8');
+  assert.match(workflow, /q\["sslmode"\]="verify-full"/);
+  assert.match(workflow, /q\["sslrootcert"\]="system"/);
+  assert.match(workflow, /PITR_TEST_BRANCH_CLEANUP=PASS/);
+});
+
+test('Production PITR runtime probe stays within read-only catalog grants and never reads the protected migration ledger', () => {
+  const workflowPath = path.join(__dirname, '..', '..', '.github', 'workflows', 'digital-twin-postgres-live.yml');
+  const workflow = fs.readFileSync(workflowPath, 'utf8');
+  const start = workflow.indexOf('PITR_TIMESTAMP=');
+  const end = workflow.indexOf('PITR_TEST_BRANCH_CLEANUP=PASS');
+  assert.ok(start >= 0 && end > start);
+  const probe = workflow.slice(start, end);
+  assert.match(probe, /sslmode.*verify-full/);
+  assert.match(probe, /sslrootcert.*system/);
+  assert.match(probe, /pg_policies/);
+  assert.match(probe, /relforcerowsecurity/);
+  assert.doesNotMatch(probe, /schema_migrations/);
+  assert.match(probe, /migration ledger excluded by runtime-role boundary/);
+});

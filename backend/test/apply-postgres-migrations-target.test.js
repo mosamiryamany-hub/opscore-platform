@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { assertTarget, extractNeonEndpointId, readMigrations, unwrapOuterTransaction, verifyNeonEndpointIdentity, tenantPolicyExprValid, validateAppRolePreflight } = require('../scripts/apply-postgres-migrations');
+const { assertTarget, expectedMigrationOwnerRole, extractNeonEndpointId, readMigrations, unwrapOuterTransaction, verifyNeonEndpointIdentity, tenantPolicyExprValid, validateAppRolePreflight } = require('../scripts/apply-postgres-migrations');
 
 const database = 'opscore_acceptance';
 const projectId = 'summer-leaf-18448271';
@@ -44,6 +44,48 @@ function envFor(targetClass, overrides = {}) {
     ...overrides
   };
 }
+
+test('Preview migration owner role is an explicit narrow override; Production and test remain neondb_owner', () => {
+  assert.equal(expectedMigrationOwnerRole(envFor('preview')), 'neondb_owner');
+  assert.equal(expectedMigrationOwnerRole(envFor('preview', { OPSC_MIGRATION_EXPECTED_OWNER_ROLE: 'opscore_owner' })), 'opscore_owner');
+  assert.equal(expectedMigrationOwnerRole(envFor('production')), 'neondb_owner');
+  assert.equal(expectedMigrationOwnerRole(envFor('test')), 'neondb_owner');
+  assert.throws(
+    () => expectedMigrationOwnerRole(envFor('production', { OPSC_MIGRATION_EXPECTED_OWNER_ROLE: 'opscore_owner' })),
+    /MIGRATION_OWNER_ROLE_NOT_ALLOWED/
+  );
+  assert.throws(
+    () => expectedMigrationOwnerRole(envFor('preview', { OPSC_MIGRATION_EXPECTED_OWNER_ROLE: 'arbitrary_admin' })),
+    /MIGRATION_OWNER_ROLE_NOT_ALLOWED/
+  );
+});
+
+test('pinned Neon identity is limited to the exact disposable Preview project, branch, direct host and database', async () => {
+  const env = {
+    ...envFor('preview', { OPSC_MIGRATION_EXPECTED_OWNER_ROLE: 'opscore_owner' }),
+    OPSC_MIGRATION_PINNED_NEON_IDENTITY: '1',
+    OPSC_MIGRATION_EXPECTED_PROJECT_ID: 'sweet-union-58466913',
+    OPSC_MIGRATION_EXPECTED_BRANCH_ID: 'br-solitary-band-bbczy982',
+    OPSC_MIGRATION_EXPECTED_HOST: 'ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech'
+  };
+  const url = new URL('postgresql://opscore_owner:never-print-this@ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech/opscore_acceptance?sslmode=verify-full&channel_binding=require');
+  const result = await verifyNeonEndpointIdentity(url, env);
+  assert.equal(result.verified, false);
+  assert.equal(result.skipped, true);
+  assert.equal(result.pinned, true);
+  assert.equal(result.verification, 'STATIC_EXACT_PREVIEW_TARGET');
+  assert.equal(result.projectId, 'sweet-union-58466913');
+  assert.equal(result.branchId, 'br-solitary-band-bbczy982');
+  assert.equal(result.host, 'ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech');
+  await assert.rejects(
+    () => verifyNeonEndpointIdentity(new URL('postgresql://opscore_owner:x@ep-other.c-15.us-east-1.aws.neon.tech/opscore_acceptance'), env),
+    /MIGRATION_PINNED_NEON_IDENTITY_MISMATCH/
+  );
+  await assert.rejects(
+    () => verifyNeonEndpointIdentity(new URL('postgresql://opscore_owner:x@ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech/neondb'), env),
+    /MIGRATION_PINNED_NEON_IDENTITY_MISMATCH/
+  );
+});
 
 test('database names containing acceptance never imply a Preview or test target', () => {
   assert.throws(
