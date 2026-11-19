@@ -37,13 +37,13 @@
 | Current main and branch protection | Verified |
 | Current-main source regression CI | PASS |
 | Disposable PostgreSQL 18 and contract acceptance | PASS |
-| Current-main auto-deployment | Intentionally skipped on push |
+| Current Production app-code source | Matches current main application code; latest main addition is docs-only |
 | Vercel live deployment source | `68505535...`; current main's only later change is docs-only |
 | Live health | Healthy / PostgreSQL / 0.11.62 |
 | Live `/login` | Redirects to `/control-plane.html` |
 | Live release proof | UNVERIFIED |
 | Live deployment proof | Identified through `vercel-git-metadata`; this is native Git identity, not a GitHub Actions signature |
-| Current-main identity/package attestation | Not established in live Production |
+| Embedded GitHub Actions identity/package attestation | Not established in live Production |
 | Production acceptance evidence | NOT_VERIFIED |
 | 67-route signed-session Production coverage | NOT_VERIFIED (CI-only route coverage is not Production) |
 | Production session tenant boundary | NOT_VERIFIED |
