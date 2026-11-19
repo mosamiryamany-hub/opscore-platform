@@ -172,3 +172,58 @@ test('Production deploy requires an explicit one-shot workflow dispatch and owne
   assert.doesNotMatch(deployHeader, /github\.event_name == 'push'/);
   assert.match(workflow, /confirm_production_deployment:/);
 });
+
+
+test('candidate evidence-only mode is separated from Production certification and promotion', () => {
+  const dispatch = workflow.slice(workflow.indexOf('  workflow_dispatch:'), workflow.indexOf('  pull_request:'));
+  assert.match(dispatch, /run_mode:/);
+  assert.match(dispatch, /CANDIDATE_EVIDENCE_ONLY/);
+  assert.match(dispatch, /AUTHORIZE_PRODUCTION_RELEASE/);
+
+  const deployHeader = deploy.slice(0, deploy.indexOf('      - uses: actions/checkout'));
+  assert.match(deployHeader, /run_mode == 'CANDIDATE_EVIDENCE_ONLY'/);
+  assert.match(deployHeader, /run_mode == 'AUTHORIZE_PRODUCTION_RELEASE'/);
+  assert.match(deployHeader, /confirm_production_deployment == 'I_AUTHORIZE_PRODUCTION_DEPLOYMENT'/);
+
+  const preflight = step('Preflight Vercel and Neon paid-plan and branch capacity (read-only)');
+  const prepare = step('Prepare Production candidate environment with fail-closed flags');
+  assert.match(preflight, /production-candidate-plan-preflight\.js/);
+  assert.ok(deploy.indexOf(preflight) < deploy.indexOf(prepare));
+
+  const releaseOnly = [
+    'Require current-commit production evidence before creating staged deployment',
+    'Publish exact certified release evidence and enable signed tenant context',
+    'Embed acceptance and behavioral evidence into serverless bundle',
+    'Re-pull Vercel production env after identity publish',
+    'Build Vercel output',
+    'Verify Vercel output contains the current release identity',
+    'Verify deploy-workspace acceptance evidence matches release identity',
+    'Create staged production deployment without changing the live domain',
+    'Request scoped GitHub Actions OIDC identity for Vercel Trusted Sources',
+    'Verify staged production runtime identity and all release gates'
+  ];
+  for (const name of releaseOnly) {
+    assert.match(step(name), /run_mode == 'AUTHORIZE_PRODUCTION_RELEASE'/, name + ' must be release-only');
+  }
+  assert.match(step('Verify staged production HTTP, database, security and release proofs'),
+    /run_mode == 'AUTHORIZE_PRODUCTION_RELEASE'/);
+  assert.match(step('Promote only the verified staged deployment'),
+    /run_mode == 'AUTHORIZE_PRODUCTION_RELEASE'/);
+  assert.match(step('Verify production domain resolves to the exact promoted commit'),
+    /run_mode == 'AUTHORIZE_PRODUCTION_RELEASE'/);
+  assert.match(step('Fail unless production promotion and public-domain verification completed'),
+    /run_mode == 'AUTHORIZE_PRODUCTION_RELEASE'/);
+
+  const restore = step('Restore Production environment baseline after any failed candidate or release gate');
+  const verifyRestored = step('Verify restored Production environment against the pre-run snapshot');
+  const manifest = step('Write candidate-only evidence manifest after environment restoration');
+  const artifact = step('Upload candidate-only evidence after verified Production environment restoration');
+  assert.match(restore, /always\(\)/);
+  assert.match(verifyRestored, /production-candidate-environment\.js verify-restored/);
+  assert.ok(deploy.indexOf(restore) < deploy.indexOf(verifyRestored));
+  assert.ok(deploy.indexOf(verifyRestored) < deploy.indexOf(manifest));
+  assert.match(manifest, /productionCertification: false/);
+  assert.match(manifest, /productionPromotionPerformed: false/);
+  assert.match(artifact, /actions\/upload-artifact@/);
+  assert.ok(deploy.indexOf(artifact) < deploy.indexOf(step('Discard successful Production environment rollback snapshot')));
+});
