@@ -22,7 +22,13 @@ function step(name) {
 test('pull requests run the verification job without invoking the production deploy job', () => {
   assert.match(workflow, /pull_request:\n\s+branches: \[main\]/);
   const verifyHeader = workflow.slice(workflow.indexOf('  verify:'), workflow.indexOf('  deploy:'));
-  assert.match(verifyHeader, /github\.event_name == 'pull_request' \|\| github\.ref == 'refs\/heads\/main'/);
+  assert.match(workflow, /source-verify:\s*\n\s+name: vercel-source-verify/);
+  assert.match(verifyHeader, /name: vercel-contract-verify/);
+  assert.match(verifyHeader, /needs: \[source-verify, postgres-acceptance\]/);
+  assert.match(verifyHeader, /always\(\)/);
+  assert.match(verifyHeader, /SOURCE_VERIFY_RESULT:[\s\S]*POSTGRES_ACCEPTANCE_RESULT:/);
+  assert.match(verifyHeader, /SOURCE_VERIFY_NOT_PASS/);
+  assert.match(verifyHeader, /DISPOSABLE_POSTGRES_18_ACCEPTANCE_NOT_PASS/);
   const deployHeader = deploy.slice(0, deploy.indexOf('      - uses: actions/checkout'));
   assert.match(deployHeader, /needs: \[verify, postgres-acceptance\]/);
   assert.match(deployHeader, /github\.event_name == 'workflow_dispatch'\s*&&\s*github\.ref == 'refs\/heads\/main'/);
@@ -31,7 +37,7 @@ test('pull requests run the verification job without invoking the production dep
   const acceptanceEnd = workflow.indexOf('  deploy:' + String.fromCharCode(10), acceptanceStart);
   assert.ok(acceptanceStart >= 0 && acceptanceEnd > acceptanceStart);
   const acceptanceHeader = workflow.slice(acceptanceStart, acceptanceEnd);
-  assert.match(acceptanceHeader, /if: \(github\.event_name == 'push' \|\| github\.event_name == 'workflow_dispatch'\) && github\.ref == 'refs\/heads\/main'/);
+  assert.match(acceptanceHeader, /if: >-\s*\n\s+\(github\.event_name == 'pull_request' && github\.base_ref == 'main'\)[\s\S]*github\.event_name == 'push'[\s\S]*github\.ref == 'refs\/heads\/main'/);
   assert.match(acceptanceHeader, /uses: \.\/\.github\/workflows\/digital-twin-postgres-live\.yml/);
 });
 

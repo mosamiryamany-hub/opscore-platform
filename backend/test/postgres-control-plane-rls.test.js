@@ -52,5 +52,10 @@ test('live PostgreSQL RLS gate tests feature flags, safe mode state and control-
   assert.ok(gate.includes('DATABASE_SECURITY_PROOF_ACCEPTED_WRONG_POLICY_ROLE'));
   assert.ok(gate.includes('DATABASE_SECURITY_PROOF_ACCEPTED_WEAK_TENANT_PREDICATE'));
   const workflow = fs.readFileSync(path.resolve(root, '..', '.github/workflows/digital-twin-postgres-live.yml'), 'utf8');
-  assert.match(workflow, /backend\/sql\/postgres\/\*\*/);
+  const caller = fs.readFileSync(path.resolve(root, '..', '.github/workflows/vercel-deploy.yml'), 'utf8');
+  assert.match(workflow, /workflow_call:/);
+  assert.doesNotMatch(workflow, /^\s+pull_request:/m);
+  assert.match(caller, /postgres-acceptance:\s*\n\s+name: deploy-bound-postgres-18-acceptance\s*\n\s+if: >-\s*\n\s+\(github\.event_name == 'pull_request' && github\.base_ref == 'main'\)/);
+  assert.match(caller, /uses: \.\/\.github\/workflows\/digital-twin-postgres-live\.yml/);
+  assert.match(caller, /verify:\s*\n\s+name: vercel-contract-verify\s*\n\s+needs: \[source-verify, postgres-acceptance\]/);
 });

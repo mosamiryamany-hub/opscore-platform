@@ -28,8 +28,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  verify:
-    name: vercel-contract-verify
+  source-verify:
+    name: vercel-source-verify
     if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -88,8 +88,31 @@ jobs:
 
   postgres-acceptance:
     name: deploy-bound-postgres-18-acceptance
-    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
+    if: >-
+      (github.event_name == 'pull_request' && github.base_ref == 'main') ||
+      ((github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main')
     uses: ./.github/workflows/digital-twin-postgres-live.yml
+
+  # Keep the existing branch-protected check name, but require both real source
+  # verification and the disposable PostgreSQL 18 acceptance workflow to pass.
+  verify:
+    name: vercel-contract-verify
+    needs: [source-verify, postgres-acceptance]
+    if: >-
+      always() &&
+      (github.event_name == 'pull_request' || github.ref == 'refs/heads/main')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Enforce source and disposable PostgreSQL 18 acceptance
+        env:
+          SOURCE_VERIFY_RESULT: ${{ needs.source-verify.result }}
+          POSTGRES_ACCEPTANCE_RESULT: ${{ needs.postgres-acceptance.result }}
+        run: |
+          set -euo pipefail
+          test "$SOURCE_VERIFY_RESULT" = "success" || { echo "SOURCE_VERIFY_NOT_PASS:$SOURCE_VERIFY_RESULT" >&2; exit 1; }
+          test "$POSTGRES_ACCEPTANCE_RESULT" = "success" || { echo "DISPOSABLE_POSTGRES_18_ACCEPTANCE_NOT_PASS:$POSTGRES_ACCEPTANCE_RESULT" >&2; exit 1; }
+          echo "REQUIRED_SOURCE_AND_DISPOSABLE_POSTGRES_18_ACCEPTANCE=PASS"
 
   deploy:
     needs: [verify, postgres-acceptance]

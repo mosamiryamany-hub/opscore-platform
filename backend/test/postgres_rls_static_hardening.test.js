@@ -86,7 +86,13 @@ test('GitHub Actions: a real PostgreSQL 18 service runs the live digital-twin RL
   assert.match(workflow, /workflow_call:\s*\n\s+outputs:/);
   assert.match(workflow, /acceptance_evidence_b64/);
   assert.doesNotMatch(workflow, /^\s+push:/m, 'main deploy invokes this workflow; do not start a duplicate push-triggered run');
-  assert.match(workflow, /pull_request:/);
+  assert.doesNotMatch(workflow, /^\s+pull_request:/m, 'the reusable workflow must not create a duplicate PR run');
+  const callerPath = path.join(ROOT, '..', '.github', 'workflows', 'vercel-deploy.yml');
+  const caller = fs.readFileSync(callerPath, 'utf8');
+  assert.match(caller, /pull_request:\s*\n\s+branches: \[main\]/);
+  assert.match(caller, /postgres-acceptance:\s*\n\s+name: deploy-bound-postgres-18-acceptance\s*\n\s+if: >-\s*\n\s+\(github\.event_name == 'pull_request' && github\.base_ref == 'main'\)/);
+  assert.match(caller, /uses: \.\/\.github\/workflows\/digital-twin-postgres-live\.yml/);
+  assert.match(caller, /verify:\s*\n\s+name: vercel-contract-verify\s*\n\s+needs: \[source-verify, postgres-acceptance\]/);
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /OPSC_PG_ACCEPTANCE_RESULT_FILE:/);
   assert.match(workflow, /CI_COMMIT_SHA:\s*\$\{\{ github\.sha \}\}/);

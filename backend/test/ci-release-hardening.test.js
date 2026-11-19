@@ -66,8 +66,15 @@ test('acceptance database validation requires one exact allowlisted host and dat
 
 test('production Vercel deploy requires explicit main dispatch, waits on mobile audit, and embeds run identity', () => {
   const workflow = read('.github/workflows/vercel-deploy.yml');
-  assert.match(workflow, /verify:\s*\n\s+name: vercel-contract-verify\s*\n\s+if: github\.event_name == 'pull_request' \|\| github\.ref == 'refs\/heads\/main'/);
-  assert.match(workflow, /postgres-acceptance:\s*\n\s+name: deploy-bound-postgres-18-acceptance\s*\n\s+if: \(github\.event_name == 'push' \|\| github\.event_name == 'workflow_dispatch'\) && github\.ref == 'refs\/heads\/main'\s*\n\s+uses: \.\/\.github\/workflows\/digital-twin-postgres-live\.yml/);
+  assert.match(workflow, /source-verify:\s*\n\s+name: vercel-source-verify\s*\n\s+if: github\.event_name == 'pull_request' \|\| github\.ref == 'refs\/heads\/main'/);
+  const protectedGate = workflow.slice(workflow.indexOf('  verify:'), workflow.indexOf('  deploy:'));
+  assert.match(protectedGate, /name: vercel-contract-verify/);
+  assert.match(protectedGate, /needs: \[source-verify, postgres-acceptance\]/);
+  assert.match(protectedGate, /always\(\)/);
+  assert.match(protectedGate, /test "\$SOURCE_VERIFY_RESULT" = "success"/);
+  assert.match(protectedGate, /test "\$POSTGRES_ACCEPTANCE_RESULT" = "success"/);
+  assert.match(workflow, /postgres-acceptance:\s*\n\s+name: deploy-bound-postgres-18-acceptance\s*\n\s+if: >-\s*\n\s+\(github\.event_name == 'pull_request' && github\.base_ref == 'main'\)/);
+  assert.match(workflow, /uses: \.\/\.github\/workflows\/digital-twin-postgres-live\.yml/);
   const deployStart = workflow.indexOf('  deploy:');
   const deployHeader = workflow.slice(deployStart, workflow.indexOf('      - uses: actions/checkout', deployStart));
   assert.match(deployHeader, /needs: \[verify, postgres-acceptance\]/);
