@@ -53,7 +53,10 @@ function candidateProbeBoundaryDenialReason(req, env = process.env, readiness = 
   if (!requestHost) return 'request_host_missing';
   if (requestHost !== deploymentHost) return 'request_host_mismatch';
 
-  const trustedOidcToken = String(req && req.headers && req.headers['x-vercel-trusted-oidc-idp-token'] || '').trim();
+  // Prefer application header: some platforms reserve/strip x-vercel-* on inbound client requests.
+  const trustedOidcToken = String(
+    (req && req.headers && (req.headers['x-opscore-trusted-oidc-idp-token'] || req.headers['x-vercel-trusted-oidc-idp-token'])) || ''
+  ).trim();
   if (!trustedOidcToken) return 'trusted_oidc_header_missing';
   const oidcParts = trustedOidcToken.split('.');
   if (oidcParts.length !== 3 || oidcParts.some(part => !/^[A-Za-z0-9_-]+$/.test(part))) {

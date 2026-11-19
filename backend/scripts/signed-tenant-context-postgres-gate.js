@@ -500,15 +500,18 @@ async function queryHttp(port, route, token, options = {}) {
   };
 
   if (typeof port === 'string') {
+    const oidcToken = String(process.env.VERCEL_TRUSTED_OIDC_TOKEN || '').trim();
     const headers = {
       ...baseHeaders,
       'x-opscore-signed-context-probe': String(process.env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN || ''),
-      'x-vercel-trusted-oidc-idp-token': String(process.env.VERCEL_TRUSTED_OIDC_TOKEN || '')
+      // Application-level header survives inbound filtering of reserved x-vercel-* names.
+      'x-opscore-trusted-oidc-idp-token': oidcToken,
+      'x-vercel-trusted-oidc-idp-token': oidcToken
     };
     if (!/^[a-f0-9]{64}$/i.test(headers['x-opscore-signed-context-probe'])) {
       throw new Error('CANDIDATE_PROBE_TOKEN_INVALID');
     }
-    if (headers['x-vercel-trusted-oidc-idp-token'].split('.').length !== 3) {
+    if (oidcToken.split('.').length !== 3) {
       throw new Error('CANDIDATE_VERCEL_OIDC_TOKEN_INVALID');
     }
     const target = new URL(String(route || ''), port);
