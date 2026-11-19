@@ -134,7 +134,7 @@ test('release proof binds source and CI evidence to the running deployment commi
   assert.equal(proof.gates.productionIsolationCertification, 'NOT_CERTIFIED');
 });
 
-test('release proof accepts production acceptance only when the embedded JSON hash and exact CI identity match', () => {
+test('release proof rejects environment-only CI/package claims without embedded build identity', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-production-acceptance-'));
   try {
     const evidence = writeJsonEvidence(dir, 'production-acceptance.json', productionAcceptanceEvidence(SHA, '2978538209'));
@@ -148,21 +148,21 @@ test('release proof accepts production acceptance only when the embedded JSON ha
     assert.equal(proof.status, 'UNVERIFIED');
     assert.equal(proof.releaseTag, null);
     assert.equal(proof.sourceCommitIdentitySource, 'unverified');
-    assert.equal(proof.ci.status, 'PASS');
-    assert.equal(proof.ci.pipelineId, 2978538209);
-    assert.equal(proof.packageFingerprint.status, 'PUBLISHED');
-    assert.equal(proof.packageFingerprint.value, PACKAGE_SHA);
-    assert.equal(proof.productionAcceptance.status, 'PASS');
-    assert.equal(proof.gates.productionSessionTenantBoundary, 'PASS_TEST_SCOPE');
-    assert.equal(proof.gates.productionRecoveryBundle, 'PASS_TEST_SCOPE');
-    assert.equal(proof.gates.tenantRouteSecurityCoverage, 'PASS_TEST_SCOPE');
+    assert.equal(proof.ci.status, 'UNVERIFIED');
+    assert.equal(proof.ci.pipelineId, null);
+    assert.equal(proof.packageFingerprint.status, 'UNVERIFIED');
+    assert.equal(proof.packageFingerprint.value, null);
+    assert.equal(proof.productionAcceptance.status, 'NOT_VERIFIED');
+    assert.equal(proof.gates.productionSessionTenantBoundary, 'NOT_VERIFIED');
+    assert.equal(proof.gates.productionRecoveryBundle, 'NOT_VERIFIED');
+    assert.equal(proof.gates.tenantRouteSecurityCoverage, 'NOT_VERIFIED');
     assert.equal(proof.gates.functionalApiRouteAcceptance, 'NOT_VERIFIED');
     assert.equal(proof.gates.productionIsolationCertification, 'NOT_CERTIFIED');
     assert.equal(Object.hasOwn(proof.gates, 'mobileStoreArtifacts'), false);
     assert.equal(Object.hasOwn(proof.gates, 'nativeTranslationReview'), false);
     assert.equal(Object.hasOwn(proof.gates, 'licensedStreetMap'), false);
     assert.doesNotMatch(proof.note, /buyer|REMAINING_BUYER/i);
-    assert.equal(proof.productionAcceptance.evidenceSha256, evidence.sha256);
+    assert.equal(proof.productionAcceptance.evidenceSha256, null);
 
     const mismatchedDatabase = writeJsonEvidence(dir, 'mismatched-database.json',
       productionAcceptanceEvidence(SHA, '2978538209', {
@@ -182,7 +182,7 @@ test('release proof accepts production acceptance only when the embedded JSON ha
   }
 });
 
-test('release proof accepts a SHA-256 source commit but does not certify it without embedded build identity', () => {
+test('release proof ignores environment-only CI and package assertions for a SHA-256 source commit', () => {
   const proof = createPublicReleaseProof(deploymentEnv({
     VERCEL_GIT_COMMIT_SHA: SHA256_COMMIT,
     OPSC_RELEASE_CI_COMMIT: SHA256_COMMIT,
@@ -192,10 +192,10 @@ test('release proof accepts a SHA-256 source commit but does not certify it with
   }), fixedNow);
   assert.equal(proof.sourceCommit, SHA256_COMMIT);
   assert.equal(proof.status, 'UNVERIFIED');
-  assert.equal(proof.ci.status, 'PASS');
-  assert.equal(proof.ci.pipelineId, 2984327380);
-  assert.equal(proof.packageFingerprint.status, 'PUBLISHED');
-  assert.equal(proof.packageFingerprint.sourceCommit, SHA256_COMMIT);
+  assert.equal(proof.ci.status, 'UNVERIFIED');
+  assert.equal(proof.ci.pipelineId, null);
+  assert.equal(proof.packageFingerprint.status, 'UNVERIFIED');
+  assert.equal(proof.packageFingerprint.sourceCommit, null);
   assert.equal(proof.sourceCommitIdentitySource, 'unverified');
   assert.equal(proof.gates.productionIsolationCertification, 'NOT_CERTIFIED');
 });
@@ -214,11 +214,13 @@ test('release proof does not trust environment-only CLI provenance without embed
   assert.equal(proof.status, 'UNVERIFIED');
   assert.equal(proof.sourceCommitIdentitySource, 'unverified');
   assert.equal(proof.deployment.ref, 'main');
+  assert.equal(proof.ci.status, 'UNVERIFIED');
+  assert.equal(proof.packageFingerprint.status, 'UNVERIFIED');
 });
 
-test('release tag is shown only when an explicit tag value is supplied', () => {
+test('release tag is not trusted from environment without embedded build identity', () => {
   const proof = createPublicReleaseProof(deploymentEnv({ OPSC_RELEASE_TAG: 'v0.11.62-test' }), fixedNow);
-  assert.equal(proof.releaseTag, 'v0.11.62-test');
+  assert.equal(proof.releaseTag, null);
 });
 
 test('release proof rejects a forged evidence digest and incomplete tenant coverage', () => {
@@ -262,7 +264,8 @@ test('release proof does not grant PASS_PRODUCTION from timestamps alone without
     OPSC_PRODUCTION_ACCEPTANCE_COMMIT: SHA,
     OPSC_PRODUCTION_ACCEPTANCE_AT: '2026-10-23T00:00:00.000Z'
   }), fixedNow);
-  assert.equal(proof.packageFingerprint.status, 'PUBLISHED');
+  assert.equal(proof.packageFingerprint.status, 'UNVERIFIED');
+  assert.equal(proof.packageFingerprint.value, null);
   assert.equal(proof.gates.productionSessionTenantBoundary, 'NOT_VERIFIED');
   assert.equal(proof.gates.productionRecoveryBundle, 'NOT_VERIFIED');
   assert.equal(proof.productionAcceptance.status, 'NOT_VERIFIED');
