@@ -45,7 +45,12 @@ test('live PostgreSQL gate tests the runtime role and tenant policies', () => {
   assert.ok(gate.includes("aliasCounts.n !== 2 || aliasCounts.sn !== 1"));
   assert.ok(gate.includes(String.raw`const pattern = /\b(n|sn)\.nspname = 'public'/g;`));
   const workflow = fs.readFileSync(path.resolve(root, '..', '.github/workflows/digital-twin-postgres-live.yml'), 'utf8');
-  assert.ok(workflow.includes('backend/sql/postgres/**'));
+  const caller = fs.readFileSync(path.resolve(root, '..', '.github/workflows/vercel-deploy.yml'), 'utf8');
+  assert.match(workflow, /workflow_call:/);
+  assert.doesNotMatch(workflow, /^\s+pull_request:/m);
+  assert.match(caller, /postgres-acceptance:\s*\n\s+name: deploy-bound-postgres-18-acceptance\s*\n\s+if: >-\s*\n\s+\(github\.event_name == 'pull_request' && github\.base_ref == 'main'\)/);
+  assert.match(caller, /uses: \.\/\.github\/workflows\/digital-twin-postgres-live\.yml/);
+  assert.match(caller, /verify:\s*\n\s+name: vercel-contract-verify\s*\n\s+needs: \[source-verify, postgres-acceptance\]/);
   assert.ok(workflow.includes('CREATE ROLE opscore_runtime NOLOGIN'));
   assert.ok(!workflow.includes('GRANT opscore_app TO opscore_runtime'));
 });
