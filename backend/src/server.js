@@ -15,7 +15,6 @@ const {
   signedAssetsReadEnabled,
   signedSessionAutobindEnabled,
   isCandidateProbeAuthorized,
-  candidateProbeDenialReason,
   signedTenantContextRouteError,
   signedContextRequested: isSignedContextRequested
 } = require('./signed-tenant-context-policy');
@@ -47,7 +46,7 @@ store.databaseEngineResolved = opened.engine;
 store.postgresRuntimeWired = opened.postgresRuntimeWired;
 const {authProviderGate, verifyOidcIdToken} = require('./security');
 const {inspectRequest,productionSafetyGate,createRateLimiter,createLoginRateLimiter,assertTenantAlignment}=require('./firewall');
-const {evaluateProductionGate,isReadOnlyProductionVerificationRequest,isAuthorizedProductionCandidateProbeRequest,isAuthorizedProductionCandidateDatabaseIdentityRequest}=require('./production-hold');
+const {evaluateProductionGate,isReadOnlyProductionVerificationRequest,candidateProbeBoundaryDenialReason,isAuthorizedProductionCandidateProbeRequest,isAuthorizedProductionCandidateDatabaseIdentityRequest}=require('./production-hold');
 const {createProductionDatabaseIdentityHandler}=require('./production-database-identity-route');
 const productionDatabaseIdentityHandler=createProductionDatabaseIdentityHandler();
 const {can: rbacCan}=require('./rbac');
@@ -1103,9 +1102,13 @@ function runSignedWorkOrdersRead(req, res, c, reader, responseHeaders = {}) {
 }
 function sendWorkOrderRead(req, res, c, reader, responseHeaders = {}) {
   if (!signedWorkOrdersReadEnabled(req, process.env, signedContextProductionReadiness)) {
-    const probeSupplied = String(req && req.headers && req.headers['x-opscore-signed-context-probe'] || '').trim();
-    const denial = probeSupplied
-      ? candidateProbeDenialReason(req, process.env, signedContextProductionReadiness)
+    const method = String(req && req.method || '').trim().toUpperCase();
+    const pathname = requestPath(req);
+    const candidateRoute = ['read', 'write'].some(operation =>
+      require('./signed-tenant-context-policy').isSignedTenantContextRouteDefinition(method, pathname, operation)
+    );
+    const denial = candidateRoute
+      ? candidateProbeBoundaryDenialReason(req, process.env, signedContextProductionReadiness)
       : null;
     const deniedHeaders = denial
       ? { 'x-opscore-candidate-guc-tamper': 'denied:' + denial }
