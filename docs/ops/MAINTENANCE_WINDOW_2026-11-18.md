@@ -91,7 +91,9 @@ November maintenance window.
 
 ## Localization qualification residual
 
-The runtime locale manifest contains **105 selectable Contact Center locales**: 1 English source locale, 100 machine-assisted draft translations and 4 explicit English-fallback locales (din, nus, pau, ch). Nine flagged locales (ms, sw, hy, uz, my, ml, es, sr, te) are withdrawn from runtime selection pending linguistic remediation and native-speaker review. The separate qualification matrix contains 114 source-language rows, all marked `planned_not_qualified`; native-speaker review completed is 0/114, and current runtime production-qualified locales are 0/105. All non-native-reviewed locales must retain the machine-translation notice. Do not claim 114 runtime-selectable or native-reviewed languages.
+The runtime locale manifest contains **105 selectable Contact Center locales**: 1 English source locale, 100 machine-assisted draft translations and 4 explicit English-fallback locales (din, nus, pau, ch). Nine flagged locales (ms, sw, hy, uz, my, ml, es, sr, te) are withdrawn from runtime selection pending linguistic remediation and native-speaker review. The separate qualification matrix contains 114 source-language rows, all marked `planned_not_qualified`; native-speaker review completed is 0/114, and current runtime production-qualified locales are 0/105. All non-native-reviewed locales must retain the machine-translation notice. Production key material and signed-route proof, as recorded by the owner audit of 18-19 November 2026: `context_hmac_keys` exists with the expected schema and ownership and holds zero Production HMAC key rows; the live Production 67-route signed-session matrix remains **NOT ESTABLISHED**; restore branch br-odd-surf-bcps6nce (restored_from=snap-tiny-dream-bc58p5nj) reflects the current 063–069 migration writes; Snapshot creation and branch cleanup are complete for this reconciliation cycle.
+
+Do not claim 114 runtime-selectable or native-reviewed languages.
 
 ## Vercel firewall posture — read-only inspection on 17 November 2026
 
@@ -287,7 +289,7 @@ deployment, HMAC rotation, or signed-route activation was started.
 
 The Neon capacity facts below supersede the 17 November inventory above and were
 re-measured by the owner across GitHub/Vercel/Neon on 18–19 November 2026:
-**5 active branches (5/10 included)**, all currently reporting `protected=false`:
+**5 active branches (5/10 included)**, all currently report `protected=false`:
 
 - `br-proud-salad-bcshhdap` — Production Primary `main` (primary/default, unprotected).
 - `preview/ops/acceptance-neon-target-2026-11-19` — preview acceptance target (unprotected).
@@ -302,6 +304,8 @@ the Production Primary remains unprotected (branch protection is plan-gated).
 The runtime locale surface is **105 selectable Contact Center locales**
 (1 source, 100 machine-assisted drafts, 4 English fallbacks; 9 withdrawn), with
 0/105 production-qualified and the 114-row qualification matrix still
-`planned_not_qualified`. Do not claim 114 runtime-selectable or native-reviewed
+`planned_not_qualified`. Production key material and signed-route proof, as recorded by the owner audit of 18-19 November 2026: `context_hmac_keys` exists with the expected schema and ownership and holds zero Production HMAC key rows; the live Production 67-route signed-session matrix remains **NOT ESTABLISHED**; restore branch br-odd-surf-bcps6nce (restored_from=snap-tiny-dream-bc58p5nj) reflects the current 063–069 migration writes; Snapshot creation and branch cleanup are complete for this reconciliation cycle.
+
+Do not claim 114 runtime-selectable or native-reviewed
 languages, and do not describe the project as having scheduled backups, PITR
 guarantees, or a protected Primary.

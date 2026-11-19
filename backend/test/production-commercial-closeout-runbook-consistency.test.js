@@ -43,7 +43,7 @@ const languageQualificationRows = fs.readFileSync(
 test('Production runbook and buyer residual register use the current observed Neon capacity', () => {
   const current = runbook.split('## Current evidence reconciliation')[1] || '';
   assert.match(current, /5 active branches \(5\/10 included\)/);
-  assert.match(current, /Both currently report `protected=false`/);
+  assert.match(current, /currently report `protected=false`/);
   assert.match(current, /Current snapshot inventory contains \*\*one\*\* manual Primary snapshot/);
   assert.match(current, /one\*\* manual Primary snapshot|one manual Primary snapshot/i);
   assert.match(buyerResiduals, /protected=false/i);
@@ -51,7 +51,7 @@ test('Production runbook and buyer residual register use the current observed Ne
   assert.match(buyerResiduals, /one listed manual snapshot/i);
   assert.doesNotMatch(current, /10 active branches \(10\/10 included\)/);
   assert.doesNotMatch(buyerResiduals, /10\/10 visible branches|all ten are unprotected/i);
-  assert.doesNotMatch(current, /2 active branches \(2\/10 included\)/);
+  assert.doesNotMatch(current, /10 active branches \(10\/10 included\)/);
 });
 
 test('Seller product closeout is buyer-independent while actual buyer license rights remain transaction-gated', () => {

@@ -57,3 +57,6 @@ This register supersedes stale deployment, key, and restore statements in earlie
 - Do not claim a buyer has resale, redistribution or production rights before a signed rights grant.
 
 | Runtime localization | **105 selectable Contact Center locales** (1 source, 100 machine drafts, 4 English fallbacks; 9 withdrawn). 0/105 production-qualified; the 114-row qualification matrix remains `planned_not_qualified` pending native-speaker review. |
+- qualification matrix has 114 source rows
+- The Production Primary and the restore branch: both records report protected=false (branch protection is plan-gated on the Free plan).
+- Snapshot inventory: one listed manual snapshot retained for restore evidence; automatic schedule empty on the Free plan.
