@@ -1,16 +1,16 @@
 # OpsCore — Test Evidence Traceability
 
-**Evidence date:** 2026-11-19 15:17 UTC  
+**Evidence date:** 2026-11-19  
 **Repository:** `mosamiryamany-hub/opscore-platform`  
-**Current main:** `d672dce8f18e1d7095aed3126aedb0f995796144` (PR #292 trust-proof UI merged)
+**Main SHA tested at this evidence cut:** `d672dce8f18e1d7095aed3126aedb0f995796144` (PR #292 trust-proof UI merged)
 **Current Production application-code SHA:** `68505535f1c2fabd2a786094f8f64d234d26e123`  
 **Evidence rule:** A successful job proves only the environment and scope it actually exercised. CI/isolated PostgreSQL evidence is not Production tenant-isolation certification.
 
 ## 1. Current-main successful test runs
 
-**Current main:** `d672dce8f18e1d7095aed3126aedb0f995796144`  
+**Main revision under test:** `d672dce8f18e1d7095aed3126aedb0f995796144`  
 **Current live Production application-code SHA:** `68505535f1c2fabd2a786094f8f64d234d26e123` — not yet updated to current main  
-**Current-main Preview:** `dpl_DCQk2TbxtCoMHLDCEQ8pN4W33ay1` — READY, exact current-main SHA, SSO-protected, not Production
+**PR #292 Preview:** `dpl_DCQk2TbxtCoMHLDCEQ8pN4W33ay1` — READY, exact current-main SHA, SSO-protected, not Production
 
 ### Run 44552772156 — OpsCore CI on current main
 
