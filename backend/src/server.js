@@ -3569,12 +3569,21 @@ const server = http.createServer({ maxHeaderSize: config.httpMaxHeaders * 1024 }
       && !isReadOnlyProductionVerificationRequest(req)
       && !isAuthorizedProductionCandidateProbeRequest(req, process.env, signedContextProductionReadiness)
       && !isAuthorizedProductionCandidateDatabaseIdentityRequest(req, process.env, signedContextProductionReadiness)) {
+    const probeSupplied = String(req && req.headers && req.headers['x-opscore-signed-context-probe'] || '').trim();
+    const denial = probeSupplied
+      ? candidateProbeDenialReason(req, process.env, signedContextProductionReadiness)
+      : null;
+    const holdHeaders = {
+      'retry-after': '60',
+      ...(denial ? { 'x-opscore-candidate-guc-tamper': 'denied:' + denial } : {})
+    };
     return json(res, 503, {
       schemaVersion: 'opscore.production-hold-response.v1',
       status: 'MAINTENANCE',
       error: { code: productionGate.reasonCode },
-      note: 'Operational traffic is disabled while Production release evidence is not verified. Read-only deployment and release verification endpoints remain available.'
-    }, { 'retry-after': '60' });
+      note: 'Operational traffic is disabled while Production release evidence is not verified. Read-only deployment and release verification endpoints remain available.',
+      ...(denial ? { candidateProbeDenial: denial } : {})
+    }, holdHeaders);
   }
   try {
     const r = route(req, res);
