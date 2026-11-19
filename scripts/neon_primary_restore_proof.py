@@ -381,7 +381,7 @@ def verify_signed_context_catalog(uri):
         fail("RESTORE_PROOF_SIGNED_CONTEXT_CATALOG_INVALID", {"output": output[:500]})
     names = ["verifierFunctionValid", "tenantAccessorUsesVerifier", "authDefinerRoleValid",
              "hmacKeyTableValid", "technicianTrailForcedRls", "technicianTrailPoliciesValid",
-             "directTenantGucPolicyResidualCount"]
+             "technicianTrailConstraintsValid", "directTenantGucPolicyResidualCount"]
     values = dict(zip(names, parts))
     for name in names[:-1]:
         values[name] = values[name] == "t"
