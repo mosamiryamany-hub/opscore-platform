@@ -165,6 +165,8 @@ test('Vercel production deploy requires same-run disposable PostgreSQL HTTP acce
   const acceptanceTest = read('backend/test/postgres-commercial-acceptance-http.test.js');
   assert.ok(workflow.includes('./.github/workflows/digital-twin-postgres-live.yml'));
   assert.match(workflow, /needs: \[verify, postgres-acceptance\]/);
+  assert.match(workflow, /postgres-acceptance:\s*\n\s+name: deploy-bound-postgres-18-acceptance\s*\n\s+if: >-\s*\n\s+\(github\.event_name == 'pull_request' && github\.base_ref == 'main'\)/);
+  assert.match(workflow, /verify:\s*\n\s+name: vercel-contract-verify\s*\n\s+needs: \[source-verify, postgres-acceptance\]/);
   assert.match(workflow, /acceptance_evidence_b64/);
   assert.match(workflow, /POSTGRES_ACCEPTANCE_EVIDENCE_MISSING/);
   assert.doesNotMatch(workflow, /secrets\.OPSC_PG_ACCEPTANCE_URL/);
@@ -172,7 +174,8 @@ test('Vercel production deploy requires same-run disposable PostgreSQL HTTP acce
   assert.match(workflow, /acceptance_pipeline_mismatch/);
   assert.ok(workflow.includes("data['productionCertification'] = False"));
   assert.match(postgresWorkflow, /OPSC_PG_ACCEPTANCE_URL:/);
-  assert.match(postgresWorkflow, /validate-postgres-acceptance-target\.js/);
+  assert.match(postgresWorkflow, /workflow_call:\s*\n\s+outputs:/);
+  assert.doesNotMatch(postgresWorkflow, /^\s+pull_request:/m, 'PR execution is centralized through the required caller gate');
   assert.match(postgresWorkflow, /postgres-commercial-acceptance-http\.test\.js/);
   assert.match(postgresWorkflow, /CI_COMMIT_SHA:\s*\$\{\{ github\.sha \}\}/);
   assert.match(postgresWorkflow, /CI_PIPELINE_ID:\s*\$\{\{ github\.run_id \}\}/);
