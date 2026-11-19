@@ -16,10 +16,6 @@ function embeddedEvidencePath(fileName) {
   return path.join(__dirname, '..', 'docs', 'verification', fileName);
 }
 
-function normalizedReleaseTag(value) {
-  const raw = String(value || '').trim();
-  return /^[A-Za-z0-9][A-Za-z0-9._+-]{0,99}$/.test(raw) ? raw : null;
-}
 
 function normalizedSha(value) {
   const raw = String(value || '').trim().toLowerCase();
@@ -481,18 +477,34 @@ function readProductionSignedTenantRouteCoverageEvidence(
 
 function createPublicReleaseProof(env = process.env, now = () => new Date(), identityPath, productionAcceptanceEvidencePath, postgresHttpAcceptancePath, apiRouteAcceptancePath = embeddedEvidencePath('API_ROUTE_ACCEPTANCE_RESULT.json'), signedTenantRouteCoveragePath) {
   const identity = readEmbeddedBuildIdentity(identityPath);
-  const proofEnv = identity ? {
-    ...env,
-    OPSC_RELEASE_DEPLOYMENT_SOURCE: identity.deploymentSource,
-    OPSC_RELEASE_CI_COMMIT: identity.commitSha,
-    OPSC_RELEASE_CI_PIPELINE_ID: identity.pipelineId,
-    OPSC_RELEASE_CI_REF: identity.ref,
-    OPSC_SOURCE_COMMIT_SHA: identity.commitSha,
-    OPSC_RELEASE_PACKAGE_SHA256: identity.packageSha256 || env.OPSC_RELEASE_PACKAGE_SHA256,
-    OPSC_RELEASE_PACKAGE_COMMIT: identity.packageCommit || identity.commitSha || env.OPSC_RELEASE_PACKAGE_COMMIT
-  } : env;
+  // Vercel project environment values can survive deployments. Without the identity
+  // artifact embedded in this exact bundle, CI and package variables are only staleable
+  // claims and must not turn the public proof green.
+  const proofEnv = { ...env };
+  for (const key of [
+    'OPSC_RELEASE_DEPLOYMENT_SOURCE',
+    'OPSC_RELEASE_CI_COMMIT',
+    'OPSC_RELEASE_CI_PIPELINE_ID',
+    'OPSC_RELEASE_CI_REF',
+    'OPSC_SOURCE_COMMIT_SHA',
+    'OPSC_RELEASE_PACKAGE_SHA256',
+    'OPSC_RELEASE_PACKAGE_COMMIT',
+    'OPSC_RELEASE_TAG',
+    'CI_COMMIT_SHA',
+    'CI_PIPELINE_ID',
+    'CI_COMMIT_TAG'
+  ]) delete proofEnv[key];
+  if (identity) {
+    proofEnv.OPSC_RELEASE_DEPLOYMENT_SOURCE = identity.deploymentSource;
+    proofEnv.OPSC_RELEASE_CI_COMMIT = identity.commitSha;
+    proofEnv.OPSC_RELEASE_CI_PIPELINE_ID = identity.pipelineId;
+    proofEnv.OPSC_RELEASE_CI_REF = identity.ref;
+    proofEnv.OPSC_SOURCE_COMMIT_SHA = identity.commitSha;
+    proofEnv.OPSC_RELEASE_PACKAGE_SHA256 = identity.packageSha256;
+    proofEnv.OPSC_RELEASE_PACKAGE_COMMIT = identity.packageCommit;
+  }
   const deployment = createDeploymentProof(proofEnv, now);
-  const releaseTag = normalizedReleaseTag(proofEnv.OPSC_RELEASE_TAG || proofEnv.CI_COMMIT_TAG);
+  const releaseTag = null;
   const sourceCommit = deployment.source.commitSha;
   const ciCommit = normalizedSha(proofEnv.OPSC_RELEASE_CI_COMMIT);
   const pipelineId = String(proofEnv.OPSC_RELEASE_CI_PIPELINE_ID || '').trim();

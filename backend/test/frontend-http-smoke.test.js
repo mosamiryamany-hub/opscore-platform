@@ -12,7 +12,7 @@ const GET_ROUTES=['/api/v1/me','/api/v1/metrics','/api/v1/security-center','/api
 
 test('frontend console API smoke covers every static UI GET route over HTTP',async()=>{
  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'opscore-ui-smoke-')); const port=35000+Math.floor(Math.random()*8000);
- const child=spawn(process.execPath,['src/server.js'],{cwd:path.resolve(__dirname,'..'),env:{...process.env,NODE_ENV:'test',PORT:String(port),HOST:'127.0.0.1',SQLITE_PATH:path.join(dir,'db.sqlite'),OPSC_REPOSITORY_PATH:path.join(dir,'files')},stdio:['ignore','pipe','pipe']});
+ const child=spawn(process.execPath,['src/server.js'],{cwd:path.resolve(__dirname,'..'),env:{...process.env,NODE_ENV:'test',PORT:String(port),HOST:'127.0.0.1',SQLITE_PATH:path.join(dir,'db.sqlite'),OPSC_REPOSITORY_PATH:path.join(dir,'files'),OPSC_RELEASE_DEPLOYMENT_SOURCE:'github-actions-cli',OPSC_RELEASE_CI_COMMIT:'a'.repeat(40),OPSC_RELEASE_CI_PIPELINE_ID:'999999999',OPSC_RELEASE_CI_REF:'main',OPSC_SOURCE_COMMIT_SHA:'a'.repeat(40),OPSC_RELEASE_PACKAGE_SHA256:'b'.repeat(64),OPSC_RELEASE_PACKAGE_COMMIT:'a'.repeat(40),OPSC_RELEASE_TAG:'v0.11.62-test',CI_COMMIT_SHA:'a'.repeat(40),CI_PIPELINE_ID:'999999999',CI_COMMIT_TAG:'v0.11.62-test',VERCEL_DEPLOYMENT_ID:'dpl_123456',VERCEL_ENV:'production',VERCEL_GIT_COMMIT_SHA:'',VERCEL_GIT_COMMIT_REF:'',VERCEL_GIT_PROVIDER:''},stdio:['ignore','pipe','pipe']});
  try{await waitForServer(child);const base=`http://127.0.0.1:${port}`;
   const req=async(p,o={})=>fetch(base+p,{...o,headers:{...(o.body?{'content-type':'application/json'}:{}),...(o.headers||{})}});
   const login=await req('/login',{redirect:'manual'});
@@ -24,6 +24,24 @@ test('frontend console API smoke covers every static UI GET route over HTTP',asy
   const controlPlane=await req('/control-plane.html');
   assert.equal(controlPlane.status,200);
   const controlPlaneHtml=await controlPlane.text();
+  const deploymentProofResponse=await req('/api/verify/deployment');
+  assert.equal(deploymentProofResponse.status,503,'environment-only release variables must not attest deployment source');
+  const deploymentProof=await deploymentProofResponse.json();
+  assert.equal(deploymentProof.status,'unavailable');
+  assert.equal(deploymentProof.source.commitSha,null);
+  assert.equal(deploymentProof.source.commitIdentitySource,'unavailable');
+  assert.equal(deploymentProof.deployment.id,'dpl_123456');
+  assert.equal(deploymentProof.deployment.environment,'production');
+  const releaseProofResponse=await req('/api/verify/release');
+  const releaseProof=await releaseProofResponse.json();
+  assert.equal(releaseProof.sourceCommitIdentitySource,'unverified','release proof must not upgrade missing embedded identity');
+  assert.equal(releaseProof.status,'UNVERIFIED');
+  assert.equal(releaseProof.ci.status,'UNVERIFIED');
+  assert.equal(releaseProof.ci.pipelineId,null);
+  assert.equal(releaseProof.packageFingerprint.status,'UNVERIFIED');
+  assert.equal(releaseProof.packageFingerprint.value,null);
+  assert.equal(releaseProof.releaseTag,null);
+  assert.equal(releaseProof.gates.productionIsolationCertification,'NOT_CERTIFIED');
   assert.match(controlPlaneHtml,/id="loginPanel"/,'login destination must include its authentication panel');
   assert.match(controlPlaneHtml,/id="loginForm"/,'login destination must include its submit form');
   const retiredBridge=await req('/command-bridge.html',{redirect:'manual'});
