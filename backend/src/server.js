@@ -15,6 +15,7 @@ const {
   signedAssetsReadEnabled,
   signedSessionAutobindEnabled,
   isCandidateProbeAuthorized,
+  candidateProbeDenialReason,
   signedTenantContextRouteError,
   signedContextRequested: isSignedContextRequested
 } = require('./signed-tenant-context-policy');
@@ -1101,7 +1102,16 @@ function runSignedWorkOrdersRead(req, res, c, reader, responseHeaders = {}) {
   }
 }
 function sendWorkOrderRead(req, res, c, reader, responseHeaders = {}) {
-  if (!signedWorkOrdersReadEnabled(req, process.env, signedContextProductionReadiness)) return json(res, 200, reader(), responseHeaders);
+  if (!signedWorkOrdersReadEnabled(req, process.env, signedContextProductionReadiness)) {
+    const probeSupplied = String(req && req.headers && req.headers['x-opscore-signed-context-probe'] || '').trim();
+    const denial = probeSupplied
+      ? candidateProbeDenialReason(req, process.env, signedContextProductionReadiness)
+      : null;
+    const deniedHeaders = denial
+      ? { 'x-opscore-candidate-guc-tamper': 'denied:' + denial }
+      : {};
+    return json(res, 200, reader(), { ...responseHeaders, ...deniedHeaders });
+  }
   return runSignedWorkOrdersRead(req, res, c, reader, responseHeaders);
 }
 function runSignedWorkOrderWrite(req, res, c, writer, responder) {
