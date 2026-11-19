@@ -154,7 +154,7 @@ async function main() {
       evidenceClass: 'PRODUCTION_BRANCH_RECOVERY_POINT'
     };
     writeReport(blockedReport);
-    process.stderr.write('PRODUCTION_RECOVERY_POINT_BLOCKED:NEON_BRANCH_CAPACITY_EXHAUSTED:' + branches.length + '/' + limitRaw + '\\n');
+    process.stderr.write('PRODUCTION_RECOVERY_POINT_BLOCKED:NEON_BRANCH_CAPACITY_EXHAUSTED:' + branches.length + '/' + limitRaw + '\n');
     process.exitCode = 1;
     return;
   }
