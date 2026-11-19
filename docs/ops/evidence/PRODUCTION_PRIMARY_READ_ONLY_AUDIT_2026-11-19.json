@@ -1,0 +1,156 @@
+{
+  "schemaVersion": "opscore.production-primary-read-only-audit.v1",
+  "evidenceClass": "LIVE_PRIMARY_READ_ONLY_CATALOG_AUDIT",
+  "status": "IN_PROGRESS",
+  "auditedAt": "2026-11-19T11:48:03.226Z",
+  "sourceMainCommit": "0edd7d8c855e1dd4645979c05fd30be105dff369",
+  "ciEvidence": {
+    "opsCoreRunId": 44515948537,
+    "opsCoreConclusion": "success",
+    "vercelRunId": 44515948610,
+    "sourceVerification": "success",
+    "disposablePostgres18Acceptance": "success",
+    "requiredContractGate": "success",
+    "productionDeployJob": "skipped",
+    "signedTenantArtifactId": 14524968082
+  },
+  "vercelProduction": {
+    "deploymentId": "dpl_HYeEvgN7dWGDBVpyHFBmphjwnZcG",
+    "deploymentState": "READY",
+    "alias": "opscore-platform.vercel.app",
+    "deploymentCommit": "95b39f578ef7d1fda1b371237be627e71da3f1cf",
+    "sourceMainCommit": "0edd7d8c855e1dd4645979c05fd30be105dff369",
+    "commitMismatch": true,
+    "productionHold": "false",
+    "releaseVerified": "false",
+    "isolationCertification": "NOT_CERTIFIED",
+    "behavioralEvidence": "false",
+    "hmacKeySecretPresent": true,
+    "hmacKeyJsonSecretPresent": true,
+    "hmacSecretVisibility": "secret",
+    "plan": "NOT_VERIFIED"
+  },
+  "neon": {
+    "organizationPlan": "free",
+    "projectId": "summer-leaf-18448271",
+    "primaryBranchId": "br-proud-salad-bcshhdap",
+    "primaryBranchName": "main",
+    "primaryBranchState": "ready",
+    "primaryBranchProtected": false,
+    "databaseName": "opscore_acceptance",
+    "serverVersion": "18.7 (84da7d8)",
+    "snapshotSchedule": [],
+    "manualSnapshotId": "snap-aged-thunder-bcsxc1a5",
+    "restoredProofBranch": {
+      "id": "br-calm-poetry-bc7l7wik",
+      "state": "ready",
+      "restoreStatus": "restored",
+      "restoredFrom": "snap-aged-thunder-bcsxc1a5",
+      "restoredAs": "br-proud-salad-bcshhdap",
+      "fullSchemaDataParityProof": "NOT_VERIFIED"
+    },
+    "branches": [
+      {
+        "id": "br-proud-salad-bcshhdap",
+        "name": "main",
+        "primary": true,
+        "protected": false
+      },
+      {
+        "id": "br-calm-poetry-bc7l7wik",
+        "name": "opscore-primary-snapshot-restore-proof-20261119",
+        "primary": false,
+        "protected": false
+      },
+      {
+        "id": "br-square-dawn-bc4or6go",
+        "name": "preview/ops/acceptance-neon-target-2026-11-19",
+        "primary": false,
+        "protected": false
+      },
+      {
+        "id": "br-gentle-recipe-bcd41zw5",
+        "name": "opscore-prod-recovery-95b39f578ef7-44472522631",
+        "primary": false,
+        "protected": false
+      }
+    ]
+  },
+  "databaseAudit": {
+    "mode": "SELECT-only within explicit READ ONLY transactions for the final catalog/role probes",
+    "writesIssued": 0,
+    "databaseTimestamp": "2026-11-19T11:48:03.226Z",
+    "runtimeRole": {
+      "name": "opscore_runtime",
+      "canLogin": true,
+      "isSuperuser": false,
+      "canCreateDatabase": false,
+      "canCreateRole": false,
+      "bypassesRls": false,
+      "inheritsRoles": false,
+      "roleMembershipCount": 0,
+      "migrationLedgerDirectRead": false,
+      "migration056AttestationCallable": true
+    },
+    "migration056Attestation": {
+      "recorded": true,
+      "sourceHashMatches": true,
+      "sourceSha256": "c089750bef8830ac5fc29548580698efcc7c94457dd63e9d2fa5ad4f99006e8c",
+      "latestFilename": "069_technician_location_trail_tenant_persistence.sql",
+      "migrationCount": 68
+    },
+    "publicTables": {
+      "total": 136,
+      "rlsEnabled": 135,
+      "forceRls": 135,
+      "rlsDisabled": 1,
+      "rlsDisabledException": "spatial_ref_sys",
+      "exceptionOwner": "cloud_admin",
+      "exceptionExtension": "postgis"
+    },
+    "policies": {
+      "tablesWithPolicies": 135,
+      "total": 278,
+      "restrictive": 134,
+      "permissive": 144
+    },
+    "securityDefinerFunctions": {
+      "total": 11,
+      "pinnedSearchPath": 11
+    },
+    "foreignKeys": {
+      "total": 292,
+      "composite": 77
+    },
+    "extensions": {
+      "pgcrypto": "1.4",
+      "postgis": "3.6.4",
+      "vector": "0.8.6",
+      "plpgsql": "1.0"
+    }
+  },
+  "migrationLedgerAudit": {
+    "ledgerRowCount": 68,
+    "sourceFileCount": 68,
+    "matchedSourceFiles": 0,
+    "mismatchedSourceFiles": 0,
+    "filenameSetEqual": false,
+    "source": "main",
+    "sourceCommit": "0edd7d8c855e1dd4645979c05fd30be105dff369",
+    "hashes": []
+  },
+  "certificationBoundary": {
+    "productionCertification": false,
+    "productionPromotionPerformed": false,
+    "productionBehavioralIsolationCertified": false,
+    "production67RouteEvidence": false,
+    "productionRestoreParityCertified": false
+  },
+  "limitations": [
+    "This report is a read-only catalog, role, and migration-source consistency audit; it is not a Production behavioral isolation certificate.",
+    "No Production 67-route signed-session read/write/tamper probes were executed.",
+    "The restored branch metadata is present, but the full required schema and row-content parity proof was not verified.",
+    "The Neon Free plan has no protected Primary branch and no scheduled snapshot schedule in the current project settings.",
+    "The Vercel Production deployment still serves an older commit than current main."
+  ]
+}
