@@ -132,7 +132,7 @@
   "migrationLedgerAudit": {
     "ledgerRowCount": 68,
     "sourceFileCount": 68,
-    "matchedSourceFiles": 37,
+    "matchedSourceFiles": 47,
     "mismatchedSourceFiles": 0,
     "filenameSetEqual": false,
     "source": "main",
@@ -321,6 +321,56 @@
       {
         "filename": "038_audit_log_hash_columns.sql",
         "sha256": "484e5f92d8a40795dc615c3b7bdfb4835a9db5e36b8e198b5817484e60e56046",
+        "sourceMatches": true
+      },
+      {
+        "filename": "039_performance_indexes.sql",
+        "sha256": "cb5e7adfa2ffccde41e41f40c1988ad10b6ec06740ebe5396852d57b7e7303be",
+        "sourceMatches": true
+      },
+      {
+        "filename": "040_security_state_scope.sql",
+        "sha256": "ca2faa0e011b130a853b35cccaff67c70ec415fc9bfaacacd79f7d89368bfca5",
+        "sourceMatches": true
+      },
+      {
+        "filename": "041_access_mode_guc_hardening.sql",
+        "sha256": "91a0924a84a0c3fad3b44a293b84ca702b64231d96b87d7b4684d1c013634462",
+        "sourceMatches": true
+      },
+      {
+        "filename": "042_control_plane_tables.sql",
+        "sha256": "8b1dd407326d51aa1a01c9ebe09bd083b31e324203a7a48b00b141115c0f62d9",
+        "sourceMatches": true
+      },
+      {
+        "filename": "043_work_order_context_privileged_definer.sql",
+        "sha256": "89aaccd220355d8af6e8693aac13edcfd1a8ca3f61236af1c0ee6e6554c94dc5",
+        "sourceMatches": true
+      },
+      {
+        "filename": "044_system_tables_rls.sql",
+        "sha256": "01e18ca761e6ca97c3ac259f1a67df95a7523ba5ca57b090d0d25ffa836ef338",
+        "sourceMatches": true
+      },
+      {
+        "filename": "045_password_reset_token_definer_hardening.sql",
+        "sha256": "c47d6c9b5c1326c268f0364f57483a0d8736cde6ded7bcae4bf46e650b2c97d9",
+        "sourceMatches": true
+      },
+      {
+        "filename": "046_migration_ledger_access_lockdown.sql",
+        "sha256": "e33072aafa38af8fabbc2ed98a8de6caf8aa5e35c2b0eb58aa4e7376f3311487",
+        "sourceMatches": true
+      },
+      {
+        "filename": "047_control_plane_runtime_privileges.sql",
+        "sha256": "d86b5290d243aae02163e49ccb9cc8a3da0e4adc5d416ea80e18dc6ffd22ec37",
+        "sourceMatches": true
+      },
+      {
+        "filename": "048_system_table_app_grants.sql",
+        "sha256": "093534137ed72ef5972f2fd203abc369aa89933c48bdc373620c25c23f6baea1",
         "sourceMatches": true
       }
     ]
