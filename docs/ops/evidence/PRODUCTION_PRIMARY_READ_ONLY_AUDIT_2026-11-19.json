@@ -1,7 +1,7 @@
 {
   "schemaVersion": "opscore.production-primary-read-only-audit.v1",
   "evidenceClass": "LIVE_PRIMARY_READ_ONLY_CATALOG_AUDIT",
-  "status": "IN_PROGRESS",
+  "status": "PASS",
   "auditedAt": "2026-11-19T11:48:03.226Z",
   "sourceMainCommit": "0edd7d8c855e1dd4645979c05fd30be105dff369",
   "ciEvidence": {
@@ -127,14 +127,15 @@
       "postgis": "3.6.4",
       "vector": "0.8.6",
       "plpgsql": "1.0"
-    }
+    },
+    "finalCatalogQueriesReadOnly": true
   },
   "migrationLedgerAudit": {
     "ledgerRowCount": 68,
     "sourceFileCount": 68,
     "matchedSourceFiles": 68,
     "mismatchedSourceFiles": 0,
-    "filenameSetEqual": false,
+    "filenameSetEqual": true,
     "source": "main",
     "sourceCommit": "0edd7d8c855e1dd4645979c05fd30be105dff369",
     "hashes": [
@@ -478,7 +479,12 @@
         "sha256": "9a88cd60350fcfb1dcf120f87506394e0b569f27dac21201a7313c7497039ef6",
         "sourceMatches": true
       }
-    ]
+    ],
+    "sourceFilesCount": 68,
+    "ledgerRowsCount": 68,
+    "verificationMethod": "Neon pgcrypto.digest over exact UTF-8 GitHub main file contents, executed in transactions beginning with SET TRANSACTION READ ONLY",
+    "transactionReadOnlyEnforced": true,
+    "allSourceChecksumsMatch": true
   },
   "certificationBoundary": {
     "productionCertification": false,
@@ -488,10 +494,13 @@
     "productionRestoreParityCertified": false
   },
   "limitations": [
-    "This report is a read-only catalog, role, and migration-source consistency audit; it is not a Production behavioral isolation certificate.",
-    "No Production 67-route signed-session read/write/tamper probes were executed.",
-    "The restored branch metadata is present, but the full required schema and row-content parity proof was not verified.",
-    "The Neon Free plan has no protected Primary branch and no scheduled snapshot schedule in the current project settings.",
-    "The Vercel Production deployment still serves an older commit than current main."
-  ]
+    "PASS applies only to the enumerated read-only catalog, runtime-role, migration-ledger and source checksum audit on the live Neon Primary at auditedAt.",
+    "No Production 67-route signed-session behavioral probes were executed; CI 67/67 evidence is a distinct evidence class.",
+    "No Vercel Production deployment or alias promotion was performed; the active Production deployment remains on an older commit than current main.",
+    "The restored Neon branch metadata exists, but the complete schema-definition and normalized row-content parity proof required by PRODUCTION_PRIMARY_RESTORE_PROOF_SPEC.md v2 was not generated or revalidated in this audit.",
+    "Neon organization is on Free plan; Primary is not protected and snapshot schedule is empty. No plan changes, snapshot schedule edits, or branch mutations were performed.",
+    "The Vercel team plan was not exposed in the read-only project/team response and remains NOT_VERIFIED.",
+    "Production release flags remain fail-closed: OPSC_RELEASE_VERIFIED=false, OPSC_PRODUCTION_ISOLATION_CERTIFICATION=NOT_CERTIFIED, OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE=false."
+  ],
+  "auditCompletedAt": "2026-11-19T11:52:00Z"
 }
