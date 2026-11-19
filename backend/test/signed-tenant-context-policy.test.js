@@ -507,6 +507,41 @@ test('candidate probe enables only approved signed routes without opening global
   assert.equal(policy.signedSessionAutobindEnabled(candidateProbeEnvironment, candidateProbeReadiness), false);
 });
 
+test('binary attachment download gets a separate signed-context exception without joining the 67-route inventory', () => {
+  const route = '/api/v1/attachments/attachment_candidate_123';
+  const candidateRequest = {
+    method: 'GET',
+    url: route,
+    headers: { 'x-opscore-signed-context-probe': candidateProbeToken }
+  };
+
+  // The HOLD exception is deliberately narrower than the 67-route business manifest.
+  assert.equal(policy.isSignedTenantContextRouteDefinition('GET', route, 'read'), false);
+  assert.equal(signedTenantRouteManifest.routeCount, 67);
+  assert.equal(policy.signedContextRequested(candidateRequest, candidateProbeEnvironment, candidateProbeReadiness), true);
+  assert.equal(policy.signedTenantContextRouteError(candidateRequest, candidateProbeEnvironment, candidateProbeReadiness), null);
+
+  assert.equal(policy.signedContextRequested(
+    { method: 'GET', url: route }, candidateProbeEnvironment, candidateProbeReadiness
+  ), false, 'candidate attachment download must require the per-request probe token');
+  assert.equal(policy.signedContextRequested(
+    { ...candidateRequest, method: 'POST' }, candidateProbeEnvironment, candidateProbeReadiness
+  ), false, 'only GET is eligible for the separate attachment exception');
+  assert.equal(policy.signedContextRequested(
+    { ...candidateRequest, url: route + '/extra' }, candidateProbeEnvironment, candidateProbeReadiness
+  ), false, 'the attachment exception must match one exact path segment');
+
+  const releasedProduction = {
+    ...candidateProbeEnvironment,
+    OPSC_PRODUCTION_HOLD: 'false',
+    OPSC_RELEASE_VERIFIED: 'true',
+    OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED: 'true'
+  };
+  assert.equal(policy.signedContextRequested(
+    { method: 'GET', url: route }, releasedProduction, { productionReleaseVerified: true }
+  ), true, 'released Production must bind attachment reads to signed tenant context too');
+});
+
 test('candidate route permission is limited to the actual Preview policy allowlist', () => {
   const unknown = {
     method: 'GET',
