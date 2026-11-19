@@ -10,6 +10,25 @@
       "permanent": false
     }
   ],
+  "routes": [
+    {
+      "src": "^/login$",
+      "methods": ["GET", "HEAD"],
+      "headers": {
+        "Location": "/control-plane.html",
+        "Cache-Control": "no-store"
+      },
+      "status": 307
+    },
+    {
+      "src": "^/login$",
+      "headers": {
+        "Allow": "GET, HEAD",
+        "Cache-Control": "no-store"
+      },
+      "status": 405
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/(.*)",
