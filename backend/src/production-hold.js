@@ -73,6 +73,10 @@ function isAuthorizedProductionCandidateProbeRequest(req, env = process.env, rea
   if (!isCandidateRequestOnExactDeployment(req, env, readiness)) return false;
   const method = String(req && req.method || '').trim().toUpperCase();
   const pathname = requestPath(req);
+  // Evidence binary download is exercised by the candidate collector after upload
+  // complete. It is intentionally outside the 67 signed-context inventory count;
+  // allow only this exact GET under the same candidate boundary controls.
+  if (method === 'GET' && /^\/api\/v1\/attachments\/[^/]+$/.test(pathname)) return true;
   return ['read', 'write'].some(operation =>
     signedTenantContextPolicy.isSignedTenantContextRouteDefinition(method, pathname, operation)
   );
