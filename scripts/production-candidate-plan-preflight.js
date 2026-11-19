@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const VERCEL_API_ORIGIN = 'https://api.vercel.com';
 const NEON_API_ORIGIN = 'https://console.neon.tech/api/v2';
 const ALLOWED_VERCEL_PLANS = new Set(['pro', 'enterprise']);
-const ALLOWED_NEON_PRIMARY_PROTECTION_PLANS = new Set(['scale', 'business', 'enterprise']);
+const ALLOWED_NEON_PRIMARY_PROTECTION_PLANS = new Set(['launch', 'scale', 'business', 'enterprise']);
 
 function required(env, key, code) {
   const value = String(env[key] || '').trim();
