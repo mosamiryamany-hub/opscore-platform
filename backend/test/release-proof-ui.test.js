@@ -69,7 +69,7 @@ test('release proof page separates CI identity from commercial release closure',
 test('release page labels CI, commercial closure, and production acceptance independently', () => {
   const htmlPath = path.join(__dirname, '..', 'web', 'verify', 'release.html');
   const html = fs.readFileSync(htmlPath, 'utf8');
-  assert.match(html, /Commit-bound CI verification/);
+  assert.match(html, /Embedded CI assertion in release proof/);
   assert.match(html, /Commercial release closure/);
   assert.match(html, /Production acceptance evidence/);
   assert.match(html, /id="ciGate"/);
