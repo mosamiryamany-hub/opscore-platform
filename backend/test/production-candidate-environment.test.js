@@ -136,6 +136,40 @@ test('restore returns every snapshotted flag to its prior state and removes all 
   fs.rmSync(tmp, { recursive: true, force: true });
 });
 
+
+test('verify-restored proves every Production variable matches the snapshot and all candidate flags are absent', async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-candidate-env-'));
+  const snapshotPath = path.join(tmp, 'opscore-production-env-baseline.json');
+  const envFilePath = path.join(tmp, '.vercel.env.production.local');
+  const parsed = parseEnvFile(envFile());
+  const initial = [...parsed.keys()].map((key, index) => ({
+    id: 'env_' + index, key, value: parsed.get(key), target: ['production'], type: 'encrypted'
+  }));
+  const snapshot = createBaselineSnapshot(parsed, initial);
+  fs.writeFileSync(snapshotPath, JSON.stringify(snapshot));
+  fs.writeFileSync(envFilePath, envFile());
+  const env = {
+    VERCEL_PROJECT_ID: 'prj_123',
+    VERCEL_ORG_ID: 'team_123',
+    VERCEL_TOKEN: 'x',
+    RUNNER_TEMP: tmp,
+    VERCEL_PRODUCTION_ENV_FILE: envFilePath
+  };
+  const store = makeEnvStore(initial);
+  const result = await verifyRestored({ env, fetchImpl: store.fetchImpl });
+  assert.equal(result.status, 'PASS');
+  await assert.rejects(
+    () => verifyRestored({ env, fetchImpl: store.fetchImpl, envFileContents: envFile().replace('OPSC_PRODUCTION_HOLD="false"', 'OPSC_PRODUCTION_HOLD="true"') }),
+    /PRODUCTION_ENV_RESTORE_MISMATCH:OPSC_PRODUCTION_HOLD/
+  );
+  store.items.push({ id: 'candidate', key: 'OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED', value: 'true', target: ['production'], type: 'encrypted' });
+  await assert.rejects(
+    () => verifyRestored({ env, fetchImpl: store.fetchImpl }),
+    /PRODUCTION_CANDIDATE_ENV_NOT_REMOVED:OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED/
+  );
+  fs.rmSync(tmp, { recursive: true, force: true });
+});
+
 test('publish refuses unbound evidence and removes candidate credentials only after all exact pins validate', async () => {
   const store = makeEnvStore([]);
   const env = {
