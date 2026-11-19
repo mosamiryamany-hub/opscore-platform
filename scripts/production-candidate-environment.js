@@ -263,11 +263,54 @@ async function restore(options = {}) {
   process.stdout.write('PRODUCTION_CANDIDATE_ENV_RESTORED=PASS\n');
 }
 
+async function verifyRestored(options = {}) {
+  const env = options.env || process.env;
+  const snapshotPath = defaultSnapshotPath(env);
+  if (!fs.existsSync(snapshotPath)) throw new Error('PRODUCTION_ENV_SNAPSHOT_REQUIRED_FOR_VERIFY');
+  const snapshot = JSON.parse(fs.readFileSync(snapshotPath, 'utf8'));
+  if (snapshot.schemaVersion !== 'opscore.production-candidate-env-snapshot.v1'
+      || !snapshot.entries || typeof snapshot.entries !== 'object') {
+    throw new Error('PRODUCTION_ENV_SNAPSHOT_INVALID');
+  }
+  const envFile = String(env.VERCEL_PRODUCTION_ENV_FILE || '.vercel/.env.production.local');
+  const envText = options.envFileContents === undefined ? fs.readFileSync(envFile, 'utf8') : options.envFileContents;
+  const parsed = parseEnvFile(envText);
+  const envs = await listProjectEnvs(options);
+
+  for (const key of BASELINE_KEYS) {
+    const expected = snapshot.entries[key];
+    if (!expected || typeof expected.present !== 'boolean') {
+      throw new Error('PRODUCTION_ENV_SNAPSHOT_ENTRY_INVALID:' + key);
+    }
+    const hits = productionHits(envs, key);
+    if (expected.present === true) {
+      if (hits.length !== 1 || typeof expected.value !== 'string' || !parsed.has(key)
+          || parsed.get(key) !== expected.value) {
+        throw new Error('PRODUCTION_ENV_RESTORE_MISMATCH:' + key);
+      }
+    } else if (hits.length !== 0 || parsed.has(key)) {
+      throw new Error('PRODUCTION_ENV_RESTORE_UNEXPECTED_KEY:' + key);
+    }
+  }
+  for (const key of CANDIDATE_KEYS) {
+    if (productionHits(envs, key).length !== 0 || parsed.has(key)) {
+      throw new Error('PRODUCTION_CANDIDATE_ENV_NOT_REMOVED:' + key);
+    }
+  }
+  const outputPath = String(env.GITHUB_OUTPUT || '').trim();
+  if (outputPath) {
+    fs.appendFileSync(outputPath, 'restore_verified=true\n', { encoding: 'utf8', mode: 0o600 });
+  }
+  process.stdout.write('PRODUCTION_CANDIDATE_ENV_RESTORE_VERIFIED=PASS\n');
+  return { status: 'PASS', baselineKeysVerified: BASELINE_KEYS.length, candidateKeysAbsent: CANDIDATE_KEYS.length };
+}
+
 async function main(argv = process.argv.slice(2), options = {}) {
   const mode = String(argv[0] || '').trim();
   if (mode === 'prepare') return prepare(options);
   if (mode === 'publish') return publish(options);
   if (mode === 'restore') return restore(options);
+  if (mode === 'verify-restored') return verifyRestored(options);
   throw new Error('PRODUCTION_CANDIDATE_ENV_MODE_INVALID');
 }
 
@@ -295,5 +338,6 @@ module.exports = {
   prepare,
   publish,
   restore,
+  verifyRestored,
   main
 };

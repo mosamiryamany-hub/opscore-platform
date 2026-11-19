@@ -22,10 +22,18 @@ test('production recovery selects one explicit application database and never fa
   assert.match(evidenceWorkflow, /I_AUTHORIZE_PRODUCTION_EVIDENCE_PROBES/);
 });
 
-test('recovery collector never deletes an existing Neon branch and fails closed at the branch limit', () => {
+test('recovery collector deletes only its exact temporary child branch and verifies absence', () => {
   assert.match(collector, /NEON_BRANCH_CAPACITY_EXHAUSTED/);
-  assert.match(collector, /no existing recovery branch was deleted/);
-  assert.doesNotMatch(collector, /method:\s*['"]DELETE['"]/i);
+  assert.match(collector, /async function deleteTemporaryRecoveryBranch/);
+  assert.match(collector, /String\(existing\.name \|\| ''\) !== expectedName/);
+  assert.match(collector, /String\(existing\.parent_id \|\| ''\) !== parentBranchId/);
+  assert.match(collector, /existing\.primary === true/);
+  assert.match(collector, /existing\.default === true/);
+  assert.match(collector, /method: 'DELETE'/);
+  assert.match(collector, /RECOVERY_BRANCH_DELETE_NOT_VERIFIED/);
+  assert.match(collector, /recoveryBranchDeleted: true/);
+  assert.match(collector, /temporaryBranch: true/);
+  assert.match(collector, /no pre-existing branch is deleted/i);
   assert.doesNotMatch(collector, /pruned_branch/);
 });
 
@@ -42,6 +50,8 @@ test('release certification requires the exact application database and explicit
   assert.match(releaseProof, /evidence.coreTenantTableRowCountsMatch === true/);
   assert.match(releaseProof, /branch-clone-public-table-count-and-core-tenant-row-counts-only/);
   assert.match(releaseProof, /deploymentIdBound/);
+  assert.match(releaseProof, /evidence\.temporaryBranch === true/);
+  assert.match(releaseProof, /evidence\.cleanup\.recoveryBranchDeleted === true/);
 });
 
 

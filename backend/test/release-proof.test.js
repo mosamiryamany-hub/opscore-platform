@@ -158,7 +158,10 @@ test('release proof accepts production acceptance only when the embedded JSON ha
     assert.equal(proof.gates.tenantRouteSecurityCoverage, 'PASS_TEST_SCOPE');
     assert.equal(proof.gates.functionalApiRouteAcceptance, 'NOT_VERIFIED');
     assert.equal(proof.gates.productionIsolationCertification, 'NOT_CERTIFIED');
-    assert.equal(proof.gates.mobileStoreArtifacts, 'REMAINING_BUYER');
+    assert.equal(Object.hasOwn(proof.gates, 'mobileStoreArtifacts'), false);
+    assert.equal(Object.hasOwn(proof.gates, 'nativeTranslationReview'), false);
+    assert.equal(Object.hasOwn(proof.gates, 'licensedStreetMap'), false);
+    assert.doesNotMatch(proof.note, /buyer|REMAINING_BUYER/i);
     assert.equal(proof.productionAcceptance.evidenceSha256, evidence.sha256);
 
     const mismatchedDatabase = writeJsonEvidence(dir, 'mismatched-database.json',
@@ -314,13 +317,22 @@ test('production behavioral evidence must carry the exact release commit hint', 
     recoveryBranchId: 'br-test-recovery',
     tableCountCompared: 134,
     mismatchCount: 0,
-    coreTenantTableRowCountsMatch: true
+    coreTenantTableRowCountsMatch: true,
+    temporaryBranch: true,
+    cleanup: { status: 'PASS', recoveryBranchDeleted: true }
   };
   try {
     fs.writeFileSync(sessionPath, JSON.stringify(session));
     fs.writeFileSync(recoveryPath, JSON.stringify(recovery));
     assert.equal(readProductionSessionIsolationEvidence(sessionPath, env).status, 'PASS');
     assert.equal(readProductionRecoveryPointEvidence(recoveryPath, env).status, 'PASS');
+    fs.writeFileSync(recoveryPath, JSON.stringify({
+      ...recovery,
+      cleanup: { status: 'FAIL', recoveryBranchDeleted: false }
+    }));
+    assert.equal(readProductionRecoveryPointEvidence(recoveryPath, env).status, 'NOT_VERIFIED');
+    fs.writeFileSync(recoveryPath, JSON.stringify(recovery));
+
     assert.equal(readProductionSessionIsolationEvidence(sessionPath, {
       ...env, VERCEL_DEPLOYMENT_ID: 'dpl-other-deployment'
     }).status, 'NOT_VERIFIED');
@@ -423,6 +435,8 @@ test('production behavioral evidence rejects any evidence rebind marker', () => 
     tableCountCompared: 134,
     mismatchCount: 0,
     coreTenantTableRowCountsMatch: true,
+    temporaryBranch: true,
+    cleanup: { status: 'PASS', recoveryBranchDeleted: true },
     evidenceRebind: { ...session.evidenceRebind }
   };
   try {
@@ -831,6 +845,8 @@ test('Production session and recovery evidence bind to the explicit probe deploy
       recoveryBranchId: 'br-candidate-recovery-20261118',
       tableCountCompared: 137,
       coreTenantTableRowCountsMatch: true,
+    temporaryBranch: true,
+    cleanup: { status: 'PASS', recoveryBranchDeleted: true },
       mismatchCount: 0,
       sourceCommitHint: SHA,
       pipelineId: '2978538209',

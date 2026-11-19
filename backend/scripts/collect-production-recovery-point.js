@@ -2,8 +2,9 @@
 'use strict';
 
 /**
- * Create a commit-bound Neon branch snapshot and compare selected table counts
- * in the explicitly configured application database. Never deletes old branches.
+ * Create a commit-bound, temporary Neon branch clone and compare selected table
+ * counts in the explicitly configured application database. Only the exact branch
+ * created by this invocation is deleted and verified absent before evidence passes.
  * This is not a PITR restore test or row-content integrity proof.
  */
 const fs = require('node:fs');
@@ -47,6 +48,44 @@ function psql(uri, sql) {
     maxBuffer: 10 * 1024 * 1024
   }).trim();
 }
+async function listBranches(projectId) {
+  const payload = await neon('/projects/' + encodeURIComponent(projectId) + '/branches');
+  return Array.isArray(payload.branches) ? payload.branches : [];
+}
+
+async function deleteTemporaryRecoveryBranch(projectId, branchId, parentBranchId, expectedName) {
+  if (!/^br-[a-z0-9-]{8,80}$/.test(String(branchId || ''))) {
+    throw new Error('RECOVERY_BRANCH_ID_INVALID_FOR_CLEANUP');
+  }
+  const branches = await listBranches(projectId);
+  const existing = branches.find(branch => String(branch.id || '') === branchId);
+  if (!existing) {
+    return { status: 'PASS', recoveryBranchDeleted: true, branchAbsentBeforeCleanup: true };
+  }
+  if (String(existing.name || '') !== expectedName
+      || String(existing.parent_id || '') !== parentBranchId
+      || existing.primary === true
+      || existing.default === true) {
+    throw new Error('RECOVERY_BRANCH_CLEANUP_TARGET_NOT_EXACT_TEMPORARY_CHILD');
+  }
+
+  await neon('/projects/' + encodeURIComponent(projectId) + '/branches/' + encodeURIComponent(branchId), {
+    method: 'DELETE'
+  });
+
+  let absent = false;
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const afterDelete = await listBranches(projectId);
+    if (!afterDelete.some(branch => String(branch.id || '') === branchId)) {
+      absent = true;
+      break;
+    }
+    await new Promise(resolve => setTimeout(resolve, 1000));
+  }
+  if (!absent) throw new Error('RECOVERY_BRANCH_DELETE_NOT_VERIFIED');
+  return { status: 'PASS', recoveryBranchDeleted: true, branchAbsentBeforeCleanup: false };
+}
+
 function writeReport(report) {
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   const body = JSON.stringify(report, null, 2) + '\n';
@@ -115,57 +154,89 @@ async function main() {
       evidenceClass: 'PRODUCTION_BRANCH_RECOVERY_POINT'
     };
     writeReport(blockedReport);
-    process.stderr.write('PRODUCTION_RECOVERY_POINT_BLOCKED:NEON_BRANCH_CAPACITY_EXHAUSTED:' + branches.length + '/' + limitRaw + '\\n');
+    process.stderr.write('PRODUCTION_RECOVERY_POINT_BLOCKED:NEON_BRANCH_CAPACITY_EXHAUSTED:' + branches.length + '/' + limitRaw + '\n');
     process.exitCode = 1;
     return;
   }
 
-  const runId = String(process.env.GITHUB_RUN_ID || Date.now()).replace(/[^0-9]/g, '');
-  const recoveryBranchName = 'opscore-prod-recovery-' + commit.slice(0, 12) + '-' + runId;
+  const runId = String(process.env.GITHUB_RUN_ID).replace(/[^0-9]/g, '');
+  const runAttempt = String(process.env.GITHUB_RUN_ATTEMPT || '1').replace(/[^0-9]/g, '') || '1';
+  const nonce = crypto.randomBytes(4).toString('hex');
+  const recoveryBranchName = 'opscore-tmp-recovery-' + commit.slice(0, 12) + '-' + runId + '-' + runAttempt + '-' + nonce;
   const created = await neon('/projects/' + encodeURIComponent(projectId) + '/branches', {
     method: 'POST',
     body: { branch: { name: recoveryBranchName, parent_id: parentBranchId }, endpoints: [{ type: 'read_write' }] }
   });
-  const recoveryBranchId = created.branch && created.branch.id || created.id;
-  if (!recoveryBranchId) throw new Error('RECOVERY_BRANCH_CREATE_FAILED');
+  const recoveryBranchId = String(created.branch && created.branch.id || created.id || '');
+  if (!/^br-[a-z0-9-]{8,80}$/.test(recoveryBranchId)) throw new Error('RECOVERY_BRANCH_CREATE_FAILED');
 
   let readyBranch = null;
-  for (let attempt = 0; attempt < 30; attempt++) {
-    const snapshot = await neon('/projects/' + encodeURIComponent(projectId) + '/branches/' + encodeURIComponent(recoveryBranchId));
-    const branch = snapshot.branch || snapshot;
-    if (branch.current_state === 'ready') {
-      readyBranch = branch;
-      break;
+  let tableCounts = {};
+  let mismatches = [];
+  let publicTableCount = null;
+  let operationalError = null;
+  let cleanup = { status: 'NOT_RUN', recoveryBranchDeleted: false };
+
+  try {
+    for (let attempt = 0; attempt < 30; attempt++) {
+      const snapshot = await neon('/projects/' + encodeURIComponent(projectId) + '/branches/' + encodeURIComponent(recoveryBranchId));
+      const branch = snapshot.branch || snapshot;
+      if (branch.current_state === 'ready') {
+        readyBranch = branch;
+        break;
+      }
+      await new Promise(resolve => setTimeout(resolve, 3000));
     }
-    await new Promise(resolve => setTimeout(resolve, 3000));
-  }
-  if (!readyBranch) throw new Error('RECOVERY_BRANCH_READY_TIMEOUT');
-  if (readyBranch.parent_id !== parentBranchId) throw new Error('RECOVERY_BRANCH_PARENT_IDENTITY_MISMATCH');
+    if (!readyBranch) throw new Error('RECOVERY_BRANCH_READY_TIMEOUT');
+    if (readyBranch.parent_id !== parentBranchId
+        || readyBranch.name !== recoveryBranchName
+        || readyBranch.primary === true
+        || readyBranch.default === true) {
+      throw new Error('RECOVERY_BRANCH_PARENT_OR_TEMPORARY_IDENTITY_MISMATCH');
+    }
 
-  const recoveryUri = await connectionUri(projectId, recoveryBranchId, databaseName, roleName);
-  const coreTables = ['organizations', 'users', 'memberships', 'sessions', 'assets', 'sites', 'work_orders', 'customers'];
-  const mismatches = [];
-  const tableCounts = {};
-  for (const table of coreTables) {
-    const parentCount = Number(psql(parentUri, 'SELECT count(*) FROM public.' + table + ';'));
-    const recoveryCount = Number(psql(recoveryUri, 'SELECT count(*) FROM public.' + table + ';'));
-    tableCounts[table] = { parent: parentCount, recovery: recoveryCount };
-    if (parentCount !== recoveryCount) mismatches.push({ table, parent: parentCount, recovery: recoveryCount });
-  }
-  const parentPublicTables = Number(psql(parentUri,
-    "SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE';"));
-  const recoveryPublicTables = Number(psql(recoveryUri,
-    "SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE';"));
-  if (parentPublicTables !== recoveryPublicTables) {
-    mismatches.push({ table: '__public_table_count__', parent: parentPublicTables, recovery: recoveryPublicTables });
+    const recoveryUri = await connectionUri(projectId, recoveryBranchId, databaseName, roleName);
+    const coreTables = ['organizations', 'users', 'memberships', 'sessions', 'assets', 'sites', 'work_orders', 'customers'];
+    for (const table of coreTables) {
+      const parentCount = Number(psql(parentUri, 'SELECT count(*) FROM public.' + table + ';'));
+      const recoveryCount = Number(psql(recoveryUri, 'SELECT count(*) FROM public.' + table + ';'));
+      tableCounts[table] = { parent: parentCount, recovery: recoveryCount };
+      if (parentCount !== recoveryCount) mismatches.push({ table, parent: parentCount, recovery: recoveryCount });
+    }
+    const parentPublicTables = Number(psql(parentUri,
+      "SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE';"));
+    const recoveryPublicTables = Number(psql(recoveryUri,
+      "SELECT count(*) FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE';"));
+    publicTableCount = parentPublicTables;
+    if (parentPublicTables !== recoveryPublicTables) {
+      mismatches.push({ table: '__public_table_count__', parent: parentPublicTables, recovery: recoveryPublicTables });
+    }
+    if (parentPublicTables < 130) throw new Error('RECOVERY_PUBLIC_TABLE_COUNT_BELOW_REQUIRED_BASELINE');
+  } catch (error) {
+    operationalError = String(error && (error.code || error.message) || 'RECOVERY_PROBE_FAILED')
+      .replace(/[^A-Z0-9_:.-]/gi, '_').slice(0, 180);
   }
 
-  const tableCountsMatch = mismatches.length === 0
-    && parentPublicTables >= 130
-    && parentPublicTables === recoveryPublicTables;
+  try {
+    cleanup = await deleteTemporaryRecoveryBranch(projectId, recoveryBranchId, parentBranchId, recoveryBranchName);
+  } catch (error) {
+    cleanup = {
+      status: 'FAIL',
+      recoveryBranchDeleted: false,
+      reasonCode: String(error && (error.code || error.message) || 'RECOVERY_BRANCH_CLEANUP_FAILED')
+        .replace(/[^A-Z0-9_:.-]/gi, '_').slice(0, 180)
+    };
+  }
+
+  const tableCountsMatch = !operationalError
+    && mismatches.length === 0
+    && Number.isSafeInteger(publicTableCount)
+    && publicTableCount >= 130;
+  const status = tableCountsMatch && cleanup.status === 'PASS' && cleanup.recoveryBranchDeleted === true
+    ? 'PASS' : 'FAIL';
   const report = {
     schemaVersion: 'opscore.production-recovery-point.v3',
-    status: tableCountsMatch ? 'PASS' : 'FAIL',
+    status,
     testedAt: new Date().toISOString(),
     projectId,
     parentBranchId,
@@ -174,14 +245,17 @@ async function main() {
     serverVersion: identity.server_version,
     recoveryBranchId,
     recoveryBranchName,
+    temporaryBranch: true,
     parentLsn,
-    tableCountCompared: parentPublicTables,
+    tableCountCompared: publicTableCount,
     coreTenantTableRowCountsMatch: tableCountsMatch,
     verificationScope: 'branch-clone-public-table-count-and-core-tenant-row-counts-only',
     mismatchCount: mismatches.length,
     mismatches,
     tableCounts,
-    note: 'This is a branch-clone and row-count comparison for the explicitly configured application database only. It does not compare row contents, certify PITR, or establish RPO/RTO. No previous branch is deleted. A full restore drill remains separate.',
+    cleanup,
+    ...(operationalError ? { failureCode: operationalError } : {}),
+    note: 'This is a temporary branch-clone and row-count comparison for the explicitly configured application database only. The exact child branch created by this run is deleted and its absence verified before PASS. It does not compare row contents, certify PITR, or establish RPO/RTO. No pre-existing branch is deleted. A full restore drill remains separate.',
     sourceCommitHint: commit,
     pipelineId,
     deploymentId: deploymentIdentity.deploymentId,
@@ -198,8 +272,9 @@ async function main() {
     databaseName,
     recoveryBranchId,
     recoveryBranchName,
-    tableCountCompared: parentPublicTables,
+    tableCountCompared: publicTableCount,
     mismatchCount: mismatches.length,
+    cleanup,
     verificationScope: report.verificationScope,
     sourceCommitHint: commit
   }) + '\n');

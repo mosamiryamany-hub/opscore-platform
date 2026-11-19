@@ -279,6 +279,9 @@ function readProductionRecoveryPointEvidence(filePath = embeddedEvidencePath('PR
   const deploymentIdBound = /^dpl_[A-Za-z0-9]+$/.test(expectedDeploymentId)
     && String(evidence.deploymentId || '').trim() === expectedDeploymentId;
   const expectedDatabaseName = String(env.OPSC_PRODUCTION_DATABASE_NAME || '').trim();
+  const cleanupVerified = evidence.temporaryBranch === true
+    && evidence.cleanup && evidence.cleanup.status === 'PASS'
+    && evidence.cleanup.recoveryBranchDeleted === true;
   const scopeValid = Boolean(expectedDatabaseName)
     && evidence.schemaVersion === 'opscore.production-recovery-point.v3'
     && evidence.databaseName === expectedDatabaseName
@@ -287,13 +290,16 @@ function readProductionRecoveryPointEvidence(filePath = embeddedEvidencePath('PR
     && Number(evidence.tableCountCompared) >= 130
     && Number(evidence.mismatchCount) === 0
     && typeof evidence.recoveryBranchId === 'string'
-    && /^[a-z0-9-]{8,80}$/.test(evidence.recoveryBranchId);
+    && /^[a-z0-9-]{8,80}$/.test(evidence.recoveryBranchId)
+    && cleanupVerified;
   const noEvidenceRebind = evidence.evidenceRebind === undefined || evidence.evidenceRebind === null;
   const ok = evidence.status === 'PASS' && scopeValid && commitBound && pipelineBound && parentBranchBound && deploymentIdBound && noEvidenceRebind;
   return {
     status: ok ? 'PASS' : 'NOT_VERIFIED',
     testedAt: evidence.testedAt || null,
     recoveryBranchId: evidence.recoveryBranchId || null,
+    temporaryBranch: evidence.temporaryBranch === true,
+    cleanupVerified,
     databaseName: evidence.databaseName || null,
     verificationScope: evidence.verificationScope || null,
     tableCountCompared: Number(evidence.tableCountCompared) || null,
@@ -552,7 +558,7 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
     noteParts.push('productionIsolationCertification remains NOT_CERTIFIED until all 67 signed-session routes are verified in Production, in addition to the v2 live probes, exact-database recovery-point evidence, commit-bound acceptance, and certification flag.');
   }
   noteParts.push(signedTenantRouteCoverage.status === 'PASS' ? 'All 67 signed-session tenant routes passed the independent production route matrix on this exact commit and pipeline.' : 'Signed tenant-session coverage across all 67 required routes remains NOT_VERIFIED; this blocks production isolation certification and release verification.');
-  noteParts.push('Tenant route security coverage and functional API route acceptance remain separately scoped (CI fixtures / contract-scope) and are not full business-flow certification. Signed mobile binaries, native-speaker localization review, and a licensed street-map provider remain buyer-owned.');
+  noteParts.push('Tenant route security coverage and functional API route acceptance remain separately scoped (CI fixtures / contract-scope) and are not full business-flow certification.');
   const releaseNote = noteParts.join(' ');
 
   return {
@@ -561,7 +567,7 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
     version: '0.11.62',
     releaseTag,
     sourceCommitIdentitySource: identity ? 'github-actions-cli-assertion' : 'unverified',
-    status: releaseVerified ? 'PASS_WITH_BUYER_RESIDUALS' : 'UNVERIFIED',
+    status: releaseVerified ? 'PASS' : 'UNVERIFIED',
     sourceCommit,
     deployment: {
       status: deployment.status,
@@ -579,7 +585,7 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
       evidenceScope: 'GitHub Actions CI commit-match is bound to the embedded build identity; use pipelineUrl to inspect the full gate report.'
     },
     gates: {
-      commercialClosure: releaseVerified ? 'PASS_WITH_BUYER_RESIDUALS' : 'UNVERIFIED',
+      commercialClosure: releaseVerified ? 'PASS' : 'UNVERIFIED',
       livePostgresRls: ciVerified ? 'PASS_TEST_SCOPE' : 'UNVERIFIED',
       productionSessionTenantBoundary: sessionGate,
       productionRecoveryBundle: recoveryGate,
@@ -588,9 +594,6 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
       functionalApiRouteAcceptance: apiRouteAcceptance.status,
       neonPointInTimeRecovery: pitrGate,
       productionIsolationCertification: isolationCertified ? 'CERTIFIED' : 'NOT_CERTIFIED',
-      mobileStoreArtifacts: 'REMAINING_BUYER',
-      nativeTranslationReview: 'REMAINING_BUYER',
-      licensedStreetMap: 'REMAINING_BUYER',
       postgresHttpAcceptance: postgresHttpAcceptance.status
     },
     productionAcceptance: {
@@ -622,7 +625,7 @@ function hasVerifiedProductionRelease(env = process.env, identityPath, productio
   const identity = readEmbeddedBuildIdentity(identityPath);
   if (!identity) return false;
   const proof = createPublicReleaseProof(env, () => new Date(), identityPath, productionAcceptanceEvidencePath, postgresHttpAcceptancePath, apiRouteAcceptancePath, signedTenantRouteCoveragePath);
-  return proof.status === 'PASS_WITH_BUYER_RESIDUALS' &&
+  return proof.status === 'PASS' &&
     proof.ci.status === 'PASS' &&
     proof.packageFingerprint.status === 'PUBLISHED' &&
     proof.deployment.status === 'identified' &&

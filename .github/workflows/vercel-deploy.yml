@@ -4,9 +4,16 @@ on:
     branches: [main]
   workflow_dispatch:
     inputs:
-      confirm_production_deployment:
-        description: Explicitly authorize the Production release workflow and its evidence probes
+      run_mode:
+        description: Select evidence collection only or the separately authorized Production release
         required: true
+        type: choice
+        options:
+          - CANDIDATE_EVIDENCE_ONLY
+          - AUTHORIZE_PRODUCTION_RELEASE
+      confirm_production_deployment:
+        description: Required only when AUTHORIZE_PRODUCTION_RELEASE is selected
+        required: false
         type: choice
         options:
           - I_AUTHORIZE_PRODUCTION_DEPLOYMENT
@@ -87,7 +94,18 @@ jobs:
   deploy:
     needs: [verify, postgres-acceptance]
     # Production deploy is never automatic on push. Require explicit owner authorization and a separately reviewed staged-probe OIDC readiness flag.
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.event.inputs.confirm_production_deployment == 'I_AUTHORIZE_PRODUCTION_DEPLOYMENT' && vars.OPSC_PRODUCTION_AUTODEPLOY_ENABLED == 'true' && vars.OPSC_STAGED_PRODUCTION_PROBE_READY == 'true'
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      (
+        github.event.inputs.run_mode == 'CANDIDATE_EVIDENCE_ONLY' ||
+        (
+          github.event.inputs.run_mode == 'AUTHORIZE_PRODUCTION_RELEASE' &&
+          github.event.inputs.confirm_production_deployment == 'I_AUTHORIZE_PRODUCTION_DEPLOYMENT' &&
+          vars.OPSC_PRODUCTION_AUTODEPLOY_ENABLED == 'true' &&
+          vars.OPSC_STAGED_PRODUCTION_PROBE_READY == 'true'
+        )
+      )
     permissions:
       contents: read
       id-token: write
@@ -298,6 +316,19 @@ jobs:
           HASH="$(sha256sum docs/verification/PRODUCTION_ACCEPTANCE_RESULT.json | awk '{print $1}')"
           echo "evidence_sha=$HASH" >> "$GITHUB_OUTPUT"
           echo "PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256=$HASH"
+
+      - name: Preflight Vercel and Neon paid-plan and branch capacity (read-only)
+        id: candidate_plan_preflight
+        run: node scripts/production-candidate-plan-preflight.js
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_PROJECT_ID: summer-leaf-18448271
+          NEON_ORG_ID: org-red-bread-35633140
+          OPSC_PRODUCTION_NEON_BRANCH_ID: br-proud-salad-bcshhdap
+          OPSC_NEON_BRANCH_LIMIT: ${{ vars.OPSC_NEON_BRANCH_LIMIT || '10' }}
 
       - name: Prepare Production candidate environment with fail-closed flags
         id: prepare_candidate_env
@@ -612,6 +643,9 @@ jobs:
                 && recovery.databaseName === 'opscore_acceptance'
                 && Number(recovery.tableCountCompared) >= 130
                 && Number(recovery.mismatchCount) === 0
+                && recovery.temporaryBranch === true
+                && recovery.cleanup?.status === 'PASS'
+                && recovery.cleanup?.recoveryBranchDeleted === true
                 && exactPipeline(recovery) && sourceCommitMatches(recovery)
                 && sourceBranchMatches(recovery) && exactDeployment(recovery) && noEvidenceRebind(recovery);
               return sOk && rOk && signedRoutesOk;
@@ -621,11 +655,12 @@ jobs:
           const out = process.env.GITHUB_OUTPUT;
           fs.appendFileSync(out, 'certified=' + (ok ? 'CERTIFIED' : 'NOT_CERTIFIED') + '\n', { mode: 0o600 });
           fs.appendFileSync(out, 'behavioral=' + (ok ? 'true' : 'false') + '\n', { mode: 0o600 });
-          console.log('PRODUCTION_CANDIDATE_ISOLATION_CERTIFICATION', ok ? 'CERTIFIED' : 'NOT_CERTIFIED');
+          console.log('CANDIDATE_EVIDENCE_QUALIFICATION', ok ? 'PASS_NOT_PUBLISHED' : 'NOT_VERIFIED');
           if (!ok) process.exitCode = 1;
           NODE
 
       - name: Require current-commit production evidence before creating staged deployment
+        if: ${{ github.event.inputs.run_mode == 'AUTHORIZE_PRODUCTION_RELEASE' }}
         env:
           ACCEPTANCE_SHA: ${{ steps.generate_acceptance.outputs.evidence_sha }}
           ISOLATION_CERT: ${{ steps.isolation_cert.outputs.certified }}
@@ -640,6 +675,7 @@ jobs:
           test "$BEHAVIORAL_EVIDENCE" = "true" || { echo "::error::PRODUCTION_BEHAVIORAL_EVIDENCE_NOT_VERIFIED"; exit 1; }
 
       - name: Publish exact certified release evidence and enable signed tenant context
+        if: ${{ github.event.inputs.run_mode == 'AUTHORIZE_PRODUCTION_RELEASE' }}
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -655,6 +691,7 @@ jobs:
         run: node scripts/production-candidate-environment.js publish
 
       - name: Embed acceptance and behavioral evidence into serverless bundle
+        if: ${{ github.event.inputs.run_mode == 'AUTHORIZE_PRODUCTION_RELEASE' }}
         run: |
           set -euo pipefail
           mkdir -p backend/src/embedded-evidence
@@ -680,12 +717,14 @@ jobs:
           fi
 
       - name: Re-pull Vercel production env after identity publish
+        if: ${{ github.event.inputs.run_mode == 'AUTHORIZE_PRODUCTION_RELEASE' }}
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: Build Vercel output
+        if: ${{ github.event.inputs.run_mode == 'AUTHORIZE_PRODUCTION_RELEASE' }}
         run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
@@ -708,6 +747,7 @@ jobs:
           OPSC_RELEASE_VERIFIED: ${{ steps.generate_acceptance.outputs.evidence_sha != '' && steps.isolation_cert.outputs.certified == 'CERTIFIED' && steps.isolation_cert.outputs.behavioral == 'true' && 'true' || 'false' }}
           OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: ${{ steps.generate_acceptance.outputs.evidence_sha }}
       - name: Verify Vercel output contains the current release identity
+        if: ${{ github.event.inputs.run_mode == 'AUTHORIZE_PRODUCTION_RELEASE' }}
         run: |
           set -euo pipefail
           identity_file="$(find .vercel/output -type f -name 'opscore-vercel-release-identity.json' 2>/dev/null | head -n 1 || true)"
@@ -734,6 +774,7 @@ jobs:
             console.log("VERCEL_RELEASE_IDENTITY_VERIFY=PASS");
           '
       - name: Verify deploy-workspace acceptance evidence matches release identity
+        if: ${{ github.event.inputs.run_mode == 'AUTHORIZE_PRODUCTION_RELEASE' }}
         run: |
           set -euo pipefail
           node -e '
@@ -752,6 +793,7 @@ jobs:
             console.log("DEPLOY_WORKSPACE_ACCEPTANCE_BIND=PASS");
           '
       - name: Create staged production deployment without changing the live domain
+        if: ${{ github.event.inputs.run_mode == 'AUTHORIZE_PRODUCTION_RELEASE' }}
         id: staged_deploy
         run: |
           set -euo pipefail
@@ -781,9 +823,11 @@ jobs:
           OPSC_RELEASE_VERIFIED: ${{ steps.generate_acceptance.outputs.evidence_sha != '' && steps.isolation_cert.outputs.certified == 'CERTIFIED' && steps.isolation_cert.outputs.behavioral == 'true' && 'true' || 'false' }}
           OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: ${{ steps.generate_acceptance.outputs.evidence_sha }}
       - name: Request scoped GitHub Actions OIDC identity for Vercel Trusted Sources
+        if: ${{ github.event.inputs.run_mode == 'AUTHORIZE_PRODUCTION_RELEASE' }}
         id: vercel_oidc
         run: node scripts/request-vercel-trusted-oidc.js
       - name: Verify staged production runtime identity and all release gates
+        if: ${{ github.event.inputs.run_mode == 'AUTHORIZE_PRODUCTION_RELEASE' }}
         id: production_runtime
         continue-on-error: true
         run: node scripts/production-runtime-diagnostic.js "${{ steps.staged_deploy.outputs.url }}" "$GITHUB_SHA" "$GITHUB_RUN_ID"
@@ -795,7 +839,7 @@ jobs:
           VERCEL_TRUSTED_OIDC_TOKEN: ${{ steps.vercel_oidc.outputs.token }}
       - name: Verify staged production HTTP, database, security and release proofs
         id: production_smoke
-        if: steps.production_runtime.outputs.allowed == 'true'
+        if: ${{ github.event.inputs.run_mode == 'AUTHORIZE_PRODUCTION_RELEASE' && steps.production_runtime.outputs.allowed == 'true' }}
         run: node scripts/production-deployment-smoke.js "${{ steps.staged_deploy.outputs.url }}" "$GITHUB_SHA"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
@@ -806,6 +850,7 @@ jobs:
       - name: Promote only the verified staged deployment
         id: production_promote
         if: >-
+          github.event.inputs.run_mode == 'AUTHORIZE_PRODUCTION_RELEASE' &&
           steps.production_runtime.outputs.allowed == 'true' &&
           steps.production_smoke.outcome == 'success'
         run: |
@@ -817,11 +862,12 @@ jobs:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
       - name: Refresh GitHub Actions OIDC identity for public-domain verification
+        if: ${{ github.event.inputs.run_mode == 'AUTHORIZE_PRODUCTION_RELEASE' }}
         id: vercel_oidc_domain
         run: node scripts/request-vercel-trusted-oidc.js
       - name: Verify production domain resolves to the exact promoted commit
         id: production_domain_verify
-        if: steps.production_promote.outcome == 'success'
+        if: ${{ github.event.inputs.run_mode == 'AUTHORIZE_PRODUCTION_RELEASE' && steps.production_promote.outcome == 'success' }}
         run: node scripts/production-deployment-smoke.js "https://opscore-platform.vercel.app" "$GITHUB_SHA"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
@@ -833,7 +879,7 @@ jobs:
 
       - name: Fail unless production promotion and public-domain verification completed
         id: final_gate
-        if: ${{ always() && !cancelled() }}
+        if: ${{ always() && !cancelled() && github.event.inputs.run_mode == 'AUTHORIZE_PRODUCTION_RELEASE' }}
         env:
           RUNTIME_OUTCOME: ${{ steps.production_runtime.outcome }}
           RUNTIME_ALLOWED: ${{ steps.production_runtime.outputs.allowed }}
@@ -849,12 +895,126 @@ jobs:
           test "$DOMAIN_OUTCOME" = "success"
           echo "PRODUCTION_PROMOTION_AND_PUBLIC_DOMAIN_VERIFICATION=PASS"
       - name: Restore Production environment baseline after any failed candidate or release gate
-        if: ${{ always() && steps.prepare_candidate_env.outcome != 'skipped' && steps.final_gate.outcome != 'success' }}
+        id: restore_candidate_env
+        if: ${{ always() && steps.prepare_candidate_env.outputs.snapshot_path != '' && steps.final_gate.outcome != 'success' }}
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
         run: node scripts/production-candidate-environment.js restore
+
+      - name: Re-pull restored Production environment after candidate cleanup
+        id: pull_restored_candidate_env
+        if: ${{ always() && steps.restore_candidate_env.outcome == 'success' }}
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      - name: Verify restored Production environment against the pre-run snapshot
+        id: verify_candidate_env_restore
+        if: ${{ always() && steps.restore_candidate_env.outcome == 'success' && steps.pull_restored_candidate_env.outcome == 'success' }}
+        run: node scripts/production-candidate-environment.js verify-restored
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Write candidate-only evidence manifest after environment restoration
+        id: candidate_only_manifest
+        if: ${{ github.event.inputs.run_mode == 'CANDIDATE_EVIDENCE_ONLY' && steps.verify_candidate_env_restore.outcome == 'success' && steps.isolation_cert.outputs.certified == 'CERTIFIED' && steps.isolation_cert.outputs.behavioral == 'true' }}
+        env:
+          CANDIDATE_DEPLOYMENT_ID: ${{ steps.candidate_deployment.outputs.id }}
+          CANDIDATE_COMMIT: ${{ github.sha }}
+          CANDIDATE_PIPELINE_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const crypto = require('node:crypto');
+          const path = require('node:path');
+          const expected = {
+            commit: String(process.env.CANDIDATE_COMMIT || '').toLowerCase(),
+            pipelineId: String(process.env.CANDIDATE_PIPELINE_ID || ''),
+            deploymentId: String(process.env.CANDIDATE_DEPLOYMENT_ID || ''),
+            parentBranchId: 'br-proud-salad-bcshhdap',
+            databaseName: 'opscore_acceptance'
+          };
+          if (!/^[a-f0-9]{40}$/.test(expected.commit) ||
+              !/^[1-9][0-9]{0,14}$/.test(expected.pipelineId) ||
+              !/^dpl_[A-Za-z0-9]+$/.test(expected.deploymentId)) {
+            throw new Error('CANDIDATE_EVIDENCE_MANIFEST_IDENTITY_INVALID');
+          }
+          const evidenceFiles = {
+            signedTenantRoutes: 'backend/docs/verification/SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE.json',
+            sessionIsolation: 'backend/docs/verification/PRODUCTION_SESSION_ISOLATION.json',
+            recoveryPoint: 'backend/docs/verification/PRODUCTION_RECOVERY_POINT.json'
+          };
+          const hashes = {};
+          const read = name => JSON.parse(fs.readFileSync(evidenceFiles[name], 'utf8'));
+          const exact = value =>
+            String(value.sourceCommitHint || '').toLowerCase() === expected.commit &&
+            String(value.pipelineId || '') === expected.pipelineId &&
+            String(value.deploymentId || '') === expected.deploymentId &&
+            String(value.parentBranchId || '') === expected.parentBranchId &&
+            value.databaseName === expected.databaseName &&
+            value.evidenceRebind == null;
+          const routes = read('signedTenantRoutes');
+          const session = read('sessionIsolation');
+          const recovery = read('recoveryPoint');
+          if (routes.schemaVersion !== 'opscore.signed-tenant-context-production-coverage.v1' ||
+              routes.status !== 'PASS' || routes.environment !== 'production' ||
+              Number(routes.expectedRouteCount) !== 67 || Number(routes.coveredRouteCount) !== 67 ||
+              Number(routes.failedRouteCount) !== 0 || routes.manifestComplete !== true || !exact(routes)) {
+            throw new Error('CANDIDATE_SIGNED_TENANT_ROUTE_EVIDENCE_INVALID');
+          }
+          if (session.schemaVersion !== 'opscore.production-session-isolation.v3' ||
+              session.status !== 'PASS' || session.cleanup?.status !== 'PASS' || !exact(session)) {
+            throw new Error('CANDIDATE_SESSION_ISOLATION_EVIDENCE_INVALID');
+          }
+          if (recovery.schemaVersion !== 'opscore.production-recovery-point.v3' ||
+              recovery.status !== 'PASS' || recovery.cleanup?.status !== 'PASS' ||
+              recovery.cleanup?.recoveryBranchDeleted !== true || !exact(recovery)) {
+            throw new Error('CANDIDATE_RECOVERY_POINT_EVIDENCE_INVALID');
+          }
+          for (const [name, file] of Object.entries(evidenceFiles)) {
+            const bytes = fs.readFileSync(file);
+            hashes[name] = crypto.createHash('sha256').update(bytes).digest('hex');
+          }
+          const manifest = {
+            schemaVersion: 'opscore.production-candidate-evidence-only.v1',
+            status: 'PASS',
+            mode: 'CANDIDATE_EVIDENCE_ONLY',
+            productionCertification: false,
+            productionPromotionPerformed: false,
+            productionEnvironmentRestored: true,
+            generatedAt: new Date().toISOString(),
+            ...expected,
+            routeCoverage: { expected: 67, covered: 67, failed: 0 },
+            evidenceSha256: hashes
+          };
+          const output = 'backend/docs/verification/PRODUCTION_CANDIDATE_EVIDENCE_ONLY_RESULT.json';
+          const body = JSON.stringify(manifest, null, 2) + '\n';
+          fs.writeFileSync(output, body, { flag: 'wx', mode: 0o600 });
+          const digest = crypto.createHash('sha256').update(body).digest('hex');
+          fs.writeFileSync(output + '.sha256', digest + '  PRODUCTION_CANDIDATE_EVIDENCE_ONLY_RESULT.json\n', { flag: 'wx', mode: 0o600 });
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, 'manifest_sha256=' + digest + '\n', { mode: 0o600 });
+          console.log('CANDIDATE_EVIDENCE_ONLY_MANIFEST=PASS');
+          NODE
+      - name: Upload candidate-only evidence after verified Production environment restoration
+        if: ${{ steps.candidate_only_manifest.outcome == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: production-candidate-evidence-${{ github.run_id }}
+          path: |
+            backend/docs/verification/PRODUCTION_CANDIDATE_EVIDENCE_ONLY_RESULT.json
+            backend/docs/verification/PRODUCTION_CANDIDATE_EVIDENCE_ONLY_RESULT.json.sha256
+            backend/docs/verification/SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE.json
+            backend/docs/verification/PRODUCTION_SESSION_ISOLATION.json
+            backend/docs/verification/PRODUCTION_RECOVERY_POINT.json
+            backend/docs/verification/PRODUCTION_ACCEPTANCE_RESULT.json
+            backend/docs/verification/POSTGRES_HTTP_ACCEPTANCE_RESULT.json
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Discard successful Production environment rollback snapshot
         if: ${{ steps.final_gate.outcome == 'success' }}
