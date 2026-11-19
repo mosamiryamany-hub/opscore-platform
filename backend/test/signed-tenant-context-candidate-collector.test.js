@@ -164,10 +164,11 @@ test('Production candidate routes tamper raw tenant GUCs only after verified sig
   assert.ok(helper.includes("set_config('app.user_id'"));
   assert.ok(helper.includes("set_config('app.access_mode'"));
   assert.ok(helper.includes("x-opscore-candidate-guc-tamper"));
+  assert.ok(server.includes("function candidateGucTamperResponseHeaders(req, res)"));
 
   const readStart = server.indexOf('function runSignedWorkOrdersRead(req, res, c, reader');
   const readActivate = server.indexOf('store.db.activateVerifiedTenantContext();', readStart);
-  const readProbe = server.indexOf('applyCandidateProbeTenantGucTampering(req, res);', readActivate);
+  const readProbe = server.indexOf('candidateGucTamperResponseHeaders(req, res)', readActivate);
   const readQuery = server.indexOf('const result = reader();', readProbe);
   assert.ok(readStart >= 0 && readActivate > readStart && readProbe > readActivate && readQuery > readProbe,
     'candidate read GUC tampering must happen after signature activation and before the route query');
@@ -177,7 +178,7 @@ test('Production candidate routes tamper raw tenant GUCs only after verified sig
 
   const writeStart = server.indexOf('function runSignedWorkOrderWrite(req, res, c, writer');
   const writeActivate = server.indexOf('store.db.activateVerifiedTenantContext();', writeStart);
-  const writeProbe = server.indexOf('applyCandidateProbeTenantGucTampering(req, res);', writeActivate);
+  const writeProbe = server.indexOf('candidateGucTamperResponseHeaders(req, res)', writeActivate);
   const writeQuery = server.indexOf('const result = store.withCallerManagedTransaction(writer, lifecycle);', writeProbe);
   assert.ok(writeStart >= 0 && writeActivate > writeStart && writeProbe > writeActivate && writeQuery > writeProbe,
     'candidate write GUC tampering must happen after signature activation and before the domain write');
