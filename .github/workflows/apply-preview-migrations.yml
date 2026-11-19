@@ -87,6 +87,8 @@ jobs:
           echo "project_id=$PROJECT_ID" >> "$GITHUB_OUTPUT"
           echo "host=$HOST" >> "$GITHUB_OUTPUT"
           echo "NEON_ACCEPTANCE_TARGET=PASS project=$PROJECT_ID branch=$BRANCH_ID database=$INPUT_DB host=$HOST"
+          # STATIC_EXACT_PREVIEW_TARGET guard: exactly one pinned non-primary branch.
+          case "${BRANCH_ID}" in ""|*,*) echo "STATIC_EXACT_PREVIEW_TARGET_VIOLATION branch=$BRANCH_ID" >&2; exit 1 ;; esac
 
       - name: Resolve isolated Neon owner and runtime connections from Vercel Development secrets
         id: connections

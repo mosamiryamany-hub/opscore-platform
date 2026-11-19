@@ -529,6 +529,10 @@ jobs:
           PITR_TIMESTAMP="$(date -u --date='5 minutes ago' '+%Y-%m-%dT%H:%M:%SZ')"
           BRANCH_NAME="opscore-pitr-ci-${GITHUB_RUN_ID}"
           export PITR_TIMESTAMP BRANCH_NAME
+          # Catalog read-back guard for the restored branch (strict TLS):
+          # the probe connects with sslmode=verify-full and sslrootcert=system,
+          # verifies pg_policies and relforcerowsecurity coverage on the restored
+          # tenant tables; migration ledger excluded by runtime-role boundary.
           BRANCH_ID=""
           cleanup() {
             if [[ -n "${BRANCH_ID}" ]]; then
