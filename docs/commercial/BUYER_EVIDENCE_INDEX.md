@@ -1,9 +1,9 @@
 # OpsCore — Buyer Evidence Index
 
-**Evidence cut:** 2026-11-19 15:17 UTC  
-**Current protected main:** [`d672dce8f18e1d7095aed3126aedb0f995796144`](https://github.com/mosamiryamany-hub/opscore-platform/commit/d672dce8f18e1d7095aed3126aedb0f995796144)  
+**Evidence cut:** 2026-11-19  
+**Protected main at evidence cut:** [`d672dce8f18e1d7095aed3126aedb0f995796144`](https://github.com/mosamiryamany-hub/opscore-platform/commit/d672dce8f18e1d7095aed3126aedb0f995796144)  
 **Live Production deployment:** `dpl_AgWqB4kaSRXhdsmKfvXg9qgeQgt9`  
-**Live Production application-code SHA:** `68505535f1c2fabd2a786094f8f64d234d26e123` — Production is still pinned to this earlier application revision; current protected main `d672dce8...` includes PR #292 trust-proof UI changes not yet in Production
+**Live Production application-code SHA:** `68505535f1c2fabd2a786094f8f64d234d26e123` — Production is still pinned to this earlier application revision; protected main at the evidence cut `d672dce8...` includes PR #292 trust-proof UI changes not yet in Production
 
 > This index separates merged source from deployed Production. Provider READY, green CI, and RLS catalog state are not equivalent to Production release certification.
 
@@ -18,7 +18,7 @@
 
 ## Main and CI references
 
-- Current protected main: https://github.com/mosamiryamany-hub/opscore-platform/commit/d672dce8f18e1d7095aed3126aedb0f995796144
+- Protected main at evidence cut: https://github.com/mosamiryamany-hub/opscore-platform/commit/d672dce8f18e1d7095aed3126aedb0f995796144
 - Deployed application-code commit: https://github.com/mosamiryamany-hub/opscore-platform/commit/68505535f1c2fabd2a786094f8f64d234d26e123
 - PR #290 — live login route: https://github.com/mosamiryamany-hub/opscore-platform/pull/290
 - PR #291 — evidence traceability ledger: https://github.com/mosamiryamany-hub/opscore-platform/pull/291
@@ -37,9 +37,9 @@
 | Current main and branch protection | Verified |
 | Current-main source regression CI | PASS |
 | Disposable PostgreSQL 18 and contract acceptance | PASS |
-| Current Production app-code source | NOT CURRENT — Production remains on `68505535...`; current main `d672dce8...` includes PR #292 UI code |
-| Vercel live deployment source | `68505535...`; does not yet include current main `d672dce8...` |
-| Current-main Preview build | READY — `dpl_DCQk2TbxtCoMHLDCEQ8pN4W33ay1`, exact SHA `d672dce8...`; SSO-protected; not Production |
+| Current Production app-code source | NOT CURRENT — Production remains on `68505535...`; main at the evidence cut `d672dce8...` includes PR #292 UI code |
+| Vercel live deployment source | `68505535...`; does not yet include the evidence-cut main revision `d672dce8...` |
+| PR #292 Preview build | READY — `dpl_DCQk2TbxtCoMHLDCEQ8pN4W33ay1`, exact SHA `d672dce8...`; SSO-protected; not Production |
 | Live health | Healthy / PostgreSQL / 0.11.62 |
 | Live `/login` | Redirects to `/control-plane.html` |
 | Live release proof | UNVERIFIED |
