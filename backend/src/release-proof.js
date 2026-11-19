@@ -279,6 +279,9 @@ function readProductionRecoveryPointEvidence(filePath = embeddedEvidencePath('PR
   const deploymentIdBound = /^dpl_[A-Za-z0-9]+$/.test(expectedDeploymentId)
     && String(evidence.deploymentId || '').trim() === expectedDeploymentId;
   const expectedDatabaseName = String(env.OPSC_PRODUCTION_DATABASE_NAME || '').trim();
+  const cleanupVerified = evidence.temporaryBranch === true
+    && evidence.cleanup && evidence.cleanup.status === 'PASS'
+    && evidence.cleanup.recoveryBranchDeleted === true;
   const scopeValid = Boolean(expectedDatabaseName)
     && evidence.schemaVersion === 'opscore.production-recovery-point.v3'
     && evidence.databaseName === expectedDatabaseName
@@ -287,13 +290,16 @@ function readProductionRecoveryPointEvidence(filePath = embeddedEvidencePath('PR
     && Number(evidence.tableCountCompared) >= 130
     && Number(evidence.mismatchCount) === 0
     && typeof evidence.recoveryBranchId === 'string'
-    && /^[a-z0-9-]{8,80}$/.test(evidence.recoveryBranchId);
+    && /^[a-z0-9-]{8,80}$/.test(evidence.recoveryBranchId)
+    && cleanupVerified;
   const noEvidenceRebind = evidence.evidenceRebind === undefined || evidence.evidenceRebind === null;
   const ok = evidence.status === 'PASS' && scopeValid && commitBound && pipelineBound && parentBranchBound && deploymentIdBound && noEvidenceRebind;
   return {
     status: ok ? 'PASS' : 'NOT_VERIFIED',
     testedAt: evidence.testedAt || null,
     recoveryBranchId: evidence.recoveryBranchId || null,
+    temporaryBranch: evidence.temporaryBranch === true,
+    cleanupVerified,
     databaseName: evidence.databaseName || null,
     verificationScope: evidence.verificationScope || null,
     tableCountCompared: Number(evidence.tableCountCompared) || null,
