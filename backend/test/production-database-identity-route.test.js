@@ -204,3 +204,12 @@ test('diagnostic failures return a fixed safe code without exception details', a
     writeOperations: 0
   });
 });
+
+test('production database identity handler is wired into the server router and protected by candidate hold authorization', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const server = fs.readFileSync(path.join(__dirname, '..', 'src', 'server.js'), 'utf8');
+  assert.match(server, /createProductionDatabaseIdentityHandler\s*\}\s*=\s*require\('\.\/production-database-identity-route'\)/);
+  assert.match(server, /url\.pathname === '\/api\/internal\/production-database-identity'/);
+  assert.match(server, /isAuthorizedProductionCandidateDatabaseIdentityRequest\(req, process\.env, signedContextProductionReadiness\)/);
+});
