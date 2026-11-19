@@ -3576,7 +3576,7 @@ const server = http.createServer({ maxHeaderSize: config.httpMaxHeaders * 1024 }
     const method = String(req && req.method || '').trim().toUpperCase();
     const pathname = String(req && req.url || '/').split('?')[0];
     const candidateRoute = ['read', 'write'].some(operation =>
-      require('./signed-tenant-context-policy').isSignedTenantContextRouteDefinition(method, pathname, operation)
+      isSignedTenantContextRouteDefinition(method, pathname, operation)
     );
     const denial = candidateRoute
       ? candidateProbeBoundaryDenialReason(req, process.env, signedContextProductionReadiness)
