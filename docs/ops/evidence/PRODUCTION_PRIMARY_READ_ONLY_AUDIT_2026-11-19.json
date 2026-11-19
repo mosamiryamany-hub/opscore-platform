@@ -12,7 +12,18 @@
     "disposablePostgres18Acceptance": "success",
     "requiredContractGate": "success",
     "productionDeployJob": "skipped",
-    "signedTenantArtifactId": 14524968082
+    "signedTenantArtifactId": 14524968082,
+    "signedTenantArtifactSha256": "e488372853af1746521499c69067271ac3c639a221dff46234b532a24a9285bc",
+    "signedTenantArtifactSidecarVerified": true,
+    "signedTenantCoverage": {
+      "expected": 67,
+      "covered": 67,
+      "unique": 67,
+      "failed": 0,
+      "evidenceClass": "DISPOSABLE_POSTGRESQL_18_CI_ROUTE_PROBES",
+      "productionCertification": false,
+      "productionPromotionPerformed": false
+    }
   },
   "vercelProduction": {
     "deploymentId": "dpl_HYeEvgN7dWGDBVpyHFBmphjwnZcG",
