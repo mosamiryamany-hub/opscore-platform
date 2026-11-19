@@ -132,7 +132,7 @@
   "migrationLedgerAudit": {
     "ledgerRowCount": 68,
     "sourceFileCount": 68,
-    "matchedSourceFiles": 27,
+    "matchedSourceFiles": 37,
     "mismatchedSourceFiles": 0,
     "filenameSetEqual": false,
     "source": "main",
@@ -271,6 +271,56 @@
       {
         "filename": "029_oidc_and_field_signoff_challenges.sql",
         "sha256": "27a391f06b69b8e7314e3f4a37e0757085064c75951ffa599541e82f92fde132",
+        "sourceMatches": true
+      },
+      {
+        "filename": "030_ai_contact_center.sql",
+        "sha256": "587f065ed03bcedd1de3c35612f68e77878f2386643c9c9ac31cc2b1c4964de1",
+        "sourceMatches": true
+      },
+      {
+        "filename": "031_digital_twin_chain_hardening.sql",
+        "sha256": "9d40860e4e88e53b8c67f4735d619a2e1d5f10ac8c30e3b8e01d093840ce5d95",
+        "sourceMatches": true
+      },
+      {
+        "filename": "031b_sessions_organization_id.sql",
+        "sha256": "d6fe657c3181b621630d33c7d87f5b348798279a9bb758f1b203f7f9ad7ec668",
+        "sourceMatches": true
+      },
+      {
+        "filename": "032_identity_plane_rls.sql",
+        "sha256": "8459280234673c1d8094347b2496c76cd497fc6a6a3e7451b98711bda42be874",
+        "sourceMatches": true
+      },
+      {
+        "filename": "033_sessions_rls_boundary.sql",
+        "sha256": "07b43e27164257f11995ec776778add19f38d5081c2da215ebafa63a16fcc067",
+        "sourceMatches": true
+      },
+      {
+        "filename": "034_close_auth_mode_tenant_bypass.sql",
+        "sha256": "8aac2b823c737cccb798528d408de4fc8cba9d6421952469fafb6a3ebd980b57",
+        "sourceMatches": true
+      },
+      {
+        "filename": "035_auth_plane_functions.sql",
+        "sha256": "2048d7bfe0192441a53eb44bac3e3e3272103ac6e09cba0de2483f1acd217fb6",
+        "sourceMatches": true
+      },
+      {
+        "filename": "036_identity_auth_access_mode_guard.sql",
+        "sha256": "d464452a824eaf982c8c555a7d80a10632b7a7b4fea4b1953e88423f27504235",
+        "sourceMatches": true
+      },
+      {
+        "filename": "037_permissive_tenant_policies.sql",
+        "sha256": "213527a905ab9c3a03c9f6e51289c05812192ab13af8b5fa713483bf969b30f4",
+        "sourceMatches": true
+      },
+      {
+        "filename": "038_audit_log_hash_columns.sql",
+        "sha256": "484e5f92d8a40795dc615c3b7bdfb4835a9db5e36b8e198b5817484e60e56046",
         "sourceMatches": true
       }
     ]
