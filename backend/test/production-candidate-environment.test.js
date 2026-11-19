@@ -11,6 +11,7 @@ const {
   validateInitialState,
   prepare,
   restore,
+  verifyRestored,
   publish
 } = require('../../scripts/production-candidate-environment');
 
