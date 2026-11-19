@@ -132,12 +132,98 @@
   "migrationLedgerAudit": {
     "ledgerRowCount": 68,
     "sourceFileCount": 68,
-    "matchedSourceFiles": 0,
+    "matchedSourceFiles": 17,
     "mismatchedSourceFiles": 0,
     "filenameSetEqual": false,
     "source": "main",
     "sourceCommit": "0edd7d8c855e1dd4645979c05fd30be105dff369",
-    "hashes": []
+    "hashes": [
+      {
+        "filename": "000_canonical_schema.sql",
+        "sha256": "be710b3fefe78005a6fb613ed9cf236cf0b777f2e601ca968a99947bcc15cc6c",
+        "sourceMatches": true
+      },
+      {
+        "filename": "001_initial.sql",
+        "sha256": "afdcd443e3e2fb7f4a5e031335c9bbeba7d98e05bad07d8eac389127d39f9ca3",
+        "sourceMatches": true
+      },
+      {
+        "filename": "002_enterprise_value.sql",
+        "sha256": "410834ac59a82827deaffd6015d7cc39472a86d9b567674b58faa9cb76a3ff0e",
+        "sourceMatches": true
+      },
+      {
+        "filename": "003_advanced_enterprise.sql",
+        "sha256": "37e05c86a4422c378b506f64652e4f60756a03d893894309b9f1f98ea963779d",
+        "sourceMatches": true
+      },
+      {
+        "filename": "004_commercial_quotes_invoices.sql",
+        "sha256": "199e2f4d4ea87a4f98996b0bbc052cc816d715e5eb65010da0c21abbecca3378",
+        "sourceMatches": true
+      },
+      {
+        "filename": "005_field_ai_time_conflicts.sql",
+        "sha256": "b4a4ad2ad4a08b08e1b99be6c1f84f122599871048f3486c9a4241f9e3889df7",
+        "sourceMatches": true
+      },
+      {
+        "filename": "009_pdf_signatures.sql",
+        "sha256": "9c8690b1348db01a910165404cc89f2f5d0153b043867497daf4bcfc1a51dcc0",
+        "sourceMatches": true
+      },
+      {
+        "filename": "010_first_time_right_and_security.sql",
+        "sha256": "2ea4adfc6d187e370aadcdf92c20f4c3677a70a56d0c193ae2d090a4d24d2bef",
+        "sourceMatches": true
+      },
+      {
+        "filename": "011_operational_queue_migration_reconciliation.sql",
+        "sha256": "0bc30daa61a7719a747f0bb643f19234afa77839b67e0c9acf62189210c87689",
+        "sourceMatches": true
+      },
+      {
+        "filename": "012_general_operations_closure_and_worker.sql",
+        "sha256": "be79a91969ddaf88a704f7e95d159842dc1131ee97847c6a3a616116bfa73034",
+        "sourceMatches": true
+      },
+      {
+        "filename": "013_general_control.sql",
+        "sha256": "4b06f0309bea17b4c0236a3868715147233f629977a5c486197339d6b629ebe8",
+        "sourceMatches": true
+      },
+      {
+        "filename": "014_operational_resilience.sql",
+        "sha256": "28f9a0c16d705e28678d335427359cccbb2f55b27222c9a374c199cb52263564",
+        "sourceMatches": true
+      },
+      {
+        "filename": "015_gateway_purge_signature_billing.sql",
+        "sha256": "33e20ba679082ae35530ae6b31553078f288fe9b39ea19e9a911f3c7ed23afa0",
+        "sourceMatches": true
+      },
+      {
+        "filename": "016_enterprise_value_additions.sql",
+        "sha256": "9e7f96302292dddfe05579f8a38cc719e7bf1399e45680ad0148831c161aa575",
+        "sourceMatches": true
+      },
+      {
+        "filename": "017_worker_guard_geofencing_signoff.sql",
+        "sha256": "bf42d7ffb3738023b471d219bde29294fd37a9ed23eb2d20d91155f78f40b95f",
+        "sourceMatches": true
+      },
+      {
+        "filename": "018_finalize_enterprise_parity.sql",
+        "sha256": "6ff734301025026e6d1fe78824bb65b9faf44603ae8c42ab62e852e173fb5a3c",
+        "sourceMatches": true
+      },
+      {
+        "filename": "019_worker_circuit_geofence_signoff_hardening.sql",
+        "sha256": "0d0a5793fa384dc634e95258d443fc7b51201e40ba6d5bfc80ff9a7792b460c6",
+        "sourceMatches": true
+      }
+    ]
   },
   "certificationBoundary": {
     "productionCertification": false,
