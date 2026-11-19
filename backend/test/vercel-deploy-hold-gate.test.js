@@ -63,22 +63,32 @@ test('staged deployment is immutable to the live domain until Runtime identity a
   assert.ok(deploy.indexOf(stageStep) < deploy.indexOf(runtimeStep));
 });
 
-test('staged smoke requires Runtime gate; authorized first-promote may proceed after staged success', () => {
+test('staged production promotion remains fail-closed even after explicit manual dispatch authorization', () => {
   const smoke = step('Verify staged production HTTP, database, security and release proofs');
-  assert.match(smoke, /if: steps\.production_runtime\.outputs\.allowed == 'true'/, 'smoke must stay gated by Runtime attestation');
+  assert.match(smoke, /if: steps\.production_runtime\.outputs\.allowed == 'true'/,
+    'smoke must stay gated by Runtime attestation');
   const promote = step('Promote only the verified staged deployment');
-  assert.match(
-    promote,
-    /production_runtime\.outputs\.allowed == 'true'|I_AUTHORIZE_PRODUCTION_DEPLOYMENT/,
-    'promote must require Runtime attestation or explicit production authorization'
-  );
-  const domain = step('Verify production domain resolves to the exact promoted commit');
-  assert.match(
-    domain,
-    /production_runtime\.outputs\.allowed == 'true'|production_promote\.outcome == 'success'/,
-    'domain verification must follow Runtime attestation or successful promote'
-  );
+  assert.match(promote,
+    /steps\.production_runtime\.outputs\.allowed == 'true'\s*&&\s*steps\.production_smoke\.outcome == 'success'/,
+    'promotion requires both Runtime attestation and successful staged smoke');
+  assert.doesNotMatch(promote, /I_AUTHORIZE_PRODUCTION_DEPLOYMENT/,
+    'a manual confirmation must never bypass failed Runtime or smoke checks');
+  const finalGate = step('Fail unless production promotion and public-domain verification completed');
+  assert.match(finalGate, /test "\$RUNTIME_OUTCOME" = "success"/);
+  assert.match(finalGate, /test "\$RUNTIME_ALLOWED" = "true"/);
+  assert.match(finalGate, /test "\$SMOKE_OUTCOME" = "success"/);
+  assert.match(finalGate, /test "\$PROMOTE_OUTCOME" = "success"/);
+  assert.match(finalGate, /test "\$DOMAIN_OUTCOME" = "success"/);
+  assert.doesNotMatch(finalGate, /github\.event_name.*workflow_dispatch.*then/);
   assert.doesNotMatch(deploy, /production_preflight/);
+});
+
+test('a missing 67-route Production matrix is never replaced with synthetic deferred evidence', () => {
+  const embed = step('Embed acceptance and behavioral evidence into serverless bundle');
+  assert.doesNotMatch(embed, /DEFERRED_POST_PROMOTE|GENERATED_SIGNED_COVERAGE_PLACEHOLDER/);
+  assert.match(embed, /SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE=NOT_VERIFIED/);
+  assert.match(embed, /if \[ -s "\$signed_coverage" \]; then/);
+  assert.match(embed, /cp "\$signed_coverage" "backend\/src\/embedded-evidence\/SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE\.json"/);
 });
 
 test('deploy workflow never rebinds stale production behavioral evidence to a new candidate', () => {

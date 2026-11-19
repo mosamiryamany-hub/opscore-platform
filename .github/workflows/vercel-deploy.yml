@@ -495,17 +495,21 @@ jobs:
             POSTGRES_HTTP_ACCEPTANCE_RESULT.json \
             API_ROUTE_ACCEPTANCE_RESULT.json \
             PRODUCTION_SESSION_ISOLATION.json \
-            PRODUCTION_RECOVERY_POINT.json \
-            SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE.json
+            PRODUCTION_RECOVERY_POINT.json
           do
             src="backend/docs/verification/$f"
-            if [ ! -s "$src" ] && [ "$f" = "SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE.json" ]; then
-              node -e 'const fs=require("fs");const path=require("path");const out=path.join("backend","docs","verification","SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE.json");fs.mkdirSync(path.dirname(out),{recursive:true});fs.writeFileSync(out,JSON.stringify({schemaVersion:"opscore.signed-tenant-context-production-coverage.v1",status:"DEFERRED_POST_PROMOTE",commit:process.env.GITHUB_SHA,pipelineId:process.env.GITHUB_RUN_ID,expectedRouteCount:67,testedRoutes:0,passed:0,failed:0,note:"Deferred until post-promote collection"},null,2)+"\n");console.log("GENERATED_SIGNED_COVERAGE_PLACEHOLDER");'
-            fi
             test -s "$src" || { echo "MISSING_EVIDENCE:$src" >&2; exit 1; }
             cp "$src" "backend/src/embedded-evidence/$f"
             echo "EMBEDDED $f"
           done
+
+          signed_coverage="backend/docs/verification/SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE.json"
+          if [ -s "$signed_coverage" ]; then
+            cp "$signed_coverage" "backend/src/embedded-evidence/SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE.json"
+            echo "EMBEDDED SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE.json"
+          else
+            echo "SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE=NOT_VERIFIED (no 67-route production evidence; no file synthesized)"
+          fi
 
       - name: Re-pull Vercel production env after identity publish
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
@@ -626,10 +630,8 @@ jobs:
       - name: Promote only the verified staged deployment
         id: production_promote
         if: >-
-          steps.production_runtime.outputs.allowed == 'true' ||
-          (github.event_name == 'workflow_dispatch' &&
-           github.event.inputs.confirm_production_deployment == 'I_AUTHORIZE_PRODUCTION_DEPLOYMENT' &&
-           steps.staged_deploy.outcome == 'success')
+          steps.production_runtime.outputs.allowed == 'true' &&
+          steps.production_smoke.outcome == 'success'
         run: |
           set -euo pipefail
           echo "PROMOTING_STAGED_URL=${{ steps.staged_deploy.outputs.url }}"
@@ -697,11 +699,9 @@ jobs:
           DOMAIN_OUTCOME: ${{ steps.production_domain_verify.outcome }}
         run: |
           set -euo pipefail
+          test "$RUNTIME_OUTCOME" = "success"
+          test "$RUNTIME_ALLOWED" = "true"
+          test "$SMOKE_OUTCOME" = "success"
           test "$PROMOTE_OUTCOME" = "success"
           test "$DOMAIN_OUTCOME" = "success"
-          if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
-            test "$RUNTIME_OUTCOME" = "success"
-            test "$RUNTIME_ALLOWED" = "true"
-            test "$SMOKE_OUTCOME" = "success"
-          fi
           echo "PRODUCTION_PROMOTION_AND_PUBLIC_DOMAIN_VERIFICATION=PASS"
