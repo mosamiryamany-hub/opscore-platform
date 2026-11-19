@@ -16,10 +16,6 @@ function embeddedEvidencePath(fileName) {
   return path.join(__dirname, '..', 'docs', 'verification', fileName);
 }
 
-function normalizedReleaseTag(value) {
-  const raw = String(value || '').trim();
-  return /^[A-Za-z0-9][A-Za-z0-9._+-]{0,99}$/.test(raw) ? raw : null;
-}
 
 function normalizedSha(value) {
   const raw = String(value || '').trim().toLowerCase();
