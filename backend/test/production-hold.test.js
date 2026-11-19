@@ -141,6 +141,11 @@ test('the hold exception matches all and only the signed-route manifest entries 
     const key = String(route.method).toUpperCase() + ' ' + route.route;
     if (manifestKeys.has(key)) continue;
     const concrete = String(route.route).replace(/\{[^/]+\}/g, 'hold-probe-id').replace(/\(\\d\+\)/g, '0');
+    // Attachment binary download is an explicit candidate HOLD exception outside the 67 inventory.
+    if (String(route.method).toUpperCase() === 'GET' && /^\/api\/v1\/attachments\/[^/]+$/.test(concrete)) {
+      assert.equal(isAuthorizedProductionCandidateProbeRequest(request(route, concrete), env, readiness), true, key);
+      continue;
+    }
     assert.equal(isAuthorizedProductionCandidateProbeRequest(request(route, concrete), env, readiness), false, key);
   }
 });
