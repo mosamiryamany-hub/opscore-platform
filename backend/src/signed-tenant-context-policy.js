@@ -189,9 +189,9 @@ function signedTenantContextRequired(env = process.env) {
 function signedAttachmentDownloadContextEnabled(req, env = process.env, readiness = {}) {
   const method = String(req && req.method || '').toUpperCase();
   const pathname = String(req && req.url || '').split('?')[0];
-  if (method !== 'GET' || !/^\\/api\\/v1\\/attachments\\/[^/]+$/.test(pathname)) return false;
+  if (method !== 'GET' || !/^\/api\/v1\/attachments\/[^/]+$/.test(pathname)) return false;
   return isCandidateProbeAuthorized(req, env, readiness)
-    || isSignedContextEnvironment(env, readiness, req);
+    || (String(env.VERCEL_ENV || '') === 'production' && isSignedContextEnvironment(env, readiness, req));
 }
 
 function signedContextRequested(req, env = process.env, readiness = {}) {
