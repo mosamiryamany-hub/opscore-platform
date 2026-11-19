@@ -1,12 +1,41 @@
 # OpsCore — Test Evidence Traceability
 
-**Evidence date:** 2026-11-19 14:52 UTC  
+**Evidence date:** 2026-11-19 15:17 UTC  
 **Repository:** `mosamiryamany-hub/opscore-platform`  
-**Current main:** `66d1b564886c42a42dbc9775da91af672d45e04c` (PR #291 evidence ledger merged)
+**Current main:** `d672dce8f18e1d7095aed3126aedb0f995796144` (PR #292 trust-proof UI merged)
 **Current Production application-code SHA:** `68505535f1c2fabd2a786094f8f64d234d26e123`  
 **Evidence rule:** A successful job proves only the environment and scope it actually exercised. CI/isolated PostgreSQL evidence is not Production tenant-isolation certification.
 
-## 1. Latest successful test runs
+## 1. Current-main successful test runs
+
+**Current main:** `d672dce8f18e1d7095aed3126aedb0f995796144`  
+**Current live Production application-code SHA:** `68505535f1c2fabd2a786094f8f64d234d26e123` — not yet updated to current main  
+**Current-main Preview:** `dpl_DCQk2TbxtCoMHLDCEQ8pN4W33ay1` — READY, exact current-main SHA, SSO-protected, not Production
+
+### Run 44552772156 — OpsCore CI on current main
+
+[Open workflow run](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44552772156)
+
+**Result: SUCCESS.** Current-main source/regression/performance/security/mobile CI completed. The new release-proof display regression passed **2/2**, along with the release proof UI tests (2/2) and release proof regression suite (17/17).
+
+### Run 44552772494 — source and disposable PostgreSQL 18 acceptance on current main
+
+[Open workflow run](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44552772494)
+
+| Job | Result | Verified work | Scope boundary |
+|---|---|---|---|
+| `vercel-source-verify` | SUCCESS | Syntax, runtime identity/release contracts, regression, provenance and dependency checks | Source/CI |
+| `isolated-postgres-rls-and-http-acceptance` | SUCCESS | Disposable PostgreSQL 18, least-privilege roles, migrations, signed tenant context, 346-route source-derived matrix, RLS, composite tenant FKs, HTTP acceptance, login throttling and logical dump/restore drill over 137 tables | Disposable database only |
+| `vercel-contract-verify` | SUCCESS | Enforces source and isolated PostgreSQL acceptance | Contract gate |
+| Neon Preview migration/HTTP acceptance | SKIPPED | Not run | No Neon Preview acceptance evidence |
+| Production Neon PITR historical branch probe | SKIPPED | Not run | No Production recovery evidence |
+| Production deploy | SKIPPED | Push event; official workflow requires explicit workflow dispatch and authorization | No Production deployment evidence |
+
+The 346-route matrix and 137-table logical restore are CI/disposable-database results. The restore drill explicitly does not restore ownership/ACLs and is not Neon PITR or Production restore evidence. The logs expressly preserve `productionCertification=false`; these passes do not certify Production tenant isolation.
+
+## 1A. Historical successful test runs (PR #291)
+
+
 
 ### Run 44547562235 — OpsCore CI for PR #291
 
