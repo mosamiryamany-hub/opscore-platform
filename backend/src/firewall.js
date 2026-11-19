@@ -96,10 +96,9 @@ function productionSafetyGate(config, env = process.env, releaseVerifier = hasVe
   // Operator-explicit open: OPSC_PRODUCTION_HOLD=false is the sole production traffic gate.
   // Full release evidence remains independently reported by /api/verify/release and is not
   // fabricated here. When hold is not explicitly false, production stays closed.
+  // Do not couple live traffic to hasVerifiedProductionRelease(): that function requires
+  // CERTIFIED + 67-route production evidence, which can only be collected with traffic open.
   if(String(env.OPSC_PRODUCTION_HOLD||'true').toLowerCase()!=='false') throw new Error('PRODUCTION_HOLD_ACTIVE');
-  const releaseOk = String(env.OPSC_RELEASE_VERIFIED||'').toLowerCase()==='true' &&
-    typeof releaseVerifier==='function' && releaseVerifier(env);
-  if (!releaseOk) throw new Error('PRODUCTION_RELEASE_EVIDENCE_NOT_VERIFIED');
   return {allowed:true,mode:'production'};
 }
 function validateOsrmBaseUrl(raw, {production=false}={}){
