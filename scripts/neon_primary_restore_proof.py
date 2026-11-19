@@ -384,7 +384,7 @@ def verify_signed_context_catalog(uri):
              "technicianTrailConstraintsValid", "directTenantGucPolicyResidualCount"]
     values = dict(zip(names, parts))
     for name in names[:-1]:
-        values[name] = values[name] == "t"
+        values[name] = values[name].strip().lower() in ("t", "true", "1")
     try:
         values["directTenantGucPolicyResidualCount"] = int(values["directTenantGucPolicyResidualCount"])
     except ValueError:
