@@ -158,7 +158,10 @@ test('release proof accepts production acceptance only when the embedded JSON ha
     assert.equal(proof.gates.tenantRouteSecurityCoverage, 'PASS_TEST_SCOPE');
     assert.equal(proof.gates.functionalApiRouteAcceptance, 'NOT_VERIFIED');
     assert.equal(proof.gates.productionIsolationCertification, 'NOT_CERTIFIED');
-    assert.equal(proof.gates.mobileStoreArtifacts, 'REMAINING_BUYER');
+    assert.equal(Object.hasOwn(proof.gates, 'mobileStoreArtifacts'), false);
+    assert.equal(Object.hasOwn(proof.gates, 'nativeTranslationReview'), false);
+    assert.equal(Object.hasOwn(proof.gates, 'licensedStreetMap'), false);
+    assert.doesNotMatch(proof.note, /buyer|REMAINING_BUYER/i);
     assert.equal(proof.productionAcceptance.evidenceSha256, evidence.sha256);
 
     const mismatchedDatabase = writeJsonEvidence(dir, 'mismatched-database.json',
