@@ -4007,38 +4007,39 @@ async function main() {
     signedEvidenceRouteProof.postgresAttachmentByteaVerified = 'PASS';
     signedEvidenceRouteProof.duplicateChunkBytesClearedAfterCompletion = 'PASS';
 
-    if (!candidateMode) {
-      const ownDownloadA = await queryHttpBytes(
-        port,
-        '/api/v1/attachments/' + encodeURIComponent(evidenceCompleteA.body.id),
-        tokenA
-      );
-      if (ownDownloadA.status !== 200
-          || !ownDownloadA.body.equals(evidenceBytesA)
-          || String(ownDownloadA.headers['content-type'] || '').split(';')[0] !== 'text/plain'
-          || ownDownloadA.headers['x-content-type-options'] !== 'nosniff'
-          || ownDownloadA.headers['cache-control'] !== 'no-store') {
-        throw new Error('SIGNED_CONTEXT_EVIDENCE_ATTACHMENT_DOWNLOAD_TENANT_A_FAILED:' + JSON.stringify({
-          status: ownDownloadA.status,
-          bytes: ownDownloadA.body.length,
-          headers: ownDownloadA.headers
-        }));
-      }
-      const foreignDownloadA = await queryHttp(
-        port,
-        '/api/v1/attachments/' + encodeURIComponent(evidenceCompleteA.body.id),
-        tokenB
-      );
-      if (foreignDownloadA.status !== 404
-          || foreignDownloadA.body?.error?.code !== 'NOT_FOUND') {
-        throw new Error('SIGNED_CONTEXT_EVIDENCE_ATTACHMENT_CROSS_TENANT_DOWNLOAD_NOT_DENIED:' + JSON.stringify({
-          status: foreignDownloadA.status,
-          body: foreignDownloadA.body
-        }));
-      }
-      signedEvidenceRouteProof.attachmentDownloadTenantA = 'PASS';
-      signedEvidenceRouteProof.attachmentDownloadCrossTenantDenied = 'PASS';
+    // Exercise the exact binary download path in both local HTTP acceptance and
+    // the unaliased Vercel candidate. Candidate mode supplies the signed probe and
+    // trusted OIDC headers through queryHttpBytes/queryHttp.
+    const ownDownloadA = await queryHttpBytes(
+      port,
+      '/api/v1/attachments/' + encodeURIComponent(evidenceCompleteA.body.id),
+      tokenA
+    );
+    if (ownDownloadA.status !== 200
+        || !ownDownloadA.body.equals(evidenceBytesA)
+        || String(ownDownloadA.headers['content-type'] || '').split(';')[0] !== 'text/plain'
+        || ownDownloadA.headers['x-content-type-options'] !== 'nosniff'
+        || ownDownloadA.headers['cache-control'] !== 'no-store') {
+      throw new Error('SIGNED_CONTEXT_EVIDENCE_ATTACHMENT_DOWNLOAD_TENANT_A_FAILED:' + JSON.stringify({
+        status: ownDownloadA.status,
+        bytes: ownDownloadA.body.length,
+        headers: ownDownloadA.headers
+      }));
     }
+    const foreignDownloadA = await queryHttp(
+      port,
+      '/api/v1/attachments/' + encodeURIComponent(evidenceCompleteA.body.id),
+      tokenB
+    );
+    if (foreignDownloadA.status !== 404
+        || foreignDownloadA.body?.error?.code !== 'NOT_FOUND') {
+      throw new Error('SIGNED_CONTEXT_EVIDENCE_ATTACHMENT_CROSS_TENANT_DOWNLOAD_NOT_DENIED:' + JSON.stringify({
+        status: foreignDownloadA.status,
+        body: foreignDownloadA.body
+      }));
+    }
+    signedEvidenceRouteProof.attachmentDownloadTenantA = 'PASS';
+    signedEvidenceRouteProof.attachmentDownloadCrossTenantDenied = 'PASS';
 
     const evidenceCompleteReplayA = await queryHttp(
       port,
