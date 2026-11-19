@@ -91,14 +91,25 @@ async function runCandidatePlanPreflight(options = {}) {
     throw new Error('NEON_ORGANIZATION_IDENTITY_MISMATCH');
   }
 
-  const neonOrg = await requestJson(
-    fetchImpl,
-    NEON_API_ORIGIN + '/organizations/' + encodeURIComponent(neonOrgId),
-    neonApiKey,
-    'NEON_ORGANIZATION_PLAN'
-  );
-  if (String(neonOrg.id || '') !== neonOrgId) throw new Error('NEON_ORGANIZATION_IDENTITY_MISMATCH');
-  const neonPlan = String(neonOrg.plan || '').trim().toLowerCase();
+  let neonPlan = '';
+  try {
+    const neonOrg = await requestJson(
+      fetchImpl,
+      NEON_API_ORIGIN + '/organizations/' + encodeURIComponent(neonOrgId),
+      neonApiKey,
+      'NEON_ORGANIZATION_PLAN'
+    );
+    if (String(neonOrg.id || '') !== neonOrgId) throw new Error('NEON_ORGANIZATION_IDENTITY_MISMATCH');
+    neonPlan = String(neonOrg.plan || '').trim().toLowerCase();
+  } catch (error) {
+    const message = String(error && error.message || '');
+    // Some Neon free orgs return 404 on /organizations/{id}; allow explicit free-tier evidence path.
+    if (allowFreeTier && /NEON_ORGANIZATION_PLAN_HTTP_404/.test(message)) {
+      neonPlan = 'free';
+    } else {
+      throw error;
+    }
+  }
   if (!ALLOWED_NEON_PRIMARY_PROTECTION_PLANS.has(neonPlan)) {
     if (!(allowFreeTier && (neonPlan === 'free' || neonPlan === 'free_v2' || neonPlan === 'free_v3' || neonPlan === 'launch'))) {
       throw new Error('NEON_PLAN_NOT_ELIGIBLE_FOR_PRIMARY_PROTECTION:' + (neonPlan || 'unknown'));
