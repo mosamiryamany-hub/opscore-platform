@@ -3848,7 +3848,7 @@ async function main() {
     }
     const persistedChunkA = await owner.query(
       `SELECT u.storage_provider, c.bytes, c.sha256,
-              CASE WHEN c.content IS NULL THEN NULL ELSE encode(c.content,'base64') END AS content_base64
+              CASE WHEN c.content IS NULL THEN NULL ELSE encode(c.content,'hex') END AS content_hex
          FROM public.evidence_uploads u
          JOIN public.evidence_upload_chunks c ON c.upload_id=u.id
         WHERE u.id=$1 AND c.chunk_index=0 AND u.organization_id=$2`,
@@ -3859,7 +3859,7 @@ async function main() {
         || persistedChunkRowA.storage_provider !== 'postgres'
         || Number(persistedChunkRowA.bytes) !== evidenceBytesA.length
         || persistedChunkRowA.sha256 !== evidenceShaA
-        || persistedChunkRowA.content_base64 !== evidenceBase64A) {
+        || persistedChunkRowA.content_hex !== evidenceBytesA.toString('hex')) {
       throw new Error('SIGNED_CONTEXT_EVIDENCE_CHUNK_BYTEA_PERSISTENCE_MISMATCH:' + JSON.stringify(persistedChunkRowA || null));
     }
     signedEvidenceRouteProof.chunkTenantA = 'PASS';
@@ -3886,14 +3886,14 @@ async function main() {
         `SELECT public.opscore_current_tenant() AS signed_tenant,
                 (SELECT COUNT(*)::int FROM public.evidence_uploads WHERE id=$1 AND organization_id=$2) AS parent_count,
                 (SELECT COUNT(*)::int FROM public.evidence_upload_chunks WHERE upload_id=$1) AS chunk_count,
-                (SELECT encode(content,'base64') FROM public.evidence_upload_chunks WHERE upload_id=$1 AND chunk_index=0) AS chunk_content_base64`,
+                (SELECT encode(content,'hex') FROM public.evidence_upload_chunks WHERE upload_id=$1 AND chunk_index=0) AS chunk_content_hex`,
         [evidenceInitA.body.uploadId, tenantA]
       );
       await runtimeProbe.query('COMMIT');
       if (evidenceRuntimeVisibility.rows[0]?.signed_tenant !== tenantA
           || evidenceRuntimeVisibility.rows[0]?.parent_count !== 1
           || evidenceRuntimeVisibility.rows[0]?.chunk_count !== 1
-          || evidenceRuntimeVisibility.rows[0]?.chunk_content_base64 !== evidenceBase64A) {
+          || evidenceRuntimeVisibility.rows[0]?.chunk_content_hex !== evidenceBytesA.toString('hex')) {
         throw new Error('SIGNED_CONTEXT_EVIDENCE_CHUNK_RUNTIME_RLS_VISIBILITY_DIAGNOSTIC:' + JSON.stringify({
           visibility: evidenceRuntimeVisibility.rows[0] || null,
           policies: evidenceChunkPolicies.rows
@@ -3983,7 +3983,7 @@ async function main() {
 
     const completedAttachmentA = await owner.query(
       `SELECT storage_provider, bytes, sha256,
-              CASE WHEN content IS NULL THEN NULL ELSE encode(content,'base64') END AS content_base64
+              CASE WHEN content IS NULL THEN NULL ELSE encode(content,'hex') END AS content_hex
          FROM public.attachments
         WHERE id=$1 AND organization_id=$2`,
       [evidenceCompleteA.body.id, tenantA]
@@ -3997,7 +3997,7 @@ async function main() {
         || completedAttachmentRowA.storage_provider !== 'postgres'
         || Number(completedAttachmentRowA.bytes) !== evidenceBytesA.length
         || completedAttachmentRowA.sha256 !== evidenceShaA
-        || completedAttachmentRowA.content_base64 !== evidenceBase64A
+        || completedAttachmentRowA.content_hex !== evidenceBytesA.toString('hex')
         || clearedChunkA.rows[0]?.content_cleared !== true) {
       throw new Error('SIGNED_CONTEXT_EVIDENCE_ATTACHMENT_BYTEA_COMPLETION_MISMATCH:' + JSON.stringify({
         attachment: completedAttachmentRowA || null,
@@ -4222,12 +4222,12 @@ async function main() {
     signedEvidenceRouteProof.directAttachmentTenantB = 'PASS';
 
     const directStoredA = await owner.query(
-      `SELECT storage_provider, bytes, sha256, encode(content,'base64') AS content_base64
+      `SELECT storage_provider, bytes, sha256, encode(content,'hex') AS content_hex
          FROM public.attachments WHERE id=$1 AND organization_id=$2`,
       [directAttachmentA.body.id, tenantA]
     );
     const directStoredB = await owner.query(
-      `SELECT storage_provider, bytes, sha256, encode(content,'base64') AS content_base64
+      `SELECT storage_provider, bytes, sha256, encode(content,'hex') AS content_hex
          FROM public.attachments WHERE id=$1 AND organization_id=$2`,
       [directAttachmentB.body.id, tenantB]
     );
@@ -4238,11 +4238,11 @@ async function main() {
     if (directStoredA.rowCount !== 1 || directRowA.storage_provider !== 'postgres'
         || Number(directRowA.bytes) !== directAttachmentBytesA.length
         || directRowA.sha256 !== directShaA
-        || directRowA.content_base64 !== directAttachmentBytesA.toString('base64')
+        || directRowA.content_hex !== directAttachmentBytesA.toString('hex')
         || directStoredB.rowCount !== 1 || directRowB.storage_provider !== 'postgres'
         || Number(directRowB.bytes) !== directAttachmentBytesB.length
         || directRowB.sha256 !== directShaB
-        || directRowB.content_base64 !== directAttachmentBytesB.toString('base64')) {
+        || directRowB.content_hex !== directAttachmentBytesB.toString('hex')) {
       throw new Error('SIGNED_CONTEXT_DIRECT_ATTACHMENT_BYTEA_PERSISTENCE_MISMATCH:' + JSON.stringify({
         tenantA: directRowA || null,
         tenantB: directRowB || null
