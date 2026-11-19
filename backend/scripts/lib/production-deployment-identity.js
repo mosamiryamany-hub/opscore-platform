@@ -75,6 +75,12 @@ async function readProductionDeploymentIdentity(httpBase, expectedCommitSha, fet
     }
   }
 
+  const expectedProbeDeploymentId = String(env.OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID || '').trim();
+  if (DEPLOYMENT_RE.test(expectedProbeDeploymentId) && DEPLOYMENT_RE.test(deploymentId)
+      && expectedProbeDeploymentId !== deploymentId) {
+    throw new Error('PRODUCTION_RELEASE_IDENTITY_NOT_ATTESTED');
+  }
+
   if (commitSha !== expectedCommit) throw new Error('PRODUCTION_DEPLOYED_COMMIT_MISMATCH');
 
   return {

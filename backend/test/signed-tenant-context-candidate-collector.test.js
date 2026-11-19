@@ -364,19 +364,86 @@ test('manifest route resolver binds path templates to exact manifest method and 
   assert.equal(findSignedTenantManifestRoute('GET', '/api/v1/work-orders/wo_123/not-in-manifest'), null);
 });
 
+function completeCandidateProofFixture() {
+  const proof = { session: {} };
+  for (const requirement of Object.values(CANDIDATE_ROUTE_PROOF_REQUIREMENTS)) {
+    for (const locator of [...requirement.a, ...requirement.b, ...requirement.cross]) {
+      const parts = String(locator).split('.');
+      let node = proof;
+      for (const part of parts.slice(0, -1)) node = node[part] = node[part] || {};
+      node[parts[parts.length - 1]] = 'PASS';
+    }
+  }
+  return proof;
+}
+
 test('candidate request observations are tenant-labelled, route-bound, and count only signed tamper-confirmed 2xx responses', () => {
   resetCandidateRouteObservations();
   registerCandidateSessionToken('synthetic-token-A', 'tenantA');
   registerCandidateSessionToken('synthetic-token-B', 'tenantB');
   const routeA = findSignedTenantManifestRoute('GET', '/api/v1/customers');
-  const routeB = findSignedTenantManifestRoute('GET', '/api/v1/customers');
   recordCandidateRouteObservation(routeA, 'synthetic-token-A', {
     status: 200,
     headers: {
       'x-opscore-signed-tenant-context': 'verified',
       'x-opscore-candidate-guc-tamper': 'applied'
     }
-  });  assert.equal(evidence.status, 'PASS',
+  });
+  recordCandidateRouteObservation(routeA, 'synthetic-token-B', {
+    status: 200,
+    headers: {
+      'x-opscore-signed-tenant-context': 'verified',
+      'x-opscore-candidate-guc-tamper': 'applied'
+    }
+  });
+  recordCandidateRouteObservation(routeA, 'synthetic-token-A', {
+    status: 404,
+    headers: {
+      'x-opscore-signed-tenant-context': 'verified',
+      'x-opscore-candidate-guc-tamper': 'applied'
+    }
+  });
+  recordCandidateRouteObservation(routeA, 'synthetic-token-A', {
+    status: 200,
+    headers: {
+      'x-opscore-signed-tenant-context': 'verified'
+    }
+  });
+  recordCandidateRouteObservation(routeA, 'unknown-token', {
+    status: 200,
+    headers: {
+      'x-opscore-signed-tenant-context': 'verified',
+      'x-opscore-candidate-guc-tamper': 'applied'
+    }
+  });
+  const observations = getCandidateRouteObservations();
+  assert.equal(observations.length, 1);
+  const observation = observations[0];
+  assert.equal(observation.method, 'GET');
+  assert.equal(observation.path, '/api/v1/customers');
+  assert.equal(observation.operation, 'read');
+  assert.equal(observation.tenantA.requests, 3);
+  assert.equal(observation.tenantA.signed, 3);
+  assert.equal(observation.tenantA.tamperApplied, 2);
+  assert.equal(observation.tenantA.successful, 1);
+  assert.equal(observation.tenantB.requests, 1);
+  assert.equal(observation.tenantB.signed, 1);
+  assert.equal(observation.tenantB.tamperApplied, 1);
+  assert.equal(observation.tenantB.successful, 1);
+  resetCandidateRouteObservations();
+  assert.equal(getCandidateRouteObservations().length, 0);
+});
+
+test('complete candidate-mode proofs pass the full 67-route matrix', () => {
+  const evidence = buildCandidateSignedTenantRouteCoverage({
+    proof: completeCandidateProofFixture(),
+    manifest: signedRouteManifest,
+    inventory: routeInventory,
+    manifestBytes,
+    inventoryBytes,
+    candidateMode: true
+  });
+  assert.equal(evidence.status, 'PASS',
     'complete candidate-mode proofs for every approved route may pass the mapper contract');
   assert.equal(evidence.expectedRouteCount, 67);
   assert.equal(evidence.coveredRouteCount, 67);
@@ -400,6 +467,7 @@ test('candidate request observations are tenant-labelled, route-bound, and count
   assert.match(evidence.routeInventorySha256, /^[a-f0-9]{64}$/);
   assert.equal(evidence.evidenceRebind, null);
 });
+
 test('missing per-route proof reduces the covered count and keeps the affected rows NOT_VERIFIED', () => {
   const proof = completeCandidateProofFixture();
   const baseline = buildCandidateSignedTenantRouteCoverage({
@@ -408,24 +476,25 @@ test('missing per-route proof reduces the covered count and keeps the affected r
     inventory: routeInventory,
     manifestBytes,
     inventoryBytes,
-    candidateMode: true  });
-  recordCandidateRouteObservation(routeA, 'synthetic-token-A', {
-    status: 404,
-    headers: {
-      'x-opscore-signed-tenant-context': 'verified',
-      'x-opscore-candidate-guc-tamper': 'applied'
-    }
+    candidateMode: true
   });
-  recordCandidateRouteObservation(routeA, 'unknown-token', {
-    status: 200,
-    headers: {
-      'x-opscore-signed-tenant-context': 'verified',
-      'x-opscore-candidate-guc-tamper': 'applied'
-    }
-  });  assert.equal(evidence.status, 'NOT_VERIFIED');
-  assert.equal(evidence.coveredRouteCount, 0);
-  assert.equal(evidence.failedRouteCount, 67);
-  assert.equal(evidence.routes.every(route => route.rawGucTamperDenied === false), true);
+  assert.equal(baseline.coveredRouteCount, 67);
+  const partial = JSON.parse(JSON.stringify(proof));
+  partial.session.customersTenantA = 'FAIL';
+  const reduced = buildCandidateSignedTenantRouteCoverage({
+    proof: partial,
+    manifest: signedRouteManifest,
+    inventory: routeInventory,
+    manifestBytes,
+    inventoryBytes,
+    candidateMode: true
+  });
+  assert.equal(reduced.status, 'NOT_VERIFIED');
+  assert.equal(reduced.coveredRouteCount, 66);
+  assert.equal(reduced.failedRouteCount, 1);
+  const affected = reduced.routes.find(route => route.method === 'GET' && route.path === '/api/v1/customers');
+  assert.equal(affected.status, 'NOT_VERIFIED');
+  assert.deepEqual(affected.unresolvedReasons, ['TENANT_A_ROUTE_PROOF_MISSING','CROSS_TENANT_READ_DENIAL_PROOF_MISSING']);
 });
 
 test('manifest or inventory drift prevents the 67-route matrix from passing', () => {
@@ -451,7 +520,6 @@ test('manifest or inventory drift prevents the 67-route matrix from passing', ()
   assert.equal(evidence.manifestComplete, false);
   assert.equal(evidence.routes.length, 66);
 });
-
 
 test('candidate final residue proof includes every tenant event and external-delivery queue', () => {
   const fs = require('node:fs');
