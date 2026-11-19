@@ -1,3 +1,13 @@
+> **HISTORICAL / SUPERSEDED FOR CURRENT DEPLOYMENT — 2026-11-19**
+>
+> This record refers only to the historic seller source package at commit `deba977db586f19128a1f53377fec183beab44d0`, tag `v0.11.62.16-commercial-source-package`, and archive SHA-256 `32263497d02e1c943fd15a64239d2c0da1d7f9a95d765b2a9254830e9758313a`. It is **not** a current-main release certificate and does not close the current hosted Production or commercial gates.
+>
+> Current main is `e1d6c1b7939684e0f55d9f95f102b53687f9544b`; current Vercel Production is `dpl_9BbbFdVocyY73Mh7dTRyTAPy71J3`. The latest runtime report has source identity UNVERIFIED and production isolation NOT_CERTIFIED. See [current closeout gates](../ops/REMAINING_CLOSEOUT_GATES.md) and [Client Trust Pack](CLIENT_TRUST_PACK.md) before any buyer representation.
+>
+> The historic statement that a seller source package was closed applies only to that prior archive SHA. It does not grant a license, authorize redistribution, or certify the newer deployment.
+>
+> ---
+>
 # Seller-side commercial closeout — OpsCore v0.11.62
 
 > **Decision: SELLER SOURCE PACKAGE CLOSED** on exact main tip  
