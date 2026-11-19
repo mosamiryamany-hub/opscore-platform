@@ -523,18 +523,22 @@ async function queryHttp(port, route, token, options = {}) {
       signal: AbortSignal.timeout(Number(options.timeoutMs) > 0 ? Number(options.timeoutMs) : 15000)
     });
     const responseHeaders = Object.fromEntries(response.headers.entries());
-    const manifestRoute = findSignedTenantManifestRoute(method, target.pathname);
-    if (manifestRoute
-        && String(responseHeaders['x-opscore-candidate-guc-tamper'] || '') !== 'applied') {
-      const observed = String(responseHeaders['x-opscore-candidate-guc-tamper'] || 'missing');
-      throw new Error('CANDIDATE_GUC_TAMPER_NOT_CONFIRMED:' + method + ' ' + target.pathname + ':' + observed + ':http_' + response.status);
-    }
     const responseBody = await response.text();
     if (Buffer.byteLength(responseBody, 'utf8') > 1024 * 1024) {
       throw new Error('CANDIDATE_HTTP_RESPONSE_TOO_LARGE');
     }
     let parsed = null;
     try { parsed = responseBody ? JSON.parse(responseBody) : null; } catch (_) {}
+    const manifestRoute = findSignedTenantManifestRoute(method, target.pathname);
+    if (manifestRoute
+        && String(responseHeaders['x-opscore-candidate-guc-tamper'] || '') !== 'applied') {
+      const observed = String(responseHeaders['x-opscore-candidate-guc-tamper'] || 'missing');
+      const denial = String(parsed && parsed.candidateProbeDenial || '').trim();
+      const errorCode = String(parsed && parsed.error && parsed.error.code || '').trim();
+      const detail = denial ? 'denied_' + denial : errorCode ? 'error_' + errorCode : 'body_unclassified';
+      throw new Error('CANDIDATE_GUC_TAMPER_NOT_CONFIRMED:' + method + ' ' + target.pathname
+        + ':' + observed + ':http_' + response.status + ':' + detail);
+    }
     const result = { status: response.status, headers: responseHeaders, body: parsed };
     if (candidateModeForObservations) recordCandidateRouteObservation(manifestRoute, token, result);
     return result;
