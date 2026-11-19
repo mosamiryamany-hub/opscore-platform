@@ -3044,26 +3044,43 @@ class Store {
     if (!buf.length || buf.length > MAX_ATTACHMENT_BYTES)
       throw new Error('ATTACHMENT_SIZE_INVALID');
     const safe = validateAttachmentContent(fileName, mediaType, buf);
-    const fileRoot = fileRootPath();
-    fs.mkdirSync(path.join(fileRoot, ctx.organizationId), { recursive: true });
-    const key = `${ ctx.organizationId }/${ crypto.randomUUID() }-${ safe }`;
-    const abs = path.join(fileRoot, key);
-    fs.mkdirSync(path.dirname(abs), { recursive: true });
-    fs.writeFileSync(abs, buf, { flag: 'wx' });
-    this.registerCallerManagedRollback(() => fs.rmSync(abs, { force: true }));
     const digest = crypto.createHash('sha256').update(buf).digest('hex'), aid = id('att'), t = now();
     const sp = `attachment_${ crypto.randomUUID().replace(/-/g, '') }`;
     this.db.exec(`SAVEPOINT ${ sp }`);
+    let abs = null;
     try {
-      this.db.prepare('INSERT INTO attachments VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)').run(aid, ctx.organizationId, workOrderId, 'work_order', workOrderId, 'local', key, safe, mediaType || 'application/octet-stream', buf.length, digest, ctx.userId, t);
+      let row;
+      if (this.db?.engine === 'postgres') {
+        const key = `postgres:${ctx.organizationId}/attachments/${aid}`;
+        this.db.prepare(
+          "INSERT INTO attachments (id,organization_id,work_order_id,entity_type,entity_id,storage_provider,storage_key,file_name,media_type,bytes,sha256,uploaded_by,created_at,content) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,decode(?,'base64'))"
+        ).run(aid, ctx.organizationId, workOrderId, 'work_order', workOrderId, 'postgres', key, safe,
+          mediaType || 'application/octet-stream', buf.length, digest, ctx.userId, t, b64);
+      } else {
+        const fileRoot = fileRootPath();
+        fs.mkdirSync(path.join(fileRoot, ctx.organizationId), { recursive: true });
+        const key = `${ ctx.organizationId }/${ crypto.randomUUID() }-${ safe }`;
+        abs = path.join(fileRoot, key);
+        fs.mkdirSync(path.dirname(abs), { recursive: true });
+        fs.writeFileSync(abs, buf, { flag: 'wx' });
+        this.registerCallerManagedRollback(() => fs.rmSync(abs, { force: true }));
+        this.db.prepare('INSERT INTO attachments VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)').run(
+          aid, ctx.organizationId, workOrderId, 'work_order', workOrderId, 'local', key, safe,
+          mediaType || 'application/octet-stream', buf.length, digest, ctx.userId, t
+        );
+      }
       this._activity(ctx, 'work_order', workOrderId, 'attachment_added', `${ safe } attached`);
-      const row = this.db.prepare('SELECT * FROM attachments WHERE id=?').get(aid);
+      row = this.db.prepare(
+        'SELECT id,organization_id,work_order_id,entity_type,entity_id,storage_provider,storage_key,file_name,media_type,bytes,sha256,uploaded_by,created_at FROM attachments WHERE id=?'
+      ).get(aid);
       this.db.exec(`RELEASE SAVEPOINT ${ sp }`);
       return row;
     } catch (e) {
       try { this.db.exec(`ROLLBACK TO SAVEPOINT ${ sp }`); } catch (rollbackError) { warn('transaction.savepoint_rollback_failed', { operation: 'add_attachment', error: rollbackError }); }
       try { this.db.exec(`RELEASE SAVEPOINT ${ sp }`); } catch (releaseError) { warn('transaction.savepoint_release_failed', { operation: 'add_attachment', error: releaseError }); }
-      try { fs.rmSync(abs, { force: true }); } catch (cleanupError) { warn('file_cleanup_failed', { operation: 'add_attachment', error: cleanupError }); }
+      if (abs) {
+        try { fs.rmSync(abs, { force: true }); } catch (cleanupError) { warn('file_cleanup_failed', { operation: 'add_attachment', error: cleanupError }); }
+      }
       throw e;
     }
   }
@@ -3077,15 +3094,31 @@ class Store {
     if (!/^[a-f0-9]{64}$/.test(digest))
       throw new Error('ATTACHMENT_SHA256_INVALID');
     const safe = path.basename(clean(fileName) || 'attachment.bin').replace(/[^a-zA-Z0-9._-]/g, '_');
-    const uploadId = id('upl'), t = now(), chunks = Math.ceil(total / EVIDENCE_CHUNK_BYTES), rel = path.join(ctx.organizationId, '.evidence', uploadId);
-    const uploadDir = path.join(fileRootPath(), rel);
-    fs.mkdirSync(uploadDir, { recursive: true });
-    this.registerCallerManagedRollback(() => fs.rmSync(uploadDir, { recursive: true, force: true }));
+    const uploadId = id('upl'), t = now(), chunks = Math.ceil(total / EVIDENCE_CHUNK_BYTES);
+    const storageProvider = this.db?.engine === 'postgres' ? 'postgres' : 'local';
+    const rel = storageProvider === 'postgres'
+      ? `postgres:${ctx.organizationId}/.evidence/${uploadId}`
+      : path.join(ctx.organizationId, '.evidence', uploadId);
+    const uploadDir = storageProvider === 'local' ? path.join(fileRootPath(), rel) : null;
+    if (uploadDir) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+      this.registerCallerManagedRollback(() => fs.rmSync(uploadDir, { recursive: true, force: true }));
+    }
     try {
-      this.db.prepare('INSERT INTO evidence_uploads (id,organization_id,work_order_id,file_name,media_type,total_bytes,expected_sha256,received_bytes,chunk_size,total_chunks,status,storage_key,created_by,created_at,updated_at,committed_attachment_id,last_error) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').run(uploadId, ctx.organizationId, workOrderId, safe, clean(mediaType || 'application/octet-stream'), total, digest, 0, EVIDENCE_CHUNK_BYTES, chunks, 'initiated', rel, ctx.userId, t, t, null, null);
+      if (storageProvider === 'postgres') {
+        this.db.prepare('INSERT INTO evidence_uploads (id,organization_id,work_order_id,file_name,media_type,total_bytes,expected_sha256,received_bytes,chunk_size,total_chunks,status,storage_key,created_by,created_at,updated_at,committed_attachment_id,last_error,storage_provider) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+          .run(uploadId, ctx.organizationId, workOrderId, safe, clean(mediaType || 'application/octet-stream'), total, digest, 0,
+            EVIDENCE_CHUNK_BYTES, chunks, 'initiated', rel, ctx.userId, t, t, null, null, storageProvider);
+      } else {
+        this.db.prepare('INSERT INTO evidence_uploads (id,organization_id,work_order_id,file_name,media_type,total_bytes,expected_sha256,received_bytes,chunk_size,total_chunks,status,storage_key,created_by,created_at,updated_at,committed_attachment_id,last_error) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+          .run(uploadId, ctx.organizationId, workOrderId, safe, clean(mediaType || 'application/octet-stream'), total, digest, 0,
+            EVIDENCE_CHUNK_BYTES, chunks, 'initiated', rel, ctx.userId, t, t, null, null);
+      }
     } catch (error) {
-      try { fs.rmSync(uploadDir, { recursive: true, force: true }); } catch (cleanupError) {
-        warn('file_cleanup_failed', { operation: 'initiate_evidence_upload', error: cleanupError });
+      if (uploadDir) {
+        try { fs.rmSync(uploadDir, { recursive: true, force: true }); } catch (cleanupError) {
+          warn('file_cleanup_failed', { operation: 'initiate_evidence_upload', error: cleanupError });
+        }
       }
       throw error;
     }
@@ -3102,23 +3135,20 @@ class Store {
   putEvidenceChunk(ctx, uploadId, index, contentBase64) {
     requireRole(ctx.role, 'write');
     const u = this.db.prepare('SELECT * FROM evidence_uploads WHERE id=? AND organization_id=?').get(uploadId, ctx.organizationId);
-    if (!u)
-      throw new Error('NOT_FOUND');
+    if (!u) throw new Error('NOT_FOUND');
+    const postgresStorage = u.storage_provider === 'postgres';
     const i = Number(index);
-    if (!Number.isInteger(i) || i < 0 || i >= u.total_chunks)
-      throw new Error('EVIDENCE_CHUNK_INVALID');
-    if (u.status === 'committed' || u.status === 'failed')
-      throw new Error('EVIDENCE_UPLOAD_CLOSED');
+    if (!Number.isInteger(i) || i < 0 || i >= u.total_chunks) throw new Error('EVIDENCE_CHUNK_INVALID');
+    if (u.status === 'committed' || u.status === 'failed') throw new Error('EVIDENCE_UPLOAD_CLOSED');
     const b64 = String(contentBase64 || '').trim();
-    if (!/^[A-Za-z0-9+/]*={0,2}$/.test(b64) || b64.length % 4 === 1)
-      throw new Error('ATTACHMENT_INVALID_BASE64');
+    if (!/^[A-Za-z0-9+/]*={0,2}$/.test(b64) || b64.length % 4 === 1) throw new Error('ATTACHMENT_INVALID_BASE64');
     const buf = Buffer.from(b64, 'base64');
     const max = i === u.total_chunks - 1 ? u.total_bytes - u.chunk_size * (u.total_chunks - 1) : u.chunk_size;
-    if (!buf.length || buf.length > u.chunk_size || buf.length > max)
-      throw new Error('EVIDENCE_CHUNK_SIZE_INVALID');
+    if (!buf.length || buf.length > u.chunk_size || buf.length > max) throw new Error('EVIDENCE_CHUNK_SIZE_INVALID');
     const digest = crypto.createHash('sha256').update(buf).digest('hex');
-    const dir = path.resolve(fileRootPath(), u.storage_key), fp = path.join(dir, `chunk-${ i }.bin`);
-    fs.mkdirSync(dir, { recursive: true });
+    const dir = postgresStorage ? null : path.resolve(fileRootPath(), u.storage_key);
+    const fp = postgresStorage ? null : path.join(dir, `chunk-${ i }.bin`);
+    if (dir) fs.mkdirSync(dir, { recursive: true });
     const scope = this._beginWriteScope('evidence_chunk');
     let createdFile = false;
     let commitAttempted = false;
@@ -3129,26 +3159,46 @@ class Store {
       const existing = this.db.prepare('SELECT * FROM evidence_upload_chunks WHERE upload_id=? AND chunk_index=?').get(uploadId, i);
       if (existing) {
         if (existing.sha256 !== digest || Number(existing.bytes) !== buf.length) throw new Error('EVIDENCE_CHUNK_CONFLICT');
+        if (postgresStorage) {
+          const stored = this.db.prepare("SELECT encode(content,'base64') AS content_base64 FROM evidence_upload_chunks WHERE upload_id=? AND chunk_index=?").get(uploadId, i);
+          const storedBytes = Buffer.from(String(stored?.content_base64 || ''), 'base64');
+          const storedDigest = crypto.createHash('sha256').update(storedBytes).digest('hex');
+          if (storedBytes.length !== buf.length || storedDigest !== digest) throw new Error('EVIDENCE_CHUNK_STORAGE_CONFLICT');
+        } else if (fp && fs.existsSync(fp)) {
+          const existingBytes = fs.readFileSync(fp);
+          const existingDigest = crypto.createHash('sha256').update(existingBytes).digest('hex');
+          if (existingBytes.length !== buf.length || existingDigest !== digest) throw new Error('EVIDENCE_CHUNK_STORAGE_CONFLICT');
+        } else {
+          throw new Error('EVIDENCE_CHUNK_STORAGE_MISSING');
+        }
         commitAttempted = true;
         scope.commit();
         return { uploadId, chunkIndex: i, status: 'duplicate', sha256: existing.sha256 };
       }
-      try {
-        fs.writeFileSync(fp, buf, { flag: 'wx' });
-        createdFile = true;
-        this.registerCallerManagedRollback(() => fs.rmSync(fp, { force: true }));
-      } catch (e) {
-        if (e?.code !== 'EEXIST') throw e;
-        const existingBytes = fs.readFileSync(fp);
-        const existingDigest = crypto.createHash('sha256').update(existingBytes).digest('hex');
-        if (existingBytes.length !== buf.length || existingDigest !== digest)
-          throw new Error('EVIDENCE_CHUNK_STORAGE_CONFLICT');
+      if (postgresStorage) {
+        const storageKey = `${u.storage_key}/chunk-${i}.bin`;
+        this.db.prepare("INSERT INTO evidence_upload_chunks (upload_id,chunk_index,bytes,sha256,storage_key,created_at,content) VALUES (?,?,?,?,?,?,decode(?,'base64'))")
+          .run(uploadId, i, buf.length, digest, storageKey, now(), b64);
+      } else {
+        try {
+          fs.writeFileSync(fp, buf, { flag: 'wx' });
+          createdFile = true;
+          this.registerCallerManagedRollback(() => fs.rmSync(fp, { force: true }));
+        } catch (e) {
+          if (e?.code !== 'EEXIST') throw e;
+          const existingBytes = fs.readFileSync(fp);
+          const existingDigest = crypto.createHash('sha256').update(existingBytes).digest('hex');
+          if (existingBytes.length !== buf.length || existingDigest !== digest)
+            throw new Error('EVIDENCE_CHUNK_STORAGE_CONFLICT');
+        }
+        this.db.prepare('INSERT INTO evidence_upload_chunks (upload_id,chunk_index,bytes,sha256,storage_key,created_at) VALUES (?,?,?,?,?,?)')
+          .run(uploadId, i, buf.length, digest, path.relative(fileRootPath(), fp), now());
       }
       const t = now();
-      this.db.prepare('INSERT INTO evidence_upload_chunks VALUES (?,?,?,?,?,?)').run(uploadId, i, buf.length, digest, path.relative(fileRootPath(), fp), t);
       const received = this.db.prepare('SELECT COALESCE(SUM(bytes),0) n FROM evidence_upload_chunks WHERE upload_id=?').get(uploadId).n;
       const status = Number(received) === Number(current.total_bytes) ? 'ready' : 'uploading';
-      this.db.prepare('UPDATE evidence_uploads SET received_bytes=?,status=?,updated_at=? WHERE id=? AND organization_id=?').run(received, status, t, uploadId, ctx.organizationId);
+      this.db.prepare('UPDATE evidence_uploads SET received_bytes=?,status=?,updated_at=? WHERE id=? AND organization_id=?')
+        .run(received, status, t, uploadId, ctx.organizationId);
       commitAttempted = true;
       scope.commit();
       return { uploadId, chunkIndex: i, status, receivedBytes: Number(received), totalBytes: current.total_bytes, sha256: digest };
@@ -3162,8 +3212,76 @@ class Store {
       throw e;
     }
   }
+  completePostgresEvidenceUpload(ctx, uploadId) {
+    const scope = this._beginWriteScope('complete_evidence_upload_postgres');
+    let commitAttempted = false;
+    try {
+      const u = this.db.prepare('SELECT * FROM evidence_uploads WHERE id=? AND organization_id=?').get(uploadId, ctx.organizationId);
+      if (!u || u.storage_provider !== 'postgres') throw new Error('NOT_FOUND');
+      const attachmentColumns = 'id,organization_id,work_order_id,entity_type,entity_id,storage_provider,storage_key,file_name,media_type,bytes,sha256,uploaded_by,created_at';
+      if (u.status === 'committed') {
+        const row = this.db.prepare(`SELECT ${attachmentColumns} FROM attachments WHERE id=? AND organization_id=?`).get(u.committed_attachment_id, ctx.organizationId);
+        if (!row) throw new Error('NOT_FOUND');
+        commitAttempted = true;
+        scope.commit();
+        return row;
+      }
+      if (Number(u.received_bytes) !== Number(u.total_bytes)) throw new Error('EVIDENCE_UPLOAD_INCOMPLETE');
+      const chunks = this.db.prepare("SELECT upload_id,chunk_index,bytes,sha256,encode(content,'base64') AS content_base64 FROM evidence_upload_chunks WHERE upload_id=? ORDER BY chunk_index").all(uploadId);
+      if (chunks.length !== Number(u.total_chunks)) throw new Error('EVIDENCE_CHUNKS_GAPPED');
+      const buffers = [];
+      for (let i = 0; i < chunks.length; i++) {
+        const chunk = chunks[i];
+        if (!Number.isSafeInteger(Number(chunk.chunk_index)) || Number(chunk.chunk_index) !== i) throw new Error('EVIDENCE_CHUNKS_GAPPED');
+        if (typeof chunk.content_base64 !== 'string') throw new Error('EVIDENCE_CHUNK_CONTENT_MISSING');
+        const bytes = Buffer.from(chunk.content_base64, 'base64');
+        if (bytes.length !== Number(chunk.bytes)
+            || crypto.createHash('sha256').update(bytes).digest('hex') !== chunk.sha256) {
+          throw new Error('EVIDENCE_INTEGRITY_MISMATCH');
+        }
+        buffers.push(bytes);
+      }
+      const assembled = Buffer.concat(buffers);
+      if (assembled.length !== Number(u.total_bytes)) throw new Error('EVIDENCE_UPLOAD_SIZE_MISMATCH');
+      const finalDigest = crypto.createHash('sha256').update(assembled).digest('hex');
+      if (finalDigest !== u.expected_sha256) {
+        this.db.prepare("UPDATE evidence_uploads SET status='failed',last_error=?,updated_at=? WHERE id=? AND organization_id=?")
+          .run('EVIDENCE_INTEGRITY_MISMATCH', now(), uploadId, ctx.organizationId);
+        commitAttempted = true;
+        scope.commit();
+        const integrityError = new Error('EVIDENCE_INTEGRITY_MISMATCH');
+        if (this._callerManagedTransactionLifecycle) integrityError.commitSignedTenantTransaction = true;
+        throw integrityError;
+      }
+      validateAttachmentContent(u.file_name, u.media_type, assembled);
+      const aid = id('att'), t = now();
+      const key = `postgres:${ctx.organizationId}/attachments/${aid}`;
+      this.db.prepare("INSERT INTO attachments (id,organization_id,work_order_id,entity_type,entity_id,storage_provider,storage_key,file_name,media_type,bytes,sha256,uploaded_by,created_at,content) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,decode(?,'base64'))")
+        .run(aid, ctx.organizationId, u.work_order_id, 'work_order', u.work_order_id, 'postgres', key, u.file_name,
+          u.media_type, u.total_bytes, u.expected_sha256, ctx.userId, t, assembled.toString('base64'));
+      const updated = this.db.prepare("UPDATE evidence_uploads SET status='committed',storage_key=?,committed_attachment_id=?,updated_at=?,last_error=NULL WHERE id=? AND organization_id=? AND status<>'committed'")
+        .run(key, aid, t, uploadId, ctx.organizationId);
+      if (updated.changes !== 1) throw new Error('EVIDENCE_UPLOAD_CLOSED');
+      // Keep the chunk audit metadata but drop duplicated bytes after the assembled
+      // attachment has been committed in the same transaction.
+      this.db.prepare('UPDATE evidence_upload_chunks SET content=NULL WHERE upload_id=?').run(uploadId);
+      this._activity(ctx, 'work_order', u.work_order_id, 'evidence_committed',
+        `${u.file_name} evidence committed`, { uploadId, attachmentId: aid, sha256: u.expected_sha256 });
+      const row = this.db.prepare(`SELECT ${attachmentColumns} FROM attachments WHERE id=? AND organization_id=?`).get(aid, ctx.organizationId);
+      commitAttempted = true;
+      scope.commit();
+      return row;
+    } catch (e) {
+      scope.rollback();
+      throw e;
+    }
+  }
   completeEvidenceUpload(ctx, uploadId) {
     requireRole(ctx.role, 'write');
+    if (this.db?.engine === 'postgres') {
+      const provider = this.db.prepare('SELECT storage_provider FROM evidence_uploads WHERE id=? AND organization_id=?').get(uploadId, ctx.organizationId);
+      if (provider?.storage_provider === 'postgres') return this.completePostgresEvidenceUpload(ctx, uploadId);
+    }
     const scope = this._beginWriteScope('complete_evidence_upload');
     let finalPath = null;
     let tmpPath = null;
@@ -3243,9 +3361,26 @@ class Store {
     return this.db.prepare('SELECT id,entity_type,entity_id,storage_provider,file_name,media_type,bytes,sha256,uploaded_by,created_at FROM attachments WHERE organization_id=? AND entity_type=? AND entity_id=? ORDER BY created_at DESC LIMIT 500').all(ctx.organizationId, entityType, entityId);
   }
   readAttachment(ctx, idv) {
-    const a = this.db.prepare('SELECT * FROM attachments WHERE id=? AND organization_id=?').get(idv, ctx.organizationId);
-    if (!a)
-      throw new Error('NOT_FOUND');
+    const a = this.db.prepare('SELECT id,organization_id,work_order_id,entity_type,entity_id,storage_provider,storage_key,file_name,media_type,bytes,sha256,uploaded_by,created_at FROM attachments WHERE id=? AND organization_id=?').get(idv, ctx.organizationId);
+    if (!a) throw new Error('NOT_FOUND');
+    if (a.storage_provider === 'postgres') {
+      const payload = this.db.prepare("SELECT encode(content,'base64') AS content_base64 FROM attachments WHERE id=? AND organization_id=?").get(idv, ctx.organizationId);
+      if (typeof payload?.content_base64 !== 'string') throw new Error('NOT_FOUND');
+      const buffer = Buffer.from(payload.content_base64, 'base64');
+      if (buffer.length !== Number(a.bytes)) throw new Error('EVIDENCE_INTEGRITY_MISMATCH');
+      const actual = crypto.createHash('sha256').update(buffer).digest('hex');
+      const verified = timingSafeHexEqual(actual, a.sha256);
+      audit(this.db, {
+        organizationId: ctx.organizationId,
+        actorUserId: ctx.userId,
+        action: 'verify_integrity',
+        resourceType: 'attachment',
+        resourceId: a.id,
+        metadata: { expectedSha256: a.sha256, actualSha256: actual, verified }
+      });
+      if (!verified) throw new Error('EVIDENCE_INTEGRITY_MISMATCH');
+      return { meta: { ...a, integrityVerified: true, verifiedSha256: actual }, buffer };
+    }
     const fileRoot = fileRootPath();
     const abs = path.resolve(fileRoot, a.storage_key);
     if (!abs.startsWith(path.resolve(fileRoot) + path.sep) || !fs.existsSync(abs))
@@ -3258,22 +3393,10 @@ class Store {
       action: 'verify_integrity',
       resourceType: 'attachment',
       resourceId: a.id,
-      metadata: {
-        expectedSha256: a.sha256,
-        actualSha256: actual,
-        verified
-      }
+      metadata: { expectedSha256: a.sha256, actualSha256: actual, verified }
     });
-    if (!verified)
-      throw new Error('EVIDENCE_INTEGRITY_MISMATCH');
-    return {
-      meta: {
-        ...a,
-        integrityVerified: true,
-        verifiedSha256: actual
-      },
-      path: abs
-    };
+    if (!verified) throw new Error('EVIDENCE_INTEGRITY_MISMATCH');
+    return { meta: { ...a, integrityVerified: true, verifiedSha256: actual }, path: abs };
   }
   validateCustomerImport(ctx, rows) {
     const errors = [];
