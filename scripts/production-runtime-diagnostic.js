@@ -47,6 +47,14 @@ const REQUIRED_DIAGNOSTIC_CHECKS = Object.freeze([
   'production_isolation_certified'
 ]);
 
+function negotiatedCipherStrengthBits(value) {
+  const cipher = String(value || '');
+  if (cipher === 'TLS_AES_128_GCM_SHA256') return 128;
+  if (cipher === 'TLS_AES_256_GCM_SHA384' || cipher === 'TLS_CHACHA20_POLY1305_SHA256') return 256;
+  const match = cipher.match(/^(?:ECDHE-(?:RSA|ECDSA)|DHE-RSA)-AES(128|256)-GCM-SHA(?:256|384)$/);
+  return match ? Number(match[1]) : null;
+}
+
 function failClosedExitCode(result) {
   if (!result || !['PASS', 'PASS_WITH_ADVISORIES'].includes(result.status) ||
       result.promotionAllowed !== true || !Array.isArray(result.checks) ||
@@ -127,23 +135,17 @@ function evaluateRuntimeDiagnostic(payload, httpStatus, expectedCommit, expected
       runtimeRole.superuser === false && runtimeRole.bypass_rls === false &&
       runtimeRole.create_role === false && runtimeRole.create_db === false &&
       runtimeRole.elevated_role_membership === false),
-    // TLS evidence: pg_stat_ssl describes the SERVER-side view of the session.
-    // On managed Postgres (Neon) every connection enters through a
-    // TLS-terminating proxy, so pg_stat_ssl reports ssl=false even when the
-    // wire between this deployment and the database is encrypted with a
-    // verified certificate chain. The gate therefore binds to the
-    // client-socket TLS evidence captured by the read-only identity probe
-    // (database.clientTls) instead of pg_stat_ssl. The cipher name is
-    // strength-checked (AES-256 / AES-128 key width) because Node's
-    // getCipher() does not expose key bits.
+    // TLS evidence comes from the negotiated client socket, not pg_stat_ssl:
+    // Neon terminates TLS at its proxy, so PostgreSQL's backend-session view
+    // can legitimately report ssl=false. Accept only known modern AEAD suites
+    // with at least 128-bit keys; do not infer strength from arbitrary digits
+    // embedded in an untrusted cipher label.
     check('client_tls_configuration', (() => {
       const clientTls = database.clientTls || {};
-      const tlsCipherText = String(clientTls.cipher || '');
-      const cipherBits = /[_-]256/.test(tlsCipherText) ? 256 : /[_-]128/.test(tlsCipherText) ? 128 : null;
+      const cipherBits = negotiatedCipherStrengthBits(clientTls.cipher);
       return clientTls.negotiated === true &&
         clientTls.authorized === true &&
         ['TLSv1.2', 'TLSv1.3'].includes(String(clientTls.protocol || '')) &&
-        /^[A-Za-z0-9_.-]{1,128}$/.test(tlsCipherText) &&
         Number.isSafeInteger(cipherBits) && cipherBits >= 128;
     })()),
     check('row_level_security_coverage', Number.isInteger(rls.public_application_tables) &&
