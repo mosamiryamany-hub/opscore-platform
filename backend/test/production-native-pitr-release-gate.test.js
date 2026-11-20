@@ -14,7 +14,8 @@ const env = {
   OPSC_RELEASE_CI_COMMIT: SHA,
   OPSC_RELEASE_CI_PIPELINE_ID: '2978538209',
   OPSC_PRODUCTION_NEON_BRANCH_ID: 'br-current-production',
-  OPSC_PRODUCTION_DATABASE_NAME: 'opscore_acceptance'
+  OPSC_PRODUCTION_DATABASE_NAME: 'opscore_acceptance',
+  OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID: 'dpl_ProductionFixture123'
 };
 
 function validEvidence(overrides = {}) {
@@ -34,6 +35,7 @@ function validEvidence(overrides = {}) {
     comparisonBranchId: 'br-comparison-production-clone',
     sourceBranchId: 'br-current-production',
     databaseName: 'opscore_acceptance',
+    deploymentId: 'dpl_ProductionFixture123',
     sourceCommit: SHA,
     pipelineId: '2978538209',
     cleanup: {
