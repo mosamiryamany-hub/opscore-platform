@@ -720,15 +720,19 @@ jobs:
                 && exactPipeline(session) && sourceCommitMatches(session)
                 && sourceBranchMatches(session) && exactDeployment(session) && noEvidenceRebind(session);
 
-              const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v3'
+              const rOk = recovery.schemaVersion === 'opscore.production-recovery-point.v4'
                 && recovery.status === 'PASS'
-                && recovery.coreTenantTableRowCountsMatch === true
-                && recovery.verificationScope === 'branch-clone-public-table-count-and-core-tenant-row-counts-only'
+                && recovery.verificationScope === 'branch-clone-public-full-table-content-hash-and-core-tenant-row-counts'
                 && recovery.databaseName === 'opscore_acceptance'
                 && Number(recovery.tableCountCompared) >= 130
                 && Number(recovery.mismatchCount) === 0
-                && recovery.temporaryBranch === true
+                && recovery.contentIntegrity?.status === 'PASS'
+                && recovery.contentIntegrity?.algorithm === 'SHA-256'
+                && Number(recovery.contentIntegrity?.mismatchCount) === 0
+                && Number(recovery.contentIntegrity?.rowsCompared) > 0
+                && recovery.contentIntegrity?.rlsExceptionsExact === true
                 && recovery.cleanup?.status === 'PASS'
+                && recovery.cleanup?.referenceBranchDeleted === true
                 && recovery.cleanup?.recoveryBranchDeleted === true
                 && exactPipeline(recovery) && sourceCommitMatches(recovery)
                 && sourceBranchMatches(recovery) && exactDeployment(recovery) && noEvidenceRebind(recovery);
@@ -1260,8 +1264,15 @@ jobs:
               session.status !== 'PASS' || session.cleanup?.status !== 'PASS' || !exact(session)) {
             throw new Error('CANDIDATE_SESSION_ISOLATION_EVIDENCE_INVALID');
           }
-          if (recovery.schemaVersion !== 'opscore.production-recovery-point.v3' ||
-              recovery.status !== 'PASS' || recovery.cleanup?.status !== 'PASS' ||
+          if (recovery.schemaVersion !== 'opscore.production-recovery-point.v4' ||
+              recovery.status !== 'PASS' ||
+              recovery.verificationScope !== 'branch-clone-public-full-table-content-hash-and-core-tenant-row-counts' ||
+              recovery.contentIntegrity?.status !== 'PASS' ||
+              recovery.contentIntegrity?.algorithm !== 'SHA-256' ||
+              Number(recovery.contentIntegrity?.mismatchCount) !== 0 ||
+              recovery.contentIntegrity?.rlsExceptionsExact !== true ||
+              recovery.cleanup?.status !== 'PASS' ||
+              recovery.cleanup?.referenceBranchDeleted !== true ||
               recovery.cleanup?.recoveryBranchDeleted !== true || !exact(recovery)) {
             throw new Error('CANDIDATE_RECOVERY_POINT_EVIDENCE_INVALID');
           }
