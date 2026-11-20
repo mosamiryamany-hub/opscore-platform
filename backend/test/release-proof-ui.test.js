@@ -41,11 +41,17 @@ test('release proof page separates CI identity from commercial release closure',
       commercialClosure: 'UNVERIFIED',
       livePostgresRls: 'PASS_TEST_SCOPE',
       productionSessionTenantBoundary: 'NOT_VERIFIED',
-      productionRecoveryBundle: 'NOT_VERIFIED',
+      productionRecoveryBundle: 'PASS_PRODUCTION_ROW_COUNT_SCOPE',
+      neonPointInTimeRecovery: 'PASS_BRANCH_POINT',
       productionIsolationCertification: 'NOT_CERTIFIED'
     },
     productionAcceptance: { status: 'NOT_VERIFIED' },
-    packageFingerprint: { status: 'PUBLISHED', value: 'a'.repeat(64) }
+    packageFingerprint: { status: 'PUBLISHED', value: 'a'.repeat(64) },
+    signedTenantRouteCoverage: {
+      status: 'PASS', expectedRouteCount: 67, coveredRouteCount: 67, testedRoutes: 67, failedRouteCount: 0,
+      commitBound: true, pipelineBound: true, parentBranchBound: true, deploymentIdBound: true,
+      manifestBound: true, inventoryBound: true, routeResultsValid: true
+    }
   };
   const context = {
     document,
@@ -61,7 +67,11 @@ test('release proof page separates CI identity from commercial release closure',
   assert.equal(elements.get('commercialGate').textContent, 'UNVERIFIED');
   assert.equal(elements.get('acceptanceGate').textContent, 'NOT_VERIFIED');
   assert.equal(elements.get('sessionGate').textContent, 'NOT_VERIFIED');
-  assert.equal(elements.get('recoveryGate').textContent, 'NOT_VERIFIED');
+  assert.equal(elements.get('recoveryGate').textContent, 'PASS_PRODUCTION_ROW_COUNT_SCOPE');
+  assert.match(elements.get('signedRouteCoverage').textContent, /PASS — 67\/67 routes/);
+  assert.match(elements.get('recoveryPointEvidence').textContent, /row-count scope only/);
+  assert.match(elements.get('pitrCertification').textContent, /NOT CERTIFIED/);
+  assert.match(elements.get('archiveAttestation').textContent, /NOT VERIFIED/);
   assert.equal(elements.get('isolationGate').textContent, 'NOT_CERTIFIED');
   assert.equal(elements.get('status').textContent, 'UNVERIFIED');
 });

@@ -16,9 +16,13 @@ test('release proof page publishes successful CI evidence separately from Produc
   assert.match(html, /CI-tested main revision/);
   assert.match(html, /d672dce8f18e1d7095aed3126aedb0f995796144/);
   assert.match(html, /346-route disposable CI matrix/);
-  assert.match(html, /NOT VERIFIED — no Production route results/);
-  assert.match(html, /NOT VERIFIED — PITR probe not run/);
-  assert.match(html, /NOT PRODUCED — no verified signed archive/);
+  assert.match(html, /id="signedRouteCoverage"/);
+  assert.match(html, /id="recoveryPointEvidence"/);
+  assert.match(html, /id="pitrCertification"/);
+  assert.match(html, /id="archiveAttestation"/);
+  assert.doesNotMatch(html, /NOT VERIFIED — no Production route results/);
+  assert.doesNotMatch(html, /NOT VERIFIED — PITR probe not run/);
+  assert.doesNotMatch(html, /NOT PRODUCED — no verified signed archive/);
   assert.match(html, /Live PostgreSQL catalog configuration/);
 });
 

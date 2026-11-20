@@ -53,9 +53,10 @@
     <div class="row"><span>Production deployment source commit</span><code class="value" id="deployedCommitEvidence">CHECKING</code></div>
     <div class="row"><span>Live PostgreSQL catalog configuration</span><strong class="value" id="databaseCatalogEvidence">CHECKING</strong></div>
     <p class="muted small" id="dbCatalogDetails">The live database endpoint is checked independently. Catalog policy configuration is not a two-tenant behavioral isolation certificate.</p>
-    <div class="row"><span>Production signed-session tenant routes</span><strong class="value warn">NOT VERIFIED — no Production route results (0 tested)</strong></div>
-    <div class="row"><span>Neon Production PITR / exact restore parity</span><strong class="value warn">NOT VERIFIED — PITR probe not run; restore differs in six application tables</strong></div>
-    <div class="row"><span>Signed current-main release archive / SHA-256</span><strong class="value warn">NOT PRODUCED — no verified signed archive bound to this deployment</strong></div>
+    <div class="row"><span>Production signed-session tenant routes</span><strong class="value" id="signedRouteCoverage">UNVERIFIED</strong></div>
+    <div class="row"><span>Production recovery-point evidence</span><strong class="value" id="recoveryPointEvidence">UNVERIFIED</strong></div>
+    <div class="row"><span>Neon PITR / full restore certification</span><strong class="value warn" id="pitrCertification">NOT CERTIFIED — branch-point row-count evidence is not a full PITR drill</strong></div>
+    <div class="row"><span>Signed release archive provenance</span><strong class="value warn" id="archiveAttestation">NOT VERIFIED — no signed archive attestation exposed by the live proof API</strong></div>
     <div class="section">Release artifact</div>
     <div class="row"><span>Package SHA-256</span><code class="value" id="packageSha">UNVERIFIED</code></div>
     <div class="row"><span>Package fingerprint state</span><strong class="value" id="packageState">UNVERIFIED</strong></div>
