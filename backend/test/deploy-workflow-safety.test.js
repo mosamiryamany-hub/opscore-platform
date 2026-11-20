@@ -81,3 +81,13 @@ test('production deploy rejects legacy count-only recovery evidence and requires
   assert.match(deploy, /rlsPolicyTableCount/);
   assert.match(deploy, /spatial_ref_sys/);
 });
+
+test('release embed consumes only collector-produced PITR v2 and cannot downgrade to historical catalog-only artifact', () => {
+  assert.match(deploy, /Verify collector-produced full-data PITR evidence before embed/);
+  assert.match(deploy, /opscore\.production-native-pitr\.v2/);
+  assert.match(deploy, /FULL_DATA_PITR_EVIDENCE_MISSING/);
+  assert.match(deploy, /FULL_DATA_PITR_EVIDENCE_NOT_EXACT_OR_NOT_VERIFIED/);
+  assert.doesNotMatch(deploy, /Download production-native PITR evidence from acceptance job/);
+  assert.doesNotMatch(deploy, /PITR_EVIDENCE_REBOUND/);
+  assert.match(deploy, /MISSING_EVIDENCE:\$src/);
+});
