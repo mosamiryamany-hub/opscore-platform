@@ -73,7 +73,10 @@ function identityReport() {
       current_user: 'opscore_runtime',
       server_version: '18.6',
       transaction_read_only: 'on',
-      tls_enabled: false,
+      tls_enabled: true,
+      tls_version: 'TLSv1.3',
+      tls_cipher: 'TLS_AES_256_GCM_SHA384',
+      tls_bits: 256,
       connectionString: 'do-not-disclose'
     },
     roles: [{
@@ -163,7 +166,10 @@ test('production database diagnostic returns sanitized identity without secrets 
   assert.equal(body.database.applicationDatabaseBinding, 'PRESENT');
   assert.equal(body.database.identity.current_user, 'opscore_runtime');
   assert.equal(body.database.identity.server_version, '18.6');
-  assert.equal(Object.prototype.hasOwnProperty.call(body.database.identity, 'tls_enabled'), false);
+  assert.equal(body.database.identity.tls_enabled, true);
+  assert.equal(body.database.identity.tls_version, 'TLSv1.3');
+  assert.equal(body.database.identity.tls_cipher, 'TLS_AES_256_GCM_SHA384');
+  assert.equal(body.database.identity.tls_bits, 256);
   assert.equal(body.database.transactionMode, 'READ_ONLY');
   assert.equal(body.environment.productionHoldConfiguredFalse, false);
   assert.equal(body.environment.releaseProofVerified, false);
@@ -212,4 +218,23 @@ test('production database identity handler is wired into the server router and p
   assert.match(server, /createProductionDatabaseIdentityHandler\s*\}\s*=\s*require\('\.\/production-database-identity-route'\)/);
   assert.match(server, /url\.pathname === '\/api\/internal\/production-database-identity'/);
   assert.match(server, /isAuthorizedProductionCandidateDatabaseIdentityRequest\(req, process\.env, signedContextProductionReadiness\)/);
+});
+
+test('production database diagnostic preserves TLS evidence but rejects unsafe metadata', async () => {
+  const report = identityReport();
+  report.identity.tls_version = 'TLSv1.3\\nsecret';
+  report.identity.tls_cipher = 'cipher;secret';
+  report.identity.tls_bits = -1;
+  const handler = createProductionDatabaseIdentityHandler({
+    inspectDatabase: async () => report,
+    hasVerifiedProductionRelease: () => false,
+    readEmbeddedBuildIdentity: () => null
+  });
+  const res = responseSink();
+  await handler(request(), res, baseEnv, baseEnv);
+  const identity = JSON.parse(res.body).database.identity;
+  assert.equal(identity.tls_enabled, true);
+  assert.equal(identity.tls_version, null);
+  assert.equal(identity.tls_cipher, null);
+  assert.equal(identity.tls_bits, null);
 });
