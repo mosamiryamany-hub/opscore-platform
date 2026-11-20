@@ -323,8 +323,13 @@ async function verifyRestored(options = {}) {
       } else if (localValue !== expected.value) {
         throw new Error('PRODUCTION_ENV_RESTORE_MISMATCH:' + key + ':local');
       }
-    } else if (hits.length !== 0) {
-      throw new Error('PRODUCTION_ENV_RESTORE_UNEXPECTED_KEY:' + key);
+    } else {
+      if (hits.length !== 0) {
+        throw new Error('PRODUCTION_ENV_RESTORE_UNEXPECTED_KEY:' + key);
+      }
+      if (parsed.has(key)) {
+        throw new Error('PRODUCTION_ENV_RESTORE_UNEXPECTED_LOCAL_KEY:' + key);
+      }
     }
   }
   for (const key of CANDIDATE_KEYS) {
