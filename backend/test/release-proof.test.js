@@ -916,7 +916,7 @@ test('release archive attestation verifies HMAC against the exact commit, pipeli
     OPSC_RELEASE_PACKAGE_SHA256: PACKAGE_SHA,
     OPSC_RELEASE_PACKAGE_ATTESTATION_KEY: key
   };
-  const write = value => fs.writeFileSync(filePath, JSON.stringify(value, null, 2) + '\\n');
+  const write = value => fs.writeFileSync(filePath, JSON.stringify(value, null, 2) + '\n');
   try {
     write(baseEvidence);
     const valid = readReleaseArchiveAttestation(filePath, env);
