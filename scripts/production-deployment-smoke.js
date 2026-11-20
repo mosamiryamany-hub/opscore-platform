@@ -340,8 +340,10 @@ function validateEndpoint(path, statusCode, payload, expectedCommit, contentType
     const pipelineId = Number(ci.pipelineId);
     const acceptancePipelineId = String(acceptance.pipelineId || '');
     const httpPipelineId = String(httpAcceptance.evidencePipelineId || '');
+    // release-proof.js emits 'PASS' when every gate verifies and 'PASS_WITH_BUYER_RESIDUALS'
+    // when commercial buyer residuals remain; both are verified release identities.
     const identityBound = body.schemaVersion === 'opscore.public-release-proof.v2' &&
-      body.status === 'PASS_WITH_BUYER_RESIDUALS' &&
+      ['PASS', 'PASS_WITH_BUYER_RESIDUALS'].includes(body.status) &&
       body.sourceCommit === expectedCommit &&
       body.sourceCommitIdentitySource === 'github-actions-cli-assertion' &&
       ci.status === 'PASS' && ci.commitSha === expectedCommit &&
@@ -357,14 +359,19 @@ function validateEndpoint(path, statusCode, payload, expectedCommit, contentType
       acceptance.commitSha === expectedCommit &&
       acceptancePipelineId === String(pipelineId) &&
       /^[a-f0-9]{64}$/.test(String(acceptance.evidenceSha256 || ''));
-    const sessionOk = ['PASS_TEST_SCOPE', 'PASS_PRODUCTION'].includes(gates.productionSessionTenantBoundary);
-    const recoveryOk = ['PASS_TEST_SCOPE', 'PASS_PRODUCTION'].includes(gates.productionRecoveryBundle);
+    // Production-scope gate vocabulary emitted by release-proof.js for live dual-tenant
+    // session probes (PASS_PRODUCTION_PROBE_SCOPE) and live recovery-point row-count
+    // parity (PASS_PRODUCTION_ROW_COUNT_SCOPE); 'PASS_PRODUCTION' is the legacy alias.
+    const sessionProductionScopes = ['PASS_PRODUCTION', 'PASS_PRODUCTION_PROBE_SCOPE'];
+    const recoveryProductionScopes = ['PASS_PRODUCTION', 'PASS_PRODUCTION_ROW_COUNT_SCOPE'];
+    const sessionOk = ['PASS_TEST_SCOPE', ...sessionProductionScopes].includes(gates.productionSessionTenantBoundary);
+    const recoveryOk = ['PASS_TEST_SCOPE', ...recoveryProductionScopes].includes(gates.productionRecoveryBundle);
     const pitrOk = ['NOT_VERIFIED', 'PASS_BRANCH_POINT'].includes(gates.neonPointInTimeRecovery);
     const isolationOk = ['NOT_CERTIFIED', 'CERTIFIED'].includes(gates.productionIsolationCertification);
     // CERTIFIED requires both production-scope session and recovery gates.
     const isolationConsistent = gates.productionIsolationCertification !== 'CERTIFIED' || (
-      gates.productionSessionTenantBoundary === 'PASS_PRODUCTION' &&
-      gates.productionRecoveryBundle === 'PASS_PRODUCTION'
+      sessionProductionScopes.includes(gates.productionSessionTenantBoundary) &&
+      recoveryProductionScopes.includes(gates.productionRecoveryBundle)
     );
     const gatesHonest = sessionOk && recoveryOk &&
       gates.tenantRouteSecurityCoverage === 'PASS_TEST_SCOPE' &&
