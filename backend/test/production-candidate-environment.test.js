@@ -176,6 +176,10 @@ test('verify-restored proves every Production variable matches the snapshot and 
     () => verifyRestored({ env, fetchImpl: store.fetchImpl, envFileContents: envFile() + '\nOPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED=true\n' }),
     /PRODUCTION_CANDIDATE_ENV_LOCAL_LEFTOVER:OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED/
   );
+  await assert.rejects(
+    () => verifyRestored({ env, fetchImpl: store.fetchImpl, envFileContents: envFile() + '\nOPSC_PRODUCTION_PROBE_DEPLOYMENT_ID=dpl_StaleProbe123\n' }),
+    /PRODUCTION_ENV_RESTORE_UNEXPECTED_LOCAL_KEY:OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID/
+  );
   store.items.push({ id: 'candidate', key: 'OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED', value: 'true', target: ['production'], type: 'encrypted' });
   await assert.rejects(
     () => verifyRestored({ env, fetchImpl: store.fetchImpl }),
