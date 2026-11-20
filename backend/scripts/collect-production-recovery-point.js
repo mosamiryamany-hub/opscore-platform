@@ -5,9 +5,9 @@
  * Collect full-data recovery and native Neon PITR evidence without modifying
  * the Production root branch or deleting any pre-existing branch.
  *
- * Two temporary, read-only branches are created from one historical timestamp:
- *   1. a point-in-time reference branch from the exact Production root branch;
- *   2. a comparison clone whose parent is that reference branch.
+ * Two independent temporary, read-only sibling branches are created from the
+ * exact Production root branch at the same explicit historical timestamp. Their
+ * full data, schema, and RLS manifests are compared independently.
  *
  * Every public base/partitioned root table is compared using a deterministic
  * SHA-256 stream of row hashes. Column catalogs, RLS/FORCE RLS flags and the
@@ -446,8 +446,7 @@ async function main() {
     referenceCreated = true;
     referenceBranch = await waitForBranch(projectId, reference);
 
-    recovery.parentBranchId = reference.id;
-    const recoveryCreatedResponse = await createTemporaryBranch(projectId, recovery.name, reference.id, null);
+    const recoveryCreatedResponse = await createTemporaryBranch(projectId, recovery.name, parentBranchId, targetTimestampUtc);
     recovery.id = recoveryCreatedResponse.id;
     recoveryCreated = true;
     recoveryBranch = await waitForBranch(projectId, recovery);
@@ -632,7 +631,7 @@ async function main() {
       mismatchCount: 0,
       contentIntegrity,
       cleanup,
-      note: 'Read-only historical reference branch plus exact child clone. Physical public tables were compared using streaming per-row SHA-256 hashes and exact row counts; all public table/partition catalog metadata and full RLS/FORCE RLS policy inventories were compared. The explicit non-tenant metadata exception is spatial_ref_sys. The two exact temporary branches created by this run were deleted and absence verified. This proves equality between the created historical branch and its clone; it is not an application-level recovery rehearsal or an RPO/RTO guarantee.'
+      note: 'Two independent read-only sibling branches were created directly from the Production root branch at the same explicit historical timestamp. All physical public tables were compared using streaming per-row SHA-256 hashes and exact row counts; all public table/partition catalog metadata and full RLS/FORCE RLS policy inventories were compared. The explicit non-tenant metadata exception is spatial_ref_sys. Both exact temporary branches created by this run were deleted and absence verified. This proves repeatable historical branch materialization and full equality between independent results; it is not an application-level recovery rehearsal or an RPO/RTO guarantee.'
     };
     writeEvidence(recoveryPath, recoveryEvidence);
 
