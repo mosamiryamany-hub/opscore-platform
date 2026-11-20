@@ -331,6 +331,72 @@ function readProductionRecoveryPointEvidence(filePath = embeddedEvidencePath('PR
   };
 }
 
+function readProductionNativePitrEvidence(filePath = embeddedEvidencePath('PRODUCTION_NATIVE_PITR_EVIDENCE.json'), env = process.env) {
+  let evidence;
+  try { evidence = JSON.parse(fs.readFileSync(filePath, 'utf8')); }
+  catch { return { status: 'NOT_VERIFIED' }; }
+
+  const expectedCommit = normalizedSha(env.OPSC_RELEASE_CI_COMMIT || env.CI_COMMIT_SHA || env.OPSC_SOURCE_COMMIT_SHA);
+  const expectedPipelineId = String(env.OPSC_RELEASE_CI_PIPELINE_ID || env.GITHUB_RUN_ID || '').trim();
+  const expectedParentBranchId = String(env.OPSC_PRODUCTION_NEON_BRANCH_ID || '').trim();
+  const commitBound = /^[a-f0-9]{40}$/.test(expectedCommit || '') && normalizedSha(evidence.sourceCommit) === expectedCommit;
+  const pipelineBound = PIPELINE_RE.test(expectedPipelineId) && String(evidence.pipelineId || '') === expectedPipelineId;
+  const sourceBranchBound = !expectedParentBranchId || String(evidence.sourceBranchId || '').trim() === expectedParentBranchId;
+  const ok = evidence.schemaVersion === 'opscore.production-native-pitr.v1'
+    && evidence.status === 'PASS'
+    && evidence.environment === 'production'
+    && evidence.mechanism === 'NEON_INSTANT_RESTORE_FROM_HISTORY'
+    && evidence.dataIntegrity === 'PASS'
+    && Boolean(evidence.targetTimestampUtc && evidence.restoredBranchId && evidence.sourceBranchId)
+    && HASH_RE.test(String(evidence.evidenceSha256 || ''))
+    && commitBound && pipelineBound && sourceBranchBound;
+  if (!ok) return { status: 'NOT_VERIFIED' };
+  return {
+    status: 'PASS',
+    environment: evidence.environment,
+    mechanism: evidence.mechanism,
+    dataIntegrity: evidence.dataIntegrity,
+    targetTimestampUtc: evidence.targetTimestampUtc,
+    restoredBranchId: evidence.restoredBranchId,
+    sourceBranchId: evidence.sourceBranchId,
+    databaseName: evidence.databaseName || null,
+    sourceCommit: normalizedSha(evidence.sourceCommit),
+    pipelineId: String(evidence.pipelineId || ''),
+    evidenceSha256: String(evidence.evidenceSha256),
+    testedAt: evidence.testedAt || null,
+    verificationScope: evidence.verificationScope || null
+  };
+}
+
+function readReleaseArchiveAttestation(filePath = embeddedEvidencePath('RELEASE_ARCHIVE_ATTESTATION.json'), env = process.env) {
+  let evidence;
+  try { evidence = JSON.parse(fs.readFileSync(filePath, 'utf8')); }
+  catch { return { status: 'NOT_VERIFIED' }; }
+  const expectedCommit = normalizedSha(env.OPSC_RELEASE_CI_COMMIT || env.CI_COMMIT_SHA || env.OPSC_SOURCE_COMMIT_SHA);
+  const expectedPipelineId = String(env.OPSC_RELEASE_CI_PIPELINE_ID || env.GITHUB_RUN_ID || '').trim();
+  const packageSha = String(env.OPSC_RELEASE_PACKAGE_SHA256 || '').trim().toLowerCase();
+  const ok = evidence.schemaVersion === 'opscore.release-archive-attestation.v1'
+    && evidence.status === 'PASS'
+    && evidence.attestationVerified === true
+    && evidence.signatureVerified === true
+    && normalizedSha(evidence.sourceCommit) === expectedCommit
+    && PIPELINE_RE.test(expectedPipelineId)
+    && String(evidence.pipelineId || '') === expectedPipelineId
+    && HASH_RE.test(String(evidence.sha256 || ''))
+    && (!packageSha || String(evidence.sha256).toLowerCase() === packageSha);
+  if (!ok) return { status: 'NOT_VERIFIED' };
+  return {
+    status: 'PASS',
+    attestationVerified: true,
+    signatureVerified: true,
+    sourceCommit: normalizedSha(evidence.sourceCommit),
+    pipelineId: Number(evidence.pipelineId),
+    sha256: String(evidence.sha256).toLowerCase(),
+    signatureAlgorithm: evidence.signatureAlgorithm || null,
+    attestedAt: evidence.attestedAt || null
+  };
+}
+
 function readProductionSignedTenantRouteCoverageEvidence(
   filePath = embeddedEvidencePath('SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE.json'),
   env = process.env,
@@ -570,7 +636,11 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
 
   const sessionGate = sessionIsolation.status === 'PASS' ? 'PASS_PRODUCTION_PROBE_SCOPE' : (acceptanceVerified ? 'PASS_TEST_SCOPE' : 'NOT_VERIFIED');
   const recoveryGate = recoveryPoint.status === 'PASS' ? 'PASS_PRODUCTION_ROW_COUNT_SCOPE' : (acceptanceVerified ? 'PASS_TEST_SCOPE' : 'NOT_VERIFIED');
-  const pitrGate = recoveryPoint.status === 'PASS' ? 'PASS_BRANCH_POINT' : 'NOT_VERIFIED';
+  const nativePitr = readProductionNativePitrEvidence(undefined, proofEnv);
+  const archiveAttestation = readReleaseArchiveAttestation(undefined, proofEnv);
+  const pitrGate = nativePitr.status === 'PASS'
+    ? 'PASS_PRODUCTION_PITR'
+    : (recoveryPoint.status === 'PASS' ? 'PASS_BRANCH_POINT' : 'NOT_VERIFIED');
   const noteParts = [
     'Release evidence is bound to the source commit reported by the running Vercel deployment.'
   ];
@@ -657,6 +727,8 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
       value: packageVerified ? packageSha : null,
       sourceCommit: packageVerified ? packageCommit : null
     },
+    productionPitrEvidence: nativePitr.status === 'PASS' ? nativePitr : undefined,
+    releaseArchiveAttestation: archiveAttestation.status === 'PASS' ? archiveAttestation : undefined,
     checkedAt: now().toISOString(),
     note: releaseNote
   };
@@ -681,7 +753,7 @@ function hasVerifiedProductionRelease(env = process.env, identityPath, productio
     proof.gates.productionIsolationCertification === 'CERTIFIED' &&
     proof.gates.tenantRouteSecurityCoverage === 'PASS_TEST_SCOPE' &&
     ['NOT_VERIFIED', 'PASS_CONTRACT_SCOPE'].includes(proof.gates.functionalApiRouteAcceptance) &&
-    ['NOT_VERIFIED', 'PASS_BRANCH_POINT'].includes(proof.gates.neonPointInTimeRecovery);
+    ['NOT_VERIFIED', 'PASS_BRANCH_POINT', 'PASS_PRODUCTION_PITR', 'PASS_PITR'].includes(proof.gates.neonPointInTimeRecovery);
 }
 
 function readCurrentApiRouteAcceptance(env = process.env, filePath = embeddedEvidencePath('API_ROUTE_ACCEPTANCE_RESULT.json')) {
@@ -723,5 +795,5 @@ function readCurrentApiRouteAcceptance(env = process.env, filePath = embeddedEvi
   };
 }
 
-module.exports = { createPublicReleaseProof, hasVerifiedProductionRelease, readEmbeddedBuildIdentity, readProductionAcceptanceEvidence, readProductionSessionIsolationEvidence, readProductionRecoveryPointEvidence, readProductionSignedTenantRouteCoverageEvidence };
+module.exports = { createPublicReleaseProof, hasVerifiedProductionRelease, readEmbeddedBuildIdentity, readProductionAcceptanceEvidence, readProductionSessionIsolationEvidence, readProductionRecoveryPointEvidence, readProductionNativePitrEvidence, readReleaseArchiveAttestation, readProductionSignedTenantRouteCoverageEvidence };
 
