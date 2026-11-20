@@ -146,6 +146,7 @@ test('verify-restored proves every Production variable matches the snapshot and 
   const initial = [...parsed.keys()].map((key, index) => ({
     id: 'env_' + index, key, value: parsed.get(key), target: ['production'], type: 'encrypted'
   }));
+  initial.find(item => item.key === 'OPSC_PRODUCTION_HOLD').type = 'plain';
   const snapshot = createBaselineSnapshot(parsed, initial);
   fs.writeFileSync(snapshotPath, JSON.stringify(snapshot));
   fs.writeFileSync(envFilePath, envFile());
@@ -164,7 +165,7 @@ test('verify-restored proves every Production variable matches the snapshot and 
     /PRODUCTION_ENV_RESTORE_MISMATCH:OPSC_PRODUCTION_HOLD:local/
   );
   await assert.rejects(
-    () => verifyRestored({ env, fetchImpl: store.fetchImpl, envFileContents: envFile().replace('OPSC_PRODUCTION_HOLD="false"\\n', '') }),
+    () => verifyRestored({ env, fetchImpl: store.fetchImpl, envFileContents: envFile().replace('OPSC_PRODUCTION_HOLD="false"\n', '') }),
     /PRODUCTION_ENV_RESTORE_MISMATCH:OPSC_PRODUCTION_HOLD:local-missing/
   );
   await assert.rejects(
@@ -172,7 +173,7 @@ test('verify-restored proves every Production variable matches the snapshot and 
     /PRODUCTION_ENV_RESTORE_MISMATCH:OPSC_PRODUCTION_HOLD:unexpected-redaction/
   );
   await assert.rejects(
-    () => verifyRestored({ env, fetchImpl: store.fetchImpl, envFileContents: envFile() + '\\nOPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED=true\\n' }),
+    () => verifyRestored({ env, fetchImpl: store.fetchImpl, envFileContents: envFile() + '\nOPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED=true\n' }),
     /PRODUCTION_CANDIDATE_ENV_LOCAL_LEFTOVER:OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED/
   );
   store.items.push({ id: 'candidate', key: 'OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED', value: 'true', target: ['production'], type: 'encrypted' });
