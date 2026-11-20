@@ -517,7 +517,18 @@ jobs:
           node backend/scripts/signed-tenant-context-postgres-gate.js
           node <<'NODE'
           const fs = require('node:fs');
-          const candidate = JSON.parse(fs.readFileSync('SIGNED_TENANT_CONTEXT_CANDIDATE_RESULT.json', 'utf8'));
+          const raw = fs.readFileSync('SIGNED_TENANT_CONTEXT_CANDIDATE_RESULT.json', 'utf8');
+          // Gate may tee diagnostic lines before/after the JSON object; extract the last object.
+          let candidate = null;
+          for (const match of raw.matchAll(/\{[\s\S]*?\}\s*$/gm)) {
+            try { candidate = JSON.parse(match[0]); } catch (_) {}
+          }
+          if (!candidate) {
+            const start = raw.indexOf('{');
+            const end = raw.lastIndexOf('}');
+            if (start < 0 || end <= start) throw new Error('CANDIDATE_RESULT_JSON_MISSING');
+            candidate = JSON.parse(raw.slice(start, end + 1));
+          }
           const identity = candidate.candidateRuntimeIdentity || {};
           const coverage = candidate.signedTenantRouteCoverage || {};
           const expectedDeployment = process.env.CANDIDATE_DEPLOYMENT_ID;
