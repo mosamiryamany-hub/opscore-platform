@@ -318,12 +318,38 @@ function validateEndpoint(path, statusCode, payload, expectedCommit, contentType
       runtime.elevatedMembershipCount === 0;
     const identityPlaneSafe = identityPlane.criticalTablesWithoutRlsButAccessibleToRuntimeRole === 0 &&
       identityPlane.status === 'RLS_ENFORCED';
-    if (body.schemaVersion !== 'opscore.public-database-security-proof.v2' ||
+    if (!['opscore.public-database-security-proof.v2','opscore.public-database-security-proof.v3'].includes(body.schemaVersion) ||
         body.status !== 'IDENTITY_PLANE_RLS_ENFORCED' ||
         ![ 'NOT_CERTIFIED', 'CERTIFIED' ].includes(body.productionIsolationCertification) ||
         !catalogCoverageSafe || !ledgerSafe || !controlPlaneSafe ||
         !systemOperationalSafe || !runtimeRoleSafe || !identityPlaneSafe) {
-      throw new Error('DATABASE_SECURITY_CATALOG_NOT_ACCEPTABLE');
+      const detail = {
+        schemaVersion: body.schemaVersion,
+        status: body.status,
+        productionIsolationCertification: body.productionIsolationCertification,
+        catalogCoverageSafe,
+        ledgerSafe,
+        controlPlaneSafe,
+        systemOperationalSafe,
+        runtimeRoleSafe,
+        identityPlaneSafe,
+        ordinaryTables,
+        rlsEnabled,
+        rlsForced,
+        tablesWithoutRls,
+        nonPostgisTablesWithoutRlsCount: catalog.nonPostgisTablesWithoutRlsCount,
+        nonPostgisTablesWithoutForceRlsCount: catalog.nonPostgisTablesWithoutForceRlsCount,
+        spatialAllowed: spatial.allowedNoRlsCatalog,
+        metadataViewsStatus: metadataViews.status,
+        ledgerStatus: ledger.status,
+        controlPlaneStatus: controlPlane.status,
+        controlPrivilegesStatus: controlPrivileges.status,
+        systemOperationalStatus: systemOperational.status,
+        runtimeName: runtime.name,
+        runtimeStatus: runtime.status,
+        identityStatus: identityPlane.status
+      };
+      throw new Error('DATABASE_SECURITY_CATALOG_NOT_ACCEPTABLE:' + JSON.stringify(detail));
     }
     return true;
   }
