@@ -405,6 +405,9 @@ function readProductionNativePitrEvidence(filePath = embeddedEvidencePath('PRODU
   const sourceBranchBound = /^[a-z0-9-]{8,80}$/.test(expectedParentBranchId)
     && String(evidence.sourceBranchId || '').trim() === expectedParentBranchId;
   const expectedDatabaseName = String(env.OPSC_PRODUCTION_DATABASE_NAME || '').trim();
+  const expectedDeploymentId = String(env.OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID || env.VERCEL_DEPLOYMENT_ID || '').trim();
+  const deploymentIdBound = /^dpl_[A-Za-z0-9]+$/.test(expectedDeploymentId)
+    && String(evidence.deploymentId || '').trim() === expectedDeploymentId;
   const contentIntegrity = evidence.contentIntegrity && typeof evidence.contentIntegrity === 'object'
     ? evidence.contentIntegrity
     : {};
@@ -480,6 +483,7 @@ function readProductionNativePitrEvidence(filePath = embeddedEvidencePath('PRODU
     && evidence.verificationScope === 'production-root-historical-branch-full-data-content-hash-and-rls-match'
     && expectedDatabaseName.length > 0
     && evidence.databaseName === expectedDatabaseName
+    && deploymentIdBound
     && contentIntegrityValid
     && Number.isFinite(targetTimestampMs)
     && Number.isFinite(restoreStartedAt)
@@ -517,6 +521,8 @@ function readProductionNativePitrEvidence(filePath = embeddedEvidencePath('PRODU
     comparisonBranchId,
     sourceBranchId: evidence.sourceBranchId,
     databaseName: evidence.databaseName || null,
+    deploymentId: String(evidence.deploymentId || ''),
+    deploymentIdBound,
     sourceCommit: normalizedSha(evidence.sourceCommit),
     pipelineId: String(evidence.pipelineId || ''),
     evidenceSha256: String(evidence.evidenceSha256),
