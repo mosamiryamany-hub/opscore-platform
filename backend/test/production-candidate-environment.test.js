@@ -161,7 +161,19 @@ test('verify-restored proves every Production variable matches the snapshot and 
   assert.equal(result.status, 'PASS');
   await assert.rejects(
     () => verifyRestored({ env, fetchImpl: store.fetchImpl, envFileContents: envFile().replace('OPSC_PRODUCTION_HOLD="false"', 'OPSC_PRODUCTION_HOLD="true"') }),
-    /PRODUCTION_ENV_RESTORE_MISMATCH:OPSC_PRODUCTION_HOLD/
+    /PRODUCTION_ENV_RESTORE_MISMATCH:OPSC_PRODUCTION_HOLD:local/
+  );
+  await assert.rejects(
+    () => verifyRestored({ env, fetchImpl: store.fetchImpl, envFileContents: envFile().replace('OPSC_PRODUCTION_HOLD="false"\\n', '') }),
+    /PRODUCTION_ENV_RESTORE_MISMATCH:OPSC_PRODUCTION_HOLD:local-missing/
+  );
+  await assert.rejects(
+    () => verifyRestored({ env, fetchImpl: store.fetchImpl, envFileContents: envFile().replace('OPSC_PRODUCTION_HOLD="false"', 'OPSC_PRODUCTION_HOLD=[SENSITIVE]') }),
+    /PRODUCTION_ENV_RESTORE_MISMATCH:OPSC_PRODUCTION_HOLD:unexpected-redaction/
+  );
+  await assert.rejects(
+    () => verifyRestored({ env, fetchImpl: store.fetchImpl, envFileContents: envFile() + '\\nOPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED=true\\n' }),
+    /PRODUCTION_CANDIDATE_ENV_LOCAL_LEFTOVER:OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED/
   );
   store.items.push({ id: 'candidate', key: 'OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED', value: 'true', target: ['production'], type: 'encrypted' });
   await assert.rejects(
