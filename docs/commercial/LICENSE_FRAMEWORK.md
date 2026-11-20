@@ -1,51 +1,110 @@
-# OpsCore — Commercial License Framework (no fixed prices)
+# OpsCore — Commercial License Framework
 
 **Status:** Framework only. **No license is granted by this document alone.**  
-**Offer publication:** The rights holder may advertise, list, present and negotiate the offer before a buyer is identified; no buyer signature is required to publish or market the offer.  
-**Authority:** A buyer license exists only when the rights holder and the named buyer both sign a **License Schedule** that references this framework and identifies the exact deliverable (source commit and/or package SHA-256). The Schedule is a transaction-closing requirement before buyer rights or delivery, not a seller marketing gate.
+**Prices:** Not published in this repository. Price, payment schedule, currency, and taxes are negotiated per buyer and recorded only in a signed License Schedule.  
+**Authority:** Buyer rights exist only when the rights holder and the named buyer both execute a **License Schedule** that (1) references this framework by version/date, (2) selects exactly one tier below, and (3) identifies the exact deliverable (`sourceCommit` and/or package SHA-256).
 
-Prices, payment terms, support level, and territory are **negotiated per buyer** and recorded only in that Schedule. This repository does not publish list prices.
+---
 
-## Purpose
+## Tier catalogue (three commercial intents)
 
-Support three commercial intents without forcing a single rigid SKU:
+| Code | Commercial name | Buyer intent | Grant summary | Default exclusions |
+|---|---|---|---|---|
+| **L1** | **Use Only** | Operate OpsCore for the buyer’s own internal business | Non-exclusive, non-transferable right to install, configure, and operate the licensed deliverable for the buyer’s own operations | No modification of source beyond configuration; no redistribution; no sublicense; no marketplace resale; no transfer of IP |
+| **L2** | **Use + Modify + Redistribute** | Adapt OpsCore and offer it (or derivatives) to third parties under controlled conditions | Non-exclusive right to use, create modifications, and redistribute in the forms expressly listed in the Schedule (e.g. hosted SaaS, OEM binary, or source under stated constraints) | No claim of OpsCore endorsement; must retain rights-holder notices unless Schedule states otherwise; no transfer of underlying IP ownership |
+| **L3** | **Exclusive — Intellectual Property Assignment** | Acquire exclusive commercial control and (where Schedule states) assignment of specified IP | Exclusive license and, if the Schedule expressly says so, assignment of copyright in the named deliverable and related repository materials owned by the seller | Does not automatically include third-party components, trademarks, or cloud accounts unless Schedule lists them; moral rights and non-assignable rights limited as local law allows |
 
-| Tier | Buyer intent | Core rights (only if Schedule says so) | Default exclusions |
-|---|---|---|---|
-| **A — Use** | Run a copy for the buyer’s own operations | Install, configure, operate one production deployment (and agreed non-production instances) | No redistribution; no sublicense; no marketplace resale |
-| **B — Use + Modify** | Adapt the software to the buyer’s environment | Tier A + create internal modifications and private forks for the buyer’s own use | No distribution of source or binaries to third parties; no open-sourcing without a Tier C grant |
-| **C — Use + Modify + Distribute** | Build a product or service for third parties | Tier B + distribute agreed forms (e.g. hosted service, OEM, or source) under conditions in the Schedule | Must not imply OpsCore endorsement; must not remove rights-holder notices unless Schedule allows |
+Any right not **expressly** granted in the signed Schedule is **reserved** to the rights holder.
 
-Any right not expressly granted in the signed Schedule is reserved.
+---
 
-## Mandatory Schedule fields (per buyer)
+## L1 — Use Only (world-class baseline terms)
 
-1. Parties (legal names) and effective date  
-2. Tier (A / B / C) and any narrowed sub-scope  
-3. Deliverable identity: `sourceCommit` and/or package `SHA-256` from a single release statement  
-4. Instance limits (e.g. production sites, regions)  
-5. Modification and distribution rules (especially Tier C)  
-6. Confidentiality and audit of compliance  
-7. Support / updates (if any) — scope only, not a warranty of fitness  
-8. Price and payment — **filled per negotiation; not taken from this repo**  
-9. Term, termination, and effect of termination (including destruction or return of copies if required)  
-10. Governing law and dispute venue (buyer-specific)
+### Grant
+- Non-exclusive, non-transferable, non-sublicensable license.
+- Install and run the licensed deliverable in production and agreed non-production environments owned or controlled by the buyer.
+- Create configuration, operational data, and backups solely for the buyer’s operations.
 
-## Engineering truth (must not be sold as something else)
+### Conditions
+- Deliverable identity is fixed to the Schedule’s `sourceCommit` / package SHA-256.
+- Instance / region / seat limits apply only if the Schedule states them.
+- Buyer must not publish, sell, lease, or provide the software (source or binary) to third parties.
 
-- Seller-reference production isolation or recovery proof does **not** automatically certify the buyer’s environment.  
-- Branch-point recovery is not full PITR/RPO/RTO certification.  
-- Buyer residuals (mobile store signing, human translation, licensed maps, external SaaS accounts) remain buyer-owned unless the Schedule explicitly includes them.  
-- CI green and a healthy `/api/health` do not mean zero defects in every environment.
+### Explicit non-grants
+- Source modification beyond configuration files and agreed integration adapters.
+- Redistribution, SaaS resale, OEM, or open-source publication.
+- Trademark use beyond nominative reference to the product name in internal ops docs.
 
-## How a sale is completed (process)
+---
 
-1. Choose Tier A, B, or C with the buyer.  
-2. Pin the deliverable to one release statement (commit + package digest).  
-3. Fill and sign `docs/commercial/LICENSE_SCHEDULE_TEMPLATE.md` (or equivalent PDF).  
-4. Deliver only the artifacts listed in that Schedule.  
-5. Keep the signed Schedule offline; do not commit secrets or private commercial terms to git.
+## L2 — Use + Modify + Redistribute
 
-## Default posture before any Schedule
+### Grant
+- All L1 operational rights.
+- Create, maintain, and use modifications and private forks for the buyer’s business.
+- Redistribute **only** in the distribution forms named in the Schedule (examples the Schedule may select):
+  - **Hosted service** operated by the buyer for third-party end users;
+  - **OEM / embedded** binary or appliance;
+  - **Source redistribution** under a buyer license that does not strip seller notices unless permitted.
 
-Until a Schedule is signed: **no license grant** — see `NO_LICENSE_GRANT_NOTICE.txt`. Evaluation access, if any, must be under a separate written evaluation letter.
+### Conditions
+- Schedule must list allowed distribution forms; silence means **no** redistribution.
+- Third-party and open-source components remain under their own licenses; L2 does not re-license them.
+- Buyer remains responsible for export controls, privacy, and end-customer terms.
+
+### Explicit non-grants
+- Assignment or transfer of seller copyright or patents.
+- Exclusive rights in any field or territory unless Schedule upgrades to L3.
+- Use of seller trademarks in marketing without a separate brand schedule.
+
+---
+
+## L3 — Exclusive Intellectual Property Assignment
+
+### Grant (only as the Schedule writes it)
+- **Exclusive license** in the field and territory defined in the Schedule; and/or
+- **Assignment** of copyright in the specifically identified deliverable (repository snapshot / package SHA) owned by the seller.
+
+### Conditions (mandatory quality bar)
+1. **Deliverable schedule** — exact commit SHA, package SHA-256, and file inventory reference.
+2. **Asset schedule** — what is included: source, docs, CI definitions, commercial docs; what is excluded: production secrets, customer data, third-party cloud accounts, domain names, app-store accounts unless listed.
+3. **Third-party IP** — OSS and vendor components listed or “as found in SBOM”; assignment does not enlarge those licenses.
+4. **Warranties** — limited to seller’s authority to convey the listed rights; no implied warranty of merchantability or fitness unless Schedule adds one.
+5. **Transition** — optional assistance period (hours/days) described in Schedule; not open-ended support.
+6. **Residual knowledge** — seller personnel retain general skills; no reuse of assigned exclusive code in competing products if Schedule’s non-compete clause is present and enforceable.
+7. **Moral rights / jurisdiction** — waiver or assertion limited as permitted by governing law stated in Schedule.
+
+### Explicit non-defaults
+- L3 does **not** by silence transfer trademarks, domains, Neon/Vercel/GitHub billing accounts, or production data.
+- L3 does **not** by silence create an employment or partnership relationship.
+
+---
+
+## Mandatory License Schedule fields (all tiers)
+
+1. Parties (legal names), notices addresses, effective date  
+2. Tier code: **L1** | **L2** | **L3** (exactly one)  
+3. Deliverable identity: `sourceCommit` and/or package `SHA-256`  
+4. Territory and field of use (or “worldwide / all fields”)  
+5. Instance, deployment, or distribution limits (if any)  
+6. For L2: allowed distribution forms; for L3: exclusive vs assignment language  
+7. Confidentiality and compliance audit rights  
+8. Support / updates (if any) — scope only, not fitness warranty  
+9. **Price and payment — negotiated; left blank in repository templates**  
+10. Term, termination, survival, governing law, dispute forum  
+11. Signatures / authority of signatories  
+
+Template: `docs/commercial/LICENSE_SCHEDULE_TEMPLATE.md`
+
+---
+
+## Seller-side commercial posture (no buyer required to market)
+
+- The rights holder may advertise, list, and negotiate before a buyer is identified.
+- Repository presence, CI success, or ZIP availability is **not** a license grant.
+- Hosted Production certification and source-package readiness are **independent** gates; one does not imply the other.
+
+## Version
+
+Framework version: **2026-11-20**  
+Supersedes prior tier letters A/B/C in older drafts; map A→L1, B→subset of L2 without redistribute, C→L2/L3 as Schedule states.
