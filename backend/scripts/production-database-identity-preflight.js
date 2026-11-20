@@ -198,7 +198,10 @@ async function inspectDatabase(env = process.env) {
         current_user AS current_user,
         current_setting('server_version') AS server_version,
         current_setting('transaction_read_only') AS transaction_read_only,
-        (SELECT ssl FROM pg_stat_ssl WHERE pid = pg_backend_pid()) AS tls_enabled
+        (SELECT tls.ssl FROM pg_stat_ssl AS tls WHERE tls.pid = pg_backend_pid()) AS tls_enabled,
+        (SELECT tls.version FROM pg_stat_ssl AS tls WHERE tls.pid = pg_backend_pid()) AS tls_version,
+        (SELECT tls.cipher FROM pg_stat_ssl AS tls WHERE tls.pid = pg_backend_pid()) AS tls_cipher,
+        (SELECT tls.bits FROM pg_stat_ssl AS tls WHERE tls.pid = pg_backend_pid()) AS tls_bits
     `);
     if (!base.result || base.result.rows.length !== 1) {
       report.reasonCode = base.errorCode || 'DATABASE_IDENTITY_UNAVAILABLE';
