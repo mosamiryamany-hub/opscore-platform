@@ -50,8 +50,12 @@ test('every physical public table is content-hashed with duplicate-preserving de
   assert.match(collector, /pg_catalog\.to_jsonb\(t\)::text/);
   assert.match(collector, /public\.digest/);
   assert.match(collector, /ORDER BY 1/);
-  assert.match(collector, /physicalTables = catalog\.tables\.filter\(table => table\.relation_kind === 'r'\)/);
+  assert.match(collector, /const physicalTableNames = referenceCatalog\.tables[\\s\\S]*?filter\(row => row\.relation_kind === 'r'\)/);
+  assert.match(collector, /for \(let index = 0; index < physicalTableNames\.length; index\+\+\)/);
   assert.match(collector, /sourceData\.sha256 === restoredData\.sha256/);
+  assert.match(collector, /sourceData\.rowCount === restoredData\.rowCount/);
+  assert.match(collector, /relation_kind === 'p'/);
+  assert.match(collector, /Partitioned parents are represented by their physical leaf partitions/);
   assert.match(collector, /sourceData\.rowCount === restoredData\.rowCount/);
   assert.match(collector, /RECOVERY_PUBLIC_TABLE_COUNT_BELOW_REQUIRED_BASELINE/);
 });
