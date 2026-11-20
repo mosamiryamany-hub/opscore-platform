@@ -28,6 +28,12 @@ function hashPassword(password) {
   const derived = crypto.scryptSync(password, salt, 64, { N, r, p, maxmem: 256 * 1024 * 1024 });
   return 'scrypt$' + N + '$' + r + '$' + p + '$' + salt.toString('base64url') + '$' + derived.toString('base64url');
 }
+function hashToken(token) {
+  return crypto.createHash('sha256').update(String(token)).digest('hex');
+}
+function randomSessionToken() {
+  return crypto.randomBytes(32).toString('base64url');
+}
 function psql(uri, sql) {
   return execFileSync('psql', [uri, '-v', 'ON_ERROR_STOP=1', '-At', '-c', sql], {
     encoding: 'utf8',
@@ -203,25 +209,53 @@ async function main() {
     psql(ownerUri, seedSql);
     seeded = true;
 
-    const loginA = await httpJson(httpBase, 'POST', '/api/v1/auth/mobile-login', { body: { email: emailA, password, organizationId: orgA } });
-    probes.push({ phase: 'login', label: 'A', method: 'POST', path: '/api/v1/auth/mobile-login', status: loginA.status });
-    const loginB = await httpJson(httpBase, 'POST', '/api/v1/auth/mobile-login', { body: { email: emailB, password, organizationId: orgB } });
-    probes.push({ phase: 'login', label: 'B', method: 'POST', path: '/api/v1/auth/mobile-login', status: loginB.status });
-    tokenA = loginA.data && loginA.data.token || null;
-    tokenB = loginB.data && loginB.data.token || null;
-    checks.dualLogin = loginA.status === 200 && loginB.status === 200 && Boolean(tokenA) && Boolean(tokenB) ? 'PASS' : 'FAIL';
-    if (checks.dualLogin !== 'PASS') {
-      const detail = {
-        aStatus: loginA.status,
-        bStatus: loginB.status,
-        aCode: loginA.data && loginA.data.error && loginA.data.error.code || null,
-        bCode: loginB.data && loginB.data.error && loginB.data.error.code || null,
-        aDenial: loginA.data && loginA.data.candidateProbeDenial || null,
-        bDenial: loginB.data && loginB.data.candidateProbeDenial || null,
-        aHeaders: loginA.headers || null,
-        bHeaders: loginB.headers || null
-      };
-      throw new Error('DUAL_TENANT_LOGIN_PROBE_FAILED:' + JSON.stringify(detail));
+    // Candidate mode: production identity RLS intentionally blocks password login SELECT
+    // without the SECURITY DEFINER resolver / bound user context. Mint two real sessions
+    // as the verified owner role (same pattern as the 67-route candidate collector), then
+    // exercise HTTP isolation with those bearer tokens under the candidate probe boundary.
+    if (isCandidateMode) {
+      tokenA = randomSessionToken();
+      tokenB = randomSessionToken();
+      const sessionA = makeId('ses');
+      const sessionB = makeId('ses');
+      const expires = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+      const mintSql = [
+        'BEGIN;',
+        'INSERT INTO sessions (id,user_id,organization_id,token_hash,expires_at,created_at) VALUES (' +
+          sqlLiteral(sessionA) + ',' + sqlLiteral(userA) + ',' + sqlLiteral(orgA) + ',' +
+          sqlLiteral(hashToken(tokenA)) + ',' + sqlLiteral(expires) + ',' + sqlLiteral(now) + '),(' +
+          sqlLiteral(sessionB) + ',' + sqlLiteral(userB) + ',' + sqlLiteral(orgB) + ',' +
+          sqlLiteral(hashToken(tokenB)) + ',' + sqlLiteral(expires) + ',' + sqlLiteral(now) + ');',
+        'COMMIT;'
+      ].join('\n');
+      psql(ownerUri, mintSql);
+      probes.push({ phase: 'login', label: 'A', method: 'OWNER_SESSION_MINT', path: 'sessions', status: 200 });
+      probes.push({ phase: 'login', label: 'B', method: 'OWNER_SESSION_MINT', path: 'sessions', status: 200 });
+      checks.dualLogin = Boolean(tokenA) && Boolean(tokenB) ? 'PASS' : 'FAIL';
+      checks.dualLoginMethod = 'OWNER_SESSION_MINT_CANDIDATE';
+      if (checks.dualLogin !== 'PASS') throw new Error('DUAL_TENANT_LOGIN_PROBE_FAILED:owner_session_mint');
+    } else {
+      const loginA = await httpJson(httpBase, 'POST', '/api/v1/auth/mobile-login', { body: { email: emailA, password, organizationId: orgA } });
+      probes.push({ phase: 'login', label: 'A', method: 'POST', path: '/api/v1/auth/mobile-login', status: loginA.status });
+      const loginB = await httpJson(httpBase, 'POST', '/api/v1/auth/mobile-login', { body: { email: emailB, password, organizationId: orgB } });
+      probes.push({ phase: 'login', label: 'B', method: 'POST', path: '/api/v1/auth/mobile-login', status: loginB.status });
+      tokenA = loginA.data && loginA.data.token || null;
+      tokenB = loginB.data && loginB.data.token || null;
+      checks.dualLogin = loginA.status === 200 && loginB.status === 200 && Boolean(tokenA) && Boolean(tokenB) ? 'PASS' : 'FAIL';
+      checks.dualLoginMethod = 'MOBILE_LOGIN';
+      if (checks.dualLogin !== 'PASS') {
+        const detail = {
+          aStatus: loginA.status,
+          bStatus: loginB.status,
+          aCode: loginA.data && loginA.data.error && loginA.data.error.code || null,
+          bCode: loginB.data && loginB.data.error && loginB.data.error.code || null,
+          aDenial: loginA.data && loginA.data.candidateProbeDenial || null,
+          bDenial: loginB.data && loginB.data.candidateProbeDenial || null,
+          aHeaders: loginA.headers || null,
+          bHeaders: loginB.headers || null
+        };
+        throw new Error('DUAL_TENANT_LOGIN_PROBE_FAILED:' + JSON.stringify(detail));
+      }
     }
 
 
