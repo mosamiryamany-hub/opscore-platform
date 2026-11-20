@@ -403,6 +403,8 @@ async function main() {
       databaseName,
       sourceCommit: deploymentIdentity.commitSha,
       pipelineId: String(deploymentIdentity.ciPipelineId),
+      deploymentId: deploymentIdentity.deploymentId,
+      comparisonBranchId: recovery.id,
       evidenceSha256: crypto.createHash('sha256').update('NEON_BRANCH_CAPACITY_INSUFFICIENT').digest('hex'),
       contentIntegrity: { status: 'NOT_VERIFIED' },
       cleanup: { status: 'NOT_REQUIRED', restoredBranchDeleted: false, comparisonBranchDeleted: false },
