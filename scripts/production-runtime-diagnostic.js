@@ -91,7 +91,11 @@ function evaluateRuntimeDiagnostic(payload, httpStatus, expectedCommit, expected
     region: safeLabel(target.region, /^[a-z0-9-]{1,32}$/, 32),
     hostnameSha256: /^[a-f0-9]{64}$/.test(String(target.hostnameSha256 || '')) ? target.hostnameSha256 : null,
     runtimeRole: safeLabel(identity.current_user, /^[A-Za-z0-9_]{1,63}$/, 63),
-    serverVersion: safeLabel(identity.server_version, /^[0-9]{1,2}\.[0-9]{1,3}(?:\s*\([^\r\n]{1,40}\))?$/, 64)
+    serverVersion: safeLabel(identity.server_version, /^[0-9]{1,2}\.[0-9]{1,3}(?:\s*\([^\r\n]{1,40}\))?$/, 64),
+    tlsEnabled: identity.tls_enabled === true,
+    tlsVersion: safeLabel(identity.tls_version, /^TLSv1\.[23]$/, 16),
+    tlsCipher: safeLabel(identity.tls_cipher, /^[A-Za-z0-9_.-]{1,128}$/, 128),
+    tlsBits: Number.isSafeInteger(identity.tls_bits) && identity.tls_bits > 0 ? identity.tls_bits : null
   };
 
   const checks = [
@@ -124,7 +128,11 @@ function evaluateRuntimeDiagnostic(payload, httpStatus, expectedCommit, expected
       runtimeRole.create_role === false && runtimeRole.create_db === false &&
       runtimeRole.elevated_role_membership === false),
     check('client_tls_configuration', ['REQUIRE', 'VERIFY_CA', 'VERIFY_FULL'].includes(target.clientSslMode) &&
-      target.channelBinding === 'REQUIRE'),
+      target.channelBinding === 'REQUIRE' &&
+      identity.tls_enabled === true &&
+      ['TLSv1.2', 'TLSv1.3'].includes(String(identity.tls_version || '')) &&
+      /^[A-Za-z0-9_.-]{1,128}$/.test(String(identity.tls_cipher || '')) &&
+      Number.isSafeInteger(identity.tls_bits) && identity.tls_bits >= 128),
     check('row_level_security_coverage', Number.isInteger(rls.public_application_tables) &&
       rls.public_application_tables > 0 &&
       rls.rls_enabled_tables === rls.public_application_tables &&
