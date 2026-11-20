@@ -1,59 +1,64 @@
-> **HISTORICAL / SUPERSEDED FOR CURRENT DEPLOYMENT — 2026-11-19**
->
-> This record refers only to the historic seller source package at commit `deba977db586f19128a1f53377fec183beab44d0`, tag `v0.11.62.16-commercial-source-package`, and archive SHA-256 `32263497d02e1c943fd15a64239d2c0da1d7f9a95d765b2a9254830e9758313a`. It is **not** a current-main release certificate and does not close the current hosted Production or commercial gates.
->
-> Current main is `e1d6c1b7939684e0f55d9f95f102b53687f9544b`; current Vercel Production is `dpl_9BbbFdVocyY73Mh7dTRyTAPy71J3`. The latest runtime report has source identity UNVERIFIED and production isolation NOT_CERTIFIED. See [current closeout gates](../ops/REMAINING_CLOSEOUT_GATES.md) and [Client Trust Pack](CLIENT_TRUST_PACK.md) before any buyer representation.
->
-> The historic statement that a seller source package was closed applies only to that prior archive SHA. It does not grant a license, authorize redistribution, or certify the newer deployment.
->
-> ---
->
-# Seller-side commercial closeout — OpsCore v0.11.62
+# OpsCore — Commercial Closeout Status
 
-> **Decision: SELLER SOURCE PACKAGE CLOSED** on exact main tip  
->
-> No prospective buyer or buyer signature is needed to complete the product or seller source package. Buyer-specific licensed use or distribution rights remain gated by the signed License Schedule that names the exact package SHA.
+**As of:** 2026-11-20  
+**Product version label:** 0.11.62  
 
-> `deba977db586f19128a1f53377fec183beab44d0`  
-> Secure Release **success** — runs [44211443240](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44211443240) and [44211989356](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44211989356).
->
-> No prospective buyer, buyer signature, or transaction schedule is required to complete the seller-side source package. Buyer-specific licensed use or distribution rights remain gated by the signed License Schedule naming the exact package SHA.
->
-> No license grant is made to a buyer until the buyer-specific License Schedule is signed and names this exact package SHA.
+## Executive status
 
-## Package identity (authoritative)
+| Track | Status | Notes |
+|---|---|---|
+| Source / engineering CI on `main` | **Operational** | verify + vercel-contract required on `main` |
+| Candidate isolation evidence | **PASS_NOT_PUBLISHED achieved** | Run `44701511334` on `2146fdb7c5c7…`: 67/67, session isolation, recovery point, coverage finalize, isolation qualification, env restore verify, candidate manifest |
+| Production public alias | **Not promoted** | Live pin remains prior SHA; deliberate |
+| License framework L1/L2/L3 | **Published in-repo** | No prices; no automatic grant |
+| Executed buyer Schedule | **None** | Pricing and countersignature left to rights holder |
+| Neon plan limits (snapshots / protected branches) | **Residual — plan constrained** | Documented; no evidence deleted to free quota |
+| Firewall deny mode | **Residual — observation** | Rules remain log until seller chooses challenge/deny after traffic review |
 
-| Field | Value |
+## Candidate evidence (authoritative engineering fact)
+
+Workflow run: [44701511334](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44701511334)  
+Commit: `2146fdb7c5c7fc1bc92f4d43787981acf14c7669`  
+Mode: `CANDIDATE_EVIDENCE_ONLY`
+
+| Probe | Result |
 |---|---|
-| Version | 0.11.62 |
-| Source commit | `deba977db586f19128a1f53377fec183beab44d0` |
-| Tag | `v0.11.62.16-commercial-source-package` |
-| Archive | `OpsCore-release.zip` |
-| SHA-256 | `32263497d02e1c943fd15a64239d2c0da1d7f9a95d765b2a9254830e9758313a` |
-| Bytes | 2381387 |
-| License grant | **NONE** until a signed License Schedule names this SHA |
-| Distribution | **Not authorized** without that schedule |
+| Signed-tenant 67 routes | PASS |
+| Dual-tenant session isolation | PASS |
+| Recovery point (branch clone, ≥130 tables) | PASS |
+| Signed route coverage finalize | PASS |
+| Isolation qualification | PASS_NOT_PUBLISHED (behavioral CERTIFIED criteria met on candidate) |
+| Production env restore verify | PASS |
+| Candidate evidence manifest | Written |
 
-## Seller gates
+This is **candidate-held** evidence. It is **not** automatic promotion of `opscore-platform.vercel.app` and **not** a signed buyer license.
 
-| Gate | Status |
-|---|---|
-| Secure Release (tests, SBOM path, package, audits) | **PASS** on tip above |
-| Mobile audit gate (picomatch GHSA documented, time-boxed) | **PASS** |
-| Main CI (verify, vercel-contract) | **PASS** on release tip |
-| Primary restore proof (Neon) | **PASS** (see evidence file; not a production migration certificate) |
-| Live production isolation (deployed pin) | **NOT_CERTIFIED** on `7b6d12b816c7a1ad4cc92802df7ce222bd233ade` |
+## License tiers (commercial)
 
-## Explicit non-claims (prevent contradiction)
+See `LICENSE_FRAMEWORK.md` (2026-11-20):
 
-1. **Hosted Production pin** is `7b6d12b8…`; isolation evidence on that pin is still incomplete. Source package closure does **not** auto-promote Vercel Production.
-2. **Signed-context migrations 063–067 / 069** are **not** asserted applied on Production primary by this closeout.
-3. **Production HMAC / 67-route live matrix** are **not** asserted for the new tip.
-4. **Buyer residuals** remain buyer-owned: mobile store signing, native human translation QA, licensed street maps.
-5. **No license** is granted by repository presence, ZIP download, or this document.
+- **L1** Use Only  
+- **L2** Use + Modify + Redistribute  
+- **L3** Exclusive / IP Assignment  
+
+Schedule template: `LICENSE_SCHEDULE_TEMPLATE.md`  
+**Price fields intentionally blank** until the rights holder sets them per buyer.
+
+## Explicit non-claims
+
+1. No distribution right is granted by cloning this repository or reading this file.  
+2. Hosted Production may remain on an older pin while candidate evidence is newer.  
+3. Neon free/launch limits may block new snapshots or protected branches without a plan change.  
+4. Buyer residuals (stores, human translation QA, maps, buyer payment keys) stay with the buyer.  
+5. Firewall log-only mode is intentional until the seller completes a traffic impact review.
+
+## Next seller actions (optional)
+
+1. Review candidate evidence on `2146fdb7…` / post-merge `main` and decide whether to authorize Production promotion.  
+2. If promotion is desired: run `AUTHORIZE_PRODUCTION_RELEASE` only after accepting residual Neon/WAF risk.  
+3. Set prices offline; complete License Schedule with the chosen buyer under L1, L2, or L3.  
+4. Optionally run Secure Release for a fresh commercial ZIP on the chosen tag.
 
 ## Commercial status string
 
-`PASS_WITH_BUYER_RESIDUALS` — seller source package closed; buyer residuals and optional hosted-upgrade path remain outside the package gate.
-
-Generated for tip `deba977d…` on 2026-11-18.
+`ENGINEERING_CANDIDATE_EVIDENCE_PASS — PRODUCTION_ALIAS_NOT_PROMOTED — LICENSE_FRAMEWORK_READY — NO_BUYER_SCHEDULE — PRICING_PENDING_RIGHTS_HOLDER`

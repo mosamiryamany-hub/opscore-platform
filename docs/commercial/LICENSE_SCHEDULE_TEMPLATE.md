@@ -1,57 +1,75 @@
 # OpsCore — License Schedule (template)
 
-**This template grants nothing until signed by both parties.**  
-Attach or reference: `docs/commercial/LICENSE_FRAMEWORK.md`.
+**Instructions:** Complete one Schedule per buyer transaction. Do not commit executed Schedules with signatures or prices to a public repository unless the parties agree.  
+**Prices:** Leave commercial amounts blank in shared templates; fill only in the executed copy held by the parties.
+
+---
+
+## 1. Parties
+
+| Role | Legal name | Notice address | Signatory |
+|---|---|---|---|
+| Rights holder (Seller) | | | |
+| Buyer | | | |
+
+Effective date: ____________  
+Governing law / forum: ____________
+
+## 2. Tier (select exactly one)
+
+- [ ] **L1 — Use Only**
+- [ ] **L2 — Use + Modify + Redistribute**
+- [ ] **L3 — Exclusive / IP Assignment**
+
+This Schedule incorporates `docs/commercial/LICENSE_FRAMEWORK.md` version **2026-11-20**.
+
+## 3. Deliverable identity
 
 | Field | Value |
 |---|---|
-| Schedule ID | _to be assigned_ |
-| Effective date | |
-| Rights holder | |
-| Buyer legal name | |
-| Tier (A / B / C) | |
-| Product / version label | OpsCore (see deliverable pin) |
-| sourceCommit (40-char) | |
+| Product | OpsCore Platform |
+| Version label | |
+| sourceCommit (40-char SHA) | |
+| Package file name | |
 | Package SHA-256 | |
-| Release statement / pipeline URL | |
-| Allowed production instances | |
-| Allowed non-production instances | |
-| Modification rights | per Tier + any narrowing: |
-| Distribution rights | none / as Tier C narrowed: |
+| Evidence / release statement ref | |
+
+## 4. Scope
+
+| Field | Value |
+|---|---|
 | Territory | |
-| Term | |
-| Price and payment terms | **negotiated; not published in repository** |
-| Support / updates included | |
-| Buyer residuals explicitly included (if any) | |
-| Governing law | |
-| Notices (email) | |
+| Field of use | |
+| Production instance limit | |
+| Non-production instance limit | |
+| L2 distribution forms (if L2) | Hosted / OEM / Source / Other: ________ |
+| L3 exclusive field (if L3) | |
+| L3 assignment of copyright? | Yes / No — describe: |
 
-## Signatures
-
-Rights holder: _______________________ Date: ________  
-
-Buyer: _______________________ Date: ________  
-
-## Rights-holder and signatory identity (required for enforceability)
+## 5. Support and updates (optional)
 
 | Field | Value |
 |---|---|
-| Rights holder legal name | |
-| Rights holder registration / ID (if any) | |
-| IP chain / assignment notes (if not sole author) | |
-| Signatory name (rights holder) | |
-| Signatory title / authority | |
-| Signatory name (buyer) | |
-| Signatory title / authority | |
+| Support hours / channel | |
+| Update entitlement | None / Patches / Named releases |
+| Transition assistance (L3) | |
 
-## Liability, warranty, confidentiality, data (schedule-level)
+## 6. Commercial terms (executed copy only)
 
 | Field | Value |
 |---|---|
-| Warranty disclaimer scope | As-is except mandatory law; or narrowed: |
-| Liability cap | |
-| Confidentiality term | |
-| Personal data / processing role (controller/processor) | |
-| Security incident notice window | |
-| Update/support SLA (if any) | none / defined: |
-| Governing law and venue | |
+| License fee | _to be agreed_ |
+| Currency | |
+| Payment schedule | |
+| Taxes | |
+| Refund / acceptance window | |
+
+## 7. Representations (short form)
+
+Seller represents it has authority to grant the selected tier for the deliverable identified above, excluding third-party components under their own licenses.  
+Buyer represents it will comply with the tier conditions and export/privacy laws applicable to its use.
+
+## 8. Signatures
+
+**Seller:** _________________________ Date: ________  
+**Buyer:** _________________________ Date: ________  

@@ -1,15 +1,39 @@
-# Seller commercial model (internal)
+# OpsCore — Seller commercial model
 
-The offer may be prepared, published, presented and negotiated before a buyer is known. A buyer's signature is **not** a prerequisite for seller-side marketing or release-offer readiness.
+## What is for sale
 
-For each prospective buyer, after interest and scope are established:
+1. **Licensed source deliverable** (preferred default): a fixed commit / package SHA under one of L1–L3.  
+2. **Optional hosted handoff**: separate technical and commercial track; not implied by source license.  
+3. **Not sold by default:** production secrets, customer data, cloud billing accounts, app-store identities, trademarks.
 
-1. Pick **Tier A, B, or C** from `LICENSE_FRAMEWORK.md` according to the buyer's intent (run only / adapt / redistribute).
-2. Negotiate **price and payment privately** — nothing in git sets a price.
-3. Pin **one** deliverable: source commit + package SHA-256 from one successful release run.
-4. Complete the buyer-specific legal/commercial review and execute **one** License Schedule by both parties.
-5. Deliver only the artifacts and rights listed in that executed Schedule, subject to its payment and other conditions.
+## Tier choice guide
 
-Default rights posture remains: **no license grant until the transaction-specific Schedule is executed** (`NO_LICENSE_GRANT_NOTICE.txt`). This protects the rights holder; it does not prevent advertising, demonstrations, commercial discussions or publishing an offer.
+| Buyer situation | Suggested tier |
+|---|---|
+| Internal operations only | **L1 Use Only** |
+| Will customize and/or offer to their customers | **L2 Use + Modify + Redistribute** |
+| Wants exclusive control or IP assignment | **L3 Exclusive / IP Assignment** |
 
-Technical marketing must not claim buyer-environment certification, full PITR/RPO/RTO certification, native-speaker translation, licensed maps, signed mobile-store readiness or other unverified capabilities.
+## Pricing policy
+
+- **No list price in-repo.**  
+- Fee, currency, milestones, and taxes are negotiated and written only into the executed License Schedule.  
+- Seller may withhold delivery until Schedule signature and cleared payment terms as the Schedule states.
+
+## Independence of gates
+
+| Gate | Meaning |
+|---|---|
+| Source package Secure Release | Engineering readiness of a ZIP + SBOM + attestation path |
+| Candidate isolation evidence | Behavioral proof on a held candidate deployment |
+| Production alias promotion | Explicit second decision; not automatic from candidate PASS |
+| License Schedule | Legal grant to a named buyer |
+
+Success of one gate never silently completes another.
+
+## Buyer residuals (remain with buyer)
+
+- Mobile store signing and release accounts  
+- Human translation QA beyond machine-assisted UI language switch  
+- Licensed map / street data providers  
+- Buyer’s own Stripe (or other) production payment keys when enabled  
