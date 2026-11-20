@@ -351,13 +351,14 @@ test('production behavioral evidence must carry the exact release commit hint', 
     parentBranchId: 'br-current-production',
     databaseName: 'opscore_acceptance',
     verificationScope: 'branch-clone-public-full-table-content-hash-and-core-tenant-row-counts',
+    referenceBranchId: 'br-test-reference',
     recoveryBranchId: 'br-test-recovery',
     tableCountCompared: 134,
     mismatchCount: 0,
     coreTenantTableRowCountsMatch: true,
     contentIntegrity: fullDataRecoveryIntegrity(134),
     temporaryBranch: true,
-    cleanup: { status: 'PASS', recoveryBranchDeleted: true }
+    cleanup: { status: 'PASS', referenceBranchDeleted: true, recoveryBranchDeleted: true }
   };
   try {
     fs.writeFileSync(sessionPath, JSON.stringify(session));
@@ -391,7 +392,7 @@ test('production behavioral evidence must carry the exact release commit hint', 
     fs.writeFileSync(recoveryPath, JSON.stringify(recovery));
     fs.writeFileSync(recoveryPath, JSON.stringify({
       ...recovery,
-      cleanup: { status: 'FAIL', recoveryBranchDeleted: false }
+      cleanup: { status: 'FAIL', referenceBranchDeleted: true, recoveryBranchDeleted: false }
     }));
     assert.equal(readProductionRecoveryPointEvidence(recoveryPath, env).status, 'NOT_VERIFIED');
     fs.writeFileSync(recoveryPath, JSON.stringify(recovery));
@@ -494,13 +495,14 @@ test('production behavioral evidence rejects any evidence rebind marker', () => 
     parentBranchId: 'br-current-production',
     databaseName: 'opscore_acceptance',
     verificationScope: 'branch-clone-public-full-table-content-hash-and-core-tenant-row-counts',
+    referenceBranchId: 'br-test-reference',
     recoveryBranchId: 'br-test-recovery',
     tableCountCompared: 134,
     mismatchCount: 0,
     coreTenantTableRowCountsMatch: true,
     contentIntegrity: fullDataRecoveryIntegrity(134),
     temporaryBranch: true,
-    cleanup: { status: 'PASS', recoveryBranchDeleted: true },
+    cleanup: { status: 'PASS', referenceBranchDeleted: true, recoveryBranchDeleted: true },
     evidenceRebind: { ...session.evidenceRebind }
   };
   try {
@@ -963,12 +965,13 @@ test('Production session and recovery evidence bind to the explicit probe deploy
       status: 'PASS',
       databaseName: 'opscore_acceptance',
       verificationScope: 'branch-clone-public-full-table-content-hash-and-core-tenant-row-counts',
+      referenceBranchId: 'br-candidate-reference-20261118',
       recoveryBranchId: 'br-candidate-recovery-20261118',
       tableCountCompared: 137,
       coreTenantTableRowCountsMatch: true,
       contentIntegrity: fullDataRecoveryIntegrity(137),
     temporaryBranch: true,
-    cleanup: { status: 'PASS', recoveryBranchDeleted: true },
+    cleanup: { status: 'PASS', referenceBranchDeleted: true, recoveryBranchDeleted: true },
       mismatchCount: 0,
       sourceCommitHint: SHA,
       pipelineId: '2978538209',
