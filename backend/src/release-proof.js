@@ -325,12 +325,18 @@ function readProductionRecoveryPointEvidence(filePath = embeddedEvidencePath('PR
   const contentManifestMatch = HASH_RE.test(String(contentIntegrity.sourceManifestSha256 || ''))
     && HASH_RE.test(String(contentIntegrity.recoveryManifestSha256 || ''))
     && String(contentIntegrity.sourceManifestSha256).toLowerCase() === String(contentIntegrity.recoveryManifestSha256).toLowerCase();
+  const recoveryRlsExceptionTables = Array.isArray(contentIntegrity.rlsExceptionTables)
+    ? contentIntegrity.rlsExceptionTables.map(value => String(value)).sort()
+    : [];
+  const recoveryRlsExceptionsExact = JSON.stringify(recoveryRlsExceptionTables) === JSON.stringify(['spatial_ref_sys']);
   const comparedRowsTotal = tableResults.reduce((total, row) => total + Number(row && row.sourceRowCount), 0);
   const contentIntegrityValid = contentIntegrity.status === 'PASS'
     && contentIntegrity.algorithm === 'SHA-256'
     && Number(contentIntegrity.tableCountCompared) >= 130
     && Number(contentIntegrity.tableCountCompared) === tableResults.length
     && Number(contentIntegrity.tableCountCompared) === Number(evidence.tableCountCompared)
+    && Number(contentIntegrity.catalogTableCount) >= 136
+    && recoveryRlsExceptionsExact
     && Number.isSafeInteger(Number(contentIntegrity.rowsCompared))
     && Number(contentIntegrity.rowsCompared) > 0
     && Number(contentIntegrity.rowsCompared) === comparedRowsTotal
@@ -393,6 +399,12 @@ function readProductionNativePitrEvidence(filePath = embeddedEvidencePath('PRODU
   const restoreStartedAt = Date.parse(String(evidence.restoreStartedAt || ''));
   const restoreCompletedAt = Date.parse(String(evidence.restoreCompletedAt || ''));
   const targetTimestampMs = Date.parse(String(evidence.targetTimestampUtc || ''));
+  const restoreDurationMs = Number(evidence.restoreDurationMs);
+  const targetPointAgeAtCompletionMs = Number(evidence.targetPointAgeAtCompletionMs);
+  const pitrCleanup = evidence.cleanup && typeof evidence.cleanup === 'object' ? evidence.cleanup : {};
+  const pitrCleanupVerified = pitrCleanup.status === 'PASS'
+    && pitrCleanup.restoredBranchDeleted === true
+    && pitrCleanup.comparisonBranchDeleted === true;
   const pitrTableResults = Array.isArray(contentIntegrity.tableResults) ? contentIntegrity.tableResults : [];
   const seenPitrTables = new Set();
   const pitrTableContentValid = pitrTableResults.length >= 130 && pitrTableResults.every(row => {
@@ -415,11 +427,17 @@ function readProductionNativePitrEvidence(filePath = embeddedEvidencePath('PRODU
     return valid;
   });
   const pitrRowsCompared = pitrTableResults.reduce((total, row) => total + Number(row && row.sourceRowCount), 0);
+  const pitrRlsExceptionTables = Array.isArray(contentIntegrity.rlsExceptionTables)
+    ? contentIntegrity.rlsExceptionTables.map(value => String(value)).sort()
+    : [];
+  const pitrRlsExceptionsExact = JSON.stringify(pitrRlsExceptionTables) === JSON.stringify(['spatial_ref_sys']);
   const contentIntegrityValid = Boolean(
     contentIntegrity.status === 'PASS' &&
     contentIntegrity.algorithm === 'SHA-256' &&
     Number(contentIntegrity.tableCountCompared) >= 130 &&
     Number(contentIntegrity.tableCountCompared) === pitrTableResults.length &&
+    Number(contentIntegrity.catalogTableCount) >= 136 &&
+    pitrRlsExceptionsExact &&
     Number.isSafeInteger(Number(contentIntegrity.rowsCompared)) &&
     Number(contentIntegrity.rowsCompared) > 0 &&
     Number(contentIntegrity.rowsCompared) === pitrRowsCompared &&
@@ -447,10 +465,23 @@ function readProductionNativePitrEvidence(filePath = embeddedEvidencePath('PRODU
     && targetTimestampMs <= restoreStartedAt
     && restoreCompletedAt >= restoreStartedAt
     && restoreCompletedAt <= Date.now()
+    && Number.isSafeInteger(restoreDurationMs)
+    && restoreDurationMs === restoreCompletedAt - restoreStartedAt
+    && Number.isSafeInteger(targetPointAgeAtCompletionMs)
+    && targetPointAgeAtCompletionMs === restoreCompletedAt - targetTimestampMs
+    && restoreDurationMs >= 0
+    && targetPointAgeAtCompletionMs >= 0
     && /^br-[a-z0-9-]{8,80}$/.test(String(evidence.restoredBranchId || ''))
     && /^br-[a-z0-9-]{8,80}$/.test(String(evidence.sourceBranchId || ''))
     && evidence.restoredBranchId !== evidence.sourceBranchId
+    && pitrCleanupVerified
     && HASH_RE.test(String(evidence.evidenceSha256 || ''))
+    && (() => {
+      const digestPayload = { ...evidence };
+      delete digestPayload.evidenceSha256;
+      const computedDigest = crypto.createHash('sha256').update(JSON.stringify(digestPayload), 'utf8').digest('hex');
+      return computedDigest === String(evidence.evidenceSha256 || '').toLowerCase();
+    })()
     && commitBound && pipelineBound && sourceBranchBound;
   if (!ok) return { status: 'NOT_VERIFIED' };
   return {
@@ -467,12 +498,18 @@ function readProductionNativePitrEvidence(filePath = embeddedEvidencePath('PRODU
     evidenceSha256: String(evidence.evidenceSha256),
     testedAt: evidence.testedAt || null,
     verificationScope: evidence.verificationScope || null,
+    restoreDurationMs,
+    targetPointAgeAtCompletionMs,
+    cleanupVerified: pitrCleanupVerified,
     contentIntegrity: {
       status: contentIntegrity.status || 'NOT_VERIFIED',
       algorithm: contentIntegrity.algorithm || null,
       tableCountCompared: Number(contentIntegrity.tableCountCompared) || null,
+      catalogTableCount: Number(contentIntegrity.catalogTableCount) || null,
       rowsCompared: Number(contentIntegrity.rowsCompared) || null,
       mismatchCount: Number(contentIntegrity.mismatchCount),
+      rlsPolicyTableCount: Number(contentIntegrity.rlsPolicyTableCount) || null,
+      rlsExceptionTables: pitrRlsExceptionTables,
       manifestMatched: contentIntegrityValid
     }
   };
