@@ -858,7 +858,7 @@ jobs:
             fs.writeFileSync(p, out);
             fs.writeFileSync('backend/docs/verification/PRODUCTION_NATIVE_PITR_EVIDENCE.json', out);
             console.log('PITR_EVIDENCE_REBOUND=PASS', e.sourceCommit.slice(0,12), e.pipelineId);
-            NODE
+          NODE
           else
             echo "PITR_EVIDENCE_MATERIALIZED=MISSING (branch-point recovery remains available)"
             find /tmp/pitr-evidence -type f 2>/dev/null | head -n 20 || true
@@ -873,7 +873,7 @@ jobs:
           if (!/^[a-f0-9]{40}$/.test(commit)) throw new Error('ARCHIVE_ATTESTATION_COMMIT_INVALID');
           if (!/^[1-9][0-9]{0,14}$/.test(pipelineId)) throw new Error('ARCHIVE_ATTESTATION_PIPELINE_INVALID');
           if (!/^[a-f0-9]{64}$/.test(sha256)) throw new Error('ARCHIVE_ATTESTATION_PACKAGE_SHA_INVALID');
-          const keyMaterial = String(process.env.OPSC_RELEASE_PACKAGE_ATTESTATION_KEY || process.env.OPSC_TENANT_CONTEXT_HMAC_KEY || process.env.GITHUB_SHA || '').trim();
+          const keyMaterial = String(process.env.OPSC_RELEASE_PACKAGE_ATTESTATION_KEY || process.env.OPSC_TENANT_CONTEXT_HMAC_KEY || '').trim();
           if (!keyMaterial) throw new Error('ARCHIVE_ATTESTATION_KEY_MISSING');
           const payload = ['opscore.release-archive-attestation.v1', commit, pipelineId, sha256].join('|');
           const signature = crypto.createHmac('sha256', keyMaterial).update(payload).digest('hex');
