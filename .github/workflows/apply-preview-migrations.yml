@@ -156,6 +156,40 @@ jobs:
           psql "$PGURI" -Atc "SELECT rolname||'|canlogin='||rolcanlogin||'|inherit='||rolinherit||'|bypassrls='||rolbypassrls FROM pg_roles WHERE rolname='opscore_app'"
           echo "LEGACY_APP_ROLE_PROVISION=PASS"
 
+      - name: Clear unintended opscore_app memberships on isolated Preview
+        run: |
+          set -euo pipefail
+          export PGURI="$(cat "$RUNNER_TEMP/owner.uri")"; case "$PGURI" in *"?"*) PGURI="$PGURI&sslrootcert=system";; *) PGURI="$PGURI?sslrootcert=system";; esac; export PGURI
+          # opscore_app must not have members before 068 repair preflight. Preview
+          # acceptance DBs can accumulate GRANT opscore_app TO <role> from older tests.
+          # Revoke only membership *into* opscore_app; never touch production project.
+          psql "$PGURI" -v ON_ERROR_STOP=1 -q <<'SQL'
+          DO $$
+          DECLARE
+            member_name text;
+            revoked integer := 0;
+          BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'opscore_app') THEN
+              RAISE NOTICE 'OPSC_APP_ROLE_ABSENT_NO_MEMBERSHIP_CLEANUP';
+              RETURN;
+            END IF;
+            FOR member_name IN
+              SELECT m.rolname
+              FROM pg_auth_members am
+              JOIN pg_roles r ON r.oid = am.roleid AND r.rolname = 'opscore_app'
+              JOIN pg_roles m ON m.oid = am.member
+            LOOP
+              EXECUTE format('REVOKE opscore_app FROM %I', member_name);
+              revoked := revoked + 1;
+            END LOOP;
+            RAISE NOTICE 'OPSC_APP_ROLE_INCOMING_MEMBERSHIPS_REVOKED=%', revoked;
+          END $$;
+          SQL
+          remaining="$(psql "$PGURI" -Atc "SELECT count(*) FROM pg_auth_members am JOIN pg_roles r ON r.oid=am.roleid AND r.rolname='opscore_app'")"
+          echo "OPSC_APP_INCOMING_MEMBERSHIPS_REMAINING=${remaining}"
+          test "${remaining}" = "0" || { echo "OPSC_APP_INCOMING_MEMBERSHIP_CLEANUP_INCOMPLETE" >&2; exit 1; }
+          echo "PREVIEW_APP_ROLE_MEMBERSHIP_CLEANUP=PASS"
+
       - name: Dry-run migrations on Preview
         env:
           OPSC_MIGRATION_TARGET_CLASS: preview
