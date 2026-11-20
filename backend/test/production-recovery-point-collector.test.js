@@ -41,7 +41,7 @@ test('native PITR uses two independent timestamped sibling branches from the exa
 test('all SQL probes run in explicit read-only transactions, including streamed COPY', () => {
   assert.match(collector, /default_transaction_read_only=on/);
   assert.match(collector, /BEGIN TRANSACTION READ ONLY/);
-  assert.match(collector, /\\) TO STDOUT;/);
+  assert.match(collector, /\) TO STDOUT;/);
   assert.match(collector, /'COMMIT;'/);
 });
 
@@ -55,7 +55,7 @@ test('every physical public table is content-hashed with duplicate-preserving de
   assert.match(collector, /for \(let index = 0; index < physicalTableNames\.length; index\+\+\)/);
   assert.match(collector, /sourceData\.sha256 === restoredData\.sha256/);
   assert.match(collector, /sourceData\.rowCount === restoredData\.rowCount/);
-  assert.match(collector, /c\.relkind IN \('r','p'\)/);
+  assert.ok(collector.includes("c.relkind IN ('r','p')"));
   assert.ok(collector.includes('Partitioned parents'));
   assert.ok(collector.includes('physical leaf partitions'));
   assert.match(collector, /RECOVERY_PHYSICAL_TABLE_COUNT_BELOW_REQUIRED_BASELINE/);
