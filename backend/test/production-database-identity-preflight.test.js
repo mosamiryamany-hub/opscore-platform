@@ -122,3 +122,14 @@ test('runtime migration ledger inspection never selects the protected ledger tab
   assert.match(source, /metadata\.function_owner === 'neondb_owner'/);
   assert.match(source, /settings\.setting_value ILIKE '%pg_catalog%'/);
 });
+
+test('runtime TLS evidence is read from pg_stat_ssl for the same client backend PID', () => {
+  const source = fs.readFileSync(
+    path.resolve(__dirname, '../scripts/production-database-identity-preflight.js'),
+    'utf8'
+  );
+  assert.match(source, /tls\.ssl FROM pg_stat_ssl AS tls WHERE tls\.pid = pg_backend_pid\(\)\) AS tls_enabled/);
+  assert.match(source, /tls\.version FROM pg_stat_ssl AS tls WHERE tls\.pid = pg_backend_pid\(\)\) AS tls_version/);
+  assert.match(source, /tls\.cipher FROM pg_stat_ssl AS tls WHERE tls\.pid = pg_backend_pid\(\)\) AS tls_cipher/);
+  assert.match(source, /tls\.bits FROM pg_stat_ssl AS tls WHERE tls\.pid = pg_backend_pid\(\)\) AS tls_bits/);
+});
