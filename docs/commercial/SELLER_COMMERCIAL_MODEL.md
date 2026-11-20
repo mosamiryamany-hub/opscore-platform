@@ -45,3 +45,13 @@ Success of one gate never silently completes another.
 No license grant exists until a named buyer and the rights holder execute a License Schedule that pins the exact deliverable. See `LICENSE_FRAMEWORK.md` and `NO_LICENSE_GRANT_NOTICE.txt`.
 
 **NO LICENSE GRANT** by repository presence, candidate evidence, or this document alone.
+
+## Minimum fair floors (USD, seller guide only)
+
+| Tier | Floor |
+|---|---|
+| L1 Use Only | **USD 45,000** |
+| L2 Use + Modify + Redistribute | **USD 85,000** |
+| L3 Exclusive / IP Assignment | **USD 175,000** |
+
+OPEN FOR MARKETING. **NO LICENSE GRANT** until a named buyer executes a License Schedule that pins the deliverable and states the negotiated fee (at or above the seller’s chosen floor).

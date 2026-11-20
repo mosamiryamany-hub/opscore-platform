@@ -104,6 +104,21 @@ Template: `docs/commercial/LICENSE_SCHEDULE_TEMPLATE.md`
 - Repository presence, CI success, or ZIP availability is **not** a license grant.
 - Hosted Production certification and source-package readiness are **independent** gates; one does not imply the other.
 
+
+## Seller guide — minimum fair floors (USD, November 2026)
+
+These are **seller-side guide floors** derived from current market comparables for a production multi-tenant platform (isolation-certified, signed release evidence, no buyer residuals included). They are **not** a public list price and do **not** grant a license. Actual fee is written only in a signed License Schedule.
+
+| Tier | Rights | Minimum fair floor (USD) | Market anchors (indicative) |
+|---|---|---|---|
+| **L1** | Use only (non-exclusive) | **45,000** | Below growth multi-tenant rebuild bands (~$120k–$300k); above simple marketplace script sales; use-only code transfers |
+| **L2** | Use + modify + redistribute (non-exclusive) | **85,000** | Premium for commercial redistribution / OEM / hosted-resale rights over L1 |
+| **L3** | Exclusive license and/or IP assignment | **175,000** | Lower band of pre-revenue multi-tenant platform IP acquisitions; exclusive assignment premium over L2 |
+
+**Exclusions from these floors:** mobile store accounts and signing, native human translation QA, licensed street maps, buyer payment-processor production keys, Neon/Vercel plan upgrades, and any hosted production tenancy not listed in the Schedule.
+
+**Sources consulted (2025–2026 market):** multi-tenant SaaS build cost tiers; pre-revenue PropTech SaaS/IP acquisition asks; source-code marketplace vs full-codebase acquisition patterns; exclusive vs non-exclusive licensing spreads. Floors are conservative and may be negotiated upward for territory, support, or transition assistance.
+
 ## Version
 
 Framework version: **2026-11-20**  
