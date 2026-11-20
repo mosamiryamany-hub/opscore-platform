@@ -2,6 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const crypto = require('node:crypto');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -17,7 +18,7 @@ const env = {
 };
 
 function validEvidence(overrides = {}) {
-  return {
+  const evidence = {
     schemaVersion: 'opscore.production-native-pitr.v2',
     status: 'PASS',
     environment: 'production',
@@ -27,21 +28,29 @@ function validEvidence(overrides = {}) {
     targetTimestampUtc: '2026-11-20T20:05:07Z',
     restoreStartedAt: '2026-11-20T20:07:00Z',
     restoreCompletedAt: '2026-11-20T20:10:47Z',
+    restoreDurationMs: 227000,
+    targetPointAgeAtCompletionMs: 340000,
     restoredBranchId: 'br-restored-production-probe',
     sourceBranchId: 'br-current-production',
     databaseName: 'opscore_acceptance',
     sourceCommit: SHA,
     pipelineId: '2978538209',
-    evidenceSha256: DIGEST,
+    cleanup: {
+      status: 'PASS',
+      restoredBranchDeleted: true,
+      comparisonBranchDeleted: true
+    },
     contentIntegrity: {
       status: 'PASS',
       algorithm: 'SHA-256',
       tableCountCompared: 135,
+      catalogTableCount: 136,
       rowsCompared: 135,
       mismatchCount: 0,
       rlsPolicyTableCount: 135,
       rlsPolicyMismatchCount: 0,
       forceRlsMismatchCount: 0,
+      rlsExceptionTables: ['spatial_ref_sys'],
       sourceManifestSha256: DIGEST,
       restoredManifestSha256: DIGEST,
       tableResults: Array.from({ length: 135 }, (_, index) => ({
@@ -53,9 +62,14 @@ function validEvidence(overrides = {}) {
         sourceRowCount: 1,
         restoredRowCount: 1
       }))
-    },
-    ...overrides
+    }
   };
+  const merged = { ...evidence, ...overrides };
+  delete merged.evidenceSha256;
+  merged.evidenceSha256 = crypto.createHash('sha256')
+    .update(JSON.stringify(merged), 'utf8')
+    .digest('hex');
+  return merged;
 }
 
 function withEvidence(evidence, callback) {
@@ -75,6 +89,47 @@ test('native Production PITR requires exact commit, pipeline, database, branch a
     assert.equal(result.status, 'PASS');
     assert.equal(result.verificationScope, 'production-root-historical-branch-full-data-content-hash-and-rls-match');
     assert.equal(result.contentIntegrity.manifestMatched, true);
+  });
+});
+
+test('native PITR refuses PASS if either exact temporary branch is not deleted', () => {
+  withEvidence(validEvidence({
+    cleanup: {
+      status: 'FAIL',
+      restoredBranchDeleted: true,
+      comparisonBranchDeleted: false
+    }
+  }), file => {
+    assert.equal(readProductionNativePitrEvidence(file, env).status, 'NOT_VERIFIED');
+  });
+});
+
+test('native PITR measured recovery duration and point-age must match timestamps', () => {
+  withEvidence(validEvidence({ restoreDurationMs: 1000 }), file => {
+    assert.equal(readProductionNativePitrEvidence(file, env).status, 'NOT_VERIFIED');
+  });
+  withEvidence(validEvidence({ targetPointAgeAtCompletionMs: 1 }), file => {
+    assert.equal(readProductionNativePitrEvidence(file, env).status, 'NOT_VERIFIED');
+  });
+});
+
+test('native PITR requires exactly the declared non-tenant spatial_ref_sys RLS exception', () => {
+  withEvidence(validEvidence({
+    contentIntegrity: {
+      ...validEvidence().contentIntegrity,
+      rlsExceptionTables: ['users']
+    }
+  }), file => {
+    assert.equal(readProductionNativePitrEvidence(file, env).status, 'NOT_VERIFIED');
+  });
+});
+
+test('native PITR evidence digest detects content mutation after measurement', () => {
+  withEvidence(validEvidence(), file => {
+    const evidence = JSON.parse(fs.readFileSync(file, 'utf8'));
+    evidence.contentIntegrity.rowsCompared += 1;
+    fs.writeFileSync(file, JSON.stringify(evidence));
+    assert.equal(readProductionNativePitrEvidence(file, env).status, 'NOT_VERIFIED');
   });
 });
 
