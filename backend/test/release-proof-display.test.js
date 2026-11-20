@@ -173,7 +173,7 @@ test('release proof renderer requires all 67 live route bindings and does not co
   await execution;
   await new Promise(resolve => setImmediate(resolve));
 
-  assert.match(getElement('signedRoutesEvidence').textContent, /^PASS — 67\/67/);
+  assert.match(getElement('signedRoutesEvidence').textContent, /^PASS — 67\/67 production-candidate/);
   assert.match(getElement('pitrEvidence').textContent, /BRANCH-POINT PASS ONLY/);
   assert.match(getElement('archiveEvidence').textContent, /package fingerprint alone is not a signed archive/);
 
