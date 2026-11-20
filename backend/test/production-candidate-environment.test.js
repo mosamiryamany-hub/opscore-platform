@@ -11,6 +11,7 @@ const {
   validateInitialState,
   prepare,
   restore,
+  sanitizeRestoredPull,
   verifyRestored,
   publish
 } = require('../../scripts/production-candidate-environment');
@@ -184,6 +185,80 @@ test('verify-restored proves every Production variable matches the snapshot and 
   await assert.rejects(
     () => verifyRestored({ env, fetchImpl: store.fetchImpl }),
     /PRODUCTION_CANDIDATE_ENV_NOT_REMOVED:OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED/
+  );
+  fs.rmSync(tmp, { recursive: true, force: true });
+});
+
+test('sanitize-restored-pull removes only snapshot-absent baseline keys and candidate keys', async () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-candidate-env-'));
+  const envFilePath = path.join(tmp, '.vercel.env.production.local');
+  const parsed = parseEnvFile(envFile());
+  const initial = [...parsed.keys()].map((key, index) => ({
+    id: 'env_' + index,
+    key,
+    value: parsed.get(key),
+    target: ['production'],
+    type: 'encrypted'
+  }));
+  initial.find(item => item.key === 'OPSC_PRODUCTION_HOLD').type = 'plain';
+  const snapshot = createBaselineSnapshot(parsed, initial);
+  fs.writeFileSync(path.join(tmp, 'opscore-production-env-baseline.json'), JSON.stringify(snapshot));
+
+  const staleLines = [
+    'OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED=true',
+    'OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED=false',
+    'OPSC_REQUIRE_SIGNED_TENANT_CONTEXT=true',
+    'OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID=dpl_StaleProbe123',
+    'OPSC_PRODUCTION_CANDIDATE_MODE=true',
+    'OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED=true',
+    'OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN=never-print-this-token',
+    'VERCEL_OIDC_TOKEN=[SENSITIVE]',
+    'UNRELATED_CONFIGURATION=keep'
+  ];
+  fs.writeFileSync(envFilePath, envFile() + '\n' + staleLines.join('\n') + '\n');
+
+  const env = {
+    VERCEL_PROJECT_ID: 'prj_123',
+    VERCEL_ORG_ID: 'team_123',
+    VERCEL_TOKEN: 'x',
+    RUNNER_TEMP: tmp,
+    VERCEL_PRODUCTION_ENV_FILE: envFilePath
+  };
+  const result = sanitizeRestoredPull({ env });
+  const cleaned = fs.readFileSync(envFilePath, 'utf8');
+  assert.equal(result.status, 'PASS');
+  assert.deepEqual(result.removedKeys, [
+    'OPSC_PRODUCTION_CANDIDATE_MODE',
+    'OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID',
+    'OPSC_REQUIRE_SIGNED_TENANT_CONTEXT',
+    'OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED',
+    'OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN',
+    'OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED',
+    'OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED'
+  ]);
+  for (const key of result.removedKeys) {
+    assert.doesNotMatch(cleaned, new RegExp('^(?:export\\s+)?' + key + '\\s*=', 'm'));
+  }
+  assert.match(cleaned, /^OPSC_PRODUCTION_HOLD="false"$/m);
+  assert.match(cleaned, /^OPSC_PRODUCTION_NEON_BRANCH_ID=br-proud-salad-bcshhdap$/m);
+  assert.match(cleaned, /^VERCEL_OIDC_TOKEN=\[SENSITIVE\]$/m);
+  assert.match(cleaned, /^UNRELATED_CONFIGURATION=keep$/m);
+
+  const store = makeEnvStore(initial);
+  const verified = await verifyRestored({ env, fetchImpl: store.fetchImpl });
+  assert.equal(verified.status, 'PASS');
+  fs.rmSync(tmp, { recursive: true, force: true });
+});
+
+test('sanitize-restored-pull fails closed without a valid pre-run snapshot', () => {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-candidate-env-'));
+  const envFilePath = path.join(tmp, '.vercel.env.production.local');
+  fs.writeFileSync(envFilePath, 'OPSC_PRODUCTION_HOLD=false\n');
+  assert.throws(
+    () => sanitizeRestoredPull({
+      env: { RUNNER_TEMP: tmp, VERCEL_PRODUCTION_ENV_FILE: envFilePath }
+    }),
+    /PRODUCTION_ENV_SNAPSHOT_REQUIRED_FOR_SANITIZE/
   );
   fs.rmSync(tmp, { recursive: true, force: true });
 });
