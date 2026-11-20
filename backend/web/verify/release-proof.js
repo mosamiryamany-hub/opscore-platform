@@ -58,6 +58,58 @@
     set('packageSha', pkg.value || 'UNVERIFIED', pkg.value ? 'ok' : 'warn');
     set('packageState', pkg.status || 'UNVERIFIED', stateFor(pkg.status, ['PUBLISHED']));
 
+    const routeProof = proof.signedTenantRouteCoverage || {};
+    const routeCountValid = routeProof.status === 'PASS' &&
+      Number.isSafeInteger(routeProof.expectedRouteCount) &&
+      routeProof.expectedRouteCount > 0 &&
+      routeProof.coveredRouteCount === routeProof.expectedRouteCount &&
+      routeProof.testedRoutes === routeProof.expectedRouteCount &&
+      routeProof.failedRouteCount === 0 &&
+      routeProof.commitBound === true &&
+      routeProof.pipelineBound === true &&
+      routeProof.parentBranchBound === true &&
+      routeProof.deploymentIdBound === true &&
+      routeProof.manifestBound === true &&
+      routeProof.inventoryBound === true &&
+      routeProof.routeResultsValid === true;
+    set(
+      'signedRouteCoverage',
+      routeCountValid
+        ? 'PASS — ' + routeProof.coveredRouteCount + '/' + routeProof.expectedRouteCount + ' routes; 0 failures; commit/pipeline/deployment bound'
+        : 'NOT VERIFIED — signed-session route evidence missing, incomplete, or not bound',
+      routeCountValid ? 'ok' : 'warn'
+    );
+
+    const recoveryStatus = gates.productionRecoveryBundle || 'NOT_VERIFIED';
+    set(
+      'recoveryPointEvidence',
+      recoveryStatus === 'PASS_PRODUCTION_ROW_COUNT_SCOPE'
+        ? 'PASS — production branch-point row-count scope only; not full PITR/content parity'
+        : recoveryStatus,
+      recoveryStatus === 'PASS_PRODUCTION_ROW_COUNT_SCOPE' ? 'ok' : stateFor(recoveryStatus, ['PASS_PRODUCTION'])
+    );
+    set(
+      'pitrCertification',
+      gates.neonPointInTimeRecovery === 'PASS_FULL_PITR_SCOPE'
+        ? 'PASS — full PITR scope explicitly attested'
+        : 'NOT CERTIFIED — ' + (gates.neonPointInTimeRecovery || 'NOT_VERIFIED') + ' is not a full PITR/restore certificate',
+      gates.neonPointInTimeRecovery === 'PASS_FULL_PITR_SCOPE' ? 'ok' : 'warn'
+    );
+
+    const archiveProof = proof.releaseArchiveAttestation || proof.provenanceAttestation || {};
+    const archiveSha = archiveProof.sha256 || (archiveProof.artifact && archiveProof.artifact.sha256);
+    const archiveBound = archiveProof.status === 'PASS' &&
+      archiveProof.sourceCommit === proof.sourceCommit &&
+      /^[a-f0-9]{64}$/.test(String(archiveSha || '')) &&
+      archiveProof.signatureVerified === true;
+    set(
+      'archiveAttestation',
+      archiveBound
+        ? 'PASS — signed archive verified and bound to current source commit'
+        : 'NOT VERIFIED — live proof does not expose a verified signature-bound archive for this commit',
+      archiveBound ? 'ok' : 'warn'
+    );
+
     try {
       const deploymentProof = await readProof('/api/verify/deployment');
       const source = deploymentProof.source || {};
