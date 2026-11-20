@@ -36,4 +36,18 @@ The seller may advertise, present and negotiate this source-code offer before an
 
 No license or use/distribution right is granted by this sales kit. Before buyer installation, execution, modification, hosting, resale, sublicensing or delivery, both the rights holder and named buyer must execute a License Schedule that pins the exact deliverable and states the permitted rights. All ungranted rights remain reserved.
 
+## Public asking floors — USD
+
+These seller minimums are published now to support marketing and buyer discovery. They are not buyer-specific signed quotes, and no buyer is required to be identified or to sign before the offer is advertised.
+
+| Tier | Rights offered | Published minimum asking price |
+|---|---|---:|
+| **L1** | Use only — non-exclusive | **$45,000 USD** |
+| **L2** | Use + modify + redistribute — non-exclusive | **$85,000 USD** |
+| **L3** | Exclusive rights and/or IP assignment, only as precisely scheduled | **$175,000 USD** |
+
+The applicable floor is the minimum starting point for that tier. The final fee, exact deliverable, scope, territory, distribution forms, payment milestones, support, exclusions and transfer terms must be written into a buyer-specific License Schedule. Do not infer that L3 transfers third-party components, trademarks, cloud accounts, customer data or provider contracts.
+
+The published floors exclude buyer-owned residuals listed above: mobile store signing and release, native-speaker language review, licensed maps/road-routing, buyer provider credentials and buyer-environment acceptance. No delivery or buyer use is authorized until the rights holder and named buyer execute the Schedule.
+
 No technical test, deployment, archive, checksum, SBOM or attestation creates or implies a license.

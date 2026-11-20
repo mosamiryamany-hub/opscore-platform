@@ -16,8 +16,9 @@
 
 ## Pricing policy
 
-- **No list price in-repo.**  
-- Fee, currency, milestones, and taxes are negotiated and written only into the executed License Schedule.  
+- **Published seller minimum asking floors (USD):** L1 **$45,000**, L2 **$85,000**, L3 **$175,000**. These are the public starting floors for marketing and buyer discovery, not an executed transaction quote.
+- Do not offer a tier below its published floor unless the rights holder explicitly revises the seller floor in writing.
+- Final fee, currency, milestones, taxes, exact deliverable, and permitted rights are negotiated and recorded in the buyer-specific executed License Schedule.  
 - Seller may withhold delivery until Schedule signature and cleared payment terms as the Schedule states.
 
 ## Independence of gates

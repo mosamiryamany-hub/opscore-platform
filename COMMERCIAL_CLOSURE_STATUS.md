@@ -14,7 +14,7 @@
 
 **Seller offer status:** **OPEN FOR MARKETING AND COMMERCIAL NEGOTIATION.** A named buyer or buyer-signed License Schedule is not a prerequisite to prepare, publish, present, or negotiate the offer. No buyer commitment is implied.
 
-**License grant status:** **NO LICENSE GRANT** by default. All rights remain reserved by the rights holder until a transaction-specific License Schedule is executed by both the rights holder and the named buyer and pins the exact deliverable (source commit and/or package digest). The schedule is a per-transaction closing document, not a seller launch/marketing gate. No list prices are stored in-repo; commercial terms are negotiated per buyer.
+**License grant status:** **NO LICENSE GRANT** by default. All rights remain reserved by the rights holder until a transaction-specific License Schedule is executed by both the rights holder and the named buyer and pins the exact deliverable (source commit and/or package digest). The schedule is a per-transaction closing document, not a seller launch/marketing gate. Public seller minimum asking floors are published in `SALES_KIT.md` and `docs/commercial/SELLER_COMMERCIAL_MODEL.md` (L1 $45,000; L2 $85,000; L3 $175,000). The final buyer-specific fee and rights are negotiated and fixed in the executed Schedule.
 
 **Delivery / use status:** **NOT AUTHORIZED before the applicable License Schedule is fully executed.** Do not treat an offer, listing, demonstration, technical report, public repository, or release artifact as a grant of rights. Delivery must be limited to the artifact and rights recorded in the signed Schedule.
 
