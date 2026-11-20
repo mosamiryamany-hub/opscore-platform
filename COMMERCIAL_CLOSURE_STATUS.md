@@ -1,6 +1,6 @@
 # OpsCore — Technical and Commercial Closure Status
 
-**Technical classification (seller-reference, git-stored evidence):** `PASS` — session and recovery artifacts re-executed 2026-11-17 on live commit `4017497068defa9c1d0761fcb07bc746925e002a` (Actions run 44029395474). Do not cite older rebind copies.
+**Technical classification (seller-reference):** Owner-measured live release proof on 2026-11-20 reports `PASS` for source `2dbafb74e0812552a316e3b50588abb6467b081d`, pipeline `44756093116`, with 67/67 signed tenant routes and deployment-bound acceptance. This is a timestamped seller-deployment observation, not a transferable buyer certification. The public proof must report `gates.commercialClosure=PASS_WITH_BUYER_RESIDUALS` while the three buyer-owned deliverables remain open.
 
 **Buyer-environment isolation / transfer:** `NOT_VERIFIED` until the buyer’s own environment is measured. Seller runtime CERTIFIED does not transfer.
 
@@ -20,7 +20,7 @@
 
 ## Live deployment pointer (not a license)
 
-See `backend/docs/verification/LIVE_EVIDENCE_AUTHORITY.md` and `docs/release/LIVE_RELEASE_STATEMENT_2026-11-16.md`. Observe runtime proof at `GET /api/verify/release`. Buyer-environment certification remains **NOT_ESTABLISHED**. Runtime may report `PASS_WITH_BUYER_RESIDUALS` for the seller-operated deployment; that does not transfer certification to a buyer environment.
+See `backend/docs/verification/LIVE_EVIDENCE_AUTHORITY.md` and `docs/release/LIVE_RELEASE_STATEMENT_2026-11-16.md`. Observe runtime proof at `GET /api/verify/release`. Buyer-environment certification remains **NOT_ESTABLISHED**. Runtime technical `status=PASS` is separate from `gates.commercialClosure=PASS_WITH_BUYER_RESIDUALS`. The remaining buyer-owned deliverables are mobile store artifacts, native-speaker translation review (0/114 production-qualified), and licensed maps/road-routing. Neither status transfers certification or usage rights to a buyer.
 
 ## Framework (ready for any buyer type)
 
@@ -40,7 +40,7 @@ See `docs/BUYER_RESIDUALS.md`. Summary:
 - Native translation review — REMAINING_BUYER (UI: all languages + machine-translation notice)
 - Licensed street map — REMAINING_BUYER
 - Neon capacity / multi-day PITR / extra protected branches — paid-plan dependency
-- 67-route Production signed-session matrix — REMAINING_ENGINEERING
+- 67-route signed-session production coverage — PASS for the exact seller deployment only (67/67); it does not certify buyer environments.
 - Mobile dependency remediation notes: `security/mobile-dependency-remediation-2026-11-01`
 
 ## Deploy policy (post PR #170 / #171)
