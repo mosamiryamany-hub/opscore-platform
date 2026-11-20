@@ -109,7 +109,11 @@ test('runtime diagnostic blocks only if every production identity and release ga
     region: 'us-east-1',
     hostnameSha256: 'c'.repeat(64),
     runtimeRole: 'opscore_runtime',
-    serverVersion: '18.6'
+    serverVersion: '18.6',
+    tlsEnabled: true,
+    tlsVersion: 'TLSv1.3',
+    tlsCipher: 'TLS_AES_256_GCM_SHA384',
+    tlsBits: 256
   });
 });
 
@@ -163,11 +167,31 @@ test('runtime diagnostic rejects mismatched build identity and migration hash', 
   assert.ok(result.checks.some(item => item.name === 'migration_056_hash' && item.status === 'BLOCKED'));
 });
 
-test('runtime diagnostic requires runtime SSL settings without misreading backend pg_stat_ssl', () => {
+test('runtime diagnostic blocks when pg_stat_ssl reports that the application session is not encrypted', () => {
   const payload = validPayload();
-  payload.database.target.clientSslMode = 'DISABLE';
-  payload.database.target.channelBinding = 'DISABLE';
   payload.database.identity.tls_enabled = false;
+  const result = evaluateRuntimeDiagnostic(payload, 200, 'a'.repeat(40), '123456789');
+  assert.equal(result.promotionAllowed, false);
+  assert.ok(result.checks.some(item => item.name === 'client_tls_configuration' && item.status === 'BLOCKED'));
+});
+
+test('runtime diagnostic does not accept sslmode=require without actual pg_stat_ssl evidence', () => {
+  const payload = validPayload();
+  delete payload.database.identity.tls_enabled;
+  delete payload.database.identity.tls_version;
+  delete payload.database.identity.tls_cipher;
+  delete payload.database.identity.tls_bits;
+  assert.equal(payload.database.target.clientSslMode, 'REQUIRE');
+  const result = evaluateRuntimeDiagnostic(payload, 200, 'a'.repeat(40), '123456789');
+  assert.equal(result.promotionAllowed, false);
+  assert.ok(result.checks.some(item => item.name === 'client_tls_configuration' && item.status === 'BLOCKED'));
+});
+
+test('runtime diagnostic rejects weak or incomplete negotiated TLS metadata', () => {
+  const payload = validPayload();
+  payload.database.identity.tls_version = 'TLSv1.1';
+  payload.database.identity.tls_cipher = '';
+  payload.database.identity.tls_bits = 64;
   const result = evaluateRuntimeDiagnostic(payload, 200, 'a'.repeat(40), '123456789');
   assert.equal(result.promotionAllowed, false);
   assert.ok(result.checks.some(item => item.name === 'client_tls_configuration' && item.status === 'BLOCKED'));
