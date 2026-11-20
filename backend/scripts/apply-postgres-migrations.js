@@ -42,7 +42,11 @@ function validateAppRolePreflight(role, repairPending) {
    if(contradictory)throw new Error('MIGRATION_APP_ROLE_NOT_LEAST_PRIVILEGED');
    return {status:'PASS_WITH_ABSENT_LEGACY_ROLE',repairPending:false,roleExists:false,note:'OPSC_LEGACY_APP_ROLE_ABSENT_TREATED_AS_LOCKED'};
   }
-  if(bool(role.rolsuper)||bool(role.rolbypassrls)||bool(role.rolcreaterole)||bool(role.rolcreatedb)||canLogin||inherits||!residualSafe||incomingMemberships!==0){
+  const previewMemberResidual=String(process.env.OPSC_MIGRATION_TARGET_CLASS||'').trim()==='preview'
+   && String(process.env.OPSC_MIGRATION_PREVIEW_ALLOW_UNREVOCABLE_APP_MEMBERS||'').trim()==='1'
+   && incomingMemberships!==0
+   && !canLogin && !inherits && !bool(role.rolbypassrls) && !bool(role.rolsuper) && !bool(role.rolcreaterole) && !bool(role.rolcreatedb);
+  if(bool(role.rolsuper)||bool(role.rolbypassrls)||bool(role.rolcreaterole)||bool(role.rolcreatedb)||canLogin||inherits||!residualSafe||(incomingMemberships!==0&&!previewMemberResidual)){
    throw new Error('MIGRATION_APP_ROLE_NOT_LEAST_PRIVILEGED');
   }
   return hasOnlyKnownNeonResidual
@@ -52,7 +56,13 @@ function validateAppRolePreflight(role, repairPending) {
  if(bool(role&&role.rolsuper))throw new Error('MIGRATION_APP_ROLE_REPAIR_SUPERUSER_FORBIDDEN');
  if(activeSessions!==0)throw new Error('MIGRATION_APP_ROLE_REPAIR_HAS_ACTIVE_SESSIONS');
  if(ownedObjects!==0)throw new Error('MIGRATION_APP_ROLE_REPAIR_OWNS_OBJECTS');
- if(incomingMemberships!==0)throw new Error('MIGRATION_APP_ROLE_REPAIR_HAS_INCOMING_MEMBERSHIPS');
+ if(incomingMemberships!==0){
+  const previewAllow=String(process.env.OPSC_MIGRATION_TARGET_CLASS||'').trim()==='preview'
+   && String(process.env.OPSC_MIGRATION_PREVIEW_ALLOW_UNREVOCABLE_APP_MEMBERS||'').trim()==='1'
+   && !canLogin && !inherits && !bool(role.rolbypassrls) && !bool(role.rolcreaterole) && !bool(role.rolcreatedb)
+   && activeSessions===0 && ownedObjects===0;
+  if(!previewAllow)throw new Error('MIGRATION_APP_ROLE_REPAIR_HAS_INCOMING_MEMBERSHIPS');
+ }
  const unexpected=memberships.filter(name=>name!=='neon_superuser');
  if(unexpected.length)throw new Error('MIGRATION_APP_ROLE_REPAIR_UNEXPECTED_MEMBERSHIPS');
  if(memberships.filter(name=>name==='neon_superuser').length>1)throw new Error('MIGRATION_APP_ROLE_REPAIR_DUPLICATE_MANAGED_MEMBERSHIP');
