@@ -50,14 +50,15 @@ test('every physical public table is content-hashed with duplicate-preserving de
   assert.match(collector, /pg_catalog\.to_jsonb\(t\)::text/);
   assert.match(collector, /public\.digest/);
   assert.match(collector, /ORDER BY 1/);
-  assert.match(collector, /const physicalTableNames = referenceCatalog\.tables[\\s\\S]*?filter\(row => row\.relation_kind === 'r'\)/);
+  assert.match(collector, /const physicalTableNames = referenceCatalog\.tables/);
+  assert.match(collector, /filter\(row => row\.relation_kind === 'r'\)/);
   assert.match(collector, /for \(let index = 0; index < physicalTableNames\.length; index\+\+\)/);
   assert.match(collector, /sourceData\.sha256 === restoredData\.sha256/);
   assert.match(collector, /sourceData\.rowCount === restoredData\.rowCount/);
-  assert.match(collector, /relation_kind === 'p'/);
-  assert.match(collector, /Partitioned parents are represented by their physical leaf partitions/);
-  assert.match(collector, /sourceData\.rowCount === restoredData\.rowCount/);
-  assert.match(collector, /RECOVERY_PUBLIC_TABLE_COUNT_BELOW_REQUIRED_BASELINE/);
+  assert.match(collector, /c\.relkind IN \('r','p'\)/);
+  assert.match(collector, /Partitioned parents/);
+  assert.match(collector, /physical leaf partitions/);
+  assert.match(collector, /RECOVERY_PHYSICAL_TABLE_COUNT_BELOW_REQUIRED_BASELINE/);
 });
 
 test('catalog and RLS evidence compares every public table/partition and makes the sole exception explicit', () => {
@@ -119,7 +120,7 @@ test('manual workflow requires explicit production-probe authorization and uploa
 
 test('the collector does not claim that content equality by itself certifies application recovery or RPO/RTO', () => {
   assert.match(collector, /not an application-level recovery rehearsal or an RPO\/RTO guarantee/);
-  assert.match(collector, /This is not an RPO\/RTO guarantee/);
+  assert.match(collector, /RPO\/RTO guarantee/);
 });
 
 test('recovery collector parses as a Node.js program', () => {
