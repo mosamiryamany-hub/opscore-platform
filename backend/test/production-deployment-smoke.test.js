@@ -311,3 +311,37 @@ test('OIDC runtime fetch enforces response size and fails closed on transport er
     fetchImpl: async () => { throw new Error('do-not-leak-transport-details'); }
   }), /NETWORK_CONNECTION_FAILED/);
 });
+
+test('release proof accepts release-proof.js production-scope gate vocabulary and both verified release statuses', () => {
+  const pipelineId = 42949619029;
+  const valid = {
+    schemaVersion: 'opscore.public-release-proof.v2',
+    status: 'PASS',
+    sourceCommit: commit,
+    sourceCommitIdentitySource: 'github-actions-cli-assertion',
+    ci: { status: 'PASS', commitSha: commit, pipelineId },
+    deployment: { status: 'identified', environment: 'production', id: 'dpl_123abc', ref: 'main' },
+    postgresHttpAcceptance: { status: 'PASS', evidenceCommit: commit, evidencePipelineId: String(pipelineId), currentCandidateMatch: true },
+    productionAcceptance: { status: 'PASS', commitSha: commit, pipelineId: String(pipelineId), evidenceSha256: 'a'.repeat(64) },
+    gates: {
+      productionSessionTenantBoundary: 'PASS_PRODUCTION_PROBE_SCOPE',
+      productionRecoveryBundle: 'PASS_PRODUCTION_ROW_COUNT_SCOPE',
+      tenantRouteSecurityCoverage: 'PASS_TEST_SCOPE',
+      functionalApiRouteAcceptance: 'PASS_CONTRACT_SCOPE',
+      neonPointInTimeRecovery: 'PASS_BRANCH_POINT',
+      productionIsolationCertification: 'CERTIFIED'
+    },
+    packageFingerprint: { status: 'PUBLISHED', sourceCommit: commit, value: 'b'.repeat(64) }
+  };
+  assert.equal(validateEndpoint('/api/verify/release', 200, valid, commit), true);
+  // CERTIFIED must still fail closed when behavioral gates fall back to test scope.
+  assert.throws(() => validateEndpoint('/api/verify/release', 200, {
+    ...valid, gates: { ...valid.gates, productionSessionTenantBoundary: 'PASS_TEST_SCOPE' }
+  }, commit), /RELEASE_EVIDENCE_NOT_BOUND_TO_DEPLOYMENT/);
+  assert.throws(() => validateEndpoint('/api/verify/release', 200, {
+    ...valid, gates: { ...valid.gates, productionRecoveryBundle: 'PASS_TEST_SCOPE' }
+  }, commit), /RELEASE_EVIDENCE_NOT_BOUND_TO_DEPLOYMENT/);
+  assert.throws(() => validateEndpoint('/api/verify/release', 200, {
+    ...valid, status: 'UNVERIFIED'
+  }, commit), /RELEASE_EVIDENCE_NOT_BOUND_TO_DEPLOYMENT/);
+});
