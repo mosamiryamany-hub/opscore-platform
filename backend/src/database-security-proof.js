@@ -290,7 +290,7 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
   }
 
   return {
-    schemaVersion: 'opscore.public-database-security-proof.v2',
+    schemaVersion: 'opscore.public-database-security-proof.v3',
     status,
     catalogIsolationScope: 'CATALOG_ONLY_NOT_BEHAVIORAL_CERTIFICATION',
     evidenceScope: 'Live PostgreSQL catalog metadata queried as the running application database role',
