@@ -859,16 +859,16 @@ jobs:
               throw new Error('VERCEL_RELEASE_ATTESTATION_SECRET_IDENTITY_OR_TARGET_INVALID');
             }
             const value = String(body.value || '').trim();
-            if (value.length < 32 || /[\\r\\n]/.test(value)) {
+            if (value.length < 32 || /[\r\n]/.test(value)) {
               throw new Error('VERCEL_RELEASE_ATTESTATION_SECRET_VALUE_INVALID');
             }
-            process.stdout.write('::add-mask::' + value + '\\n');
+            process.stdout.write('::add-mask::' + value + '\n');
             fs.appendFileSync(process.env.GITHUB_ENV,
-              'OPSC_RELEASE_PACKAGE_ATTESTATION_KEY=' + value + '\\n',
+              'OPSC_RELEASE_PACKAGE_ATTESTATION_KEY=' + value + '\n',
               { mode: 0o600 });
             process.stdout.write('RELEASE_ARCHIVE_HMAC_KEY_SOURCE=VERCEL_PRODUCTION_SECRET\\n');
           })().catch(error => {
-            process.stderr.write(String(error && error.message || error) + '\\n');
+            process.stderr.write(String(error && error.message || error) + '\n');
             process.exitCode = 1;
           });
           NODE
