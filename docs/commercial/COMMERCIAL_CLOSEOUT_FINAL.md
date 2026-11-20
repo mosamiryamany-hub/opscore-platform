@@ -19,7 +19,7 @@ Seller advertising, listings, demonstrations and negotiations may happen before 
 | Signed archive attestation | Embedded when release archive evidence present | HMAC release-identity attestation |
 | Native production PITR | PASS_PRODUCTION_PITR when embedded evidence binds | Else PASS_BRANCH_POINT only |
 | commercialClosure gate | PASS_WITH_BUYER_RESIDUALS | Buyer residuals disclosed |
-| License framework L1/L2/L3 | Published with seller floor guide | Prices in Schedule only |
+| License framework L1/L2/L3 | Published with public seller minimum asking floors | Final buyer-specific fee and rights are fixed in the signed Schedule |
 | Buyer residuals | Explicitly out of seller package | Stores · human translation QA · maps |
 | Neon scheduled backups / plan | Residual — plan constrained | Free/launch limits; not a code defect |
 | Org MFA / second maintainer | Operator residual | Account console actions |
@@ -32,7 +32,7 @@ Seller advertising, listings, demonstrations and negotiations may happen before 
 | **L2** | Use + modify + redistribute | **85,000** |
 | **L3** | Exclusive / IP assignment | **175,000** |
 
-See `LICENSE_FRAMEWORK.md` and `LICENSE_SCHEDULE_TEMPLATE.md`. Floors exclude buyer residuals and do not constitute a license grant.
+See `LICENSE_FRAMEWORK.md` and `LICENSE_SCHEDULE_TEMPLATE.md`. Floors exclude buyer residuals and do not constitute a license grant. The floors are published now for marketing and buyer discovery; a buyer and signed Schedule are not prerequisites to listing the offer.
 
 ## Explicit non-claims
 
