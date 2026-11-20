@@ -21,6 +21,7 @@ test('release proof page publishes successful CI evidence separately from Produc
   assert.match(html, /historical branch creation and catalog parity only/);
   assert.match(html, /does not prove row-content restoration, a full production rollback, or RPO\/RTO/);
   assert.match(html, /id="archiveEvidence"/);
+  assert.match(html, /NOT BOUND TO THIS DEPLOYMENT/);
   assert.doesNotMatch(html, /no Production route results (0 tested)/);
   assert.doesNotMatch(html, /PITR probe not run; restore differs in six application tables/);
   assert.doesNotMatch(html, /NOT PRODUCED — no verified signed archive/);
