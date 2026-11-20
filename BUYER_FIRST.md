@@ -23,7 +23,7 @@ Translation catalog: 114 locale codes; 1 English source, 109 machine-assisted dr
 
 ## Seller-reference evidence boundary
 
-The live production endpoints identify the seller-operated deployment and report health, release and database-security proof. The current release proof reports `PASS_WITH_BUYER_RESIDUALS` and seller-reference production isolation certification. These results apply only to that exact seller deployment. They do not certify a buyer environment, all functional business flows, full PITR/RPO/RTO or external provider connections.
+The live production endpoints identify the seller-operated deployment and report health, release and database-security proof. The current seller-reference release proof may report technical `PASS` while `gates.commercialClosure` is `PASS_WITH_BUYER_RESIDUALS`. The three explicit buyer residuals are mobile store artifacts, native-speaker translation review (0/114 production-qualified locales), and licensed maps/road-routing. Seller-reference production isolation evidence applies only to the exact measured seller deployment. It does not certify a buyer environment, all functional business flows, full PITR/RPO/RTO or external provider connections.
 
 ## Buyer-specific work if a future agreement is executed
 
