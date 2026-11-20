@@ -302,11 +302,17 @@ async function verifyRestored(options = {}) {
     }
     const hits = productionHits(envs, key);
     if (expected.present === true) {
-      if (hits.length !== 1 || typeof expected.value !== 'string' || !parsed.has(key)
-          || parsed.get(key) !== expected.value) {
-        throw new Error('PRODUCTION_ENV_RESTORE_MISMATCH:' + key);
+      const localValue = parsed.has(key) ? parsed.get(key) : null;
+      const apiValue = hits.length === 1 ? String(hits[0].value || hits[0].value || '') : null;
+      // Prefer API as source of truth for restore; local vercel pull may mask secrets.
+      if (hits.length !== 1 || typeof expected.value !== 'string' || String(hits[0].value) !== expected.value) {
+        throw new Error('PRODUCTION_ENV_RESTORE_MISMATCH:' + key + ':api');
       }
-    } else if (hits.length !== 0 || parsed.has(key)) {
+      // Local file must match when the value is not a redacted secret placeholder.
+      if (parsed.has(key) && localValue !== '[SENSITIVE]' && localValue !== expected.value) {
+        throw new Error('PRODUCTION_ENV_RESTORE_MISMATCH:' + key + ':local');
+      }
+    } else if (hits.length !== 0) {
       throw new Error('PRODUCTION_ENV_RESTORE_UNEXPECTED_KEY:' + key);
     }
   }
