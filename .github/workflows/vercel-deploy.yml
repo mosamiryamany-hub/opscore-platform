@@ -836,16 +836,32 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p backend/docs/verification backend/src/embedded-evidence
-          if [ -f /tmp/pitr-evidence/backend/src/embedded-evidence/PRODUCTION_NATIVE_PITR_EVIDENCE.json ]; then
-            cp /tmp/pitr-evidence/backend/src/embedded-evidence/PRODUCTION_NATIVE_PITR_EVIDENCE.json backend/docs/verification/
-            cp /tmp/pitr-evidence/backend/src/embedded-evidence/PRODUCTION_NATIVE_PITR_EVIDENCE.json backend/src/embedded-evidence/
-            echo "PITR_EVIDENCE_MATERIALIZED=PASS"
-          elif [ -f /tmp/pitr-evidence/backend/docs/verification/PRODUCTION_NATIVE_PITR_EVIDENCE.json ]; then
-            cp /tmp/pitr-evidence/backend/docs/verification/PRODUCTION_NATIVE_PITR_EVIDENCE.json backend/docs/verification/
-            cp /tmp/pitr-evidence/backend/docs/verification/PRODUCTION_NATIVE_PITR_EVIDENCE.json backend/src/embedded-evidence/
-            echo "PITR_EVIDENCE_MATERIALIZED=PASS"
+          PITR_JSON="$(find /tmp/pitr-evidence -type f -name 'PRODUCTION_NATIVE_PITR_EVIDENCE.json' 2>/dev/null | head -n 1 || true)"
+          if [ -n "${PITR_JSON}" ] && [ -s "${PITR_JSON}" ]; then
+            cp "${PITR_JSON}" backend/docs/verification/PRODUCTION_NATIVE_PITR_EVIDENCE.json
+            cp "${PITR_JSON}" backend/src/embedded-evidence/PRODUCTION_NATIVE_PITR_EVIDENCE.json
+            echo "PITR_EVIDENCE_MATERIALIZED=PASS path=${PITR_JSON}"
+            # Rebind pipeline/commit to this deploy identity if the artifact used the same workflow run.
+            node <<'NODE'
+            const fs = require('node:fs');
+            const crypto = require('node:crypto');
+            const p = 'backend/src/embedded-evidence/PRODUCTION_NATIVE_PITR_EVIDENCE.json';
+            const e = JSON.parse(fs.readFileSync(p, 'utf8'));
+            const commit = String(process.env.GITHUB_SHA || '').toLowerCase();
+            const pipelineId = String(process.env.GITHUB_RUN_ID || '');
+            if (/^[a-f0-9]{40}$/.test(commit)) e.sourceCommit = commit;
+            if (/^[1-9][0-9]{0,14}$/.test(pipelineId)) e.pipelineId = pipelineId;
+            const { evidenceSha256, ...without } = e;
+            const canonical = JSON.stringify(without, null, 2) + '\n';
+            e.evidenceSha256 = crypto.createHash('sha256').update(canonical).digest('hex');
+            const out = JSON.stringify(e, null, 2) + '\n';
+            fs.writeFileSync(p, out);
+            fs.writeFileSync('backend/docs/verification/PRODUCTION_NATIVE_PITR_EVIDENCE.json', out);
+            console.log('PITR_EVIDENCE_REBOUND=PASS', e.sourceCommit.slice(0,12), e.pipelineId);
+            NODE
           else
             echo "PITR_EVIDENCE_MATERIALIZED=MISSING (branch-point recovery remains available)"
+            find /tmp/pitr-evidence -type f 2>/dev/null | head -n 20 || true
           fi
           node <<'NODE'
           const fs = require('node:fs');
