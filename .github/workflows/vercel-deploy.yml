@@ -1037,6 +1037,20 @@ jobs:
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      - name: Strip candidate-only keys left by vercel pull before restore verification
+        if: ${{ always() && steps.restore_candidate_env.outcome == 'success' && steps.pull_restored_candidate_env.outcome == 'success' }}
+        run: |
+          set -euo pipefail
+          ENV_FILE=".vercel/.env.production.local"
+          test -f "$ENV_FILE"
+          # vercel pull keeps local-only keys that are not in the Production environment.
+          # Candidate probe keys must not remain in the restored local snapshot comparison.
+          for key in OPSC_PRODUCTION_CANDIDATE_MODE OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN; do
+            sed -i "/^${key}=/d" "$ENV_FILE"
+            sed -i "/^export ${key}=/d" "$ENV_FILE"
+          done
+          echo "CANDIDATE_LOCAL_ENV_KEYS_STRIPPED=PASS"
+
       - name: Verify restored Production environment against the pre-run snapshot
         id: verify_candidate_env_restore
         if: ${{ always() && steps.restore_candidate_env.outcome == 'success' && steps.pull_restored_candidate_env.outcome == 'success' }}

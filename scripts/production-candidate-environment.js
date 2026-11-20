@@ -302,16 +302,25 @@ async function verifyRestored(options = {}) {
     }
     const hits = productionHits(envs, key);
     if (expected.present === true) {
-      if (hits.length !== 1 || typeof expected.value !== 'string' || !parsed.has(key)
-          || parsed.get(key) !== expected.value) {
-        throw new Error('PRODUCTION_ENV_RESTORE_MISMATCH:' + key);
+      if (hits.length !== 1 || typeof expected.value !== 'string') {
+        throw new Error('PRODUCTION_ENV_RESTORE_MISMATCH:' + key + ':api-presence');
       }
-    } else if (hits.length !== 0 || parsed.has(key)) {
+      // Encrypted Production values are often redacted by `vercel pull` as [SENSITIVE].
+      // Require exact local match only when the pulled value is readable plaintext.
+      if (parsed.has(key)) {
+        const localValue = parsed.get(key);
+        if (localValue !== '[SENSITIVE]' && localValue !== expected.value) {
+          throw new Error('PRODUCTION_ENV_RESTORE_MISMATCH:' + key + ':local');
+        }
+      }
+    } else if (hits.length !== 0) {
       throw new Error('PRODUCTION_ENV_RESTORE_UNEXPECTED_KEY:' + key);
     }
   }
   for (const key of CANDIDATE_KEYS) {
-    if (productionHits(envs, key).length !== 0 || parsed.has(key)) {
+    // Production API must not retain candidate probe keys. Local .env from
+    // `vercel pull` may keep local-only leftovers; those are not Production config.
+    if (productionHits(envs, key).length !== 0) {
       throw new Error('PRODUCTION_CANDIDATE_ENV_NOT_REMOVED:' + key);
     }
   }
