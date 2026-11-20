@@ -176,4 +176,17 @@ test('release proof renderer requires all 67 live route bindings and does not co
   assert.match(getElement('signedRoutesEvidence').textContent, /^PASS — 67\/67/);
   assert.match(getElement('pitrEvidence').textContent, /BRANCH-POINT PASS ONLY/);
   assert.match(getElement('archiveEvidence').textContent, /package fingerprint alone is not a signed archive/);
+
+  proof.releaseArchiveAttestation = {
+    status: 'PASS',
+    attestationVerified: true,
+    signatureVerified: true,
+    sourceCommit: proof.sourceCommit,
+    pipelineId: 44396875990,
+    sha256: 'c'.repeat(64)
+  };
+  vm.runInNewContext(script, context);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.match(getElement('archiveEvidence').textContent, /^PASS — signed archive attestation verified/);
+  assert.match(getElement('archiveEvidence').textContent, /c{64}/);
 });
