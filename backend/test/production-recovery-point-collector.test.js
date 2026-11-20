@@ -31,10 +31,17 @@ test('native PITR uses two independent timestamped sibling branches from the exa
   assert.match(collector, /createTemporaryBranch\(projectId, recovery\.name, parentBranchId, targetTimestampUtc\)/);
   assert.match(collector, /const recovery = \{ id: null, name: prefix \+ '-clone', parentBranchId \}/);
   assert.doesNotMatch(collector, /recovery\.parentBranchId = reference\.id/);
-  assert.match(collector, /endpoints: \[\{ type: 'read_only' \}\]/);
+  assert.match(collector, /endpoints: \[\{ type: 'read_write' \}\]/);
   assert.match(collector, /TEMPORARY_BRANCH_IDENTITY_MISMATCH/);
   assert.match(collector, /branches\.length \+ 2 > limit/);
   assert.match(collector, /NEON_BRANCH_CAPACITY_INSUFFICIENT/);
+});
+
+test('all SQL probes run in explicit read-only transactions, including streamed COPY', () => {
+  assert.match(collector, /default_transaction_read_only=on/);
+  assert.match(collector, /BEGIN TRANSACTION READ ONLY/);
+  assert.match(collector, /\\) TO STDOUT;/);
+  assert.match(collector, /'COMMIT;'/);
 });
 
 test('every physical public table is content-hashed with duplicate-preserving deterministic row hashes', () => {
