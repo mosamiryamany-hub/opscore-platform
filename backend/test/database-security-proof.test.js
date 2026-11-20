@@ -47,7 +47,7 @@ test('database catalog proof cannot certify production isolation from an environ
     system_operational_runtime_privilege_gap_count:0
   }, fixedTime, { OPSC_PRODUCTION_ISOLATION_CERTIFICATION: 'CERTIFIED' });
   assert.equal(proof.status, 'IDENTITY_PLANE_RLS_ENFORCED');
-  assert.equal(proof.productionIsolationCertification, 'NOT_CERTIFIED');
+  assert.equal(proof.catalogIsolationScope, 'CATALOG_ONLY_NOT_BEHAVIORAL_CERTIFICATION');
   assert.match(proof.note, /independent release-proof gate/);
 });
 
@@ -62,8 +62,8 @@ test('identity tables accessible without RLS remain not certified', () => {
     control_plane_table_count:3, control_plane_runtime_privilege_gap_count:0, control_plane_policy_valid_table_count: 3
   }, fixedTime);
   assert.equal(proof.schemaVersion,'opscore.public-database-security-proof.v2');
-  assert.equal(proof.status,'NOT_CERTIFIED');
-  assert.equal(proof.productionIsolationCertification,'NOT_CERTIFIED');
+  assert.equal(proof.status,'CATALOG_ONLY_NOT_BEHAVIORAL_CERTIFICATION');
+  assert.equal(proof.catalogIsolationScope,'CATALOG_ONLY_NOT_BEHAVIORAL_CERTIFICATION');
   assert.equal(proof.publicSchema.nonPostgisTablesWithoutRlsCount,9);
   assert.equal(proof.migrationLedger.status,'REVIEW_REQUIRED');
   assert.equal(proof.identityPlane.criticalTablesWithoutRlsButAccessibleToRuntimeRole,5);
@@ -79,7 +79,7 @@ test('only read-only spatial_ref_sys may remain outside FORCE RLS and migration 
     control_plane_table_count:3, control_plane_runtime_privilege_gap_count:0, control_plane_policy_valid_table_count: 3
   }, fixedTime);
   assert.equal(proof.status,'IDENTITY_PLANE_RLS_ENFORCED');
-  assert.equal(proof.productionIsolationCertification,'NOT_CERTIFIED');
+  assert.equal(proof.catalogIsolationScope,'CATALOG_ONLY_NOT_BEHAVIORAL_CERTIFICATION');
   assert.equal(proof.migrationLedger.status,'OWNER_ONLY');
   assert.match(proof.note,/cross-tenant behavioral tests/);
 });
@@ -117,7 +117,7 @@ test('an application table with RLS enabled but without FORCE RLS is rejected', 
   }, fixedTime);
   assert.equal(proof.publicSchema.nonPostgisTablesWithoutForceRlsCount, 1);
   assert.equal(proof.status, 'REVIEW_REQUIRED');
-  assert.equal(proof.productionIsolationCertification, 'NOT_CERTIFIED');
+  assert.equal(proof.catalogIsolationScope, 'CATALOG_ONLY_NOT_BEHAVIORAL_CERTIFICATION');
 });
 
 test('PostGIS write access or application access to migration ledger is rejected', () => {
@@ -179,7 +179,7 @@ test('missing FORCE RLS catalog evidence cannot be interpreted as a safe zero', 
     ...SAFE_RUNTIME_ROLE
   }, fixedTime);
   assert.equal(proof.publicSchema.nonPostgisTablesWithoutForceRlsCount, null);
-  assert.equal(proof.productionIsolationCertification, 'NOT_CERTIFIED');
+  assert.equal(proof.catalogIsolationScope, 'CATALOG_ONLY_NOT_BEHAVIORAL_CERTIFICATION');
 });
 
 test('database security proof performs one catalog query', () => {
@@ -361,7 +361,7 @@ test('database security proof requires restrictive tenant-boundary policy catalo
   }, fixedTime);
   assert.equal(partial.controlPlaneTenantBoundaryPolicies.status, 'REVIEW_REQUIRED');
   assert.equal(partial.status, 'REVIEW_REQUIRED');
-  assert.equal(partial.productionIsolationCertification, 'NOT_CERTIFIED');
+  assert.equal(partial.catalogIsolationScope, 'CATALOG_ONLY_NOT_BEHAVIORAL_CERTIFICATION');
 
   const missing = buildDatabaseSecurityProof({
     ...base,
