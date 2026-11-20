@@ -26,7 +26,7 @@ const workflow = text('.github/workflows/opscore-secure-release.yml');
 add('ci-node-pin', /node-version:\s*["']22\.23\.4["']/.test(workflow) ? 'PASS' : 'FAIL', 'CI pins Node 22.23.4.');
 add('ci-lockfile-install', /npm ci --ignore-scripts/.test(workflow) ? 'PASS' : 'FAIL', 'CI installs from lockfiles.');
 add('ci-audit', /npm audit --audit-level=high/.test(workflow) ? 'PASS' : 'FAIL', 'CI performs high-severity dependency audits.');
-add('ci-attestation', /uses:\s*actions\/attest@[^\s#]+/.test(workflow) ? 'PASS' : 'FAIL', 'CI prepares cryptographic release attestation.');
+add('ci-attestation', (/uses:\s*actions\/attest@[^\s#]+/.test(workflow) || /cosign sign-blob --yes/.test(workflow)) ? 'PASS' : 'FAIL', 'CI prepares cryptographic release attestation.');
 const hasDocker = (() => { try { cp.execFileSync('docker',['--version'],{stdio:'pipe'}); return true; } catch { return false; }})();
 add('docker-runtime', hasDocker ? 'PASS' : 'UNVERIFIED', hasDocker ? 'Docker CLI available.' : 'Docker CLI unavailable in this execution environment.', 'Run docker build and container smoke test in the release runner.');
 const envChecks = [
