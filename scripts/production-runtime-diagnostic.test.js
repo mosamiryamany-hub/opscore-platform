@@ -177,7 +177,7 @@ test('runtime diagnostic rejects mismatched build identity and migration hash', 
   assert.ok(result.checks.some(item => item.name === 'migration_056_hash' && item.status === 'BLOCKED'));
 });
 
-test('runtime diagnostic blocks when pg_stat_ssl reports that the application session is not encrypted', () => {
+test('runtime diagnostic blocks when the client socket did not negotiate TLS', () => {
   const payload = validPayload();
   payload.database.clientTls = { negotiated: false, authorized: false, protocol: null, cipher: null };
   const result = evaluateRuntimeDiagnostic(payload, 200, 'a'.repeat(40), '123456789');
@@ -185,7 +185,7 @@ test('runtime diagnostic blocks when pg_stat_ssl reports that the application se
   assert.ok(result.checks.some(item => item.name === 'client_tls_configuration' && item.status === 'BLOCKED'));
 });
 
-test('runtime diagnostic does not accept sslmode=require without actual pg_stat_ssl evidence', () => {
+test('runtime diagnostic does not accept sslmode=REQUIRE without negotiated client-socket evidence', () => {
   const payload = validPayload();
   payload.database.clientTls = { negotiated: false, authorized: false, protocol: null, cipher: null };
   delete payload.database.identity.tls_enabled;
@@ -198,14 +198,49 @@ test('runtime diagnostic does not accept sslmode=require without actual pg_stat_
   assert.ok(result.checks.some(item => item.name === 'client_tls_configuration' && item.status === 'BLOCKED'));
 });
 
-test('runtime diagnostic rejects weak or incomplete negotiated TLS metadata', () => {
+test('runtime diagnostic blocks a negotiated socket with an unauthorized certificate chain', () => {
   const payload = validPayload();
-  payload.database.clientTls = { negotiated: false, authorized: false, protocol: null, cipher: null };
-  payload.database.clientTls = { negotiated: false, authorized: false, protocol: null, cipher: null };
-  payload.database.clientTls = { negotiated: false, authorized: false, protocol: null, cipher: null };
+  payload.database.clientTls.authorized = false;
   const result = evaluateRuntimeDiagnostic(payload, 200, 'a'.repeat(40), '123456789');
   assert.equal(result.promotionAllowed, false);
   assert.ok(result.checks.some(item => item.name === 'client_tls_configuration' && item.status === 'BLOCKED'));
+});
+
+test('runtime diagnostic blocks TLS protocols older than TLS 1.2', () => {
+  const payload = validPayload();
+  payload.database.clientTls.protocol = 'TLSv1.1';
+  const result = evaluateRuntimeDiagnostic(payload, 200, 'a'.repeat(40), '123456789');
+  assert.equal(result.promotionAllowed, false);
+  assert.ok(result.checks.some(item => item.name === 'client_tls_configuration' && item.status === 'BLOCKED'));
+});
+
+test('runtime diagnostic blocks weak non-AEAD cipher suites', () => {
+  const payload = validPayload();
+  payload.database.clientTls.cipher = 'TLS_RSA_WITH_3DES_EDE_CBC_SHA';
+  const result = evaluateRuntimeDiagnostic(payload, 200, 'a'.repeat(40), '123456789');
+  assert.equal(result.promotionAllowed, false);
+  assert.ok(result.checks.some(item => item.name === 'client_tls_configuration' && item.status === 'BLOCKED'));
+});
+
+test('runtime diagnostic rejects unknown cipher labels even when they contain an AES strength token', () => {
+  const payload = validPayload();
+  payload.database.clientTls.cipher = 'UNTRUSTED_AES_256_GCM_SHA384';
+  const result = evaluateRuntimeDiagnostic(payload, 200, 'a'.repeat(40), '123456789');
+  assert.equal(result.promotionAllowed, false);
+  assert.ok(result.checks.some(item => item.name === 'client_tls_configuration' && item.status === 'BLOCKED'));
+});
+
+test('runtime diagnostic accepts recognized TLS 1.2 AES-GCM and TLS 1.3 ChaCha20 suites', () => {
+  for (const clientTls of [
+    { negotiated: true, authorized: true, protocol: 'TLSv1.2', cipher: 'ECDHE-RSA-AES128-GCM-SHA256' },
+    { negotiated: true, authorized: true, protocol: 'TLSv1.3', cipher: 'TLS_CHACHA20_POLY1305_SHA256' }
+  ]) {
+    const payload = validPayload();
+    payload.database.clientTls = clientTls;
+    const result = evaluateRuntimeDiagnostic(payload, 200, 'a'.repeat(40), '123456789');
+    assert.equal(result.promotionAllowed, true);
+    assert.ok(result.checks.some(item => item.name === 'client_tls_configuration' && item.status === 'PASS'));
+  }
 });
 
 
