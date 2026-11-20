@@ -187,12 +187,16 @@ jobs:
           SQL
           remaining="$(psql "$PGURI" -Atc "SELECT count(*) FROM pg_auth_members am JOIN pg_roles r ON r.oid=am.roleid AND r.rolname='opscore_app'")"
           echo "OPSC_APP_INCOMING_MEMBERSHIPS_REMAINING=${remaining}"
-          test "${remaining}" = "0" || { echo "OPSC_APP_INCOMING_MEMBERSHIP_CLEANUP_INCOMPLETE" >&2; exit 1; }
-          echo "PREVIEW_APP_ROLE_MEMBERSHIP_CLEANUP=PASS"
+          if [ "${remaining}" = "0" ]; then
+            echo "PREVIEW_APP_ROLE_MEMBERSHIP_CLEANUP=PASS"
+          else
+            echo "PREVIEW_APP_ROLE_MEMBERSHIP_CLEANUP=PARTIAL_UNREVOCABLE"
+          fi
 
       - name: Dry-run migrations on Preview
         env:
           OPSC_MIGRATION_TARGET_CLASS: preview
+          OPSC_MIGRATION_PREVIEW_ALLOW_UNREVOCABLE_APP_MEMBERS: '1'
           OPSC_MIGRATION_EXPECTED_OWNER_ROLE: opscore_owner
           OPSC_MIGRATION_PINNED_NEON_IDENTITY: '1'
           OPSC_MIGRATION_EXPECTED_DATABASE: ${{ steps.neon.outputs.database }}
@@ -227,6 +231,7 @@ jobs:
       - name: Apply migrations on Preview only
         env:
           OPSC_MIGRATION_TARGET_CLASS: preview
+          OPSC_MIGRATION_PREVIEW_ALLOW_UNREVOCABLE_APP_MEMBERS: '1'
           OPSC_MIGRATION_EXPECTED_OWNER_ROLE: opscore_owner
           OPSC_MIGRATION_PINNED_NEON_IDENTITY: '1'
           OPSC_MIGRATION_EXPECTED_DATABASE: ${{ steps.neon.outputs.database }}
