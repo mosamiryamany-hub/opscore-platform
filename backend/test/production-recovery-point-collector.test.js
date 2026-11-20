@@ -24,11 +24,13 @@ test('collector binds the exact Production deployment, root branch, database, ro
   assert.doesNotMatch(collector, /db_try_fail/);
 });
 
-test('native PITR uses a timestamped historical branch and one exact disposable child clone', () => {
+test('native PITR uses two independent timestamped sibling branches from the exact Production root', () => {
   assert.match(collector, /parent_timestamp/);
   assert.match(collector, /OPSC_PRODUCTION_PITR_LOOKBACK_SECONDS/);
   assert.match(collector, /createTemporaryBranch\(projectId, reference\.name, parentBranchId, targetTimestampUtc\)/);
-  assert.match(collector, /createTemporaryBranch\(projectId, recovery\.name, reference\.id, null\)/);
+  assert.match(collector, /createTemporaryBranch\(projectId, recovery\.name, parentBranchId, targetTimestampUtc\)/);
+  assert.match(collector, /const recovery = \{ id: null, name: prefix \+ '-clone', parentBranchId \}/);
+  assert.doesNotMatch(collector, /recovery\.parentBranchId = reference\.id/);
   assert.match(collector, /endpoints: \[\{ type: 'read_only' \}\]/);
   assert.match(collector, /TEMPORARY_BRANCH_IDENTITY_MISMATCH/);
   assert.match(collector, /branches\.length \+ 2 > limit/);
