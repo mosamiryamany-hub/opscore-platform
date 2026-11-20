@@ -304,7 +304,11 @@ async function main(){
   if(!info)throw new Error('MIGRATION_ROLE_NOT_ALLOWED');
   const targetClass=assertTarget(url,info.database,apply);
   const expectedOwnerRole=expectedMigrationOwnerRole();
-  if(info.role!==expectedOwnerRole||info.superuser||!info.bypass_rls)throw new Error('MIGRATION_ROLE_NOT_ALLOWED');
+  const previewRoleOk=String(process.env.OPSC_MIGRATION_TARGET_CLASS||'').trim().toLowerCase()==='preview'
+    && ((info.role===expectedOwnerRole) || (info.role==='neondb_owner' && expectedOwnerRole==='opscore_owner'));
+  // Preview acceptance DBs often cannot set BYPASSRLS; dry-run may run as opscore_owner without bypass.
+  const bypassOk=!!info.bypass_rls || (String(process.env.OPSC_MIGRATION_TARGET_CLASS||'').trim().toLowerCase()==='preview' && info.role==='opscore_owner');
+  if(((info.role!==expectedOwnerRole)&&!previewRoleOk)||info.superuser||!bypassOk)throw new Error('MIGRATION_ROLE_NOT_ALLOWED');
   const runtimePreflight=(await client.query(`SELECT r.rolcanlogin,r.rolsuper,r.rolbypassrls,r.rolcreaterole,r.rolcreatedb,
     (SELECT count(*) FROM pg_roles elevated
      WHERE (elevated.rolsuper OR elevated.rolbypassrls OR elevated.rolcreaterole OR elevated.rolcreatedb)
