@@ -159,6 +159,16 @@ function createBaselineSnapshot(parsed, envs) {
 function validateInitialState(snapshot) {
   const value = key => snapshot.entries[key] && snapshot.entries[key].present
     ? snapshot.entries[key].value : undefined;
+  // A previously-certified baseline is a valid re-entry point: the live
+  // environment already reports RELEASE_VERIFIED=true with CERTIFIED, and the
+  // full snapshot is restored verbatim by restore(), so no evidence is lost.
+  // Anything less than a fully coherent certified state still fails closed.
+  if (value('OPSC_PRODUCTION_ISOLATION_CERTIFICATION') === 'CERTIFIED') {
+    const coherent = value('OPSC_PRODUCTION_HOLD') === 'false'
+      && value('OPSC_RELEASE_VERIFIED') === 'true';
+    if (!coherent) throw new Error('PRODUCTION_CERTIFIED_BASELINE_INCOHERENT');
+    return;
+  }
   if (value('OPSC_PRODUCTION_HOLD') !== 'false') throw new Error('PRODUCTION_HOLD_BASELINE_NOT_FALSE');
   if (value('OPSC_RELEASE_VERIFIED') !== 'false') throw new Error('PRODUCTION_RELEASE_BASELINE_NOT_FALSE');
   if (value('OPSC_PRODUCTION_ISOLATION_CERTIFICATION') !== 'NOT_CERTIFIED') throw new Error('PRODUCTION_CERTIFICATION_BASELINE_NOT_NOT_CERTIFIED');

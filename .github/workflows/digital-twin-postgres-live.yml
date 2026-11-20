@@ -606,3 +606,5 @@ jobs:
           echo "PITR_DATA_ACCESS=aggregate schema, RLS, policy, and extension catalog only; migration ledger excluded by runtime-role boundary"
           echo "PITR_SCHEMA_CATALOG_MATCH=PASS"
           echo "PITR_TEST_SCOPE=historical branch from Production root; source branch unchanged"
+
+# path-trigger: keep the isolated Neon acceptance workflow enabled on infrastructure PRs
