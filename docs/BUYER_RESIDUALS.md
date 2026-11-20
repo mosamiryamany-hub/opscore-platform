@@ -41,13 +41,13 @@ These residuals do not invalidate the measured seller-reference technical releas
 
 The only ledger difference measured was `070_evidence_upload_postgres_blob_storage.sql`, present on Primary and absent on the restore branch. Its recorded application time was `2026-11-19T18:38:00Z`; the restore snapshot was created at `2026-11-19T06:58:55Z`. This is a time-ordered migration difference, not evidence of data corruption. The measured migration file SHA-256 was `5a7642ab5b82dfb0763553100a1af1d224a9fbf7e9882127126747533a539b4f`.
 
-The Neon Free plan has one listed manual snapshot, `snap-aged-thunder-bcsxc1a5`, created `2026-11-19T06:58:55Z`, with six-hour history retention and a 1 GiB logical limit. The Primary and restore branch records both report `protected=false`; branch protection and scheduled backups are not available on the current plan. Do not describe this as scheduled backup coverage, multi-day PITR, or an RPO/RTO guarantee. Do not create recurring manual snapshots and call them scheduled backups.
+The Neon Free plan has one listed manual snapshot, `snap-aged-thunder-bcsxc1a5`, created `2026-11-19T06:58:55Z`, with six-hour history retention and a 1 GiB logical limit. The Primary and restore branch records both report `protected=false`; branch protection is unavailable and there is no scheduled snapshot capability on the current plan. Do not describe this as scheduled backup coverage, multi-day PITR, or an RPO/RTO guarantee. Do not create recurring manual snapshots and call them scheduled backups.
 
 ## Localization qualification boundary
 
 The Contact Center currently has 105 selectable locales (1 English source, 100 machine-assisted drafts, and 4 English fallbacks); 9 locale codes are withdrawn. The separate qualification matrix retains 114 source rows. Native-speaker review is 0/114 and production qualification is 0/114. No linguistic quality approval is claimed.
 
-## Prior recorded firewall posture — not refreshed in this reconciliation
+## Vercel firewall enforcement posture — prior measurement only, not refreshed in this reconciliation
 
 The last recorded Vercel firewall inspection described the firewall as enabled, with Managed CRS and Bot Protection in `log` mode and a 60-requests-per-source-IP-per-60-second auth rate-limit rule. This posture was not re-queried as part of the 2026-11-20 reconciliation; do not treat it as a current enforcement attestation. The previous inspection explicitly prohibited switching log rules to deny without representative false-positive analysis and a Preview enforcement rehearsal.
 
