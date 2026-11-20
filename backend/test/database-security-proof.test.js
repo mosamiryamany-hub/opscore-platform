@@ -62,7 +62,7 @@ test('identity tables accessible without RLS remain not certified', () => {
     control_plane_table_count:3, control_plane_runtime_privilege_gap_count:0, control_plane_policy_valid_table_count: 3
   }, fixedTime);
   assert.equal(proof.schemaVersion,'opscore.public-database-security-proof.v2');
-  assert.equal(proof.status,'CATALOG_ONLY_NOT_BEHAVIORAL_CERTIFICATION');
+  assert.equal(proof.status,'NOT_CERTIFIED');
   assert.equal(proof.catalogIsolationScope,'CATALOG_ONLY_NOT_BEHAVIORAL_CERTIFICATION');
   assert.equal(proof.publicSchema.nonPostgisTablesWithoutRlsCount,9);
   assert.equal(proof.migrationLedger.status,'REVIEW_REQUIRED');
