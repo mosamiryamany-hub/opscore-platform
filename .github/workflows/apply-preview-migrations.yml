@@ -145,6 +145,24 @@ jobs:
           psql "$PGURI" -v ON_ERROR_STOP=1 -q <<'SQL'
           DO $$
           BEGIN
+            -- Historical migrations (e.g. 046/057/058/059) target production role name
+            -- neondb_owner. Isolated acceptance Preview uses opscore_owner as the
+            -- connection principal; provision a compatibility role so policy/OWNER
+            -- clauses resolve (42704 undefined_object) without rewriting applied SQL.
+            IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'neondb_owner') THEN
+              CREATE ROLE neondb_owner NOLOGIN NOINHERIT;
+              RAISE NOTICE 'OPSC_NEONDB_OWNER_COMPAT_ROLE_PROVISIONED';
+            ELSE
+              RAISE NOTICE 'OPSC_NEONDB_OWNER_COMPAT_ROLE_ALREADY_PRESENT';
+            END IF;
+            BEGIN
+              EXECUTE 'GRANT neondb_owner TO CURRENT_USER';
+            EXCEPTION WHEN duplicate_object THEN
+              NULL;
+            WHEN others THEN
+              RAISE NOTICE 'OPSC_NEONDB_OWNER_GRANT_TO_CURRENT_USER_SKIPPED sqlstate=%', SQLSTATE;
+            END;
+
             IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'opscore_app') THEN
               CREATE ROLE opscore_app NOLOGIN NOINHERIT NOCREATEROLE NOCREATEDB NOBYPASSRLS;
               RAISE NOTICE 'OPSC_LEGACY_APP_ROLE_PROVISIONED_LOCKED';
@@ -153,7 +171,7 @@ jobs:
             END IF;
           END $$;
           SQL
-          psql "$PGURI" -Atc "SELECT rolname||'|canlogin='||rolcanlogin||'|inherit='||rolinherit||'|bypassrls='||rolbypassrls FROM pg_roles WHERE rolname='opscore_app'"
+          psql "$PGURI" -Atc "SELECT rolname||'|canlogin='||rolcanlogin||'|inherit='||rolinherit||'|bypassrls='||rolbypassrls FROM pg_roles WHERE rolname IN ('opscore_app','neondb_owner') ORDER BY rolname"
           echo "LEGACY_APP_ROLE_PROVISION=PASS"
 
       - name: Clear unintended opscore_app memberships on isolated Preview
