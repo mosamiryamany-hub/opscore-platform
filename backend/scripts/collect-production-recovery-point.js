@@ -417,7 +417,7 @@ async function main() {
   const nonce = crypto.randomBytes(4).toString('hex');
   const prefix = 'opsc-' + deploymentIdentity.commitSha.slice(0, 8) + '-' + runId + '-' + runAttempt + '-' + nonce;
   const reference = { id: null, name: prefix + '-ref', parentBranchId };
-  const recovery = { id: null, name: prefix + '-clone', parentBranchId: null };
+  const recovery = { id: null, name: prefix + '-clone', parentBranchId };
   let referenceCreated = false;
   let recoveryCreated = false;
   let referenceBranch = null;
