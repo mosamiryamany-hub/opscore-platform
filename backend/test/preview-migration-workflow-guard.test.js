@@ -21,6 +21,7 @@ test('Preview migrations require one exact pinned non-primary branch and the app
   assert.match(previewApply, /ALTER ROLE neondb_owner/);
   assert.match(previewApply, /CREATE ROLE neondb_owner/);
   assert.match(previewApply, /PREVIEW_MIGRATION_APPLY=NOT_APPLICABLE_ROLE_MODEL/);
+  assert.match(previewApply, /PREVIEW_ACCEPTANCE=PASS_WITH_ROLE_MODEL_LIMITATION/);
   assert.match(previewApply, /OPSC_MIGRATION_PINNED_NEON_IDENTITY: '1'/);
   assert.match(previewApply, /STATIC_EXACT_PREVIEW_TARGET/);
   assert.match(previewApply, /DRY_RUN_NEON_PINNED_IDENTITY_MISMATCH/);
