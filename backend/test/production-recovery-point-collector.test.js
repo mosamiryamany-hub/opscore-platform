@@ -16,6 +16,7 @@ test('collector binds the exact Production deployment, root branch, database, ro
   assert.match(collector, /OPSC_PRODUCTION_DATABASE_NAME/);
   assert.match(collector, /OPSC_PRODUCTION_NEON_BRANCH_ID/);
   assert.match(collector, /OPSC_EXPECTED_PRODUCTION_COMMIT_SHA/);
+  assert.match(collector, /deploymentIdentity\.deploymentId/);
   assert.match(collector, /readProductionDeploymentIdentity/);
   assert.match(collector, /PRODUCTION_RECOVERY_DATABASE_IDENTITY_MISMATCH/);
   assert.match(collector, /PRODUCTION_DEPLOYMENT_IDENTITY_NOT_EXACT/);
@@ -100,6 +101,9 @@ test('capacity and probe failure never prune or delete any pre-existing branch',
 test('manual workflow requires explicit production-probe authorization and uploads both evidence records', () => {
   assert.match(workflow, /confirm_production_probe/);
   assert.match(workflow, /I_AUTHORIZE_PRODUCTION_EVIDENCE_PROBES/);
+  assert.match(workflow, /expected_production_deployment_id/);
+  assert.match(workflow, /OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID/);
+  assert.doesNotMatch(workflow, /OPSC_EVIDENCE_ALLOW_MISSING_DEPLOYMENT_ID/);
   assert.match(workflow, /DO_NOT_RUN/);
   assert.match(workflow, /if: github\.event\.inputs\.confirm_production_probe == 'I_AUTHORIZE_PRODUCTION_EVIDENCE_PROBES'/);
   assert.match(workflow, /node backend\/scripts\/collect-production-recovery-point\.js/);
