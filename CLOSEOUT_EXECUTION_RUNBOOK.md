@@ -4,7 +4,7 @@ Candidate branch: use the active pull-request branch shown by GitHub; do not tre
 Candidate technical release status is evaluated only from exact-head evidence. A successful seller-reference release proof may be `PASS`; `gates.commercialClosure` must remain `PASS_WITH_BUYER_RESIDUALS` while mobile store artifacts, native-speaker translation review, and licensed maps/road-routing remain open. Clean extracted-install and matching Preview acceptance are separate handover gates.
 Main: the current branch head is authoritative; this runbook intentionally stores no fixed commit or pipeline identity.
 Overall buyer/product qualification: NOT ESTABLISHED; seller-reference production evidence has a narrower, exact-target scope.
-Production isolation certification: NOT_VERIFIED for the current seller reference until fresh dual-tenant and recovery probes are bound to the exact active application commit and Neon Production branch; buyer environments remain NOT CERTIFIED.
+Production isolation certification: the latest owner-reported same-session live proof is CERTIFIED for seller deployment `dpl_9zuRaUG531Z5mwUMtuq4EL4vsv8R`, source `2dbafb74e0812552a316e3b50588abb6467b081d`, and pipeline `44756093116` (67/67 signed tenant routes). This status is exact-deployment evidence only; buyer environments remain NOT CERTIFIED, and it does not establish full PITR/RPO/RTO or all business-flow qualification.
 
 ## 1. Release identity and no-stale-evidence rule
 
