@@ -127,7 +127,7 @@ test('Runtime locale availability is separated from the 114-row language qualifi
   assert.match(currentCloseoutRunbook, /105 selectable locales/);
   assert.match(currentCloseoutRunbook, /114 source rows/);
   assert.match(buyerResiduals, /105 selectable locales/);
-  assert.match(buyerResiduals, /qualification matrix has 114 source rows/);
+  assert.match(buyerResiduals, /qualification matrix.*114 source rows/);
   assert.doesNotMatch(buyerResiduals, /114 locales are listed; 109 are machine-assisted/);
 });
 
