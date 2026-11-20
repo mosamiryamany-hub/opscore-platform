@@ -968,7 +968,7 @@ jobs:
             attestedAt: new Date().toISOString(),
             note: 'Package SHA-256 bound to source commit and pipeline with HMAC attestation from the authorized release runner. This is release-identity attestation, not a marketplace code-signing certificate.'
           };
-          const out = JSON.stringify(evidence, null, 2) + '\\n';
+          const out = JSON.stringify(evidence, null, 2) + '\n';
           for (const rel of [
             'backend/docs/verification/RELEASE_ARCHIVE_ATTESTATION.json',
             'backend/src/embedded-evidence/RELEASE_ARCHIVE_ATTESTATION.json'
@@ -976,7 +976,7 @@ jobs:
             fs.mkdirSync(path.dirname(rel), { recursive: true });
             fs.writeFileSync(rel, out);
           }
-          process.stdout.write('RELEASE_ARCHIVE_ATTESTATION=PASS\\n');
+          process.stdout.write('RELEASE_ARCHIVE_ATTESTATION=PASS\n');
           NODE
 
       - name: Embed acceptance and behavioral evidence into serverless bundle
