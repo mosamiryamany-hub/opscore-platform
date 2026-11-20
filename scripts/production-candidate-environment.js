@@ -281,6 +281,50 @@ async function restore(options = {}) {
   process.stdout.write('PRODUCTION_CANDIDATE_ENV_RESTORED=PASS\n');
 }
 
+function sanitizeRestoredPull(options = {}) {
+  const env = options.env || process.env;
+  const snapshotPath = defaultSnapshotPath(env);
+  if (!fs.existsSync(snapshotPath)) throw new Error('PRODUCTION_ENV_SNAPSHOT_REQUIRED_FOR_SANITIZE');
+  const snapshot = JSON.parse(fs.readFileSync(snapshotPath, 'utf8'));
+  if (snapshot.schemaVersion !== 'opscore.production-candidate-env-snapshot.v1'
+      || !snapshot.entries || typeof snapshot.entries !== 'object') {
+    throw new Error('PRODUCTION_ENV_SNAPSHOT_INVALID');
+  }
+
+  // Only remove keys that the pre-run snapshot proves were absent from Production,
+  // plus the dedicated candidate-only keys. Present baseline values stay untouched.
+  const keysToRemove = new Set(CANDIDATE_KEYS);
+  for (const key of BASELINE_KEYS) {
+    const expected = snapshot.entries[key];
+    if (!expected || typeof expected.present !== 'boolean') {
+      throw new Error('PRODUCTION_ENV_SNAPSHOT_ENTRY_INVALID:' + key);
+    }
+    if (expected.present === false) keysToRemove.add(key);
+  }
+
+  const envFile = String(env.VERCEL_PRODUCTION_ENV_FILE || '.vercel/.env.production.local');
+  const original = options.envFileContents === undefined
+    ? fs.readFileSync(envFile, 'utf8')
+    : String(options.envFileContents);
+  const lines = original.split(/\r?\n/);
+  const removed = new Set();
+  const sanitized = lines.filter(rawLine => {
+    const match = rawLine.trim().match(/^(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=/);
+    if (!match || !keysToRemove.has(match[1])) return true;
+    removed.add(match[1]);
+    return false;
+  }).join('\n');
+
+  if (options.envFileContents === undefined) {
+    fs.writeFileSync(envFile, sanitized, { encoding: 'utf8', mode: 0o600 });
+    fs.chmodSync(envFile, 0o600);
+  }
+  const removedKeys = [...removed].sort();
+  process.stdout.write('PRODUCTION_ENV_LOCAL_STALE_KEYS_STRIPPED='
+    + (removedKeys.length ? removedKeys.join(',') : 'none') + '\n');
+  return { status: 'PASS', removedKeys };
+}
+
 async function verifyRestored(options = {}) {
   const env = options.env || process.env;
   const snapshotPath = defaultSnapshotPath(env);
@@ -353,13 +397,14 @@ async function main(argv = process.argv.slice(2), options = {}) {
   if (mode === 'prepare') return prepare(options);
   if (mode === 'publish') return publish(options);
   if (mode === 'restore') return restore(options);
+  if (mode === 'sanitize-restored-pull') return sanitizeRestoredPull(options);
   if (mode === 'verify-restored') return verifyRestored(options);
   throw new Error('PRODUCTION_CANDIDATE_ENV_MODE_INVALID');
 }
 
 if (require.main === module) {
   main().catch(error => {
-    const code = /^[A-Z0-9_]{1,128}$/.test(String(error && error.message || ''))
+    const code = /^[A-Z0-9_:-]{1,200}$/.test(String(error && error.message || ''))
       ? String(error.message) : 'PRODUCTION_CANDIDATE_ENV_FAILED';
     process.stderr.write(code + '\n');
     process.exitCode = 1;
@@ -381,6 +426,7 @@ module.exports = {
   prepare,
   publish,
   restore,
+  sanitizeRestoredPull,
   verifyRestored,
   main
 };
