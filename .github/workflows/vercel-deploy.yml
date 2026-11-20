@@ -831,7 +831,7 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_TEAM_ID: team_xysgxd2E3CsVIYklf0nxOKop
-          VERCEL_RELEASE_ATTESTATION_ENV_ID: CmJmZvH8uHjW5tLq
+          VERCEL_RELEASE_ATTESTATION_ENV_ID: 1sphg8KoPHgOIBP1
         run: |
           set -euo pipefail
           node <<'NODE'
@@ -854,7 +854,7 @@ jobs:
             if (!response.ok) {
               throw new Error('VERCEL_RELEASE_ATTESTATION_SECRET_LOOKUP_FAILED_HTTP_' + response.status);
             }
-            if (body.key !== 'OPSC_RELEASE_PACKAGE_ATTESTATION_KEY' ||
+            if (body.key !== 'OPSC_RELEASE_PACKAGE_ATTESTATION_KEY_CI' ||
                 !Array.isArray(body.target) || !body.target.includes('production')) {
               throw new Error('VERCEL_RELEASE_ATTESTATION_SECRET_IDENTITY_OR_TARGET_INVALID');
             }
