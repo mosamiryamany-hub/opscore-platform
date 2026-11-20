@@ -40,7 +40,7 @@ These residuals do not invalidate the measured seller-reference technical releas
 
 The only ledger difference measured was `070_evidence_upload_postgres_blob_storage.sql`, present on Primary and absent on the restore branch. Its recorded application time was `2026-11-19T18:38:00Z`; the restore snapshot was created at `2026-11-19T06:58:55Z`. This is a time-ordered migration difference, not evidence of data corruption. The measured migration file SHA-256 was `5a7642ab5b82dfb0763553100a1af1d224a9fbf7e9882127126747533a539b4f`.
 
-The Neon Free plan has one listed manual snapshot, `snap-aged-thunder-bcsxc1a5`, created `2026-11-19T06:58:55Z`, with six-hour history retention and a 1 GiB logical limit. Scheduled backups are not available on the current plan. Do not describe this as scheduled backup coverage, multi-day PITR, or an RPO/RTO guarantee. Do not create recurring manual snapshots and call them scheduled backups.
+The Neon Free plan has one listed manual snapshot, `snap-aged-thunder-bcsxc1a5`, created `2026-11-19T06:58:55Z`, with six-hour history retention and a 1 GiB logical limit. The Primary branch reports `protected=false`; branch protection and scheduled backups are not available on the current plan. Do not describe this as scheduled backup coverage, multi-day PITR, or an RPO/RTO guarantee. Do not create recurring manual snapshots and call them scheduled backups.
 
 ## Legal, licensing and distribution boundary
 
