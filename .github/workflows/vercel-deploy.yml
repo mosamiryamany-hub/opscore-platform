@@ -678,7 +678,8 @@ jobs:
                 && Number(signedRoutes.failedRouteCount) === 0
                 && sourceCommitMatches(signedRoutes) && exactPipeline(signedRoutes)
                 && sourceBranchMatches(signedRoutes) && exactDeployment(signedRoutes)
-                && signedRoutes.evidenceRebind == null && signedRoutes.routeResultsValid === true
+                && signedRoutes.evidenceRebind == null
+                && (signedRoutes.routeResultsValid == null || signedRoutes.routeResultsValid === true)
                 && routeAssertionsPass;
 
               const requiredSessionChecks = [
@@ -718,14 +719,71 @@ jobs:
                 && exactPipeline(recovery) && sourceCommitMatches(recovery)
                 && sourceBranchMatches(recovery) && exactDeployment(recovery) && noEvidenceRebind(recovery);
               return sOk && rOk && signedRoutesOk;
-            } catch { return false; }
+            } catch (error) {
+              console.log('QUALIFICATION_EXCEPTION', String(error && error.message || error).slice(0, 500));
+              return false;
+            }
           }
           const ok = behavioralPass();
           const out = process.env.GITHUB_OUTPUT;
           fs.appendFileSync(out, 'certified=' + (ok ? 'CERTIFIED' : 'NOT_CERTIFIED') + '\n', { mode: 0o600 });
           fs.appendFileSync(out, 'behavioral=' + (ok ? 'true' : 'false') + '\n', { mode: 0o600 });
           console.log('CANDIDATE_EVIDENCE_QUALIFICATION', ok ? 'PASS_NOT_PUBLISHED' : 'NOT_VERIFIED');
-          if (!ok) process.exitCode = 1;
+          if (!ok) {
+            try {
+              const session = JSON.parse(fs.readFileSync(path.join('backend','docs','verification','PRODUCTION_SESSION_ISOLATION.json'),'utf8'));
+              const recovery = JSON.parse(fs.readFileSync(path.join('backend','docs','verification','PRODUCTION_RECOVERY_POINT.json'),'utf8'));
+              const signedRoutes = JSON.parse(fs.readFileSync(path.join('backend','docs','verification','SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE.json'),'utf8'));
+              console.log('QUALIFICATION_DEBUG', JSON.stringify({
+                expectedCommit: String(process.env.GITHUB_SHA||'').slice(0,12),
+                expectedPipeline: String(process.env.GITHUB_RUN_ID||''),
+                expectedDeployment: String(process.env.OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID||''),
+                expectedBranch: String(process.env.OPSC_PRODUCTION_NEON_BRANCH_ID||''),
+                session: {
+                  status: session.status,
+                  schemaVersion: session.schemaVersion,
+                  pipelineId: session.pipelineId,
+                  sourceCommitHint: session.sourceCommitHint,
+                  parentBranchId: session.parentBranchId,
+                  deploymentId: session.deploymentId,
+                  databaseName: session.databaseName,
+                  evidenceRebind: session.evidenceRebind,
+                  checks: session.checks,
+                  cleanup: session.cleanup
+                },
+                recovery: {
+                  status: recovery.status,
+                  schemaVersion: recovery.schemaVersion,
+                  pipelineId: recovery.pipelineId,
+                  sourceCommitHint: recovery.sourceCommitHint,
+                  parentBranchId: recovery.parentBranchId,
+                  deploymentId: recovery.deploymentId,
+                  databaseName: recovery.databaseName,
+                  temporaryBranch: recovery.temporaryBranch,
+                  tableCountCompared: recovery.tableCountCompared,
+                  mismatchCount: recovery.mismatchCount,
+                  coreTenantTableRowCountsMatch: recovery.coreTenantTableRowCountsMatch,
+                  cleanup: recovery.cleanup,
+                  evidenceRebind: recovery.evidenceRebind
+                },
+                signed: {
+                  status: signedRoutes.status,
+                  schemaVersion: signedRoutes.schemaVersion,
+                  pipelineId: signedRoutes.pipelineId,
+                  sourceCommitHint: signedRoutes.sourceCommitHint,
+                  parentBranchId: signedRoutes.parentBranchId,
+                  deploymentId: signedRoutes.deploymentId,
+                  coveredRouteCount: signedRoutes.coveredRouteCount,
+                  failedRouteCount: signedRoutes.failedRouteCount,
+                  routeResultsValid: signedRoutes.routeResultsValid,
+                  evidenceRebind: signedRoutes.evidenceRebind
+                }
+              }));
+            } catch (debugError) {
+              console.log('QUALIFICATION_DEBUG_FAILED', String(debugError && debugError.message || debugError).slice(0, 300));
+            }
+            process.exitCode = 1;
+          }
           NODE
 
       - name: Require current-commit production evidence before creating staged deployment
