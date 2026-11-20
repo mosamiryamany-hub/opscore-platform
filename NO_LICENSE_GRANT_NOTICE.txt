@@ -20,7 +20,7 @@ release artifact or unsigned template constitutes a grant or authorizes use.
 
 Commercial tiers (Use / Use+Modify / Use+Modify+Distribute) are described only in
 docs/commercial/LICENSE_FRAMEWORK.md. That framework does not itself grant rights.
-Prices are negotiated per buyer and are not published in this repository.
+Published seller minimum asking floors (USD): L1 Use Only — $45,000; L2 Use + Modify + Redistribute — $85,000; L3 Exclusive / IP Assignment — $175,000. The final buyer-specific fee and complete rights grant are negotiated and recorded only in the executed License Schedule.
 
 CI success, production health, isolation certification, recovery evidence, package
 fingerprints, SBOM or attestation do not create a license.
