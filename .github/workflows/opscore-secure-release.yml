@@ -209,25 +209,25 @@ jobs:
           EXPECTED_IDENTITY: "https://github.com/${{ github.repository }}/.github/workflows/opscore-secure-release.yml@refs/heads/main"
         run: |
           set -euo pipefail
-          cosign verify-blob "$RELEASE_ARCHIVE" \\
-            --bundle "$SIGNATURE_BUNDLE" \\
-            --certificate-identity "$EXPECTED_IDENTITY" \\
+          cosign verify-blob "$RELEASE_ARCHIVE" \
+            --bundle "$SIGNATURE_BUNDLE" \
+            --certificate-identity "$EXPECTED_IDENTITY" \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
 
           tampered="$RUNNER_TEMP/OpsCore-release.tampered.zip"
           cp "$RELEASE_ARCHIVE" "$tampered"
           printf 'tamper-probe' >> "$tampered"
-          if cosign verify-blob "$tampered" \\
-            --bundle "$SIGNATURE_BUNDLE" \\
-            --certificate-identity "$EXPECTED_IDENTITY" \\
+          if cosign verify-blob "$tampered" \
+            --bundle "$SIGNATURE_BUNDLE" \
+            --certificate-identity "$EXPECTED_IDENTITY" \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com"; then
             echo "TAMPERED_ARCHIVE_ACCEPTED"
             exit 1
           fi
 
-          if cosign verify-blob "$RELEASE_ARCHIVE" \\
-            --bundle "$SIGNATURE_BUNDLE" \\
-            --certificate-identity "https://github.com/untrusted/repository/.github/workflows/opscore-secure-release.yml@refs/heads/main" \\
+          if cosign verify-blob "$RELEASE_ARCHIVE" \
+            --bundle "$SIGNATURE_BUNDLE" \
+            --certificate-identity "https://github.com/untrusted/repository/.github/workflows/opscore-secure-release.yml@refs/heads/main" \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com"; then
             echo "UNTRUSTED_SIGNER_ACCEPTED"
             exit 1
