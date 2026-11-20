@@ -155,12 +155,28 @@ jobs:
             ELSE
               RAISE NOTICE 'OPSC_NEONDB_OWNER_COMPAT_ROLE_ALREADY_PRESENT';
             END IF;
+            -- Migrations 057+ require neondb_owner with BYPASSRLS and current_user=neondb_owner.
+            BEGIN
+              EXECUTE 'ALTER ROLE neondb_owner NOLOGIN NOINHERIT BYPASSRLS NOSUPERUSER';
+              RAISE NOTICE 'OPSC_NEONDB_OWNER_BYPASSRLS_SET';
+            EXCEPTION WHEN insufficient_privilege THEN
+              RAISE NOTICE 'OPSC_NEONDB_OWNER_BYPASSRLS_DENIED';
+            WHEN others THEN
+              RAISE NOTICE 'OPSC_NEONDB_OWNER_ALTER_SKIPPED sqlstate=%', SQLSTATE;
+            END;
             BEGIN
               EXECUTE 'GRANT neondb_owner TO CURRENT_USER';
             EXCEPTION WHEN duplicate_object THEN
               NULL;
             WHEN others THEN
               RAISE NOTICE 'OPSC_NEONDB_OWNER_GRANT_TO_CURRENT_USER_SKIPPED sqlstate=%', SQLSTATE;
+            END;
+            BEGIN
+              EXECUTE 'GRANT CREATE, USAGE ON SCHEMA public TO neondb_owner';
+              EXECUTE 'GRANT ALL ON ALL TABLES IN SCHEMA public TO neondb_owner';
+              EXECUTE 'GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO neondb_owner';
+            EXCEPTION WHEN others THEN
+              RAISE NOTICE 'OPSC_NEONDB_OWNER_SCHEMA_GRANTS_SKIPPED sqlstate=%', SQLSTATE;
             END;
 
             IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'opscore_app') THEN
@@ -215,7 +231,7 @@ jobs:
         env:
           OPSC_MIGRATION_TARGET_CLASS: preview
           OPSC_MIGRATION_PREVIEW_ALLOW_UNREVOCABLE_APP_MEMBERS: '1'
-          OPSC_MIGRATION_EXPECTED_OWNER_ROLE: opscore_owner
+          OPSC_MIGRATION_EXPECTED_OWNER_ROLE: neondb_owner
           OPSC_MIGRATION_PINNED_NEON_IDENTITY: '1'
           OPSC_MIGRATION_EXPECTED_DATABASE: ${{ steps.neon.outputs.database }}
           OPSC_MIGRATION_EXPECTED_HOST: ${{ steps.neon.outputs.host }}
@@ -250,7 +266,7 @@ jobs:
         env:
           OPSC_MIGRATION_TARGET_CLASS: preview
           OPSC_MIGRATION_PREVIEW_ALLOW_UNREVOCABLE_APP_MEMBERS: '1'
-          OPSC_MIGRATION_EXPECTED_OWNER_ROLE: opscore_owner
+          OPSC_MIGRATION_EXPECTED_OWNER_ROLE: neondb_owner
           OPSC_MIGRATION_PINNED_NEON_IDENTITY: '1'
           OPSC_MIGRATION_EXPECTED_DATABASE: ${{ steps.neon.outputs.database }}
           OPSC_MIGRATION_EXPECTED_HOST: ${{ steps.neon.outputs.host }}
