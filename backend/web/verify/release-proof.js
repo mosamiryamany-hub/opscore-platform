@@ -98,11 +98,12 @@
     const archive = proof.releaseArchiveAttestation || {};
     const archiveVerified =
       archive.status === 'PASS' &&
+      archive.attestationVerified === true &&
       archive.signatureVerified === true &&
       archive.sourceCommit === proof.sourceCommit &&
-      archive.deploymentId === (proof.deployment && proof.deployment.id) &&
       /^[a-f0-9]{64}$/.test(String(archive.sha256 || '')) &&
-      archive.sha256 === String((proof.packageFingerprint || {}).value || '');
+      Number.isSafeInteger(Number(archive.pipelineId)) &&
+      Number(archive.pipelineId) > 0;
     set(
       'archiveEvidence',
       archiveVerified
