@@ -30,6 +30,10 @@ const rotationWorkflow = fs.readFileSync(
   path.join(root, '.github', 'workflows', 'rotate-production-tenant-hmac.yml'),
   'utf8'
 );
+const currentCloseoutRunbook = fs.readFileSync(
+  path.join(root, 'CLOSEOUT_EXECUTION_RUNBOOK.md'),
+  'utf8'
+);
 
 const localesManifest = JSON.parse(fs.readFileSync(
   path.join(root, 'backend', 'web', 'i18n', 'locales', 'manifest.json'),
@@ -120,8 +124,8 @@ test('Runtime locale availability is separated from the 114-row language qualifi
     assert.equal(String(fields[4] || '').replaceAll('"', ''), 'planned_not_qualified');
     assert.equal(String(fields[8] || '').replaceAll('"', ''), 'not_run');
   }
-  assert.match(runbook, /105 selectable Contact Center locales/);
-  assert.match(runbook, /114 source-language rows/);
+  assert.match(currentCloseoutRunbook, /105 selectable Contact Center locales/);
+  assert.match(currentCloseoutRunbook, /114 source rows/);
   assert.match(buyerResiduals, /105 selectable Contact Center locales/);
   assert.match(buyerResiduals, /qualification matrix has 114 source rows/);
   assert.doesNotMatch(buyerResiduals, /114 locales are listed; 109 are machine-assisted/);
