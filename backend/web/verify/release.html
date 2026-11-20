@@ -50,7 +50,9 @@
     <div class="row"><span>Live PostgreSQL catalog configuration</span><strong class="value" id="databaseCatalogEvidence">CHECKING</strong></div>
     <p class="muted small" id="dbCatalogDetails">The live database endpoint is checked independently. Catalog policy configuration is not a two-tenant behavioral isolation certificate.</p>
     <div class="row"><span>Production signed-session tenant routes</span><strong class="value warn" id="signedRoutesEvidence">LOADING LIVE EVIDENCE</strong></div>
-    <div class="row"><span>Neon Production point-in-time recovery</span><strong class="value warn" id="pitrEvidence">LOADING LIVE EVIDENCE</strong></div>
+    <div class="row"><span>Neon Production point-in-time recovery gate</span><strong class="value warn" id="pitrEvidence">LOADING LIVE EVIDENCE</strong></div>
+    <div class="row"><span>Recorded historical branch probe on the Production root timeline</span><a class="value" href="https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44735471699" rel="noreferrer">PASS — Run 44735471699</a></div>
+    <p class="muted small">The probe created a disposable branch from Production root branch <code>br-proud-salad-bcshhdap</code> at <code>2026-11-20T12:22:06Z</code>, read the restored branch with the least-privilege runtime role over direct TLS using <code>sslmode=verify-full</code>, matched schema/RLS/policy/extension catalog checks to Production head, and verified branch cleanup. This proves historical branch creation and catalog parity only; it does not prove row-content restoration, a full production rollback, or RPO/RTO.</p>
     <div class="row"><span>Deployment-bound signed release archive</span><strong class="value warn" id="archiveEvidence">NOT VERIFIED — awaiting archive attestation evidence</strong></div>
     <p class="muted small">A package SHA-256 fingerprint is not, by itself, a cryptographic signature or a buyer-downloadable release archive. PITR is reported separately from branch-point recovery and snapshot restoration.</p>
     <div class="section">Release artifact</div>
