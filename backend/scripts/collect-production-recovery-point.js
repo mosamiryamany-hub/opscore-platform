@@ -181,6 +181,7 @@ SELECT COALESCE(json_agg(row_to_json(t) ORDER BY t.table_name), '[]'::json)::tex
 FROM (
   SELECT
     c.relname AS table_name,
+    c.relkind AS relation_kind,
     c.relrowsecurity AS row_security_enabled,
     c.relforcerowsecurity AS force_row_security,
     COALESCE((
@@ -198,9 +199,6 @@ FROM (
   JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
   WHERE n.nspname = 'public'
     AND c.relkind IN ('r','p')
-    AND NOT EXISTS (
-      SELECT 1 FROM pg_catalog.pg_inherits i WHERE i.inhrelid = c.oid
-    )
   ORDER BY c.relname
 ) AS t;
 `;
@@ -239,7 +237,10 @@ function manifestDigest(catalog) {
 async function readFullDataManifest(uri, catalog) {
   const results = [];
   let rowsCompared = 0;
-  for (const table of catalog.tables) {
+  // Hash physical base tables only. Partitioned parents are catalog/policy checked;
+  // their physical leaf partitions are hashed separately, avoiding duplicate rows.
+  const physicalTables = catalog.tables.filter(table => table.relation_kind === 'r');
+  for (const table of physicalTables) {
     const result = await streamTableDigest(uri, table.table_name);
     if (!Number.isSafeInteger(result.rowCount) || !Number.isSafeInteger(rowsCompared + result.rowCount)) {
       throw new Error('RECOVERY_ROW_COUNT_OUT_OF_SAFE_RANGE');
@@ -384,6 +385,26 @@ async function main() {
       evidenceClass: 'PRODUCTION_FULL_DATA_RECOVERY_AND_NATIVE_PITR'
     };
     writeEvidence(recoveryPath, blocked);
+    writeEvidence(pitrPath, {
+      schemaVersion: 'opscore.production-native-pitr.v2',
+      status: 'BLOCKED',
+      environment: 'production',
+      mechanism: 'NEON_INSTANT_RESTORE_FROM_HISTORY',
+      dataIntegrity: 'NOT_VERIFIED',
+      verificationScope: 'production-root-historical-branch-full-data-content-hash-and-rls-match',
+      targetTimestampUtc: null,
+      restoreStartedAt: null,
+      restoreCompletedAt: null,
+      restoredBranchId: null,
+      sourceBranchId: parentBranchId,
+      databaseName,
+      sourceCommit: deploymentIdentity.commitSha,
+      pipelineId: String(deploymentIdentity.ciPipelineId),
+      evidenceSha256: crypto.createHash('sha256').update('NEON_BRANCH_CAPACITY_INSUFFICIENT').digest('hex'),
+      contentIntegrity: { status: 'NOT_VERIFIED' },
+      cleanup: { status: 'NOT_REQUIRED', restoredBranchDeleted: false, comparisonBranchDeleted: false },
+      failureCode: 'NEON_BRANCH_CAPACITY_INSUFFICIENT'
+    });
     throw new Error('NEON_BRANCH_CAPACITY_INSUFFICIENT');
   }
 
@@ -431,6 +452,12 @@ async function main() {
     recoveryCreated = true;
     recoveryBranch = await waitForBranch(projectId, recovery);
     restoreCompletedAt = new Date().toISOString();
+    const restoreDurationMs = Date.parse(restoreCompletedAt) - Date.parse(restoreStartedAt);
+    const targetPointAgeAtCompletionMs = Date.parse(restoreCompletedAt) - Date.parse(targetTimestampUtc);
+    if (!Number.isSafeInteger(restoreDurationMs) || restoreDurationMs < 0
+        || !Number.isSafeInteger(targetPointAgeAtCompletionMs) || targetPointAgeAtCompletionMs < 0) {
+      throw new Error('PITR_RESTORE_TIMING_INVALID');
+    }
 
     const referenceUri = await connectionUri(projectId, reference.id, databaseName, roleName);
     const recoveryUri = await connectionUri(projectId, recovery.id, databaseName, roleName);
@@ -461,13 +488,28 @@ async function main() {
     referenceManifest = refManifest;
     recoveryManifest = recManifest;
 
-    const rlsPolicyTableCount = referenceCatalog.tables.filter(row => row.row_security_enabled === true).length;
-    const rlsPolicyMismatchCount = JSON.stringify(referenceCatalog.policies) === JSON.stringify(recoveryCatalog.policies) ? 0 : 1;
-    let forceRlsMismatchCount = 0;
+    const allowedRlsExceptions = ['spatial_ref_sys'];
+    const observedRlsExceptions = referenceCatalog.tables
+      .filter(row => row.row_security_enabled !== true || row.force_row_security !== true)
+      .map(row => row.table_name)
+      .sort();
+    const rlsPolicyTableCount = referenceCatalog.tables.filter(row =>
+      row.row_security_enabled === true && row.force_row_security === true
+    ).length;
+    const recoveryPolicyTableCount = recoveryCatalog.tables.filter(row =>
+      row.row_security_enabled === true && row.force_row_security === true
+    ).length;
     const recoveryByName = new Map(recoveryCatalog.tables.map(row => [row.table_name, row]));
+    const catalogPolicyEqual = JSON.stringify(referenceCatalog.policies) === JSON.stringify(recoveryCatalog.policies);
+    const rlsExceptionsExact = JSON.stringify(observedRlsExceptions) === JSON.stringify(allowedRlsExceptions);
+    const rlsPolicyMismatchCount = (catalogPolicyEqual && rlsExceptionsExact
+      && recoveryPolicyTableCount === rlsPolicyTableCount) ? 0 : 1;
+    let forceRlsMismatchCount = 0;
     for (const table of referenceCatalog.tables) {
       const other = recoveryByName.get(table.table_name);
-      if (!other || Boolean(table.force_row_security) !== Boolean(other.force_row_security)) forceRlsMismatchCount += 1;
+      if (!other || Boolean(table.force_row_security) !== Boolean(other.force_row_security)) {
+        if (!allowedRlsExceptions.includes(table.table_name)) forceRlsMismatchCount += 1;
+      }
     }
 
     for (let index = 0; index < referenceNames.length; index++) {
@@ -491,13 +533,19 @@ async function main() {
     const tableMismatchCount = tableResults.filter(row => row.status !== 'PASS').length;
     const manifestMismatchCount = refManifest === recManifest ? 0 : 1;
     const mismatchCount = tableMismatchCount + manifestMismatchCount + rlsPolicyMismatchCount + forceRlsMismatchCount;
-    rowResultsValid = tableResults.length >= 130
+    const requiredCoreTables = ['organizations','users','memberships','sessions','assets','sites','work_orders','customers'];
+    const coreTablesPresent = requiredCoreTables.every(name => tableResults.some(row => row.table === name));
+    rowResultsValid = referenceCatalog.tables.length >= 136
+      && tableResults.length >= 130
       && tableResults.every(row => row.status === 'PASS')
       && Number.isSafeInteger(rowsCompared)
       && rowsCompared > 0
       && rlsPolicyTableCount >= 135
+      && rlsExceptionsExact
       && rlsPolicyMismatchCount === 0
       && forceRlsMismatchCount === 0
+      && recoveryPolicyTableCount === rlsPolicyTableCount
+      && coreTablesPresent
       && refManifest === recManifest
       && mismatchCount === 0;
     if (!rowResultsValid) throw new Error('PRODUCTION_FULL_DATA_RECOVERY_CONTENT_MISMATCH');
@@ -506,21 +554,23 @@ async function main() {
       status: 'PASS',
       algorithm: 'SHA-256',
       tableCountCompared: tableResults.length,
+      catalogTableCount: referenceCatalog.tables.length,
       rowsCompared,
       mismatchCount,
       rlsPolicyTableCount,
       rlsPolicyMismatchCount,
       forceRlsMismatchCount,
+      rlsExceptionTables: observedRlsExceptions,
       sourceManifestSha256: refManifest,
       recoveryManifestSha256: recManifest,
       tableResults
     };
 
-    const coreTenantTables = new Set(['organizations','users','memberships','sessions','assets','sites','work_orders','customers']);
-    const coreTenantTableRowCountsMatch = tableResults
-      .filter(row => coreTenantTables.has(row.table))
-      .every(row => row.status === 'PASS');
-    if (coreTenantTables.size !== 8 || !coreTenantTableRowCountsMatch) {
+    const coreTenantTables = ['organizations','users','memberships','sessions','assets','sites','work_orders','customers'];
+    const coreTenantTableRowCountsMatch = coreTenantTables.every(tableName =>
+      tableResults.some(row => row.table === tableName && row.status === 'PASS')
+    );
+    if (!coreTenantTableRowCountsMatch) {
       throw new Error('RECOVERY_CORE_TENANT_TABLE_CONTENT_MISMATCH');
     }
 
@@ -582,7 +632,7 @@ async function main() {
       mismatchCount: 0,
       contentIntegrity,
       cleanup,
-      note: 'Read-only branch clone at an explicit historical timestamp. All public root tables were compared using streaming per-row SHA-256 hashes, exact row counts, schema/column metadata and RLS/FORCE RLS policy manifests. The two exact temporary branches created by this run were deleted and absence verified. This is not an RPO/RTO guarantee.'
+      note: 'Read-only historical reference branch plus exact child clone. Physical public tables were compared using streaming per-row SHA-256 hashes and exact row counts; all public table/partition catalog metadata and full RLS/FORCE RLS policy inventories were compared. The explicit non-tenant metadata exception is spatial_ref_sys. The two exact temporary branches created by this run were deleted and absence verified. This proves equality between the created historical branch and its clone; it is not an application-level recovery rehearsal or an RPO/RTO guarantee.'
     };
     writeEvidence(recoveryPath, recoveryEvidence);
 
@@ -590,11 +640,13 @@ async function main() {
       status: 'PASS',
       algorithm: 'SHA-256',
       tableCountCompared: tableResults.length,
+      catalogTableCount: referenceCatalog.tables.length,
       rowsCompared,
       mismatchCount: 0,
       rlsPolicyTableCount,
       rlsPolicyMismatchCount,
       forceRlsMismatchCount,
+      rlsExceptionTables: observedRlsExceptions,
       sourceManifestSha256: refManifest,
       restoredManifestSha256: recManifest,
       tableResults: tableResults.map(row => ({
@@ -617,6 +669,8 @@ async function main() {
       targetTimestampUtc,
       restoreStartedAt,
       restoreCompletedAt,
+      restoreDurationMs,
+      targetPointAgeAtCompletionMs,
       restoredBranchId: reference.id,
       sourceBranchId: parentBranchId,
       databaseName,
