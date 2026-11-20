@@ -70,8 +70,8 @@ jobs:
           set -euo pipefail
           curl --fail --silent --show-error --retry 3 --retry-all-errors -H "Authorization: Bearer $NEON_API_KEY" -H "Accept: application/json"             "https://console.neon.tech/api/v2/projects/${NEON_PROJECT_ID}/branches" -o branches.json
           python3 -c 'import json;d=json.load(open("branches.json"));bs=d.get("branches")or[];print("count",len(bs));
-[print("---\nid",b.get("id"),"\nname",b.get("name"),"\nprimary",b.get("primary"),"\nprotected",b.get("protected"),"\nparent_id",b.get("parent_id"),"\ncreated",b.get("created_at"),"\nlogical_size",b.get("logical_size"),"\nstate",b.get("current_state")) for b in bs]'
+          [print("---\nid",b.get("id"),"\nname",b.get("name"),"\nprimary",b.get("primary"),"\nprotected",b.get("protected"),"\nparent_id",b.get("parent_id"),"\ncreated",b.get("created_at"),"\nlogical_size",b.get("logical_size"),"\nstate",b.get("current_state")) for b in bs]'
           curl --fail --silent --show-error --retry 3 --retry-all-errors -H "Authorization: Bearer $NEON_API_KEY" -H "Accept: application/json"             "https://console.neon.tech/api/v2/projects/${NEON_PROJECT_ID}/snapshots" -o snaps.json
           python3 -c 'import json;d=json.load(open("snaps.json"));ss=d.get("snapshots")or[];print("snapshots",len(ss));
-[print("---\nid",s.get("id"),"\nname",s.get("name"),"\nsource",s.get("source_branch_id")or s.get("branch_id"),"\ncreated",s.get("created_at")) for s in ss]'
+          [print("---\nid",s.get("id"),"\nname",s.get("name"),"\nsource",s.get("source_branch_id")or s.get("branch_id"),"\ncreated",s.get("created_at")) for s in ss]'
 
