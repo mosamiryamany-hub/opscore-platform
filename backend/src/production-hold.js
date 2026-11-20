@@ -77,6 +77,10 @@ function isAuthorizedProductionCandidateProbeRequest(req, env = process.env, rea
   // complete. It is intentionally outside the 67 signed-context inventory count;
   // allow only this exact GET under the same candidate boundary controls.
   if (method === 'GET' && /^\/api\/v1\/attachments\/[^/]+$/.test(pathname)) return true;
+  // Session-isolation collector seeds two principals then authenticates via
+  // mobile-login. Login is intentionally outside the 67 signed-context inventory;
+  // allow only this exact POST under the same candidate boundary controls.
+  if (method === 'POST' && pathname === '/api/v1/auth/mobile-login') return true;
   return ['read', 'write'].some(operation =>
     signedTenantContextPolicy.isSignedTenantContextRouteDefinition(method, pathname, operation)
   );

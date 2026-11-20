@@ -70,7 +70,7 @@ test('production hold permits only token-authenticated signed candidate routes w
   ), true);
   assert.equal(isAuthorizedProductionCandidateProbeRequest(
     request('POST', '/api/v1/auth/mobile-login'), env, readiness
-  ), false);
+  ), true);
   assert.equal(isAuthorizedProductionCandidateProbeRequest(
     request('GET', '/api/v1/admin/users'), env, readiness
   ), false);
