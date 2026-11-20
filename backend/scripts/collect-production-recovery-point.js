@@ -74,7 +74,7 @@ function psqlEnv() {
 }
 
 function psql(uri, sql) {
-  const readOnlySql = 'BEGIN TRANSACTION READ ONLY;\\n' + sql + '\\nCOMMIT;';
+  const readOnlySql = 'BEGIN TRANSACTION READ ONLY;\n' + sql + '\nCOMMIT;';
   return execFileSync('psql', [uri, '-X', '-v', 'ON_ERROR_STOP=1', '-qAt', '-c', readOnlySql], {
     encoding: 'utf8',
     env: psqlEnv(),
@@ -112,7 +112,8 @@ function streamTableDigest(uri, tableName) {
     '  SELECT encode(public.digest(pg_catalog.convert_to(pg_catalog.to_jsonb(t)::text, \'UTF8\'), \'sha256\'), \'hex\')',
     '  FROM public.' + table + ' AS t',
     '  ORDER BY 1',
-    ') TO STDOUT'
+    ') TO STDOUT;',
+    'COMMIT;'
   ].join('\n');
 
   return new Promise((resolve, reject) => {
