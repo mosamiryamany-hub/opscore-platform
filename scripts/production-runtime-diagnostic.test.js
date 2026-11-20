@@ -53,7 +53,11 @@ function validPayload() {
         current_user: 'opscore_runtime',
         session_user: 'opscore_runtime',
         server_version: '18.6',
-        transaction_read_only: 'on'
+        transaction_read_only: 'on',
+        tls_enabled: true,
+        tls_version: 'TLSv1.3',
+        tls_cipher: 'TLS_AES_256_GCM_SHA384',
+        tls_bits: 256
       },
       roles: [{
         role_name: 'opscore_runtime',
@@ -245,7 +249,11 @@ test('runtime database diagnostic exposes only validated non-secret identity met
     region: null,
     hostnameSha256: null,
     runtimeRole: null,
-    serverVersion: '18.6'
+    serverVersion: '18.6',
+    tlsEnabled: true,
+    tlsVersion: 'TLSv1.3',
+    tlsCipher: 'TLS_AES_256_GCM_SHA384',
+    tlsBits: 256
   });
   assert.equal(JSON.stringify(result).includes('customer db;DROP TABLE users'), false);
   assert.equal(JSON.stringify(result).includes('opscore_runtime;secret'), false);
