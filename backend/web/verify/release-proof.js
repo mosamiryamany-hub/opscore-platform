@@ -72,7 +72,7 @@
     set(
       'signedRoutesEvidence',
       signedRoutesVerified
-        ? 'PASS — 67/67 production signed-session routes; commit, pipeline, deployment, manifest and inventory bound'
+        ? 'PASS — 67/67 production-candidate signed-session routes; source commit, pipeline, candidate deployment, manifest and inventory bound'
         : 'NOT VERIFIED — ' + (Number(signed.testedRoutes) || 0) + '/67 validated; required production bindings or route results are incomplete',
       signedRoutesVerified ? 'ok' : 'warn'
     );
