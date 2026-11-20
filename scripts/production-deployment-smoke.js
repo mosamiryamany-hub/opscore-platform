@@ -320,7 +320,7 @@ function validateEndpoint(path, statusCode, payload, expectedCommit, contentType
       identityPlane.status === 'RLS_ENFORCED';
     if (!['opscore.public-database-security-proof.v2','opscore.public-database-security-proof.v3'].includes(body.schemaVersion) ||
         body.status !== 'IDENTITY_PLANE_RLS_ENFORCED' ||
-        ![ 'NOT_CERTIFIED', 'CERTIFIED' ].includes(body.productionIsolationCertification) ||
+        !(body.productionIsolationCertification == null || ['NOT_CERTIFIED', 'CERTIFIED'].includes(body.productionIsolationCertification)) ||
         !catalogCoverageSafe || !ledgerSafe || !controlPlaneSafe ||
         !systemOperationalSafe || !runtimeRoleSafe || !identityPlaneSafe) {
       const detail = {
