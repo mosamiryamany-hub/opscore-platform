@@ -1,0 +1,45 @@
+name: ops-production-db-endpoint-tls-switch
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type exactly: SWITCH_PRODUCTION_DB_TO_DIRECT_TLS'
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ops-production-db-endpoint-tls-switch
+  cancel-in-progress: false
+
+jobs:
+  probe-and-switch:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      github.event.inputs.confirm == 'SWITCH_PRODUCTION_DB_TO_DIRECT_TLS'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout pinned
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22.23.4
+      - name: Install backend dependencies
+        run: npm ci --ignore-scripts
+        working-directory: backend
+      - name: Probe endpoint TLS and switch production URLs when direct verifies
+        env:
+          OPSC_DATABASE_URL: ${{ secrets.OPSC_DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: node scripts/ops_db_tls_probe_switch.js SWITCH_PRODUCTION_DB_TO_DIRECT_TLS
+        working-directory: backend
