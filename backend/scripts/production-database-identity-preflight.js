@@ -4,6 +4,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const { Client } = require('pg');
+const { normalizePostgresConnectionString } = require('../src/adapters/postgres');
 
 const REQUIRED_AUTH_FUNCTIONS = Object.freeze([
   'opscore_resolve_login_candidate(text)',
@@ -167,8 +168,24 @@ async function inspectDatabase(env = process.env) {
     return report;
   }
 
+  // node-pg ignores libpq-style URL parameters (sslmode, channel_binding,
+  // sslrootcert), so a URL-only declaration does NOT negotiate TLS. The
+  // read-only identity probe must match the application adapter: negotiate
+  // TLS unconditionally and verify the server certificate chain
+  // (sslrootcert=system resolves to the platform trust store), otherwise
+  // pg_stat_ssl reports ssl=false for this session even though the URL
+  // advertises sslmode=require.
+  let normalizedConnection;
+  try {
+    normalizedConnection = normalizePostgresConnectionString(rawUrl, env);
+  } catch (error) {
+    report.reasonCode = error.code || 'DATABASE_CONNECTION_TLS_NORMALIZATION_FAILED';
+    return report;
+  }
+
   const client = new Client({
-    connectionString: rawUrl,
+    connectionString: normalizedConnection.connectionString,
+    ssl: { rejectUnauthorized: true, ...normalizedConnection.tls },
     application_name: 'opscore-production-database-identity-readonly',
     connectionTimeoutMillis: 12000,
     statement_timeout: 10000,
