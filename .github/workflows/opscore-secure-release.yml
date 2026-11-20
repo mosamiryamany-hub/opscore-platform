@@ -186,6 +186,8 @@ jobs:
       # GitHub artifact attestations are unavailable for this user-owned private repository
       # on its current plan. Sign the completed archive directly with Sigstore keyless OIDC.
       # This creates a verifiable blob signature, not an in-toto/SLSA provenance predicate.
+      # Public Sigstore transparency records expose signer/workflow identity and artifact digest,
+      # but do not publish the private source tree or archive bytes.
       - name: Install pinned Cosign
         uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
         with:
