@@ -69,12 +69,13 @@ async function connectionUri(projectId, branchId, database, role) {
 
 function psqlEnv() {
   const env = { ...process.env };
-  env.PGOPTIONS = [String(env.PGOPTIONS || '').trim(), '-c timezone=UTC'].filter(Boolean).join(' ');
+  env.PGOPTIONS = [String(env.PGOPTIONS || '').trim(), '-c default_transaction_read_only=on', '-c timezone=UTC'].filter(Boolean).join(' ');
   return env;
 }
 
 function psql(uri, sql) {
-  return execFileSync('psql', [uri, '-X', '-v', 'ON_ERROR_STOP=1', '-qAt', '-c', sql], {
+  const readOnlySql = 'BEGIN TRANSACTION READ ONLY;\\n' + sql + '\\nCOMMIT;';
+  return execFileSync('psql', [uri, '-X', '-v', 'ON_ERROR_STOP=1', '-qAt', '-c', readOnlySql], {
     encoding: 'utf8',
     env: psqlEnv(),
     maxBuffer: 32 * 1024 * 1024
@@ -106,6 +107,7 @@ function quoteIdentifier(value) {
 function streamTableDigest(uri, tableName) {
   const table = quoteIdentifier(tableName);
   const sql = [
+    'BEGIN TRANSACTION READ ONLY;',
     'COPY (',
     '  SELECT encode(public.digest(pg_catalog.convert_to(pg_catalog.to_jsonb(t)::text, \'UTF8\'), \'sha256\'), \'hex\')',
     '  FROM public.' + table + ' AS t',
@@ -268,7 +270,7 @@ async function createTemporaryBranch(projectId, name, parentBranchId, parentTime
   if (parentTimestamp) branch.parent_timestamp = parentTimestamp;
   const created = await neon('/projects/' + encodeURIComponent(projectId) + '/branches', {
     method: 'POST',
-    body: { branch, endpoints: [{ type: 'read_only' }] }
+    body: { branch, endpoints: [{ type: 'read_write' }] }
   });
   const id = String(created.branch && created.branch.id || created.id || '');
   if (!/^br-[a-z0-9-]{8,80}$/.test(id)) throw new Error('TEMPORARY_BRANCH_CREATE_FAILED');
