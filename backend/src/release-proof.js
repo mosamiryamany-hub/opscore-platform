@@ -335,6 +335,11 @@ function readProductionRecoveryPointEvidence(filePath = embeddedEvidencePath('PR
     ? contentIntegrity.rlsExceptionTables.map(value => String(value)).sort()
     : [];
   const recoveryRlsExceptionsExact = JSON.stringify(recoveryRlsExceptionTables) === JSON.stringify(['spatial_ref_sys']);
+  const requiredCoreRecoveryTables = ['organizations','users','memberships','sessions','assets','sites','work_orders','customers'];
+  const coreRecoveryTablesCovered = requiredCoreRecoveryTables.every(name =>
+    tableResults.some(row => row.table === name && row.status === 'PASS'
+      && Number(row.sourceRowCount) === Number(row.recoveryRowCount))
+  );
   const comparedRowsTotal = tableResults.reduce((total, row) => total + Number(row && row.sourceRowCount), 0);
   const contentIntegrityValid = contentIntegrity.status === 'PASS'
     && contentIntegrity.algorithm === 'SHA-256'
@@ -347,6 +352,7 @@ function readProductionRecoveryPointEvidence(filePath = embeddedEvidencePath('PR
     && Number(contentIntegrity.rowsCompared) > 0
     && Number(contentIntegrity.rowsCompared) === comparedRowsTotal
     && Number(contentIntegrity.mismatchCount) === 0
+    && coreRecoveryTablesCovered
     && Number(contentIntegrity.rlsPolicyTableCount) >= 135
     && Number(contentIntegrity.rlsPolicyMismatchCount) === 0
     && Number(contentIntegrity.forceRlsMismatchCount) === 0
@@ -437,6 +443,11 @@ function readProductionNativePitrEvidence(filePath = embeddedEvidencePath('PRODU
     return valid;
   });
   const pitrRowsCompared = pitrTableResults.reduce((total, row) => total + Number(row && row.sourceRowCount), 0);
+  const requiredCorePitrTables = ['organizations','users','memberships','sessions','assets','sites','work_orders','customers'];
+  const corePitrTablesCovered = requiredCorePitrTables.every(name =>
+    pitrTableResults.some(row => row.table === name && row.status === 'PASS'
+      && Number(row.sourceRowCount) === Number(row.restoredRowCount))
+  );
   const pitrRlsExceptionTables = Array.isArray(contentIntegrity.rlsExceptionTables)
     ? contentIntegrity.rlsExceptionTables.map(value => String(value)).sort()
     : [];
@@ -452,6 +463,7 @@ function readProductionNativePitrEvidence(filePath = embeddedEvidencePath('PRODU
     Number(contentIntegrity.rowsCompared) > 0 &&
     Number(contentIntegrity.rowsCompared) === pitrRowsCompared &&
     Number(contentIntegrity.mismatchCount) === 0 &&
+    corePitrTablesCovered &&
     Number(contentIntegrity.rlsPolicyTableCount) >= 135 &&
     Number(contentIntegrity.rlsPolicyMismatchCount) === 0 &&
     Number(contentIntegrity.forceRlsMismatchCount) === 0 &&
@@ -522,6 +534,7 @@ function readProductionNativePitrEvidence(filePath = embeddedEvidencePath('PRODU
       mismatchCount: Number(contentIntegrity.mismatchCount),
       rlsPolicyTableCount: Number(contentIntegrity.rlsPolicyTableCount) || null,
       rlsExceptionTables: pitrRlsExceptionTables,
+      coreRecoveryTablesCovered: corePitrTablesCovered,
       manifestMatched: contentIntegrityValid
     }
   };
