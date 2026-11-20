@@ -297,7 +297,11 @@ function readProductionRecoveryPointEvidence(filePath = embeddedEvidencePath('PR
   const expectedDatabaseName = String(env.OPSC_PRODUCTION_DATABASE_NAME || '').trim();
   const cleanupVerified = evidence.temporaryBranch === true
     && evidence.cleanup && evidence.cleanup.status === 'PASS'
-    && evidence.cleanup.recoveryBranchDeleted === true;
+    && evidence.cleanup.referenceBranchDeleted === true
+    && evidence.cleanup.recoveryBranchDeleted === true
+    && /^br-[a-z0-9-]{8,80}$/.test(String(evidence.referenceBranchId || ''))
+    && /^br-[a-z0-9-]{8,80}$/.test(String(evidence.recoveryBranchId || ''))
+    && evidence.referenceBranchId !== evidence.recoveryBranchId;
   const contentIntegrity = evidence.contentIntegrity && typeof evidence.contentIntegrity === 'object'
     ? evidence.contentIntegrity
     : {};
@@ -402,9 +406,13 @@ function readProductionNativePitrEvidence(filePath = embeddedEvidencePath('PRODU
   const restoreDurationMs = Number(evidence.restoreDurationMs);
   const targetPointAgeAtCompletionMs = Number(evidence.targetPointAgeAtCompletionMs);
   const pitrCleanup = evidence.cleanup && typeof evidence.cleanup === 'object' ? evidence.cleanup : {};
+  const comparisonBranchId = String(evidence.comparisonBranchId || '').trim();
   const pitrCleanupVerified = pitrCleanup.status === 'PASS'
     && pitrCleanup.restoredBranchDeleted === true
-    && pitrCleanup.comparisonBranchDeleted === true;
+    && pitrCleanup.comparisonBranchDeleted === true
+    && /^br-[a-z0-9-]{8,80}$/.test(comparisonBranchId)
+    && comparisonBranchId !== String(evidence.restoredBranchId || '')
+    && comparisonBranchId !== String(evidence.sourceBranchId || '');
   const pitrTableResults = Array.isArray(contentIntegrity.tableResults) ? contentIntegrity.tableResults : [];
   const seenPitrTables = new Set();
   const pitrTableContentValid = pitrTableResults.length >= 130 && pitrTableResults.every(row => {
@@ -474,6 +482,7 @@ function readProductionNativePitrEvidence(filePath = embeddedEvidencePath('PRODU
     && /^br-[a-z0-9-]{8,80}$/.test(String(evidence.restoredBranchId || ''))
     && /^br-[a-z0-9-]{8,80}$/.test(String(evidence.sourceBranchId || ''))
     && evidence.restoredBranchId !== evidence.sourceBranchId
+    && comparisonBranchId !== evidence.restoredBranchId
     && pitrCleanupVerified
     && HASH_RE.test(String(evidence.evidenceSha256 || ''))
     && (() => {
@@ -491,6 +500,7 @@ function readProductionNativePitrEvidence(filePath = embeddedEvidencePath('PRODU
     dataIntegrity: evidence.dataIntegrity,
     targetTimestampUtc: evidence.targetTimestampUtc,
     restoredBranchId: evidence.restoredBranchId,
+    comparisonBranchId,
     sourceBranchId: evidence.sourceBranchId,
     databaseName: evidence.databaseName || null,
     sourceCommit: normalizedSha(evidence.sourceCommit),
