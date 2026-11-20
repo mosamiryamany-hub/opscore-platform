@@ -31,6 +31,7 @@ function validEvidence(overrides = {}) {
     restoreDurationMs: 227000,
     targetPointAgeAtCompletionMs: 340000,
     restoredBranchId: 'br-restored-production-probe',
+    comparisonBranchId: 'br-comparison-production-clone',
     sourceBranchId: 'br-current-production',
     databaseName: 'opscore_acceptance',
     sourceCommit: SHA,
