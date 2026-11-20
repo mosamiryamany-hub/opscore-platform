@@ -825,14 +825,60 @@ jobs:
           name: production-native-pitr-evidence
           path: /tmp/pitr-evidence
 
+      - name: Load dedicated release HMAC key from Vercel Production secret
+        if: ${{ github.event.inputs.run_mode == 'AUTHORIZE_PRODUCTION_RELEASE' }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TEAM_ID: team_xysgxd2E3CsVIYklf0nxOKop
+          VERCEL_RELEASE_ATTESTATION_ENV_ID: CmJmZvH8uHjW5tLq
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const projectId = String(process.env.VERCEL_PROJECT_ID || '').trim();
+          const teamId = String(process.env.VERCEL_TEAM_ID || '').trim();
+          const envId = String(process.env.VERCEL_RELEASE_ATTESTATION_ENV_ID || '').trim();
+          const token = String(process.env.VERCEL_TOKEN || '').trim();
+          if (!projectId || !teamId || !envId || !token) {
+            throw new Error('VERCEL_RELEASE_ATTESTATION_SECRET_LOOKUP_CONFIG_MISSING');
+          }
+          (async () => {
+            const url = new URL('https://api.vercel.com/v1/projects/' +
+              encodeURIComponent(projectId) + '/env/' + encodeURIComponent(envId));
+            url.searchParams.set('teamId', teamId);
+            const response = await fetch(url, {
+              headers: { Authorization: 'Bearer ' + token, Accept: 'application/json' }
+            });
+            const body = await response.json().catch(() => ({}));
+            if (!response.ok) {
+              throw new Error('VERCEL_RELEASE_ATTESTATION_SECRET_LOOKUP_FAILED_HTTP_' + response.status);
+            }
+            if (body.key !== 'OPSC_RELEASE_PACKAGE_ATTESTATION_KEY' ||
+                !Array.isArray(body.target) || !body.target.includes('production')) {
+              throw new Error('VERCEL_RELEASE_ATTESTATION_SECRET_IDENTITY_OR_TARGET_INVALID');
+            }
+            const value = String(body.value || '').trim();
+            if (value.length < 32 || /[\\r\\n]/.test(value)) {
+              throw new Error('VERCEL_RELEASE_ATTESTATION_SECRET_VALUE_INVALID');
+            }
+            process.stdout.write('::add-mask::' + value + '\\n');
+            fs.appendFileSync(process.env.GITHUB_ENV,
+              'OPSC_RELEASE_PACKAGE_ATTESTATION_KEY=' + value + '\\n',
+              { mode: 0o600 });
+            process.stdout.write('RELEASE_ARCHIVE_HMAC_KEY_SOURCE=VERCEL_PRODUCTION_SECRET\\n');
+          })().catch(error => {
+            process.stderr.write(String(error && error.message || error) + '\\n');
+            process.exitCode = 1;
+          });
+          NODE
+
       - name: Materialize PITR evidence and signed package attestation for embed
         if: ${{ github.event.inputs.run_mode == 'AUTHORIZE_PRODUCTION_RELEASE' }}
         env:
           OPSC_RELEASE_PACKAGE_SHA256: ${{ steps.package_fp.outputs.sha }}
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_RUN_ID: ${{ github.run_id }}
-          OPSC_TENANT_CONTEXT_HMAC_KEY: ${{ secrets.OPSC_TENANT_CONTEXT_HMAC_KEY }}
-          OPSC_RELEASE_PACKAGE_ATTESTATION_KEY: ${{ secrets.OPSC_RELEASE_PACKAGE_ATTESTATION_KEY }}
         run: |
           set -euo pipefail
           mkdir -p backend/docs/verification backend/src/embedded-evidence
@@ -873,7 +919,7 @@ jobs:
           if (!/^[a-f0-9]{40}$/.test(commit)) throw new Error('ARCHIVE_ATTESTATION_COMMIT_INVALID');
           if (!/^[1-9][0-9]{0,14}$/.test(pipelineId)) throw new Error('ARCHIVE_ATTESTATION_PIPELINE_INVALID');
           if (!/^[a-f0-9]{64}$/.test(sha256)) throw new Error('ARCHIVE_ATTESTATION_PACKAGE_SHA_INVALID');
-          const keyMaterial = String(process.env.OPSC_RELEASE_PACKAGE_ATTESTATION_KEY || process.env.OPSC_TENANT_CONTEXT_HMAC_KEY || '').trim();
+          const keyMaterial = String(process.env.OPSC_RELEASE_PACKAGE_ATTESTATION_KEY || '').trim();
           if (!keyMaterial) throw new Error('ARCHIVE_ATTESTATION_KEY_MISSING');
           const payload = ['opscore.release-archive-attestation.v1', commit, pipelineId, sha256].join('|');
           const signature = crypto.createHmac('sha256', keyMaterial).update(payload).digest('hex');
