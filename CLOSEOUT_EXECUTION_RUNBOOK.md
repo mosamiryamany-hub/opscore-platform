@@ -33,7 +33,7 @@ PostgreSQL HTTP acceptance is PASS only when the evidence's source commit and pi
 
 ## 3. Translation
 
-Contact Center has 114 locale codes: 1 English source, 109 machine-assisted drafts and 4 English fallback locales (din, nus, pau, ch), 89 keys per locale. Four structural/forensic rounds are automated. Native-speaker review is 0/114 and production qualification 0/114. Keep the AI/machine-translation notice visible. Linguistic review before production language claims is buyer-owned.
+Contact Center has 105 selectable locales (1 English source, 100 machine-assisted drafts and 4 English fallback locales; 9 locale codes are withdrawn), with 89 keys per locale. The separate language qualification matrix retains 114 source rows. Four structural/forensic rounds are automated. Native-speaker review is 0/114 and production qualification 0/114. Keep the AI/machine-translation notice visible. Linguistic review before production language claims is buyer-owned.
 
 ## 4. Buyer-owned scope
 
