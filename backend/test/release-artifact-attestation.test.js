@@ -87,3 +87,23 @@ test('external release attestation only carries production acceptance when it ma
     fs.rmSync(temp, { recursive: true, force: true });
   }
 });
+
+
+test('private repository release workflow uses pinned Cosign keyless signing and fail-closed verification', () => {
+  const workflowPath = path.resolve(__dirname, '../../.github/workflows/opscore-secure-release.yml');
+  const workflow = fs.readFileSync(workflowPath, 'utf8');
+  assert.ok(workflow.includes('id-token: write'));
+  assert.ok(!workflow.includes('attestations: write'));
+  assert.ok(workflow.includes('sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532'));
+  assert.ok(workflow.includes("cosign-release: 'v3.1.4'"));
+  assert.ok(workflow.includes('cosign sign-blob --yes'));
+  assert.ok(workflow.includes('cosign verify-blob "$RELEASE_ARCHIVE"'));
+  assert.ok(workflow.includes('--certificate-identity "$EXPECTED_IDENTITY"'));
+  assert.ok(workflow.includes('--certificate-oidc-issuer "https://token.actions.githubusercontent.com"'));
+  assert.ok(workflow.includes('TAMPERED_ARCHIVE_ACCEPTED'));
+  assert.ok(workflow.includes('UNTRUSTED_SIGNER_ACCEPTED'));
+  assert.ok(workflow.includes('OpsCore-release.zip.sigstore.json'));
+  assert.ok(!workflow.includes('uses: actions/attest@'));
+  const verificationCommands = workflow.split('\n').filter(line => line.includes('cosign verify-blob'));
+  assert.equal(verificationCommands.length, 3, 'positive, tamper-negative and wrong-identity-negative verification commands must all exist');
+});

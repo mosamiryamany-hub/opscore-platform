@@ -134,7 +134,11 @@ test('secure release workflow supports version-bound tags and guarded exact-main
   assert.match(workflow, /node scripts\/audit-gate\.js/);
   assert.match(workflow, /ROOT_AUDIT_REPORT_INCOMPLETE/);
   assert.match(workflow, /node scripts\/write-release-attestation\.js/);
-  assert.match(workflow, /actions\/attest@/);
+  assert.doesNotMatch(workflow, /actions\/attest@|attestations:\s*write/);
+  assert.match(workflow, /sigstore\/cosign-installer@/);
+  assert.match(workflow, /cosign sign-blob --yes/);
+  assert.match(workflow, /cosign verify-blob/);
+  assert.match(workflow, /OpsCore-release\.zip\.sigstore\.json/);
   assert.match(workflow, /Upload release and exact-run evidence/);
   assert.match(workflow, /OPSC_RELEASE_TEST_CONCURRENCY=4/);
   assert.match(read('.github/workflows/opscore-ci.yml'), /OPSC_RELEASE_TEST_CONCURRENCY=4/);
