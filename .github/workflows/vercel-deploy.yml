@@ -517,13 +517,13 @@ jobs:
           node backend/scripts/signed-tenant-context-postgres-gate.js
           node <<'NODE'
           const fs = require('node:fs');
-          const raw = fs.readFileSync('SIGNED_TENANT_CONTEXT_CANDIDATE_RESULT.json', 'utf8');
-          // Gate may tee diagnostic lines before/after the JSON object; extract the last object.
-          let candidate = null;
-          for (const match of raw.matchAll(/\{[\s\S]*?\}\s*$/gm)) {
-            try { candidate = JSON.parse(match[0]); } catch (_) {}
-          }
-          if (!candidate) {
+          const raw = fs.readFileSync('SIGNED_TENANT_CONTEXT_CANDIDATE_RESULT.json', 'utf8').replace(/^\uFEFF/, '');
+          // Prefer a complete JSON document (gate writes JSON.stringify(finalReport)).
+          // Only fall back to outermost-object extraction if the file has log noise.
+          let candidate;
+          try {
+            candidate = JSON.parse(raw);
+          } catch (_) {
             const start = raw.indexOf('{');
             const end = raw.lastIndexOf('}');
             if (start < 0 || end <= start) throw new Error('CANDIDATE_RESULT_JSON_MISSING');
@@ -532,19 +532,26 @@ jobs:
           const identity = candidate.candidateRuntimeIdentity || {};
           const coverage = candidate.signedTenantRouteCoverage || {};
           const expectedDeployment = process.env.CANDIDATE_DEPLOYMENT_ID;
+          const residue = candidate.cleanup && candidate.cleanup.residue;
           const zeroResidue = candidate.cleanup?.status === 'PASS' &&
-            candidate.cleanup?.residue && Object.values(candidate.cleanup.residue)
-              .every(value => Number.isFinite(Number(value)) && Number(value) === 0);
-          if (candidate.status !== 'PASS' || !zeroResidue ||
-              identity.deploymentId !== expectedDeployment ||
-              String(identity.sourceCommit || '').toLowerCase() !== process.env.GITHUB_SHA.toLowerCase() ||
-              String(identity.pipelineId || '') !== String(process.env.GITHUB_RUN_ID) ||
-              identity.sourceRef !== 'main' || identity.environment !== 'production' ||
-              identity.databaseName !== 'opscore_acceptance' ||
-              coverage.status !== 'PASS' || coverage.coveredRouteCount !== 67 ||
-              coverage.failedRouteCount !== 0 || coverage.deploymentId !== expectedDeployment ||
-              coverage.evidenceRebind !== null) {
-            throw new Error('CANDIDATE_67_ROUTE_EVIDENCE_NOT_EXACT');
+            residue && typeof residue === 'object' &&
+            Object.values(residue).every(value => Number.isFinite(Number(value)) && Number(value) === 0);
+          const mismatches = [];
+          if (candidate.status !== 'PASS') mismatches.push('status=' + String(candidate.status));
+          if (!zeroResidue) mismatches.push('cleanupResidue');
+          if (identity.deploymentId !== expectedDeployment) mismatches.push('identity.deploymentId');
+          if (String(identity.sourceCommit || '').toLowerCase() !== String(process.env.GITHUB_SHA || '').toLowerCase()) mismatches.push('identity.sourceCommit');
+          if (String(identity.pipelineId || '') !== String(process.env.GITHUB_RUN_ID || '')) mismatches.push('identity.pipelineId');
+          if (identity.sourceRef !== 'main') mismatches.push('identity.sourceRef');
+          if (identity.environment !== 'production') mismatches.push('identity.environment');
+          if (identity.databaseName !== 'opscore_acceptance') mismatches.push('identity.databaseName');
+          if (coverage.status !== 'PASS') mismatches.push('coverage.status');
+          if (coverage.coveredRouteCount !== 67) mismatches.push('coverage.coveredRouteCount=' + String(coverage.coveredRouteCount));
+          if (coverage.failedRouteCount !== 0) mismatches.push('coverage.failedRouteCount');
+          if (coverage.deploymentId !== expectedDeployment) mismatches.push('coverage.deploymentId');
+          if (coverage.evidenceRebind !== null && coverage.evidenceRebind !== undefined) mismatches.push('coverage.evidenceRebind');
+          if (mismatches.length) {
+            throw new Error('CANDIDATE_67_ROUTE_EVIDENCE_NOT_EXACT:' + mismatches.join(','));
           }
           console.log('SIGNED_TENANT_CONTEXT_CANDIDATE_67_OF_67=PASS');
           NODE
