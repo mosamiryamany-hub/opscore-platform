@@ -730,7 +730,10 @@ jobs:
                 && recovery.contentIntegrity?.algorithm === 'SHA-256'
                 && Number(recovery.contentIntegrity?.mismatchCount) === 0
                 && Number(recovery.contentIntegrity?.rowsCompared) > 0
-                && recovery.contentIntegrity?.rlsExceptionsExact === true
+                && JSON.stringify(recovery.contentIntegrity?.rlsExceptionTables || []) === JSON.stringify(['spatial_ref_sys'])
+                && Number(recovery.contentIntegrity?.rlsPolicyTableCount) >= 135
+                && Number(recovery.contentIntegrity?.rlsPolicyMismatchCount) === 0
+                && Number(recovery.contentIntegrity?.forceRlsMismatchCount) === 0
                 && recovery.cleanup?.status === 'PASS'
                 && recovery.cleanup?.referenceBranchDeleted === true
                 && recovery.cleanup?.recoveryBranchDeleted === true
@@ -1270,7 +1273,10 @@ jobs:
               recovery.contentIntegrity?.status !== 'PASS' ||
               recovery.contentIntegrity?.algorithm !== 'SHA-256' ||
               Number(recovery.contentIntegrity?.mismatchCount) !== 0 ||
-              recovery.contentIntegrity?.rlsExceptionsExact !== true ||
+              JSON.stringify(recovery.contentIntegrity?.rlsExceptionTables || []) !== JSON.stringify(['spatial_ref_sys']) ||
+              Number(recovery.contentIntegrity?.rlsPolicyTableCount) < 135 ||
+              Number(recovery.contentIntegrity?.rlsPolicyMismatchCount) !== 0 ||
+              Number(recovery.contentIntegrity?.forceRlsMismatchCount) !== 0 ||
               recovery.cleanup?.status !== 'PASS' ||
               recovery.cleanup?.referenceBranchDeleted !== true ||
               recovery.cleanup?.recoveryBranchDeleted !== true || !exact(recovery)) {
