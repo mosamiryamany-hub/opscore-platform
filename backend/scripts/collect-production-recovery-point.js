@@ -691,6 +691,7 @@ async function main() {
       databaseName,
       sourceCommit: sourceCommitHint,
       pipelineId: String(pipelineId),
+      deploymentId: deploymentIdentity.deploymentId,
       contentIntegrity: pitrContentIntegrity,
       cleanup: {
         status: cleanup.status,
