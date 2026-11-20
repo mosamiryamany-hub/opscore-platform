@@ -301,6 +301,8 @@ function readProductionRecoveryPointEvidence(filePath = embeddedEvidencePath('PR
     && evidence.cleanup.recoveryBranchDeleted === true
     && /^br-[a-z0-9-]{8,80}$/.test(String(evidence.referenceBranchId || ''))
     && /^br-[a-z0-9-]{8,80}$/.test(String(evidence.recoveryBranchId || ''))
+    && evidence.referenceBranchId !== expectedParentBranchId
+    && evidence.recoveryBranchId !== expectedParentBranchId
     && evidence.referenceBranchId !== evidence.recoveryBranchId;
   const contentIntegrity = evidence.contentIntegrity && typeof evidence.contentIntegrity === 'object'
     ? evidence.contentIntegrity
