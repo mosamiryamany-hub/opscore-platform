@@ -305,23 +305,39 @@ async function verifyRestored(options = {}) {
       if (hits.length !== 1 || typeof expected.value !== 'string') {
         throw new Error('PRODUCTION_ENV_RESTORE_MISMATCH:' + key + ':api-presence');
       }
-      // Encrypted Production values are often redacted by `vercel pull` as [SENSITIVE].
-      // Require exact local match only when the pulled value is readable plaintext.
-      if (parsed.has(key)) {
-        const localValue = parsed.get(key);
-        if (localValue !== '[SENSITIVE]' && localValue !== expected.value) {
-          throw new Error('PRODUCTION_ENV_RESTORE_MISMATCH:' + key + ':local');
-        }
+      const apiType = hits[0].type || 'encrypted';
+      if (apiType !== (expected.type || 'encrypted')) {
+        throw new Error('PRODUCTION_ENV_RESTORE_MISMATCH:' + key + ':type');
       }
-    } else if (hits.length !== 0) {
-      throw new Error('PRODUCTION_ENV_RESTORE_UNEXPECTED_KEY:' + key);
+      if (!parsed.has(key)) {
+        throw new Error('PRODUCTION_ENV_RESTORE_MISMATCH:' + key + ':local-missing');
+      }
+      const localValue = parsed.get(key);
+      // Vercel may redact non-plain values in a pulled env file. A redaction
+      // marker is acceptable only for a non-plain API variable; plain values
+      // must match the snapshot exactly.
+      if (localValue === '[SENSITIVE]') {
+        if (apiType === 'plain') {
+          throw new Error('PRODUCTION_ENV_RESTORE_MISMATCH:' + key + ':unexpected-redaction');
+        }
+      } else if (localValue !== expected.value) {
+        throw new Error('PRODUCTION_ENV_RESTORE_MISMATCH:' + key + ':local');
+      }
+    } else {
+      if (hits.length !== 0) {
+        throw new Error('PRODUCTION_ENV_RESTORE_UNEXPECTED_KEY:' + key);
+      }
+      if (parsed.has(key)) {
+        throw new Error('PRODUCTION_ENV_RESTORE_UNEXPECTED_LOCAL_KEY:' + key);
+      }
     }
   }
   for (const key of CANDIDATE_KEYS) {
-    // Production API must not retain candidate probe keys. Local .env from
-    // `vercel pull` may keep local-only leftovers; those are not Production config.
     if (productionHits(envs, key).length !== 0) {
       throw new Error('PRODUCTION_CANDIDATE_ENV_NOT_REMOVED:' + key);
+    }
+    if (parsed.has(key)) {
+      throw new Error('PRODUCTION_CANDIDATE_ENV_LOCAL_LEFTOVER:' + key);
     }
   }
   const outputPath = String(env.GITHUB_OUTPUT || '').trim();
