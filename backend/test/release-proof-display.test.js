@@ -108,3 +108,70 @@ test('release proof renderer distinguishes native deployment identity and live c
   assert.equal(getElement('sessionGate').textContent, 'NOT_VERIFIED');
   assert.equal(getElement('recoveryGate').textContent, 'NOT_VERIFIED');
 });
+
+
+test('release proof renderer requires all 67 live route bindings and does not confuse branch-point recovery with PITR', async () => {
+  const elements = new Map();
+  const getElement = (id) => {
+    if (!elements.has(id)) {
+      const classes = new Set();
+      elements.set(id, {
+        textContent: '',
+        href: '',
+        classList: {
+          add: (...names) => names.forEach(name => classes.add(name)),
+          remove: (...names) => names.forEach(name => classes.delete(name))
+        },
+        removeAttribute(name) { if (name === 'href') this.href = ''; }
+      });
+    }
+    return elements.get(id);
+  };
+  const proof = {
+    status: 'PASS',
+    sourceCommit: 'a'.repeat(40),
+    sourceCommitIdentitySource: 'github-actions-cli-assertion',
+    deployment: { id: 'dpl_Production123', environment: 'production' },
+    ci: { status: 'PASS', pipelineId: 44735471699 },
+    gates: {
+      commercialClosure: 'PASS',
+      livePostgresRls: 'PASS_TEST_SCOPE',
+      productionSessionTenantBoundary: 'PASS_PRODUCTION_PROBE_SCOPE',
+      productionRecoveryBundle: 'PASS_PRODUCTION_ROW_COUNT_SCOPE',
+      productionIsolationCertification: 'CERTIFIED',
+      signedTenantSessionRouteCoverage: 'PASS_PRODUCTION_ROUTE_SCOPE',
+      neonPointInTimeRecovery: 'PASS_BRANCH_POINT'
+    },
+    signedTenantRouteCoverage: {
+      status: 'PASS',
+      expectedRouteCount: 67,
+      coveredRouteCount: 67,
+      failedRouteCount: 0,
+      testedRoutes: 67,
+      commitBound: true,
+      pipelineBound: true,
+      parentBranchBound: true,
+      deploymentIdBound: true,
+      manifestBound: true,
+      inventoryBound: true,
+      routeResultsValid: true
+    },
+    productionAcceptance: { status: 'PASS' },
+    packageFingerprint: { status: 'PUBLISHED', value: 'b'.repeat(64) }
+  };
+  const context = {
+    document: { getElementById: getElement },
+    fetch: async () => ({ ok: true, json: async () => proof }),
+    encodeURIComponent,
+    Promise,
+    String,
+    Error
+  };
+  const execution = vm.runInNewContext(script, context);
+  await execution;
+  await new Promise(resolve => setImmediate(resolve));
+
+  assert.match(getElement('signedRoutesEvidence').textContent, /^PASS — 67\/67/);
+  assert.match(getElement('pitrEvidence').textContent, /BRANCH-POINT PASS ONLY/);
+  assert.match(getElement('archiveEvidence').textContent, /package fingerprint alone is not a signed archive/);
+});
