@@ -3,19 +3,26 @@
 **As of:** 2026-11-20  
 **Product version label:** 0.11.62  
 
+## Product closeout independence
+
+No prospective buyer or buyer signature is needed to complete the product closeout on the seller side.  
+No license grant is made to a buyer until the rights holder and that named buyer execute a License Schedule that pins the exact deliverable (`sourceCommit` and/or package SHA-256).
+
+Seller advertising, listings, demonstrations and negotiations may happen before a buyer is known. **OPEN FOR MARKETING** does not equal delivery rights.
+
 ## Executive status
 
 | Track | Status | Notes |
 |---|---|---|
-| Source / engineering CI on `main` | **Operational** | verify + vercel-contract required on `main` |
-| Candidate isolation evidence | **PASS_NOT_PUBLISHED achieved** | Run `44701511334` on `2146fdb7c5c7…`: 67/67, session isolation, recovery point, coverage finalize, isolation qualification, env restore verify, candidate manifest |
-| Production public alias | **Not promoted** | Live pin remains prior SHA; deliberate |
-| License framework L1/L2/L3 | **Published in-repo** | No prices; no automatic grant |
-| Executed buyer Schedule | **None** | Pricing and countersignature left to rights holder |
-| Neon plan limits (snapshots / protected branches) | **Residual — plan constrained** | Documented; no evidence deleted to free quota |
-| Firewall deny mode | **Residual — observation** | Rules remain log until seller chooses challenge/deny after traffic review |
+| Source / engineering CI on `main` | Operational | verify + vercel-contract required on `main` |
+| Candidate isolation evidence | PASS_NOT_PUBLISHED achieved | Run 44701511334 on `2146fdb7c5c7…`: 67/67, session isolation, recovery point, coverage finalize, isolation qualification, env restore verify, candidate manifest |
+| Production public alias | Not promoted | Live pin remains prior SHA; deliberate |
+| License framework L1/L2/L3 | Published in-repo | No prices; **NO LICENSE GRANT** without Schedule |
+| Executed buyer Schedule | None | Pricing and countersignature left to rights holder |
+| Neon plan limits (snapshots / protected branches) | Residual — plan constrained | Documented; no evidence deleted to free quota |
+| Firewall deny mode | Residual — observation | Rules remain log until seller chooses challenge/deny after traffic review |
 
-## Candidate evidence (authoritative engineering fact)
+## Candidate evidence (engineering fact)
 
 Workflow run: [44701511334](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44701511334)  
 Commit: `2146fdb7c5c7fc1bc92f4d43787981acf14c7669`  
@@ -54,11 +61,11 @@ Schedule template: `LICENSE_SCHEDULE_TEMPLATE.md`
 
 ## Next seller actions (optional)
 
-1. Review candidate evidence on `2146fdb7…` / post-merge `main` and decide whether to authorize Production promotion.  
+1. Review candidate evidence and decide whether to authorize Production promotion.  
 2. If promotion is desired: run `AUTHORIZE_PRODUCTION_RELEASE` only after accepting residual Neon/WAF risk.  
 3. Set prices offline; complete License Schedule with the chosen buyer under L1, L2, or L3.  
 4. Optionally run Secure Release for a fresh commercial ZIP on the chosen tag.
 
 ## Commercial status string
 
-`ENGINEERING_CANDIDATE_EVIDENCE_PASS — PRODUCTION_ALIAS_NOT_PROMOTED — LICENSE_FRAMEWORK_READY — NO_BUYER_SCHEDULE — PRICING_PENDING_RIGHTS_HOLDER`
+`ENGINEERING_CANDIDATE_EVIDENCE_PASS — PRODUCTION_ALIAS_NOT_PROMOTED — LICENSE_FRAMEWORK_READY — NO_BUYER_SCHEDULE — PRICING_PENDING_RIGHTS_HOLDER — NO LICENSE GRANT`

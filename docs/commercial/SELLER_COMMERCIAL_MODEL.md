@@ -36,4 +36,12 @@ Success of one gate never silently completes another.
 - Mobile store signing and release accounts  
 - Human translation QA beyond machine-assisted UI language switch  
 - Licensed map / street data providers  
-- Buyer’s own Stripe (or other) production payment keys when enabled  
+- Buyer’s own Stripe (or other) production payment keys when enabled
+
+## Marketing posture
+
+**OPEN FOR MARKETING.** The rights holder may advertise, publish, market, list, and negotiate the offer before a buyer is identified.
+
+No license grant exists until a named buyer and the rights holder execute a License Schedule that pins the exact deliverable. See `LICENSE_FRAMEWORK.md` and `NO_LICENSE_GRANT_NOTICE.txt`.
+
+**NO LICENSE GRANT** by repository presence, candidate evidence, or this document alone.
