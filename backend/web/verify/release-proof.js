@@ -27,7 +27,7 @@
     const proof = await readProof('/api/verify/release');
     set('status', proof.status || 'UNVERIFIED', stateFor(proof.status, ['PASS']));
     set('sourceCommit', proof.sourceCommit || 'UNVERIFIED');
-    set('releaseTag', proof.releaseTag || 'NOT PUBLISHED');
+    set('releaseTag', proof.releaseTag || 'NOT BOUND TO THIS DEPLOYMENT');
     set('deploymentId', proof.deployment && proof.deployment.id || 'UNVERIFIED');
 
     const pipeline = $('pipeline');
