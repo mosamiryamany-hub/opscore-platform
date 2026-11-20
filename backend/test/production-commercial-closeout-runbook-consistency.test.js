@@ -30,6 +30,10 @@ const rotationWorkflow = fs.readFileSync(
   path.join(root, '.github', 'workflows', 'rotate-production-tenant-hmac.yml'),
   'utf8'
 );
+const currentCloseoutRunbook = fs.readFileSync(
+  path.join(root, 'CLOSEOUT_EXECUTION_RUNBOOK.md'),
+  'utf8'
+);
 
 const localesManifest = JSON.parse(fs.readFileSync(
   path.join(root, 'backend', 'web', 'i18n', 'locales', 'manifest.json'),
@@ -40,18 +44,16 @@ const languageQualificationRows = fs.readFileSync(
   'utf8'
 ).trim().split('\n').slice(1);
 
-test('Production runbook and buyer residual register use the current observed Neon capacity', () => {
-  const current = runbook.split('## Current evidence reconciliation')[1] || '';
-  assert.match(current, /5 active branches \(5\/10 included\)/);
-  assert.match(current, /currently report `protected=false`/);
-  assert.match(current, /Current snapshot inventory contains \*\*one\*\* manual Primary snapshot/);
-  assert.match(current, /one\*\* manual Primary snapshot|one manual Primary snapshot/i);
-  assert.match(buyerResiduals, /protected=false/i);
-  assert.match(buyerResiduals, /both records report protected=false/i);
+test('2026-11-18 maintenance observations remain historical and the 2026-11-20 register is authoritative', () => {
+  const historical = runbook.split('## Current evidence reconciliation')[1] || '';
+  assert.match(runbook, /2026-11-18/);
+  assert.match(historical, /live Production 67-route signed-session matrix remains \*\*NOT ESTABLISHED\*\*/);
+  assert.match(buyerResiduals, /reconciled 2026-11-20/);
+  assert.match(buyerResiduals, /67 expected \/ 67 covered \/ 0 failed/);
+  assert.match(buyerResiduals, /not buyer-environment qualification/);
   assert.match(buyerResiduals, /one listed manual snapshot/i);
-  assert.doesNotMatch(current, /10 active branches \(10\/10 included\)/);
-  assert.doesNotMatch(buyerResiduals, /10\/10 visible branches|all ten are unprotected/i);
-  assert.doesNotMatch(current, /10 active branches \(10\/10 included\)/);
+  assert.match(buyerResiduals, /protected=false/i);
+  assert.match(buyerResiduals, /no scheduled snapshot capability/i);
 });
 
 test('Seller product closeout is buyer-independent while actual buyer license rights remain transaction-gated', () => {
@@ -63,25 +65,24 @@ test('Seller product closeout is buyer-independent while actual buyer license ri
   assert.doesNotMatch(sellerCloseoutChecklist, /Buyer-specific work — not a seller launch or marketing gate/);
 });
 
-test('Live 67-route acceptance remains a Production certification task, not a source-package release gate', () => {
-  const sourceReleaseSection = sellerCloseoutChecklist.split('## Separate seller-hosted SaaS track')[0];
-  const hostedServiceSection = sellerCloseoutChecklist.split('## Separate seller-hosted SaaS track')[1] || '';
-  assert.doesNotMatch(sourceReleaseSection, /67-route signed-session/);
-  assert.match(hostedServiceSection, /67-route signed-session HTTP acceptance matrix/);
-  assert.match(hostedServiceSection, /not a source-code package release gate/);
-  assert.match(hostedServiceSection, /Production certification (?:remains )?NOT_ESTABLISHED/);
+test('67-route acceptance is certified only for the measured seller deployment and does not transfer to buyers', () => {
+  assert.match(buyerResiduals, /67 expected \/ 67 covered \/ 0 failed/);
+  assert.match(buyerResiduals, /Exact seller deployment evidence; not buyer-environment qualification/);
+  assert.match(buyerResiduals, /Buyer environments remain independently unverified/);
+  assert.match(sellerCloseoutChecklist, /buyer|customer/i);
 });
 
-test('Production key material, signed-route proof and snapshot generation are accurately recorded', () => {
-  const current = runbook.split('## Current evidence reconciliation')[1] || '';
-  assert.match(current, /context_hmac_keys.*exists with the expected schema and ownership/);
-  assert.match(current, /zero Production HMAC key rows/);
-  assert.match(current, /live Production 67-route signed-session matrix remains \*\*NOT ESTABLISHED\*\*/);
-  assert.match(current, /br-odd-surf-bcps6nce.*restored_from=snap-tiny-dream-bc58p5nj/i);
-  assert.match(current, /snapshot reflects the current 063–069 migration writes/);
-  assert.match(current, /Snapshot creation and branch cleanup are complete/);
-  assert.doesNotMatch(current, /context_hmac_keys table are absent on Primary/);
-  assert.doesNotMatch(current, /valid non-finalizing restore proof now exists in the PR #219 branch/);
+test('historical Production key and restore notes are not reused as current evidence', () => {
+  const historical = runbook.split('## Current evidence reconciliation')[1] || '';
+  assert.match(runbook, /2026-11-18/);
+  assert.match(historical, /context_hmac_keys.*exists with the expected schema and ownership/);
+  assert.match(historical, /zero Production HMAC key rows/);
+  assert.match(historical, /live Production 67-route signed-session matrix remains \*\*NOT ESTABLISHED\*\*/);
+  assert.match(buyerResiduals, /67 expected \/ 67 covered \/ 0 failed/);
+  assert.match(buyerResiduals, /br-proud-salad-bcshhdap/);
+  assert.match(buyerResiduals, /br-calm-poetry-bc7l7wik/);
+  assert.match(buyerResiduals, /070_evidence_upload_postgres_blob_storage\.sql/);
+  assert.match(buyerResiduals, /not evidence of data corruption/i);
 });
 
 test('Production migration and rotation remain manual, confirmation-gated, and traffic-neutral', () => {
@@ -123,10 +124,10 @@ test('Runtime locale availability is separated from the 114-row language qualifi
     assert.equal(String(fields[4] || '').replaceAll('"', ''), 'planned_not_qualified');
     assert.equal(String(fields[8] || '').replaceAll('"', ''), 'not_run');
   }
-  assert.match(runbook, /105 selectable Contact Center locales/);
-  assert.match(runbook, /114 source-language rows/);
-  assert.match(buyerResiduals, /105 selectable Contact Center locales/);
-  assert.match(buyerResiduals, /qualification matrix has 114 source rows/);
+  assert.match(currentCloseoutRunbook, /105 selectable locales/);
+  assert.match(currentCloseoutRunbook, /114 source rows/);
+  assert.match(buyerResiduals, /105 selectable locales/);
+  assert.match(buyerResiduals, /qualification matrix.*114 source rows/);
   assert.doesNotMatch(buyerResiduals, /114 locales are listed; 109 are machine-assisted/);
 });
 
