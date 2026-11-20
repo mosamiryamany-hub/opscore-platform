@@ -25,9 +25,24 @@ function exactPipeline(value) {
   return /^[1-9][0-9]{0,14}$/.test(String(value || ''));
 }
 
+function parseJsonDocument(raw) {
+  const text = String(raw || '').replace(/^\uFEFF/, '');
+  try {
+    return JSON.parse(text);
+  } catch (firstError) {
+    // Gate/result files must be a single JSON document. If tooling appended
+    // diagnostics after the closing brace, accept the outermost object only.
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start < 0 || end <= start) throw firstError;
+    return JSON.parse(text.slice(start, end + 1));
+  }
+}
+
 function parseJsonFile(filePath, label) {
   try {
-    return { value: JSON.parse(fs.readFileSync(filePath, 'utf8')), bytes: fs.readFileSync(filePath) };
+    const bytes = fs.readFileSync(filePath);
+    return { value: parseJsonDocument(bytes.toString('utf8')), bytes };
   } catch {
     fail(label + '_MISSING_OR_INVALID');
   }
@@ -288,7 +303,7 @@ function main(argv = process.argv.slice(2)) {
   if (!args.input || !args.output || !args['parent-branch-id'] || !args['deployment-id']) {
     fail('USAGE: --input <candidate-result.json> --output <coverage.json> --parent-branch-id <neon-branch-id> --deployment-id <dpl_id>');
   }
-  const candidate = JSON.parse(fs.readFileSync(path.resolve(args.input), 'utf8'));
+  const candidate = parseJsonDocument(fs.readFileSync(path.resolve(args.input), 'utf8'));
   const result = writeAndVerifyCoverage({
     candidate,
     outputPath: args.output,
