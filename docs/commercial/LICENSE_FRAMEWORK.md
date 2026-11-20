@@ -1,7 +1,7 @@
 # OpsCore — Commercial License Framework
 
 **Status:** Framework only. **No license is granted by this document alone.**  
-**Prices:** Not published in this repository. Price, payment schedule, currency, and taxes are negotiated per buyer and recorded only in a signed License Schedule.  
+**Published minimum asking floors (USD):** L1 **$45,000**, L2 **$85,000**, L3 **$175,000**. These public floors support marketing and buyer discovery; the buyer-specific final fee, payment schedule, currency, taxes, exact deliverable and rights are negotiated and recorded in the signed License Schedule.  
 **Authority:** Buyer rights exist only when the rights holder and the named buyer both execute a **License Schedule** that (1) references this framework by version/date, (2) selects exactly one tier below, and (3) identifies the exact deliverable (`sourceCommit` and/or package SHA-256).
 
 ---
@@ -107,7 +107,7 @@ Template: `docs/commercial/LICENSE_SCHEDULE_TEMPLATE.md`
 
 ## Seller guide — minimum fair floors (USD, November 2026)
 
-These are **seller-side guide floors** derived from current market comparables for a production multi-tenant platform (isolation-certified, signed release evidence, no buyer residuals included). They are **not** a public list price and do **not** grant a license. Actual fee is written only in a signed License Schedule.
+These are the **published seller minimum asking floors** used for marketing and buyer discovery. They are seller-side price floors, not a buyer-specific executed quote, and do **not** grant a license. The final fee and complete transaction terms are written only in a signed License Schedule.
 
 | Tier | Rights | Minimum fair floor (USD) | Market anchors (indicative) |
 |---|---|---|---|
