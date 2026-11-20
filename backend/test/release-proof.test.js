@@ -22,8 +22,9 @@ const PACKAGE_SHA = 'a'.repeat(64);
 const EVIDENCE_SHA = 'b'.repeat(64);
 const fixedNow = () => new Date('2026-10-23T00:00:00.000Z');
 
-function fullDataRecoveryIntegrity(tableCount = 134) {
+function fullDataRecoveryIntegrity(tableCount = 136) {
   const digest = 'f'.repeat(64);
+  const requiredTables = ['organizations','users','memberships','sessions','assets','sites','work_orders','customers'];
   return {
     status: 'PASS',
     algorithm: 'SHA-256',
@@ -39,7 +40,7 @@ function fullDataRecoveryIntegrity(tableCount = 134) {
     recoveryManifestSha256: digest,
     tableResults: Array.from({ length: tableCount }, (_, index) => ({
       schema: 'public',
-      table: 'table_' + index,
+      table: requiredTables[index] || 'table_' + index,
       status: 'PASS',
       sourceSha256: digest,
       recoverySha256: digest,
