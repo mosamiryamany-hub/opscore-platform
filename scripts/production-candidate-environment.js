@@ -311,7 +311,9 @@ async function verifyRestored(options = {}) {
     }
   }
   for (const key of CANDIDATE_KEYS) {
-    if (productionHits(envs, key).length !== 0 || parsed.has(key)) {
+    // Production API must not retain candidate probe keys. Local .env from
+    // `vercel pull` may keep local-only leftovers; those are not Production config.
+    if (productionHits(envs, key).length !== 0) {
       throw new Error('PRODUCTION_CANDIDATE_ENV_NOT_REMOVED:' + key);
     }
   }
