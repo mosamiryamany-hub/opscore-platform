@@ -56,7 +56,8 @@ function validEvidence(overrides = {}) {
       restoredManifestSha256: DIGEST,
       tableResults: Array.from({ length: 135 }, (_, index) => ({
         schema: 'public',
-        table: 'table_' + index,
+        table: ['organizations','users','memberships','sessions','assets','sites','work_orders','customers'][index]
+          || 'table_' + index,
         status: 'PASS',
         sourceSha256: DIGEST,
         restoredSha256: DIGEST,
