@@ -108,7 +108,13 @@ async function httpJson(base, method, pathname, { token, body } = {}) {
   const raw = await response.text();
   let data = null;
   try { data = raw ? JSON.parse(raw) : null; } catch { data = { raw: raw.slice(0, 200) }; }
-  return { status: response.status, data };
+  const headers = {};
+  try {
+    for (const [key, value] of response.headers.entries()) {
+      if (String(key).toLowerCase().startsWith('x-opscore-')) headers[String(key).toLowerCase()] = String(value);
+    }
+  } catch (_) {}
+  return { status: response.status, data, headers };
 }
 function isIsolationDenial(status) {
   return status === 403 || status === 404;
@@ -204,7 +210,19 @@ async function main() {
     tokenA = loginA.data && loginA.data.token || null;
     tokenB = loginB.data && loginB.data.token || null;
     checks.dualLogin = loginA.status === 200 && loginB.status === 200 && Boolean(tokenA) && Boolean(tokenB) ? 'PASS' : 'FAIL';
-    if (checks.dualLogin !== 'PASS') throw new Error('DUAL_TENANT_LOGIN_PROBE_FAILED');
+    if (checks.dualLogin !== 'PASS') {
+      const detail = {
+        aStatus: loginA.status,
+        bStatus: loginB.status,
+        aCode: loginA.data && loginA.data.error && loginA.data.error.code || null,
+        bCode: loginB.data && loginB.data.error && loginB.data.error.code || null,
+        aDenial: loginA.data && loginA.data.candidateProbeDenial || null,
+        bDenial: loginB.data && loginB.data.candidateProbeDenial || null,
+        aHeaders: loginA.headers || null,
+        bHeaders: loginB.headers || null
+      };
+      throw new Error('DUAL_TENANT_LOGIN_PROBE_FAILED:' + JSON.stringify(detail));
+    }
 
 
 
