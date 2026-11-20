@@ -10,6 +10,26 @@ const SHA_RE = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
 const HASH_RE = /^[a-f0-9]{64}$/;
 const PIPELINE_RE = /^[1-9][0-9]{0,14}$/;
 const IDENTITY_SCHEMA = 'opscore.vercel-release-identity.v1';
+
+// These are real buyer-owned deliverables, not seller release failures. Keep them
+// explicit in the public proof so a technical PASS cannot imply buyer completion.
+const BUYER_RESIDUALS = Object.freeze([
+  {
+    id: 'mobileStoreArtifacts',
+    status: 'REMAINING_BUYER',
+    scope: 'Buyer-specific Android/iOS signing, native builds, physical-device QA, and app-store publication are not included.'
+  },
+  {
+    id: 'nativeTranslationReview',
+    status: 'REMAINING_BUYER',
+    scope: 'Native-speaker review and production language qualification remain 0/114 locales.'
+  },
+  {
+    id: 'licensedStreetMap',
+    status: 'REMAINING_BUYER',
+    scope: 'Licensed maps, road-routing, provider credentials, attribution, quotas, and buyer-specific acceptance remain buyer-owned.'
+  }
+]);
 function embeddedEvidencePath(fileName) {
   const embedded = path.join(__dirname, 'embedded-evidence', fileName);
   if (fs.existsSync(embedded)) return embedded;
@@ -571,6 +591,7 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
   }
   noteParts.push(signedTenantRouteCoverage.status === 'PASS' ? 'All 67 signed-session tenant routes passed the independent production route matrix on this exact commit and pipeline.' : 'Signed tenant-session coverage across all 67 required routes remains NOT_VERIFIED; this blocks production isolation certification and release verification.');
   noteParts.push('Tenant route security coverage and functional API route acceptance remain separately scoped (CI fixtures / contract-scope) and are not full business-flow certification.');
+  noteParts.push('Buyer residuals remain explicitly disclosed: mobile store artifacts, native-speaker translation review, and licensed maps/road-routing are REMAINING_BUYER; these do not invalidate the seller-reference technical release proof and do not authorize buyer use or distribution.');
   const releaseNote = noteParts.join(' ');
 
   return {
@@ -597,7 +618,10 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
       evidenceScope: 'GitHub Actions CI commit-match is bound to the embedded build identity; use pipelineUrl to inspect the full gate report.'
     },
     gates: {
-      commercialClosure: releaseVerified ? 'PASS' : 'UNVERIFIED',
+      commercialClosure: releaseVerified ? 'PASS_WITH_BUYER_RESIDUALS' : 'UNVERIFIED',
+      mobileStoreArtifacts: 'REMAINING_BUYER',
+      nativeTranslationReview: 'REMAINING_BUYER',
+      licensedStreetMap: 'REMAINING_BUYER',
       livePostgresRls: ciVerified ? 'PASS_TEST_SCOPE' : 'UNVERIFIED',
       productionSessionTenantBoundary: sessionGate,
       productionRecoveryBundle: recoveryGate,
@@ -622,6 +646,11 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
     },
     postgresHttpAcceptance,
     signedTenantRouteCoverage,
+    buyerResiduals: {
+      status: 'DISCLOSED',
+      count: BUYER_RESIDUALS.length,
+      items: BUYER_RESIDUALS
+    },
     packageFingerprint: {
       algorithm: 'SHA-256',
       status: packageVerified ? 'PUBLISHED' : 'UNVERIFIED',
