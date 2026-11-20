@@ -12,7 +12,8 @@ const {
   readProductionAcceptanceEvidence,
   readProductionSessionIsolationEvidence,
   readProductionRecoveryPointEvidence,
-  readProductionSignedTenantRouteCoverageEvidence
+  readProductionSignedTenantRouteCoverageEvidence,
+  readReleaseArchiveAttestation
 } = require('../src/release-proof');
 
 const SHA = 'bbbee88e34a9b7e1847571367904fa96a3166bcc';
@@ -879,6 +880,84 @@ test('Production session and recovery evidence bind to the explicit probe deploy
     const wrongProbePin = { ...baseEnv, OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID: 'dpl_UnrelatedProbe789' };
     assert.equal(readProductionSessionIsolationEvidence(session.path, wrongProbePin).status, 'NOT_VERIFIED');
     assert.equal(readProductionRecoveryPointEvidence(recovery.path, wrongProbePin).status, 'NOT_VERIFIED');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+
+test('release archive attestation verifies HMAC against the exact commit, pipeline and archive digest', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-release-archive-hmac-'));
+  const filePath = path.join(dir, 'RELEASE_ARCHIVE_ATTESTATION.json');
+  const key = 'unit-test-only-release-attestation-key-2026';
+  const pipelineId = '44783575124';
+  const payload = [
+    'opscore.release-archive-attestation.v1',
+    SHA,
+    pipelineId,
+    PACKAGE_SHA
+  ].join('|');
+  const signature = crypto.createHmac('sha256', key).update(payload).digest('hex');
+  const baseEvidence = {
+    schemaVersion: 'opscore.release-archive-attestation.v1',
+    status: 'PASS',
+    attestationVerified: true,
+    signatureVerified: true,
+    sourceCommit: SHA,
+    pipelineId: Number(pipelineId),
+    sha256: PACKAGE_SHA,
+    signatureAlgorithm: 'HMAC-SHA256',
+    signature,
+    attestedAt: '2026-11-20T00:00:00.000Z'
+  };
+  const env = {
+    OPSC_RELEASE_CI_COMMIT: SHA,
+    OPSC_RELEASE_CI_PIPELINE_ID: pipelineId,
+    OPSC_RELEASE_PACKAGE_SHA256: PACKAGE_SHA,
+    OPSC_RELEASE_PACKAGE_ATTESTATION_KEY: key
+  };
+  const write = value => fs.writeFileSync(filePath, JSON.stringify(value, null, 2) + '\n');
+  try {
+    write(baseEvidence);
+    const valid = readReleaseArchiveAttestation(filePath, env);
+    assert.equal(valid.status, 'PASS');
+    assert.equal(valid.signatureVerified, true);
+    assert.equal(valid.sha256, PACKAGE_SHA);
+
+    assert.equal(
+      readReleaseArchiveAttestation(filePath, { ...env, OPSC_RELEASE_PACKAGE_ATTESTATION_KEY: 'different-secret-key-material' }).status,
+      'NOT_VERIFIED',
+      'a wrong HMAC key must not pass'
+    );
+    assert.equal(
+      readReleaseArchiveAttestation(filePath, { ...env, OPSC_RELEASE_CI_COMMIT: '0'.repeat(40) }).status,
+      'NOT_VERIFIED',
+      'a signature cannot be rebound to another source commit'
+    );
+    assert.equal(
+      readReleaseArchiveAttestation(filePath, { ...env, OPSC_RELEASE_CI_PIPELINE_ID: '44783575125' }).status,
+      'NOT_VERIFIED',
+      'a signature cannot be rebound to another pipeline'
+    );
+    assert.equal(
+      readReleaseArchiveAttestation(filePath, { ...env, OPSC_RELEASE_PACKAGE_SHA256: 'f'.repeat(64) }).status,
+      'NOT_VERIFIED',
+      'a signature cannot be rebound to another archive digest'
+    );
+    assert.equal(
+      readReleaseArchiveAttestation(filePath, { ...env, OPSC_RELEASE_PACKAGE_ATTESTATION_KEY: '' }).status,
+      'NOT_VERIFIED',
+      'missing signing material must fail closed'
+    );
+
+    write({ ...baseEvidence, signature: '0'.repeat(64) });
+    assert.equal(readReleaseArchiveAttestation(filePath, env).status, 'NOT_VERIFIED');
+    write({ ...baseEvidence, signatureVerified: false });
+    assert.equal(
+      readReleaseArchiveAttestation(filePath, env).status,
+      'PASS',
+      'the verifier recomputes the HMAC and does not trust the embedded boolean flag'
+    );
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
