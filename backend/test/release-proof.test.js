@@ -158,10 +158,16 @@ test('release proof rejects environment-only CI/package claims without embedded 
     assert.equal(proof.gates.tenantRouteSecurityCoverage, 'NOT_VERIFIED');
     assert.equal(proof.gates.functionalApiRouteAcceptance, 'NOT_VERIFIED');
     assert.equal(proof.gates.productionIsolationCertification, 'NOT_CERTIFIED');
-    assert.equal(Object.hasOwn(proof.gates, 'mobileStoreArtifacts'), false);
-    assert.equal(Object.hasOwn(proof.gates, 'nativeTranslationReview'), false);
-    assert.equal(Object.hasOwn(proof.gates, 'licensedStreetMap'), false);
-    assert.doesNotMatch(proof.note, /buyer|REMAINING_BUYER/i);
+    assert.equal(proof.gates.mobileStoreArtifacts, 'REMAINING_BUYER');
+    assert.equal(proof.gates.nativeTranslationReview, 'REMAINING_BUYER');
+    assert.equal(proof.gates.licensedStreetMap, 'REMAINING_BUYER');
+    assert.equal(proof.gates.commercialClosure, 'UNVERIFIED');
+    assert.equal(proof.buyerResiduals.status, 'DISCLOSED');
+    assert.equal(proof.buyerResiduals.count, 3);
+    assert.deepEqual(proof.buyerResiduals.items.map(item => item.id), [
+      'mobileStoreArtifacts', 'nativeTranslationReview', 'licensedStreetMap'
+    ]);
+    assert.match(proof.note, /REMAINING_BUYER/);
     assert.equal(proof.productionAcceptance.evidenceSha256, null);
 
     const mismatchedDatabase = writeJsonEvidence(dir, 'mismatched-database.json',
