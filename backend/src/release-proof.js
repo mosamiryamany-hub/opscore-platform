@@ -371,28 +371,50 @@ function readProductionNativePitrEvidence(filePath = embeddedEvidencePath('PRODU
 function readReleaseArchiveAttestation(filePath = embeddedEvidencePath('RELEASE_ARCHIVE_ATTESTATION.json'), env = process.env) {
   let evidence;
   try { evidence = JSON.parse(fs.readFileSync(filePath, 'utf8')); }
-  catch { return { status: 'NOT_VERIFIED' }; }
+  catch { return { status: 'NOT_VERIFIED', reason: 'EVIDENCE_MISSING_OR_INVALID' }; }
+
   const expectedCommit = normalizedSha(env.OPSC_RELEASE_CI_COMMIT || env.CI_COMMIT_SHA || env.OPSC_SOURCE_COMMIT_SHA);
   const expectedPipelineId = String(env.OPSC_RELEASE_CI_PIPELINE_ID || env.GITHUB_RUN_ID || '').trim();
   const packageSha = String(env.OPSC_RELEASE_PACKAGE_SHA256 || '').trim().toLowerCase();
-  const ok = evidence.schemaVersion === 'opscore.release-archive-attestation.v1'
-    && evidence.status === 'PASS'
-    && evidence.attestationVerified === true
-    && evidence.signatureVerified === true
-    && normalizedSha(evidence.sourceCommit) === expectedCommit
-    && PIPELINE_RE.test(expectedPipelineId)
-    && String(evidence.pipelineId || '') === expectedPipelineId
-    && HASH_RE.test(String(evidence.sha256 || ''))
-    && (!packageSha || String(evidence.sha256).toLowerCase() === packageSha);
-  if (!ok) return { status: 'NOT_VERIFIED' };
+  const keyMaterial = String(env.OPSC_RELEASE_PACKAGE_ATTESTATION_KEY || '').trim();
+  const signature = String(evidence.signature || '').trim().toLowerCase();
+
+  const metadataBound = Boolean(
+    evidence.schemaVersion === 'opscore.release-archive-attestation.v1' &&
+    evidence.status === 'PASS' &&
+    evidence.signatureAlgorithm === 'HMAC-SHA256' &&
+    expectedCommit &&
+    normalizedSha(evidence.sourceCommit) === expectedCommit &&
+    PIPELINE_RE.test(expectedPipelineId) &&
+    String(evidence.pipelineId || '') === expectedPipelineId &&
+    HASH_RE.test(packageSha) &&
+    HASH_RE.test(String(evidence.sha256 || '')) &&
+    String(evidence.sha256).toLowerCase() === packageSha &&
+    /^[a-f0-9]{64}$/.test(signature) &&
+    keyMaterial.length >= 32
+  );
+  if (!metadataBound) return { status: 'NOT_VERIFIED', reason: 'ATTESTATION_METADATA_OR_KEY_INVALID' };
+
+  const payload = [
+    'opscore.release-archive-attestation.v1',
+    expectedCommit,
+    expectedPipelineId,
+    packageSha
+  ].join('|');
+  const expectedSignature = crypto.createHmac('sha256', keyMaterial).update(payload).digest();
+  const actualSignature = Buffer.from(signature, 'hex');
+  const signatureVerified = actualSignature.length === expectedSignature.length &&
+    crypto.timingSafeEqual(actualSignature, expectedSignature);
+  if (!signatureVerified) return { status: 'NOT_VERIFIED', reason: 'HMAC_SIGNATURE_INVALID' };
+
   return {
     status: 'PASS',
     attestationVerified: true,
     signatureVerified: true,
-    sourceCommit: normalizedSha(evidence.sourceCommit),
-    pipelineId: Number(evidence.pipelineId),
-    sha256: String(evidence.sha256).toLowerCase(),
-    signatureAlgorithm: evidence.signatureAlgorithm || null,
+    sourceCommit: expectedCommit,
+    pipelineId: Number(expectedPipelineId),
+    sha256: packageSha,
+    signatureAlgorithm: 'HMAC-SHA256',
     attestedAt: evidence.attestedAt || null
   };
 }
