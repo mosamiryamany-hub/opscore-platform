@@ -516,8 +516,18 @@ async function main() {
       }
     }
 
-    for (let index = 0; index < referenceNames.length; index++) {
-      const tableName = referenceNames[index];
+    // Keep the full relation inventory above for schema/RLS policy comparison,
+    // but hash each physical storage relation exactly once. Partitioned parents
+    // are represented by their physical leaf partitions (relkind='r'), avoiding
+    // double-counting rows exposed through both the parent and its partitions.
+    const physicalTableNames = referenceCatalog.tables
+      .filter(row => row.relation_kind === 'r')
+      .map(row => row.table_name);
+    if (physicalTableNames.length < 130) {
+      throw new Error('RECOVERY_PHYSICAL_TABLE_COUNT_BELOW_REQUIRED_BASELINE');
+    }
+    for (let index = 0; index < physicalTableNames.length; index++) {
+      const tableName = physicalTableNames[index];
       const sourceData = await streamTableDigest(referenceUri, tableName);
       const restoredData = await streamTableDigest(recoveryUri, tableName);
       const status = sourceData.rowCount === restoredData.rowCount && sourceData.sha256 === restoredData.sha256
