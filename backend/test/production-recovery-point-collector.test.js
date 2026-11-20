@@ -56,8 +56,8 @@ test('every physical public table is content-hashed with duplicate-preserving de
   assert.match(collector, /sourceData\.sha256 === restoredData\.sha256/);
   assert.match(collector, /sourceData\.rowCount === restoredData\.rowCount/);
   assert.match(collector, /c\.relkind IN \('r','p'\)/);
-  assert.match(collector, /Partitioned parents/);
-  assert.match(collector, /physical leaf partitions/);
+  assert.ok(collector.includes('Partitioned parents'));
+  assert.ok(collector.includes('physical leaf partitions'));
   assert.match(collector, /RECOVERY_PHYSICAL_TABLE_COUNT_BELOW_REQUIRED_BASELINE/);
 });
 
