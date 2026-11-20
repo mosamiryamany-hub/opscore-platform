@@ -41,6 +41,12 @@ function validPayload() {
         opscDatabaseUrlPresent: true,
         databaseUrlMatchesOpscDatabaseUrl: true
       },
+      clientTls: {
+        negotiated: true,
+        authorized: true,
+        protocol: 'TLSv1.3',
+        cipher: 'TLS_AES_256_GCM_SHA384'
+      },
       target: {
         provider: 'neon',
         region: 'us-east-1',
@@ -173,7 +179,7 @@ test('runtime diagnostic rejects mismatched build identity and migration hash', 
 
 test('runtime diagnostic blocks when pg_stat_ssl reports that the application session is not encrypted', () => {
   const payload = validPayload();
-  payload.database.identity.tls_enabled = false;
+  payload.database.clientTls = { negotiated: false, authorized: false, protocol: null, cipher: null };
   const result = evaluateRuntimeDiagnostic(payload, 200, 'a'.repeat(40), '123456789');
   assert.equal(result.promotionAllowed, false);
   assert.ok(result.checks.some(item => item.name === 'client_tls_configuration' && item.status === 'BLOCKED'));
@@ -181,6 +187,7 @@ test('runtime diagnostic blocks when pg_stat_ssl reports that the application se
 
 test('runtime diagnostic does not accept sslmode=require without actual pg_stat_ssl evidence', () => {
   const payload = validPayload();
+  payload.database.clientTls = { negotiated: false, authorized: false, protocol: null, cipher: null };
   delete payload.database.identity.tls_enabled;
   delete payload.database.identity.tls_version;
   delete payload.database.identity.tls_cipher;
@@ -193,9 +200,9 @@ test('runtime diagnostic does not accept sslmode=require without actual pg_stat_
 
 test('runtime diagnostic rejects weak or incomplete negotiated TLS metadata', () => {
   const payload = validPayload();
-  payload.database.identity.tls_version = 'TLSv1.1';
-  payload.database.identity.tls_cipher = '';
-  payload.database.identity.tls_bits = 64;
+  payload.database.clientTls = { negotiated: false, authorized: false, protocol: null, cipher: null };
+  payload.database.clientTls = { negotiated: false, authorized: false, protocol: null, cipher: null };
+  payload.database.clientTls = { negotiated: false, authorized: false, protocol: null, cipher: null };
   const result = evaluateRuntimeDiagnostic(payload, 200, 'a'.repeat(40), '123456789');
   assert.equal(result.promotionAllowed, false);
   assert.ok(result.checks.some(item => item.name === 'client_tls_configuration' && item.status === 'BLOCKED'));

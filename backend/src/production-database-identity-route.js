@@ -71,7 +71,16 @@ function sanitizeIdentityReport(report) {
   const ledger = value.migrationLedger || {};
   const count = candidate => Number.isSafeInteger(candidate) && candidate >= 0 ? candidate : null;
 
+  const clientTls = value.clientTls || {};
+
   return {
+    clientTls: {
+      negotiated: clientTls.negotiated === true,
+      authorized: clientTls.authorized === true,
+      protocol: safeString(clientTls.protocol, 32),
+      cipher: safeString(clientTls.cipher, 128),
+      bits: count(clientTls.bits)
+    },
     schemaVersion: safeString(value.schemaVersion, 96),
     checkedAt: safeString(value.checkedAt, 48),
     status: safeCode(value.status),

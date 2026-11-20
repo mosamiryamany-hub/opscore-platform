@@ -193,12 +193,37 @@ async function inspectDatabase(env = process.env) {
     keepAlive: true
   });
 
+  // pg_stat_ssl describes the SERVER-side view of the session. On managed
+  // providers (Neon) every connection enters through a TLS-terminating proxy,
+  // so the backend session is plaintext from Postgres's perspective and
+  // pg_stat_ssl reports ssl=false even though the wire between this process
+  // and the provider IS encrypted and certificate-verified. The trustworthy
+  // client-side evidence is the negotiated TLSSocket itself: protocol,
+  // cipher, key bits, and whether the certificate chain was authorized.
   let connected = false;
   let transactionOpen = false;
+  let clientTls = { negotiated: false, authorized: false, protocol: null, cipher: null, bits: null };
 
   try {
     await client.connect();
     connected = true;
+    const probeStream = client.connection && client.connection.stream;
+    if (probeStream && typeof probeStream.getProtocol === 'function') {
+      const cipher = typeof probeStream.getCipher === 'function' ? probeStream.getCipher() : null;
+      clientTls = {
+        negotiated: true,
+        authorized: probeStream.authorized === true,
+        protocol: /^[A-Za-z0-9.]{1,32}$/.test(String(probeStream.getProtocol() || '')) ? probeStream.getProtocol() : null,
+        cipher: cipher && /^[A-Za-z0-9_.-]{1,128}$/.test(String(cipher.name || '')) ? cipher.name : null,
+        bits: cipher && Number.isSafeInteger(cipher.version) ? null : (cipher && Number.isSafeInteger(cipher.bits) ? cipher.bits : null)
+      };
+      if (clientTls.bits === null && cipher && /^[A-Za-z0-9_.-]{1,64}$/.test(String(cipher.version || ''))) {
+        // Node's getCipher() exposes the TLS protocol version as `version`, not
+        // key bits; keep bits null rather than misreporting it.
+        clientTls.bits = null;
+      }
+    }
+    report.clientTls = clientTls;
     await client.query('BEGIN READ ONLY');
     transactionOpen = true;
 
