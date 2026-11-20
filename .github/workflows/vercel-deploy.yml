@@ -1045,7 +1045,7 @@ jobs:
           test -f "$ENV_FILE"
           # vercel pull keeps local-only keys that are not in the Production environment.
           # Candidate probe keys must not remain in the restored local snapshot comparison.
-          for key in OPSC_PRODUCTION_CANDIDATE_MODE OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN OPSC_REQUIRE_SIGNED_TENANT_CONTEXT OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED; do
+          for key in OPSC_PRODUCTION_CANDIDATE_MODE OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN; do
             sed -i "/^${key}=/d" "$ENV_FILE"
             sed -i "/^export ${key}=/d" "$ENV_FILE"
           done
