@@ -7,6 +7,10 @@ on:
         description: Exact commit reported by https://opscore-platform.vercel.app/api/verify/release
         required: true
         type: string
+      expected_production_deployment_id:
+        description: Exact dpl_ deployment ID reported by the canonical Production release proof
+        required: true
+        type: string
       production_database_name:
         description: Exact application database name independently confirmed for the configured Production Neon branch
         required: true
@@ -59,7 +63,7 @@ jobs:
           OPSC_PRODUCTION_OWNER_ROLE: ${{ inputs.production_owner_role }}
           OPSC_PRODUCTION_HTTP_BASE: https://opscore-platform.vercel.app
           OPSC_EXPECTED_PRODUCTION_COMMIT_SHA: ${{ inputs.expected_production_commit_sha }}
-          OPSC_EVIDENCE_ALLOW_MISSING_DEPLOYMENT_ID: "true"
+          OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID: ${{ inputs.expected_production_deployment_id }}
           OPSC_NEON_BRANCH_LIMIT: ${{ inputs.neon_branch_limit }}
           OPSC_PRODUCTION_PITR_LOOKBACK_SECONDS: '300'
           GITHUB_SHA: ${{ github.sha }}
@@ -100,7 +104,7 @@ jobs:
           OPSC_PRODUCTION_OWNER_ROLE: ${{ inputs.production_owner_role }}
           OPSC_PRODUCTION_HTTP_BASE: https://opscore-platform.vercel.app
           OPSC_EXPECTED_PRODUCTION_COMMIT_SHA: ${{ inputs.expected_production_commit_sha }}
-          OPSC_EVIDENCE_ALLOW_MISSING_DEPLOYMENT_ID: "true"
+          OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID: ${{ inputs.expected_production_deployment_id }}
           GITHUB_SHA: ${{ github.sha }}
         run: node backend/scripts/collect-production-session-isolation.js
       - name: Upload session-isolation evidence
