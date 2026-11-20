@@ -298,13 +298,56 @@ function readProductionRecoveryPointEvidence(filePath = embeddedEvidencePath('PR
   const cleanupVerified = evidence.temporaryBranch === true
     && evidence.cleanup && evidence.cleanup.status === 'PASS'
     && evidence.cleanup.recoveryBranchDeleted === true;
+  const contentIntegrity = evidence.contentIntegrity && typeof evidence.contentIntegrity === 'object'
+    ? evidence.contentIntegrity
+    : {};
+  const tableResults = Array.isArray(contentIntegrity.tableResults) ? contentIntegrity.tableResults : [];
+  const seenTables = new Set();
+  const tableContentValid = tableResults.length >= 130 && tableResults.every(row => {
+    if (!row || typeof row !== 'object' || row.schema !== 'public') return false;
+    const table = String(row.table || '');
+    const sourceHash = String(row.sourceSha256 || '').toLowerCase();
+    const recoveryHash = String(row.recoverySha256 || '').toLowerCase();
+    const sourceRows = Number(row.sourceRowCount);
+    const recoveryRows = Number(row.recoveryRowCount);
+    const valid = /^[a-zA-Z_][a-zA-Z0-9_]{0,62}$/.test(table)
+      && !seenTables.has(table)
+      && HASH_RE.test(sourceHash)
+      && HASH_RE.test(recoveryHash)
+      && sourceHash === recoveryHash
+      && Number.isSafeInteger(sourceRows)
+      && sourceRows >= 0
+      && sourceRows === recoveryRows
+      && row.status === 'PASS';
+    if (valid) seenTables.add(table);
+    return valid;
+  });
+  const contentManifestMatch = HASH_RE.test(String(contentIntegrity.sourceManifestSha256 || ''))
+    && HASH_RE.test(String(contentIntegrity.recoveryManifestSha256 || ''))
+    && String(contentIntegrity.sourceManifestSha256).toLowerCase() === String(contentIntegrity.recoveryManifestSha256).toLowerCase();
+  const comparedRowsTotal = tableResults.reduce((total, row) => total + Number(row && row.sourceRowCount), 0);
+  const contentIntegrityValid = contentIntegrity.status === 'PASS'
+    && contentIntegrity.algorithm === 'SHA-256'
+    && Number(contentIntegrity.tableCountCompared) >= 130
+    && Number(contentIntegrity.tableCountCompared) === tableResults.length
+    && Number(contentIntegrity.tableCountCompared) === Number(evidence.tableCountCompared)
+    && Number.isSafeInteger(Number(contentIntegrity.rowsCompared))
+    && Number(contentIntegrity.rowsCompared) > 0
+    && Number(contentIntegrity.rowsCompared) === comparedRowsTotal
+    && Number(contentIntegrity.mismatchCount) === 0
+    && Number(contentIntegrity.rlsPolicyTableCount) >= 135
+    && Number(contentIntegrity.rlsPolicyMismatchCount) === 0
+    && Number(contentIntegrity.forceRlsMismatchCount) === 0
+    && contentManifestMatch
+    && tableContentValid;
   const scopeValid = Boolean(expectedDatabaseName)
-    && evidence.schemaVersion === 'opscore.production-recovery-point.v3'
+    && evidence.schemaVersion === 'opscore.production-recovery-point.v4'
     && evidence.databaseName === expectedDatabaseName
-    && evidence.verificationScope === 'branch-clone-public-table-count-and-core-tenant-row-counts-only'
+    && evidence.verificationScope === 'branch-clone-public-full-table-content-hash-and-core-tenant-row-counts'
     && evidence.coreTenantTableRowCountsMatch === true
     && Number(evidence.tableCountCompared) >= 130
     && Number(evidence.mismatchCount) === 0
+    && contentIntegrityValid
     && typeof evidence.recoveryBranchId === 'string'
     && /^[a-z0-9-]{8,80}$/.test(evidence.recoveryBranchId)
     && cleanupVerified;
@@ -341,13 +384,72 @@ function readProductionNativePitrEvidence(filePath = embeddedEvidencePath('PRODU
   const expectedParentBranchId = String(env.OPSC_PRODUCTION_NEON_BRANCH_ID || '').trim();
   const commitBound = /^[a-f0-9]{40}$/.test(expectedCommit || '') && normalizedSha(evidence.sourceCommit) === expectedCommit;
   const pipelineBound = PIPELINE_RE.test(expectedPipelineId) && String(evidence.pipelineId || '') === expectedPipelineId;
-  const sourceBranchBound = !expectedParentBranchId || String(evidence.sourceBranchId || '').trim() === expectedParentBranchId;
-  const ok = evidence.schemaVersion === 'opscore.production-native-pitr.v1'
+  const sourceBranchBound = /^[a-z0-9-]{8,80}$/.test(expectedParentBranchId)
+    && String(evidence.sourceBranchId || '').trim() === expectedParentBranchId;
+  const expectedDatabaseName = String(env.OPSC_PRODUCTION_DATABASE_NAME || '').trim();
+  const contentIntegrity = evidence.contentIntegrity && typeof evidence.contentIntegrity === 'object'
+    ? evidence.contentIntegrity
+    : {};
+  const restoreStartedAt = Date.parse(String(evidence.restoreStartedAt || ''));
+  const restoreCompletedAt = Date.parse(String(evidence.restoreCompletedAt || ''));
+  const targetTimestampMs = Date.parse(String(evidence.targetTimestampUtc || ''));
+  const pitrTableResults = Array.isArray(contentIntegrity.tableResults) ? contentIntegrity.tableResults : [];
+  const seenPitrTables = new Set();
+  const pitrTableContentValid = pitrTableResults.length >= 130 && pitrTableResults.every(row => {
+    if (!row || typeof row !== 'object' || row.schema !== 'public') return false;
+    const table = String(row.table || '');
+    const sourceHash = String(row.sourceSha256 || '').toLowerCase();
+    const restoredHash = String(row.restoredSha256 || '').toLowerCase();
+    const sourceRows = Number(row.sourceRowCount);
+    const restoredRows = Number(row.restoredRowCount);
+    const valid = /^[a-zA-Z_][a-zA-Z0-9_]{0,62}$/.test(table)
+      && !seenPitrTables.has(table)
+      && row.status === 'PASS'
+      && HASH_RE.test(sourceHash)
+      && HASH_RE.test(restoredHash)
+      && sourceHash === restoredHash
+      && Number.isSafeInteger(sourceRows)
+      && sourceRows >= 0
+      && sourceRows === restoredRows;
+    if (valid) seenPitrTables.add(table);
+    return valid;
+  });
+  const pitrRowsCompared = pitrTableResults.reduce((total, row) => total + Number(row && row.sourceRowCount), 0);
+  const contentIntegrityValid = Boolean(
+    contentIntegrity.status === 'PASS' &&
+    contentIntegrity.algorithm === 'SHA-256' &&
+    Number(contentIntegrity.tableCountCompared) >= 130 &&
+    Number(contentIntegrity.tableCountCompared) === pitrTableResults.length &&
+    Number.isSafeInteger(Number(contentIntegrity.rowsCompared)) &&
+    Number(contentIntegrity.rowsCompared) > 0 &&
+    Number(contentIntegrity.rowsCompared) === pitrRowsCompared &&
+    Number(contentIntegrity.mismatchCount) === 0 &&
+    Number(contentIntegrity.rlsPolicyTableCount) >= 135 &&
+    Number(contentIntegrity.rlsPolicyMismatchCount) === 0 &&
+    Number(contentIntegrity.forceRlsMismatchCount) === 0 &&
+    HASH_RE.test(String(contentIntegrity.sourceManifestSha256 || '')) &&
+    HASH_RE.test(String(contentIntegrity.restoredManifestSha256 || '')) &&
+    String(contentIntegrity.sourceManifestSha256).toLowerCase() === String(contentIntegrity.restoredManifestSha256).toLowerCase() &&
+    pitrTableContentValid
+  );
+  const ok = evidence.schemaVersion === 'opscore.production-native-pitr.v2'
     && evidence.status === 'PASS'
     && evidence.environment === 'production'
     && evidence.mechanism === 'NEON_INSTANT_RESTORE_FROM_HISTORY'
     && evidence.dataIntegrity === 'PASS'
-    && Boolean(evidence.targetTimestampUtc && evidence.restoredBranchId && evidence.sourceBranchId)
+    && evidence.verificationScope === 'production-root-historical-branch-full-data-content-hash-and-rls-match'
+    && expectedDatabaseName.length > 0
+    && evidence.databaseName === expectedDatabaseName
+    && contentIntegrityValid
+    && Number.isFinite(targetTimestampMs)
+    && Number.isFinite(restoreStartedAt)
+    && Number.isFinite(restoreCompletedAt)
+    && targetTimestampMs <= restoreStartedAt
+    && restoreCompletedAt >= restoreStartedAt
+    && restoreCompletedAt <= Date.now()
+    && /^br-[a-z0-9-]{8,80}$/.test(String(evidence.restoredBranchId || ''))
+    && /^br-[a-z0-9-]{8,80}$/.test(String(evidence.sourceBranchId || ''))
+    && evidence.restoredBranchId !== evidence.sourceBranchId
     && HASH_RE.test(String(evidence.evidenceSha256 || ''))
     && commitBound && pipelineBound && sourceBranchBound;
   if (!ok) return { status: 'NOT_VERIFIED' };
@@ -364,7 +466,15 @@ function readProductionNativePitrEvidence(filePath = embeddedEvidencePath('PRODU
     pipelineId: String(evidence.pipelineId || ''),
     evidenceSha256: String(evidence.evidenceSha256),
     testedAt: evidence.testedAt || null,
-    verificationScope: evidence.verificationScope || null
+    verificationScope: evidence.verificationScope || null,
+    contentIntegrity: {
+      status: contentIntegrity.status || 'NOT_VERIFIED',
+      algorithm: contentIntegrity.algorithm || null,
+      tableCountCompared: Number(contentIntegrity.tableCountCompared) || null,
+      rowsCompared: Number(contentIntegrity.rowsCompared) || null,
+      mismatchCount: Number(contentIntegrity.mismatchCount),
+      manifestMatched: contentIntegrityValid
+    }
   };
 }
 
@@ -638,8 +748,10 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
     signedTenantRouteCoveragePath || undefined,
     proofEnv
   );
+  const nativePitr = readProductionNativePitrEvidence(undefined, proofEnv);
   const isolationCertified = sessionIsolation.status === 'PASS'
     && recoveryPoint.status === 'PASS'
+    && nativePitr.status === 'PASS'
     && signedTenantRouteCoverage.status === 'PASS'
     && acceptanceVerified
     && String(proofEnv.OPSC_PRODUCTION_ISOLATION_CERTIFICATION || '').trim().toUpperCase() === 'CERTIFIED';
@@ -653,16 +765,17 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
     deployment.source.ref === 'main' &&
     postgresHttpAcceptance.status === 'PASS' &&
     acceptanceVerified &&
-    isolationCertified
+    isolationCertified &&
+    nativePitr.status === 'PASS' &&
+    apiRouteAcceptance.status === 'PASS_PRODUCTION_FUNCTIONAL_SCOPE'
   );
 
   const sessionGate = sessionIsolation.status === 'PASS' ? 'PASS_PRODUCTION_PROBE_SCOPE' : (acceptanceVerified ? 'PASS_TEST_SCOPE' : 'NOT_VERIFIED');
-  const recoveryGate = recoveryPoint.status === 'PASS' ? 'PASS_PRODUCTION_ROW_COUNT_SCOPE' : (acceptanceVerified ? 'PASS_TEST_SCOPE' : 'NOT_VERIFIED');
-  const nativePitr = readProductionNativePitrEvidence(undefined, proofEnv);
+  const recoveryGate = recoveryPoint.status === 'PASS' ? 'PASS_PRODUCTION_FULL_DATA_RECOVERY_SCOPE' : (acceptanceVerified ? 'PASS_TEST_SCOPE' : 'NOT_VERIFIED');
   const archiveAttestation = readReleaseArchiveAttestation(undefined, proofEnv);
   const pitrGate = nativePitr.status === 'PASS'
-    ? 'PASS_PRODUCTION_PITR'
-    : (recoveryPoint.status === 'PASS' ? 'PASS_BRANCH_POINT' : 'NOT_VERIFIED');
+    ? 'PASS_PRODUCTION_FULL_DATA_PITR_SCOPE'
+    : 'NOT_VERIFIED';
   const noteParts = [
     'Release evidence is bound to the source commit reported by the running Vercel deployment.'
   ];
@@ -672,9 +785,14 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
     noteParts.push('Tenant session boundary remains test-scope unless production dual-tenant HTTP session evidence is present and activated.');
   }
   if (recoveryPoint.status === 'PASS') {
-    noteParts.push('Production recovery-point row-count scope passed for the configured application database. It is not row-content equality, PITR, or full RPO/RTO certification.');
+    noteParts.push('Production recovery branch content-integrity scope passed for the configured application database: complete public-table inventory, deterministic SHA-256 content manifests, per-table row counts, and zero mismatches. This remains distinct from RPO/RTO measurement.');
   } else {
-    noteParts.push('PostgreSQL logical restore in CI remains test-scope only until a production recovery-point evidence file validates.');
+    noteParts.push('Production recovery content integrity is NOT_VERIFIED. Core row-count-only evidence and disposable PostgreSQL logical restore in CI do not satisfy the Production full-data recovery gate.');
+  }
+  if (nativePitr.status === 'PASS') {
+    noteParts.push('Production native Neon PITR passed the full-data content-hash and RLS comparison contract on the exact source branch, database, commit and pipeline.');
+  } else {
+    noteParts.push('Production native Neon PITR full-data verification is NOT_VERIFIED; historical schema/catalog-only probe evidence is insufficient.');
   }
   if (isolationCertified) {
     noteParts.push('productionIsolationCertification is CERTIFIED only when the v2 live probes, v2 recovery-point evidence, all 67 signed-session route results, same-commit/same-pipeline identity, acceptance proof, and the explicit certification flag all pass together.');
@@ -682,7 +800,11 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
     noteParts.push('productionIsolationCertification remains NOT_CERTIFIED until all 67 signed-session routes are verified in Production, in addition to the v2 live probes, exact-database recovery-point evidence, commit-bound acceptance, and certification flag.');
   }
   noteParts.push(signedTenantRouteCoverage.status === 'PASS' ? 'All 67 signed-session tenant routes passed the independent production route matrix on this exact commit and pipeline.' : 'Signed tenant-session coverage across all 67 required routes remains NOT_VERIFIED; this blocks production isolation certification and release verification.');
-  noteParts.push('Tenant route security coverage and functional API route acceptance remain separately scoped (CI fixtures / contract-scope) and are not full business-flow certification.');
+  if (apiRouteAcceptance.status === 'PASS_PRODUCTION_FUNCTIONAL_SCOPE') {
+    noteParts.push('Full API route and business-flow acceptance passed against the exact Production deployment and PostgreSQL database, with source commit, pipeline, deployment identity, route inventory and flow inventory bound together.');
+  } else {
+    noteParts.push('Full Production PostgreSQL HTTP route and business-flow acceptance is NOT_VERIFIED. SQLite route-contract evidence (PASS_CONTRACT_SCOPE), missing evidence, Preview evidence, or evidence for another deployment cannot satisfy this release gate.');
+  }
   noteParts.push('Buyer residuals remain explicitly disclosed: mobile store artifacts, native-speaker translation review, and licensed maps/road-routing are REMAINING_BUYER; these do not invalidate the seller-reference technical release proof and do not authorize buyer use or distribution.');
   const releaseNote = noteParts.join(' ');
 
@@ -770,12 +892,12 @@ function hasVerifiedProductionRelease(env = process.env, identityPath, productio
     proof.postgresHttpAcceptance.status === 'PASS' &&
     proof.productionAcceptance.status === 'PASS' &&
     ['PASS_TEST_SCOPE', 'PASS_PRODUCTION_PROBE_SCOPE'].includes(proof.gates.productionSessionTenantBoundary) &&
-    ['PASS_TEST_SCOPE', 'PASS_PRODUCTION_ROW_COUNT_SCOPE'].includes(proof.gates.productionRecoveryBundle) &&
+    proof.gates.productionRecoveryBundle === 'PASS_PRODUCTION_FULL_DATA_RECOVERY_SCOPE' &&
     proof.gates.signedTenantSessionRouteCoverage === 'PASS_PRODUCTION_ROUTE_SCOPE' &&
     proof.gates.productionIsolationCertification === 'CERTIFIED' &&
     proof.gates.tenantRouteSecurityCoverage === 'PASS_TEST_SCOPE' &&
-    ['NOT_VERIFIED', 'PASS_CONTRACT_SCOPE'].includes(proof.gates.functionalApiRouteAcceptance) &&
-    ['NOT_VERIFIED', 'PASS_BRANCH_POINT', 'PASS_PRODUCTION_PITR', 'PASS_PITR'].includes(proof.gates.neonPointInTimeRecovery);
+    proof.gates.functionalApiRouteAcceptance === 'PASS_PRODUCTION_FUNCTIONAL_SCOPE' &&
+    proof.gates.neonPointInTimeRecovery === 'PASS_PRODUCTION_FULL_DATA_PITR_SCOPE';
 }
 
 function readCurrentApiRouteAcceptance(env = process.env, filePath = embeddedEvidencePath('API_ROUTE_ACCEPTANCE_RESULT.json')) {
@@ -783,8 +905,19 @@ function readCurrentApiRouteAcceptance(env = process.env, filePath = embeddedEvi
   try {
     evidence = JSON.parse(fs.readFileSync(filePath, 'utf8'));
   } catch {
-    return { status: 'NOT_VERIFIED', testedAt: null, evidenceCommit: null, evidencePipelineId: null, testedRoutes: null, failed: null };
+    return {
+      status: 'NOT_VERIFIED',
+      scope: 'MISSING_OR_UNREADABLE_EVIDENCE',
+      testedAt: null,
+      evidenceCommit: null,
+      evidencePipelineId: null,
+      deploymentId: null,
+      testedRoutes: null,
+      testedFlows: null,
+      failed: null
+    };
   }
+
   const status = String(evidence.status || '');
   const expectedCommit = normalizedSha(env.OPSC_RELEASE_CI_COMMIT || env.CI_COMMIT_SHA);
   const expectedPipelineId = String(env.OPSC_RELEASE_CI_PIPELINE_ID || env.CI_PIPELINE_ID || '').trim();
@@ -793,7 +926,11 @@ function readCurrentApiRouteAcceptance(env = process.env, filePath = embeddedEvi
   const testedRoutes = Number(evidence.testedRoutes);
   const inventoryRouteCount = Number(evidence.inventoryRouteCount);
   const passed = Number(evidence.passed);
-  const exactMatch = Boolean(
+  const failed = Number(evidence.failed);
+
+  // Legacy SQLite route checks are contract evidence only. They must never be
+  // treated as live PostgreSQL functional acceptance for a seller Production release.
+  const contractMatch = Boolean(
     evidence.schemaVersion === 'opscore.api-route-acceptance.v1' &&
     evidence.engine === 'sqlite' &&
     status === 'PASS' &&
@@ -805,15 +942,80 @@ function readCurrentApiRouteAcceptance(env = process.env, filePath = embeddedEvi
     testedRoutes >= 300 &&
     testedRoutes === inventoryRouteCount &&
     passed === testedRoutes &&
-    Number(evidence.failed) === 0
+    failed === 0
   );
+  if (contractMatch) {
+    return {
+      status: 'PASS_CONTRACT_SCOPE',
+      scope: 'SQLITE_ROUTE_CONTRACT_ONLY',
+      testedAt: String(evidence.generatedAt || ''),
+      evidenceCommit,
+      evidencePipelineId,
+      deploymentId: null,
+      testedRoutes,
+      testedFlows: null,
+      failed
+    };
+  }
+
+  const expectedDeploymentId = String(
+    env.OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID || env.VERCEL_DEPLOYMENT_ID || ''
+  ).trim();
+  const runtimeDeploymentId = String(env.VERCEL_DEPLOYMENT_ID || '').trim();
+  const expectedDatabaseName = String(env.OPSC_PRODUCTION_DATABASE_NAME || '').trim();
+  const businessFlows = evidence.businessFlowCoverage && typeof evidence.businessFlowCoverage === 'object'
+    ? evidence.businessFlowCoverage
+    : {};
+  const testedFlows = Number(businessFlows.testedFlows);
+  const inventoryFlowCount = Number(businessFlows.inventoryFlowCount);
+  const passedFlows = Number(businessFlows.passed);
+  const failedFlows = Number(businessFlows.failed);
+  const inventorySha256 = String(evidence.inventorySha256 || '').trim().toLowerCase();
+  const testedAt = String(evidence.testedAt || '').trim();
+  const testedAtMs = testedAt ? Date.parse(testedAt) : NaN;
+  const productionMatch = Boolean(
+    evidence.schemaVersion === 'opscore.api-route-acceptance.v2' &&
+    evidence.engine === 'postgres' &&
+    evidence.environment === 'production' &&
+    evidence.verificationScope === 'PRODUCTION_POSTGRESQL_HTTP_FULL_ROUTE_AND_BUSINESS_FLOW_INVENTORY' &&
+    status === 'PASS' &&
+    expectedCommit &&
+    evidenceCommit === expectedCommit &&
+    PIPELINE_RE.test(expectedPipelineId) &&
+    evidencePipelineId === expectedPipelineId &&
+    /^dpl_[A-Za-z0-9]+$/.test(expectedDeploymentId) &&
+    evidence.deploymentId === expectedDeploymentId &&
+    (!runtimeDeploymentId || evidence.deploymentId === runtimeDeploymentId) &&
+    expectedDatabaseName.length > 0 &&
+    evidence.databaseName === expectedDatabaseName &&
+    Number.isSafeInteger(testedRoutes) &&
+    testedRoutes >= 300 &&
+    testedRoutes === inventoryRouteCount &&
+    passed === testedRoutes &&
+    failed === 0 &&
+    HASH_RE.test(inventorySha256) &&
+    businessFlows.status === 'PASS' &&
+    Number.isSafeInteger(testedFlows) &&
+    testedFlows > 0 &&
+    testedFlows === inventoryFlowCount &&
+    passedFlows === testedFlows &&
+    failedFlows === 0 &&
+    Number.isFinite(testedAtMs) &&
+    testedAtMs <= Date.now()
+  );
+
   return {
-    status: exactMatch ? 'PASS_CONTRACT_SCOPE' : 'NOT_VERIFIED',
-    testedAt: exactMatch ? String(evidence.generatedAt || '') : null,
-    evidenceCommit: exactMatch ? evidenceCommit : null,
-    evidencePipelineId: exactMatch ? evidencePipelineId : null,
-    testedRoutes: exactMatch ? Number(evidence.testedRoutes) : null,
-    failed: exactMatch ? Number(evidence.failed) : null
+    status: productionMatch ? 'PASS_PRODUCTION_FUNCTIONAL_SCOPE' : 'NOT_VERIFIED',
+    scope: productionMatch ? evidence.verificationScope : 'PRODUCTION_FULL_FUNCTIONAL_SCOPE_NOT_PROVEN',
+    testedAt: productionMatch ? new Date(testedAtMs).toISOString() : null,
+    evidenceCommit: productionMatch ? evidenceCommit : null,
+    evidencePipelineId: productionMatch ? evidencePipelineId : null,
+    deploymentId: productionMatch ? evidence.deploymentId : null,
+    databaseName: productionMatch ? evidence.databaseName : null,
+    inventorySha256: productionMatch ? inventorySha256 : null,
+    testedRoutes: productionMatch ? testedRoutes : null,
+    testedFlows: productionMatch ? testedFlows : null,
+    failed: productionMatch ? failed : null
   };
 }
 

@@ -1,55 +1,62 @@
 # OpsCore — Technical and Commercial Closure Status
 
-**Technical classification (seller-reference):** Owner-measured live release proof on 2026-11-20 reports `PASS` for source `2dbafb74e0812552a316e3b50588abb6467b081d`, pipeline `44756093116`, with 67/67 signed tenant routes and deployment-bound acceptance. This is a timestamped seller-deployment observation, not a transferable buyer certification. The public proof must report `gates.commercialClosure=PASS_WITH_BUYER_RESIDUALS` while the three buyer-owned deliverables remain open.
+**Reconciled:** 2026-11-21  
+**Current main:** `b4f3bc81135acbf1bbe7262a0ae58b3573cddf82`  
+**Current classification:** `HOLD — SELLER RELEASE NOT CERTIFIED`  
+**Buyer-specific qualification:** `NOT_ESTABLISHED`  
+**Buyer environment:** `NOT_VERIFIED` — seller evidence does not transfer to buyer infrastructure.
 
-**Buyer-environment isolation / transfer:** `NOT_VERIFIED` until the buyer’s own environment is measured. Seller runtime CERTIFIED does not transfer.
+## Exact current release evidence
 
+| Control | Current verified value | Interpretation |
+|---|---|---|
+| GitHub main | `b4f3bc81135acbf1bbe7262a0ae58b3573cddf82` | Signed main commit |
+| GitHub workflow | `44808632964` | Overall success in `CANDIDATE_EVIDENCE_ONLY` mode |
+| Production certification | `false` | Explicit workflow output |
+| Production promotion | `false` | No production promotion occurred |
+| Production environment | Restored | Candidate workflow restored its pre-run Production environment |
+| Vercel candidate | `dpl_4vSUfZX9p1iwbbyGQV3hoPUDvuRV` | READY, built from current main, no aliases |
+| Public production alias | `dpl_EacspS7o2jntgw8uS1YMpzf45CFt` | Still points to older source `b7f63445c1748ebaec426a9ebe0ea629e4998839` |
 
-## Dual-layer evidence (resolved)
+The successful workflow proves candidate build and specified isolated acceptance checks. It does **not** prove a completed production release. The required production publication, final runtime proof, promotion and canonical-domain verification steps were skipped by the candidate-only mode.
 
-- **Git-stored** `PRODUCTION_SESSION_ISOLATION.json` / `PRODUCTION_RECOVERY_POINT.json`: **PASS** (re-executed 2026-11-17, run 44029395474).
-- **Runtime** `GET /api/verify/release` on the deployed Vercel production deployment: authoritative for that deployed sourceCommit only. Env flags on Production must match that runtime embed, not git tip of main.
-- **67-route signed matrix**: proven in isolated PostgreSQL CI scope; not a full live Production HTTP matrix.
-- **Neon backups**: Free-tier history is short; scheduled primary backups require paid plan. See `docs/ops/NEON_BACKUP_AND_RECOVERY_TRUTH.md`.
+## Seller-owned closeout gates
 
-**Seller offer status:** **OPEN FOR MARKETING AND COMMERCIAL NEGOTIATION.** A named buyer or buyer-signed License Schedule is not a prerequisite to prepare, publish, present, or negotiate the offer. No buyer commitment is implied.
+- [ ] Implement and pass full Production PostgreSQL HTTP route **and business-flow** acceptance, bound to exact source commit, pipeline, deployment ID, database identity, complete route/flow inventory and zero failures. SQLite route contract evidence is not sufficient.
+- [ ] Close the remaining PostgreSQL tenant trust-boundary findings: raw-GUC fallback paths, identity-table direct-DML grants, privileged helper exposure, independent AI/search pools and non-PostgreSQL operational worker paths. Require real runtime-role denial tests, not catalog-only claims.
+- [x] Reconcile GHSA-fc5q-39xc-vjpf / CVE-2026-112366: the GitHub/OSV advisory record was withdrawn on 2026-11-18. The obsolete exception was removed from `mobile/audit-allowlist.json`. [ ] Run fresh full and `--omit=dev` mobile audits on this exact head; any remaining active High/Critical must be evaluated individually. Withdrawal is not a package patch and does not itself certify the complete dependency graph.
+- [ ] Complete seller-hosted recovery capability: scheduled protected backups, appropriate retention, tested restore and explicitly measured recovery objectives. Current Neon Free limits do not establish scheduled backup or RPO/RTO coverage.
+- [ ] Rehearse WAF enforcement on Preview, review false positives and then apply narrowly scoped production deny/challenge controls with evidence. Current managed attack and bot rules are log-only.
+- [ ] Tighten and run Secure Release on one exact main commit; verify the package, archive digest, SBOM, provenance/signature, regression/security results, dependency audits and localization evidence from that same run.
+- [ ] Reconcile seller documents and verify public routes. Legal content must be approved by the rights holder/legal reviewer before publication; the last recorded observation found the required legal routes returning 404 and is not a fresh 21-Nov HTTP check.
+- [ ] Only after the above gates pass, run the explicitly authorized production release workflow, verify the staged runtime and public domain, and prove the canonical alias maps to the exact released commit.
 
-**License grant status:** **NO LICENSE GRANT** by default. All rights remain reserved by the rights holder until a transaction-specific License Schedule is executed by both the rights holder and the named buyer and pins the exact deliverable (source commit and/or package digest). The schedule is a per-transaction closing document, not a seller launch/marketing gate. Public seller minimum asking floors are published in `SALES_KIT.md` and `docs/commercial/SELLER_COMMERCIAL_MODEL.md` (L1 $45,000; L2 $85,000; L3 $175,000). The final buyer-specific fee and rights are negotiated and fixed in the executed Schedule.
+The working implementation of the fail-closed functional-release gate is on branch `fix/fail-closed-production-functional-release-proof-2026-11-21`; it is not yet merged or deployed. The updated contract requires explicit Production PostgreSQL route and business-flow evidence. Until a real evidence producer and exact-target run satisfy it, the release remains HOLD.
 
-**Delivery / use status:** **NOT AUTHORIZED before the applicable License Schedule is fully executed.** Do not treat an offer, listing, demonstration, technical report, public repository, or release artifact as a grant of rights. Delivery must be limited to the artifact and rights recorded in the signed Schedule.
+**NO LICENSE GRANT.** No buyer license or commercial distribution right exists until the rights holder and named buyer execute a **signed** exact-deliverable License Schedule.
 
-## Live deployment pointer (not a license)
+## Neon and database boundaries
 
-See `backend/docs/verification/LIVE_EVIDENCE_AUTHORITY.md` and `docs/release/LIVE_RELEASE_STATEMENT_2026-11-16.md`. Observe runtime proof at `GET /api/verify/release`. Buyer-environment certification remains **NOT_ESTABLISHED**. Runtime technical `status=PASS` is separate from `gates.commercialClosure=PASS_WITH_BUYER_RESIDUALS`. The remaining buyer-owned deliverables are mobile store artifacts, native-speaker translation review (0/114 production-qualified), and licensed maps/road-routing. Neither status transfers certification or usage rights to a buyer.
+The current Neon production branch is `br-proud-salad-bcshhdap`. The Free plan reports six-hour history retention, a 1 GiB branch logical-size limit and one listed manual snapshot; no scheduled snapshot schedule is configured. Primary is not protected. The 2026-11-20 native PITR probe passed only a historical-branch schema/catalog comparison; it did not establish row-content equality, a tested full restore, or RPO/RTO.
 
-## Framework (ready for any buyer type)
+Catalog observations recorded 136 public tables, with 135 carrying RLS and FORCE RLS; `spatial_ref_sys` is the PostGIS metadata exception. The runtime role has no superuser/BYPASSRLS attributes, but identity-table direct DML grants and raw-GUC trust fallbacks remain seller-owned findings to close. **P0 trust-boundary reproduction (2026-11-21):** a read-only, transaction-local probe using `opscore_runtime` and no signed payload showed `opscore_current_tenant()`, `opscore_current_user()` and `opscore_access_mode()` accepting attacker-supplied raw GUC values; on a count-only test, this exposed 2 rows from `activity_log` for a selected existing tenant context. No row contents were read and no persistent database changes were made. Treat Production tenant isolation as **NOT CERTIFIED** until the accessor trust model is corrected and actual public-table RLS regression tests prove unsigned tenant/user/access-mode GUCs are ignored.
 
-| Tier | Intent |
-|---|---|
-| A — Use | Operate for the buyer’s own business |
-| B — Use + Modify | Internal adaptation; no third-party distribution |
-| C — Use + Modify + Distribute | Agreed redistribution / OEM / hosted offering |
+## Localization qualification
 
-Template: `docs/commercial/LICENSE_SCHEDULE_TEMPLATE.md`.
+Contact Center has 105 selectable locales, but native-speaker review and production language qualification remain 0/114. The AI/machine translation notice must remain explicit; no native linguistic approval is claimed.
 
-## Buyer residuals (authoritative list)
+## Buyer-owned residuals — not included in seller remediation
 
-See `docs/BUYER_RESIDUALS.md`. Summary:
+1. Buyer-specific mobile (Android/iOS) signing, native builds, physical-device QA and store publication.
+2. Native-speaker review and production qualification (currently 0/114 reviewed/qualified).
+3. Licensed maps and road routing, provider account/credentials, attribution, quotas and buyer-specific live acceptance.
 
-- Mobile store artifacts — REMAINING_BUYER
-- Native translation review — REMAINING_BUYER (UI: all languages + machine-translation notice)
-- Licensed street map — REMAINING_BUYER
-- Neon capacity / multi-day PITR / extra protected branches — paid-plan dependency
-- 67-route signed-session production coverage — PASS for the exact seller deployment only (67/67); it does not certify buyer environments.
-- Mobile dependency remediation notes: `security/mobile-dependency-remediation-2026-11-01`
+These remain explicitly disclosed; excluding them from the seller work list does not make them complete.
 
-## Deploy policy (post PR #170 / #171)
+## Commercial offer and rights
 
-- Production deploy requires explicit `workflow_dispatch` confirmation input and owner enable flag (not automatic on push).
-- Vercel Git: main excluded from automatic production; previews allowed for other branches when the project is linked.
+Published seller asking floors remain L1 USD 45,000 (use), L2 USD 85,000 (use, modify and redistribute), and L3 USD 175,000 (exclusive/IP assignment subject to the executed schedule). These are seller asking floors, not independently validated market valuations or accepted offers.
 
-## Engineering honesty
+**OPEN FOR MARKETING** does not mean delivery authorization. The repository remains `UNLICENSED`; no buyer license is granted until the rights holder and the named buyer execute a transaction-specific License Schedule pinning the exact released artifact and rights.
 
-- Seller-reference proofs do not transfer to the buyer environment.
-- Branch-point recovery is not full PITR/RPO/RTO certification.
-- Do not report seller-reference production isolation from rebind-era git JSON as verified; current session/recovery JSON was re-executed 2026-11-17.
+`backend/docs/verification/COMMERCIAL_CLOSURE_GATE_RESULT.json` dated 2026-11-02 is historical evidence only; it is not the current release verdict.

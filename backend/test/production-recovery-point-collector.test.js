@@ -44,14 +44,27 @@ test('recovery evidence declares its row-count-only scope and does not claim PIT
   assert.match(collector, /opscore.production-recovery-point.v3/);
 });
 
-test('release certification requires the exact application database and explicit recovery scope', () => {
-  assert.match(releaseProof, /evidence.schemaVersion === 'opscore.production-recovery-point.v3'/);
+test('row-count-only recovery collector cannot satisfy the full-data Production release gate', () => {
+  assert.match(collector, /opscore.production-recovery-point.v3/);
+  assert.match(collector, /branch-clone-public-table-count-and-core-tenant-row-counts-only/);
+  assert.match(collector, /does not compare row contents, certify PITR, or establish RPO\/RTO/);
+  assert.doesNotMatch(collector, /contentIntegrity/);
+
+  assert.match(releaseProof, /evidence.schemaVersion === 'opscore.production-recovery-point.v4'/);
   assert.match(releaseProof, /evidence.databaseName === expectedDatabaseName/);
   assert.match(releaseProof, /evidence.coreTenantTableRowCountsMatch === true/);
-  assert.match(releaseProof, /branch-clone-public-table-count-and-core-tenant-row-counts-only/);
+  assert.match(releaseProof, /branch-clone-public-full-table-content-hash-and-core-tenant-row-counts/);
+  assert.match(releaseProof, /contentIntegrity\.tableResults/);
+  assert.match(releaseProof, /recoveryManifestSha256/);
   assert.match(releaseProof, /deploymentIdBound/);
   assert.match(releaseProof, /evidence\.temporaryBranch === true/);
   assert.match(releaseProof, /evidence\.cleanup\.recoveryBranchDeleted === true/);
+});
+
+test('release certification requires full-data recovery and full-data native PITR scopes', () => {
+  assert.match(releaseProof, /PASS_PRODUCTION_FULL_DATA_RECOVERY_SCOPE/);
+  assert.match(releaseProof, /PASS_PRODUCTION_FULL_DATA_PITR_SCOPE/);
+  assert.match(releaseProof, /nativePitr\.status === 'PASS'/);
 });
 
 

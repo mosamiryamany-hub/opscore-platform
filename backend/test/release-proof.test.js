@@ -22,6 +22,31 @@ const PACKAGE_SHA = 'a'.repeat(64);
 const EVIDENCE_SHA = 'b'.repeat(64);
 const fixedNow = () => new Date('2026-10-23T00:00:00.000Z');
 
+function fullDataRecoveryIntegrity(tableCount = 134) {
+  const digest = 'f'.repeat(64);
+  return {
+    status: 'PASS',
+    algorithm: 'SHA-256',
+    tableCountCompared: tableCount,
+    rowsCompared: tableCount,
+    mismatchCount: 0,
+    rlsPolicyTableCount: 135,
+    rlsPolicyMismatchCount: 0,
+    forceRlsMismatchCount: 0,
+    sourceManifestSha256: digest,
+    recoveryManifestSha256: digest,
+    tableResults: Array.from({ length: tableCount }, (_, index) => ({
+      schema: 'public',
+      table: 'table_' + index,
+      status: 'PASS',
+      sourceSha256: digest,
+      recoverySha256: digest,
+      sourceRowCount: 1,
+      recoveryRowCount: 1
+    }))
+  };
+}
+
 function productionAcceptanceEvidence(commit = SHA, pipelineId = '2978538209', overrides = {}) {
   return {
     schemaVersion: 'opscore.production-acceptance.v2',
@@ -315,7 +340,7 @@ test('production behavioral evidence must carry the exact release commit hint', 
     }
   };
   const recovery = {
-    schemaVersion: 'opscore.production-recovery-point.v3',
+    schemaVersion: 'opscore.production-recovery-point.v4',
     status: 'PASS',
     testedAt: '2026-10-23T00:00:00.000Z',
     sourceCommitHint: SHA,
@@ -323,11 +348,12 @@ test('production behavioral evidence must carry the exact release commit hint', 
     pipelineId: '2978538209',
     parentBranchId: 'br-current-production',
     databaseName: 'opscore_acceptance',
-    verificationScope: 'branch-clone-public-table-count-and-core-tenant-row-counts-only',
+    verificationScope: 'branch-clone-public-full-table-content-hash-and-core-tenant-row-counts',
     recoveryBranchId: 'br-test-recovery',
     tableCountCompared: 134,
     mismatchCount: 0,
     coreTenantTableRowCountsMatch: true,
+    contentIntegrity: fullDataRecoveryIntegrity(134),
     temporaryBranch: true,
     cleanup: { status: 'PASS', recoveryBranchDeleted: true }
   };
@@ -336,6 +362,31 @@ test('production behavioral evidence must carry the exact release commit hint', 
     fs.writeFileSync(recoveryPath, JSON.stringify(recovery));
     assert.equal(readProductionSessionIsolationEvidence(sessionPath, env).status, 'PASS');
     assert.equal(readProductionRecoveryPointEvidence(recoveryPath, env).status, 'PASS');
+
+    const legacyRowCountOnly = {
+      ...recovery,
+      schemaVersion: 'opscore.production-recovery-point.v3',
+      verificationScope: 'branch-clone-public-table-count-and-core-tenant-row-counts-only'
+    };
+    delete legacyRowCountOnly.contentIntegrity;
+    fs.writeFileSync(recoveryPath, JSON.stringify(legacyRowCountOnly));
+    assert.equal(readProductionRecoveryPointEvidence(recoveryPath, env).status, 'NOT_VERIFIED',
+      'legacy row-count-only evidence cannot satisfy full-data recovery scope');
+
+    const mismatchedContent = {
+      ...recovery,
+      contentIntegrity: {
+        ...recovery.contentIntegrity,
+        tableResults: recovery.contentIntegrity.tableResults.map((row, index) => index === 0
+          ? { ...row, recoverySha256: '0'.repeat(64) }
+          : row)
+      }
+    };
+    fs.writeFileSync(recoveryPath, JSON.stringify(mismatchedContent));
+    assert.equal(readProductionRecoveryPointEvidence(recoveryPath, env).status, 'NOT_VERIFIED',
+      'a per-table content hash mismatch must fail closed');
+
+    fs.writeFileSync(recoveryPath, JSON.stringify(recovery));
     fs.writeFileSync(recoveryPath, JSON.stringify({
       ...recovery,
       cleanup: { status: 'FAIL', recoveryBranchDeleted: false }
@@ -432,7 +483,7 @@ test('production behavioral evidence rejects any evidence rebind marker', () => 
     }
   };
   const recovery = {
-    schemaVersion: 'opscore.production-recovery-point.v3',
+    schemaVersion: 'opscore.production-recovery-point.v4',
     status: 'PASS',
     testedAt: '2026-10-23T00:00:00.000Z',
     sourceCommitHint: SHA,
@@ -440,11 +491,12 @@ test('production behavioral evidence rejects any evidence rebind marker', () => 
     pipelineId: '2978538209',
     parentBranchId: 'br-current-production',
     databaseName: 'opscore_acceptance',
-    verificationScope: 'branch-clone-public-table-count-and-core-tenant-row-counts-only',
+    verificationScope: 'branch-clone-public-full-table-content-hash-and-core-tenant-row-counts',
     recoveryBranchId: 'br-test-recovery',
     tableCountCompared: 134,
     mismatchCount: 0,
     coreTenantTableRowCountsMatch: true,
+    contentIntegrity: fullDataRecoveryIntegrity(134),
     temporaryBranch: true,
     cleanup: { status: 'PASS', recoveryBranchDeleted: true },
     evidenceRebind: { ...session.evidenceRebind }
@@ -699,6 +751,63 @@ test('functionalApiRouteAcceptance flips to PASS_CONTRACT_SCOPE only with commit
     });
     const incompleteProof = createPublicReleaseProof(env, fixedNow, identityPath, acceptance.path, postgresHttp.path, incompleteRoute.path);
     assert.equal(incompleteProof.gates.functionalApiRouteAcceptance, 'NOT_VERIFIED', 'incomplete inventory evidence cannot pass');
+
+    // A full Production route result requires exact PostgreSQL, database,
+    // deployment, commit and pipeline binding plus zero-failure route and
+    // business-flow inventories. This fixture validates only the proof contract;
+    // it is not evidence that the current live deployment has passed it.
+    const productionEnv = {
+      ...env,
+      OPSC_PRODUCTION_DATABASE_NAME: 'opscore_acceptance',
+      OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID: 'dpl_123456'
+    };
+    const productionRoute = writeJsonEvidence(dir, 'production-route-acceptance.json', {
+      schemaVersion: 'opscore.api-route-acceptance.v2',
+      engine: 'postgres',
+      environment: 'production',
+      verificationScope: 'PRODUCTION_POSTGRESQL_HTTP_FULL_ROUTE_AND_BUSINESS_FLOW_INVENTORY',
+      status: 'PASS',
+      commitSha: SHA,
+      pipelineId,
+      deploymentId: 'dpl_123456',
+      databaseName: 'opscore_acceptance',
+      testedAt: '2026-10-23T00:00:00.000Z',
+      inventorySha256: 'e'.repeat(64),
+      testedRoutes: 358,
+      inventoryRouteCount: 358,
+      passed: 358,
+      failed: 0,
+      businessFlowCoverage: {
+        status: 'PASS',
+        testedFlows: 42,
+        inventoryFlowCount: 42,
+        passed: 42,
+        failed: 0
+      }
+    });
+    const productionProof = createPublicReleaseProof(
+      productionEnv, fixedNow, identityPath, acceptance.path, postgresHttp.path, productionRoute.path
+    );
+    assert.equal(productionProof.gates.functionalApiRouteAcceptance, 'PASS_PRODUCTION_FUNCTIONAL_SCOPE');
+    assert.equal(productionProof.gates.commercialClosure, 'UNVERIFIED',
+      'route-scope evidence alone must not certify the complete release');
+
+    const wrongDeployment = writeJsonEvidence(dir, 'wrong-deployment-route-acceptance.json', {
+      ...JSON.parse(fs.readFileSync(productionRoute.path, 'utf8')),
+      deploymentId: 'dpl_999999'
+    });
+    const wrongDeploymentProof = createPublicReleaseProof(
+      productionEnv, fixedNow, identityPath, acceptance.path, postgresHttp.path, wrongDeployment.path
+    );
+    assert.equal(wrongDeploymentProof.gates.functionalApiRouteAcceptance, 'NOT_VERIFIED',
+      'evidence from another Production deployment cannot qualify this candidate');
+
+    const sqliteOnlyProof = createPublicReleaseProof(
+      productionEnv, fixedNow, identityPath, acceptance.path, postgresHttp.path, route.path
+    );
+    assert.equal(sqliteOnlyProof.gates.functionalApiRouteAcceptance, 'PASS_CONTRACT_SCOPE');
+    assert.equal(sqliteOnlyProof.gates.commercialClosure, 'UNVERIFIED',
+      'SQLite contract coverage cannot satisfy Production PostgreSQL functional acceptance');
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
@@ -848,13 +957,14 @@ test('Production session and recovery evidence bind to the explicit probe deploy
     });
 
     const recovery = writeJsonEvidence(dir, 'recovery.json', {
-      schemaVersion: 'opscore.production-recovery-point.v3',
+      schemaVersion: 'opscore.production-recovery-point.v4',
       status: 'PASS',
       databaseName: 'opscore_acceptance',
-      verificationScope: 'branch-clone-public-table-count-and-core-tenant-row-counts-only',
+      verificationScope: 'branch-clone-public-full-table-content-hash-and-core-tenant-row-counts',
       recoveryBranchId: 'br-candidate-recovery-20261118',
       tableCountCompared: 137,
       coreTenantTableRowCountsMatch: true,
+      contentIntegrity: fullDataRecoveryIntegrity(137),
     temporaryBranch: true,
     cleanup: { status: 'PASS', recoveryBranchDeleted: true },
       mismatchCount: 0,

@@ -82,9 +82,23 @@ jobs:
           CI_COMMIT_SHA: ${{ github.sha }}
           CI_PIPELINE_ID: ${{ github.run_id }}
         run: node --test test/api-route-acceptance.test.js
-      - name: Mobile dependency audit (documented-risk gate)
+      - name: Mobile audit gate unit tests
+        working-directory: mobile
+        run: node --test scripts/audit-gate.test.js
+      - name: Mobile dependency audit (full tree and production tree)
         working-directory: mobile
         run: node scripts/audit-gate.js
+      - name: Upload exact-commit mobile audit evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: mobile-dependency-audit-${{ github.run_id }}-${{ github.sha }}
+          path: |
+            mobile/mobile-dependency-audit-full.json
+            mobile/mobile-dependency-audit.json
+            mobile/mobile-audit-gate-result.json
+          if-no-files-found: warn
+          retention-days: 30
 
   postgres-acceptance:
     name: deploy-bound-postgres-18-acceptance

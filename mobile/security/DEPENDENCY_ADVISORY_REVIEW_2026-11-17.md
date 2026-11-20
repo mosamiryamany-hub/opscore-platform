@@ -1,6 +1,12 @@
-# Mobile dependency advisory review — 2026-11-17
+# Mobile dependency advisory review — historical record, current status reconciled 2026-11-21
 
-**Disposition: OPEN / NOT FIXED / TEMPORARY GATE EXCEPTION ACTIVE — NOT A FORMAL SIGNED RISK ACCEPTANCE**
+> **Current status update — 2026-11-21 (supersedes the live-status labels in this historical 2026-11-17 review):** GitHub's advisory record and the mirrored OSV record now identify GHSA-fc5q-39xc-vjpf / CVE-2026-112366 as **WITHDRAWN on 2026-11-18**. The OSV record's withdrawal text says it is not a security issue and points to the upstream maintainer discussion in picomatch PR #235. The previous OPEN / NOT FIXED / High labels and the 25/26 High audit counts in this document are historical observations from before that withdrawal; they must not be presented as the current active vulnerability state. The mobile lockfile still contains `picomatch@4.0.7` and nested `2.3.2`, but dependency presence alone is not an active advisory finding. The GHSA exception has therefore been removed from `mobile/audit-allowlist.json` on the current closeout branch. A fresh full and `--omit=dev` audit on the exact candidate is still required; if npm audit continues to report the withdrawn GHSA, retain the failing result as stale advisory-data evidence and do not restore the allowlist automatically. Any other active High/Critical advisories must be assessed independently. This withdrawal does not mean a package patch was released or that the entire dependency tree is certified clean.
+
+> Upstream/source references: [GitHub Advisory record](https://github.com/advisories/GHSA-fc5q-39xc-vjpf) (withdrawn 2026-11-18); [OSV mirrored advisory record](https://osv.dev/vulnerability/GHSA-fc5q-39xc-vjpf) (withdrawal timestamp 2026-11-18T15:38:56Z); [upstream picomatch PR #235](https://github.com/micromatch/picomatch/pull/235) (maintainer dispute and closed unmerged remediation proposal).
+
+---
+
+**Historical disposition as at 2026-11-17: OPEN / NOT FIXED / TEMPORARY GATE EXCEPTION ACTIVE. Superseded by the 2026-11-21 WITHDRAWN status update below; exact-head audit refresh remains pending.**
 
 This is the advisory evidence record for GHSA-fc5q-39xc-vjpf / CVE-2026-112366 for OpsCore v0.11.62. Main currently permits the finding through a self-expiring audit-allowlist entry reviewed by 2026-12-18. That gate exception does not suppress the underlying record, declare the advisory false, constitute an independently signed risk acceptance, or establish a patched package.
 
