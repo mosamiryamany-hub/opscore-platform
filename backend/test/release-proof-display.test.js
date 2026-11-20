@@ -11,14 +11,20 @@ const html = fs.readFileSync(path.join(webRoot, 'release.html'), 'utf8');
 const script = fs.readFileSync(path.join(webRoot, 'release-proof.js'), 'utf8');
 
 test('release proof page publishes successful CI evidence separately from Production certification', () => {
-  assert.match(html, /PASS — CI · Run 44552772156/);
-  assert.match(html, /PASS — isolated CI · Run 44552772494/);
-  assert.match(html, /CI-tested main revision/);
-  assert.match(html, /d672dce8f18e1d7095aed3126aedb0f995796144/);
-  assert.match(html, /346-route disposable CI matrix/);
-  assert.match(html, /NOT VERIFIED — no Production route results/);
-  assert.match(html, /NOT VERIFIED — PITR probe not run/);
-  assert.match(html, /NOT PRODUCED — no verified signed archive/);
+  assert.match(html, /Engineering evidence — scoped to this deployment/);
+  assert.match(html, /id="ciScopeDetails"/);
+  assert.match(html, /CI success does not replace production tenant behavior, PITR, or signed archive attestation/);
+  assert.doesNotMatch(html, /44552772156|44552772494|d672dce8f18e1d7095aed3126aedb0f995796144/);
+  assert.match(html, /id="signedRoutesEvidence"/);
+  assert.match(html, /id="pitrEvidence"/);
+  assert.match(html, /PASS — Run 44735471699/);
+  assert.match(html, /historical branch creation and catalog parity only/);
+  assert.match(html, /does not prove row-content restoration, a full production rollback, or RPO\/RTO/);
+  assert.match(html, /id="archiveEvidence"/);
+  assert.match(html, /NOT BOUND TO THIS DEPLOYMENT/);
+  assert.doesNotMatch(html, /no Production route results (0 tested)/);
+  assert.doesNotMatch(html, /PITR probe not run; restore differs in six application tables/);
+  assert.doesNotMatch(html, /NOT PRODUCED — no verified signed archive/);
   assert.match(html, /Live PostgreSQL catalog configuration/);
 });
 
@@ -104,4 +110,84 @@ test('release proof renderer distinguishes native deployment identity and live c
   assert.equal(getElement('isolationGate').textContent, 'NOT_CERTIFIED');
   assert.equal(getElement('sessionGate').textContent, 'NOT_VERIFIED');
   assert.equal(getElement('recoveryGate').textContent, 'NOT_VERIFIED');
+});
+
+
+test('release proof renderer requires all 67 live route bindings and does not confuse branch-point recovery with PITR', async () => {
+  const elements = new Map();
+  const getElement = (id) => {
+    if (!elements.has(id)) {
+      const classes = new Set();
+      elements.set(id, {
+        textContent: '',
+        href: '',
+        classList: {
+          add: (...names) => names.forEach(name => classes.add(name)),
+          remove: (...names) => names.forEach(name => classes.delete(name))
+        },
+        removeAttribute(name) { if (name === 'href') this.href = ''; }
+      });
+    }
+    return elements.get(id);
+  };
+  const proof = {
+    status: 'PASS',
+    sourceCommit: 'a'.repeat(40),
+    sourceCommitIdentitySource: 'github-actions-cli-assertion',
+    deployment: { id: 'dpl_Production123', environment: 'production' },
+    ci: { status: 'PASS', pipelineId: 44735471699 },
+    gates: {
+      commercialClosure: 'PASS',
+      livePostgresRls: 'PASS_TEST_SCOPE',
+      productionSessionTenantBoundary: 'PASS_PRODUCTION_PROBE_SCOPE',
+      productionRecoveryBundle: 'PASS_PRODUCTION_ROW_COUNT_SCOPE',
+      productionIsolationCertification: 'CERTIFIED',
+      signedTenantSessionRouteCoverage: 'PASS_PRODUCTION_ROUTE_SCOPE',
+      neonPointInTimeRecovery: 'PASS_BRANCH_POINT'
+    },
+    signedTenantRouteCoverage: {
+      status: 'PASS',
+      expectedRouteCount: 67,
+      coveredRouteCount: 67,
+      failedRouteCount: 0,
+      testedRoutes: 67,
+      commitBound: true,
+      pipelineBound: true,
+      parentBranchBound: true,
+      deploymentIdBound: true,
+      manifestBound: true,
+      inventoryBound: true,
+      routeResultsValid: true
+    },
+    productionAcceptance: { status: 'PASS' },
+    packageFingerprint: { status: 'PUBLISHED', value: 'b'.repeat(64) }
+  };
+  const context = {
+    document: { getElementById: getElement },
+    fetch: async () => ({ ok: true, json: async () => proof }),
+    encodeURIComponent,
+    Promise,
+    String,
+    Error
+  };
+  const execution = vm.runInNewContext(script, context);
+  await execution;
+  await new Promise(resolve => setImmediate(resolve));
+
+  assert.match(getElement('signedRoutesEvidence').textContent, /^PASS — 67\/67 production-candidate/);
+  assert.match(getElement('pitrEvidence').textContent, /BRANCH-POINT PASS ONLY/);
+  assert.match(getElement('archiveEvidence').textContent, /package fingerprint alone is not a signed archive/);
+
+  proof.releaseArchiveAttestation = {
+    status: 'PASS',
+    attestationVerified: true,
+    signatureVerified: true,
+    sourceCommit: proof.sourceCommit,
+    pipelineId: 44396875990,
+    sha256: 'c'.repeat(64)
+  };
+  vm.runInNewContext(script, context);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.match(getElement('archiveEvidence').textContent, /^PASS — signed archive attestation verified/);
+  assert.match(getElement('archiveEvidence').textContent, /c{64}/);
 });

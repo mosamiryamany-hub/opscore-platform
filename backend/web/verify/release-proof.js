@@ -27,7 +27,7 @@
     const proof = await readProof('/api/verify/release');
     set('status', proof.status || 'UNVERIFIED', stateFor(proof.status, ['PASS']));
     set('sourceCommit', proof.sourceCommit || 'UNVERIFIED');
-    set('releaseTag', proof.releaseTag || 'NOT PUBLISHED');
+    set('releaseTag', proof.releaseTag || 'NOT BOUND TO THIS DEPLOYMENT');
     set('deploymentId', proof.deployment && proof.deployment.id || 'UNVERIFIED');
 
     const pipeline = $('pipeline');
@@ -53,6 +53,72 @@
     set('sessionGate', gates.productionSessionTenantBoundary, stateFor(gates.productionSessionTenantBoundary, ['PASS_PRODUCTION']));
     set('recoveryGate', gates.productionRecoveryBundle, stateFor(gates.productionRecoveryBundle, ['PASS_PRODUCTION']));
     set('isolationGate', gates.productionIsolationCertification, stateFor(gates.productionIsolationCertification, ['CERTIFIED', 'PASS_PRODUCTION']));
+
+    const signed = proof.signedTenantRouteCoverage || {};
+    const signedRoutesVerified =
+      gates.signedTenantSessionRouteCoverage === 'PASS_PRODUCTION_ROUTE_SCOPE' &&
+      signed.status === 'PASS' &&
+      Number(signed.expectedRouteCount) === 67 &&
+      Number(signed.coveredRouteCount) === 67 &&
+      Number(signed.failedRouteCount) === 0 &&
+      signed.testedRoutes === 67 &&
+      signed.commitBound === true &&
+      signed.pipelineBound === true &&
+      signed.parentBranchBound === true &&
+      signed.deploymentIdBound === true &&
+      signed.manifestBound === true &&
+      signed.inventoryBound === true &&
+      signed.routeResultsValid === true;
+    set(
+      'signedRoutesEvidence',
+      signedRoutesVerified
+        ? 'PASS — 67/67 production-candidate signed-session routes; source commit, pipeline, candidate deployment, manifest and inventory bound'
+        : 'NOT VERIFIED — ' + (Number(signed.testedRoutes) || 0) + '/67 validated; required production bindings or route results are incomplete',
+      signedRoutesVerified ? 'ok' : 'warn'
+    );
+
+    const pitr = proof.productionPitrEvidence || {};
+    const pitrVerified =
+      ['PASS_PRODUCTION_PITR', 'PASS_PITR'].includes(gates.neonPointInTimeRecovery) &&
+      pitr.status === 'PASS' &&
+      pitr.environment === 'production' &&
+      pitr.mechanism === 'NEON_INSTANT_RESTORE_FROM_HISTORY' &&
+      Boolean(pitr.targetTimestampUtc && pitr.restoredBranchId && pitr.sourceBranchId) &&
+      pitr.dataIntegrity === 'PASS' &&
+      pitr.sourceCommit === proof.sourceCommit &&
+      String(pitr.pipelineId) === String(proof.ci && proof.ci.pipelineId) &&
+      /^[a-f0-9]{64}$/.test(String(pitr.evidenceSha256 || ''));
+    const pitrLabel = pitrVerified
+      ? 'PASS — production native PITR at ' + pitr.targetTimestampUtc + '; isolated restore integrity verified'
+      : gates.neonPointInTimeRecovery === 'PASS_BRANCH_POINT'
+        ? 'BRANCH-POINT PASS ONLY — native production PITR is NOT VERIFIED'
+        : 'NOT VERIFIED — no deployment-bound production native PITR restore evidence';
+    set('pitrEvidence', pitrLabel, pitrVerified ? 'ok' : 'warn');
+
+    const archive = proof.releaseArchiveAttestation || {};
+    const archiveVerified =
+      archive.status === 'PASS' &&
+      archive.attestationVerified === true &&
+      archive.signatureVerified === true &&
+      archive.sourceCommit === proof.sourceCommit &&
+      /^[a-f0-9]{64}$/.test(String(archive.sha256 || '')) &&
+      Number.isSafeInteger(Number(archive.pipelineId)) &&
+      Number(archive.pipelineId) > 0;
+    set(
+      'archiveEvidence',
+      archiveVerified
+        ? 'PASS — signed archive attestation verified for this deployment; SHA-256 ' + archive.sha256
+        : 'NOT VERIFIED — package fingerprint alone is not a signed archive attestation bound to this deployment',
+      archiveVerified ? 'ok' : 'warn'
+    );
+
+    set(
+      'ciScopeDetails',
+      proof.ci && proof.ci.status === 'PASS'
+        ? 'PASS — CI run ' + proof.ci.pipelineId + ' is bound to source commit ' + (proof.sourceCommit || 'UNVERIFIED') + '. CI scope does not replace production route, PITR, or archive-signature evidence.'
+        : 'NOT VERIFIED — no same-commit CI assertion is embedded in this deployment.',
+      proof.ci && proof.ci.status === 'PASS' ? 'ok' : 'warn'
+    );
 
     const pkg = proof.packageFingerprint || {};
     set('packageSha', pkg.value || 'UNVERIFIED', pkg.value ? 'ok' : 'warn');

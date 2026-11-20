@@ -63,6 +63,10 @@ test('release proof page separates CI identity from commercial release closure',
   assert.equal(elements.get('sessionGate').textContent, 'NOT_VERIFIED');
   assert.equal(elements.get('recoveryGate').textContent, 'NOT_VERIFIED');
   assert.equal(elements.get('isolationGate').textContent, 'NOT_CERTIFIED');
+  assert.match(elements.get('signedRoutesEvidence').textContent, /NOT VERIFIED/);
+  assert.match(elements.get('pitrEvidence').textContent, /NOT VERIFIED/);
+  assert.match(elements.get('archiveEvidence').textContent, /NOT VERIFIED/);
+  assert.match(elements.get('ciScopeDetails').textContent, /CI scope does not replace production route/);
   assert.equal(elements.get('status').textContent, 'UNVERIFIED');
 });
 

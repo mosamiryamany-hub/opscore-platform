@@ -30,7 +30,7 @@
     <div id="status" role="status" aria-live="polite">Loading live release evidence…</div>
     <div class="section">Deployment identity</div>
     <div class="row"><span>Version</span><strong class="value">0.11.62</strong></div>
-    <div class="row"><span>Release tag</span><code class="value" id="releaseTag">NOT PUBLISHED</code></div>
+    <div class="row"><span>Release tag</span><code class="value" id="releaseTag">NOT BOUND TO THIS DEPLOYMENT</code></div>
     <div class="row"><span>Source commit</span><code class="value" id="sourceCommit">UNVERIFIED</code></div>
     <div class="row"><span>Embedded CI pipeline in deployment attestation</span><a class="value" id="pipeline" href="#" rel="noreferrer">UNVERIFIED</a></div>
     <div class="row"><span>Running deployment</span><code class="value" id="deploymentId">UNVERIFIED</code></div>
@@ -43,19 +43,19 @@
     <div class="row"><span>Production session tenant boundary</span><strong class="value" id="sessionGate">NOT VERIFIED</strong></div>
     <div class="row"><span>Production Recovery bundle</span><strong class="value" id="recoveryGate">NOT VERIFIED</strong></div>
     <div class="row"><span>Production-wide isolation certification</span><strong class="value" id="isolationGate">NOT CERTIFIED</strong></div>
-    <div class="section">Verified engineering evidence — separate scopes</div>
-    <p class="muted">The following CI runs completed successfully. They verify source/regression checks and isolated PostgreSQL acceptance, not authenticated tenant behavior or recovery on Production.</p>
-    <div class="row"><span>OpsCore source, regression, performance, security and mobile CI on current main</span><a class="value" href="https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44552772156" rel="noreferrer">PASS — CI · Run 44552772156</a></div>
-    <div class="row"><span>PostgreSQL 18 isolated acceptance, signed tenant context, 346-route disposable CI matrix, RLS, composite FKs and logical restore drill</span><a class="value" href="https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44552772494" rel="noreferrer">PASS — isolated CI · Run 44552772494</a></div>
-    <div class="row"><span>CI-tested main revision</span><code class="value">d672dce8f18e1d7095aed3126aedb0f995796144</code></div>
-    <p class="muted small">These successful runs are bound to the main revision tested at this evidence cut: <code>d672dce8</code>. The isolated PostgreSQL 18 job validated a 346-route source-derived CI matrix and a 137-table logical restore drill in disposable databases; this is not a Production test or certificate. The currently running Production deployment remains on application commit <code>68505535f1c2fabd2a786094f8f64d234d26e123</code>; PR #292's updated trust UI is merged and built as a separate SSO-protected Preview, not yet deployed to the public Production alias.</p>
+    <div class="section">Engineering evidence — scoped to this deployment</div>
+    <p class="muted" id="ciScopeDetails">CI evidence is loaded from the live release proof. CI success does not replace production tenant behavior, PITR, or signed archive attestation.</p>
     <div class="row"><span>Native Production deployment source identity</span><strong class="value" id="deploymentSourceEvidence">CHECKING</strong></div>
     <div class="row"><span>Production deployment source commit</span><code class="value" id="deployedCommitEvidence">CHECKING</code></div>
     <div class="row"><span>Live PostgreSQL catalog configuration</span><strong class="value" id="databaseCatalogEvidence">CHECKING</strong></div>
     <p class="muted small" id="dbCatalogDetails">The live database endpoint is checked independently. Catalog policy configuration is not a two-tenant behavioral isolation certificate.</p>
-    <div class="row"><span>Production signed-session tenant routes</span><strong class="value warn">NOT VERIFIED — no Production route results (0 tested)</strong></div>
-    <div class="row"><span>Neon Production PITR / exact restore parity</span><strong class="value warn">NOT VERIFIED — PITR probe not run; restore differs in six application tables</strong></div>
-    <div class="row"><span>Signed current-main release archive / SHA-256</span><strong class="value warn">NOT PRODUCED — no verified signed archive bound to this deployment</strong></div>
+    <div class="row"><span>Production candidate signed-session tenant routes</span><strong class="value warn" id="signedRoutesEvidence">LOADING LIVE EVIDENCE</strong></div>
+    <p class="muted small">The 67/67 route matrix in run <a href="https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44735471699" rel="noreferrer">44735471699</a> was executed against candidate deployment <code>dpl_4kjQ5rBo8Li5Q6bCdJhsS7ebaAdS</code>. The promoted production deployment is <code>dpl_CPjcvDuhYKUyQ4YMQ1dWAcL7vxwL</code>. The final deployment passed its release, HTTP, database and public-domain gates, but the 67-route matrix was not rerun against the final deployment ID; route coverage is therefore candidate-scope evidence, not a separate final-deployment 67/67 run.</p>
+    <div class="row"><span>Neon Production point-in-time recovery gate</span><strong class="value warn" id="pitrEvidence">LOADING LIVE EVIDENCE</strong></div>
+    <div class="row"><span>Recorded historical branch probe on the Production root timeline</span><a class="value" href="https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44735471699" rel="noreferrer">PASS — Run 44735471699</a></div>
+    <p class="muted small">The probe created a disposable branch from Production root branch <code>br-proud-salad-bcshhdap</code> at <code>2026-11-20T12:22:06Z</code>, read the restored branch with the least-privilege runtime role over direct TLS using <code>sslmode=verify-full</code>, matched schema/RLS/policy/extension catalog checks to Production head, and verified branch cleanup. This proves historical branch creation and catalog parity only; it does not prove row-content restoration, a full production rollback, or RPO/RTO.</p>
+    <div class="row"><span>Deployment-bound signed release archive</span><strong class="value warn" id="archiveEvidence">NOT VERIFIED — awaiting archive attestation evidence</strong></div>
+    <p class="muted small">A package SHA-256 fingerprint is not, by itself, a cryptographic signature or a buyer-downloadable release archive. PITR is reported separately from branch-point recovery and snapshot restoration.</p>
     <div class="section">Release artifact</div>
     <div class="row"><span>Package SHA-256</span><code class="value" id="packageSha">UNVERIFIED</code></div>
     <div class="row"><span>Package fingerprint state</span><strong class="value" id="packageState">UNVERIFIED</strong></div>
