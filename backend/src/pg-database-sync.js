@@ -621,6 +621,13 @@ function openPgDatabaseSync(connectionString, { max = Number(process.env.OPSC_PG
       const requestId = currentRequestId();
       const state = getTransport(connectionString, poolMax);
       const response = sendCommand('connectionTls', '', [], requestId, { state });
+      // A worker refusal (e.g. APPLICATION_CONNECTION_TLS_PROBE_TRANSACTION_ACTIVE)
+      // must reach the diagnostic route as a coded error, not collapse into a
+      // null report that reads as an unspecified TLS failure.
+      if (!response || response.ok !== true) {
+        const code = response && response.code ? String(response.code) : 'APPLICATION_CONNECTION_TLS_PROBE_FAILED';
+        throw makeError(code, 'application PostgreSQL worker did not return a TLS report');
+      }
       return response.report || null;
     },
     close() {
