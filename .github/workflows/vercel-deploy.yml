@@ -129,6 +129,28 @@ jobs:
           test "$POSTGRES_ACCEPTANCE_RESULT" = "success" || { echo "DISPOSABLE_POSTGRES_18_ACCEPTANCE_NOT_PASS:$POSTGRES_ACCEPTANCE_RESULT" >&2; exit 1; }
           echo "REQUIRED_SOURCE_AND_DISPOSABLE_POSTGRES_18_ACCEPTANCE=PASS"
 
+
+  # Preserve the exact legacy required-check context while binding it to the
+  # reusable PostgreSQL 18 acceptance workflow. This is an assertion job only;
+  # it cannot pass unless the real isolated database acceptance job succeeds.
+  required-postgres-acceptance:
+    name: isolated-postgres-rls-and-http-acceptance
+    needs: [postgres-acceptance]
+    if: >-
+      always() &&
+      (github.event_name == 'pull_request' || github.ref == 'refs/heads/main')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Enforce real isolated PostgreSQL acceptance
+        env:
+          POSTGRES_ACCEPTANCE_RESULT: ${{ needs.postgres-acceptance.result }}
+        run: |
+          set -euo pipefail
+          test "$POSTGRES_ACCEPTANCE_RESULT" = "success" || { echo "ISOLATED_POSTGRES_ACCEPTANCE_NOT_PASS:$POSTGRES_ACCEPTANCE_RESULT" >&2; exit 1; }
+          echo "ISOLATED_POSTGRES_RLS_AND_HTTP_ACCEPTANCE=PASS"
+
+
   deploy:
     needs: [verify, postgres-acceptance]
     # Production deploy is never automatic on push. Require explicit owner authorization and a separately reviewed staged-probe OIDC readiness flag.
