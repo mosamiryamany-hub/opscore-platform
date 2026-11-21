@@ -355,13 +355,15 @@ test('the portal appointment exception is route-local and never widens sibling s
   assert.equal(policy.probeContractForRoute(required).id, 'anonymous-auth-boundary');
   const stripe = inventory.routes.find(row => row.method === 'POST' && row.route === '/api/v1/billing/stripe/webhook');
   assert.ok(stripe);
-  assert.equal(
-    policy.evaluateRouteObservation(stripe, {
-      probeContract: policy.probeContractForRoute(stripe).id,
-      statusCode: 503,
-      responseCode: 'STRIPE_WEBHOOK_NOT_CONFIGURED'
-    }, UNKNOWN).reason,
-    'HTTP_SERVER_ERROR',
-    'an unconfigured Stripe webhook must keep failing the acceptance gate'
-  );
+  const contract = policy.probeContractForRoute(stripe);
+  assert.equal(contract.id, 'stripe-webhook-rejects-unsigned-events-or-explicitly-disables-provider');
+  assert.deepEqual(policy.evaluateRouteObservation(stripe, {
+    probeContract: contract.id, statusCode: 409, responseCode: 'PAYMENT_PROVIDER_DISABLED'
+  }, UNKNOWN), { ok: true, reason: null });
+  assert.deepEqual(policy.evaluateRouteObservation(stripe, {
+    probeContract: contract.id, statusCode: 400, responseCode: 'STRIPE_SIGNATURE_INVALID'
+  }, UNKNOWN), { ok: true, reason: null });
+  assert.equal(policy.evaluateRouteObservation(stripe, {
+    probeContract: contract.id, statusCode: 503, responseCode: 'STRIPE_WEBHOOK_NOT_CONFIGURED'
+  }, UNKNOWN).reason, 'HTTP_SERVER_ERROR', 'provider failures must remain failures');
 });

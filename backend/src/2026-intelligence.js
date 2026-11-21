@@ -3,6 +3,7 @@ const net=require('node:net');
 const {validateOsrmBaseUrl, assertOsrmHostResolvesSafely}=require('./firewall');
 // Shared process-wide gateway breaker (same instance the /api/v1/circuits and governance routes read).
 const {breaker}=require('./enterprise-value-additions');
+const {stripePaymentProviderConfigured}=require('./stripe-billing');
 const http=require('node:http'); const https=require('node:https');
 
 function clean(v){ return String(v ?? '').trim(); }
@@ -121,9 +122,10 @@ async function osrmRoute(d = {}, ctx = null) {
 
 
 async function createStripePaymentIntent(store, ctx, invoiceId, idempotencyKey){
-  const secret=clean(process.env.STRIPE_SECRET_KEY);
   const gateway='billing:stripe-payment-intent';
-  if(!secret) throw new Error('STRIPE_NOT_CONFIGURED');
+  // A payment intent is unsafe without API access and signed settlement events.
+  if(!stripePaymentProviderConfigured()) throw new Error('PAYMENT_PROVIDER_DISABLED');
+  const secret=clean(process.env.STRIPE_SECRET_KEY);
   if(!breaker.allow(gateway,ctx?.organizationId)) throw new Error('GATEWAY_CIRCUIT_OPEN');
   if(!idempotencyKey || !/^[A-Za-z0-9._:-]{8,255}$/.test(String(idempotencyKey))) throw new Error('INVALID_IDEMPOTENCY_KEY');
   const inv=store.getInvoice(ctx, invoiceId);

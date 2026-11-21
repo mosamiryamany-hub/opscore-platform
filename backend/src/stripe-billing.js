@@ -5,7 +5,13 @@ const ACTIVE_STATUSES = new Set([
   'trialing'
 ]);
 function stripeConfigured() {
-  return Boolean(process.env.STRIPE_WEBHOOK_SECRET);
+  return Boolean(String(process.env.STRIPE_WEBHOOK_SECRET || '').trim());
+}
+function stripePaymentProviderConfigured(env = process.env) {
+  return Boolean(
+    String(env.STRIPE_SECRET_KEY || '').trim() &&
+    String(env.STRIPE_WEBHOOK_SECRET || '').trim()
+  );
 }
 function verifySignature(rawBody, signature, secret, toleranceSeconds = 300) {
   if (!rawBody || !signature || !secret)
@@ -78,5 +84,6 @@ module.exports = {
   STRIPE_API_VERSION,
   verifySignature,
   stripeConfigured,
+  stripePaymentProviderConfigured,
   subscriptionState
 };

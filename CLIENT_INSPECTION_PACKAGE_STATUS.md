@@ -23,6 +23,14 @@ An attestation proves provenance of the exact artifact; it does not grant rights
 
 The Vercel Production deployment is `READY`, but deployment readiness is not tenant-isolation certification. The stored session-isolation and recovery records contain evidence-rebind markers with `probesReexecuted=false`, and the recovery record is bound to a previous Neon branch. Current seller-reference production isolation is therefore `NOT_VERIFIED` until fresh dual-tenant probes and a recovery-point comparison are bound to the exact active application commit and Neon Production branch. Buyer production remains NOT CERTIFIED. A branch-point comparison is not full PITR/RPO/RTO certification; tenant-route coverage and functional API contract acceptance are narrower than complete business-flow acceptance.
 
+
+## Initial release payment boundary
+
+- Payment processing is intentionally disabled for the initial sale release; no Stripe account or payment credentials are required.
+- Checkout, payment-intent creation, customer linking, and webhook settlement remain unavailable until a payment provider is selected and both API access and signed-webhook verification are configured.
+- Disabled payment routes return the explicit `PAYMENT_PROVIDER_DISABLED` response. This is not a claim that payment processing is implemented, live-tested, or ready to collect funds.
+- Any later activation requires provider onboarding, live signed-webhook verification, payment-flow acceptance, and a separately authorized release.
+
 ## Buyer/environment residuals
 
 - EAS project/account linkage, native Android/iOS signing, builds, physical-device QA, store accounts and publication.
