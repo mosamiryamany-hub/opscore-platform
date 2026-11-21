@@ -872,9 +872,9 @@ test('functionalApiRouteAcceptance flips to PASS_CONTRACT_SCOPE only with commit
     const staleRoutePayload = JSON.parse(fs.readFileSync(productionRoute.path, 'utf8'));
     staleRoutePayload.testedAt = '2026-10-22T17:59:59.000Z';
     staleRoutePayload.routes = staleRoutePayload.routes.map(row => ({ ...row, testedAt: staleRoutePayload.testedAt }));
-    const staleRoute = writeJsonEvidence(dir, 'stale-route-evidence.json', staleRoutePayload);
+    const staleProductionRouteEvidence = writeJsonEvidence(dir, 'stale-route-evidence.json', staleRoutePayload);
     const staleRouteProof = createPublicReleaseProof(
-      productionEnv, fixedNow, identityPath, acceptance.path, postgresHttp.path, staleRoute.path
+      productionEnv, fixedNow, identityPath, acceptance.path, postgresHttp.path, staleProductionRouteEvidence.path
     );
     assert.equal(staleRouteProof.gates.functionalApiRouteAcceptance, 'NOT_VERIFIED',
       'stale Production API acceptance evidence must not qualify');
