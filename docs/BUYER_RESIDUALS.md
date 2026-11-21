@@ -1,31 +1,28 @@
-# Buyer and seller residuals — reconciled 2026-11-21
+# Buyer and seller residuals — reconciled 2026-11-22
 
-This register separates seller release blockers from buyer-specific deliverables. The exact live provider observations below were re-read on 2026-11-21; historic evidence is identified as such. No production migration, role change, branch deletion, backup-plan upgrade, WAF enforcement change, legal publication or license grant is implied.
+This register separates seller release blockers from buyer-specific deliverables. GitHub and Vercel observations below were rechecked on 2026-11-22; Neon, WAF and public legal routes were not freshly checked in this reconciliation and remain dated historical evidence. No production migration, role change, branch deletion, backup-plan upgrade, WAF enforcement change, legal publication or license grant is implied.
 
 ## Current seller release evidence
 
 | Item | Measured value | Scope |
 |---|---|---|
-| GitHub main | `b4f3bc81135acbf1bbe7262a0ae58b3573cddf82` | Current source head |
-| GitHub Actions | Run `44808632964` | Overall success, explicitly `CANDIDATE_EVIDENCE_ONLY` |
-| Production certification | `false` | Workflow output |
-| Production promotion | `false` | Workflow output |
-| Production environment | Restored | Workflow verified restoration after candidate-only processing |
-| Vercel candidate | `dpl_4vSUfZX9p1iwbbyGQV3hoPUDvuRV` | READY on current main; no aliases |
-| Canonical production alias | `dpl_EacspS7o2jntgw8uS1YMpzf45CFt` | Still serves source `b7f63445c1748ebaec426a9ebe0ea629e4998839`, not current main |
-| SQLite API route contracts | 358 / 358 | Contract scope only; not full PostgreSQL functional acceptance |
-| PostgreSQL 18 acceptance | PASS | Disposable isolated CI database; not seller Production certification |
-| Signed tenant route matrix | 67 expected / 67 covered / 0 failed | Isolated PostgreSQL CI fixture evidence only; not a certification of the canonical production alias or buyer-environment qualification |
-| Native Neon PITR probe | PASS | Historical branch schema/catalog comparison only; not row-content equality or RPO/RTO |
-| Package fingerprint | `6c758562d271a65d86e1fff45f5b1c3d271a2c3c51cb31af8eafdb162159c190` | Candidate package, source commit `b4f3bc8…`, run `44808632964` |
+| GitHub main | `43554492218adbf0cde2d700bd0dedfadce67f5e` | Confirmed by remote ref lookup on 2026-11-22 |
+| GitHub Actions | Run `44953249616` | Post-merge checks succeeded; Vercel deploy, PITR and Neon Preview migration jobs were skipped |
+| Production certification / promotion | `NOT_ESTABLISHED` / `NOT_PROVEN` | No exact-head authorized Production run or matching runtime proof |
+| Latest Vercel Production-target record | `dpl_3Ls8gZdacPzNa1iJEe1r6amVEKRp` | READY, commit `970db239bc1b94401e39669e09b106e16c4defc1`; no aliases |
+| Canonical production alias | `dpl_EacspS7o2jntgw8uS1YMpzf45CFt` | Alias lookup returned `opscore-platform.vercel.app`; deployment commit `b7f63445c1748ebaec426a9ebe0ea629e4998839` differs from current main |
+| Focused local test suite | 89 / 89 PASS | Includes local unmerged red-team regression test; not an official main CI result |
+| Red-team result | Main: `REVIEW`; local adjusted analyzer: `PASS` | Five bounded contracts verified locally; analyzer change is uncommitted and not attributable to main |
+| Dependency audit | 6 audits, zero findings | Full and `--omit=dev` for root/backend/mobile on current SHA lockfiles; not a software security certification |
+| Secure Release package | Not established | No exact-main ZIP, SBOM, signed provenance or release statement found |
 
-**Release interpretation:** this is a successful candidate evidence run, not a completed production release or commercial technical certification. The full production publication, final runtime/database/security proof, promotion and public-domain verification steps were skipped.
+**Release interpretation:** successful post-merge CI is not a completed Production release or commercial technical certification. The latest Vercel Production-target record is on a different SHA and has no alias; the canonical alias is attached to another SHA that also differs from current main. Production publication on current main, final runtime/database/security proof, promotion and public-domain verification remain unproven.
 
 ## Required public-proof semantics
 
 A technical pass must not imply complete buyer delivery. The three buyer-owned items below must remain `REMAINING_BUYER`. Full seller release proof must also require exact Production PostgreSQL HTTP route and business-flow acceptance. A SQLite contract result (`PASS_CONTRACT_SCOPE`), missing evidence, Preview evidence or a proof from another deployment must not qualify.
 
-The candidate code change for this stricter rule is under review on `fix/fail-closed-production-functional-release-proof-2026-11-21`; until merged, tested and populated by genuine Production evidence, current main remains unqualified for a full release claim.
+The release-proof changes from PR #381 are in current `main`, but no post-merge authorized Production workflow or genuine exact-target runtime evidence was found. Current main therefore remains unqualified for a full release claim.
 
 ## Buyer-owned residuals — explicitly open
 
@@ -51,11 +48,11 @@ The 67/67 signed-session matrix is isolated PostgreSQL CI evidence, not buyer-en
 | Listed snapshots | One listed manual snapshot: `snap-aged-thunder-bcsxc1a5` |
 | Automatic snapshot schedule | None; no scheduled snapshot capability on the current plan |
 
-The live primary ledger contains 69 rows and its latest entry is `070_evidence_upload_postgres_blob_storage.sql`, applied at `2026-11-19T18:38:00.349Z`. Restore branch `br-calm-poetry-bc7l7wik` contains 68 rows and ends at migration 069 because its snapshot lineage predates migration 070. This measured one-row difference is time-ordered and is not evidence of data corruption. Do not describe the current setup as scheduled-backup coverage, multi-day PITR, or an RPO/RTO guarantee. The 2026-11-20 native instant-restore probe returned PASS for a disposable historical branch and schema/catalog match; it did not prove all row contents, application-level recovery or recovery objectives. Do not delete the only listed manual snapshot without separate approval.
+The last recorded primary ledger contained 69 rows and ended at `070_evidence_upload_postgres_blob_storage.sql`, applied at `2026-11-19T18:38:00.349Z`. Restore branch `br-calm-poetry-bc7l7wik` contained 68 rows and ended at migration 069 because its snapshot lineage predates migration 070. This dated one-row difference was time-ordered and was not evidence of data corruption; Neon was not re-read in this reconciliation. Do not describe the current setup as scheduled-backup coverage, multi-day PITR, or an RPO/RTO guarantee. The 2026-11-20 native instant-restore probe returned PASS for a disposable historical branch and schema/catalog match; it did not prove all row contents, application-level recovery or recovery objectives. Do not delete the only listed manual snapshot without separate approval.
 
 ## Database security boundaries
 
-The last detailed catalog read found 136 public tables, 135 with RLS and FORCE RLS; `spatial_ref_sys` is the non-tenant PostGIS metadata exception. The `opscore_runtime` role is not superuser and has no BYPASSRLS, but direct DML grants on identity-sensitive tables and raw-GUC fallback trust paths remain seller-owned findings. **P0 reproduction, 2026-11-21:** a read-only transaction-local probe under `opscore_runtime`, with no signed context, showed raw `app.tenant_id`, `app.user_id` and `app.access_mode` values flowing through public context accessors; a count-only read observed 2 `activity_log` rows after setting an existing tenant context. No row contents were read; no persistent DB changes were made. This confirms the trust-boundary issue reaches a real public RLS-protected table. Production tenant isolation is NOT_CERTIFIED until this is fixed and regression-tested across public table policies. Catalog coverage is not behavioral isolation certification.
+The last detailed catalog read found 136 public tables, 135 with RLS and FORCE RLS; `spatial_ref_sys` is the non-tenant PostGIS metadata exception. The `opscore_runtime` role then had no superuser or BYPASSRLS attributes. **Historical P0 reproduction, 2026-11-21:** a read-only transaction-local probe under `opscore_runtime`, with no signed context, showed raw `app.tenant_id`, `app.user_id` and `app.access_mode` values flowing through public context accessors; a count-only read observed 2 `activity_log` rows after setting an existing tenant context. No row contents were read; no persistent DB changes were made. Migration 071 now exists in current source and verifies signed context, but no fresh Production catalog read confirms it was applied or that all table grants and policies are correct. The earlier probe remains material evidence; Production isolation stays NOT_CERTIFIED until current state is verified and runtime-role denial/regression tests pass. Catalog coverage is not behavioral isolation certification.
 
 The 67/67 signed-session route result is isolated PostgreSQL CI evidence, **not buyer-environment qualification**. Buyer environments remain independently unverified.
 

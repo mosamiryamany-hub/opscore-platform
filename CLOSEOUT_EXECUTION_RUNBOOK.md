@@ -1,7 +1,7 @@
 # OpsCore v0.11.62 — Commercial Closeout Execution Runbook
 
-**Reconciled:** 2026-11-21  
-**Current main:** `b4f3bc81135acbf1bbe7262a0ae58b3573cddf82`  
+**Reconciled:** 2026-11-22
+**Current main:** `43554492218adbf0cde2d700bd0dedfadce67f5e`
 **Seller release status:** `HOLD — CANDIDATE EVIDENCE ONLY`  
 **Buyer/product qualification:** `NOT ESTABLISHED`  
 **Buyer environment:** `NOT_VERIFIED` — seller evidence does not transfer to customer infrastructure.
@@ -12,16 +12,15 @@ This runbook is a current operational register, not a certificate. Each proof mu
 
 | Control | Value | Result |
 |---|---|---|
-| GitHub Actions | Run `44808632964` | Overall success; candidate-only |
-| Workflow mode | `CANDIDATE_EVIDENCE_ONLY` | No production release authorization |
-| Production certification | `false` | Not certified |
-| Production promotion | `false` | Not promoted |
-| Production environment | `productionEnvironmentRestored=true` | Baseline restored |
-| Vercel candidate | `dpl_4vSUfZX9p1iwbbyGQV3hoPUDvuRV` | READY, exact current main, no alias |
-| Canonical domain | `opscore-platform.vercel.app` | Still aliases older deployment `dpl_EacspS7o2jntgw8uS1YMpzf45CFt` |
-| Older aliased deployment source | `b7f63445c1748ebaec426a9ebe0ea629e4998839` | Not current main |
+| GitHub Actions | Run `44953249616` | Post-merge success; source and isolated PostgreSQL 18 checks passed |
+| Vercel deploy job | Same run | `SKIPPED`; no deployment proven by this run |
+| PITR / Neon Preview migration jobs | Same run | `SKIPPED`; no fresh recovery or Preview migration proof |
+| Secure Release package | SHA `43554492218adbf0cde2d700bd0dedfadce67f5e` | No matching ZIP, SBOM, signed provenance or release statement established |
+| Latest Vercel Production-target record | `dpl_3Ls8gZdacPzNa1iJEe1r6amVEKRp` | READY, commit `970db239bc1b94401e39669e09b106e16c4defc1`, no aliases |
+| Canonical domain | `opscore-platform.vercel.app` | Alias lookup resolves to `dpl_EacspS7o2jntgw8uS1YMpzf45CFt` |
+| Canonical alias deployment source | `b7f63445c1748ebaec426a9ebe0ea629e4998839` | Different from current main; not verified as current release |
 
-The candidate workflow passed the current source verification, disposable PostgreSQL 18 acceptance, isolated Neon Preview migration/HTTP acceptance, route contract tests and historical PITR probe. Production release steps — evidence publication, staged runtime final proof, promotion and canonical-domain verification — were skipped. Do not describe the workflow's overall `success` as a Production release PASS.
+The post-merge run proves only the checks explicitly recorded as passed for its exact SHA; its Vercel deploy, PITR and Neon Preview migration jobs were skipped. Separate Vercel records show a READY Production-target deployment at a different SHA with no alias, while the canonical domain alias remains attached to a deployment on SHA `b7f63445…`, also different from `main`. Neither record establishes the current-main release. Production release proof, promotion and canonical-domain verification remain unproven; do not describe CI or a READY Vercel record as a Production release PASS.
 
 ## 2. Required release-proof semantics
 
@@ -29,11 +28,11 @@ The candidate workflow passed the current source verification, disposable Postgr
 - Isolated PostgreSQL 18 acceptance and 67/67 signed-tenant CI route checks prove their stated CI scopes only.
 - Native Neon historical restore evidence passed schema/catalog matching for a disposable branch. It does not prove complete row-content equality or RPO/RTO.
 - The public release proof must stay `UNVERIFIED` until full Production PostgreSQL route and business-flow acceptance passes against the exact candidate deployment/database and binds source commit, workflow pipeline, deployment ID and complete route/flow inventories.
-- The fail-closed code change requiring `PASS_PRODUCTION_FUNCTIONAL_SCOPE` is currently under review on `fix/fail-closed-production-functional-release-proof-2026-11-21`; it is not yet merged or deployed.
+- PR #381 is included in current `main` and updates release-proof controls. No post-merge authorized Production workflow or exact-deployment runtime evidence was established in this reconciliation; do not infer Production readiness from the source change.
 
 ## 3. Seller-owned technical gates
 
-1. **Tenant trust boundary:** remove raw-GUC fallback authority from production authorization paths; prove missing, malformed, expired and tampered signed context is denied; audit session binding and SECURITY DEFINER entry points.
+1. **Tenant trust boundary:** migration 071 in current source implements HMAC-verified context and rejects raw-GUC-dependent RLS policies. Production application and catalog state are not verified; prove missing, malformed, expired and tampered signed context is denied, audit session binding and SECURITY DEFINER entry points, and retain HOLD until the exact Production database is tested.
 2. **Identity grants:** remove unnecessary direct runtime DML on identity-sensitive tables and exercise real login/session/recovery flows using the least-privilege runtime role.
 3. **All runtime data paths:** bind AI knowledge/search pools and asynchronous workers to the same signed tenant context and PostgreSQL enforcement. A SQLite-only worker path is not PostgreSQL production parity.
 4. **Full API acceptance:** execute all inventoried application routes and defined business flows against the exact staged Production PostgreSQL target. Record route/flow inventory hashes, pass/fail counts, database, deployment, commit and pipeline.
@@ -46,9 +45,9 @@ The candidate workflow passed the current source verification, disposable Postgr
 
 ## 4. Current database and firewall posture
 
-Neon Production project `summer-leaf-18448271`, branch `br-proud-salad-bcshhdap`, database `opscore_acceptance`; PostgreSQL 18.7. The database catalog previously measured 136 public tables, 135 with RLS + FORCE RLS, with `spatial_ref_sys` as the PostGIS metadata exception. The runtime role has `NOSUPERUSER` and `NOBYPASSRLS`; direct identity-table grants and raw-GUC trust fallbacks remain open. **P0 reproduction (2026-11-21):** a read-only, transaction-local probe as `opscore_runtime` with no signed context showed the public context helpers returning raw caller-set `app.tenant_id`, `app.user_id` and `app.access_mode` values. A count-only read then observed 2 rows in `activity_log` for a selected existing tenant context. No row contents were read and no persistent DB changes were made. This demonstrates raw-GUC impersonation reaches a real public RLS-protected table. Production tenant isolation is **NOT_CERTIFIED** until this trust path is removed, supported application flows are moved to signed context or an independently verified privileged path, and real public-table RLS denial tests pass.
+Neon Production project `summer-leaf-18448271`, branch `br-proud-salad-bcshhdap`, database `opscore_acceptance`; PostgreSQL 18.7. The last detailed database catalog measured 136 public tables, 135 with RLS + FORCE RLS, with `spatial_ref_sys` as the PostGIS metadata exception. The runtime role had `NOSUPERUSER` and `NOBYPASSRLS`. **Historical P0 reproduction (2026-11-21):** a read-only, transaction-local probe as `opscore_runtime` with no signed context showed public context helpers returning raw caller-set `app.tenant_id`, `app.user_id` and `app.access_mode`; a count-only read observed 2 rows in `activity_log` for a selected existing tenant context. No row contents were read and no persistent database changes were made. Migration 071 now exists in current source and replaces this fallback with HMAC-verified context, but no fresh Production catalog proof shows it was applied or that all grants and policies are correct. Production tenant isolation remains **NOT_CERTIFIED** until current state is measured and real public-table RLS denial tests pass.
 
-The current Neon Free plan reports six-hour history retention, 1 GiB branch logical-size limit, one listed manual snapshot and no automatic snapshot schedule. Primary reports `protected=false`. Do not delete the only listed manual snapshot or remove branches without checking their role and recoverability. The 2026-11-20 historical-branch PITR probe is PASS for schema/catalog comparison only; do not call it full data restore or RPO/RTO certification.
+The last verified Neon Free plan report showed six-hour history retention, a 1 GiB branch logical-size limit, one listed manual snapshot and no automatic snapshot schedule; Primary reported `protected=false`. No fresh Neon read was performed in this reconciliation. Do not delete the only listed manual snapshot or remove branches without checking their role and recoverability. The 2026-11-20 historical-branch PITR probe is PASS for schema/catalog comparison only; do not call it full data restore or RPO/RTO certification.
 
 Vercel firewall is enabled, but CRS generic attack/RCE/SQLi/XSS and Bot Protection are active in `log` mode. The authentication endpoint rule limits 60 requests per source IP per fixed 60-second window. Do not flip all rules to deny without a Preview rehearsal and false-positive review.
 
