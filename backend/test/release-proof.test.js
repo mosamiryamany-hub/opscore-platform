@@ -766,7 +766,8 @@ test('functionalApiRouteAcceptance flips to PASS_CONTRACT_SCOPE only with commit
       ...env,
       OPSC_PRODUCTION_DATABASE_NAME: 'opscore_acceptance',
       OPSC_PRODUCTION_NEON_BRANCH_ID: 'br-proud-salad-bcshhdap',
-      OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID: 'dpl_123456'
+      OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID: 'dpl_123456',
+      VERCEL_DEPLOYMENT_ID: 'dpl_final654321'
     };
     const apiInventoryBytes = fs.readFileSync(path.join(__dirname, '..', 'docs', 'API_INVENTORY.json'));
     const apiInventory = JSON.parse(apiInventoryBytes.toString('utf8'));

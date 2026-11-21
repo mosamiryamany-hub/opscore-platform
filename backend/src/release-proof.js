@@ -1031,10 +1031,11 @@ function readCurrentApiRouteAcceptance(env = process.env, filePath = embeddedEvi
     };
   }
 
-  const expectedDeploymentId = String(
-    env.OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID || env.VERCEL_DEPLOYMENT_ID || ''
-  ).trim();
-  const runtimeDeploymentId = String(env.VERCEL_DEPLOYMENT_ID || '').trim();
+  // API/session evidence is collected against the held probe candidate. The later
+  // staged Vercel deployment is a distinct immutable deployment and is validated
+  // independently by the runtime/deployment smoke gates; do not rebind candidate
+  // evidence to that staged deployment ID.
+  const expectedDeploymentId = String(env.OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID || '').trim();
   const expectedDatabaseName = String(env.OPSC_PRODUCTION_DATABASE_NAME || '').trim();
   const expectedBranchId = String(env.OPSC_PRODUCTION_NEON_BRANCH_ID || '').trim();
   const businessFlows = evidence.businessFlowCoverage && typeof evidence.businessFlowCoverage === 'object'
@@ -1083,7 +1084,6 @@ function readCurrentApiRouteAcceptance(env = process.env, filePath = embeddedEvi
     evidencePipelineId === expectedPipelineId &&
     /^dpl_[A-Za-z0-9]+$/.test(expectedDeploymentId) &&
     evidence.deploymentId === expectedDeploymentId &&
-    (!runtimeDeploymentId || evidence.deploymentId === runtimeDeploymentId) &&
     expectedDatabaseName.length > 0 &&
     evidence.databaseName === expectedDatabaseName &&
     /^[a-z0-9-]{8,80}$/.test(expectedBranchId) &&
