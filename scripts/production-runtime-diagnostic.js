@@ -78,6 +78,7 @@ function evaluateRuntimeDiagnostic(payload, httpStatus, expectedCommit, expected
   const deployment = value.deployment || {};
   const environment = value.environment || {};
   const database = value.database || {};
+  const applicationConnectionTls = value.applicationConnectionTls || {};
   const target = database.target || {};
   const envChecks = database.environmentChecks || {};
   const identity = database.identity || {};
@@ -86,6 +87,20 @@ function evaluateRuntimeDiagnostic(payload, httpStatus, expectedCommit, expected
   const grants = database.authFunctionGrants || {};
   const rls = database.rowLevelSecurity || {};
   const ledger = database.migrationLedger || {};
+  const appCipherBits = negotiatedCipherStrengthBits(applicationConnectionTls.cipher);
+  const identityVersion = /^([0-9]{1,2}\\.[0-9]{1,2})/.exec(String(identity.server_version || ''));
+  const applicationConnectionTlsVerified =
+    applicationConnectionTls.scope === 'APPLICATION_POSTGRES_WORKER_CONNECTION' &&
+    applicationConnectionTls.status === 'VERIFIED' &&
+    applicationConnectionTls.verified === true &&
+    applicationConnectionTls.negotiated === true &&
+    applicationConnectionTls.authorized === true &&
+    ['TLSv1.2', 'TLSv1.3'].includes(String(applicationConnectionTls.protocol || '')) &&
+    Number.isSafeInteger(applicationConnectionTls.backendPid) && applicationConnectionTls.backendPid > 0 &&
+    String(applicationConnectionTls.databaseName || '') === String(identity.database_name || '') &&
+    String(applicationConnectionTls.roleName || '') === String(identity.current_user || '') &&
+    Boolean(identityVersion) && String(applicationConnectionTls.serverVersion || '') === identityVersion[1] &&
+    Number.isSafeInteger(appCipherBits) && appCipherBits >= 128;
 
   // Emit only non-secret database identity metadata to the GitHub deployment
   // diagnostic. Never include a hostname, DSN, username, or password.
@@ -100,11 +115,14 @@ function evaluateRuntimeDiagnostic(payload, httpStatus, expectedCommit, expected
     hostnameSha256: /^[a-f0-9]{64}$/.test(String(target.hostnameSha256 || '')) ? target.hostnameSha256 : null,
     runtimeRole: safeLabel(identity.current_user, /^[A-Za-z0-9_]{1,63}$/, 63),
     serverVersion: safeLabel(identity.server_version, /^[0-9]{1,2}\.[0-9]{1,3}(?:\s*\([^\r\n]{1,40}\))?$/, 64),
-    tlsEnabled: identity.tls_enabled === true,
-    tlsVersion: safeLabel(identity.tls_version, /^TLSv1\.[23]$/, 16),
-    tlsCipher: safeLabel(identity.tls_cipher, /^[A-Za-z0-9_.-]{1,128}$/, 128),
-    tlsBits: Number.isSafeInteger(identity.tls_bits) && identity.tls_bits > 0 ? identity.tls_bits : null
-  };
+    tlsEvidenceScope: safeLabel(applicationConnectionTls.scope, /^APPLICATION_POSTGRES_WORKER_CONNECTION$/, 48),
+    tlsEvidenceStatus: applicationConnectionTlsVerified ? 'VERIFIED' : 'UNVERIFIED',
+    tlsEnabled: applicationConnectionTlsVerified,
+    tlsVersion: applicationConnectionTlsVerified ? safeLabel(applicationConnectionTls.protocol, /^TLSv1\.[23]$/, 16) : null,
+    tlsCipher: applicationConnectionTlsVerified ? safeLabel(applicationConnectionTls.cipher, /^[A-Za-z0-9_.-]{1,128}$/, 128) : null,
+    // The worker TLSSocket API does not expose a stable key-size field.
+    tlsBits: applicationConnectionTlsVerified && Number.isSafeInteger(applicationConnectionTls.bits) && applicationConnectionTls.bits > 0 ? applicationConnectionTls.bits : null
+  };;
 
   const checks = [
     check('diagnostic_endpoint_reached', httpStatus === 200 || httpStatus === 503, `HTTP_${httpStatus}`),
@@ -135,19 +153,9 @@ function evaluateRuntimeDiagnostic(payload, httpStatus, expectedCommit, expected
       runtimeRole.superuser === false && runtimeRole.bypass_rls === false &&
       runtimeRole.create_role === false && runtimeRole.create_db === false &&
       runtimeRole.elevated_role_membership === false),
-    // TLS evidence comes from the negotiated client socket, not pg_stat_ssl:
-    // Neon terminates TLS at its proxy, so PostgreSQL's backend-session view
-    // can legitimately report ssl=false. Accept only known modern AEAD suites
-    // with at least 128-bit keys; do not infer strength from arbitrary digits
-    // embedded in an untrusted cipher label.
-    check('client_tls_configuration', (() => {
-      const clientTls = database.clientTls || {};
-      const cipherBits = negotiatedCipherStrengthBits(clientTls.cipher);
-      return clientTls.negotiated === true &&
-        clientTls.authorized === true &&
-        ['TLSv1.2', 'TLSv1.3'].includes(String(clientTls.protocol || '')) &&
-        Number.isSafeInteger(cipherBits) && cipherBits >= 128;
-    })()),
+    // Gate on the application's PostgreSQL worker socket, bound to its database session.
+    // The separate read-only preflight clientTls sample is supplemental only.
+    check('client_tls_configuration', applicationConnectionTlsVerified),
     check('row_level_security_coverage', Number.isInteger(rls.public_application_tables) &&
       rls.public_application_tables > 0 &&
       rls.rls_enabled_tables === rls.public_application_tables &&
