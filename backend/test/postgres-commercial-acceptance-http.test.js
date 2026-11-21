@@ -349,18 +349,25 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
       expectCookieSecurity(x.response);
       const ownerBCookie = cookieFrom(x.response);
 
-      await bindSignedRlsSessionContext(fixture, { accessMode: 'auth' });
+      // Resolve each live session only inside its own signed auth tenant context.
+      await bindSignedRlsSessionContext(fixture, {
+        tenantId: orgAId, userId: ownerAId, accessMode: 'auth'
+      });
       const ownerASession = await fixture.query(
         "SELECT id FROM sessions WHERE user_id=$1 AND organization_id=$2 AND expires_at::timestamptz > now() ORDER BY created_at DESC LIMIT 1",
         [ownerAId, orgAId]
       );
+      assert.equal(ownerASession.rowCount, 1, 'tenant A live session must exist');
+      const ownerASessionId = ownerASession.rows[0].id;
+
+      await bindSignedRlsSessionContext(fixture, {
+        tenantId: orgBId, userId: userBId, accessMode: 'auth'
+      });
       const ownerBSession = await fixture.query(
         "SELECT id FROM sessions WHERE user_id=$1 AND organization_id=$2 AND expires_at::timestamptz > now() ORDER BY created_at DESC LIMIT 1",
         [userBId, orgBId]
       );
-      assert.equal(ownerASession.rowCount, 1, 'tenant A live session must exist');
       assert.equal(ownerBSession.rowCount, 1, 'tenant B live session must exist');
-      const ownerASessionId = ownerASession.rows[0].id;
       const ownerBSessionId = ownerBSession.rows[0].id;
       await clearSignedRlsSessionContext(fixture);
 
