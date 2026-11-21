@@ -67,18 +67,41 @@ jobs:
             exit 0
           fi
           echo "SNAPSHOT_UNAVAILABLE http=$code body=$(head -c 300 "$RUNNER_TEMP/snap.json" || true)"
+          # Prune previous disposable pre-migration rollback branches (never primary/default/protected).
+          curl -sS "${AUTH[@]}" "$API/branches" > "$RUNNER_TEMP/branches.json"
+          python3 - <<'PY' > "$RUNNER_TEMP/prune.sh"
+          import json, os
+          data=json.load(open(os.environ['RUNNER_TEMP']+'/branches.json'))
+          branches=data.get('branches') or data if isinstance(data,list) else data.get('branches') or []
+          primary=str(os.environ.get('PRIMARY_BRANCH_ID') or '')
+          victims=[]
+          for b in branches:
+            name=str(b.get('name') or '')
+            bid=str(b.get('id') or '')
+            if bid==primary: continue
+            if b.get('primary') or b.get('default') or b.get('protected'): continue
+            if name.startswith('opscore-pre-mig-rollback-') or name.startswith('opscore-pitr-ci-'):
+              victims.append((b.get('created_at') or '', bid, name))
+          victims.sort()
+          # Keep none of the disposable pre-mig rollback branches before creating a new one.
+          for _, bid, name in victims:
+            print(f'echo PRUNE {name} {bid}')
+            print(f'curl -sS -X DELETE -H "Authorization: Bearer $NEON_API_KEY" -H "Accept: application/json" "$API/branches/{bid}" >/dev/null || true')
+          PY
+          export PRIMARY_BRANCH_ID="${{ inputs.expected_branch_id }}"
+          bash "$RUNNER_TEMP/prune.sh" || true
+          sleep 2
           BRANCH_NAME="opscore-pre-mig-rollback-${GITHUB_RUN_ID}"
           export BRANCH_NAME
           export PARENT_BRANCH_ID="${{ inputs.expected_branch_id }}"
-          python3 -c 'import json,os; print(json.dumps({"branch":{"name":os.environ["BRANCH_NAME"],"parent_id":os.environ["PARENT_BRANCH_ID"]},"endpoints":[{"type":"read_only"}]}))' > "$RUNNER_TEMP/br-req.json"
+          # Create without a dedicated endpoint to avoid free-tier read_only endpoint limits.
+          python3 -c 'import json,os; print(json.dumps({"branch":{"name":os.environ["BRANCH_NAME"],"parent_id":os.environ["PARENT_BRANCH_ID"]}}))' > "$RUNNER_TEMP/br-req.json"
           code2=$(curl -sS -o "$RUNNER_TEMP/br.json" -w "%{http_code}" -X POST "${AUTH[@]}" \
             "$API/branches" \
             --data-binary @"$RUNNER_TEMP/br-req.json")
           bid=$(node -e "let d=null;try{d=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))}catch{};console.log((d&&d.branch&&d.branch.id)||'')" "$RUNNER_TEMP/br.json")
           if [ -z "$bid" ] || { [ "$code2" != "200" ] && [ "$code2" != "201" ]; }; then
             echo "ROLLBACK_BRANCH_FAILED http=$code2 body=$(head -c 500 "$RUNNER_TEMP/br.json" || true)"
-            # If at branch limit, list branches so the operator can prune a valueless temp branch.
-            curl -sS "${AUTH[@]}" "$API/branches" | head -c 2000 || true
             exit 1
           fi
           echo "snapshot_id=$bid" >> "$GITHUB_OUTPUT"
