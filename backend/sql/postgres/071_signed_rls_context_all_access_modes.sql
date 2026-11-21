@@ -260,7 +260,7 @@ RETURNS boolean
 LANGUAGE sql
 VOLATILE
 SECURITY DEFINER
-SET search_path TO pg_catalog, public, opscore_security, pg_temp
+SET search_path TO pg_catalog, public, pg_temp
 AS $function$
   SELECT EXISTS (
     SELECT 1 FROM public.memberships AS m
