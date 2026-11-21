@@ -208,16 +208,16 @@ test('release proof v2 binds CI, staged production identity, candidate evidence 
   }, commit), /PRODUCTION_FUNCTIONAL_API_ACCEPTANCE_NOT_VERIFIED/);
   assert.throws(() => validateEndpoint('/api/verify/release', 200, {
     ...valid, packageFingerprint: { ...valid.packageFingerprint, sourceCommit: 'f'.repeat(40) }
-  }, commit), /RELEASE_EVIDENCE_NOT_BOUND_TO_DEPLOYMENT/);
+  }, commit), /RELEASE_PACKAGE_NOT_BOUND_TO_COMMIT/);
   assert.throws(() => validateEndpoint('/api/verify/release', 200, {
     ...valid, productionAcceptance: { ...valid.productionAcceptance, pipelineId: '1' }
-  }, commit), /RELEASE_EVIDENCE_NOT_BOUND_TO_DEPLOYMENT/);
+  }, commit), /PRODUCTION_ACCEPTANCE_NOT_BOUND_TO_DEPLOYMENT/);
   assert.throws(() => validateEndpoint('/api/verify/release', 200, {
     ...valid, gates: { ...valid.gates, productionIsolationCertification: 'NOT_CERTIFIED' }
   }, commit), /PRODUCTION_ISOLATION_CERTIFICATION_NOT_VERIFIED/);
   assert.throws(() => validateEndpoint('/api/verify/release', 200, {
     ...valid, postgresHttpAcceptance: { ...valid.postgresHttpAcceptance, currentCandidateMatch: false }
-  }, commit), /RELEASE_EVIDENCE_NOT_BOUND_TO_DEPLOYMENT/);
+  }, commit), /PRODUCTION_ACCEPTANCE_NOT_BOUND_TO_DEPLOYMENT/);
 });
 
 test('full staged smoke requires every endpoint to match the same release identity', async () => {
