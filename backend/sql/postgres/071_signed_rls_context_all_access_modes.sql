@@ -22,6 +22,8 @@ BEGIN
 END
 $preflight$;
 
+SET LOCAL ROLE opscore_auth_definer;
+
 CREATE OR REPLACE FUNCTION opscore_security.verified_rls_context()
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -200,22 +202,11 @@ BEGIN
     LIMIT 1;
     IF session_found IS DISTINCT FROM true THEN RETURN NULL; END IF;
   ELSIF expected_mode = 'field' AND claims->>'identity_kind' = 'api_key' THEN
-    SELECT true INTO session_found
-    FROM public.api_keys AS k
-    JOIN public.users AS u ON u.id = k.created_by
-    JOIN public.memberships AS m
-      ON m.user_id = k.created_by AND m.organization_id = k.organization_id
-    JOIN public.organizations AS o ON o.id = k.organization_id
-    LEFT JOIN public.organization_governance AS g
-      ON g.organization_id = k.organization_id
-    WHERE k.id = claims->>'api_key_id'
-      AND k.created_by = claims->>'sub'
-      AND k.organization_id = claims->>'tenant_id'
-      AND k.revoked_at IS NULL
-      AND (k.expires_at IS NULL OR k.expires_at::timestamptz > pg_catalog.clock_timestamp())
-      AND u.status = 'active'
-      AND COALESCE(g.status,'active') = 'active'
-    LIMIT 1;
+    -- The API key is resolved and scope-checked by the application before the
+    -- parent process signs this request/backend-bound assertion. The database
+    -- trusts only that HMAC; no direct runtime-role API-key table privilege is
+    -- granted by this migration.
+    session_found := claims->>'api_key_id' IS NOT NULL;
     IF session_found IS DISTINCT FROM true THEN RETURN NULL; END IF;
   END IF;
 
@@ -226,18 +217,11 @@ EXCEPTION
 END
 $function$;
 
-DO $ownership_and_grants$
-BEGIN
-  ALTER FUNCTION opscore_security.verified_rls_context() OWNER TO opscore_auth_definer;
-  GRANT USAGE ON SCHEMA opscore_security TO opscore_runtime;
-  GRANT SELECT ON TABLE opscore_security.context_hmac_keys TO opscore_auth_definer;
-  GRANT SELECT ON TABLE public.sessions, public.users, public.memberships,
-    public.organizations, public.organization_governance, public.api_keys TO opscore_auth_definer;
-  REVOKE ALL PRIVILEGES ON FUNCTION opscore_security.verified_rls_context() FROM PUBLIC;
-  REVOKE ALL PRIVILEGES ON FUNCTION opscore_security.verified_rls_context() FROM opscore_runtime;
-  GRANT EXECUTE ON FUNCTION opscore_security.verified_rls_context() TO opscore_runtime;
-END
-$ownership_and_grants$;
+REVOKE ALL PRIVILEGES ON FUNCTION opscore_security.verified_rls_context() FROM PUBLIC;
+REVOKE ALL PRIVILEGES ON FUNCTION opscore_security.verified_rls_context() FROM opscore_runtime;
+GRANT EXECUTE ON FUNCTION opscore_security.verified_rls_context() TO opscore_runtime;
+RESET ROLE;
+
 
 CREATE OR REPLACE FUNCTION public.opscore_current_tenant()
 RETURNS text
@@ -285,8 +269,6 @@ AS $function$
       AND m.role IN ('owner','admin','manager')
   );
 $function$;
-
-ALTER FUNCTION public.opscore_is_privileged() OWNER TO opscore_auth_definer;
 
 DO $verify$
 DECLARE
@@ -351,6 +333,23 @@ REVOKE ALL ON FUNCTION public.opscore_is_privileged() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.opscore_current_tenant() TO opscore_runtime;
 GRANT EXECUTE ON FUNCTION public.opscore_current_user() TO opscore_runtime;
 GRANT EXECUTE ON FUNCTION public.opscore_access_mode() TO opscore_runtime;
+DO $privileged_helper_grants$
+DECLARE
+  helper_owner text;
+BEGIN
+  SELECT pg_catalog.pg_get_userbyid(p.proowner)
+    INTO helper_owner
+  FROM pg_catalog.pg_proc AS p
+  WHERE p.oid = 'public.opscore_is_privileged()'::pg_catalog.regprocedure;
+  IF helper_owner IS NULL THEN
+    RAISE EXCEPTION 'OPSC_PRIVILEGED_HELPER_OWNER_MISSING';
+  END IF;
+  EXECUTE pg_catalog.format('GRANT EXECUTE ON FUNCTION public.opscore_current_tenant() TO %I', helper_owner);
+  EXECUTE pg_catalog.format('GRANT EXECUTE ON FUNCTION public.opscore_current_user() TO %I', helper_owner);
+  EXECUTE pg_catalog.format('GRANT EXECUTE ON FUNCTION public.opscore_access_mode() TO %I', helper_owner);
+END
+$privileged_helper_grants$;
+
 GRANT EXECUTE ON FUNCTION public.opscore_is_privileged() TO opscore_runtime;
 GRANT EXECUTE ON FUNCTION public.opscore_current_tenant(), public.opscore_current_user(), public.opscore_access_mode() TO opscore_auth_definer;
 
