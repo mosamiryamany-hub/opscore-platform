@@ -123,7 +123,7 @@ test('runtime migration ledger inspection never selects the protected ledger tab
   assert.match(source, /settings\.setting_value ILIKE '%pg_catalog%'/);
 });
 
-test('runtime TLS evidence is read from pg_stat_ssl for the same client backend PID', () => {
+test('PostgreSQL server-side TLS telemetry is scoped to the preflight backend and is supplemental to application-client TLS proof', () => {
   const source = fs.readFileSync(
     path.resolve(__dirname, '../scripts/production-database-identity-preflight.js'),
     'utf8'

@@ -89,6 +89,29 @@ function respond(message, onWritten) {
   process.stdout.write(JSON.stringify(message) + '\n', onWritten || (() => {}));
 }
 
+function readApplicationConnectionTls(client) {
+  const stream = client && client.connection && client.connection.stream;
+  if (!stream || typeof stream.getProtocol !== 'function' || typeof stream.getCipher !== 'function') {
+    return { negotiated: false, authorized: false, verified: false, protocol: null, cipher: null, bits: null };
+  }
+  const protocolValue = String(stream.getProtocol() || '');
+  const cipherValue = stream.getCipher();
+  const cipherName = cipherValue && /^[A-Za-z0-9_.-]{1,128}$/.test(String(cipherValue.name || ''))
+    ? String(cipherValue.name) : null;
+  const protocolAllowed = protocolValue === 'TLSv1.2' || protocolValue === 'TLSv1.3';
+  const negotiated = Boolean(protocolValue);
+  const authorized = stream.authorized === true;
+  return {
+    negotiated,
+    authorized,
+    verified: negotiated && authorized && protocolAllowed && Boolean(cipherName),
+    protocol: /^[A-Za-z0-9.]{1,32}$/.test(protocolValue) ? protocolValue : null,
+    cipher: cipherName,
+    // TLSSocket.getCipher() does not expose a stable key-size field.
+    bits: null
+  };
+}
+
 async function handle(message) {
   const id = message && message.id;
   const type = String(message && message.type || '');
@@ -108,6 +131,28 @@ async function handle(message) {
   }
 
   const session = await getSession(requestId);
+  if (type === 'connectionTls') {
+    if (session.inTransaction) {
+      return { id, ok: false, code: 'APPLICATION_CONNECTION_TLS_PROBE_TRANSACTION_ACTIVE' };
+    }
+    const identity = await session.client.query(
+      "SELECT current_database() AS database_name, current_user AS role_name, current_setting('server_version') AS server_version, pg_backend_pid() AS backend_pid"
+    );
+    const row = identity.rows && identity.rows[0] || {};
+    const backendPid = Number(row.backend_pid);
+    const tls = readApplicationConnectionTls(session.client);
+    return {
+      id,
+      ok: true,
+      report: {
+        ...tls,
+        backendPid: Number.isSafeInteger(backendPid) && backendPid > 0 ? backendPid : null,
+        databaseName: /^[A-Za-z0-9_.-]{1,64}$/.test(String(row.database_name || '')) ? String(row.database_name) : null,
+        roleName: /^[A-Za-z0-9_.-]{1,64}$/.test(String(row.role_name || '')) ? String(row.role_name) : null,
+        serverVersion: /^\d{1,2}\.\d{1,2}(?:\.\d{1,3})?$/.test(String(row.server_version || '')) ? String(row.server_version) : null
+      }
+    };
+  }
   if (type === 'batch') {
     const statements = Array.isArray(message.statements) ? message.statements : [];
     if (!statements.length) return { id, ok: true, results: [] };

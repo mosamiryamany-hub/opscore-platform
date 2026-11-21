@@ -617,6 +617,12 @@ function openPgDatabaseSync(connectionString, { max = Number(process.env.OPSC_PG
       return call('exec', normalized, []);
     },
     ping() { return call('ping', '', []); },
+    inspectConnectionTls() {
+      const requestId = currentRequestId();
+      const state = getTransport(connectionString, poolMax);
+      const response = sendCommand('connectionTls', '', [], requestId, { state });
+      return response.report || null;
+    },
     close() {
       const state = transport;
       if (!state) return;

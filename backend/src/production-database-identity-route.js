@@ -2,6 +2,7 @@
 
 const { inspectDatabase } = require('../scripts/production-database-identity-preflight');
 const { hasVerifiedProductionRelease, readEmbeddedBuildIdentity } = require('./release-proof');
+const { isAuthorizedProductionCandidateDatabaseIdentityRequest } = require('./production-hold');
 
 const ROUTE_PATH = '/api/internal/production-database-identity';
 const SAFE_TOKEN = /^[A-Z0-9_]{1,96}$/;
@@ -48,6 +49,38 @@ function safeVersion(value) {
   return match ? match[1] : null;
 }
 
+function sanitizeApplicationConnectionTls(report) {
+  const value = report && typeof report === 'object' ? report : {};
+  const protocol = safeString(value.protocol, 32);
+  const cipher = safeString(value.cipher, 128);
+  const backendPid = Number.isSafeInteger(value.backendPid) && value.backendPid > 0 ? value.backendPid : null;
+  const databaseName = safeString(value.databaseName, 64);
+  const roleName = safeString(value.roleName, 64);
+  const serverVersion = safeVersion(value.serverVersion);
+  const verified = value.verified === true
+    && value.negotiated === true
+    && value.authorized === true
+    && ['TLSv1.2', 'TLSv1.3'].includes(protocol)
+    && Boolean(cipher)
+    && backendPid !== null
+    && Boolean(databaseName)
+    && Boolean(roleName)
+    && Boolean(serverVersion);
+  return {
+    scope: 'APPLICATION_POSTGRES_WORKER_CONNECTION',
+    status: verified ? 'VERIFIED' : 'UNVERIFIED',
+    negotiated: value.negotiated === true,
+    authorized: value.authorized === true,
+    protocol,
+    cipher,
+    bits: Number.isSafeInteger(value.bits) && value.bits > 0 ? value.bits : null,
+    backendPid,
+    databaseName,
+    roleName,
+    serverVersion
+  };
+}
+
 function sanitizeIdentityReport(report) {
   const value = report && typeof report === 'object' ? report : {};
   const target = value.target || {};
@@ -75,6 +108,7 @@ function sanitizeIdentityReport(report) {
 
   return {
     clientTls: {
+      scope: 'READ_ONLY_PREFLIGHT_CONNECTION',
       negotiated: clientTls.negotiated === true,
       authorized: clientTls.authorized === true,
       protocol: safeString(clientTls.protocol, 32),
@@ -188,9 +222,25 @@ function createProductionDatabaseIdentityHandler(dependencies = {}) {
   const inspect = dependencies.inspectDatabase || inspectDatabase;
   const verifyRelease = dependencies.hasVerifiedProductionRelease || hasVerifiedProductionRelease;
   const readIdentity = dependencies.readEmbeddedBuildIdentity || readEmbeddedBuildIdentity;
+  const inspectApplicationConnection = dependencies.inspectApplicationConnection || null;
+  const authorizeCandidate = dependencies.authorizeCandidate || isAuthorizedProductionCandidateDatabaseIdentityRequest;
 
   return async function handleProductionDatabaseIdentity(req, res, configuredEnv = process.env, effectiveEnv = process.env) {
-    if (requestPath(req) !== ROUTE_PATH || !isProtectedProductionDeployment(req, effectiveEnv)) {
+    const configuredForAuthorization = configuredEnv || {};
+    const effectiveForAuthorization = effectiveEnv || configuredForAuthorization;
+    let releaseVerifiedForAuthorization = false;
+    try {
+      releaseVerifiedForAuthorization = verifyRelease(configuredForAuthorization) === true;
+    } catch (_) {
+      releaseVerifiedForAuthorization = false;
+    }
+    const candidateAuthorized = authorizeCandidate(
+      req, effectiveForAuthorization,
+      { productionReleaseVerified: releaseVerifiedForAuthorization }
+    ) === true;
+    if (requestPath(req) !== ROUTE_PATH
+        || !isProtectedProductionDeployment(req, effectiveForAuthorization)
+        || !candidateAuthorized) {
       res.statusCode = 404;
       res.setHeader('Cache-Control', 'no-store, private, max-age=0');
       res.setHeader('X-Robots-Tag', 'noindex, nofollow');
@@ -220,6 +270,15 @@ function createProductionDatabaseIdentityHandler(dependencies = {}) {
         NODE_ENV: effective.NODE_ENV
       };
       const identityReport = await inspect(inspectionEnv);
+      let applicationConnectionReport = null;
+      try {
+        if (typeof inspectApplicationConnection === 'function') {
+          applicationConnectionReport = await inspectApplicationConnection();
+        }
+      } catch (_) {
+        applicationConnectionReport = null;
+      }
+      const applicationConnectionTls = sanitizeApplicationConnectionTls(applicationConnectionReport);
       const releaseProofVerified = verifyRelease(configured) === true;
       let embedded = null;
       try { embedded = readIdentity(); } catch { embedded = null; }
@@ -237,13 +296,15 @@ function createProductionDatabaseIdentityHandler(dependencies = {}) {
           ref: embedded && embedded.ref === 'main' ? 'main' : null
         },
         environment: environmentSnapshot(configured, effective, releaseProofVerified),
+        applicationConnectionTls,
         database: sanitizeIdentityReport(identityReport)
       };
 
       const identityResolved = identityReport &&
         identityReport.status === 'IDENTITY_RESOLVED' &&
         identityReport.applicationDatabaseBinding === 'PRESENT' &&
-        identityReport.connectionSource === 'OPSC_DATABASE_URL';
+        identityReport.connectionSource === 'OPSC_DATABASE_URL' &&
+        applicationConnectionTls.status === 'VERIFIED';
       res.statusCode = identityResolved ? 200 : 503;
       return res.end(JSON.stringify(payload));
     } catch {
@@ -264,6 +325,7 @@ module.exports = {
   normalizeHost,
   isProtectedProductionDeployment,
   sanitizeIdentityReport,
+  sanitizeApplicationConnectionTls,
   environmentSnapshot,
   createProductionDatabaseIdentityHandler
 };

@@ -49,7 +49,14 @@ const {authProviderGate, verifyOidcIdToken} = require('./security');
 const {inspectRequest,productionSafetyGate,createRateLimiter,createLoginRateLimiter,assertTenantAlignment}=require('./firewall');
 const {evaluateProductionGate,isReadOnlyProductionVerificationRequest,candidateProbeBoundaryDenialReason,isAuthorizedProductionCandidateProbeRequest,isAuthorizedProductionCandidateUnknownRouteProbeRequest,isAuthorizedProductionCandidateRouteAcceptanceProbeRequest,isAuthorizedProductionCandidateDatabaseIdentityRequest}=require('./production-hold');
 const {createProductionDatabaseIdentityHandler}=require('./production-database-identity-route');
-const productionDatabaseIdentityHandler=createProductionDatabaseIdentityHandler();
+const productionDatabaseIdentityHandler=createProductionDatabaseIdentityHandler({
+  inspectApplicationConnection: () => {
+    if (opened.engine !== 'postgres' || typeof db.inspectConnectionTls !== 'function') {
+      throw new Error('APPLICATION_POSTGRES_CONNECTION_TLS_PROBE_UNAVAILABLE');
+    }
+    return db.inspectConnectionTls();
+  }
+});
 const {can: rbacCan}=require('./rbac');
 const {breaker}=require('./enterprise-value-additions');
 breaker.setDb?.(db);
