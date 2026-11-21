@@ -88,7 +88,7 @@ function evaluateRuntimeDiagnostic(payload, httpStatus, expectedCommit, expected
   const rls = database.rowLevelSecurity || {};
   const ledger = database.migrationLedger || {};
   const appCipherBits = negotiatedCipherStrengthBits(applicationConnectionTls.cipher);
-  const identityVersion = /^([0-9]{1,2}\\.[0-9]{1,2})/.exec(String(identity.server_version || ''));
+  const identityVersion = /^([0-9]{1,2}\.[0-9]{1,2})/.exec(String(identity.server_version || ''));
   const applicationConnectionTlsVerified =
     applicationConnectionTls.scope === 'APPLICATION_POSTGRES_WORKER_CONNECTION' &&
     applicationConnectionTls.status === 'VERIFIED' &&
@@ -122,7 +122,7 @@ function evaluateRuntimeDiagnostic(payload, httpStatus, expectedCommit, expected
     tlsCipher: applicationConnectionTlsVerified ? safeLabel(applicationConnectionTls.cipher, /^[A-Za-z0-9_.-]{1,128}$/, 128) : null,
     // The worker TLSSocket API does not expose a stable key-size field.
     tlsBits: applicationConnectionTlsVerified && Number.isSafeInteger(applicationConnectionTls.bits) && applicationConnectionTls.bits > 0 ? applicationConnectionTls.bits : null
-  };;
+  };
 
   const checks = [
     check('diagnostic_endpoint_reached', httpStatus === 200 || httpStatus === 503, `HTTP_${httpStatus}`),
