@@ -27,8 +27,10 @@ const RESULT_SCHEMA = 'opscore.api-route-acceptance.v2';
 const VERIFICATION_SCOPE = 'PRODUCTION_POSTGRESQL_HTTP_FULL_ROUTE_AND_BUSINESS_FLOW_INVENTORY';
 const MAX_RESPONSE_BYTES = 4 * 1024 * 1024;
 
-function fail(code) {
-  throw new Error(code);
+function fail(code, diagnostic = null) {
+  const error = new Error(code);
+  if (diagnostic && typeof diagnostic === 'object') error.diagnostic = diagnostic;
+  throw error;
 }
 
 function exactCommit(value) {
@@ -268,6 +270,9 @@ async function requestJson(fetchImpl, url, method, body, headers) {
     statusCode: response.status,
     contentType: String(response.headers.get('content-type') || ''),
     responseCode: responseCode(payload),
+    bodyFormat: payload && typeof payload === 'object' ? 'json-object' : (raw ? (payload === null ? 'non-json' : 'json-other') : 'empty'),
+    redirected: response.status >= 300 && response.status < 400,
+    locationPresent: Boolean(response.headers.get('location')),
     bodyAssertion: Boolean(payload && payload.loggedOut === true)
   };
 }
@@ -326,7 +331,14 @@ async function runCollector(options = {}) {
     fetchImpl, base + unknownPath, 'GET', null, headers, pause
   );
   if (unknown.statusCode !== 404 || !unknown.responseCode) {
-    fail('API_ROUTE_ACCEPTANCE_UNKNOWN_ROUTE_MARKER_NOT_ESTABLISHED');
+    fail('API_ROUTE_ACCEPTANCE_UNKNOWN_ROUTE_MARKER_NOT_ESTABLISHED', {
+      statusCode: unknown.statusCode,
+      contentType: unknown.contentType,
+      responseCode: unknown.responseCode,
+      bodyFormat: unknown.bodyFormat,
+      redirected: unknown.redirected,
+      locationPresent: unknown.locationPresent
+    });
   }
 
   const results = [];
@@ -454,6 +466,7 @@ async function main() {
       status: 'FAIL',
       testedAt: new Date().toISOString(),
       reason: String(error && (error.code || error.message) || error).slice(0, 240),
+      diagnostic: error && error.diagnostic ? error.diagnostic : null,
       testedRoutes: 0,
       inventoryRouteCount: EXPECTED_ROUTE_COUNT,
       passed: 0,
