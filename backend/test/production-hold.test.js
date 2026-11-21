@@ -223,6 +223,50 @@ test('held candidate permits only the exact commit-bound unknown-route GET probe
   assert.equal(isAuthorizedProductionCandidateProbeRequest(alias, env, readiness), false);
 });
 
+
+test('held unknown-route probe reaches the router 404 only for the exact commit-bound candidate request before session authentication', () => {
+  const commit = 'b'.repeat(40);
+  const env = {
+    VERCEL_ENV: 'production',
+    VERCEL_URL: 'opscore-platform-candidate123-mosamiryamany-1692.vercel.app',
+    VERCEL_GIT_COMMIT_SHA: commit,
+    OPSC_PRODUCTION_HOLD: 'true',
+    OPSC_RELEASE_VERIFIED: 'false',
+    OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'true',
+    OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED: 'true',
+    OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN: 'f'.repeat(64)
+  };
+  const readiness = { productionReleaseVerified: false };
+  const request = (method = 'GET', url = buildUnknownRoutePath(commit)) => ({
+    method, url, headers: {
+      host: env.VERCEL_URL,
+      'x-opscore-signed-context-probe': env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN,
+      'x-opscore-trusted-oidc-idp-token': 'header.payload.signature'
+    }
+  });
+  assert.equal(isAuthorizedProductionCandidateUnknownRouteProbeRequest(request(), env, readiness), true);
+  assert.equal(isAuthorizedProductionCandidateUnknownRouteProbeRequest(request('POST'), env, readiness), false);
+  assert.equal(isAuthorizedProductionCandidateUnknownRouteProbeRequest(request('GET', buildUnknownRoutePath('c'.repeat(40))), env, readiness), false);
+  assert.equal(isAuthorizedProductionCandidateUnknownRouteProbeRequest(request('GET', buildUnknownRoutePath(commit) + '/extra'), env, readiness), false);
+  const missingToken = request(); delete missingToken.headers['x-opscore-signed-context-probe'];
+  assert.equal(isAuthorizedProductionCandidateUnknownRouteProbeRequest(missingToken, env, readiness), false);
+  const missingOidc = request(); delete missingOidc.headers['x-opscore-trusted-oidc-idp-token'];
+  assert.equal(isAuthorizedProductionCandidateUnknownRouteProbeRequest(missingOidc, env, readiness), false);
+  const publicAlias = request(); publicAlias.headers.host = 'opscore-platform.vercel.app';
+  assert.equal(isAuthorizedProductionCandidateUnknownRouteProbeRequest(publicAlias, env, readiness), false);
+  assert.equal(isAuthorizedProductionCandidateUnknownRouteProbeRequest(request(), { ...env, OPSC_PRODUCTION_HOLD: 'false' }, readiness), true);
+});
+
+test('the held unknown-route probe is handled before route-level session authentication', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'src', 'server.js'), 'utf8');
+  const probeIndex = source.indexOf('isAuthorizedProductionCandidateUnknownRouteProbeRequest(req, process.env, signedContextProductionReadiness)');
+  const firstSessionGuardIndex = source.indexOf('function requireCtx(req, res)');
+  assert.ok(probeIndex > 0);
+  assert.ok(firstSessionGuardIndex > 0);
+  assert.match(source, /isAuthorizedProductionCandidateUnknownRouteProbeRequest\(req, process\.env, signedContextProductionReadiness\)\)\s*\{\s*return json\(res, 404, \{ error: \{ code: 'NOT_FOUND' \} \}/);
+  assert.ok(source.indexOf('const url = new URL(req.url, config.publicOrigin);') < probeIndex);
+});
+
 test('missing release evidence cannot be bypassed by setting hold false', () => {
   const gate = evaluateProductionGate(
     { nodeEnv: 'production' },
