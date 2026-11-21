@@ -20,3 +20,16 @@ test('PostgreSQL worker rejects unsigned session context and binds signed assert
   assert.match(src, /RESET ALL/);
   assert.match(src, /endRequest/);
 });
+
+test('application PostgreSQL worker exposes TLS evidence from its checked-out client session', () => {
+  const worker = fs.readFileSync(path.join(__dirname, '../src/pg-sync-worker.js'), 'utf8');
+  const adapter = fs.readFileSync(path.join(__dirname, '../src/pg-database-sync.js'), 'utf8');
+  assert.match(worker, /type === 'connectionTls'/);
+  assert.match(worker, /client && client\.connection && client\.connection\.stream/);
+  assert.match(worker, /stream\.getProtocol\(\)/);
+  assert.match(worker, /stream\.authorized === true/);
+  assert.match(worker, /pg_backend_pid\(\)/);
+  assert.match(worker, /verified: negotiated && authorized && protocolAllowed && Boolean\(cipherName\)/);
+  assert.match(adapter, /inspectConnectionTls\(\)/);
+  assert.match(adapter, /sendCommand\('connectionTls'/);
+});
