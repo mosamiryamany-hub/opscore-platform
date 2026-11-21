@@ -191,13 +191,15 @@ jobs:
           test -n "${cid}" || { echo "PostgreSQL service container not found" >&2; exit 1; }
           key_hex="$(openssl rand -hex 32)"
           key_id="ci-rls-${GITHUB_RUN_ID}"
+          [[ "${key_hex}" =~ ^[a-f0-9]{64}$ ]]
+          [[ "${key_id}" =~ ^ci-rls-[0-9]+$ ]]
           echo "::add-mask::${key_hex}"
           for db in opscore_http_acceptance opscore_matrix_test; do
+            sql="INSERT INTO opscore_security.context_hmac_keys(key_id,secret,enabled,not_before,not_after) VALUES ('${key_id}',decode('${key_hex}','hex'),true,now()-interval '1 minute',now()+interval '1 hour') ON CONFLICT(key_id) DO UPDATE SET secret=excluded.secret,enabled=true,not_before=excluded.not_before,not_after=excluded.not_after"
             docker exec -e PGPASSWORD="${OPSC_CI_MIGRATION_OWNER_PASSWORD}" "${cid}" \
               psql -h 127.0.0.1 -U neondb_owner -d "${db}" -v ON_ERROR_STOP=1 \
-                -v key_id="${key_id}" -v key_hex="${key_hex}" \
                 -c "SET ROLE opscore_auth_definer" \
-                -c "INSERT INTO opscore_security.context_hmac_keys(key_id,secret,enabled,not_before,not_after) VALUES (:'key_id',decode(:'key_hex','hex'),true,now()-interval '1 minute',now()+interval '1 hour') ON CONFLICT(key_id) DO UPDATE SET secret=excluded.secret,enabled=true,not_before=excluded.not_before,not_after=excluded.not_after" \
+                -c "${sql}" \
                 -c "RESET ROLE"
           done
           {

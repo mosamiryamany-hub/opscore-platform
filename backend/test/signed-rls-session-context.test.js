@@ -23,13 +23,20 @@ const common = {
 
 test('each application purpose has a distinct HMAC over the exact backend and request binding', () => {
   for (const [accessMode, purpose] of Object.entries(RLS_SESSION_PURPOSES)) {
-    const signed = createSignedRlsSessionContext({ ...common, accessMode });
+    const isField = accessMode === 'field';
+    const signed = createSignedRlsSessionContext({
+      ...common,
+      tenantId: isField ? 'tenant-a' : '',
+      userId: isField ? 'user-a' : '',
+      sessionId: isField ? 'session-a' : '',
+      accessMode
+    });
     const claims = JSON.parse(signed.payload);
     assert.equal(claims.purpose, purpose);
     assert.equal(claims.access_mode, accessMode);
-    assert.equal(claims.tenant_id, 'tenant-a');
-    assert.equal(claims.sub, 'user-a');
-    assert.equal(claims.session_id, 'session-a');
+    assert.equal(claims.tenant_id, isField ? 'tenant-a' : null);
+    assert.equal(claims.sub, isField ? 'user-a' : null);
+    assert.equal(claims.session_id, isField ? 'session-a' : null);
     assert.equal(claims.backend_pid, 12345);
     assert.equal(claims.request_id, common.requestId);
     assert.equal(claims.binding_scope, 'backend_session');

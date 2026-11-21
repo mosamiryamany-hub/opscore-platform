@@ -521,6 +521,15 @@ function openPgDatabaseSync(connectionString, { max = Number(process.env.OPSC_PG
   function setSessionContext({ tenantId = '', userId = '', sessionId = '', apiKeyId = '', accessMode = 'field' } = {}) {
     const context = requestStorage.getStore();
     const requestedMode = accessMode || 'field';
+    const signedContextRequired = String(process.env.OPSC_REQUIRE_SIGNED_TENANT_CONTEXT || '').trim().toLowerCase() === 'true';
+    const hasFieldPrincipal = Boolean(
+      context && context.verifiedPrincipal
+      || tenantId && userId && (sessionId || apiKeyId)
+    );
+    if (signedContextRequired && requestedMode === 'field' && !hasFieldPrincipal) {
+      throw makeError('SIGNED_TENANT_CONTEXT_REQUIRED',
+        'A verified request principal or a concrete persisted field session/API key is required');
+    }
     if (context && context.verifiedPrincipal) {
       const principal = context.verifiedPrincipal;
       if (requestedMode !== 'field') {

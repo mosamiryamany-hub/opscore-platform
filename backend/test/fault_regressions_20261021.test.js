@@ -37,12 +37,23 @@ test('gateway deferred-handler failures are recorded instead of silently swallow
   assert.equal(b.lastDeferredHandlerError, 'queue down');
 });
 
-test('postgres tenant session is destroyed, not pooled, when it cannot be reset', async () => {
+test('postgres signed tenant session is destroyed, not pooled, when it cannot be reset', async (t) => {
   const { withTenantClient } = require('../src/adapters/postgres');
+  const previousKey = process.env.OPSC_TENANT_CONTEXT_HMAC_KEY;
+  const previousKeyId = process.env.OPSC_TENANT_CONTEXT_KEY_ID;
+  process.env.OPSC_TENANT_CONTEXT_HMAC_KEY = 'd3'.repeat(32);
+  process.env.OPSC_TENANT_CONTEXT_KEY_ID = 'fault-regression-key';
+  t.after(() => {
+    if (previousKey === undefined) delete process.env.OPSC_TENANT_CONTEXT_HMAC_KEY;
+    else process.env.OPSC_TENANT_CONTEXT_HMAC_KEY = previousKey;
+    if (previousKeyId === undefined) delete process.env.OPSC_TENANT_CONTEXT_KEY_ID;
+    else process.env.OPSC_TENANT_CONTEXT_KEY_ID = previousKeyId;
+  });
   const make = (failReset) => {
     const events = [];
     const client = {
       query: async sql => {
+        if (/SELECT pg_backend_pid\(\)/.test(sql)) return { rows: [{ backend_pid: 8811 }] };
         if (/RESET ALL/.test(sql) && failReset) throw new Error('reset failed');
         if (/set_config/.test(sql) && /''/.test(sql) && failReset) throw new Error('clear failed');
         return { rows: [] };
@@ -52,10 +63,10 @@ test('postgres tenant session is destroyed, not pooled, when it cannot be reset'
     return { pool: { connect: async () => client }, events };
   };
   const clean = make(false);
-  await withTenantClient(clean.pool, 'org_a', async () => {});
+  await withTenantClient(clean.pool, 'org_a', async () => {}, { userId: 'user_a', sessionId: 'session_a' });
   assert.deepEqual(clean.events, ['pooled']);
   const dirty = make(true);
-  await withTenantClient(dirty.pool, 'org_a', async () => {});
+  await withTenantClient(dirty.pool, 'org_a', async () => {}, { userId: 'user_a', sessionId: 'session_a' });
   assert.deepEqual(dirty.events, ['destroyed']);
   await assert.rejects(withTenantClient(make(false).pool, '', async () => {}), /TENANT_CONTEXT_REQUIRED/);
 });

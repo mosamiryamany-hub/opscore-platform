@@ -31,7 +31,8 @@ test('PostgreSQL tenant client signs a backend-bound field session before return
     assert.match(calls[1].sql, /set_config\('app\.signed_context_payload',\$1,false\)/);
     assert.match(calls[1].sql, /set_config\('app\.signed_context_signature',\$2,false\)/);
     assert.match(calls[1].sql, /set_config\('app\.signed_context_request_id',\$3,false\)/);
-    assert.deepEqual(calls[1].params.slice(3), ['org_contract_test','user_contract_test','field']);
+    assert.deepEqual(calls[1].params.slice(3), ['org_contract_test','user_contract_test']);
+    assert.match(calls[1].sql, /set_config\('app\.access_mode','field',false\)/);
     const claims = JSON.parse(calls[1].params[0]);
     assert.equal(claims.backend_pid, 4242);
     assert.equal(claims.tenant_id, 'org_contract_test');
