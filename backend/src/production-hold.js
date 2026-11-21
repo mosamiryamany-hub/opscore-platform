@@ -2,6 +2,7 @@
 
 const signedTenantContextPolicy = require('./signed-tenant-context-policy');
 const { buildUnknownRoutePath } = require('./production-api-route-acceptance-policy');
+const apiInventory = require('../docs/API_INVENTORY.json');
 
 const READ_ONLY_PRODUCTION_VERIFICATION_PATHS = new Set([
   '/api/health',
@@ -105,6 +106,82 @@ function isAuthorizedProductionCandidateUnknownRouteProbeRequest(req, env = proc
     && isCandidateRequestOnExactDeployment(req, env, readiness);
 }
 
+// The 358-route acceptance collector must reach real handlers while the candidate
+// stays held, so that each route answers with its own contract (200 for public JSON,
+// 401/403 for auth-gated) instead of being short-circuited by the hold with 503.
+// This is an exact-shape inventory bypass, not a hold release:
+//   * method + path must match an API_INVENTORY row after the commit-bound marker
+//     substitution the collector itself performs;
+//   * all four candidate proofs (probe token, Vercel OIDC, exact unaliased
+//     deployment host, held candidate) must still validate;
+//   * authentication and tenant authorization are NOT bypassed - the request is
+//     only forwarded to the router, which answers 401/403 as usual;
+//   * the public alias keeps returning 503 because the host check fails there.
+const ROUTE_ACCEPTANCE_METHODS = new Set(['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
+const ROUTE_ACCEPTANCE_EXTRA_PATHS = new Set(['/metrics']);
+let routeAcceptanceIndexCache = { commit: '', index: null };
+
+function escapeRegExp(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function routeAcceptancePathMatcher(routePattern, commit12) {
+  const marker = 'opscore-probe-' + commit12 + '-\\d+';
+  const source = String(routePattern || '');
+  let pattern = '';
+  let i = 0;
+  while (i < source.length) {
+    const rest = source.slice(i);
+    if (rest.startsWith('{param}')) { pattern += 'work-orders'; i += 7; continue; }
+    if (rest.startsWith('([A-Za-z0-9_-]+)')) { pattern += marker; i += 16; continue; }
+    if (rest.startsWith('(\\d+)')) { pattern += '1'; i += 5; continue; }
+    const placeholder = /^\{[^}]+\}/.exec(rest);
+    if (placeholder) { pattern += marker; i += placeholder[0].length; continue; }
+    pattern += escapeRegExp(source[i]);
+    i += 1;
+  }
+  return new RegExp('^' + pattern + '$');
+}
+
+function routeAcceptanceProbeIndex(commit) {
+  if (routeAcceptanceIndexCache.commit === commit && routeAcceptanceIndexCache.index) {
+    return routeAcceptanceIndexCache.index;
+  }
+  const commit12 = commit.slice(0, 12);
+  const index = new Map();
+  for (const row of (apiInventory && apiInventory.routes) || []) {
+    const method = String(row && row.method || '').trim().toUpperCase();
+    const route = String(row && row.route || '').trim();
+    if (!ROUTE_ACCEPTANCE_METHODS.has(method)) continue;
+    if (!(route.startsWith('/api/') || ROUTE_ACCEPTANCE_EXTRA_PATHS.has(route))) continue;
+    if (route.includes('?') || route.includes('#')) continue;
+    if (!index.has(method)) index.set(method, []);
+    index.get(method).push(routeAcceptancePathMatcher(route, commit12));
+  }
+  for (const method of ROUTE_ACCEPTANCE_EXTRA_PATHS) { /* literal path is added below */ }
+  const getMatchers = index.get('GET') || [];
+  for (const literal of ROUTE_ACCEPTANCE_EXTRA_PATHS) {
+    getMatchers.push(new RegExp('^' + escapeRegExp(literal) + '$'));
+  }
+  index.set('GET', getMatchers);
+  routeAcceptanceIndexCache = { commit, index };
+  return index;
+}
+
+function isAuthorizedProductionCandidateRouteAcceptanceProbeRequest(req, env = process.env, readiness = {}) {
+  const method = String(req && req.method || '').trim().toUpperCase();
+  if (!ROUTE_ACCEPTANCE_METHODS.has(method)) return false;
+  const commit = String(
+    env.VERCEL_GIT_COMMIT_SHA || env.OPSC_RELEASE_CI_COMMIT || env.OPSC_SOURCE_COMMIT_SHA || ''
+  ).trim().toLowerCase();
+  if (!/^[a-f0-9]{40}$/.test(commit)) return false;
+  const pathname = requestPath(req);
+  if (!(pathname.startsWith('/api/') || ROUTE_ACCEPTANCE_EXTRA_PATHS.has(pathname))) return false;
+  if (!isCandidateRequestOnExactDeployment(req, env, readiness)) return false;
+  const matchers = routeAcceptanceProbeIndex(commit).get(method) || [];
+  return matchers.some(matcher => matcher.test(pathname));
+}
+
 function isAuthorizedProductionCandidateDatabaseIdentityRequest(req, env = process.env, readiness = {}) {
   return String(req && req.method || '').trim().toUpperCase() === 'GET'
     && requestPath(req) === PRODUCTION_DATABASE_IDENTITY_PATH
@@ -130,5 +207,6 @@ module.exports = {
   candidateProbeBoundaryDenialReason,
   isAuthorizedProductionCandidateProbeRequest,
   isAuthorizedProductionCandidateUnknownRouteProbeRequest,
+  isAuthorizedProductionCandidateRouteAcceptanceProbeRequest,
   isAuthorizedProductionCandidateDatabaseIdentityRequest
 };
