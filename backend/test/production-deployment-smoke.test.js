@@ -138,11 +138,11 @@ test('release proof accepts PASS_PRODUCTION session/recovery and consistent CERT
     postgresHttpAcceptance: { status: 'PASS', evidenceCommit: commit, evidencePipelineId: String(pipelineId), currentCandidateMatch: true },
     productionAcceptance: { status: 'PASS', commitSha: commit, pipelineId: String(pipelineId), evidenceSha256: 'a'.repeat(64) },
     gates: {
-      productionSessionTenantBoundary: 'PASS_PRODUCTION',
-      productionRecoveryBundle: 'PASS_PRODUCTION',
+      productionSessionTenantBoundary: 'PASS_PRODUCTION_PROBE_SCOPE',
+      productionRecoveryBundle: 'PASS_PRODUCTION_FULL_DATA_RECOVERY_SCOPE',
       tenantRouteSecurityCoverage: 'PASS_TEST_SCOPE',
-      functionalApiRouteAcceptance: 'PASS_CONTRACT_SCOPE',
-      neonPointInTimeRecovery: 'PASS_BRANCH_POINT',
+      functionalApiRouteAcceptance: 'PASS_PRODUCTION_FUNCTIONAL_SCOPE',
+      neonPointInTimeRecovery: 'PASS_PRODUCTION_FULL_DATA_PITR_SCOPE',
       productionIsolationCertification: 'CERTIFIED'
     },
     packageFingerprint: { status: 'PUBLISHED', sourceCommit: commit, value: 'b'.repeat(64) }
@@ -151,7 +151,34 @@ test('release proof accepts PASS_PRODUCTION session/recovery and consistent CERT
   assert.throws(() => validateEndpoint('/api/verify/release', 200, {
     ...valid,
     gates: { ...valid.gates, productionSessionTenantBoundary: 'PASS_TEST_SCOPE' }
-  }, commit), /RELEASE_EVIDENCE_NOT_BOUND_TO_DEPLOYMENT/);
+  }, commit), /PRODUCTION_SESSION_TENANT_BOUNDARY_NOT_VERIFIED/);
+});
+
+test('release proof rejects SQLite contract-only API evidence even when other Production proofs are present', () => {
+  const pipelineId = 42949619029;
+  const candidate = {
+    schemaVersion: 'opscore.public-release-proof.v2',
+    status: 'UNVERIFIED',
+    sourceCommit: commit,
+    sourceCommitIdentitySource: 'github-actions-cli-assertion',
+    ci: { status: 'PASS', commitSha: commit, pipelineId },
+    deployment: { status: 'identified', environment: 'production', id: 'dpl_123abc', ref: 'main' },
+    postgresHttpAcceptance: { status: 'PASS', evidenceCommit: commit, evidencePipelineId: String(pipelineId), currentCandidateMatch: true },
+    productionAcceptance: { status: 'PASS', commitSha: commit, pipelineId: String(pipelineId), evidenceSha256: 'a'.repeat(64) },
+    gates: {
+      productionSessionTenantBoundary: 'PASS_PRODUCTION_PROBE_SCOPE',
+      productionRecoveryBundle: 'PASS_PRODUCTION_FULL_DATA_RECOVERY_SCOPE',
+      tenantRouteSecurityCoverage: 'PASS_TEST_SCOPE',
+      functionalApiRouteAcceptance: 'PASS_CONTRACT_SCOPE',
+      neonPointInTimeRecovery: 'PASS_PRODUCTION_FULL_DATA_PITR_SCOPE',
+      productionIsolationCertification: 'CERTIFIED'
+    },
+    packageFingerprint: { status: 'PUBLISHED', sourceCommit: commit, value: 'b'.repeat(64) }
+  };
+  assert.throws(
+    () => validateEndpoint('/api/verify/release', 200, candidate, commit),
+    /PRODUCTION_FUNCTIONAL_API_ACCEPTANCE_NOT_VERIFIED/
+  );
 });
 
 test('release proof v2 binds CI, staged production identity, candidate evidence and package while preserving honest residuals', () => {
@@ -166,19 +193,19 @@ test('release proof v2 binds CI, staged production identity, candidate evidence 
     postgresHttpAcceptance: { status: 'PASS', evidenceCommit: commit, evidencePipelineId: String(pipelineId), currentCandidateMatch: true },
     productionAcceptance: { status: 'PASS', commitSha: commit, pipelineId: String(pipelineId), evidenceSha256: 'a'.repeat(64) },
     gates: {
-      productionSessionTenantBoundary: 'PASS_TEST_SCOPE',
-      productionRecoveryBundle: 'PASS_TEST_SCOPE',
+      productionSessionTenantBoundary: 'PASS_PRODUCTION_PROBE_SCOPE',
+      productionRecoveryBundle: 'PASS_PRODUCTION_FULL_DATA_RECOVERY_SCOPE',
       tenantRouteSecurityCoverage: 'PASS_TEST_SCOPE',
-      functionalApiRouteAcceptance: 'PASS_CONTRACT_SCOPE',
-      neonPointInTimeRecovery: 'NOT_VERIFIED',
-      productionIsolationCertification: 'NOT_CERTIFIED'
+      functionalApiRouteAcceptance: 'PASS_PRODUCTION_FUNCTIONAL_SCOPE',
+      neonPointInTimeRecovery: 'PASS_PRODUCTION_FULL_DATA_PITR_SCOPE',
+      productionIsolationCertification: 'CERTIFIED'
     },
     packageFingerprint: { status: 'PUBLISHED', sourceCommit: commit, value: 'b'.repeat(64) }
   };
   assert.equal(validateEndpoint('/api/verify/release', 200, valid, commit), true);
   assert.throws(() => validateEndpoint('/api/verify/release', 200, {
-    ...valid, gates: { ...valid.gates, functionalApiRouteAcceptance: 'NOT_VERIFIED' }
-  }, commit), /RELEASE_EVIDENCE_NOT_BOUND_TO_DEPLOYMENT/);
+    ...valid, gates: { ...valid.gates, functionalApiRouteAcceptance: 'PASS_CONTRACT_SCOPE' }
+  }, commit), /PRODUCTION_FUNCTIONAL_API_ACCEPTANCE_NOT_VERIFIED/);
   assert.throws(() => validateEndpoint('/api/verify/release', 200, {
     ...valid, packageFingerprint: { ...valid.packageFingerprint, sourceCommit: 'f'.repeat(40) }
   }, commit), /RELEASE_EVIDENCE_NOT_BOUND_TO_DEPLOYMENT/);
@@ -186,8 +213,8 @@ test('release proof v2 binds CI, staged production identity, candidate evidence 
     ...valid, productionAcceptance: { ...valid.productionAcceptance, pipelineId: '1' }
   }, commit), /RELEASE_EVIDENCE_NOT_BOUND_TO_DEPLOYMENT/);
   assert.throws(() => validateEndpoint('/api/verify/release', 200, {
-    ...valid, gates: { ...valid.gates, productionIsolationCertification: 'CERTIFIED' }
-  }, commit), /RELEASE_EVIDENCE_NOT_BOUND_TO_DEPLOYMENT/);
+    ...valid, gates: { ...valid.gates, productionIsolationCertification: 'NOT_CERTIFIED' }
+  }, commit), /PRODUCTION_ISOLATION_CERTIFICATION_NOT_VERIFIED/);
   assert.throws(() => validateEndpoint('/api/verify/release', 200, {
     ...valid, postgresHttpAcceptance: { ...valid.postgresHttpAcceptance, currentCandidateMatch: false }
   }, commit), /RELEASE_EVIDENCE_NOT_BOUND_TO_DEPLOYMENT/);
@@ -206,12 +233,12 @@ test('full staged smoke requires every endpoint to match the same release identi
     postgresHttpAcceptance: { status: 'PASS', evidenceCommit: commit, evidencePipelineId: String(pipelineId), currentCandidateMatch: true },
     productionAcceptance: { status: 'PASS', commitSha: commit, pipelineId: String(pipelineId), evidenceSha256: 'b'.repeat(64) },
     gates: {
-      productionSessionTenantBoundary: 'PASS_TEST_SCOPE',
-      productionRecoveryBundle: 'PASS_TEST_SCOPE',
+      productionSessionTenantBoundary: 'PASS_PRODUCTION_PROBE_SCOPE',
+      productionRecoveryBundle: 'PASS_PRODUCTION_FULL_DATA_RECOVERY_SCOPE',
       tenantRouteSecurityCoverage: 'PASS_TEST_SCOPE',
-      functionalApiRouteAcceptance: 'PASS_CONTRACT_SCOPE',
-      neonPointInTimeRecovery: 'NOT_VERIFIED',
-      productionIsolationCertification: 'NOT_CERTIFIED'
+      functionalApiRouteAcceptance: 'PASS_PRODUCTION_FUNCTIONAL_SCOPE',
+      neonPointInTimeRecovery: 'PASS_PRODUCTION_FULL_DATA_PITR_SCOPE',
+      productionIsolationCertification: 'CERTIFIED'
     },
     packageFingerprint: { status: 'PUBLISHED', sourceCommit: commit, value: 'c'.repeat(64) }
   };
@@ -325,10 +352,10 @@ test('release proof accepts release-proof.js production-scope gate vocabulary an
     productionAcceptance: { status: 'PASS', commitSha: commit, pipelineId: String(pipelineId), evidenceSha256: 'a'.repeat(64) },
     gates: {
       productionSessionTenantBoundary: 'PASS_PRODUCTION_PROBE_SCOPE',
-      productionRecoveryBundle: 'PASS_PRODUCTION_ROW_COUNT_SCOPE',
+      productionRecoveryBundle: 'PASS_PRODUCTION_FULL_DATA_RECOVERY_SCOPE',
       tenantRouteSecurityCoverage: 'PASS_TEST_SCOPE',
-      functionalApiRouteAcceptance: 'PASS_CONTRACT_SCOPE',
-      neonPointInTimeRecovery: 'PASS_BRANCH_POINT',
+      functionalApiRouteAcceptance: 'PASS_PRODUCTION_FUNCTIONAL_SCOPE',
+      neonPointInTimeRecovery: 'PASS_PRODUCTION_FULL_DATA_PITR_SCOPE',
       productionIsolationCertification: 'CERTIFIED'
     },
     packageFingerprint: { status: 'PUBLISHED', sourceCommit: commit, value: 'b'.repeat(64) }
@@ -337,11 +364,11 @@ test('release proof accepts release-proof.js production-scope gate vocabulary an
   // CERTIFIED must still fail closed when behavioral gates fall back to test scope.
   assert.throws(() => validateEndpoint('/api/verify/release', 200, {
     ...valid, gates: { ...valid.gates, productionSessionTenantBoundary: 'PASS_TEST_SCOPE' }
-  }, commit), /RELEASE_EVIDENCE_NOT_BOUND_TO_DEPLOYMENT/);
+  }, commit), /PRODUCTION_SESSION_TENANT_BOUNDARY_NOT_VERIFIED/);
   assert.throws(() => validateEndpoint('/api/verify/release', 200, {
     ...valid, gates: { ...valid.gates, productionRecoveryBundle: 'PASS_TEST_SCOPE' }
-  }, commit), /RELEASE_EVIDENCE_NOT_BOUND_TO_DEPLOYMENT/);
+  }, commit), /PRODUCTION_FULL_DATA_RECOVERY_SCOPE_NOT_VERIFIED/);
   assert.throws(() => validateEndpoint('/api/verify/release', 200, {
     ...valid, status: 'UNVERIFIED'
-  }, commit), /RELEASE_EVIDENCE_NOT_BOUND_TO_DEPLOYMENT/);
+  }, commit), /RELEASE_IDENTITY_NOT_BOUND_TO_DEPLOYMENT/);
 });
