@@ -121,7 +121,7 @@ test('all regex and parameter routes materialize to deterministic safe paths', (
   const plan = policy.buildRouteProbePlan(inventory);
   for (let index = 0; index < plan.length; index += 1) {
     const pathname = policy.materializeRoutePath(plan[index].route, COMMIT, index);
-    assert.match(pathname, /^\/api\//);
+    assert.ok(pathname.startsWith('/api/') || pathname === '/metrics');
     assert.doesNotMatch(pathname, /[()[\]{}\\]/);
   }
   assert.equal(

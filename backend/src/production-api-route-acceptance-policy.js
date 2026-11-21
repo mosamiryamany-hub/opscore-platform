@@ -183,7 +183,7 @@ function materializeRoutePath(routePattern, commitSha, index) {
   }
   const marker = 'opscore-probe-' + suffix + '-' + String(index + 1);
   let pathname = String(routePattern || '');
-  if (!pathname.startsWith('/api/') || pathname.includes('?') || pathname.includes('#')) {
+  if (!(pathname.startsWith('/api/') || pathname === '/metrics') || pathname.includes('?') || pathname.includes('#')) {
     throw new Error('API_ROUTE_ACCEPTANCE_PATH_NOT_ALLOWED');
   }
   pathname = pathname
@@ -244,7 +244,7 @@ function buildRouteProbePlan(inventory) {
     const key = routeKey(route.method, route.route);
     if (seen.has(key)) throw new Error('API_ROUTE_ACCEPTANCE_DUPLICATE_INVENTORY_ROUTE:' + key);
     seen.add(key);
-    if (!String(route.route || '').startsWith('/api/')) {
+    if (!(String(route.route || '').startsWith('/api/') || route.route === '/metrics')) {
       throw new Error('API_ROUTE_ACCEPTANCE_ROUTE_OUTSIDE_API:' + key);
     }
     const contract = probeContractForRoute(route);
