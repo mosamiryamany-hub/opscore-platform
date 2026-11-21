@@ -6,6 +6,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
+const apiRouteAcceptancePolicy = require('../src/production-api-route-acceptance-policy');
 const {
   createPublicReleaseProof,
   hasVerifiedProductionRelease,
@@ -764,8 +765,37 @@ test('functionalApiRouteAcceptance flips to PASS_CONTRACT_SCOPE only with commit
     const productionEnv = {
       ...env,
       OPSC_PRODUCTION_DATABASE_NAME: 'opscore_acceptance',
-      OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID: 'dpl_123456'
+      OPSC_PRODUCTION_NEON_BRANCH_ID: 'br-proud-salad-bcshhdap',
+      OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID: 'dpl_123456',
+      VERCEL_DEPLOYMENT_ID: 'dpl_final654321'
     };
+    const apiInventoryBytes = fs.readFileSync(path.join(__dirname, '..', 'docs', 'API_INVENTORY.json'));
+    const apiInventory = JSON.parse(apiInventoryBytes.toString('utf8'));
+    const routeTestedAt = fixedNow().toISOString();
+    const routeResults = apiInventory.routes.map((route, index) => {
+      const contract = apiRouteAcceptancePolicy.probeContractForRoute(route);
+      const observation = {
+        probeContract: contract.id,
+        contentType: 'application/json; charset=utf-8',
+        statusCode: contract.kind === 'public' ? 200 : contract.statusCodes[0],
+        responseCode: contract.kind === 'public' ? null : (contract.responseCodes[0] || null),
+        bodyAssertion: contract.id === 'logout-without-session-noop'
+      };
+      const verdict = apiRouteAcceptancePolicy.evaluateRouteObservation(
+        route, observation, { statusCode: 404, responseCode: 'NOT_FOUND' }
+      );
+      return {
+        method: route.method,
+        route: route.route,
+        path: apiRouteAcceptancePolicy.materializeRoutePath(route.route, SHA, index),
+        auth: route.auth,
+        ...observation,
+        testedAt: routeTestedAt,
+        verdict: verdict.ok ? 'PASS' : 'FAIL',
+        reason: verdict.reason
+      };
+    });
+    const businessFlowInventory = apiRouteAcceptancePolicy.BUSINESS_FLOW_INVENTORY;
     const productionRoute = writeJsonEvidence(dir, 'production-route-acceptance.json', {
       schemaVersion: 'opscore.api-route-acceptance.v2',
       engine: 'postgres',
@@ -776,18 +806,40 @@ test('functionalApiRouteAcceptance flips to PASS_CONTRACT_SCOPE only with commit
       pipelineId,
       deploymentId: 'dpl_123456',
       databaseName: 'opscore_acceptance',
-      testedAt: '2026-10-23T00:00:00.000Z',
-      inventorySha256: 'e'.repeat(64),
-      testedRoutes: 358,
-      inventoryRouteCount: 358,
-      passed: 358,
-      failed: 0,
+      databaseBranchId: 'br-proud-salad-bcshhdap',
+      testedAt: routeTestedAt,
+      inventorySha256: crypto.createHash('sha256').update(apiInventoryBytes).digest('hex'),
+      testedRoutes: apiInventory.routes.length,
+      inventoryRouteCount: apiInventory.routeCount,
+      passed: routeResults.filter(row => row.verdict === 'PASS').length,
+      failed: routeResults.filter(row => row.verdict !== 'PASS').length,
+      unknownRouteProbe: {
+        path: apiRouteAcceptancePolicy.buildUnknownRoutePath(SHA),
+        statusCode: 404,
+        responseCode: 'NOT_FOUND'
+      },
+      routes: routeResults,
       businessFlowCoverage: {
         status: 'PASS',
-        testedFlows: 42,
-        inventoryFlowCount: 42,
-        passed: 42,
-        failed: 0
+        testedFlows: businessFlowInventory.length,
+        inventoryFlowCount: businessFlowInventory.length,
+        passed: businessFlowInventory.length,
+        failed: 0,
+        businessFlowInventorySha256: apiRouteAcceptancePolicy.businessFlowInventorySha256(),
+        flows: businessFlowInventory.map(flow => ({
+          id: flow.id,
+          status: 'PASS',
+          routeKeys: flow.routeKeys,
+          tenantAStatus: 'PASS',
+          tenantBStatus: 'PASS',
+          crossTenantDenialStatus: 'PASS',
+          cleanupStatus: 'PASS',
+          signedRouteEvidenceSha256: 'b'.repeat(64),
+          candidateFixtureEvidenceSha256: 'c'.repeat(64),
+          ...(flow.id === 'same-tenant-asset-event-lifecycle'
+            ? { sessionIsolationEvidenceSha256: 'd'.repeat(64) }
+            : {})
+        }))
       }
     });
     const productionProof = createPublicReleaseProof(
@@ -806,6 +858,26 @@ test('functionalApiRouteAcceptance flips to PASS_CONTRACT_SCOPE only with commit
     );
     assert.equal(wrongDeploymentProof.gates.functionalApiRouteAcceptance, 'NOT_VERIFIED',
       'evidence from another Production deployment cannot qualify this candidate');
+
+    const missingRoute = writeJsonEvidence(dir, 'missing-route-evidence.json', {
+      ...JSON.parse(fs.readFileSync(productionRoute.path, 'utf8')),
+      routes: JSON.parse(fs.readFileSync(productionRoute.path, 'utf8')).routes.slice(1)
+    });
+    const missingRouteProof = createPublicReleaseProof(
+      productionEnv, fixedNow, identityPath, acceptance.path, postgresHttp.path, missingRoute.path
+    );
+    assert.equal(missingRouteProof.gates.functionalApiRouteAcceptance, 'NOT_VERIFIED',
+      'all 358 actual HTTP route results are required');
+
+    const staleRoutePayload = JSON.parse(fs.readFileSync(productionRoute.path, 'utf8'));
+    staleRoutePayload.testedAt = '2026-10-22T17:59:59.000Z';
+    staleRoutePayload.routes = staleRoutePayload.routes.map(row => ({ ...row, testedAt: staleRoutePayload.testedAt }));
+    const staleProductionRouteEvidence = writeJsonEvidence(dir, 'stale-route-evidence.json', staleRoutePayload);
+    const staleRouteProof = createPublicReleaseProof(
+      productionEnv, fixedNow, identityPath, acceptance.path, postgresHttp.path, staleProductionRouteEvidence.path
+    );
+    assert.equal(staleRouteProof.gates.functionalApiRouteAcceptance, 'NOT_VERIFIED',
+      'stale Production API acceptance evidence must not qualify');
 
     const sqliteOnlyProof = createPublicReleaseProof(
       productionEnv, fixedNow, identityPath, acceptance.path, postgresHttp.path, route.path
