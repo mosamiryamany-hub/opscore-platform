@@ -149,7 +149,7 @@ async function handle(message) {
         backendPid: Number.isSafeInteger(backendPid) && backendPid > 0 ? backendPid : null,
         databaseName: /^[A-Za-z0-9_.-]{1,64}$/.test(String(row.database_name || '')) ? String(row.database_name) : null,
         roleName: /^[A-Za-z0-9_.-]{1,64}$/.test(String(row.role_name || '')) ? String(row.role_name) : null,
-        serverVersion: /^\d{1,2}\.\d{1,2}(?:\.\d{1,3})?$/.test(String(row.server_version || '')) ? String(row.server_version) : null
+        serverVersion: (() => { const m = String(row.server_version || '').match(/^\d{1,2}\.\d{1,2}(?:\.\d{1,3})?/); return m ? m[0] : null; })()
       }
     };
   }
