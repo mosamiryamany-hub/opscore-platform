@@ -643,6 +643,33 @@ jobs:
             --pipeline-id "${{ github.run_id }}" \
             --database-name opscore_acceptance
 
+      - name: Bind signed-tenant candidate proof to the route collector workspace
+        run: |
+          set -euo pipefail
+          source="$GITHUB_WORKSPACE/SIGNED_TENANT_CONTEXT_CANDIDATE_RESULT.json"
+          destination="backend/docs/verification/SIGNED_TENANT_CONTEXT_CANDIDATE_RESULT.json"
+          test -s "$source" || { echo "SIGNED_TENANT_CANDIDATE_SOURCE_MISSING" >&2; exit 1; }
+          mkdir -p "$(dirname "$destination")"
+          install -m 600 "$source" "$destination"
+          node -e '
+            const fs = require("node:fs");
+            const p = "backend/docs/verification/SIGNED_TENANT_CONTEXT_CANDIDATE_RESULT.json";
+            const d = JSON.parse(fs.readFileSync(p, "utf8"));
+            if (d.schemaVersion !== "opscore.signed-tenant-context-ci-proof.v1" ||
+                d.status !== "PASS" ||
+                d.candidateRuntimeIdentity?.sourceCommit !== process.env.GITHUB_SHA ||
+                String(d.candidateRuntimeIdentity?.pipelineId) !== process.env.GITHUB_RUN_ID ||
+                Number(d.signedTenantRouteCoverage?.coveredRouteCount) !== 67 ||
+                Number(d.signedTenantRouteCoverage?.failedRouteCount) !== 0 ||
+                d.cleanup?.status !== "PASS") {
+              throw new Error("SIGNED_TENANT_CANDIDATE_COPY_IDENTITY_OR_COVERAGE_INVALID");
+            }
+            console.log("SIGNED_TENANT_CANDIDATE_EVIDENCE_PATH_BIND=PASS");
+          '
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+
       - name: Request fresh scoped OIDC identity for full API route acceptance
         id: vercel_oidc_api_routes
         run: node scripts/request-vercel-trusted-oidc.js
