@@ -1,6 +1,7 @@
 'use strict';
 
 const signedTenantContextPolicy = require('./signed-tenant-context-policy');
+const { buildUnknownRoutePath } = require('./production-api-route-acceptance-policy');
 
 const READ_ONLY_PRODUCTION_VERIFICATION_PATHS = new Set([
   '/api/health',
@@ -81,6 +82,12 @@ function isAuthorizedProductionCandidateProbeRequest(req, env = process.env, rea
   // mobile-login. Login is intentionally outside the 67 signed-context inventory;
   // allow only this exact POST under the same candidate boundary controls.
   if (method === 'POST' && pathname === '/api/v1/auth/mobile-login') return true;
+  // The acceptance collector must prove an unknown API path returns the real
+  // router 404 while the candidate remains held. Permit only the commit-bound
+  // marker path, GET-only, under the same exact-deployment token + OIDC boundary.
+  const candidateCommit = String(env.VERCEL_GIT_COMMIT_SHA || env.OPSC_RELEASE_CI_COMMIT || env.OPSC_SOURCE_COMMIT_SHA || '').trim().toLowerCase();
+  if (method === 'GET' && /^[a-f0-9]{40}$/.test(candidateCommit)
+      && pathname === buildUnknownRoutePath(candidateCommit)) return true;
   return ['read', 'write'].some(operation =>
     signedTenantContextPolicy.isSignedTenantContextRouteDefinition(method, pathname, operation)
   );
