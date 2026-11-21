@@ -5,6 +5,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const signedTenantContextPolicy = require('./signed-tenant-context-policy');
+const productionApiRouteAcceptancePolicy = require('./production-api-route-acceptance-policy');
 
 const SHA_RE = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/;
 const HASH_RE = /^[a-f0-9]{64}$/;
@@ -796,7 +797,7 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
   const pipelineId = String(proofEnv.OPSC_RELEASE_CI_PIPELINE_ID || '').trim();
   const ciVerified = Boolean(sourceCommit && ciCommit === sourceCommit && PIPELINE_RE.test(pipelineId));
   const postgresHttpAcceptance = readCurrentPostgresHttpAcceptance({ ...proofEnv, OPSC_RELEASE_CI_COMMIT: ciCommit, OPSC_RELEASE_CI_PIPELINE_ID: pipelineId }, postgresHttpAcceptancePath);
-  const apiRouteAcceptance = readCurrentApiRouteAcceptance({ ...proofEnv, OPSC_RELEASE_CI_COMMIT: ciCommit, OPSC_RELEASE_CI_PIPELINE_ID: pipelineId }, apiRouteAcceptancePath);
+  const apiRouteAcceptance = readCurrentApiRouteAcceptance({ ...proofEnv, OPSC_RELEASE_CI_COMMIT: ciCommit, OPSC_RELEASE_CI_PIPELINE_ID: pipelineId }, apiRouteAcceptancePath, now);
 
   const packageCommit = normalizedSha(proofEnv.OPSC_RELEASE_PACKAGE_COMMIT);
   const packageSha = String(proofEnv.OPSC_RELEASE_PACKAGE_SHA256 || '').trim().toLowerCase();
@@ -968,7 +969,7 @@ function hasVerifiedProductionRelease(env = process.env, identityPath, productio
     proof.gates.neonPointInTimeRecovery === 'PASS_PRODUCTION_FULL_DATA_PITR_SCOPE';
 }
 
-function readCurrentApiRouteAcceptance(env = process.env, filePath = embeddedEvidencePath('API_ROUTE_ACCEPTANCE_RESULT.json')) {
+function readCurrentApiRouteAcceptance(env = process.env, filePath = embeddedEvidencePath('API_ROUTE_ACCEPTANCE_RESULT.json'), now = () => new Date()) {
   let evidence;
   try {
     evidence = JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -982,7 +983,9 @@ function readCurrentApiRouteAcceptance(env = process.env, filePath = embeddedEvi
       deploymentId: null,
       testedRoutes: null,
       testedFlows: null,
-      failed: null
+      failed: null,
+      routeEvidenceValid: false,
+      businessFlowEvidenceValid: false
     };
   }
 
@@ -1022,7 +1025,9 @@ function readCurrentApiRouteAcceptance(env = process.env, filePath = embeddedEvi
       deploymentId: null,
       testedRoutes,
       testedFlows: null,
-      failed
+      failed,
+      routeEvidenceValid: false,
+      businessFlowEvidenceValid: false
     };
   }
 
@@ -1031,6 +1036,7 @@ function readCurrentApiRouteAcceptance(env = process.env, filePath = embeddedEvi
   ).trim();
   const runtimeDeploymentId = String(env.VERCEL_DEPLOYMENT_ID || '').trim();
   const expectedDatabaseName = String(env.OPSC_PRODUCTION_DATABASE_NAME || '').trim();
+  const expectedBranchId = String(env.OPSC_PRODUCTION_NEON_BRANCH_ID || '').trim();
   const businessFlows = evidence.businessFlowCoverage && typeof evidence.businessFlowCoverage === 'object'
     ? evidence.businessFlowCoverage
     : {};
@@ -1041,6 +1047,30 @@ function readCurrentApiRouteAcceptance(env = process.env, filePath = embeddedEvi
   const inventorySha256 = String(evidence.inventorySha256 || '').trim().toLowerCase();
   const testedAt = String(evidence.testedAt || '').trim();
   const testedAtMs = testedAt ? Date.parse(testedAt) : NaN;
+  const nowValue = now();
+  const nowMs = nowValue instanceof Date ? nowValue.getTime() : Date.parse(String(nowValue));
+  let inventory = null;
+  let inventoryBytes = null;
+  try {
+    const embeddedInventory = path.join(__dirname, 'embedded-evidence', 'API_INVENTORY.json');
+    const inventoryPath = fs.existsSync(embeddedInventory)
+      ? embeddedInventory
+      : path.join(__dirname, '..', 'docs', 'API_INVENTORY.json');
+    inventoryBytes = fs.readFileSync(inventoryPath);
+    inventory = JSON.parse(inventoryBytes.toString('utf8'));
+  } catch {
+    inventory = null;
+    inventoryBytes = null;
+  }
+  const routeValidation = inventory && inventoryBytes
+    ? productionApiRouteAcceptancePolicy.validateProductionApiRouteAcceptanceEvidence(
+        evidence, inventory, inventoryBytes, new Date(nowMs)
+      )
+    : { valid: false, routesValid: false, flowsValid: false, reason: 'API_ROUTE_INVENTORY_MISSING' };
+  const freshnessSafe = Number.isFinite(testedAtMs)
+    && Number.isFinite(nowMs)
+    && testedAtMs <= nowMs
+    && nowMs - testedAtMs <= productionApiRouteAcceptancePolicy.MAX_EVIDENCE_AGE_MS;
   const productionMatch = Boolean(
     evidence.schemaVersion === 'opscore.api-route-acceptance.v2' &&
     evidence.engine === 'postgres' &&
@@ -1056,20 +1086,22 @@ function readCurrentApiRouteAcceptance(env = process.env, filePath = embeddedEvi
     (!runtimeDeploymentId || evidence.deploymentId === runtimeDeploymentId) &&
     expectedDatabaseName.length > 0 &&
     evidence.databaseName === expectedDatabaseName &&
+    /^[a-z0-9-]{8,80}$/.test(expectedBranchId) &&
+    evidence.databaseBranchId === expectedBranchId &&
     Number.isSafeInteger(testedRoutes) &&
-    testedRoutes >= 300 &&
+    testedRoutes === productionApiRouteAcceptancePolicy.EXPECTED_ROUTE_COUNT &&
     testedRoutes === inventoryRouteCount &&
     passed === testedRoutes &&
     failed === 0 &&
     HASH_RE.test(inventorySha256) &&
+    routeValidation.valid === true &&
     businessFlows.status === 'PASS' &&
     Number.isSafeInteger(testedFlows) &&
-    testedFlows > 0 &&
+    testedFlows === productionApiRouteAcceptancePolicy.BUSINESS_FLOW_INVENTORY.length &&
     testedFlows === inventoryFlowCount &&
     passedFlows === testedFlows &&
     failedFlows === 0 &&
-    Number.isFinite(testedAtMs) &&
-    testedAtMs <= Date.now()
+    freshnessSafe
   );
 
   return {
@@ -1080,12 +1112,15 @@ function readCurrentApiRouteAcceptance(env = process.env, filePath = embeddedEvi
     evidencePipelineId: productionMatch ? evidencePipelineId : null,
     deploymentId: productionMatch ? evidence.deploymentId : null,
     databaseName: productionMatch ? evidence.databaseName : null,
+    databaseBranchId: productionMatch ? evidence.databaseBranchId : null,
     inventorySha256: productionMatch ? inventorySha256 : null,
     testedRoutes: productionMatch ? testedRoutes : null,
     testedFlows: productionMatch ? testedFlows : null,
-    failed: productionMatch ? failed : null
+    failed: productionMatch ? failed : null,
+    routeEvidenceValid: routeValidation.routesValid === true,
+    businessFlowEvidenceValid: routeValidation.flowsValid === true,
+    reason: productionMatch ? null : routeValidation.reason || 'PRODUCTION_FULL_FUNCTIONAL_SCOPE_NOT_PROVEN'
   };
 }
-
-module.exports = { createPublicReleaseProof, hasVerifiedProductionRelease, readEmbeddedBuildIdentity, readProductionAcceptanceEvidence, readProductionSessionIsolationEvidence, readProductionRecoveryPointEvidence, readProductionNativePitrEvidence, readReleaseArchiveAttestation, readProductionSignedTenantRouteCoverageEvidence };
+module.exports = { createPublicReleaseProof, hasVerifiedProductionRelease, readEmbeddedBuildIdentity, readProductionAcceptanceEvidence, readProductionSessionIsolationEvidence, readProductionRecoveryPointEvidence, readProductionNativePitrEvidence, readReleaseArchiveAttestation, readProductionSignedTenantRouteCoverageEvidence, readCurrentApiRouteAcceptance };
 

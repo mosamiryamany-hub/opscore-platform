@@ -643,6 +643,39 @@ jobs:
             --pipeline-id "${{ github.run_id }}" \
             --database-name opscore_acceptance
 
+      - name: Request fresh scoped OIDC identity for full API route acceptance
+        id: vercel_oidc_api_routes
+        run: node scripts/request-vercel-trusted-oidc.js
+
+      - name: Collect exact-deployment 358-route Production PostgreSQL HTTP acceptance
+        id: api_route_acceptance
+        env:
+          VERCEL_ENV: production
+          OPSC_PRODUCTION_CANDIDATE_MODE: 'true'
+          OPSC_PRODUCTION_HTTP_BASE: ${{ steps.candidate_deploy.outputs.url }}
+          OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID: ${{ steps.candidate_deployment.outputs.id }}
+          OPSC_PRODUCTION_HOLD: 'true'
+          OPSC_RELEASE_VERIFIED: 'false'
+          OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED: 'true'
+          OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN: ${{ steps.prepare_candidate_env.outputs.probe_token }}
+          VERCEL_TRUSTED_OIDC_TOKEN: ${{ steps.vercel_oidc_api_routes.outputs.token }}
+          OPSC_PRODUCTION_NEON_BRANCH_ID: br-proud-salad-bcshhdap
+          OPSC_PRODUCTION_DATABASE_NAME: opscore_acceptance
+          OPSC_EXPECTED_PRODUCTION_COMMIT_SHA: ${{ github.sha }}
+          OPSC_API_ROUTE_PROBE_SPACING_MS: '1000'
+          OPSC_API_ROUTE_ACCEPTANCE_RESULT_FILE: backend/docs/verification/API_ROUTE_ACCEPTANCE_RESULT.json
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: node backend/scripts/collect-production-api-route-acceptance.js
+
+      - name: Upload exact candidate API route acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: production-api-route-acceptance-${{ github.run_id }}
+          path: backend/docs/verification/API_ROUTE_ACCEPTANCE_RESULT.json
+          if-no-files-found: warn
+          retention-days: 30
       - name: Resolve production isolation certification from exact candidate evidence
         id: isolation_cert
         env:
@@ -1017,6 +1050,9 @@ jobs:
           else
             echo "SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE=NOT_VERIFIED (no 67-route production evidence; no file synthesized)"
           fi
+
+          cp backend/docs/API_INVENTORY.json backend/src/embedded-evidence/API_INVENTORY.json
+          echo "EMBEDDED API_INVENTORY.json"
 
       - name: Re-pull Vercel production env after identity publish
         if: ${{ github.event.inputs.run_mode == 'AUTHORIZE_PRODUCTION_RELEASE' }}
