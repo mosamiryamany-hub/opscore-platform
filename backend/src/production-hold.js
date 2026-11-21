@@ -182,10 +182,48 @@ function isAuthorizedProductionCandidateRouteAcceptanceProbeRequest(req, env = p
   return matchers.some(matcher => matcher.test(pathname));
 }
 
+function trustedOidcPresent(req) {
+  const trustedOidcToken = String(
+    (req && req.headers && (req.headers['x-opscore-trusted-oidc-idp-token']
+      || req.headers['x-vercel-trusted-oidc-idp-token'])) || ''
+  ).trim();
+  if (!trustedOidcToken) return false;
+  const oidcParts = trustedOidcToken.split('.');
+  return oidcParts.length === 3 && oidcParts.every(part => /^[A-Za-z0-9_-]+$/.test(part));
+}
+
+function exactUnaliasedDeploymentHostMatched(req, env = process.env) {
+  const deploymentUrl = String(env.VERCEL_URL || '').trim();
+  if (!deploymentUrl) return false;
+  let deploymentHost = '';
+  try {
+    const parsed = new URL('https://' + deploymentUrl);
+    if (parsed.username || parsed.password || parsed.port || parsed.pathname !== '/'
+        || parsed.search || parsed.hash) return false;
+    deploymentHost = parsed.hostname.toLowerCase();
+  } catch {
+    return false;
+  }
+  if (!CANDIDATE_DEPLOYMENT_HOST.test(deploymentHost)) return false;
+  const requestHost = String(req && req.headers && req.headers.host || '').trim().toLowerCase();
+  return Boolean(requestHost) && requestHost === deploymentHost;
+}
+
 function isAuthorizedProductionCandidateDatabaseIdentityRequest(req, env = process.env, readiness = {}) {
-  return String(req && req.method || '').trim().toUpperCase() === 'GET'
-    && requestPath(req) === PRODUCTION_DATABASE_IDENTITY_PATH
-    && isCandidateRequestOnExactDeployment(req, env, readiness);
+  if (String(req && req.method || '').trim().toUpperCase() !== 'GET') return false;
+  if (requestPath(req) !== PRODUCTION_DATABASE_IDENTITY_PATH) return false;
+
+  // A) held-candidate collector path: preserve the existing probe + OIDC + exact-host boundary.
+  if (isCandidateRequestOnExactDeployment(req, env, readiness)) return true;
+
+  // B) post-publish staged diagnostic: release proof must already verify in-process;
+  // require trusted Vercel OIDC and this exact unaliased deployment host.
+  if (readiness && readiness.productionReleaseVerified === true
+      && trustedOidcPresent(req)
+      && exactUnaliasedDeploymentHostMatched(req, env)) {
+    return true;
+  }
+  return false;
 }
 
 function evaluateProductionGate(config, env, productionSafetyGate) {
