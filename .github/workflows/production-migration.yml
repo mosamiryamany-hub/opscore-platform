@@ -90,8 +90,12 @@ jobs:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
         run: |
           set -euo pipefail
-          resp=$(curl -sSf -H "Authorization: Bearer ${NEON_API_KEY}" \
-            "https://console.neon.tech/api/v2/projects/${{ inputs.expected_project_id }}/branches/${{ inputs.expected_branch_id }}/connection_uri?database=${{ inputs.database }}&role_name=neondb_owner")
+          resp=$(curl -sSf -G -H "Authorization: Bearer ${NEON_API_KEY}" -H "Accept: application/json" \
+            --data-urlencode "branch_id=${{ inputs.expected_branch_id }}" \
+            --data-urlencode "database_name=${{ inputs.database }}" \
+            --data-urlencode "role_name=neondb_owner" \
+            --data-urlencode "pooled=false" \
+            "https://console.neon.tech/api/v2/projects/${{ inputs.expected_project_id }}/connection_uri")
           uri=$(node -e "let d=null;try{d=JSON.parse(process.argv[1])}catch{};const u=(d&&d.uri)||process.argv[1];if(!/^postgres(ql)?:\/\//.test(u||''))process.exit(1);console.log(u)" "$resp")
           echo "::add-mask::$uri"
           echo "uri=$uri" >> "$GITHUB_OUTPUT"
@@ -137,8 +141,12 @@ jobs:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
         run: |
           set -euo pipefail
-          resp=$(curl -sSf -H "Authorization: Bearer ${NEON_API_KEY}" \
-            "https://console.neon.tech/api/v2/projects/${{ inputs.expected_project_id }}/branches/${{ inputs.expected_branch_id }}/connection_uri?database=${{ inputs.database }}&role_name=neondb_owner")
+          resp=$(curl -sSf -G -H "Authorization: Bearer ${NEON_API_KEY}" -H "Accept: application/json" \
+            --data-urlencode "branch_id=${{ inputs.expected_branch_id }}" \
+            --data-urlencode "database_name=${{ inputs.database }}" \
+            --data-urlencode "role_name=neondb_owner" \
+            --data-urlencode "pooled=false" \
+            "https://console.neon.tech/api/v2/projects/${{ inputs.expected_project_id }}/connection_uri")
           uri=$(node -e "let d=null;try{d=JSON.parse(process.argv[1])}catch{};const u=(d&&d.uri)||process.argv[1];if(!/^postgres(ql)?:\/\//.test(u||''))process.exit(1);console.log(u)" "$resp")
           echo "::add-mask::$uri"
           echo "uri=$uri" >> "$GITHUB_OUTPUT"
