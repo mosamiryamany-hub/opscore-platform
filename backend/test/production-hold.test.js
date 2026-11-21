@@ -255,7 +255,9 @@ test('held unknown-route probe reaches the router 404 only for the exact commit-
   assert.equal(isAuthorizedProductionCandidateUnknownRouteProbeRequest(missingOidc, env, readiness), false);
   const publicAlias = request(); publicAlias.headers.host = 'opscore-platform.vercel.app';
   assert.equal(isAuthorizedProductionCandidateUnknownRouteProbeRequest(publicAlias, env, readiness), false);
-  assert.equal(isAuthorizedProductionCandidateUnknownRouteProbeRequest(request(), { ...env, OPSC_PRODUCTION_HOLD: 'false' }, readiness), true);
+  assert.equal(isAuthorizedProductionCandidateUnknownRouteProbeRequest(request(), { ...env, OPSC_PRODUCTION_HOLD: 'false' }, readiness), false,
+    'the probe is hold-scoped: once the hold is released the held-candidate boundary must deny');
+  assert.equal(candidateProbeBoundaryDenialReason(request(), { ...env, OPSC_PRODUCTION_HOLD: 'false' }, readiness), 'hold_not_true');
 });
 
 test('the held unknown-route probe is handled before route-level session authentication', () => {
