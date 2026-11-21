@@ -333,3 +333,47 @@ test('production database diagnostic reports safe worker probe error code', asyn
   assert.equal(body.diagnostic.reasonCode, 'APPLICATION_POSTGRES_CONNECTION_TLS_PROBE_UNAVAILABLE');
   assert.equal(JSON.stringify(body).includes('sensitive connection detail'), false);
 });
+
+
+test('post-publish staged diagnostic accepts OIDC-only authorization only when the release proof verifies', async () => {
+  const stagedRequest = request();
+  delete stagedRequest.headers['x-opscore-signed-context-probe'];
+  const handler = createProductionDatabaseIdentityHandler({
+    inspectDatabase: async () => identityReport(),
+    inspectApplicationConnection: async () => applicationTlsReport(),
+    hasVerifiedProductionRelease: () => true,
+    readEmbeddedBuildIdentity: () => null
+  });
+  const res = responseSink();
+  await handler(stagedRequest, res, baseEnv, baseEnv);
+  assert.equal(res.statusCode, 200);
+  assert.equal(JSON.parse(res.body).applicationConnectionTls.status, 'VERIFIED');
+});
+
+test('post-publish staged diagnostic remains hidden on aliases and without a verified release proof', async () => {
+  let inspections = 0;
+  const handler = createProductionDatabaseIdentityHandler({
+    inspectDatabase: async () => { inspections++; return identityReport(); },
+    inspectApplicationConnection: async () => applicationTlsReport(),
+    hasVerifiedProductionRelease: () => true
+  });
+  const aliasRequest = request({ headers: {
+    host: 'opscore-platform.vercel.app',
+    'x-vercel-trusted-oidc-idp-token': 'header.payload.signature'
+  } });
+  const aliasResponse = responseSink();
+  await handler(aliasRequest, aliasResponse, baseEnv, baseEnv);
+  assert.equal(aliasResponse.statusCode, 404);
+
+  const unverifiedHandler = createProductionDatabaseIdentityHandler({
+    inspectDatabase: async () => { inspections++; return identityReport(); },
+    inspectApplicationConnection: async () => applicationTlsReport(),
+    hasVerifiedProductionRelease: () => false
+  });
+  const stagedRequest = request();
+  delete stagedRequest.headers['x-opscore-signed-context-probe'];
+  const unverifiedResponse = responseSink();
+  await unverifiedHandler(stagedRequest, unverifiedResponse, baseEnv, baseEnv);
+  assert.equal(unverifiedResponse.statusCode, 404);
+  assert.equal(inspections, 0);
+});
