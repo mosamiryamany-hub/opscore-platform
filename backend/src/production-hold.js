@@ -129,5 +129,6 @@ module.exports = {
   isReadOnlyProductionVerificationRequest,
   candidateProbeBoundaryDenialReason,
   isAuthorizedProductionCandidateProbeRequest,
+  isAuthorizedProductionCandidateUnknownRouteProbeRequest,
   isAuthorizedProductionCandidateDatabaseIdentityRequest
 };
