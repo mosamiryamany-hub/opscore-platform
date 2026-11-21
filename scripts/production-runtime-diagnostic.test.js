@@ -29,6 +29,20 @@ function validPayload() {
       releaseProofVerified: true,
       isolationCertification: 'CERTIFIED'
     },
+    applicationConnectionTls: {
+      scope: 'APPLICATION_POSTGRES_WORKER_CONNECTION',
+      status: 'VERIFIED',
+      negotiated: true,
+      authorized: true,
+      verified: true,
+      protocol: 'TLSv1.3',
+      cipher: 'TLS_AES_256_GCM_SHA384',
+      bits: null,
+      backendPid: 32145,
+      databaseName: 'opscore_acceptance',
+      roleName: 'opscore_runtime',
+      serverVersion: '18.6'
+    },
     database: {
       status: 'IDENTITY_RESOLVED',
       applicationDatabaseBinding: 'PRESENT',
@@ -42,6 +56,7 @@ function validPayload() {
         databaseUrlMatchesOpscDatabaseUrl: true
       },
       clientTls: {
+        scope: 'READ_ONLY_PREFLIGHT_CONNECTION',
         negotiated: true,
         authorized: true,
         protocol: 'TLSv1.3',
@@ -120,10 +135,12 @@ test('runtime diagnostic blocks only if every production identity and release ga
     hostnameSha256: 'c'.repeat(64),
     runtimeRole: 'opscore_runtime',
     serverVersion: '18.6',
+    tlsEvidenceScope: 'APPLICATION_POSTGRES_WORKER_CONNECTION',
+    tlsEvidenceStatus: 'VERIFIED',
     tlsEnabled: true,
     tlsVersion: 'TLSv1.3',
     tlsCipher: 'TLS_AES_256_GCM_SHA384',
-    tlsBits: 256
+    tlsBits: null
   });
 });
 
@@ -179,7 +196,7 @@ test('runtime diagnostic rejects mismatched build identity and migration hash', 
 
 test('runtime diagnostic blocks when the client socket did not negotiate TLS', () => {
   const payload = validPayload();
-  payload.database.clientTls = { negotiated: false, authorized: false, protocol: null, cipher: null };
+  payload.applicationConnectionTls = { negotiated: false, authorized: false, protocol: null, cipher: null };
   const result = evaluateRuntimeDiagnostic(payload, 200, 'a'.repeat(40), '123456789');
   assert.equal(result.promotionAllowed, false);
   assert.ok(result.checks.some(item => item.name === 'client_tls_configuration' && item.status === 'BLOCKED'));
@@ -187,7 +204,7 @@ test('runtime diagnostic blocks when the client socket did not negotiate TLS', (
 
 test('runtime diagnostic does not accept sslmode=REQUIRE without negotiated client-socket evidence', () => {
   const payload = validPayload();
-  payload.database.clientTls = { negotiated: false, authorized: false, protocol: null, cipher: null };
+  payload.applicationConnectionTls = { negotiated: false, authorized: false, protocol: null, cipher: null };
   delete payload.database.identity.tls_enabled;
   delete payload.database.identity.tls_version;
   delete payload.database.identity.tls_cipher;
@@ -200,7 +217,7 @@ test('runtime diagnostic does not accept sslmode=REQUIRE without negotiated clie
 
 test('runtime diagnostic blocks a negotiated socket with an unauthorized certificate chain', () => {
   const payload = validPayload();
-  payload.database.clientTls.authorized = false;
+  payload.applicationConnectionTls.authorized = false;
   const result = evaluateRuntimeDiagnostic(payload, 200, 'a'.repeat(40), '123456789');
   assert.equal(result.promotionAllowed, false);
   assert.ok(result.checks.some(item => item.name === 'client_tls_configuration' && item.status === 'BLOCKED'));
@@ -208,7 +225,7 @@ test('runtime diagnostic blocks a negotiated socket with an unauthorized certifi
 
 test('runtime diagnostic blocks TLS protocols older than TLS 1.2', () => {
   const payload = validPayload();
-  payload.database.clientTls.protocol = 'TLSv1.1';
+  payload.applicationConnectionTls.protocol = 'TLSv1.1';
   const result = evaluateRuntimeDiagnostic(payload, 200, 'a'.repeat(40), '123456789');
   assert.equal(result.promotionAllowed, false);
   assert.ok(result.checks.some(item => item.name === 'client_tls_configuration' && item.status === 'BLOCKED'));
@@ -216,7 +233,7 @@ test('runtime diagnostic blocks TLS protocols older than TLS 1.2', () => {
 
 test('runtime diagnostic blocks weak non-AEAD cipher suites', () => {
   const payload = validPayload();
-  payload.database.clientTls.cipher = 'TLS_RSA_WITH_3DES_EDE_CBC_SHA';
+  payload.applicationConnectionTls.cipher = 'TLS_RSA_WITH_3DES_EDE_CBC_SHA';
   const result = evaluateRuntimeDiagnostic(payload, 200, 'a'.repeat(40), '123456789');
   assert.equal(result.promotionAllowed, false);
   assert.ok(result.checks.some(item => item.name === 'client_tls_configuration' && item.status === 'BLOCKED'));
@@ -224,19 +241,19 @@ test('runtime diagnostic blocks weak non-AEAD cipher suites', () => {
 
 test('runtime diagnostic rejects unknown cipher labels even when they contain an AES strength token', () => {
   const payload = validPayload();
-  payload.database.clientTls.cipher = 'UNTRUSTED_AES_256_GCM_SHA384';
+  payload.applicationConnectionTls.cipher = 'UNTRUSTED_AES_256_GCM_SHA384';
   const result = evaluateRuntimeDiagnostic(payload, 200, 'a'.repeat(40), '123456789');
   assert.equal(result.promotionAllowed, false);
   assert.ok(result.checks.some(item => item.name === 'client_tls_configuration' && item.status === 'BLOCKED'));
 });
 
 test('runtime diagnostic accepts recognized TLS 1.2 AES-GCM and TLS 1.3 ChaCha20 suites', () => {
-  for (const clientTls of [
-    { negotiated: true, authorized: true, protocol: 'TLSv1.2', cipher: 'ECDHE-RSA-AES128-GCM-SHA256' },
-    { negotiated: true, authorized: true, protocol: 'TLSv1.3', cipher: 'TLS_CHACHA20_POLY1305_SHA256' }
+  for (const tlsUpdate of [
+    { protocol: 'TLSv1.2', cipher: 'ECDHE-RSA-AES128-GCM-SHA256' },
+    { protocol: 'TLSv1.3', cipher: 'TLS_CHACHA20_POLY1305_SHA256' }
   ]) {
     const payload = validPayload();
-    payload.database.clientTls = clientTls;
+    payload.applicationConnectionTls = { ...payload.applicationConnectionTls, ...tlsUpdate };
     const result = evaluateRuntimeDiagnostic(payload, 200, 'a'.repeat(40), '123456789');
     assert.equal(result.promotionAllowed, true);
     assert.ok(result.checks.some(item => item.name === 'client_tls_configuration' && item.status === 'PASS'));
@@ -292,11 +309,37 @@ test('runtime database diagnostic exposes only validated non-secret identity met
     hostnameSha256: null,
     runtimeRole: null,
     serverVersion: '18.6',
-    tlsEnabled: true,
-    tlsVersion: 'TLSv1.3',
-    tlsCipher: 'TLS_AES_256_GCM_SHA384',
-    tlsBits: 256
+    tlsEvidenceScope: 'APPLICATION_POSTGRES_WORKER_CONNECTION',
+    tlsEvidenceStatus: 'UNVERIFIED',
+    tlsEnabled: false,
+    tlsVersion: null,
+    tlsCipher: null,
+    tlsBits: null
   });
   assert.equal(JSON.stringify(result).includes('customer db;DROP TABLE users'), false);
   assert.equal(JSON.stringify(result).includes('opscore_runtime;secret'), false);
+});
+test('separate read-only preflight TLS evidence cannot substitute for application-worker TLS', () => {
+  const payload = validPayload();
+  delete payload.applicationConnectionTls;
+  assert.equal(payload.database.clientTls.negotiated, true);
+  assert.equal(payload.database.clientTls.authorized, true);
+  const result = evaluateRuntimeDiagnostic(payload, 200, 'a'.repeat(40), '123456789');
+  assert.equal(result.promotionAllowed, false);
+  assert.ok(result.checks.some(item => item.name === 'client_tls_configuration' && item.status === 'BLOCKED'));
+});
+
+test('application-worker TLS proof must bind to the inspected database, role, version, and backend session', () => {
+  for (const override of [
+    { databaseName: 'other_database' },
+    { roleName: 'other_role' },
+    { serverVersion: '17.9' },
+    { backendPid: null }
+  ]) {
+    const payload = validPayload();
+    payload.applicationConnectionTls = { ...payload.applicationConnectionTls, ...override };
+    const result = evaluateRuntimeDiagnostic(payload, 200, 'a'.repeat(40), '123456789');
+    assert.equal(result.promotionAllowed, false);
+    assert.ok(result.checks.some(item => item.name === 'client_tls_configuration' && item.status === 'BLOCKED'));
+  }
 });
