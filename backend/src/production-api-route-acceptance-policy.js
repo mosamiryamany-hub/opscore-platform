@@ -134,10 +134,10 @@ const SPECIAL_REQUIRED_ROUTE_PROBES = Object.freeze({
     bodyAssertion: null
   }),
   'POST /api/v1/billing/stripe/webhook': Object.freeze({
-    id: 'stripe-webhook-rejects-missing-signature',
+    id: 'stripe-webhook-rejects-unsigned-events-or-explicitly-disables-provider',
     body: null,
-    statusCodes: [400],
-    responseCodes: ['STRIPE_SIGNATURE_INVALID'],
+    statusCodes: [400, 409],
+    responseCodes: ['STRIPE_SIGNATURE_INVALID', 'PAYMENT_PROVIDER_DISABLED'],
     bodyAssertion: null
   })
 });

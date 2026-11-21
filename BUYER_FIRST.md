@@ -25,6 +25,14 @@ Translation catalog: 114 locale codes; 1 English source, 109 machine-assisted dr
 
 The live production endpoints identify the seller-operated deployment and report health, release and database-security proof. The current seller-reference release proof may report technical `PASS` while `gates.commercialClosure` is `PASS_WITH_BUYER_RESIDUALS`. The three explicit buyer residuals are mobile store artifacts, native-speaker translation review (0/114 production-qualified locales), and licensed maps/road-routing. Seller-reference production isolation evidence applies only to the exact measured seller deployment. It does not certify a buyer environment, all functional business flows, full PITR/RPO/RTO or external provider connections.
 
+
+## Initial release payment boundary
+
+- Payment processing is intentionally disabled for the initial sale release; no Stripe account or payment credentials are required.
+- Checkout, payment-intent creation, customer linking, and webhook settlement remain unavailable until a payment provider is selected and both API access and signed-webhook verification are configured.
+- Disabled payment routes return the explicit `PAYMENT_PROVIDER_DISABLED` response. This is not a claim that payment processing is implemented, live-tested, or ready to collect funds.
+- Any later activation requires provider onboarding, live signed-webhook verification, payment-flow acceptance, and a separately authorized release.
+
 ## Buyer-specific work if a future agreement is executed
 
 - Buyer-specific Android/iOS signing, native builds, physical-device QA and app-store publication.

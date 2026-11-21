@@ -5,12 +5,62 @@ const fs=require('node:fs');
 const os=require('node:os');
 const path=require('node:path');
 const {Store}=require('../src/store');
-const {verifySignature}=require('../src/stripe-billing');
+const {verifySignature,stripePaymentProviderConfigured}=require('../src/stripe-billing');
+const {createStripePaymentIntent}=require('../src/2026-intelligence');
 function fixture(){const p=path.join(os.tmpdir(),`opscore-stripe-${crypto.randomUUID()}.db`);process.env.SQLITE_PATH=p;delete require.cache[require.resolve('../src/config')];delete require.cache[require.resolve('../src/db')];const d=require('../src/db').openDb();return {d,p};}
 function close(f){f.d.close();for(const p of [f.p,`${f.p}-shm`,`${f.p}-wal`]){try{fs.unlinkSync(p)}catch{}}}
 function signed(body,secret,t=Math.floor(Date.now()/1000)){const sig=crypto.createHmac('sha256',secret).update(`${t}.${body}`).digest('hex');return `t=${t},v1=${sig}`;}
 
+test('payment provider requires both API and webhook credentials',()=>{
+  assert.equal(stripePaymentProviderConfigured({}),false);
+  assert.equal(stripePaymentProviderConfigured({STRIPE_SECRET_KEY:'sk_test_local'}),false);
+  assert.equal(stripePaymentProviderConfigured({STRIPE_WEBHOOK_SECRET:'whsec_local'}),false);
+  assert.equal(stripePaymentProviderConfigured({STRIPE_SECRET_KEY:'sk_test_local',STRIPE_WEBHOOK_SECRET:'whsec_local'}),true);
+});
+
+test('payment intent creation is disabled unless signed settlement is configured',async()=>{
+  const previousKey=process.env.STRIPE_SECRET_KEY;
+  const previousWebhook=process.env.STRIPE_WEBHOOK_SECRET;
+  try {
+    process.env.STRIPE_SECRET_KEY='sk_test_local_only';
+    delete process.env.STRIPE_WEBHOOK_SECRET;
+    await assert.rejects(
+      createStripePaymentIntent({}, {organizationId:'org_test'}, 'invoice_test', 'idempotency-test-123'),
+      /PAYMENT_PROVIDER_DISABLED/
+    );
+  } finally {
+    if(previousKey===undefined) delete process.env.STRIPE_SECRET_KEY; else process.env.STRIPE_SECRET_KEY=previousKey;
+    if(previousWebhook===undefined) delete process.env.STRIPE_WEBHOOK_SECRET; else process.env.STRIPE_WEBHOOK_SECRET=previousWebhook;
+  }
+});
+
 test('Stripe signature verification rejects bad and stale signatures',()=>{const body='{"id":"evt_test"}',secret='whsec_test_secret';assert.equal(verifySignature(body,signed(body,secret),secret),true);assert.throws(()=>verifySignature(body,signed(body,'wrong'),secret),/STRIPE_SIGNATURE_INVALID/);assert.throws(()=>verifySignature(body,signed(body,secret,Math.floor(Date.now()/1000)-301),secret),/STRIPE_SIGNATURE_EXPIRED/);});
+
+test('Stripe routes explicitly disable payment operations when provider credentials are absent',async()=>{
+  const {spawn}=require('node:child_process');
+  const dir=fs.mkdtempSync(path.join(os.tmpdir(),'opscore-payment-disabled-'));
+  const db=path.join(dir,'disabled.sqlite');
+  const port=39000+Math.floor(Math.random()*3000);
+  const child=spawn(process.execPath,['src/server.js'],{cwd:path.resolve(__dirname,'..'),env:{...process.env,NODE_ENV:'test',HOST:'127.0.0.1',PORT:String(port),SQLITE_PATH:db,STRIPE_SECRET_KEY:'',STRIPE_WEBHOOK_SECRET:''},stdio:['ignore','pipe','pipe']});
+  try {
+    await new Promise((resolve,reject)=>{let output='';const onData=chunk=>{output+=chunk.toString();if(output.includes(`OpsCore Starter: http://127.0.0.1:${port}`)){child.stdout.off('data',onData);resolve();}};child.stdout.on('data',onData);child.once('exit',code=>reject(new Error(`server exited ${code}: ${output}`)));});
+    const base=`http://127.0.0.1:${port}`;
+    const webhook=await fetch(base+'/api/v1/billing/stripe/webhook',{method:'POST',headers:{'content-type':'application/json'},body:'{}'});
+    assert.equal(webhook.status,409);
+    assert.deepEqual(await webhook.json(),{error:{code:'PAYMENT_PROVIDER_DISABLED'}});
+    let response=await fetch(base+'/api/v1/auth/bootstrap',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({orgName:'Disabled Payment Tenant',email:'disabled@example.com',password:'Disabled-strong-pass-2026'})});
+    assert.equal(response.status,201);
+    response=await fetch(base+'/api/v1/auth/login',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email:'disabled@example.com',password:'Disabled-strong-pass-2026'})});
+    const cookie=response.headers.get('set-cookie').split(';')[0];
+    const link=await fetch(base+'/api/v1/billing/stripe/link',{method:'POST',headers:{'content-type':'application/json',cookie},body:JSON.stringify({stripeCustomerId:'cus_MUST_NOT_LINK'})});
+    assert.equal(link.status,409);
+    assert.deepEqual(await link.json(),{error:{code:'PAYMENT_PROVIDER_DISABLED'}});
+  } finally {
+    child.kill('SIGTERM');
+    await new Promise(resolve=>{if(child.exitCode!==null)return resolve();child.once('exit',resolve)});
+    fs.rmSync(dir,{recursive:true,force:true});
+  }
+});
 
 test('Stripe subscription webhook state sync is idempotent and tenant-bound',()=>{const f=fixture(),s=new Store(f.d,{sessionTtlHours:24});try{s.bootstrap({orgName:'Tenant A',email:'owner@example.com',password:'Owner-strong-pass-2026'});const owner=s.login('owner@example.com','Owner-strong-pass-2026');s.setEntitlements(owner,{plan:'free',limits:{workOrders:5}});s.linkStripeCustomer(owner,{stripeCustomerId:'cus_ABC123'});const sub={id:'sub_ABC123',customer:'cus_ABC123',status:'active',metadata:{opscore_organization_id:owner.organizationId,opscore_plan:'pro',opscore_limits_json:JSON.stringify({workOrders:100,apiCalls:10000})},items:{data:[{price:{id:'price_PRO',lookup_key:'pro'}}]}};const first=s.applyStripeSubscription('evt_1','customer.subscription.updated',sub,200);assert.equal(first.duplicate,false);assert.equal(s.stripeBilling(owner).status,'active');assert.equal(s.stripeBilling(owner).plan,'pro');assert.equal(s.getEntitlements(owner).limits.workOrders,100);const dup=s.applyStripeSubscription('evt_1','customer.subscription.updated',sub,200);assert.deepEqual(dup,{duplicate:true,eventId:'evt_1'});assert.throws(()=>s.applyStripeSubscription('evt_1','customer.subscription.updated',{...sub,id:'sub_OTHER'},200),/STRIPE_SUBSCRIPTION_MISMATCH/);const stale={...sub,status:'past_due',metadata:{...sub.metadata,opscore_plan:'old'}};assert.equal(s.applyStripeSubscription('evt_old','customer.subscription.updated',stale,199).stale,true);assert.equal(s.stripeBilling(owner).status,'active');const unknown={...sub,id:'sub_UNKNOWN',customer:'cus_UNKNOWN',metadata:{opscore_organization_id:'org_does_not_exist',opscore_plan:'evil'}};const deleted={...sub,status:'canceled',metadata:{...sub.metadata}};const del=s.applyStripeSubscription('evt_2','customer.subscription.deleted',deleted,201);assert.equal(del.active,false);assert.equal(s.getEntitlements(owner).plan,'inactive');assert.deepEqual(s.getEntitlements(owner).limits,{});assert.throws(()=>s.applyStripeSubscription('evt_3','customer.subscription.updated',unknown),/STRIPE_ORGANIZATION_UNRESOLVED/);}finally{close(f)}});
 
@@ -20,7 +70,7 @@ test('Stripe customer cannot be linked to two organizations',()=>{const f=fixtur
 test('Stripe webhook route performs real HTTP signature verification and updates tenant state',async()=>{
   const {spawn}=require('node:child_process');
   const dir=fs.mkdtempSync(path.join(os.tmpdir(),'opscore-stripe-http-')); const db=path.join(dir,'billing.sqlite'); const port=34000+Math.floor(Math.random()*5000); const secret='whsec_http_test_secret';
-  const child=spawn(process.execPath,['src/server.js'],{cwd:path.resolve(__dirname,'..'),env:{...process.env,NODE_ENV:'test',HOST:'127.0.0.1',PORT:String(port),SQLITE_PATH:db,STRIPE_WEBHOOK_SECRET:secret,STRIPE_WEBHOOK_TOLERANCE_SECONDS:'300'},stdio:['ignore','pipe','pipe']});
+  const child=spawn(process.execPath,['src/server.js'],{cwd:path.resolve(__dirname,'..'),env:{...process.env,NODE_ENV:'test',HOST:'127.0.0.1',PORT:String(port),SQLITE_PATH:db,STRIPE_SECRET_KEY:'sk_test_http_test_key',STRIPE_WEBHOOK_SECRET:secret,STRIPE_WEBHOOK_TOLERANCE_SECONDS:'300'},stdio:['ignore','pipe','pipe']});
   try{
     await new Promise((resolve,reject)=>{let b='';const d=x=>{b+=x.toString();if(b.includes(`OpsCore Starter: http://127.0.0.1:${port}`)){child.stdout.off('data',d);resolve()}};child.stdout.on('data',d);child.once('exit',c=>reject(new Error(`server exited ${c}: ${b}`)));});
     const base=`http://127.0.0.1:${port}`; const req=async(pathname,opts={})=>{const r=await fetch(base+pathname,opts);const data=await r.json().catch(()=>null);return {r,data}};
