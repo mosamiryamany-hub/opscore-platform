@@ -477,6 +477,7 @@ async function main() {
     };
     try { writeEvidence(outputPath, failure); } catch (_) {}
     process.stderr.write('PRODUCTION_API_ROUTE_ACCEPTANCE_FAILED:' + failure.reason + '\n');
+    if (failure.diagnostic) process.stderr.write('PRODUCTION_API_ROUTE_ACCEPTANCE_DIAGNOSTIC:' + JSON.stringify(failure.diagnostic) + '\n');
     process.exitCode = 1;
   }
 }
