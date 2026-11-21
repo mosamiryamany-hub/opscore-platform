@@ -245,7 +245,7 @@ jobs:
             const c=new Client({connectionString:process.env.MIGRATION_DATABASE_URL,ssl:{rejectUnauthorized:true}});
             await c.connect();
             const rows=(await c.query("SELECT filename,sha256,applied_at FROM public.schema_migrations WHERE filename ~ '^(06|07)[0-9]_' ORDER BY filename")).rows;
-            const need=['060_firewall_rate_bucket_expiry_index.sql','061_operational_autopilot_tenant_persistence.sql','062_autopilot_table_privilege_minimization.sql','063_signed_tenant_context_verifier.sql','064_signed_tenant_context_work_orders_routing.sql','065_signed_tenant_context_evidence_upload_chunks.sql','066_signed_tenant_context_verifier_search_path_hardening.sql','067_signed_tenant_context_rls_policy_accessor_alignment.sql','069_technician_location_trail_tenant_persistence.sql','070_signed_rls_context_field_operations.sql','071_signed_rls_context_all_access_modes.sql'];
+            const need=['060_firewall_rate_bucket_expiry_index.sql','061_operational_autopilot_tenant_persistence.sql','062_autopilot_table_privilege_minimization.sql','063_signed_tenant_context_verifier.sql','064_signed_tenant_context_work_orders_routing.sql','065_signed_tenant_context_evidence_upload_chunks.sql','066_signed_tenant_context_verifier_search_path_hardening.sql','067_signed_tenant_context_rls_policy_accessor_alignment.sql','069_technician_location_trail_tenant_persistence.sql','070_evidence_upload_postgres_blob_storage.sql','071_signed_rls_context_all_access_modes.sql'];
             const have=rows.map(r=>r.filename);
             const missing=need.filter(n=>!have.includes(n));
             if(missing.length)throw new Error('MIGRATION_LEDGER_MISSING:'+missing.join(','));
