@@ -12,6 +12,7 @@ const {
   isReadOnlyProductionVerificationRequest,
   isAuthorizedProductionCandidateProbeRequest,
   isAuthorizedProductionCandidateUnknownRouteProbeRequest,
+  isAuthorizedProductionCandidateRouteAcceptanceProbeRequest,
   isAuthorizedProductionCandidateDatabaseIdentityRequest,
   candidateProbeBoundaryDenialReason
 } = require('../src/production-hold');
@@ -268,6 +269,79 @@ test('the held unknown-route probe is handled before route-level session authent
   assert.ok(firstSessionGuardIndex > 0);
   assert.match(source, /isAuthorizedProductionCandidateUnknownRouteProbeRequest\(req, process\.env, signedContextProductionReadiness\)\)\s*\{\s*return json\(res, 404, \{ error: \{ code: 'NOT_FOUND' \} \}/);
   assert.ok(source.indexOf('const url = new URL(req.url, config.publicOrigin);') < probeIndex);
+});
+
+test('held candidate route-acceptance probe authorizes only exact API inventory entries', () => {
+  const commit = 'a'.repeat(40);
+  const marker = 'opscore-probe-' + commit.slice(0, 12) + '-7';
+  const env = {
+    VERCEL_ENV: 'production',
+    VERCEL_URL: 'opscore-platform-held123-mosamiryamany-1692.vercel.app',
+    VERCEL_GIT_COMMIT_SHA: commit,
+    OPSC_PRODUCTION_HOLD: 'true',
+    OPSC_RELEASE_VERIFIED: 'false',
+    OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'true',
+    OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED: 'true',
+    OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN: 'c'.repeat(64)
+  };
+  const readiness = { productionReleaseVerified: false };
+  const request = (method, pathname) => ({
+    method,
+    url: pathname,
+    headers: {
+      host: env.VERCEL_URL,
+      'x-opscore-signed-context-probe': env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN,
+      'x-opscore-trusted-oidc-idp-token': 'header.payload.signature'
+    }
+  });
+
+  // A templated inventory route, materialized exactly as the collector does it.
+  assert.equal(isAuthorizedProductionCandidateRouteAcceptanceProbeRequest(request('GET', '/api/v1/work-orders/' + marker), env, readiness), true);
+  // A non-templated inventory route that is not in the signed-context manifest.
+  assert.equal(isAuthorizedProductionCandidateRouteAcceptanceProbeRequest(request('GET', '/api/openapi.json'), env, readiness), true);
+  // The literal /metrics route is inventoried as required-auth and must reach the router.
+  assert.equal(isAuthorizedProductionCandidateRouteAcceptanceProbeRequest(request('GET', '/metrics'), env, readiness), true);
+
+  // Rejections: unknown path, wrong method for that path, and unlisted extras.
+  assert.equal(isAuthorizedProductionCandidateRouteAcceptanceProbeRequest(request('GET', '/api/v1/__not_in_inventory__'), env, readiness), false);
+  assert.equal(isAuthorizedProductionCandidateRouteAcceptanceProbeRequest(request('POST', '/api/health'), env, readiness), false);
+  // A literal (non-templated) inventory row must pass, and an unknown literal must not.
+  assert.equal(isAuthorizedProductionCandidateRouteAcceptanceProbeRequest(request('GET', '/api/v1/work-orders'), env, readiness), true);
+  assert.equal(isAuthorizedProductionCandidateRouteAcceptanceProbeRequest(request('GET', '/api/v1/not-an-inventoried-route'), env, readiness), false);
+  assert.equal(isAuthorizedProductionCandidateRouteAcceptanceProbeRequest(request('DELETE', '/metrics'), env, readiness), false);
+  assert.equal(isAuthorizedProductionCandidateRouteAcceptanceProbeRequest(request('GET', '/api/v1/work-orders/' + marker + '/extra'), env, readiness), false);
+  // A marker bound to a different commit is not this deployment's probe.
+  assert.equal(isAuthorizedProductionCandidateRouteAcceptanceProbeRequest(
+    request('GET', '/api/v1/work-orders/opscore-probe-bbbbbbbbbbbb-7'), env, readiness), false);
+
+  // Every candidate proof stays mandatory: no token, no OIDC, public alias.
+  const noToken = request('GET', '/api/openapi.json');
+  delete noToken.headers['x-opscore-signed-context-probe'];
+  assert.equal(isAuthorizedProductionCandidateRouteAcceptanceProbeRequest(noToken, env, readiness), false);
+  const noOidc = request('GET', '/api/openapi.json');
+  delete noOidc.headers['x-opscore-trusted-oidc-idp-token'];
+  assert.equal(isAuthorizedProductionCandidateRouteAcceptanceProbeRequest(noOidc, env, readiness), false);
+  const publicAlias = request('GET', '/api/openapi.json');
+  publicAlias.headers.host = 'opscore-platform.vercel.app';
+  assert.equal(isAuthorizedProductionCandidateRouteAcceptanceProbeRequest(publicAlias, env, readiness), false);
+
+  // The bypass is hold-scoped only: it never widens the boundary outside a held candidate.
+  assert.equal(isAuthorizedProductionCandidateRouteAcceptanceProbeRequest(
+    request('GET', '/api/openapi.json'), { ...env, OPSC_PRODUCTION_HOLD: 'false' }, readiness), false);
+  assert.equal(isAuthorizedProductionCandidateRouteAcceptanceProbeRequest(
+    request('GET', '/api/openapi.json'), { ...env, OPSC_RELEASE_VERIFIED: 'true' }, readiness), false);
+});
+
+test('unauthenticated inventory routes reach the router instead of the hold 503', () => {
+  const source = fs.readFileSync(path.join(__dirname, '..', 'src', 'server.js'), 'utf8');
+  const holdIndex = source.indexOf('if (productionGate.blocked');
+  const bypassIndex = source.indexOf('isAuthorizedProductionCandidateRouteAcceptanceProbeRequest(req, process.env, signedContextProductionReadiness)) {');
+  const routeIndex = source.indexOf('const r = route(req, res);');
+  assert.ok(holdIndex > 0);
+  assert.ok(bypassIndex > holdIndex, 'the inventory bypass must sit inside the hold guard');
+  assert.ok(routeIndex > bypassIndex, 'the router must still run after the bypass, so auth answers 401/403');
+  // The hold response must remain a 503 for everything else.
+  assert.match(source, /return json\(res, 503, \{\s*schemaVersion: 'opscore\.production-hold-response\.v1'/);
 });
 
 test('missing release evidence cannot be bypassed by setting hold false', () => {

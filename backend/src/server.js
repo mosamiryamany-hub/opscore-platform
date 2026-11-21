@@ -47,7 +47,7 @@ store.databaseEngineResolved = opened.engine;
 store.postgresRuntimeWired = opened.postgresRuntimeWired;
 const {authProviderGate, verifyOidcIdToken} = require('./security');
 const {inspectRequest,productionSafetyGate,createRateLimiter,createLoginRateLimiter,assertTenantAlignment}=require('./firewall');
-const {evaluateProductionGate,isReadOnlyProductionVerificationRequest,candidateProbeBoundaryDenialReason,isAuthorizedProductionCandidateProbeRequest,isAuthorizedProductionCandidateUnknownRouteProbeRequest,isAuthorizedProductionCandidateDatabaseIdentityRequest}=require('./production-hold');
+const {evaluateProductionGate,isReadOnlyProductionVerificationRequest,candidateProbeBoundaryDenialReason,isAuthorizedProductionCandidateProbeRequest,isAuthorizedProductionCandidateUnknownRouteProbeRequest,isAuthorizedProductionCandidateRouteAcceptanceProbeRequest,isAuthorizedProductionCandidateDatabaseIdentityRequest}=require('./production-hold');
 const {createProductionDatabaseIdentityHandler}=require('./production-database-identity-route');
 const productionDatabaseIdentityHandler=createProductionDatabaseIdentityHandler();
 const {can: rbacCan}=require('./rbac');
@@ -3602,7 +3602,8 @@ const server = http.createServer({ maxHeaderSize: config.httpMaxHeaders * 1024 }
   if (productionGate.blocked
       && !isReadOnlyProductionVerificationRequest(req)
       && !isAuthorizedProductionCandidateProbeRequest(req, process.env, signedContextProductionReadiness)
-      && !isAuthorizedProductionCandidateDatabaseIdentityRequest(req, process.env, signedContextProductionReadiness)) {
+      && !isAuthorizedProductionCandidateDatabaseIdentityRequest(req, process.env, signedContextProductionReadiness)
+      && !isAuthorizedProductionCandidateRouteAcceptanceProbeRequest(req, process.env, signedContextProductionReadiness)) {
     const method = String(req && req.method || '').trim().toUpperCase();
     const pathname = String(req && req.url || '/').split('?')[0];
     const candidateRoute = ['read', 'write'].some(operation =>
