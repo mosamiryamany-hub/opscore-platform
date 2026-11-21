@@ -70,16 +70,7 @@ jobs:
           BRANCH_NAME="opscore-pre-mig-rollback-${GITHUB_RUN_ID}"
           export BRANCH_NAME
           export PARENT_BRANCH_ID="${{ inputs.expected_branch_id }}"
-          python3 - <<'PY' > "$RUNNER_TEMP/br-req.json"
-          import json, os
-          print(json.dumps({
-            "branch": {
-              "name": os.environ["BRANCH_NAME"],
-              "parent_id": os.environ["PARENT_BRANCH_ID"]
-            },
-            "endpoints": [{"type": "read_only"}]
-          }))
-          PY
+          python3 -c 'import json,os; print(json.dumps({"branch":{"name":os.environ["BRANCH_NAME"],"parent_id":os.environ["PARENT_BRANCH_ID"]},"endpoints":[{"type":"read_only"}]}))' > "$RUNNER_TEMP/br-req.json"
           code2=$(curl -sS -o "$RUNNER_TEMP/br.json" -w "%{http_code}" -X POST "${AUTH[@]}" \
             "$API/branches" \
             --data-binary @"$RUNNER_TEMP/br-req.json")
