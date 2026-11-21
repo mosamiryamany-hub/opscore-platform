@@ -88,8 +88,13 @@ jobs:
             print(f"echo PRUNE {name} {bid}")
             print(f'curl -sS -X DELETE -H "Authorization: Bearer $NEON_API_KEY" -H "Accept: application/json" "$API/branches/{bid}" >/dev/null || true')
           PY
-          bash "$RUNNER_TEMP/prune.sh" || true
-          sleep 2
+          export API
+          export NEON_API_KEY
+          echo "PRUNE_SCRIPT_BEGIN"
+          cat "$RUNNER_TEMP/prune.sh" || true
+          bash -x "$RUNNER_TEMP/prune.sh" || true
+          echo "PRUNE_SCRIPT_END"
+          sleep 3
           BRANCH_NAME="opscore-pre-mig-rollback-${GITHUB_RUN_ID}"
           export BRANCH_NAME
           export PARENT_BRANCH_ID="${{ inputs.expected_branch_id }}"
