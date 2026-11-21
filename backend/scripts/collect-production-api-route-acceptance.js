@@ -19,7 +19,7 @@ const {
 
 const BACKEND_ROOT = path.resolve(__dirname, '..');
 const INVENTORY_PATH = path.join(BACKEND_ROOT, 'docs', 'API_INVENTORY.json');
-const CANDIDATE_RESULT_PATH = path.resolve(BACKEND_ROOT, '..', 'SIGNED_TENANT_CONTEXT_CANDIDATE_RESULT.json');
+const CANDIDATE_RESULT_PATH = path.join(BACKEND_ROOT, 'docs', 'verification', 'SIGNED_TENANT_CONTEXT_CANDIDATE_RESULT.json');
 const SIGNED_ROUTE_COVERAGE_PATH = path.join(BACKEND_ROOT, 'docs', 'verification', 'SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE.json');
 const SESSION_ISOLATION_PATH = path.join(BACKEND_ROOT, 'docs', 'verification', 'PRODUCTION_SESSION_ISOLATION.json');
 const DEFAULT_RESULT_PATH = path.join(BACKEND_ROOT, 'docs', 'verification', 'API_ROUTE_ACCEPTANCE_RESULT.json');
