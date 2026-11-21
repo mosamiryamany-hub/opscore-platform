@@ -50,6 +50,120 @@ function loadSigningKey(env = process.env) {
   return { key: Buffer.from(encoded, 'hex'), keyId };
 }
 
+
+const RLS_SESSION_PURPOSES = Object.freeze({
+  field: 'field_operation',
+  auth: 'auth_operation',
+  system: 'system_operation',
+  backoffice: 'backoffice_operation'
+});
+
+function optionalText(value, code) {
+  if (value == null || value === '') return null;
+  return requiredText(value, code);
+}
+
+function createSignedRlsSessionContext({
+  tenantId = '',
+  userId = '',
+  sessionId = '',
+  apiKeyId = '',
+  accessMode = 'field',
+  backendPid,
+  transactionId = null,
+  requestId,
+  env = process.env,
+  nowMs = Date.now()
+}) {
+  const mode = String(accessMode || 'field').trim();
+  const basePurpose = RLS_SESSION_PURPOSES[mode];
+  if (!basePurpose) throw fail('TENANT_CONTEXT_ACCESS_MODE_INVALID');
+
+  const tenant = optionalText(tenantId, 'TENANT_CONTEXT_TENANT_INVALID');
+  const user = optionalText(userId, 'TENANT_CONTEXT_USER_INVALID');
+  const session = optionalText(sessionId, 'TENANT_CONTEXT_SESSION_INVALID');
+  const apiKey = optionalText(apiKeyId, 'TENANT_CONTEXT_API_KEY_INVALID');
+  const request = requiredText(requestId, 'TENANT_CONTEXT_REQUEST_ID_REQUIRED');
+
+  if (mode === 'field' && (!tenant || !user || (!session && !apiKey) || (session && apiKey))) {
+    throw fail('TENANT_CONTEXT_FIELD_SESSION_PRINCIPAL_REQUIRED');
+  }
+  if (mode !== 'field' && (session || apiKey)) {
+    throw fail('TENANT_CONTEXT_NON_FIELD_SESSION_BINDING_FORBIDDEN');
+  }
+
+  const pid = Number(backendPid);
+  if (!Number.isSafeInteger(pid) || pid < 1 || pid > 2147483647) {
+    throw fail('TENANT_CONTEXT_BACKEND_ID_INVALID');
+  }
+  const xid = transactionId == null || transactionId === '' ? null : String(transactionId).trim();
+  if (xid !== null && !/^[0-9]{1,20}$/.test(xid)) {
+    throw fail('TENANT_CONTEXT_TRANSACTION_ID_INVALID');
+  }
+  const { key, keyId } = loadSigningKey(env);
+  const issuedAt = Math.floor(Number(nowMs) / 1000);
+  if (!Number.isSafeInteger(issuedAt) || issuedAt < 1) throw fail('TENANT_CONTEXT_CLOCK_INVALID');
+
+  const claims = {
+    v: '1',
+    iss: 'opscore-api',
+    aud: 'opscore-database',
+    purpose: mode === 'field' && apiKey ? 'api_key_operation' : basePurpose,
+    identity_kind: mode === 'field' && apiKey ? 'api_key' : 'session',
+    api_key_id: apiKey,
+    access_mode: mode,
+    sub: user,
+    tenant_id: tenant,
+    session_id: session,
+    request_id: request,
+    binding_scope: xid === null ? 'backend_session' : 'transaction',
+    transaction_id: xid,
+    iat: issuedAt,
+    nbf: issuedAt,
+    exp: issuedAt + MAX_ASSERTION_TTL_SECONDS,
+    jti: crypto.randomUUID(),
+    kid: keyId,
+    backend_pid: pid
+  };
+  const payload = JSON.stringify(claims);
+  if (Buffer.byteLength(payload, 'utf8') > 4096) throw fail('TENANT_CONTEXT_PAYLOAD_TOO_LARGE');
+  const signature = crypto.createHmac('sha256', key).update(payload, 'utf8').digest('hex');
+  return Object.freeze({
+    payload, signature, expiresAt: claims.exp, backendPid: pid,
+    transactionId: xid, accessMode: mode, purpose: claims.purpose, requestId: request
+  });
+}
+
+async function bindSignedRlsSessionContext(client, {
+  tenantId = '',
+  userId = '',
+  sessionId = '',
+  apiKeyId = '',
+  accessMode = 'field',
+  requestId = crypto.randomUUID(),
+  env = process.env
+} = {}) {
+  if (!client || typeof client.query !== 'function') throw fail('TENANT_CONTEXT_CLIENT_REQUIRED');
+  const identity = await client.query('SELECT pg_backend_pid() AS backend_pid');
+  const assertion = createSignedRlsSessionContext({
+    tenantId, userId, sessionId, apiKeyId, accessMode,
+    backendPid: Number(identity.rows[0] && identity.rows[0].backend_pid),
+    transactionId: null, requestId, env
+  });
+  await client.query(
+    "SELECT set_config('app.signed_context_payload',$1,false), set_config('app.signed_context_signature',$2,false), set_config('app.signed_context_request_id',$3,false), set_config('app.tenant_id',$4,false), set_config('app.user_id',$5,false), set_config('app.access_mode',$6,false)",
+    [assertion.payload, assertion.signature, requestId, String(tenantId || ''), String(userId || ''), accessMode]
+  );
+  return assertion;
+}
+
+async function clearSignedRlsSessionContext(client) {
+  if (!client || typeof client.query !== 'function') throw fail('TENANT_CONTEXT_CLIENT_REQUIRED');
+  await client.query(
+    "SELECT set_config('app.signed_context_payload','',false), set_config('app.signed_context_signature','',false), set_config('app.signed_context_request_id','',false), set_config('app.tenant_id','',false), set_config('app.user_id','',false), set_config('app.access_mode','',false), set_config('app.current_tenant_id','',false), set_config('app.organization_id','',false)"
+  );
+}
+
 function createSignedTenantContext({ principal, backendPid, transactionId, env = process.env, nowMs = Date.now() }) {
   if (!principal || typeof principal !== 'object') {
     throw fail('TENANT_CONTEXT_PRINCIPAL_REQUIRED');
@@ -102,5 +216,9 @@ function createSignedTenantContext({ principal, backendPid, transactionId, env =
 
 module.exports = {
   MAX_ASSERTION_TTL_SECONDS,
-  createSignedTenantContext
+  createSignedTenantContext,
+  RLS_SESSION_PURPOSES,
+  createSignedRlsSessionContext,
+  bindSignedRlsSessionContext,
+  clearSignedRlsSessionContext
 };

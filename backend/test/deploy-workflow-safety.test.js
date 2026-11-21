@@ -69,3 +69,25 @@ test('signed tenant 67-route evidence is executed and uploaded from disposable P
   assert.match(postgres.slice(upload, nextGate), /actions\/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9/);
   assert.match(postgres.slice(upload, nextGate), /if-no-files-found: error/);
 });
+
+test('production deploy rejects legacy count-only recovery evidence and requires full-data v4 plus exact cleanup', () => {
+  assert.match(deploy, /opscore\.production-recovery-point\.v4/);
+  assert.doesNotMatch(deploy, /opscore\.production-recovery-point\.v3/);
+  assert.match(deploy, /branch-clone-public-full-table-content-hash-and-core-tenant-row-counts/);
+  assert.match(deploy, /contentIntegrity\?\.algorithm === 'SHA-256'/);
+  assert.match(deploy, /contentIntegrity\?\.rowsCompared/);
+  assert.match(deploy, /referenceBranchDeleted === true/);
+  assert.match(deploy, /recoveryBranchDeleted === true/);
+  assert.match(deploy, /rlsPolicyTableCount/);
+  assert.match(deploy, /spatial_ref_sys/);
+});
+
+test('release embed consumes only collector-produced PITR v2 and cannot downgrade to historical catalog-only artifact', () => {
+  assert.match(deploy, /Verify collector-produced full-data PITR evidence before embed/);
+  assert.match(deploy, /opscore\.production-native-pitr\.v2/);
+  assert.match(deploy, /FULL_DATA_PITR_EVIDENCE_MISSING/);
+  assert.match(deploy, /FULL_DATA_PITR_EVIDENCE_NOT_EXACT_OR_NOT_VERIFIED/);
+  assert.doesNotMatch(deploy, /Download production-native PITR evidence from acceptance job/);
+  assert.doesNotMatch(deploy, /PITR_EVIDENCE_REBOUND/);
+  assert.match(deploy, /MISSING_EVIDENCE:\$src/);
+});

@@ -5,6 +5,8 @@
  * The adapter deliberately fails when `pg` is absent; there is no fake fallback.
  */
 const fs = require('node:fs');
+const crypto = require('node:crypto');
+const { createSignedRlsSessionContext } = require('../signed-tenant-context');
 const DEFAULTS = Object.freeze({
   statementTimeoutMs: 5000,
   idleInTransactionSessionTimeoutMs: 3000,
@@ -122,18 +124,26 @@ async function pingPostgres(pool) {
  * Sets parameterized GUC for RLS context; RESET ALL before release to pool.
  * organizationId is bound as a parameter — never string-interpolated into SQL.
  */
-async function acquireTenantClient(pool, organizationId) {
+async function acquireTenantClient(pool, organizationId, { userId = '', sessionId = '' } = {}) {
   if (!pool || typeof pool.connect !== 'function') throw new Error('POSTGRES_POOL_INVALID');
   const org = String(organizationId || '').trim();
   if (!org || org.length > 128) throw new Error('TENANT_CONTEXT_REQUIRED');
+  const user = String(userId || '').trim();
+  const session = String(sessionId || '').trim();
+  if (!user || !session) throw new Error('SIGNED_FIELD_SESSION_PRINCIPAL_REQUIRED');
   const client = await pool.connect();
   try {
-    // The canonical RLS policy contract reads app.tenant_id. Keep the two
-    // application aliases synchronized for compatibility with callers that
-    // inspect them, using one statement so the context cannot be half-applied.
+    // Match the sync bridge: an authenticated field session is signed and bound to
+    // this exact PostgreSQL backend. Raw aliases are compatibility metadata only.
+    const identity = await client.query('SELECT pg_backend_pid() AS backend_pid');
+    const requestId = crypto.randomUUID();
+    const assertion = createSignedRlsSessionContext({
+      tenantId: org, userId: user, sessionId: session, accessMode: 'field',
+      backendPid: Number(identity.rows[0].backend_pid), transactionId: null, requestId
+    });
     await client.query(
-      "SELECT set_config('app.tenant_id',$1,false), set_config('app.current_tenant_id',$1,false), set_config('app.organization_id',$1,false), set_config('app.access_mode','field',false)",
-      [org]
+      "SELECT set_config('app.signed_context_payload',$1,false), set_config('app.signed_context_signature',$2,false), set_config('app.signed_context_request_id',$3,false), set_config('app.tenant_id',$4,false), set_config('app.current_tenant_id',$4,false), set_config('app.organization_id',$4,false), set_config('app.user_id',$5,false), set_config('app.access_mode','field',false)",
+      [assertion.payload, assertion.signature, requestId, org, user]
     );
     return client;
   } catch (e) {
@@ -150,28 +160,21 @@ async function acquireTenantClient(pool, organizationId) {
  */
 async function releaseTenantClient(client) {
   if (!client) return;
-  let clean = false;
   try {
     await client.query('RESET ALL');
-    clean = true;
+    client.release();
   } catch (_) {
-    try {
-      await client.query("SELECT set_config('app.tenant_id', '', false), set_config('app.current_tenant_id', '', false), set_config('app.organization_id', '', false), set_config('app.user_id', '', false), set_config('app.access_mode', '', false)");
-      clean = true;
-    } catch (__) {
-      clean = false;
-    }
+    // A failed RESET ALL means the backend's session state is unknown. Destroy
+    // it rather than returning a partially-cleared connection to the pool.
+    try { client.release(true); } catch (__) { /* already released */ }
   }
-  try {
-    client.release(clean ? undefined : true);
-  } catch (_) { /* already released */ }
 }
 
 /**
  * Run fn(client) with tenant session isolation and guaranteed RESET on exit.
  */
-async function withTenantClient(pool, organizationId, fn) {
-  const client = await acquireTenantClient(pool, organizationId);
+async function withTenantClient(pool, organizationId, fn, principal = {}) {
+  const client = await acquireTenantClient(pool, organizationId, principal);
   try {
     return await fn(client);
   } finally {

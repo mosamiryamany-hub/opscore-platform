@@ -1245,7 +1245,7 @@ function requireCtx(req, res) {
         tenantId: c.organizationId
       });
     } else if (store.db && typeof store.db.setSession === 'function' && c.organizationId) {
-      store.db.setSession({ tenantId: c.organizationId, userId: c.userId || '', accessMode: 'field' });
+      store.db.setSession({ tenantId: c.organizationId, userId: c.userId || '', sessionId: c.sessionId || '', apiKeyId: c.apiKeyId || '', accessMode: 'field' });
     }
   } catch (sessionError) {
     warn('postgres_tenant_session_bind_failed', { organizationId: c.organizationId, errorCode: safeDatabaseErrorCode(sessionError) });
@@ -1556,7 +1556,7 @@ function route(req, res) {
       const identity=await verifyOidcIdToken(b.idToken,nonce);
       if (store.db && typeof store.db.setSession === 'function') store.db.setSession({ tenantId: '', userId: '', accessMode: 'auth' });
       const out=await store.loginOidc(identity,b.organizationId);
-      if (store.db && typeof store.db.setSession === 'function' && out && (out.organizationId || out.organization?.id)) store.db.setSession({ tenantId: out.organizationId || out.organization.id, userId: out.userId || out.user?.id || '', accessMode: 'field' });
+      if (store.db && typeof store.db.setSession === 'function' && out && (out.organizationId || out.organization?.id)) store.db.setSession({ tenantId: out.organizationId || out.organization.id, userId: out.userId || out.user?.id || '', sessionId: out.sessionId || '', accessMode: 'field' });
       return json(res,200,{user:out.user,organization:out.organization,role:out.role,expiresAt:out.expiresAt,token:out.token},{'cache-control':'no-store','pragma':'no-cache'});
     }).catch(e=>fail(res,e));
   }
@@ -1573,7 +1573,7 @@ function route(req, res) {
     return body(req).then(async b => runWithRequest(async () => {
       if (store.db && typeof store.db.setSession === 'function') store.db.setSession({ tenantId: '', userId: '', accessMode: 'auth' });
       const out = await store.loginAsync(b.email, b.password, b.organizationId);
-      if (store.db && typeof store.db.setSession === 'function' && out && (out.organizationId || out.organization?.id)) store.db.setSession({ tenantId: out.organizationId || out.organization.id, userId: out.userId || out.user?.id || '', accessMode: 'field' });
+      if (store.db && typeof store.db.setSession === 'function' && out && (out.organizationId || out.organization?.id)) store.db.setSession({ tenantId: out.organizationId || out.organization.id, userId: out.userId || out.user?.id || '', sessionId: out.sessionId || '', accessMode: 'field' });
       if (url.pathname === '/api/v1/auth/mobile-login') {
         return json(res, 200, {
           user: out.user,

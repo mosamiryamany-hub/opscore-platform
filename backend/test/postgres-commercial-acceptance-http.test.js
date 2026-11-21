@@ -26,6 +26,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { spawn } = require('node:child_process');
+const { bindSignedRlsSessionContext, clearSignedRlsSessionContext } = require('../src/signed-tenant-context');
 const { validatePostgresAcceptanceTarget } = require('../scripts/validate-postgres-acceptance-target');
 
 // Keep generated evidence in the job's temporary workspace while the test suite runs.
@@ -325,21 +326,20 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
       created.users.push(userBId, memberId);
       const createdAt = new Date().toISOString();
 
-      await fixture.query("SELECT set_config('app.tenant_id',$1,false), set_config('app.current_tenant_id',$1,false), set_config('app.organization_id',$1,false), set_config('app.access_mode','system',false)", [orgBId]);
+      await bindSignedRlsSessionContext(fixture, { tenantId: orgBId, accessMode: 'system' });
       await fixture.query('INSERT INTO organizations (id,name,created_at) VALUES ($1,$2,$3)', [orgBId, `Acceptance Tenant B ${stamp}`, createdAt]);
       created.persistedOrganizations.push(orgBId);
-      await fixture.query("SELECT set_config('app.user_id',$1,false), set_config('app.access_mode','auth',false)", [userBId]);
+      await bindSignedRlsSessionContext(fixture, { tenantId: orgBId, userId: userBId, accessMode: 'system' });
       await fixture.query('INSERT INTO users (id,email,password_hash,status,created_at) VALUES ($1,$2,$3,$4,$5)', [userBId, ownerBEmail, hashPassword('Initial-B-strong-2026'), 'active', createdAt]);
       created.persistedUsers.push(userBId);
       await fixture.query('INSERT INTO users (id,email,password_hash,status,created_at) VALUES ($1,$2,$3,$4,$5)', [memberId, memberAEmail, hashPassword('Initial-member-strong-2026'), 'active', createdAt]);
       created.persistedUsers.push(memberId);
-      await fixture.query("SELECT set_config('app.tenant_id',$1,false), set_config('app.current_tenant_id',$1,false), set_config('app.organization_id',$1,false), set_config('app.access_mode','auth',false)", [orgBId]);
       await fixture.query('INSERT INTO memberships (user_id,organization_id,role,created_at) VALUES ($1,$2,$3,$4)', [userBId, orgBId, 'owner', createdAt]);
-      await fixture.query("SELECT set_config('app.tenant_id',$1,false), set_config('app.current_tenant_id',$1,false), set_config('app.organization_id',$1,false)", [orgAId]);
+      await bindSignedRlsSessionContext(fixture, { tenantId: orgAId, userId: memberId, accessMode: 'system' });
       await fixture.query('INSERT INTO memberships (user_id,organization_id,role,created_at) VALUES ($1,$2,$3,$4)', [memberId, orgAId, 'member', createdAt]);
-      await fixture.query("SELECT set_config('app.tenant_id','',false), set_config('app.current_tenant_id','',false), set_config('app.organization_id','',false), set_config('app.user_id','',false), set_config('app.access_mode','',false)");
+      await clearSignedRlsSessionContext(fixture);
 
-      record('synthetic-fixtures-created-under-rls', `second tenant and member inserted as role ${engine.role} with tenant GUCs (no BYPASSRLS)`);
+      record('synthetic-fixtures-created-under-rls', `second tenant and member inserted as role ${engine.role} with purpose-bound signed contexts (no BYPASSRLS)`);
 
       x = await request('/api/v1/auth/login', {
         method: 'POST',
@@ -348,6 +348,28 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
       assert.equal(x.response.status, 200, JSON.stringify(x.data));
       expectCookieSecurity(x.response);
       const ownerBCookie = cookieFrom(x.response);
+
+      // Resolve each live session only inside its own signed auth tenant context.
+      await bindSignedRlsSessionContext(fixture, {
+        tenantId: orgAId, userId: ownerAId, accessMode: 'auth'
+      });
+      const ownerASession = await fixture.query(
+        "SELECT id FROM sessions WHERE user_id=$1 AND organization_id=$2 AND expires_at::timestamptz > now() ORDER BY created_at DESC LIMIT 1",
+        [ownerAId, orgAId]
+      );
+      assert.equal(ownerASession.rowCount, 1, 'tenant A live session must exist');
+      const ownerASessionId = ownerASession.rows[0].id;
+
+      await bindSignedRlsSessionContext(fixture, {
+        tenantId: orgBId, userId: userBId, accessMode: 'auth'
+      });
+      const ownerBSession = await fixture.query(
+        "SELECT id FROM sessions WHERE user_id=$1 AND organization_id=$2 AND expires_at::timestamptz > now() ORDER BY created_at DESC LIMIT 1",
+        [userBId, orgBId]
+      );
+      assert.equal(ownerBSession.rowCount, 1, 'tenant B live session must exist');
+      const ownerBSessionId = ownerBSession.rows[0].id;
+      await clearSignedRlsSessionContext(fixture);
 
       x = await request('/api/v1/me', {}, ownerBCookie);
       assert.equal(x.response.status, 200);
@@ -465,11 +487,9 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
         assert.equal(table.restrictive_count, 1);
       }
 
-      await fixture.query(
-        "SELECT set_config('app.tenant_id',$1,false), set_config('app.current_tenant_id',$1,false), " +
-        "set_config('app.organization_id',$1,false), set_config('app.user_id',$2,false), set_config('app.access_mode','field',false)",
-        [orgAId, ownerAId]
-      );
+      await bindSignedRlsSessionContext(fixture, {
+        tenantId: orgAId, userId: ownerAId, sessionId: ownerASessionId, accessMode: 'field'
+      });
       await fixture.query(
         'INSERT INTO decision_replays (id,organization_id,decision_type,input_json,rules_json,outcome_json,decision_sha256,created_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)',
         [autopilotDecisionId, orgAId, 'acceptance_decision', '{}', '[]', JSON.stringify({ approved: true, result: 'success' }), 'a'.repeat(64), ownerAId, new Date().toISOString()]
@@ -514,11 +534,9 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
       assert.equal(x.data.items.length, 0);
 
       // A tenant-B child cannot point at tenant-A's decision, even though the ID is known.
-      await fixture.query(
-        "SELECT set_config('app.tenant_id',$1,false), set_config('app.current_tenant_id',$1,false), " +
-        "set_config('app.organization_id',$1,false), set_config('app.user_id',$2,false), set_config('app.access_mode','field',false)",
-        [orgBId, userBId]
-      );
+      await bindSignedRlsSessionContext(fixture, {
+        tenantId: orgBId, userId: userBId, sessionId: ownerBSessionId, accessMode: 'field'
+      });
       await fixture.query('BEGIN');
       let crossTenantMemoryError = null;
       try {
@@ -533,11 +551,9 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
       assert.equal(crossTenantMemoryError?.code, '23503', 'composite FK must reject cross-tenant decision references');
 
       // Seed a pending proposal and exercise the actual approval handler under both tenants.
-      await fixture.query(
-        "SELECT set_config('app.tenant_id',$1,false), set_config('app.current_tenant_id',$1,false), " +
-        "set_config('app.organization_id',$1,false), set_config('app.user_id',$2,false), set_config('app.access_mode','field',false)",
-        [orgAId, ownerAId]
-      );
+      await bindSignedRlsSessionContext(fixture, {
+        tenantId: orgAId, userId: ownerAId, sessionId: ownerASessionId, accessMode: 'field'
+      });
       await fixture.query(
         'INSERT INTO autopilot_proposals (id,organization_id,incident_ref,action_type,target_json,reasons_json,risk,approval_required,status,proposal_json,proposal_sha256,created_by,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)',
         [autopilotProposalId, orgAId, `acceptance-${stamp}`, 'keep_safe_mode', JSON.stringify({ signal: 'safe_mode' }), JSON.stringify(autopilotProposalPayload.reasons), 'low', 1, 'pending', JSON.stringify(autopilotProposalPayload), autopilotProposalSha, ownerAId, new Date().toISOString()]
@@ -591,14 +607,13 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
       assert.equal(bundle.schemaVersion, 'opscore.recovery-bundle.v1');
       assert.equal(bundle.export.organizationId, orgAId);
 
-      // Use one checked-out connection for both counts. Session GUCs are connection-local;
+      // Use one checked-out connection for both counts. Signed session context is backend-local;
       // calling Pool.query twice can select different connections and produce false results under RLS.
       const countClient = await control.connect();
       try {
-        await countClient.query(
-          "SELECT set_config('app.tenant_id',$1,false), set_config('app.current_tenant_id',$1,false), set_config('app.access_mode','field',false)",
-          [orgAId]
-        );
+        await bindSignedRlsSessionContext(countClient, {
+          tenantId: orgAId, userId: ownerAId, sessionId: ownerASessionId, accessMode: 'field'
+        });
         const beforeRows = await countClient.query(
           'SELECT count(*)::int AS n FROM customers WHERE organization_id = $1',
           [orgAId]
@@ -610,13 +625,12 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
         assert.equal(x.response.status, 200, JSON.stringify(x.data));
         assert.equal(x.data.valid, true);
         assert.equal(x.data.importMode, 'dry_run_only');
-        // Re-bind tenant GUCs before the post-verify count. Neon transaction poolers
+        // Re-bind the verified field session before the post-verify count. Neon transaction poolers
         // and concurrent session noise must not make RLS hide live tenant rows and
         // produce a false "verify mutated data" failure.
-        await countClient.query(
-          "SELECT set_config('app.tenant_id',$1,false), set_config('app.current_tenant_id',$1,false), set_config('app.access_mode','field',false)",
-          [orgAId]
-        );
+        await bindSignedRlsSessionContext(countClient, {
+          tenantId: orgAId, userId: ownerAId, sessionId: ownerASessionId, accessMode: 'field'
+        });
         const afterRows = await countClient.query(
           'SELECT count(*)::int AS n FROM customers WHERE organization_id = $1',
           [orgAId]
@@ -628,9 +642,7 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
         );
         record('recovery-bundle-verify-is-dry-run', `valid=true, importMode=dry_run_only, customers_before=${beforeRows.rows[0].n}, customers_after=${afterRows.rows[0].n}`);
       } finally {
-        await countClient.query(
-          "SELECT set_config('app.tenant_id','',false), set_config('app.current_tenant_id','',false), set_config('app.access_mode','',false)"
-        ).catch(() => {});
+        await clearSignedRlsSessionContext(countClient).catch(() => {});
         countClient.release();
       }
 
@@ -661,7 +673,7 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
       record('logout-revokes-session', 'post-logout reuse of the same cookie received HTTP 401');
     } finally {
       // Session GUCs are transaction/connection scoped; release the fixture connection cleanly.
-      await fixture.query("SELECT set_config('app.tenant_id','',false), set_config('app.access_mode','',false)").catch(() => {});
+      await clearSignedRlsSessionContext(fixture).catch(() => {});
       fixture.release();
     }
 
@@ -715,9 +727,9 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
     try {
       cleanupClient = await control.connect();
       for (const orgId of created.organizations) {
+        await bindSignedRlsSessionContext(cleanupClient, { tenantId: orgId, accessMode: 'system' });
         await attemptCleanup('set-organization-cleanup-context',
-          "SELECT set_config('app.tenant_id',$1,false), set_config('app.current_tenant_id',$1,false), set_config('app.organization_id',$1,false), set_config('app.user_id','',false), set_config('app.access_mode','system',false)",
-          [orgId]);
+          'SELECT public.opscore_current_tenant() AS tenant, public.opscore_access_mode() AS mode');
         await attemptCleanup('delete-organization-memberships', 'DELETE FROM memberships WHERE organization_id=$1', [orgId]);
         await attemptCleanup('delete-organization-customers', 'DELETE FROM customers WHERE organization_id=$1', [orgId]);
         await attemptCleanup('delete-organization-work-orders', 'DELETE FROM work_orders WHERE organization_id=$1', [orgId]);
@@ -731,9 +743,9 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
       for (const userId of created.users) {
         // The restrictive identity SELECT policy requires the current-user GUC to match
         // the row being deleted; access_mode=system alone does not make the row visible.
+        await bindSignedRlsSessionContext(cleanupClient, { userId, accessMode: 'system' });
         await attemptCleanup('set-user-cleanup-context',
-          "SELECT set_config('app.tenant_id','',false), set_config('app.current_tenant_id','',false), set_config('app.organization_id','',false), set_config('app.user_id',$1,false), set_config('app.access_mode','system',false)",
-          [userId]);
+          'SELECT public.opscore_current_user() AS user_id, public.opscore_access_mode() AS mode');
         await attemptCleanup('delete-user-memberships', 'DELETE FROM memberships WHERE user_id=$1', [userId]);
         await attemptCleanup('delete-user-reset-tokens', 'DELETE FROM password_reset_tokens WHERE user_id=$1', [userId]);
         await attemptCleanup('delete-user-sessions', 'DELETE FROM sessions WHERE user_id=$1', [userId]);
@@ -744,15 +756,17 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
       }
       // A wrong-password check creates this row; successful logins may already have
       // cleared their keys. Deleting an absent exact key is intentionally a no-op.
+      await bindSignedRlsSessionContext(cleanupClient, { accessMode: 'auth' });
       await attemptCleanup('set-throttle-cleanup-context',
-        "SELECT set_config('app.tenant_id','',false), set_config('app.current_tenant_id','',false), set_config('app.organization_id','',false), set_config('app.user_id','',false), set_config('app.access_mode','auth',false)");
+        'SELECT public.opscore_access_mode() AS mode');
       for (const throttleKey of created.loginThrottleKeys) {
         await attemptCleanup('delete-synthetic-login-throttle', 'DELETE FROM login_throttle WHERE throttle_key=$1', [throttleKey]);
       }
       // Verify global residue while access_mode is explicitly system; blank context can
       // make RLS hide users and falsely report zero. Reset the GUCs only after the checks.
+      await bindSignedRlsSessionContext(cleanupClient, { accessMode: 'system' });
       await attemptCleanup('set-cleanup-verification-context',
-        "SELECT set_config('app.tenant_id','',false), set_config('app.current_tenant_id','',false), set_config('app.organization_id','',false), set_config('app.user_id','',false), set_config('app.access_mode','system',false)");
+        'SELECT public.opscore_access_mode() AS mode');
       const remainingUsers = virginDatabaseVerified
         ? await attemptCleanup('verify-no-user-residue', 'SELECT opscore_count_users()::int AS n')
         : null;
@@ -772,8 +786,8 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           remainingSyntheticThrottleRows: remainingThrottles ? Number(remainingThrottles.rows?.[0]?.n || 0) : null
         }));
       }
-      await attemptCleanup('reset-cleanup-context',
-        "SELECT set_config('app.tenant_id','',false), set_config('app.current_tenant_id','',false), set_config('app.organization_id','',false), set_config('app.user_id','',false), set_config('app.access_mode','',false)");
+      await clearSignedRlsSessionContext(cleanupClient);
+      await attemptCleanup('reset-cleanup-context', "SELECT current_setting('app.signed_context_request_id', true) AS cleared_request_id");
     } catch (error) {
       cleanupErrors.push({ operation: 'cleanup-connection', code: error && error.code || null, message: String(error && error.message || error).slice(0, 240) });
     }

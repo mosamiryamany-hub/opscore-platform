@@ -37,7 +37,9 @@ test('tenant B fixture IDs are tracked before any fixture write', () => {
 test('PostgreSQL acceptance cleanup removes only tracked throttle keys and sets the per-user RLS context', () => {
   assert.match(source, /created\.loginThrottleKeys\.push/i);
   assert.match(source, /DELETE FROM login_throttle WHERE throttle_key=\$1/i);
-  assert.match(source, /set_config\('app\.user_id',\$1,false\)/i);
+  assert.match(source, /bindSignedRlsSessionContext\(fixture/);
+  assert.match(source, /sessionId: ownerASessionId/);
+  assert.doesNotMatch(source, /set_config\('app\.user_id',\$1,false\)/i);
   assert.match(source, /ACCEPTANCE_CLEANUP_FAILED/);
 });
 

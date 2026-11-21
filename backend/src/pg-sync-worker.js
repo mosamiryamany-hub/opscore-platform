@@ -67,7 +67,7 @@ async function releaseSession(requestId) {
     try {
       // Belt-and-suspenders: clear tenant GUCs even if a caller skipped endRequest ordering.
       await session.client.query(
-        "SELECT set_config('app.tenant_id', '', false), set_config('app.user_id', '', false), set_config('app.access_mode', '', false), set_config('app.signed_context_payload', '', false), set_config('app.signed_context_signature', '', false)"
+        "SELECT set_config('app.tenant_id', '', false), set_config('app.user_id', '', false), set_config('app.access_mode', '', false), set_config('app.signed_context_payload', '', false), set_config('app.signed_context_signature', '', false), set_config('app.signed_context_request_id', '', false)"
       );
       await session.client.query('RESET ALL');
     } catch (_) { destroy = true; }
@@ -129,6 +129,66 @@ async function handle(message) {
     return { id, ok: true, row: result.rows[0] };
   }
 
+  if (type === 'sessionIdentity') {
+    const identity = await session.client.query(
+      session.inTransaction
+        ? 'SELECT pg_backend_pid() AS backend_pid, pg_current_xact_id()::text AS transaction_id'
+        : 'SELECT pg_backend_pid() AS backend_pid'
+    );
+    return { id, ok: true, row: {
+      backendPid: Number(identity.rows[0].backend_pid),
+      transactionId: identity.rows[0].transaction_id == null ? null : String(identity.rows[0].transaction_id)
+    } };
+  }
+
+  if (type === 'bindSignedSessionContext') {
+    const payload = String(message.signedContextPayload || '');
+    const signature = String(message.signedContextSignature || '');
+    if (!payload || Buffer.byteLength(payload, 'utf8') > 4096 || !/^[0-9a-f]{64}$/.test(signature)) {
+      return { id, ok: false, code: 'TENANT_CONTEXT_ASSERTION_INVALID' };
+    }
+    let claims;
+    try { claims = JSON.parse(payload); }
+    catch { return { id, ok: false, code: 'TENANT_CONTEXT_ASSERTION_INVALID' }; }
+    const purposes = {
+      field: claims && claims.identity_kind === 'api_key' ? 'api_key_operation' : 'field_operation',
+      auth: 'auth_operation',
+      system: 'system_operation',
+      backoffice: 'backoffice_operation'
+    };
+    const requestId = String(message.requestId || '');
+    const identity = await session.client.query(
+      session.inTransaction
+        ? 'SELECT pg_backend_pid() AS backend_pid, pg_current_xact_id()::text AS transaction_id'
+        : 'SELECT pg_backend_pid() AS backend_pid'
+    );
+    const backendPid = Number(identity.rows[0].backend_pid);
+    const transactionId = identity.rows[0].transaction_id == null ? null : String(identity.rows[0].transaction_id);
+    const expectedScope = transactionId === null ? 'backend_session' : 'transaction';
+    if (!claims || claims.v !== '1' || claims.iss !== 'opscore-api' || claims.aud !== 'opscore-database'
+        || purposes[claims.access_mode] !== claims.purpose
+        || claims.request_id !== requestId || requestId !== String(message.requestId || '')
+        || Number(claims.backend_pid) !== backendPid
+        || claims.binding_scope !== expectedScope
+        || (expectedScope === 'transaction'
+          ? String(claims.transaction_id || '') !== transactionId
+          : claims.transaction_id !== null)
+        || (claims.access_mode === 'field'
+          && (!claims.tenant_id || !claims.sub
+            || (claims.identity_kind === 'session' && !claims.session_id)
+            || (claims.identity_kind === 'api_key' && !claims.api_key_id)
+            || !['session','api_key'].includes(claims.identity_kind)))) {
+      return { id, ok: false, code: 'TENANT_CONTEXT_SESSION_BINDING_MISMATCH' };
+    }
+    const isLocal = session.inTransaction === true;
+    await session.client.query(
+      "SELECT set_config('app.signed_context_payload',$1,$4), set_config('app.signed_context_signature',$2,$4), set_config('app.signed_context_request_id',$3,$4), set_config('app.tenant_id',$5,$4), set_config('app.user_id',$6,$4), set_config('app.access_mode',$7,$4)",
+      [payload, signature, requestId, isLocal, String(claims.tenant_id || ''), String(claims.sub || ''), String(claims.access_mode)]
+    );
+    session.signedSessionRequestId = requestId;
+    return { id, ok: true, bound: true, accessMode: claims.access_mode, isLocal };
+  }
+
   if (type === 'transactionIdentity') {
     if (!session.inTransaction) {
       return { id, ok: false, error: 'TENANT_CONTEXT_TRANSACTION_REQUIRED', code: 'TENANT_CONTEXT_TRANSACTION_REQUIRED' };
@@ -188,25 +248,7 @@ async function handle(message) {
 
   // Bind all row-security context settings together to avoid partially applied identity context.
   if (type === 'setSession') {
-    const tenantId = message.tenantId == null ? '' : String(message.tenantId);
-    const userId = message.userId == null ? '' : String(message.userId);
-    const accessMode = message.accessMode == null ? 'field' : String(message.accessMode);
-    if (!['field', 'system', 'auth', 'backoffice'].includes(accessMode)) {
-      return { id, ok: false, error: 'INVALID_ACCESS_MODE', code: 'INVALID_ACCESS_MODE' };
-    }
-    // Optional hard cutover: Preview/prod can require signed context for field mode.
-    if (accessMode === 'field' && String(process.env.OPSC_REQUIRE_SIGNED_TENANT_CONTEXT || '').trim().toLowerCase() === 'true') {
-      return { id, ok: false, error: 'SIGNED_TENANT_CONTEXT_REQUIRED', code: 'SIGNED_TENANT_CONTEXT_REQUIRED' };
-    }
-    // Inside an explicit transaction: SET LOCAL (is_local=true) so context cannot outlive COMMIT/ROLLBACK.
-    // Outside a transaction: session-level bind is required for multi-statement request handlers that
-    // do not open a SQL transaction; releaseSession()/endRequest MUST RESET ALL (enforced below).
-    const isLocal = session.inTransaction === true;
-    await session.client.query(
-      "SELECT set_config('app.tenant_id', $1, $4), set_config('app.user_id', $2, $4), set_config('app.access_mode', $3, $4)",
-      [tenantId, userId, accessMode, isLocal]
-    );
-    return { id, ok: true, tenantId: tenantId || null, userId: userId || null, accessMode, isLocal };
+    return { id, ok: false, error: 'UNSIGNED_SESSION_CONTEXT_REJECTED', code: 'UNSIGNED_SESSION_CONTEXT_REJECTED' };
   }
 
   const sql = prepareSql(message.sql || '');

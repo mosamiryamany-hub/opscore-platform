@@ -1,22 +1,6 @@
 {
   "schemaVersion": "opscore.mobile-audit-allowlist.v1",
-  "policy": "Every high/critical npm-audit finding fails the gate unless its root advisory is listed here with a written justification. An entry auto-voids when the npm registry publishes any version newer than maxAcceptedVersions, when reviewBy passes, or when the registry check itself fails — all three re-open the failure immediately.",
-  "updated": "2026-11-18",
-  "entries": [
-    {
-      "ghsa": "GHSA-fc5q-39xc-vjpf",
-      "title": "picomatch ReDoS through single-branch repeated extglobs",
-      "severity": "high",
-      "packages": [
-        "picomatch"
-      ],
-      "scope": "build-toolchain-only",
-      "justification": "As of 2026-11-18 the GitHub-reviewed advisory GHSA-fc5q-39xc-vjpf / CVE-2026-112366 affects picomatch versions through 4.0.7 and publishes no patched version (patched_versions is null). The mobile lockfile resolves picomatch 4.0.7 transitively through Expo CLI, @expo/metro-config and tinyglobby; two older nested copies resolve to 2.3.2. Mobile application source search found no direct picomatch import, but that alone does not prove the vulnerable package is absent from every generated bundle or unreachable in every build path. Treat this as a transitive build-toolchain exposure with runtime reachability not independently certified, not as a fixed vulnerability. Upstream candidate remediation PR #238 and the repeated-extglob fix PR #264 remain unmerged; PR #246 is unrelated and is not counted as a security fix. Do not pin 4.0.7 as a remediation or vendor an unmerged patch. The only safe current repository disposition is a documented, self-expiring high-severity exception until the upstream project publishes and we validate a patched release or the dependency path is removed. The mobile app does not declare picomatch as a direct dependency.",
-      "firstRecorded": "2026-11-17",
-      "maxAcceptedVersions": {
-        "picomatch": "4.0.7"
-      },
-      "reviewBy": "2026-12-18"
-    }
-  ]
+  "policy": "Every high/critical npm-audit finding fails the gate unless its root advisory is currently active and explicitly allowlisted with a written, time-limited justification. Withdrawn advisories are not allowlisted. Registry lookup or audit failures remain fail-closed.",
+  "updated": "2026-11-21",
+  "entries": []
 }

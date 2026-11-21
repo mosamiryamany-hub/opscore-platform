@@ -5,7 +5,7 @@ const crypto = require('node:crypto');
 const { spawn } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
-const { createSignedTenantContext } = require('./signed-tenant-context');
+const { createSignedTenantContext, createSignedRlsSessionContext } = require('./signed-tenant-context');
 
 const requestStorage = new AsyncLocalStorage();
 const fallbackRequestId = '__opscore_background__';
@@ -518,40 +518,61 @@ function openPgDatabaseSync(connectionString, { max = Number(process.env.OPSC_PG
     return response.results || [];
   }
 
-  function setSessionContext({ tenantId = '', userId = '', accessMode = 'field' } = {}) {
+  function setSessionContext({ tenantId = '', userId = '', sessionId = '', apiKeyId = '', accessMode = 'field' } = {}) {
     const context = requestStorage.getStore();
     const requestedMode = accessMode || 'field';
-    if (context && context.verifiedPrincipal && requestedMode !== 'field') {
-      throw makeError(
-        'SIGNED_CONTEXT_PURPOSE_MISMATCH',
-        'An authenticated field-session assertion cannot be repurposed as auth, system, or backoffice context'
-      );
+    const signedContextRequired = String(process.env.OPSC_REQUIRE_SIGNED_TENANT_CONTEXT || '').trim().toLowerCase() === 'true';
+    const hasFieldPrincipal = Boolean(
+      context && context.verifiedPrincipal
+      || tenantId && userId && (sessionId || apiKeyId)
+    );
+    if (signedContextRequired && requestedMode === 'field' && !hasFieldPrincipal) {
+      throw makeError('SIGNED_TENANT_CONTEXT_REQUIRED',
+        'A verified request principal or a concrete persisted field session/API key is required');
     }
     if (context && context.verifiedPrincipal) {
       const principal = context.verifiedPrincipal;
+      if (requestedMode !== 'field') {
+        throw makeError('SIGNED_CONTEXT_PURPOSE_MISMATCH',
+          'A field request assertion cannot be repurposed as auth, system, or backoffice');
+      }
       const requestedTenant = tenantId == null ? '' : String(tenantId).trim();
       const requestedUser = userId == null ? '' : String(userId).trim();
       if ((requestedTenant && requestedTenant !== principal.tenantId)
-          || (requestedUser && requestedUser !== principal.userId)) {
-        throw makeError(
-          'TENANT_CONTEXT_PRINCIPAL_MISMATCH',
-          'Legacy field-context rebinding cannot change a signed session principal'
-        );
+          || (requestedUser && requestedUser !== principal.userId)
+          || (sessionId && String(sessionId) !== principal.sessionId) || apiKeyId) {
+        throw makeError('TENANT_CONTEXT_PRINCIPAL_MISMATCH',
+          'A signed field request cannot be rebound to another principal');
       }
-      // The signed assertion is transaction-bound by sendWithVerifiedContext.
-      // Do not issue a second unsigned SET LOCAL that the worker must reject.
-      return Object.freeze({
-        ok: true,
-        signedContext: true,
-        tenantId: principal.tenantId,
-        userId: principal.userId,
-        accessMode: 'field'
-      });
+      return Object.freeze({ ok: true, signedContext: true, tenantId: principal.tenantId,
+        userId: principal.userId, sessionId: principal.sessionId, accessMode: 'field' });
     }
-    return sendWithVerifiedContext('setSession', '', [], {
-      tenantId: tenantId == null ? '' : String(tenantId),
-      userId: userId == null ? '' : String(userId),
-      accessMode: requestedMode
+
+    const requestId = currentRequestId();
+    const state = getTransport(connectionString, poolMax);
+    const identityResponse = exchange(state, { type: 'sessionIdentity', requestId });
+    if (!identityResponse || identityResponse.ok !== true || !identityResponse.row) {
+      throw makeError(identityResponse && identityResponse.code || 'TENANT_CONTEXT_SESSION_IDENTITY_FAILED');
+    }
+    const assertion = createSignedRlsSessionContext({
+      tenantId, userId, sessionId, apiKeyId, accessMode: requestedMode,
+      backendPid: identityResponse.row.backendPid,
+      transactionId: identityResponse.row.transactionId,
+      requestId
+    });
+    const response = exchange(state, {
+      type: 'bindSignedSessionContext',
+      requestId,
+      signedContextPayload: assertion.payload,
+      signedContextSignature: assertion.signature
+    });
+    if (!response || response.ok !== true) {
+      throw makeError(response && response.code || 'SIGNED_SESSION_CONTEXT_BIND_FAILED');
+    }
+    return Object.freeze({
+      ok: true, signedContext: true, tenantId: tenantId || null, userId: userId || null,
+      sessionId: sessionId || null, accessMode: requestedMode,
+      purpose: assertion.purpose, expiresAt: assertion.expiresAt
     });
   }
 
@@ -576,8 +597,8 @@ function openPgDatabaseSync(connectionString, { max = Number(process.env.OPSC_PG
     setAccessMode(mode) {
       return setSessionContext({ tenantId: '', userId: '', accessMode: mode || 'field' });
     },
-    setSession({ tenantId = '', userId = '', accessMode = 'field' } = {}) {
-      return setSessionContext({ tenantId, userId, accessMode });
+    setSession({ tenantId = '', userId = '', sessionId = '', apiKeyId = '', accessMode = 'field' } = {}) {
+      return setSessionContext({ tenantId, userId, sessionId, apiKeyId, accessMode });
     },
     setVerifiedPrincipal,
     activateVerifiedTenantContext,

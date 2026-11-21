@@ -7,6 +7,10 @@ on:
         description: Exact commit reported by https://opscore-platform.vercel.app/api/verify/release
         required: true
         type: string
+      expected_production_deployment_id:
+        description: Exact dpl_ deployment ID reported by the canonical Production release proof
+        required: true
+        type: string
       production_database_name:
         description: Exact application database name independently confirmed for the configured Production Neon branch
         required: true
@@ -22,7 +26,7 @@ on:
         type: string
         default: '10'
       confirm_production_probe:
-        description: Explicitly authorize the live dual-tenant HTTP probe and a recovery-branch creation attempt
+        description: Explicitly authorize two read-only historical Neon branches for full data/RLS comparison, plus the separate controlled live dual-tenant HTTP probe
         required: true
         type: choice
         options:
@@ -40,30 +44,8 @@ jobs:
   recovery-point:
     if: github.event.inputs.confirm_production_probe == 'I_AUTHORIZE_PRODUCTION_EVIDENCE_PROBES'
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
-      - name: Prune ephemeral Neon branches only when the plan limit is actually reached
-        env:
-          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
-          NEON_PROJECT_ID: summer-leaf-18448271
-          OPSC_NEON_BRANCH_LIMIT: ${{ inputs.neon_branch_limit }}
-        run: |
-          set -euo pipefail
-          count="$(curl -sS -H "Authorization: Bearer ${NEON_API_KEY}" \
-            "https://console.neon.tech/api/v2/projects/${NEON_PROJECT_ID}/branches" \
-            | python3 -c 'import json,sys;print(len(json.load(sys.stdin).get("branches") or []))')"
-          limit="${OPSC_NEON_BRANCH_LIMIT:-10}"
-          echo "neon_branch_count=${count} limit=${limit}"
-          if [ "${count:-0}" -lt "${limit}" ]; then
-            echo "NEON_PRUNE_NOT_REQUIRED"
-            exit 0
-          fi
-          if [ ! -f scripts/neon_hygiene.py ]; then
-            echo "NEON_HYGIENE_SCRIPT_ABSENT_AT_REQUIRED_PATH" >&2
-            exit 1
-          fi
-          MODE=prune_ephemeral python3 scripts/neon_hygiene.py
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -72,7 +54,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq postgresql-client
-      - name: Verify served deployment, database identity and create recovery point
+      - name: Create historical reference and exact clone; compare every public table and RLS policy
         env:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
           NEON_PROJECT_ID: summer-leaf-18448271
@@ -81,19 +63,23 @@ jobs:
           OPSC_PRODUCTION_OWNER_ROLE: ${{ inputs.production_owner_role }}
           OPSC_PRODUCTION_HTTP_BASE: https://opscore-platform.vercel.app
           OPSC_EXPECTED_PRODUCTION_COMMIT_SHA: ${{ inputs.expected_production_commit_sha }}
-          OPSC_EVIDENCE_ALLOW_MISSING_DEPLOYMENT_ID: "true"
+          OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID: ${{ inputs.expected_production_deployment_id }}
           OPSC_NEON_BRANCH_LIMIT: ${{ inputs.neon_branch_limit }}
+          OPSC_PRODUCTION_PITR_LOOKBACK_SECONDS: '300'
           GITHUB_SHA: ${{ github.sha }}
         run: node backend/scripts/collect-production-recovery-point.js
-      - name: Upload recovery evidence, including explicit BLOCKED reports
+      - name: Upload full-data recovery and native PITR evidence, including FAIL/BLOCKED reports
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v4
         with:
-          name: production-recovery-evidence-${{ github.run_id }}
+          name: production-full-data-recovery-pitr-evidence-${{ github.run_id }}
           path: |
             backend/docs/verification/PRODUCTION_RECOVERY_POINT.json
             backend/docs/verification/PRODUCTION_RECOVERY_POINT.json.sha256
+            backend/docs/verification/PRODUCTION_NATIVE_PITR_EVIDENCE.json
+            backend/docs/verification/PRODUCTION_NATIVE_PITR_EVIDENCE.json.sha256
           if-no-files-found: warn
+          retention-days: 30
 
   session-isolation:
     needs: recovery-point
@@ -118,7 +104,7 @@ jobs:
           OPSC_PRODUCTION_OWNER_ROLE: ${{ inputs.production_owner_role }}
           OPSC_PRODUCTION_HTTP_BASE: https://opscore-platform.vercel.app
           OPSC_EXPECTED_PRODUCTION_COMMIT_SHA: ${{ inputs.expected_production_commit_sha }}
-          OPSC_EVIDENCE_ALLOW_MISSING_DEPLOYMENT_ID: "true"
+          OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID: ${{ inputs.expected_production_deployment_id }}
           GITHUB_SHA: ${{ github.sha }}
         run: node backend/scripts/collect-production-session-isolation.js
       - name: Upload session-isolation evidence

@@ -44,11 +44,11 @@ const languageQualificationRows = fs.readFileSync(
   'utf8'
 ).trim().split('\n').slice(1);
 
-test('2026-11-18 maintenance observations remain historical and the 2026-11-20 register is authoritative', () => {
+test('2026-11-18 maintenance observations remain historical and the 2026-11-21 register is authoritative', () => {
   const historical = runbook.split('## Current evidence reconciliation')[1] || '';
   assert.match(runbook, /2026-11-18/);
   assert.match(historical, /live Production 67-route signed-session matrix remains \*\*NOT ESTABLISHED\*\*/);
-  assert.match(buyerResiduals, /reconciled 2026-11-20/);
+  assert.match(buyerResiduals, /reconciled 2026-11-21/);
   assert.match(buyerResiduals, /67 expected \/ 67 covered \/ 0 failed/);
   assert.match(buyerResiduals, /not buyer-environment qualification/);
   assert.match(buyerResiduals, /one listed manual snapshot/i);
@@ -65,14 +65,14 @@ test('Seller product closeout is buyer-independent while actual buyer license ri
   assert.doesNotMatch(sellerCloseoutChecklist, /Buyer-specific work — not a seller launch or marketing gate/);
 });
 
-test('67-route acceptance is certified only for the measured seller deployment and does not transfer to buyers', () => {
+test('67-route acceptance remains isolated PostgreSQL CI evidence and does not certify the canonical Production alias', () => {
   assert.match(buyerResiduals, /67 expected \/ 67 covered \/ 0 failed/);
-  assert.match(buyerResiduals, /Exact seller deployment evidence; not buyer-environment qualification/);
+  assert.match(buyerResiduals, /Isolated PostgreSQL CI fixture evidence only; not a certification of the canonical production alias/);
   assert.match(buyerResiduals, /Buyer environments remain independently unverified/);
   assert.match(sellerCloseoutChecklist, /buyer|customer/i);
 });
 
-test('historical Production key and restore notes are not reused as current evidence', () => {
+test('historical Production observations remain labeled and current Neon ledger evidence is exact', () => {
   const historical = runbook.split('## Current evidence reconciliation')[1] || '';
   assert.match(runbook, /2026-11-18/);
   assert.match(historical, /context_hmac_keys.*exists with the expected schema and ownership/);
@@ -82,6 +82,8 @@ test('historical Production key and restore notes are not reused as current evid
   assert.match(buyerResiduals, /br-proud-salad-bcshhdap/);
   assert.match(buyerResiduals, /br-calm-poetry-bc7l7wik/);
   assert.match(buyerResiduals, /070_evidence_upload_postgres_blob_storage\.sql/);
+  assert.match(buyerResiduals, /69 rows/);
+  assert.match(buyerResiduals, /68 rows/);
   assert.match(buyerResiduals, /not evidence of data corruption/i);
 });
 
