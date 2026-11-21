@@ -7,6 +7,7 @@ const {
   readProductionDeploymentIdentity
 } = require('./lib/production-deployment-identity');
 const {
+  EXPECTED_ROUTE_COUNT,
   BUSINESS_FLOW_INVENTORY,
   buildUnknownRoutePath,
   buildRouteProbePlan,
