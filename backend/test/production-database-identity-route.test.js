@@ -297,3 +297,39 @@ test('production database diagnostic returns 503 unless application worker TLS i
   assert.equal(body.applicationConnectionTls.status, 'UNVERIFIED');
   assert.equal(body.applicationConnectionTls.authorized, false);
 });
+
+
+test('production database diagnostic identifies application TLS failure separately from database identity', async () => {
+  const handler = createProductionDatabaseIdentityHandler({
+    inspectDatabase: async () => identityReport(),
+    inspectApplicationConnection: async () => applicationTlsReport({ negotiated: false, verified: false }),
+    hasVerifiedProductionRelease: () => false
+  });
+  const res = responseSink();
+  await handler(request(), res, baseEnv, baseEnv);
+  assert.equal(res.statusCode, 503);
+  const body = JSON.parse(res.body);
+  assert.equal(body.database.status, 'IDENTITY_RESOLVED');
+  assert.equal(body.applicationConnectionTls.status, 'UNVERIFIED');
+  assert.equal(body.applicationConnectionTls.reasonCode, 'APPLICATION_CONNECTION_TLS_NOT_NEGOTIATED');
+  assert.equal(body.diagnostic.status, 'UNVERIFIED');
+  assert.equal(body.diagnostic.reasonCode, 'APPLICATION_CONNECTION_TLS_NOT_NEGOTIATED');
+});
+
+test('production database diagnostic reports safe worker probe error code', async () => {
+  const handler = createProductionDatabaseIdentityHandler({
+    inspectDatabase: async () => identityReport(),
+    inspectApplicationConnection: async () => {
+      const error = new Error('sensitive connection detail must not be returned');
+      error.code = 'APPLICATION_POSTGRES_CONNECTION_TLS_PROBE_UNAVAILABLE';
+      throw error;
+    },
+    hasVerifiedProductionRelease: () => false
+  });
+  const res = responseSink();
+  await handler(request(), res, baseEnv, baseEnv);
+  assert.equal(res.statusCode, 503);
+  const body = JSON.parse(res.body);
+  assert.equal(body.diagnostic.reasonCode, 'APPLICATION_POSTGRES_CONNECTION_TLS_PROBE_UNAVAILABLE');
+  assert.equal(JSON.stringify(body).includes('sensitive connection detail'), false);
+});
