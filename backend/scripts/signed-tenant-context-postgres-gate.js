@@ -417,7 +417,9 @@ function validateCandidateRuntimeProofs(deploymentResponse, databaseResponse, en
       holdActive: envProof.productionHoldEffectiveActive === true,
       releaseVerified: envProof.releaseVerifiedEffective === true,
       releaseProofVerified: envProof.releaseProofVerified === true,
-      runtimeRole: runtimeRole || null
+      runtimeRole: runtimeRole || null,
+      applicationConnectionTls: diagnostic.applicationConnectionTls || null,
+      applicationDiagnosticReason: (diagnostic.diagnostic && diagnostic.diagnostic.reasonCode) || null
     }));
   }
 

@@ -307,6 +307,13 @@ test('candidate runtime identity rejects a different commit, pipeline, domain or
     ...databaseResponse,
     body: { ...databaseResponse.body, database: { ...databaseResponse.body.database, identity: { ...databaseResponse.body.database.identity, current_user: 'neondb_owner' } } }
   }, env), /CANDIDATE_RUNTIME_DATABASE_IDENTITY_MISMATCH/);
+  assert.throws(() => validateCandidateRuntimeProofs(deploymentResponse, {
+    ...databaseResponse,
+    body: { ...databaseResponse.body,
+      deployment: { ...databaseResponse.body.deployment, pipelineId: '999999999' },
+      applicationConnectionTls: { scope: 'APPLICATION_POSTGRES_WORKER_CONNECTION', status: 'UNVERIFIED', reasonCode: 'APPLICATION_CONNECTION_TLS_NOT_NEGOTIATED', negotiated: false, authorized: false },
+      diagnostic: { status: 'UNVERIFIED', reasonCode: 'APPLICATION_CONNECTION_TLS_NOT_NEGOTIATED' } }
+  }, env), /CANDIDATE_RUNTIME_DATABASE_IDENTITY_MISMATCH.*APPLICATION_CONNECTION_TLS_NOT_NEGOTIATED/);
 });
 
 test('candidate route matcher recognises exact manifest method and parameterized route paths only', () => {
