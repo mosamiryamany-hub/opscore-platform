@@ -320,11 +320,12 @@ test('global session autobind remains Preview-only and satisfies the route requi
   );
 });
 
-test('server checks the route gate before its legacy unsigned field-context fallback', () => {
+test('server checks the route gate before its signed operation-context fallback', () => {
   const guardAt = server.indexOf('const routeError = signedTenantContextRouteError(req, process.env, signedContextProductionReadiness);');
   const unsignedBindAt = server.indexOf("store.db.setSession({ tenantId: c.organizationId", guardAt);
   assert.ok(guardAt >= 0, 'server must call the signed route guard');
-  assert.ok(unsignedBindAt > guardAt, 'signed route guard must run before legacy unsigned field binding');
+  assert.ok(unsignedBindAt > guardAt, 'signed route guard must run before the purpose-bound operation context');
+  assert.match(server, /sessionId: c\.sessionId \|\| '', apiKeyId: c\.apiKeyId \|\| '', accessMode: 'field'/);
   assert.match(server, /SIGNED_TENANT_CONTEXT_ROUTE_NOT_ENABLED/);
   assert.match(server, /if \(signedAssetsReadEnabled\(req, process\.env, signedContextProductionReadiness\)\)\s*\{\s*return runSignedWorkOrdersRead\(req, res, c, \(\) => store\.listAssets\(c\)\);/);
 });

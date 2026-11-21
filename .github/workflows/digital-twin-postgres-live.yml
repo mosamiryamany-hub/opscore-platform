@@ -183,6 +183,28 @@ jobs:
             migration_url="postgresql://neondb_owner:${OPSC_CI_MIGRATION_OWNER_PASSWORD}@127.0.0.1:5432/${db}"
             OPSC_MIGRATION_DATABASE_URL="${migration_url}" OPSC_MIGRATION_TARGET_CLASS=test OPSC_MIGRATION_EXPECTED_DATABASE="${db}" OPSC_MIGRATION_CONFIRM_DATABASE="${db}" OPSC_PG_SSL_MODE=disable npm run db:migrate:postgres -- --apply
           done
+      - name: Provision disposable HMAC signing key for signed RLS session purposes
+        working-directory: backend
+        run: |
+          set -euo pipefail
+          cid="$(docker ps --filter 'ancestor=postgis/postgis:18-3.7' --format '{{.ID}}' | head -n1)"
+          test -n "${cid}" || { echo "PostgreSQL service container not found" >&2; exit 1; }
+          key_hex="$(openssl rand -hex 32)"
+          key_id="ci-rls-${GITHUB_RUN_ID}"
+          echo "::add-mask::${key_hex}"
+          for db in opscore_http_acceptance opscore_matrix_test; do
+            docker exec -e PGPASSWORD="${OPSC_CI_MIGRATION_OWNER_PASSWORD}" "${cid}" \
+              psql -h 127.0.0.1 -U neondb_owner -d "${db}" -v ON_ERROR_STOP=1 \
+                -v key_id="${key_id}" -v key_hex="${key_hex}" \
+                -c "SET ROLE opscore_auth_definer" \
+                -c "INSERT INTO opscore_security.context_hmac_keys(key_id,secret,enabled,not_before,not_after) VALUES (:'key_id',decode(:'key_hex','hex'),true,now()-interval '1 minute',now()+interval '1 hour') ON CONFLICT(key_id) DO UPDATE SET secret=excluded.secret,enabled=true,not_before=excluded.not_before,not_after=excluded.not_after" \
+                -c "RESET ROLE"
+          done
+          {
+            echo "OPSC_TENANT_CONTEXT_HMAC_KEY=${key_hex}"
+            echo "OPSC_TENANT_CONTEXT_KEY_ID=${key_id}"
+          } >> "${GITHUB_ENV}"
+
       - name: Verify signed tenant context through the real Node PostgreSQL worker
         working-directory: backend
         env:
@@ -196,6 +218,15 @@ jobs:
           set -euo pipefail
           export OPSC_TENANT_CONTEXT_OWNER_URL="postgresql://neondb_owner:${OPSC_CI_MIGRATION_OWNER_PASSWORD}@127.0.0.1:5432/opscore_http_acceptance"
           node scripts/signed-tenant-context-postgres-gate.js
+
+      - name: Prove signed RLS purposes and reject raw-GUC forgery as opscore_runtime
+        working-directory: backend
+        env:
+          OPSC_PG_SSL_MODE: disable
+        run: |
+          set -euo pipefail
+          export OPSC_TENANT_CONTEXT_OWNER_URL="postgresql://neondb_owner:${OPSC_CI_MIGRATION_OWNER_PASSWORD}@127.0.0.1:5432/opscore_http_acceptance"
+          node scripts/postgres-signed-rls-purpose-acceptance.js
 
       - name: Validate exact disposable PostgreSQL 18 signed-tenant 67-route evidence
         env:

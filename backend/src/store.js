@@ -675,25 +675,21 @@ class Store {
     try {
       const passwordHash = hashPassword(password);
       const useBatch = this._isPostgresEngine() && this.db && typeof this.db.batch === 'function';
+      if (useBatch && this.db && typeof this.db.setSession === 'function') {
+        this.db.setSession({ tenantId: String(orgId), userId: String(userId), accessMode: 'auth' });
+      }
       if (useBatch) {
         // One IPC round-trip: BEGIN → GUC → identity rows → COMMIT (Vercel pool-safe).
         this.db.batch([
           { sql: 'BEGIN', params: [] },
-          { sql: "SELECT set_config('app.access_mode', $1, true), set_config('app.tenant_id', $2, true), set_config('app.user_id', $3, true)", params: ['auth', String(orgId), String(userId)] },
+
           { sql: 'INSERT INTO organizations VALUES ($1,$2,$3)', params: [orgId, clean(orgName), t] },
           { sql: 'INSERT INTO users VALUES ($1,$2,$3,$4,$5)', params: [userId, email(rawEmail), passwordHash, 'active', t] },
           { sql: 'INSERT INTO memberships VALUES ($1,$2,$3,$4)', params: [userId, orgId, 'owner', t] },
           { sql: 'INSERT INTO organization_governance (organization_id,status,reason,changed_by,changed_at,version) VALUES ($1,$2,$3,$4,$5,$6)', params: [orgId, 'active', 'bootstrap', userId, t, 1] },
           { sql: 'COMMIT', params: [] }
         ]);
-        // Optional region/structure configs + audit in a second short transaction.
-        if (typeof this.db.setSession === 'function') {
-          try {
-          this.db.setSession({ tenantId: String(orgId), userId: String(userId), accessMode: 'field' });
-        } catch (bindError) {
-          throw Object.assign(new Error('DATABASE_SECURITY_CONTEXT_FAILED'), { cause: bindError });
-        }
-        }
+        // Retain the signed auth purpose for the second configuration/audit transaction.
         this.db.exec('BEGIN');
       } else {
         this.db.exec('BEGIN');
@@ -801,12 +797,23 @@ class Store {
     }
   }
 
-  _bindFieldContext(organizationId, userId) {
+  _bindAuthContext(organizationId = '', userId = '') {
+    if (this.db && typeof this.db.setSession === 'function') {
+      this.db.setSession({
+        tenantId: organizationId == null ? '' : String(organizationId),
+        userId: userId == null ? '' : String(userId),
+        accessMode: 'auth'
+      });
+    }
+  }
+
+  _bindFieldContext(organizationId, userId, sessionId) {
     if (this.db && typeof this.db.setSession === 'function' && organizationId) {
       try {
         this.db.setSession({
           tenantId: String(organizationId),
           userId: userId == null ? '' : String(userId),
+          sessionId: sessionId == null ? '' : String(sessionId),
           accessMode: 'field'
         });
       } catch (bindError) {
@@ -898,10 +905,11 @@ class Store {
     else { const e = new Error('MULTIPLE_ORGANIZATIONS'); e.details = { organizations: memberships.map(m => ({ id:m.organization_id,name:m.org_name,role:m.role })) }; throw e; }
     const token=randomToken(), expires=new Date(Date.now()+this.config.sessionTtlHours*3600000).toISOString(), sessionId=id('ses');
     // Bind tenant before session/audit writes so FORCE RLS WITH CHECK accepts the rows.
-    this._bindFieldContext(membership.organization_id, user.id);
+    this._bindAuthContext(membership.organization_id, user.id);
     this.db.prepare('INSERT INTO sessions (id,user_id,organization_id,token_hash,expires_at,created_at) VALUES (?,?,?,?,?,?)').run(sessionId,user.id,membership.organization_id,hashToken(token),expires,now());
+    this._bindFieldContext(membership.organization_id, user.id, sessionId);
     audit(this.db,{organizationId:membership.organization_id,actorUserId:user.id,action:'login',resourceType:'session',resourceId:sessionId,metadata:auditMetadata});
-    return {token,user:{id:user.id,email:user.email},userId:user.id,organization:{id:membership.organization_id,name:membership.org_name},organizationId:membership.organization_id,organizationName:membership.org_name,role:membership.role,expiresAt:expires};
+    return {token,sessionId,user:{id:user.id,email:user.email},userId:user.id,organization:{id:membership.organization_id,name:membership.org_name},organizationId:membership.organization_id,organizationName:membership.org_name,role:membership.role,expiresAt:expires};
   }
   loginOidc(identity, requestedOrganizationId = null) {
     const normalized=String(identity?.email||'').trim().toLowerCase();
@@ -969,8 +977,9 @@ class Store {
     }
     const token = randomToken(), expires = new Date(Date.now() + this.config.sessionTtlHours * 3600000).toISOString();
     const sessionId = id('ses');
-    this._bindFieldContext(membership.organization_id, user.id);
+    this._bindAuthContext(membership.organization_id, user.id);
     this.db.prepare('INSERT INTO sessions (id,user_id,organization_id,token_hash,expires_at,created_at) VALUES (?,?,?,?,?,?)').run(sessionId, user.id, membership.organization_id, hashToken(token), expires, now());
+    this._bindFieldContext(membership.organization_id, user.id, sessionId);
     audit(this.db, {
       organizationId: membership.organization_id,
       actorUserId: user.id,
@@ -980,6 +989,7 @@ class Store {
     });
     return {
       token,
+      sessionId,
       user: {
         id: user.id,
         email: user.email
@@ -1030,8 +1040,9 @@ class Store {
     }
     const token = randomToken(), expires = new Date(Date.now() + this.config.sessionTtlHours * 3600000).toISOString();
     const sessionId = id('ses');
-    this._bindFieldContext(membership.organization_id, user.id);
+    this._bindAuthContext(membership.organization_id, user.id);
     this.db.prepare('INSERT INTO sessions (id,user_id,organization_id,token_hash,expires_at,created_at) VALUES (?,?,?,?,?,?)').run(sessionId, user.id, membership.organization_id, hashToken(token), expires, now());
+    this._bindFieldContext(membership.organization_id, user.id, sessionId);
     audit(this.db, {
       organizationId: membership.organization_id,
       actorUserId: user.id,
@@ -1041,6 +1052,7 @@ class Store {
     });
     return {
       token,
+      sessionId,
       user: {
         id: user.id,
         email: user.email
@@ -1074,22 +1086,33 @@ class Store {
   }
   logout(token) {
     const raw = String(token || '').trim();
-    if (!raw)
-      return { loggedOut: true };
-    const s = this._revokeSessionByTokenHash(hashToken(raw));
-    if (!s)
-      return { loggedOut: true };
-    // Bind tenant context from the revoked session row BEFORE audit insert.
-    // FORCE RLS on audit_log requires app.tenant_id; post-revoke empty context yields 42501.
+    if (!raw) return { loggedOut: true };
+
+    // Resolve under auth purpose when this is a cookie logout without an
+    // already-bound authenticated request. A verified field request must remain
+    // in its immutable field purpose and may resolve the same session directly.
+    if (this.db && typeof this.db.setSession === 'function') {
+      try {
+        this.db.setSession({ accessMode: 'auth' });
+      } catch (error) {
+        if (!error || error.code !== 'SIGNED_CONTEXT_PURPOSE_MISMATCH') throw error;
+      }
+    }
+    const s = this._resolveSessionByTokenHash(hashToken(raw));
+    if (!s) return { loggedOut: true };
+
+    // Audit while the session is still live, then revoke it. The database verifier
+    // intentionally refuses a field assertion after its session row is deleted.
     try {
       if (this.db && typeof this.db.setSession === 'function' && s.organization_id) {
         this.db.setSession({
           tenantId: String(s.organization_id),
           userId: String(s.user_id || ''),
+          sessionId: String(s.session_id || ''),
           accessMode: 'field'
         });
       } else if (typeof this._bindFieldContext === 'function' && s.organization_id) {
-        this._bindFieldContext(s.organization_id, s.user_id);
+        this._bindFieldContext(s.organization_id, s.user_id, s.session_id);
       }
       audit(this.db, {
         organizationId: s.organization_id,
@@ -1099,12 +1122,14 @@ class Store {
         resourceId: s.session_id
       });
     } catch (auditError) {
-      // Prefer durable signal over silent loss: logout still succeeds (session gone)
-      // but operators must see audit failure and retry path remains future work.
       try { warn('auth.logout_audit_failed', { error: auditError, organizationId: s.organization_id, sessionId: s.session_id }); } catch (_) { /* ignore */ }
     }
+
+    const revoked = this._revokeSessionByTokenHash(hashToken(raw));
+    if (!revoked) throw Object.assign(new Error('SESSION_REVOCATION_FAILED'), { code: 'SESSION_REVOCATION_FAILED' });
     return { loggedOut: true };
   }
+
   _scopeCheck(scopes, required) {
     return scopes.includes('*') || scopes.includes(required);
   }
@@ -1662,7 +1687,7 @@ class Store {
           resetTarget = u;
           minted = true;
         } finally {
-          if (bind) this.db.setSession({ tenantId: ctx.organizationId, userId: ctx.userId || '', accessMode: 'field' });
+          if (bind) this.db.setSession({ tenantId: ctx.organizationId, userId: ctx.userId || '', sessionId: ctx.sessionId || '', accessMode: 'field' });
         }
       }
       if (!minted) throw new Error('NOT_FOUND');

@@ -14,8 +14,8 @@
  *      uploads, including customer soft-delete/restore and evidence-chunk writes.
  *   4. write probes carry valid idempotency keys so they reach resource checks.
  *
- * Two tenants are provisioned through SQL under the application's documented
- * access_mode/tenant GUC contract (no BYPASSRLS) on a disposable engine
+ * Two tenants are provisioned through SQL under purpose-bound HMAC assertions
+ * (no BYPASSRLS) on a disposable engine
  * (OPSC_PG_ACCEPTANCE_URL or OPSC_PG_TEST_URL). Only this run's fixture rows
  * are removed, and removal is verified, before the report is emitted.
  *
@@ -32,6 +32,7 @@ const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const { spawn, execFileSync } = require('node:child_process');
+const { bindSignedRlsSessionContext, clearSignedRlsSessionContext } = require('../src/signed-tenant-context');
 
 const root = path.resolve(__dirname, '..');
 const INVENTORY_PATH = path.join(root, 'docs', 'API_INVENTORY.json');
@@ -251,7 +252,7 @@ test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cro
   try {
     await waitForServer(base, child);
 
-    // ---- Provision two tenants via SQL under the documented GUC contract ----
+    // ---- Provision two tenants via SQL under signed context assertions ----
     const { Pool } = require('pg');
     const { hashPassword } = require('../src/security');
     control = new Pool({ connectionString: urlText, max: 2, connectionTimeoutMillis: 60000, idleTimeoutMillis: 30000, application_name: 'opscore-tenant-matrix' });
@@ -267,10 +268,11 @@ test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cro
     const emailB = `owner-b-${stamp}@matrix.test`;
     const createdAt = new Date().toISOString();
     const setCtx = async (mode, user, tenant) => {
-      await fx.query(
-        "SELECT set_config('app.access_mode',$1,false), set_config('app.user_id',$2,false), set_config('app.tenant_id',$3,false), set_config('app.current_tenant_id',$3,false), set_config('app.organization_id',$3,false)",
-        [mode, user || '', tenant || '']
-      );
+      await bindSignedRlsSessionContext(fx, {
+        accessMode: mode,
+        userId: user || '',
+        tenantId: tenant || ''
+      });
     };
     await setCtx('system', '', orgA);
     await fx.query('INSERT INTO organizations (id, name, created_at) VALUES ($1,$2,$3)', [orgA, `Matrix Tenant A ${stamp}`, createdAt]);
@@ -284,6 +286,7 @@ test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cro
     await fx.query('INSERT INTO memberships (user_id, organization_id, role, created_at) VALUES ($1,$2,$3,$4)', [userA, orgA, 'owner', createdAt]);
     await setCtx('auth', userB, orgB);
     await fx.query('INSERT INTO memberships (user_id, organization_id, role, created_at) VALUES ($1,$2,$3,$4)', [userB, orgB, 'owner', createdAt]);
+    await clearSignedRlsSessionContext(fx);
     fx.release();
 
     const login = async (email, password) => {
@@ -389,9 +392,16 @@ test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cro
       catch (error) { cleanupErrors.push({ operation, code: error && error.code || null, message: String(error && error.message || error).slice(0, 200) }); return null; }
     };
     const setCleanupCtx = async (mode, user, tenant) => {
-      await attempt('set-cleanup-context',
-        "SELECT set_config('app.access_mode',$1,false), set_config('app.user_id',$2,false), set_config('app.tenant_id',$3,false), set_config('app.current_tenant_id',$3,false), set_config('app.organization_id',$3,false)",
-        [mode, user || '', tenant || '']);
+      try {
+        await bindSignedRlsSessionContext(cleanupClient, {
+          accessMode: mode,
+          userId: user || '',
+          tenantId: tenant || ''
+        });
+      } catch (error) {
+        cleanupErrors.push({ operation: 'set-cleanup-context', code: error && error.code || null, message: String(error && error.message || error).slice(0, 200) });
+        throw error;
+      }
     };
     for (const org of [orgA, orgB]) {
       await setCleanupCtx('system', '', org);
@@ -408,7 +418,7 @@ test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cro
       const deletedUser = await attempt('delete-fixture-user', 'DELETE FROM users WHERE id = $1 RETURNING id', [user]);
       if (deletedUser && deletedUser.rowCount === 0) cleanupErrors.push({ operation: 'verify-user-deleted', id: user, message: 'fixture user remained after cleanup' });
     }
-    await setCleanupCtx('', '', '');
+    await clearSignedRlsSessionContext(cleanupClient);
     cleanupClient.release();
 
     const failed = [...unauthenticated, ...foreignId, ...crossTenant].filter(entry => entry.status !== 'PASS');
