@@ -70,11 +70,15 @@ const SAFE_SCOPED_ROUTE_PROBES = Object.freeze({
     responseCodes: ['UNAUTHENTICATED', 'FORBIDDEN', 'TENANT_CONTEXT_REQUIRED'],
     bodyAssertion: null
   }),
+  // Portal appointment reads are 'public/scoped': the token is carried in the request,
+  // so an anonymous probe is denied by the session guard (UNAUTHENTICATED) before the
+  // portal-token decoder (PORTAL_TOKEN_INVALID) is reached. Both are authentication
+  // boundary denials for THIS route only; no other scoped route inherits UNAUTHENTICATED.
   'GET /api/v1/portal/appointments/{id}': Object.freeze({
     id: 'portal-appointment-read-without-token',
     body: null,
     statusCodes: [401],
-    responseCodes: ['PORTAL_TOKEN_INVALID'],
+    responseCodes: ['PORTAL_TOKEN_INVALID', 'UNAUTHENTICATED'],
     bodyAssertion: null
   }),
   'PATCH /api/v1/portal/appointments/{id}': Object.freeze({
