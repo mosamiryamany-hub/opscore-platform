@@ -294,3 +294,74 @@ test('business flow evidence rejects omitted flows, changed route sets, and miss
   };
   assert.equal(policy.validateBusinessFlowCoverage(noCrossTenant).valid, false);
 });
+
+test('portal appointment read accepts the authentication boundary denial only for itself', () => {
+  const read = inventory.routes.find(row => row.method === 'GET' && row.route === '/api/v1/portal/appointments/{id}');
+  assert.ok(read);
+  const contract = policy.probeContractForRoute(read);
+  assert.equal(contract.id, 'portal-appointment-read-without-token');
+  assert.deepEqual(contract.statusCodes, [401]);
+  assert.deepEqual(contract.responseCodes.slice().sort(), ['PORTAL_TOKEN_INVALID', 'UNAUTHENTICATED']);
+  assert.deepEqual(
+    policy.evaluateRouteObservation(read, {
+      probeContract: contract.id,
+      contentType: 'application/json; charset=utf-8',
+      statusCode: 401,
+      responseCode: 'UNAUTHENTICATED',
+      bodyAssertion: false
+    }, UNKNOWN),
+    { ok: true, reason: null }
+  );
+  assert.deepEqual(
+    policy.evaluateRouteObservation(read, {
+      probeContract: contract.id,
+      statusCode: 401,
+      responseCode: 'PORTAL_TOKEN_INVALID'
+    }, UNKNOWN),
+    { ok: true, reason: null }
+  );
+  assert.equal(policy.evaluateRouteObservation(read, {
+    probeContract: contract.id, statusCode: 403, responseCode: 'UNAUTHENTICATED'
+  }, UNKNOWN).ok, false);
+  assert.equal(policy.evaluateRouteObservation(read, {
+    probeContract: contract.id, statusCode: 503, responseCode: 'UNAUTHENTICATED'
+  }, UNKNOWN).reason, 'HTTP_SERVER_ERROR');
+  assert.equal(policy.evaluateRouteObservation(read, {
+    probeContract: contract.id, statusCode: 401, responseCode: 'NOT_FOUND'
+  }, UNKNOWN).ok, false);
+});
+
+test('the portal appointment exception is route-local and never widens sibling scoped contracts', () => {
+  for (const key of [
+    'PATCH /api/v1/portal/appointments/{id}',
+    'POST /api/v1/portal/exchange',
+    'POST /api/v1/portal/self-scheduling/{id}/book'
+  ]) {
+    const [method, route] = key.split(' ');
+    const sibling = inventory.routes.find(row => row.method === method && row.route === route);
+    assert.ok(sibling, key + ' must exist in the inventory');
+    const scoped = policy.probeContractForRoute(sibling);
+    assert.equal(scoped.responseCodes.includes('UNAUTHENTICATED'), false, key + ' must not accept UNAUTHENTICATED');
+    assert.equal(
+      policy.evaluateRouteObservation(sibling, {
+        probeContract: scoped.id, statusCode: 401, responseCode: 'UNAUTHENTICATED'
+      }, UNKNOWN).ok,
+      false,
+      key + ' must stay outside the portal appointment exception'
+    );
+  }
+  const required = inventory.routes.find(row => row.auth === 'required');
+  assert.ok(required);
+  assert.equal(policy.probeContractForRoute(required).id, 'anonymous-auth-boundary');
+  const stripe = inventory.routes.find(row => row.method === 'POST' && row.route === '/api/v1/billing/stripe/webhook');
+  assert.ok(stripe);
+  assert.equal(
+    policy.evaluateRouteObservation(stripe, {
+      probeContract: policy.probeContractForRoute(stripe).id,
+      statusCode: 503,
+      responseCode: 'STRIPE_WEBHOOK_NOT_CONFIGURED'
+    }, UNKNOWN).reason,
+    'HTTP_SERVER_ERROR',
+    'an unconfigured Stripe webhook must keep failing the acceptance gate'
+  );
+});
