@@ -5268,7 +5268,7 @@ async function main() {
           process.stderr.write('CANDIDATE_RESULT_WORKSPACE_REQUIRED\\n');
         } else {
           const resultPath = path.join(workspace, 'SIGNED_TENANT_CONTEXT_CANDIDATE_RESULT.json');
-          fs.writeFileSync(resultPath, JSON.stringify(finalReport, null, 2) + '\\n', { flag: 'w', mode: 0o600 });
+          fs.writeFileSync(resultPath, JSON.stringify(finalReport, null, 2) + '\n', { flag: 'w', mode: 0o600 });
           const candidateStatus = finalReport.signedTenantRouteCoverage?.status === 'PASS' ? 'PASS' : 'NOT_VERIFIED';
           process.stdout.write(JSON.stringify({
             status: candidateStatus,
