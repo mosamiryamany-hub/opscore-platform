@@ -388,11 +388,11 @@ function validateEndpoint(path, statusCode, payload, expectedCommit, contentType
     // Production-scope gate vocabulary emitted by release-proof.js for live dual-tenant
     // session probes (PASS_PRODUCTION_PROBE_SCOPE) and live recovery-point row-count
     // parity (PASS_PRODUCTION_ROW_COUNT_SCOPE); 'PASS_PRODUCTION' is the legacy alias.
-    const sessionProductionScopes = ['PASS_PRODUCTION', 'PASS_PRODUCTION_PROBE_SCOPE'];
-    const recoveryProductionScopes = ['PASS_PRODUCTION', 'PASS_PRODUCTION_ROW_COUNT_SCOPE', 'PASS_PRODUCTION_FULL_DATA_RECOVERY_SCOPE'];
+    const sessionProductionScopes = ['PASS_PRODUCTION_PROBE_SCOPE'];
+    const recoveryProductionScopes = ['PASS_PRODUCTION_FULL_DATA_RECOVERY_SCOPE'];
     const sessionOk = sessionProductionScopes.includes(gates.productionSessionTenantBoundary);
     const recoveryOk = recoveryProductionScopes.includes(gates.productionRecoveryBundle);
-    const pitrOk = ['PASS_BRANCH_POINT', 'PASS_PRODUCTION_FULL_DATA_PITR_SCOPE'].includes(gates.neonPointInTimeRecovery);
+    const pitrOk = gates.neonPointInTimeRecovery === 'PASS_PRODUCTION_FULL_DATA_PITR_SCOPE';
     const isolationOk = gates.productionIsolationCertification === 'CERTIFIED';
     // CERTIFIED requires both production-scope session and recovery gates.
     const isolationConsistent = gates.productionIsolationCertification !== 'CERTIFIED' || (
