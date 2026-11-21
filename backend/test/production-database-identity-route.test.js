@@ -155,7 +155,7 @@ test('production database diagnostic is unavailable to preview deployments', asy
   assert.equal(inspections, 0);
 });
 
-test('production database diagnostic accepts GET only', async () => {
+test('production database diagnostic hides non-GET candidate requests before inspection', async () => {
   let inspections = 0;
   const handler = createProductionDatabaseIdentityHandler({
     inspectDatabase: async () => { inspections++; return identityReport(); },
@@ -163,7 +163,9 @@ test('production database diagnostic accepts GET only', async () => {
   });
   const res = responseSink();
   await handler(request({ method: 'POST' }), res, baseEnv, baseEnv);
-  assert.equal(res.statusCode, 405);
+  // Candidate authorization is GET-only; do not run database or TLS probes.
+  assert.equal(res.statusCode, 404);
+  assert.equal(res.body, '');
   assert.equal(inspections, 0);
 });
 
