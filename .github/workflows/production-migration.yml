@@ -56,35 +56,31 @@ jobs:
           set -euo pipefail
           AUTH=(-H "Authorization: Bearer ${NEON_API_KEY}" -H "Accept: application/json" -H "Content-Type: application/json")
           API="https://console.neon.tech/api/v2/projects/${{ inputs.expected_project_id }}"
-          # Prefer native snapshot when the plan allows it.
           code=$(curl -sS -o "$RUNNER_TEMP/snap.json" -w "%{http_code}" -X POST "${AUTH[@]}" \
             "$API/snapshots" \
             -d '{"source_branch_id":"${{ inputs.expected_branch_id }}"}' || true)
           sid=$(node -e "let d=null;try{d=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))}catch{};const o=(d&&(d.snapshot||d.data))||d||{};console.log(o.id||'')" "$RUNNER_TEMP/snap.json")
-          if [ -n "$sid" ] && [ "$code" = "200" -o "$code" = "201" ]; then
+          if [ -n "$sid" ] && { [ "$code" = "200" ] || [ "$code" = "201" ]; }; then
             echo "snapshot_id=$sid" >> "$GITHUB_OUTPUT"
             echo "rollback_kind=snapshot" >> "$GITHUB_OUTPUT"
             echo "SNAPSHOT_OK=$sid"
             exit 0
           fi
           echo "SNAPSHOT_UNAVAILABLE http=$code body=$(head -c 300 "$RUNNER_TEMP/snap.json" || true)"
-          # Free-tier fallback: create a disposable tip branch as the pre-migration rollback point.
           BRANCH_NAME="opscore-pre-mig-rollback-${GITHUB_RUN_ID}"
           export BRANCH_NAME
           export PARENT_BRANCH_ID="${{ inputs.expected_branch_id }}"
-          python3 - <<PY > "$RUNNER_TEMP/br-req.json"
-          import json, os
-          print(json.dumps({
-            "branch": {
-              "name": os.environ["BRANCH_NAME"],
-              "parent_id": os.environ["PARENT_BRANCH_ID"]
-            },
-            "endpoints": [{"type": "read_only"}]
-          }))
-          PY
+          python3 -c 'import json,os; print(json.dumps({"branch":{"name":os.environ["BRANCH_NAME"],"parent_id":os.environ["PARENT_BRANCH_ID"]},"endpoints":[{"type":"read_only"}]}))' > "$RUNNER_TEMP/br-req.json"
           code2=$(curl -sS -o "$RUNNER_TEMP/br.json" -w "%{http_code}" -X POST "${AUTH[@]}" \
             "$API/branches" \
             --data-binary @"$RUNNER_TEMP/br-req.json")
+          bid=$(node -e "let d=null;try{d=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))}catch{};console.log((d&&d.branch&&d.branch.id)||'')" "$RUNNER_TEMP/br.json")
+          if [ -z "$bid" ] || { [ "$code2" != "200" ] && [ "$code2" != "201" ]; }; then
+            echo "ROLLBACK_BRANCH_FAILED http=$code2 body=$(head -c 500 "$RUNNER_TEMP/br.json" || true)"
+            # If at branch limit, list branches so the operator can prune a valueless temp branch.
+            curl -sS "${AUTH[@]}" "$API/branches" | head -c 2000 || true
+            exit 1
+          fi
           echo "snapshot_id=$bid" >> "$GITHUB_OUTPUT"
           echo "rollback_kind=branch" >> "$GITHUB_OUTPUT"
           echo "ROLLBACK_BRANCH_OK=$bid"
