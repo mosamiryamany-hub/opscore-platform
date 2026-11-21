@@ -6,6 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const routeManifest = require('../docs/verification/SIGNED_TENANT_CONTEXT_ROUTE_MANIFEST.json');
 const apiInventory = require('../docs/API_INVENTORY.json');
+const { buildUnknownRoutePath } = require('../src/production-api-route-acceptance-policy');
 const {
   evaluateProductionGate,
   isReadOnlyProductionVerificationRequest,
@@ -183,6 +184,43 @@ test('held candidate permits only exact GET database-identity diagnostics with c
   assert.equal(isAuthorizedProductionCandidateDatabaseIdentityRequest(req(), { ...env, OPSC_PRODUCTION_HOLD: 'false' }, readiness), false);
   assert.equal(isAuthorizedProductionCandidateDatabaseIdentityRequest(req(), { ...env, OPSC_RELEASE_VERIFIED: 'true' }, readiness), false);
   assert.equal(isAuthorizedProductionCandidateDatabaseIdentityRequest(req(), { ...env, OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED: 'false' }, readiness), false);
+});
+
+test('held candidate permits only the exact commit-bound unknown-route GET probe under the candidate token and OIDC boundary', () => {
+  const commit = 'b'.repeat(40);
+  const env = {
+    VERCEL_ENV: 'production',
+    VERCEL_URL: 'opscore-platform-candidate123-mosamiryamany-1692.vercel.app',
+    VERCEL_GIT_COMMIT_SHA: commit,
+    OPSC_PRODUCTION_HOLD: 'true',
+    OPSC_RELEASE_VERIFIED: 'false',
+    OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'true',
+    OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED: 'true',
+    OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN: 'f'.repeat(64)
+  };
+  const readiness = { productionReleaseVerified: false };
+  const request = (method = 'GET', url = buildUnknownRoutePath(commit)) => ({
+    method, url, headers: {
+      host: env.VERCEL_URL,
+      'x-opscore-signed-context-probe': env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN,
+      'x-opscore-trusted-oidc-idp-token': 'header.payload.signature'
+    }
+  });
+
+  assert.equal(isAuthorizedProductionCandidateProbeRequest(request(), env, readiness), true);
+  assert.equal(isAuthorizedProductionCandidateProbeRequest(request('POST'), env, readiness), false);
+  assert.equal(isAuthorizedProductionCandidateProbeRequest(request('GET', buildUnknownRoutePath('c'.repeat(40))), env, readiness), false);
+  assert.equal(isAuthorizedProductionCandidateProbeRequest(request('GET', buildUnknownRoutePath(commit) + '/extra'), env, readiness), false);
+  assert.equal(isAuthorizedProductionCandidateProbeRequest(request(), { ...env, VERCEL_GIT_COMMIT_SHA: '' }, readiness), false);
+  const missingProbe = request();
+  delete missingProbe.headers['x-opscore-signed-context-probe'];
+  assert.equal(isAuthorizedProductionCandidateProbeRequest(missingProbe, env, readiness), false);
+  const missingOidc = request();
+  delete missingOidc.headers['x-opscore-trusted-oidc-idp-token'];
+  assert.equal(isAuthorizedProductionCandidateProbeRequest(missingOidc, env, readiness), false);
+  const alias = request();
+  alias.headers.host = 'opscore-platform.vercel.app';
+  assert.equal(isAuthorizedProductionCandidateProbeRequest(alias, env, readiness), false);
 });
 
 test('missing release evidence cannot be bypassed by setting hold false', () => {
