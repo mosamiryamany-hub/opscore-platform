@@ -70,14 +70,21 @@ jobs:
           echo "SNAPSHOT_UNAVAILABLE http=$code body=$(head -c 300 "$RUNNER_TEMP/snap.json" || true)"
           # Free-tier fallback: create a disposable tip branch as the pre-migration rollback point.
           BRANCH_NAME="opscore-pre-mig-rollback-${GITHUB_RUN_ID}"
+          export BRANCH_NAME
+          export PARENT_BRANCH_ID="${{ inputs.expected_branch_id }}"
+          python3 - <<PY > "$RUNNER_TEMP/br-req.json"
+          import json, os
+          print(json.dumps({
+            "branch": {
+              "name": os.environ["BRANCH_NAME"],
+              "parent_id": os.environ["PARENT_BRANCH_ID"]
+            },
+            "endpoints": [{"type": "read_only"}]
+          }))
+          PY
           code2=$(curl -sS -o "$RUNNER_TEMP/br.json" -w "%{http_code}" -X POST "${AUTH[@]}" \
             "$API/branches" \
-            -d "{"branch":{"name":"${BRANCH_NAME}","parent_id":"${{ inputs.expected_branch_id }}"},"endpoints":[{"type":"read_only"}]}")
-          bid=$(node -e "let d=null;try{d=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))}catch{};console.log((d&&d.branch&&d.branch.id)||'')" "$RUNNER_TEMP/br.json")
-          if [ -z "$bid" ] || [ "$code2" != "200" -a "$code2" != "201" ]; then
-            echo "ROLLBACK_BRANCH_FAILED http=$code2 body=$(head -c 400 "$RUNNER_TEMP/br.json" || true)"
-            exit 1
-          fi
+            --data-binary @"$RUNNER_TEMP/br-req.json")
           echo "snapshot_id=$bid" >> "$GITHUB_OUTPUT"
           echo "rollback_kind=branch" >> "$GITHUB_OUTPUT"
           echo "ROLLBACK_BRANCH_OK=$bid"
