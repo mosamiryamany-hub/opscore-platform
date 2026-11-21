@@ -229,7 +229,11 @@ function createProductionDatabaseIdentityHandler(dependencies = {}) {
     const configuredForAuthorization = configuredEnv || {};
     const effectiveForAuthorization = effectiveEnv || configuredForAuthorization;
     let releaseVerifiedForAuthorization = false;
-    try { releaseVerifiedForAuthorization = verifyRelease(configuredForAuthorization) === true; } catch (_) {}
+    try {
+      releaseVerifiedForAuthorization = verifyRelease(configuredForAuthorization) === true;
+    } catch (_) {
+      releaseVerifiedForAuthorization = false;
+    }
     const candidateAuthorized = authorizeCandidate(
       req, effectiveForAuthorization,
       { productionReleaseVerified: releaseVerifiedForAuthorization }
