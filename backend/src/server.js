@@ -47,7 +47,7 @@ store.databaseEngineResolved = opened.engine;
 store.postgresRuntimeWired = opened.postgresRuntimeWired;
 const {authProviderGate, verifyOidcIdToken} = require('./security');
 const {inspectRequest,productionSafetyGate,createRateLimiter,createLoginRateLimiter,assertTenantAlignment}=require('./firewall');
-const {evaluateProductionGate,isReadOnlyProductionVerificationRequest,candidateProbeBoundaryDenialReason,isAuthorizedProductionCandidateProbeRequest,isAuthorizedProductionCandidateDatabaseIdentityRequest}=require('./production-hold');
+const {evaluateProductionGate,isReadOnlyProductionVerificationRequest,candidateProbeBoundaryDenialReason,isAuthorizedProductionCandidateProbeRequest,isAuthorizedProductionCandidateUnknownRouteProbeRequest,isAuthorizedProductionCandidateDatabaseIdentityRequest}=require('./production-hold');
 const {createProductionDatabaseIdentityHandler}=require('./production-database-identity-route');
 const productionDatabaseIdentityHandler=createProductionDatabaseIdentityHandler();
 const {can: rbacCan}=require('./rbac');
@@ -1354,6 +1354,12 @@ function route(req, res) {
   if (String(req.url || '').length > config.maxUrlLength)
     return json(res, 414, { error: { code: 'URI_TOO_LONG' } });
   const url = new URL(req.url, config.publicOrigin);
+  // Resolve this one held-candidate negative probe before route-level session guards.
+  // The path is commit-bound and requires the exact candidate host, probe token and trusted OIDC.
+  if (productionGate.blocked
+      && isAuthorizedProductionCandidateUnknownRouteProbeRequest(req, process.env, signedContextProductionReadiness)) {
+    return json(res, 404, { error: { code: 'NOT_FOUND' } }, { 'cache-control': 'no-store' });
+  }
   if (url.pathname === '/api/internal/production-database-identity') {
     return productionDatabaseIdentityHandler(req, res, process.env, process.env);
   }

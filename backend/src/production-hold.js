@@ -97,6 +97,14 @@ function isAuthorizedProductionCandidateProbeRequest(req, env = process.env, rea
 // inspection while the staged deployment is held. It is intentionally not part of
 // the 67 business-route manifest and cannot be reached without both candidate-token
 // authorization and a Vercel-trusted OIDC request to this exact unaliased deployment.
+function isAuthorizedProductionCandidateUnknownRouteProbeRequest(req, env = process.env, readiness = {}) {
+  const candidateCommit = String(env.VERCEL_GIT_COMMIT_SHA || env.OPSC_RELEASE_CI_COMMIT || env.OPSC_SOURCE_COMMIT_SHA || '').trim().toLowerCase();
+  return /^[a-f0-9]{40}$/.test(candidateCommit)
+    && String(req && req.method || '').trim().toUpperCase() === 'GET'
+    && requestPath(req) === buildUnknownRoutePath(candidateCommit)
+    && isCandidateRequestOnExactDeployment(req, env, readiness);
+}
+
 function isAuthorizedProductionCandidateDatabaseIdentityRequest(req, env = process.env, readiness = {}) {
   return String(req && req.method || '').trim().toUpperCase() === 'GET'
     && requestPath(req) === PRODUCTION_DATABASE_IDENTITY_PATH
@@ -121,5 +129,6 @@ module.exports = {
   isReadOnlyProductionVerificationRequest,
   candidateProbeBoundaryDenialReason,
   isAuthorizedProductionCandidateProbeRequest,
+  isAuthorizedProductionCandidateUnknownRouteProbeRequest,
   isAuthorizedProductionCandidateDatabaseIdentityRequest
 };
