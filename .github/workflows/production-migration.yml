@@ -134,6 +134,7 @@ jobs:
           OPSC_MIGRATION_DATABASE_URL: ${{ steps.uri.outputs.uri }}
           OPSC_MIGRATION_TARGET_CLASS: production
           OPSC_MIGRATION_ALLOW_PRODUCTION: '1'
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
           OPSC_MIGRATION_EXPECTED_DATABASE: ${{ inputs.database }}
           OPSC_MIGRATION_CONFIRM_DATABASE: ${{ inputs.database }}
           OPSC_MIGRATION_EXPECTED_HOST: ${{ steps.uri.outputs.host }}
@@ -204,6 +205,7 @@ jobs:
           OPSC_MIGRATION_DATABASE_URL: ${{ steps.uri.outputs.uri }}
           OPSC_MIGRATION_TARGET_CLASS: production
           OPSC_MIGRATION_ALLOW_PRODUCTION: '1'
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
           OPSC_MIGRATION_EXPECTED_DATABASE: ${{ inputs.database }}
           OPSC_MIGRATION_CONFIRM_DATABASE: ${{ inputs.database }}
           OPSC_MIGRATION_EXPECTED_HOST: ${{ steps.uri.outputs.host }}
