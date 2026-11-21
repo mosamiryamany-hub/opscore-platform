@@ -369,6 +369,12 @@ test('release proof accepts release-proof.js production-scope gate vocabulary an
     ...valid, gates: { ...valid.gates, productionRecoveryBundle: 'PASS_TEST_SCOPE' }
   }, commit), /PRODUCTION_FULL_DATA_RECOVERY_SCOPE_NOT_VERIFIED/);
   assert.throws(() => validateEndpoint('/api/verify/release', 200, {
+    ...valid, gates: { ...valid.gates, productionRecoveryBundle: 'PASS_PRODUCTION_ROW_COUNT_SCOPE' }
+  }, commit), /PRODUCTION_FULL_DATA_RECOVERY_SCOPE_NOT_VERIFIED/);
+  assert.throws(() => validateEndpoint('/api/verify/release', 200, {
+    ...valid, gates: { ...valid.gates, neonPointInTimeRecovery: 'PASS_BRANCH_POINT' }
+  }, commit), /PRODUCTION_FULL_DATA_PITR_SCOPE_NOT_VERIFIED/);
+  assert.throws(() => validateEndpoint('/api/verify/release', 200, {
     ...valid, status: 'UNVERIFIED'
   }, commit), /RELEASE_IDENTITY_NOT_BOUND_TO_DEPLOYMENT/);
 });
