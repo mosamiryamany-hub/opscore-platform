@@ -11,6 +11,7 @@ const {
   evaluateProductionGate,
   isReadOnlyProductionVerificationRequest,
   isAuthorizedProductionCandidateProbeRequest,
+  isAuthorizedProductionCandidateUnknownRouteProbeRequest,
   isAuthorizedProductionCandidateDatabaseIdentityRequest,
   candidateProbeBoundaryDenialReason
 } = require('../src/production-hold');
