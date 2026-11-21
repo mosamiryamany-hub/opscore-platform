@@ -61,7 +61,19 @@ function loadHandler() {
 }
 module.exports = function (req, res) {
   if (productionDbIdentityRequestPath(req) === PRODUCTION_DB_IDENTITY_PATH) {
-    return productionDbIdentityHandler(req, res, startupEnvironment, process.env);
+    // The diagnostic must report the REAL application PostgreSQL worker TLS
+    // evidence, which only exists once the fully wired application server
+    // (server.js, which passes inspectApplicationConnection) has booted. The
+    // entry previously short-circuited this path to an unwired handler, so the
+    // deployed diagnostic always reported APPLICATION_CONNECTION_TLS_PROBE_UNAVAILABLE
+    // (measured verbatim in run 44949062857) and the candidate gate could never
+    // verify TLS. When the application cannot boot, fall back to the unwired
+    // handler, which stays fail-closed (503 UNVERIFIED).
+    try { return loadHandler()(req, res); }
+    catch (bootError) {
+      console.error(bootError);
+      return productionDbIdentityHandler(req, res, startupEnvironment, process.env);
+    }
   }
   try { return loadHandler()(req, res); }
   catch (err) {
