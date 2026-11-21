@@ -98,23 +98,43 @@ jobs:
             "https://console.neon.tech/api/v2/projects/${{ inputs.expected_project_id }}/connection_uri")
           uri=$(node -e "let d=null;try{d=JSON.parse(process.argv[1])}catch{};const u=(d&&d.uri)||process.argv[1];if(!/^postgres(ql)?:\/\//.test(u||''))process.exit(1);console.log(u)" "$resp")
           echo "::add-mask::$uri"
-          echo "uri=$uri" >> "$GITHUB_OUTPUT"
+          {
+            echo "uri<<OPSC_URI_EOF"
+            echo "$uri"
+            echo "OPSC_URI_EOF"
+            echo "host=$(node -e "const u=new URL(process.argv[1]); if(!u.hostname) process.exit(1); console.log(u.hostname)" "$uri")"
+          } >> "$GITHUB_OUTPUT"
+          echo "URI_HOST_SET=PASS"
       - name: Dry-run migration plan (no changes)
         id: dry
         working-directory: backend
         env:
           OPSC_MIGRATION_DATABASE_URL: ${{ steps.uri.outputs.uri }}
+          OPSC_MIGRATION_TARGET_CLASS: production
+          OPSC_MIGRATION_ALLOW_PRODUCTION: '1'
+          OPSC_MIGRATION_EXPECTED_DATABASE: ${{ inputs.database }}
           OPSC_MIGRATION_CONFIRM_DATABASE: ${{ inputs.database }}
+          OPSC_MIGRATION_EXPECTED_HOST: ${{ steps.uri.outputs.host }}
+          OPSC_MIGRATION_CONFIRM_HOST: ${{ steps.uri.outputs.host }}
           OPSC_MIGRATION_EXPECTED_PROJECT_ID: ${{ inputs.expected_project_id }}
           OPSC_MIGRATION_CONFIRM_PROJECT_ID: ${{ inputs.expected_project_id }}
           OPSC_MIGRATION_EXPECTED_BRANCH_ID: ${{ inputs.expected_branch_id }}
           OPSC_MIGRATION_CONFIRM_BRANCH_ID: ${{ inputs.expected_branch_id }}
         run: |
           set -euo pipefail
+          set +e
           node scripts/apply-postgres-migrations.js > /tmp/dry.json
-          cat /tmp/dry.json
-          pending=$(node -e "const d=require('/tmp/dry.json');console.log((d.pending||[]).map(x=>x.filename).join(','))")
+          rc=$?
+          set -e
+          cat /tmp/dry.json || true
+          status=$(node -e "let d={};try{d=JSON.parse(require('fs').readFileSync('/tmp/dry.json','utf8'))}catch{};console.log(d.status||'')")
+          if [ "$rc" -ne 0 ] || [ "$status" = "FAIL" ] || [ "$status" = "BLOCKED" ]; then
+            echo "DRY_RUN_FAILED status=$status rc=$rc"
+            exit 1
+          fi
+          pending=$(node -e "const d=JSON.parse(require('fs').readFileSync('/tmp/dry.json','utf8')); const p=d.pending||[]; console.log(p.map(x=>typeof x==='string'?x:x.filename).filter(Boolean).join(','))")
           echo "pending=$pending" >> "$GITHUB_OUTPUT"
+          echo "DRY_RUN_OK pending=$pending"
           case ",$pending," in
             *,068_opscore_app_role_privilege_lockdown.sql,*)
               echo "MIGRATION_068_REQUIRES_SEPARATE_AUTHORIZED_WINDOW (app-role privilege repair must be scheduled deliberately)"; exit 1;;
@@ -149,12 +169,23 @@ jobs:
             "https://console.neon.tech/api/v2/projects/${{ inputs.expected_project_id }}/connection_uri")
           uri=$(node -e "let d=null;try{d=JSON.parse(process.argv[1])}catch{};const u=(d&&d.uri)||process.argv[1];if(!/^postgres(ql)?:\/\//.test(u||''))process.exit(1);console.log(u)" "$resp")
           echo "::add-mask::$uri"
-          echo "uri=$uri" >> "$GITHUB_OUTPUT"
+          {
+            echo "uri<<OPSC_URI_EOF"
+            echo "$uri"
+            echo "OPSC_URI_EOF"
+            echo "host=$(node -e "const u=new URL(process.argv[1]); if(!u.hostname) process.exit(1); console.log(u.hostname)" "$uri")"
+          } >> "$GITHUB_OUTPUT"
+          echo "URI_HOST_SET=PASS"
       - name: Apply pending migrations (06x batch, 068 excluded by design)
         working-directory: backend
         env:
           OPSC_MIGRATION_DATABASE_URL: ${{ steps.uri.outputs.uri }}
+          OPSC_MIGRATION_TARGET_CLASS: production
+          OPSC_MIGRATION_ALLOW_PRODUCTION: '1'
+          OPSC_MIGRATION_EXPECTED_DATABASE: ${{ inputs.database }}
           OPSC_MIGRATION_CONFIRM_DATABASE: ${{ inputs.database }}
+          OPSC_MIGRATION_EXPECTED_HOST: ${{ steps.uri.outputs.host }}
+          OPSC_MIGRATION_CONFIRM_HOST: ${{ steps.uri.outputs.host }}
           OPSC_MIGRATION_EXPECTED_PROJECT_ID: ${{ inputs.expected_project_id }}
           OPSC_MIGRATION_CONFIRM_PROJECT_ID: ${{ inputs.expected_project_id }}
           OPSC_MIGRATION_EXPECTED_BRANCH_ID: ${{ inputs.expected_branch_id }}
