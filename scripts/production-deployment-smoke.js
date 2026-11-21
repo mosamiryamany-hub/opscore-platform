@@ -389,11 +389,11 @@ function validateEndpoint(path, statusCode, payload, expectedCommit, contentType
     // session probes (PASS_PRODUCTION_PROBE_SCOPE) and live recovery-point row-count
     // parity (PASS_PRODUCTION_ROW_COUNT_SCOPE); 'PASS_PRODUCTION' is the legacy alias.
     const sessionProductionScopes = ['PASS_PRODUCTION', 'PASS_PRODUCTION_PROBE_SCOPE'];
-    const recoveryProductionScopes = ['PASS_PRODUCTION', 'PASS_PRODUCTION_ROW_COUNT_SCOPE'];
-    const sessionOk = ['PASS_TEST_SCOPE', ...sessionProductionScopes].includes(gates.productionSessionTenantBoundary);
-    const recoveryOk = ['PASS_TEST_SCOPE', ...recoveryProductionScopes].includes(gates.productionRecoveryBundle);
-    const pitrOk = ['NOT_VERIFIED', 'PASS_BRANCH_POINT'].includes(gates.neonPointInTimeRecovery);
-    const isolationOk = ['NOT_CERTIFIED', 'CERTIFIED'].includes(gates.productionIsolationCertification);
+    const recoveryProductionScopes = ['PASS_PRODUCTION', 'PASS_PRODUCTION_ROW_COUNT_SCOPE', 'PASS_PRODUCTION_FULL_DATA_RECOVERY_SCOPE'];
+    const sessionOk = sessionProductionScopes.includes(gates.productionSessionTenantBoundary);
+    const recoveryOk = recoveryProductionScopes.includes(gates.productionRecoveryBundle);
+    const pitrOk = ['PASS_BRANCH_POINT', 'PASS_PRODUCTION_FULL_DATA_PITR_SCOPE'].includes(gates.neonPointInTimeRecovery);
+    const isolationOk = gates.productionIsolationCertification === 'CERTIFIED';
     // CERTIFIED requires both production-scope session and recovery gates.
     const isolationConsistent = gates.productionIsolationCertification !== 'CERTIFIED' || (
       sessionProductionScopes.includes(gates.productionSessionTenantBoundary) &&
@@ -403,14 +403,23 @@ function validateEndpoint(path, statusCode, payload, expectedCommit, contentType
       gates.tenantRouteSecurityCoverage === 'PASS_TEST_SCOPE' &&
       // The API route contract run is accepted only after release-proof.js binds its evidence to this exact commit and pipeline.
       // PASS_CONTRACT_SCOPE does not represent full business-flow acceptance.
-      gates.functionalApiRouteAcceptance === 'PASS_CONTRACT_SCOPE' &&
+      gates.functionalApiRouteAcceptance === 'PASS_PRODUCTION_FUNCTIONAL_SCOPE' &&
       pitrOk && isolationOk && isolationConsistent;
     const packageBound = packageFingerprint.status === 'PUBLISHED' &&
       packageFingerprint.sourceCommit === expectedCommit &&
       /^[a-f0-9]{64}$/.test(String(packageFingerprint.value || ''));
-    if (!identityBound || !acceptanceBound || !gatesHonest || !packageBound) {
-      throw new Error('RELEASE_EVIDENCE_NOT_BOUND_TO_DEPLOYMENT');
+    // Contract-only SQLite route probes are not Production PostgreSQL functional acceptance.
+    if (gates.functionalApiRouteAcceptance !== 'PASS_PRODUCTION_FUNCTIONAL_SCOPE') {
+      throw new Error('PRODUCTION_FUNCTIONAL_API_ACCEPTANCE_NOT_VERIFIED');
     }
+    if (!sessionOk) throw new Error('PRODUCTION_SESSION_TENANT_BOUNDARY_NOT_VERIFIED');
+    if (!recoveryOk) throw new Error('PRODUCTION_FULL_DATA_RECOVERY_SCOPE_NOT_VERIFIED');
+    if (!pitrOk) throw new Error('PRODUCTION_FULL_DATA_PITR_SCOPE_NOT_VERIFIED');
+    if (!isolationOk || !isolationConsistent) throw new Error('PRODUCTION_ISOLATION_CERTIFICATION_NOT_VERIFIED');
+    if (!identityBound) throw new Error('RELEASE_IDENTITY_NOT_BOUND_TO_DEPLOYMENT');
+    if (!acceptanceBound) throw new Error('PRODUCTION_ACCEPTANCE_NOT_BOUND_TO_DEPLOYMENT');
+    if (!gatesHonest) throw new Error('PRODUCTION_RELEASE_GATES_NOT_ACCEPTED');
+    if (!packageBound) throw new Error('RELEASE_PACKAGE_NOT_BOUND_TO_COMMIT');
     return true;
   }
   throw new Error('SMOKE_PATH_NOT_ALLOWED');
