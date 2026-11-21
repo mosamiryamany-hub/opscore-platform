@@ -9,12 +9,15 @@ const {
 
 const baseEnv = {
   VERCEL_ENV: 'production',
-  VERCEL_URL: 'opscore-platform-staged-abc.vercel.app',
+  VERCEL_URL: 'opscore-platform-staged-abc-mosamiryamany-1692.vercel.app',
   NODE_ENV: 'production',
   DATABASE_ENGINE: 'postgres',
   OPSC_DATABASE_URL: 'postgresql://runtime:secret@ep-prod.example.neon.tech/app?sslmode=require&channel_binding=require',
   DATABASE_URL: 'postgresql://runtime:secret@ep-prod.example.neon.tech/app?sslmode=require&channel_binding=require',
   OPSC_PRODUCTION_HOLD: 'true',
+  OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED: 'true',
+  OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN: 'a'.repeat(64),
+  OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'true',
   OPSC_RELEASE_VERIFIED: 'false',
   OPSC_PRODUCTION_ISOLATION_CERTIFICATION: 'NOT_CERTIFIED'
 };
@@ -33,7 +36,21 @@ function request(overrides = {}) {
   return {
     method: 'GET',
     url: ROUTE_PATH,
-    headers: { host: baseEnv.VERCEL_URL },
+    headers: {
+      host: baseEnv.VERCEL_URL,
+      'x-opscore-signed-context-probe': baseEnv.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN,
+      'x-opscore-trusted-oidc-idp-token': 'eyJhbGciOiJub25lIn0.eyJzdWIiOiJ0ZXN0In0.signature'
+    },
+    ...overrides
+  };
+}
+
+function applicationTlsReport(overrides = {}) {
+  return {
+    negotiated: true, authorized: true, verified: true,
+    protocol: 'TLSv1.3', cipher: 'TLS_AES_256_GCM_SHA384',
+    bits: null, backendPid: 12345, databaseName: 'opscore',
+    roleName: 'opscore_runtime', serverVersion: '18.6',
     ...overrides
   };
 }
@@ -114,6 +131,7 @@ test('production database diagnostic is hidden outside exact protected productio
   let inspections = 0;
   const handler = createProductionDatabaseIdentityHandler({
     inspectDatabase: async () => { inspections++; return identityReport(); },
+    inspectApplicationConnection: async () => applicationTlsReport(),
     hasVerifiedProductionRelease: () => false,
     readEmbeddedBuildIdentity: () => null
   });
@@ -127,7 +145,8 @@ test('production database diagnostic is hidden outside exact protected productio
 test('production database diagnostic is unavailable to preview deployments', async () => {
   let inspections = 0;
   const handler = createProductionDatabaseIdentityHandler({
-    inspectDatabase: async () => { inspections++; return identityReport(); }
+    inspectDatabase: async () => { inspections++; return identityReport(); },
+    inspectApplicationConnection: async () => applicationTlsReport()
   });
   const res = responseSink();
   const previewEnv = { ...baseEnv, VERCEL_ENV: 'preview' };
@@ -139,7 +158,8 @@ test('production database diagnostic is unavailable to preview deployments', asy
 test('production database diagnostic accepts GET only', async () => {
   let inspections = 0;
   const handler = createProductionDatabaseIdentityHandler({
-    inspectDatabase: async () => { inspections++; return identityReport(); }
+    inspectDatabase: async () => { inspections++; return identityReport(); },
+    inspectApplicationConnection: async () => applicationTlsReport()
   });
   const res = responseSink();
   await handler(request({ method: 'POST' }), res, baseEnv, baseEnv);
@@ -150,6 +170,7 @@ test('production database diagnostic accepts GET only', async () => {
 test('production database diagnostic returns sanitized identity without secrets and never caches', async () => {
   const handler = createProductionDatabaseIdentityHandler({
     inspectDatabase: async () => identityReport(),
+    inspectApplicationConnection: async () => applicationTlsReport(),
     hasVerifiedProductionRelease: () => false,
     readEmbeddedBuildIdentity: () => ({ commitSha: 'a'.repeat(40), pipelineId: '12345', ref: 'main' })
   });
@@ -186,7 +207,8 @@ test('candidate database connections return 503 and remain explicitly unverified
       connectionSource: 'DATABASE_URL_UNPOOLED',
       identityScope: 'INTEGRATION_CANDIDATE_ONLY',
       applicationDatabaseBinding: 'UNVERIFIED'
-    })
+    }),
+    inspectApplicationConnection: async () => applicationTlsReport()
   });
   const res = responseSink();
   await handler(request(), res, baseEnv, baseEnv);
@@ -198,7 +220,8 @@ test('candidate database connections return 503 and remain explicitly unverified
 
 test('diagnostic failures return a fixed safe code without exception details', async () => {
   const handler = createProductionDatabaseIdentityHandler({
-    inspectDatabase: async () => { throw new Error('postgresql://user:secret@private-host'); }
+    inspectDatabase: async () => { throw new Error('postgresql://user:secret@private-host'); },
+    inspectApplicationConnection: async () => applicationTlsReport()
   });
   const res = responseSink();
   await handler(request(), res, baseEnv, baseEnv);
@@ -227,6 +250,7 @@ test('production database diagnostic preserves TLS evidence but rejects unsafe m
   report.identity.tls_bits = -1;
   const handler = createProductionDatabaseIdentityHandler({
     inspectDatabase: async () => report,
+    inspectApplicationConnection: async () => applicationTlsReport(),
     hasVerifiedProductionRelease: () => false,
     readEmbeddedBuildIdentity: () => null
   });
@@ -237,4 +261,33 @@ test('production database diagnostic preserves TLS evidence but rejects unsafe m
   assert.equal(identity.tls_version, null);
   assert.equal(identity.tls_cipher, null);
   assert.equal(identity.tls_bits, null);
+});
+
+test('database identity route remains inaccessible unless the exact held-candidate proof is valid', async () => {
+  let inspections = 0;
+  const handler = createProductionDatabaseIdentityHandler({
+    inspectDatabase: async () => { inspections++; return identityReport(); },
+    inspectApplicationConnection: async () => applicationTlsReport(),
+    hasVerifiedProductionRelease: () => false
+  });
+  const res = responseSink();
+  const releasedEnv = { ...baseEnv, OPSC_PRODUCTION_HOLD: 'false' };
+  await handler(request(), res, releasedEnv, releasedEnv);
+  assert.equal(res.statusCode, 404);
+  assert.equal(res.body, '');
+  assert.equal(inspections, 0);
+});
+
+test('database identity route fails closed when application worker TLS is absent or unverified', async () => {
+  const handler = createProductionDatabaseIdentityHandler({
+    inspectDatabase: async () => identityReport(),
+    inspectApplicationConnection: async () => applicationTlsReport({ authorized: false, verified: false }),
+    hasVerifiedProductionRelease: () => false
+  });
+  const res = responseSink();
+  await handler(request(), res, baseEnv, baseEnv);
+  assert.equal(res.statusCode, 503);
+  const body = JSON.parse(res.body);
+  assert.equal(body.applicationConnectionTls.status, 'UNVERIFIED');
+  assert.equal(body.applicationConnectionTls.authorized, false);
 });
