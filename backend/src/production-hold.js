@@ -194,7 +194,8 @@ function trustedOidcPresent(req) {
 
 function exactUnaliasedDeploymentHostMatched(req, env = process.env) {
   const deploymentUrl = String(env.VERCEL_URL || '').trim();
-  if (!deploymentUrl) return false;
+  // VERCEL_URL is a bare hostname, never a URL, path, or explicit port.
+  if (!deploymentUrl || !/^[a-z0-9.-]+$/i.test(deploymentUrl)) return false;
   let deploymentHost = '';
   try {
     const parsed = new URL('https://' + deploymentUrl);
