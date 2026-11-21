@@ -49,7 +49,22 @@ function safeVersion(value) {
   return match ? match[1] : null;
 }
 
-function sanitizeApplicationConnectionTls(report) {
+function applicationConnectionTlsReason(report, probeErrorCode) {
+  if (probeErrorCode) return safeCode(probeErrorCode) || 'APPLICATION_CONNECTION_TLS_PROBE_ERROR';
+  if (!report || typeof report !== 'object') return 'APPLICATION_CONNECTION_TLS_REPORT_UNAVAILABLE';
+  if (report.negotiated !== true) return 'APPLICATION_CONNECTION_TLS_NOT_NEGOTIATED';
+  if (report.authorized !== true) return 'APPLICATION_CONNECTION_TLS_CERTIFICATE_NOT_AUTHORIZED';
+  if (!['TLSv1.2', 'TLSv1.3'].includes(String(report.protocol || ''))) return 'APPLICATION_CONNECTION_TLS_PROTOCOL_UNSUPPORTED';
+  if (!safeString(report.cipher, 128)) return 'APPLICATION_CONNECTION_TLS_CIPHER_UNAVAILABLE';
+  if (!(Number.isSafeInteger(report.backendPid) && report.backendPid > 0)
+      || !safeString(report.databaseName, 64)
+      || !safeString(report.roleName, 64)
+      || !safeVersion(report.serverVersion)) return 'APPLICATION_CONNECTION_IDENTITY_INCOMPLETE';
+  if (report.verified !== true) return 'APPLICATION_CONNECTION_TLS_VERIFICATION_FAILED';
+  return null;
+}
+
+function sanitizeApplicationConnectionTls(report, probeErrorCode = null) {
   const value = report && typeof report === 'object' ? report : {};
   const protocol = safeString(value.protocol, 32);
   const cipher = safeString(value.cipher, 128);
@@ -57,18 +72,12 @@ function sanitizeApplicationConnectionTls(report) {
   const databaseName = safeString(value.databaseName, 64);
   const roleName = safeString(value.roleName, 64);
   const serverVersion = safeVersion(value.serverVersion);
-  const verified = value.verified === true
-    && value.negotiated === true
-    && value.authorized === true
-    && ['TLSv1.2', 'TLSv1.3'].includes(protocol)
-    && Boolean(cipher)
-    && backendPid !== null
-    && Boolean(databaseName)
-    && Boolean(roleName)
-    && Boolean(serverVersion);
+  const reasonCode = applicationConnectionTlsReason(report, probeErrorCode);
+  const verified = reasonCode === null;
   return {
     scope: 'APPLICATION_POSTGRES_WORKER_CONNECTION',
     status: verified ? 'VERIFIED' : 'UNVERIFIED',
+    reasonCode,
     negotiated: value.negotiated === true,
     authorized: value.authorized === true,
     protocol,
@@ -268,14 +277,29 @@ function createProductionDatabaseIdentityHandler(dependencies = {}) {
       };
       const identityReport = await inspect(inspectionEnv);
       let applicationConnectionReport = null;
+      let applicationConnectionProbeErrorCode = null;
       try {
         if (typeof inspectApplicationConnection === 'function') {
           applicationConnectionReport = await inspectApplicationConnection();
+        } else {
+          applicationConnectionProbeErrorCode = 'APPLICATION_CONNECTION_TLS_PROBE_UNAVAILABLE';
         }
-      } catch (_) {
-        applicationConnectionReport = null;
+      } catch (error) {
+        applicationConnectionProbeErrorCode = safeCode(error && error.code)
+          || (error && error.message === 'APPLICATION_POSTGRES_CONNECTION_TLS_PROBE_UNAVAILABLE'
+            ? 'APPLICATION_POSTGRES_CONNECTION_TLS_PROBE_UNAVAILABLE'
+            : 'APPLICATION_CONNECTION_TLS_PROBE_ERROR');
       }
-      const applicationConnectionTls = sanitizeApplicationConnectionTls(applicationConnectionReport);
+      const applicationConnectionTls = sanitizeApplicationConnectionTls(
+        applicationConnectionReport, applicationConnectionProbeErrorCode
+      );
+      const databaseIdentityVerified = Boolean(identityReport
+        && identityReport.status === 'IDENTITY_RESOLVED'
+        && identityReport.applicationDatabaseBinding === 'PRESENT'
+        && identityReport.connectionSource === 'OPSC_DATABASE_URL');
+      const diagnosticReasonCode = !databaseIdentityVerified
+        ? safeCode(identityReport && identityReport.reasonCode) || 'DATABASE_IDENTITY_UNVERIFIED'
+        : applicationConnectionTls.reasonCode;
       const releaseProofVerified = verifyRelease(configured) === true;
       let embedded = null;
       try { embedded = readIdentity(); } catch { embedded = null; }
@@ -294,14 +318,14 @@ function createProductionDatabaseIdentityHandler(dependencies = {}) {
         },
         environment: environmentSnapshot(configured, effective, releaseProofVerified),
         applicationConnectionTls,
+        diagnostic: {
+          status: diagnosticReasonCode ? 'UNVERIFIED' : 'VERIFIED',
+          reasonCode: diagnosticReasonCode
+        },
         database: sanitizeIdentityReport(identityReport)
       };
 
-      const identityResolved = identityReport &&
-        identityReport.status === 'IDENTITY_RESOLVED' &&
-        identityReport.applicationDatabaseBinding === 'PRESENT' &&
-        identityReport.connectionSource === 'OPSC_DATABASE_URL' &&
-        applicationConnectionTls.status === 'VERIFIED';
+      const identityResolved = databaseIdentityVerified && applicationConnectionTls.status === 'VERIFIED';
       res.statusCode = identityResolved ? 200 : 503;
       return res.end(JSON.stringify(payload));
     } catch {
@@ -323,6 +347,7 @@ module.exports = {
   isProtectedProductionDeployment,
   sanitizeIdentityReport,
   sanitizeApplicationConnectionTls,
+  applicationConnectionTlsReason,
   environmentSnapshot,
   createProductionDatabaseIdentityHandler
 };
