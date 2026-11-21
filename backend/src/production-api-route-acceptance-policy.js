@@ -114,6 +114,13 @@ const SAFE_SCOPED_ROUTE_PROBES = Object.freeze({
 });
 
 const SPECIAL_REQUIRED_ROUTE_PROBES = Object.freeze({
+  'GET /metrics': Object.freeze({
+    id: 'metrics-auth-or-explicitly-disabled',
+    body: null,
+    statusCodes: [401, 404],
+    responseCodes: ['UNAUTHENTICATED', 'METRICS_NOT_CONFIGURED'],
+    bodyAssertion: null
+  }),
   'POST /api/v1/billing/stripe/webhook': Object.freeze({
     id: 'stripe-webhook-rejects-missing-signature',
     body: null,

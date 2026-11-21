@@ -155,6 +155,39 @@ test('anonymous auth probes require actual denial and reject route-missing respo
   assert.equal(policy.evaluateRouteObservation(route, { ...good, statusCode: 429 }, UNKNOWN).reason, 'HTTP_RATE_LIMITED');
 });
 
+test('metrics route is either authenticated or explicitly disabled, never anonymously readable', () => {
+  const route = inventory.routes.find(row => row.route === '/metrics');
+  assert.ok(route);
+  const contract = policy.probeContractForRoute(route);
+  assert.equal(contract.id, 'metrics-auth-or-explicitly-disabled');
+  assert.deepEqual(
+    policy.evaluateRouteObservation(route, {
+      probeContract: contract.id,
+      statusCode: 401,
+      responseCode: 'UNAUTHENTICATED'
+    }, UNKNOWN),
+    { ok: true, reason: null }
+  );
+  assert.deepEqual(
+    policy.evaluateRouteObservation(route, {
+      probeContract: contract.id,
+      statusCode: 404,
+      responseCode: 'METRICS_NOT_CONFIGURED'
+    }, UNKNOWN),
+    { ok: true, reason: null }
+  );
+  assert.equal(policy.evaluateRouteObservation(route, {
+    probeContract: contract.id,
+    statusCode: 200,
+    responseCode: null
+  }, UNKNOWN).ok, false);
+  assert.equal(policy.evaluateRouteObservation(route, {
+    probeContract: contract.id,
+    statusCode: 404,
+    responseCode: 'NOT_FOUND'
+  }, UNKNOWN).ok, false);
+});
+
 test('public routes require a live JSON success and no unknown-route marker', () => {
   const route = inventory.routes.find(row => row.auth === 'public');
   assert.ok(route);
