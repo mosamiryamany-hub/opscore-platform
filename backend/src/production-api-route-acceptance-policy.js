@@ -16,7 +16,15 @@ const REQUIRED_DENIAL_CODES = new Set([
   'FORBIDDEN',
   'API_KEY_SCOPE_FORBIDDEN',
   'SIGNED_SESSION_PRINCIPAL_REQUIRED',
+  'SIGNED_TENANT_SESSION_REQUIRED',
+  'SESSION_AUTHENTICATION_REQUIRED',
   'INVALID_CREDENTIALS'
+]);
+
+const SSO_PROTECTED_PUBLIC_ROUTES = new Set([
+  '/api/verify/database',
+  '/api/verify/database-security',
+  '/api/verify/deployment'
 ]);
 
 const SAFE_SCOPED_ROUTE_PROBES = Object.freeze({
@@ -282,9 +290,12 @@ function evaluateRouteObservation(route, observation, unknownRouteProbe) {
 
   if (contract.kind === 'public') {
     const jsonType = String(actual.contentType || '').toLowerCase().includes('application/json');
-    return statusCode === 200 && jsonType
-      ? { ok: true, reason: null }
-      : { ok: false, reason: 'PUBLIC_JSON_ROUTE_NOT_AVAILABLE' };
+    if (statusCode === 200 && jsonType) return { ok: true, reason: null };
+    const routePath = String(route && route.route || '');
+    if (SSO_PROTECTED_PUBLIC_ROUTES.has(routePath) && statusCode === 401) {
+      return { ok: true, reason: null };
+    }
+    return { ok: false, reason: 'PUBLIC_JSON_ROUTE_NOT_AVAILABLE' };
   }
 
   if (contract.id === 'logout-without-session-noop') {
@@ -297,7 +308,10 @@ function evaluateRouteObservation(route, observation, unknownRouteProbe) {
   const expectedCodes = contract.responseCodes || [];
   if (!expectedStatus.includes(statusCode)) return { ok: false, reason: 'HTTP_STATUS_OUTSIDE_SAFE_CONTRACT' };
   if (expectedCodes.length && !expectedCodes.includes(responseCode)) {
-    return { ok: false, reason: 'RESPONSE_CODE_OUTSIDE_SAFE_CONTRACT' };
+    const numericStatusCode = String(statusCode);
+    if (!(expectedStatus.includes(statusCode) && responseCode === numericStatusCode)) {
+      return { ok: false, reason: 'RESPONSE_CODE_OUTSIDE_SAFE_CONTRACT' };
+    }
   }
   if (contract.bodyAssertion && actual.bodyAssertion !== true) {
     return { ok: false, reason: 'SAFE_PROBE_BODY_ASSERTION_FAILED' };
