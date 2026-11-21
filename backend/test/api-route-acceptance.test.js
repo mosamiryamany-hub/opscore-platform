@@ -138,7 +138,7 @@ test('per-route functional contract acceptance across the full API inventory', a
       const unknownMarker = status === 404 && probe.status === 404 && bodyCode !== null && bodyCode === probeCode;
       // Documented env-dependent 503s (server.js error map): an explicitly unconfigured
       // optional dependency is a correct fail-closed answer, not a route defect.
-      const ENV_DEPENDENT_503 = new Set(['STRIPE_NOT_CONFIGURED', 'STRIPE_WEBHOOK_NOT_CONFIGURED', 'OSRM_NOT_CONFIGURED']);
+      const ENV_DEPENDENT_503 = new Set(['STRIPE_NOT_CONFIGURED', 'OSRM_NOT_CONFIGURED']);
       let verdict = 'PASS';
       let reason = null;
       if (status < 0) { verdict = 'FAIL'; reason = 'TRANSPORT_ERROR'; }
@@ -146,6 +146,9 @@ test('per-route functional contract acceptance across the full API inventory', a
       else if (status === 503 && ENV_DEPENDENT_503.has(String(bodyCode))) { verdict = 'PASS'; reason = `ENV_DEPENDENT_${bodyCode}`; }
       else if (status === 503 && bodyCode === 'LOCAL_SQLITE_DATABASE_SECURITY_PROOF_UNAVAILABLE') { verdict = 'PASS'; reason = bodyCode; }
       else if (status === 503 && bodyCode === 'LOCAL_NO_DEPLOYMENT_IDENTITY') { verdict = 'PASS'; reason = bodyCode; }
+      // The Stripe webhook is intentionally disabled for the initial release. Accept only
+      // this exact route + exact 409 response; all other required routes retain 401/403.
+      else if (route.method === 'POST' && route.route === '/api/v1/billing/stripe/webhook' && status === 409 && bodyCode === 'PAYMENT_PROVIDER_DISABLED') { verdict = 'PASS'; reason = bodyCode; }
       else if (status >= 500) { verdict = 'FAIL'; reason = `UNHANDLED_5XX_${status}`; }
       else if (unknownMarker) { verdict = 'FAIL'; reason = 'ROUTE_MISSING_404'; }
       else if (route.auth === 'required' && ![401, 403].includes(status)) { verdict = 'FAIL'; reason = `AUTH_CONTRACT_${status}`; }
