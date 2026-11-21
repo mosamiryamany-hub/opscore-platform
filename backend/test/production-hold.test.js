@@ -429,3 +429,59 @@ test('candidate hold diagnostics identify the exact failed deployment-boundary c
 
   assert.equal(candidateProbeBoundaryDenialReason(request(), { ...env, VERCEL_URL: '' }, readiness), 'deployment_url_missing');
 });
+
+
+test('post-publish staged database diagnostic allows trusted OIDC on the exact unaliased deployment only after release verification', () => {
+  const env = {
+    VERCEL_ENV: 'production',
+    VERCEL_URL: 'opscore-platform-staged-abc-mosamiryamany-1692.vercel.app',
+    OPSC_PRODUCTION_HOLD: 'true',
+    OPSC_RELEASE_VERIFIED: 'false',
+    OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'true',
+    OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED: 'true',
+    OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN: 'd'.repeat(64)
+  };
+  const readiness = { productionReleaseVerified: true };
+  const stagedRequest = (overrides = {}) => ({
+    method: 'GET',
+    url: '/api/internal/production-database-identity',
+    headers: {
+      host: env.VERCEL_URL,
+      'x-vercel-trusted-oidc-idp-token': 'header.payload.signature',
+      ...overrides
+    }
+  });
+
+  // The post-publish path does not require the held-candidate probe token.
+  assert.equal(isAuthorizedProductionCandidateDatabaseIdentityRequest(stagedRequest(), env, readiness), true);
+  assert.equal(isAuthorizedProductionCandidateDatabaseIdentityRequest(stagedRequest(), env, {
+    productionReleaseVerified: false
+  }), false);
+  assert.equal(isAuthorizedProductionCandidateDatabaseIdentityRequest(stagedRequest({
+    host: 'opscore-platform.vercel.app'
+  }), env, readiness), false);
+  assert.equal(isAuthorizedProductionCandidateDatabaseIdentityRequest(stagedRequest({
+    host: 'opscore-platform-other-mosamiryamany-1692.vercel.app'
+  }), env, readiness), false);
+  assert.equal(isAuthorizedProductionCandidateDatabaseIdentityRequest(stagedRequest({
+    'x-vercel-trusted-oidc-idp-token': 'not-a-jwt'
+  }), env, readiness), false);
+  assert.equal(isAuthorizedProductionCandidateDatabaseIdentityRequest(stagedRequest({
+    'x-vercel-trusted-oidc-idp-token': ''
+  }), env, readiness), false);
+  assert.equal(isAuthorizedProductionCandidateDatabaseIdentityRequest(
+    stagedRequest(), { ...env, VERCEL_URL: env.VERCEL_URL + '/unexpected' }, readiness
+  ), false);
+  assert.equal(isAuthorizedProductionCandidateDatabaseIdentityRequest(
+    stagedRequest(), { ...env, VERCEL_URL: 'opscore-platform-staged-abc-mosamiryamany-1692.vercel.app:443' }, readiness
+  ), false);
+  assert.equal(isAuthorizedProductionCandidateDatabaseIdentityRequest(
+    stagedRequest({}), env, readiness
+  ), true);
+  assert.equal(isAuthorizedProductionCandidateDatabaseIdentityRequest(
+    { ...stagedRequest(), method: 'POST' }, env, readiness
+  ), false);
+  assert.equal(isAuthorizedProductionCandidateDatabaseIdentityRequest(
+    { ...stagedRequest(), url: '/api/internal/production-database-identity/extra' }, env, readiness
+  ), false);
+});
