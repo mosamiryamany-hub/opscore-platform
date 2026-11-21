@@ -197,6 +197,40 @@ test('public routes require a live JSON success and no unknown-route marker', ()
   assert.equal(policy.evaluateRouteObservation(route, { ...good, contentType: 'text/plain' }, UNKNOWN).ok, false);
 });
 
+test('only the three SSO-protected public verification routes accept JSON 401', () => {
+  for (const routePath of [
+    '/api/verify/database',
+    '/api/verify/database-security',
+    '/api/verify/deployment'
+  ]) {
+    const route = inventory.routes.find(row => row.route === routePath);
+    assert.ok(route);
+    assert.deepEqual(policy.evaluateRouteObservation(route, {
+      probeContract: 'public-json-read',
+      contentType: 'application/json; charset=utf-8',
+      statusCode: 401,
+      responseCode: 'UNAUTHENTICATED'
+    }, UNKNOWN), { ok: true, reason: null });
+  }
+  const health = inventory.routes.find(row => row.route === '/api/health');
+  assert.equal(policy.evaluateRouteObservation(health, {
+    probeContract: 'public-json-read', contentType: 'application/json',
+    statusCode: 401, responseCode: 'UNAUTHENTICATED'
+  }, UNKNOWN).reason, 'PUBLIC_JSON_ROUTE_NOT_AVAILABLE');
+});
+
+test('required routes accept numeric response codes only when status is contract-allowed', () => {
+  const route = inventory.routes.find(row => row.auth === 'required');
+  const contract = policy.probeContractForRoute(route);
+  const statusCode = contract.statusCodes[0];
+  assert.deepEqual(policy.evaluateRouteObservation(route, {
+    probeContract: contract.id, statusCode, responseCode: String(statusCode)
+  }, UNKNOWN), { ok: true, reason: null });
+  assert.equal(policy.evaluateRouteObservation(route, {
+    probeContract: contract.id, statusCode: 200, responseCode: '200'
+  }, UNKNOWN).reason, 'HTTP_STATUS_OUTSIDE_SAFE_CONTRACT');
+});
+
 test('scoped write probes require their exact no-token guard rather than arbitrary 4xx', () => {
   const route = inventory.routes.find(row => row.route === '/api/v1/auth/bootstrap');
   const contract = policy.probeContractForRoute(route);
