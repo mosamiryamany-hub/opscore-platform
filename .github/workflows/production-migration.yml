@@ -55,7 +55,7 @@ jobs:
         run: |
           set -euo pipefail
           resp=$(curl -sSf -X POST -H "Authorization: Bearer ${NEON_API_KEY}" -H "Content-Type: application/json" \
-            "https://api.neon.tech/v2/projects/${{ inputs.expected_project_id }}/snapshots" \
+            "https://console.neon.tech/api/v2/projects/${{ inputs.expected_project_id }}/snapshots" \
             -d "{\"source_branch_id\":\"${{ inputs.expected_branch_id }}\"}")
           sid=$(node -e "let d=null;try{d=JSON.parse(process.argv[1])}catch{};const o=(d&&(d.snapshot||d.data))||d||{};console.log(o.id||'')" "$resp")
           if [ -z "$sid" ]; then echo "SNAPSHOT_CREATION_FAILED"; exit 1; fi
@@ -68,7 +68,7 @@ jobs:
         run: |
           set -euo pipefail
           resp=$(curl -sSf -H "Authorization: Bearer ${NEON_API_KEY}" \
-            "https://api.neon.tech/v2/projects/${{ inputs.expected_project_id }}/branches/${{ inputs.expected_branch_id }}/connection_uri?database=${{ inputs.database }}&role_name=neondb_owner")
+            "https://console.neon.tech/api/v2/projects/${{ inputs.expected_project_id }}/branches/${{ inputs.expected_branch_id }}/connection_uri?database=${{ inputs.database }}&role_name=neondb_owner")
           uri=$(node -e "let d=null;try{d=JSON.parse(process.argv[1])}catch{};const u=(d&&d.uri)||process.argv[1];if(!/^postgres(ql)?:\/\//.test(u||''))process.exit(1);console.log(u)" "$resp")
           echo "::add-mask::$uri"
           echo "uri=$uri" >> "$GITHUB_OUTPUT"
@@ -115,7 +115,7 @@ jobs:
         run: |
           set -euo pipefail
           resp=$(curl -sSf -H "Authorization: Bearer ${NEON_API_KEY}" \
-            "https://api.neon.tech/v2/projects/${{ inputs.expected_project_id }}/branches/${{ inputs.expected_branch_id }}/connection_uri?database=${{ inputs.database }}&role_name=neondb_owner")
+            "https://console.neon.tech/api/v2/projects/${{ inputs.expected_project_id }}/branches/${{ inputs.expected_branch_id }}/connection_uri?database=${{ inputs.database }}&role_name=neondb_owner")
           uri=$(node -e "let d=null;try{d=JSON.parse(process.argv[1])}catch{};const u=(d&&d.uri)||process.argv[1];if(!/^postgres(ql)?:\/\//.test(u||''))process.exit(1);console.log(u)" "$resp")
           echo "::add-mask::$uri"
           echo "uri=$uri" >> "$GITHUB_OUTPUT"
