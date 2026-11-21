@@ -56,7 +56,7 @@ breaker.setDb?.(db);
 const firewallRateLimit=createRateLimiter(config,db);
 // Login throttling must be shared across independently scaled serverless instances.
 const loginRateLimit=createLoginRateLimiter(config,db);
-const {verifySignature} = require('./stripe-billing');
+const {verifySignature, stripePaymentProviderConfigured} = require('./stripe-billing');
 const {aiStatus, openaiSummary} = require('./ai-copilot');
 const {safeError} = require('./egress-guard');
 const {verifyAuditChain} = require('./audit');
@@ -550,6 +550,7 @@ function fail(res, err) {
     INVALID_ROUTE_COORDINATES: [422, 'INVALID_ROUTE_COORDINATES'],
     TIME_WINDOW_TOO_LONG: [422, 'TIME_WINDOW_TOO_LONG'],
     STRIPE_NOT_CONFIGURED: [503, 'STRIPE_NOT_CONFIGURED'],
+    PAYMENT_PROVIDER_DISABLED: [409, 'PAYMENT_PROVIDER_DISABLED'],
     STRIPE_API_ERROR: [502, 'STRIPE_API_ERROR'],
     INVOICE_PAYMENT_COMPLETE: [409, 'INVOICE_PAYMENT_COMPLETE'],
     TECHNICIAN_LOCATION_REQUIRED: [
@@ -1663,6 +1664,9 @@ function route(req, res) {
     return sendFile(res, file, false);
   }
   if (req.method === 'POST' && url.pathname === '/api/v1/billing/stripe/webhook') {
+    // No payment provider is enabled in the initial release. Do not read or process events.
+    if (!stripePaymentProviderConfigured())
+      return json(res, 409, { error: { code: 'PAYMENT_PROVIDER_DISABLED' } });
     return rawBody(req).then(raw => {
       verifySignature(raw.toString('utf8'), req.headers['stripe-signature'], config.stripeWebhookSecret, config.stripeWebhookToleranceSeconds);
       let event;
@@ -2345,6 +2349,8 @@ function route(req, res) {
     } catch (e) {
       return fail(res, e);
     }
+    if (!stripePaymentProviderConfigured())
+      return json(res, 409, { error: { code: 'PAYMENT_PROVIDER_DISABLED' } });
     return body(req).then(b => json(res, 200, store.linkStripeCustomer(c, b))).catch(e => fail(res, e));
   }
   if (req.method === 'GET' && url.pathname === '/api/v1/entitlements')

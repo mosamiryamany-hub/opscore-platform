@@ -27,6 +27,14 @@ The recovery proof is a branch-point comparison. It must not be represented as a
 - Translation resources include machine-assisted drafts; native-speaker/domain review is not complete and no linguistic qualification is claimed.
 - Licensed maps/road-routing, external identity, messaging, telephony/call-center, payment, webhook, storage, KMS/HSM, and cloud accounts/licenses/credentials/live acceptance are not transferred.
 
+
+## Initial release payment boundary
+
+- Payment processing is intentionally disabled for the initial sale release; no Stripe account or payment credentials are required.
+- Checkout, payment-intent creation, customer linking, and webhook settlement remain unavailable until a payment provider is selected and both API access and signed-webhook verification are configured.
+- Disabled payment routes return the explicit `PAYMENT_PROVIDER_DISABLED` response. This is not a claim that payment processing is implemented, live-tested, or ready to collect funds.
+- Any later activation requires provider onboarding, live signed-webhook verification, payment-flow acceptance, and a separately authorized release.
+
 ## Required before any future buyer delivery
 
 1. Rights holder selects the commercial model and scope of rights.

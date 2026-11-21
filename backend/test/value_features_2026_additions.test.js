@@ -42,7 +42,7 @@ test('Stripe payment intent integration fails closed without credentials and nev
   const inv=s.createInvoice(ctx,{customerId:c.id,currency:'USD',lines:[{description:'Service',quantity:1,unitPrice:100}]});
   s.updateInvoiceStatus(ctx,inv.id,'issued');
   const old=process.env.STRIPE_SECRET_KEY; delete process.env.STRIPE_SECRET_KEY;
-  await assert.rejects(()=>createStripePaymentIntent(s,ctx,inv.id,'buyer-key-123'),/STRIPE_NOT_CONFIGURED/);
+  await assert.rejects(()=>createStripePaymentIntent(s,ctx,inv.id,'buyer-key-123'),/PAYMENT_PROVIDER_DISABLED/);
   if(old!==undefined) process.env.STRIPE_SECRET_KEY=old;
  }finally{f.d.close();clean(f.p)}
 });
