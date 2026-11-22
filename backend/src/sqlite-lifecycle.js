@@ -157,8 +157,11 @@ function scanOpenDatabaseHandles(databasePath) {
   }
 
   let targetStat;
-  try { targetStat = fs.statSync(databasePath); }
-  catch (error) {
+  let canonicalTarget;
+  try {
+    targetStat = fs.statSync(databasePath);
+    canonicalTarget = fs.realpathSync(databasePath);
+  } catch (error) {
     if (error?.code === 'ENOENT') return [];
     throw new Error('SQLITE_DATABASE_IDENTITY_UNAVAILABLE', { cause: error });
   }
@@ -171,59 +174,81 @@ function scanOpenDatabaseHandles(databasePath) {
     throw new Error('SQLITE_DATABASE_PERMISSIONS_NOT_PRIVATE');
   }
 
-  let entries;
-  try { entries = fs.readdirSync('/proc'); }
-  catch (error) { throw new Error('SQLITE_OPEN_HANDLE_SCAN_UNAVAILABLE', { cause: error }); }
-
   const matches = [];
-  for (const pidText of entries) {
-    if (!/^\\d+$/.test(pidText)) continue;
-    const processDirectory = '/proc/' + pidText;
-    const fdDirectory = processDirectory + '/fd';
+  const seen = new Set();
+  const inspectFdDirectory = (pidText, fdDirectory, { tolerateHiddenForeignUid = false } = {}) => {
     let descriptors;
     try { descriptors = fs.readdirSync(fdDirectory); }
     catch (error) {
-      if (error?.code === 'ENOENT') continue;
-      if (error?.code === 'EACCES' || error?.code === 'EPERM') {
-        // The database is owner-only (0600) and owned by this UID.
-        // Different unprivileged UIDs cannot open it; privileged root processes
-        // remain outside the supported SQLite application concurrency domain.
+      if (error?.code === 'ENOENT') return;
+      if ((error?.code === 'EACCES' || error?.code === 'EPERM') && tolerateHiddenForeignUid) {
+        const processDirectory = '/proc/' + pidText;
         let processStatus;
         try { processStatus = fs.readFileSync(processDirectory + '/status', 'utf8'); }
         catch (statusError) {
-          if (statusError?.code === 'ENOENT') continue;
+          if (statusError?.code === 'ENOENT') return;
           throw new Error('SQLITE_OPEN_HANDLE_SCAN_INCOMPLETE', { cause: statusError });
         }
-        const uidLine = processStatus.split('\\n').find(line => line.startsWith('Uid:'));
-        const uids = uidLine ? uidLine.trim().split(/\\s+/).slice(1, 5).map(Number) : [];
+        const uidLine = processStatus.split('\n').find(line => line.startsWith('Uid:'));
+        const uids = uidLine ? uidLine.trim().split(/\s+/).slice(1, 5).map(Number) : [];
         if (!uids.length || uids.some(uid => !Number.isInteger(uid))) {
           throw new Error('SQLITE_OPEN_HANDLE_SCAN_INCOMPLETE');
         }
-        if (uids.includes(effectiveUid)) {
+        // The database is owner-only (0600): foreign UIDs cannot open it.
+        // Root processes are privileged host control-plane and outside this
+        // application's supported SQLite concurrency domain.
+        if (uids.includes(effectiveUid) || uids.includes(0)) {
           throw new Error('SQLITE_OPEN_HANDLE_SCAN_INCOMPLETE', { cause: error });
         }
-        if (uids.includes(0)) continue;
-        continue;
+        return;
       }
       throw new Error('SQLITE_OPEN_HANDLE_SCAN_INCOMPLETE', { cause: error });
     }
 
     for (const descriptor of descriptors) {
+      if (!/^\d+$/.test(descriptor)) continue;
+      const key = pidText + ':' + descriptor;
+      if (seen.has(key)) continue;
+      seen.add(key);
       const descriptorPath = path.join(fdDirectory, descriptor);
       let openedStat;
-      try { openedStat = fs.statSync(descriptorPath); }
-      catch (error) {
-        if (error?.code === 'ENOENT') continue; // descriptor closed during the scan
-        if (error?.code === 'EBADF') continue;
+      let linkTarget;
+      try {
+        openedStat = fs.statSync(descriptorPath);
+        linkTarget = fs.readlinkSync(descriptorPath);
+      } catch (error) {
+        if (error?.code === 'ENOENT' || error?.code === 'EBADF') continue;
         throw new Error('SQLITE_OPEN_HANDLE_SCAN_INCOMPLETE', { cause: error });
       }
-      if (openedStat.dev !== targetStat.dev || openedStat.ino !== targetStat.ino) continue;
+
+      const normalizedTarget = linkTarget.endsWith(' (deleted)')
+        ? linkTarget.slice(0, -10)
+        : linkTarget;
+      const sameInode = openedStat.dev === targetStat.dev && openedStat.ino === targetStat.ino;
+      const samePath = path.isAbsolute(normalizedTarget) && path.resolve(normalizedTarget) === canonicalTarget;
+      if (!sameInode && !samePath) continue;
 
       let command = 'unknown';
       try { command = fs.readFileSync('/proc/' + pidText + '/comm', 'utf8').trim() || command; }
-      catch (error) { if (!['ENOENT', 'EACCES', 'EPERM'].includes(error?.code)) throw new Error('SQLITE_OPEN_HANDLE_SCAN_INCOMPLETE', { cause: error }); }
-      matches.push({ pid: Number(pidText), command, descriptor: Number(descriptor) });
+      catch (error) {
+        if (!['ENOENT', 'EACCES', 'EPERM'].includes(error?.code)) {
+          throw new Error('SQLITE_OPEN_HANDLE_SCAN_INCOMPLETE', { cause: error });
+        }
+      }
+      matches.push({ pid: pidText === 'self' ? process.pid : Number(pidText), command, descriptor: Number(descriptor) });
     }
+  };
+
+  // Inspect this process explicitly; /proc/self works even when other PIDs are
+  // hidden by a container's procfs policy.
+  inspectFdDirectory('self', '/proc/self/fd');
+  let entries;
+  try { entries = fs.readdirSync('/proc'); }
+  catch (error) { throw new Error('SQLITE_OPEN_HANDLE_SCAN_UNAVAILABLE', { cause: error }); }
+
+  for (const pidText of entries) {
+    if (!/^\d+$/.test(pidText) || Number(pidText) === process.pid) continue;
+    inspectFdDirectory(pidText, '/proc/' + pidText + '/fd', { tolerateHiddenForeignUid: true });
   }
   return matches;
 }
