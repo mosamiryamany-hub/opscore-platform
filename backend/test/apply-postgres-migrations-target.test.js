@@ -203,9 +203,10 @@ test('runner requires a least-privilege runtime role before migration work', () 
   const path = require('node:path');
   const source = fs.readFileSync(path.join(__dirname, '../scripts/apply-postgres-migrations.js'), 'utf8');
   assert.match(source, /MIGRATION_RUNTIME_ROLE_NOT_LEAST_PRIVILEGED/);
-  // Migration grants are performed in the opscore_app GUC context; the live
-  // application role is independently constrained as opscore_runtime above.
-  assert.match(source, /set_config\('opscore\.app_role','opscore_app',true\)/);
+  // The legacy app role is optional on Neon; migration context is bound only
+  // when the role exists. Runtime authorization remains independently constrained.
+  assert.match(source, /set_config\('opscore\.app_role',CASE WHEN EXISTS\(SELECT 1 FROM pg_catalog\.pg_roles WHERE rolname='opscore_app'\) THEN 'opscore_app' ELSE '' END,true\)/);
+  assert.doesNotMatch(source, /set_config\('opscore\.app_role','opscore_app',true\)/);
   assert.match(source, /has_table_privilege\('opscore_runtime'/);
   assert.match(source, /MIGRATION_APP_ROLE_NOT_LEAST_PRIVILEGED/);
   assert.match(source, /app_bypassrls/);
