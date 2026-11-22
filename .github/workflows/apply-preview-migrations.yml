@@ -139,7 +139,7 @@ jobs:
             target=root+target_name
             open(target,'w').write(value)
           PY
-          chmod 600 "$RUNNER_TEMP/owner.uri" "$RUNNER_TEMP/runtime.uri"
+          chmod 600 "$RUNNER_TEMP/owner.uri" "$RUNNER_TEMP/runtime.uri" "$RUNNER_TEMP/bootstrap.uri"
           echo 'NEON_MIGRATION_BOOTSTRAP_AND_RUNTIME_CONNECTIONS=PASS roles=neondb_owner,opscore_owner,opscore_runtime TLS=verify-full'
 
       - name: Bootstrap Neon Preview migration privileges from the dedicated admin connection
