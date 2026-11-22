@@ -110,4 +110,7 @@ test('historical migrations tolerate the absent legacy opscore_app role without 
   const legacy = read('068_opscore_app_role_privilege_lockdown.sql');
   assert.match(legacy, /OPSC_LEGACY_APP_ROLE_ABSENT_TREATED_AS_LOCKED/);
   assert.doesNotMatch(previewApply, /CREATE ROLE opscore_app/);
+  const migrationRunner = fs.readFileSync(path.join(root, 'backend', 'scripts', 'apply-postgres-migrations.js'), 'utf8');
+  assert.match(migrationRunner, /set_config\('opscore\.app_role',CASE WHEN EXISTS\(SELECT 1 FROM pg_catalog\.pg_roles WHERE rolname='opscore_app'\) THEN 'opscore_app' ELSE '' END,true\)/);
+  assert.doesNotMatch(migrationRunner, /set_config\('opscore\.app_role','opscore_app'/);
 });
