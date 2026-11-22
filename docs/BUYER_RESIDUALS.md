@@ -82,13 +82,13 @@ The latest public commercial source package is a draft from an older source comm
 |---|---|
 | Android/iOS native signed binaries, store accounts and publication | Not produced; source/contract checks are not native build or store acceptance |
 | Contact Center locale inventory | 114 interface locales selectable: 1 English source, 100 machine-assisted drafts, 13 explicit English fallbacks; 105 conversation-language targets, with 9 interface-only fallbacks disabled for conversations |
-| Language qualification register | 114 source rows; 9 locale codes are withdrawn from runtime pending remediation: `ms, sw, hy, uz, my, ml, es, sr, te` |
+| Language qualification register | 114 locale records; 9 historically withheld codes are restored only as English-fallback interface options, not conversation targets: `ms, sw, hy, uz, my, ml, es, sr, te` |
 | Native-speaker review / production language qualification | 0/114 / 0/114 |
 | Maps/road-routing provider | No buyer/provider license, credentials, attribution, quotas or live acceptance evidence |
 | External identity, messaging, telephony and payment providers | Buyer/provider accounts, credentials, contracts and live acceptance remain environment-specific |
 | Buyer installation / migration / RLS / restore acceptance | Must be performed against the buyer's own environment |
 
-The 114-row qualification register is **not** proof of 114 runtime-selectable languages. The runtime presently exposes 105. Do not label the nine withdrawn locales supported or production-qualified until their translation files and semantic defects are remediated and the 114-entry selector/catalogue contract is tested. Machine-assisted drafts and English fallbacks must remain visibly identified; no native-speaker approval is claimed.
+The 114-entry interface catalogue is selectable. It contains 1 English source, 100 machine-assisted drafts and 13 explicit English-fallback locales. Of the 114 interface choices, 105 are conversation-language targets; the nine historically withheld codes are available only as English-fallback interface options, and the conversation selector disables them until translation remediation, native-speaker review and provider acceptance. Their previously flagged defective translations are not shipped. Machine-draft and English-fallback notices remain visible; native-speaker review and production qualification remain 0/114.
 
 ## 7. Remaining steps to full commercial handoff
 
@@ -96,7 +96,7 @@ The 114-row qualification register is **not** proof of 114 runtime-selectable la
 2. Run `OpsCore secure release` on the same exact `main` SHA; verify the ZIP, SHA-256 sidecar, SBOM, Sigstore bundle, signer identity, tamper rejection, audits and release statement. Do not substitute the older draft package.
 3. Upgrade Neon to a plan that supports production branch protection and scheduled backups; configure retention; capture a backup; and execute a documented restore drill before defining RPO/RTO.
 4. Upgrade/enable Vercel OWASP CRS as required; move from log-only to staged deny/challenge after representative Preview rehearsal and false-positive review.
-5. Reconcile 114 source locale rows with the 114 interface-selectable (105 conversation-enabled) locale catalogue; restore withdrawn locales only after translation defects are fixed and tests confirm safe selector behavior. Native review remains separate.
+5. Preserve the 114-entry interface catalogue, 105 conversation-language boundary and nine disabled English-fallback options. Restore conversation capability for the nine only after translation remediation, native-speaker review and provider acceptance. Native review remains separate.
 6. Produce buyer-specific signed mobile binaries/device/store evidence, obtain map/provider licenses and credentials, and complete buyer-environment acceptance.
 7. Execute the buyer-specific License Schedule before granting use or distribution rights.
 
