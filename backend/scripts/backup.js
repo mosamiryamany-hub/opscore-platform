@@ -1,5 +1,8 @@
 'use strict';
 
+// This dedicated CLI process writes only private recovery artifacts.
+process.umask(0o077);
+
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
