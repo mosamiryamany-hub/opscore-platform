@@ -55,9 +55,9 @@ No independent ISO/IEC 27001, SOC 2, PCI DSS or current third-party penetration-
 
 ## Verification links
 - [Production release workflow](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45013074938)
-- [Current main CI](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45016371911)
-- [Current main Vercel/PostgreSQL acceptance](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45016372092)
-- [Current main CodeQL](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45016372078)
+- [Post-merge main OpsCore CI](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45018113019)
+- [Post-merge main Vercel source/contract + isolated PostgreSQL acceptance](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45018113156)
+- [Post-merge main CodeQL](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45018112500)
 - [Live release proof](https://opscore-platform.vercel.app/api/verify/release)
 - [Live database security proof](https://opscore-platform.vercel.app/api/verify/database-security)
 - [Live deployment identity](https://opscore-platform.vercel.app/api/verify/deployment)
