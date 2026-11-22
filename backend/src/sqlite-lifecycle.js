@@ -242,8 +242,8 @@ function scanOpenDatabaseHandles(databasePath) {
       if (error?.code === 'ENOENT') return false;
       throw new Error('SQLITE_OPEN_HANDLE_SCAN_INCOMPLETE', { cause: error });
     }
-    const uidLine = status.split('\\n').find(line => line.startsWith('Uid:'));
-    const uids = uidLine ? uidLine.trim().split(/\\s+/).slice(1, 5).map(Number) : [];
+    const uidLine = status.split('\n').find(line => line.startsWith('Uid:'));
+    const uids = uidLine ? uidLine.trim().split(/\s+/).slice(1, 5).map(Number) : [];
     if (uids.length !== 4 || uids.some(uid => !Number.isSafeInteger(uid))) {
       throw new Error('SQLITE_OPEN_HANDLE_SCAN_INCOMPLETE');
     }
@@ -261,7 +261,7 @@ function scanOpenDatabaseHandles(databasePath) {
   catch (error) { throw new Error('SQLITE_OPEN_HANDLE_SCAN_UNAVAILABLE', { cause: error }); }
 
   for (const pidText of entries) {
-    if (!/^\\d+$/.test(pidText) || Number(pidText) === process.pid) continue;
+    if (!/^\d+$/.test(pidText) || Number(pidText) === process.pid) continue;
     if (!processCanAccessPrivateDatabase(pidText)) continue;
     inspectFdDirectory(pidText, '/proc/' + pidText + '/fd');
   }
