@@ -65,41 +65,37 @@ test('direct endpoint rewrite explicitly sets sslmode=verify-full', () => {
 });
 
 
-test('production URLs may use pooled/direct hosts and independent passwords for the same endpoint identity', () => {
-  const reference = 'postgresql://opscore_runtime:first-secret@ep-example-pooler.neon.tech/opscore_acceptance?sslmode=disable';
+test('production switch requires only OPSC_DATABASE_URL and ignores administrative DATABASE_URL', () => {
+  const runtimeUrl = 'postgresql://opscore_runtime:runtime-secret@ep-example-pooler.neon.tech/opscore_acceptance?sslmode=disable';
   const values = validateEnvironmentUrls({
-    OPSC_DATABASE_URL: reference,
-    DATABASE_URL: 'postgresql://opscore_runtime:rotated-secret@ep-example.neon.tech/opscore_acceptance?sslmode=require&channel_binding=require'
-  }, reference);
+    OPSC_DATABASE_URL: runtimeUrl,
+    DATABASE_URL: 'postgresql://postgres:admin-secret@ep-example.neon.tech/opscore_acceptance?sslmode=require'
+  }, runtimeUrl);
+  assert.deepEqual(Object.keys(values), ['OPSC_DATABASE_URL']);
   assert.equal(new URL(values.OPSC_DATABASE_URL).hostname, 'ep-example-pooler.neon.tech');
-  assert.equal(new URL(values.DATABASE_URL).hostname, 'ep-example.neon.tech');
-  assert.equal(new URL(values.DATABASE_URL).searchParams.get('channel_binding'), 'require');
 });
 
-test('production URL preflight rejects a different Neon endpoint', () => {
+test('production runtime URL preflight rejects a different Neon endpoint', () => {
   const reference = 'postgresql://opscore_runtime:secret@ep-example.neon.tech/opscore_acceptance';
   assert.throws(
     () => validateEnvironmentUrls({
-      OPSC_DATABASE_URL: reference,
-      DATABASE_URL: 'postgresql://opscore_runtime:secret@ep-other.neon.tech/opscore_acceptance'
+      OPSC_DATABASE_URL: 'postgresql://opscore_runtime:secret@ep-other.neon.tech/opscore_acceptance'
     }, reference),
     { code: 'ENV_KEY_ENDPOINT_UNEXPECTED' }
   );
 });
 
-test('production URL preflight rejects an unexpected runtime role or database', () => {
+test('production runtime URL preflight rejects a non-runtime role or wrong database', () => {
   const reference = 'postgresql://opscore_runtime:secret@ep-example.neon.tech/opscore_acceptance';
   assert.throws(
     () => validateEnvironmentUrls({
-      OPSC_DATABASE_URL: reference,
-      DATABASE_URL: 'postgresql://postgres:secret@ep-example.neon.tech/opscore_acceptance'
+      OPSC_DATABASE_URL: 'postgresql://postgres:secret@ep-example.neon.tech/opscore_acceptance'
     }, reference),
-    error => error.code === 'ENV_KEY_RUNTIME_ROLE_UNEXPECTED' && error.key === 'DATABASE_URL'
+    error => error.code === 'ENV_KEY_RUNTIME_ROLE_UNEXPECTED' && error.key === 'OPSC_DATABASE_URL'
   );
   assert.throws(
     () => validateEnvironmentUrls({
-      OPSC_DATABASE_URL: reference,
-      DATABASE_URL: 'postgresql://opscore_runtime:secret@ep-example.neon.tech/other'
+      OPSC_DATABASE_URL: 'postgresql://opscore_runtime:secret@ep-example.neon.tech/other'
     }, reference),
     { code: 'ENV_KEY_DATABASE_UNEXPECTED' }
   );
