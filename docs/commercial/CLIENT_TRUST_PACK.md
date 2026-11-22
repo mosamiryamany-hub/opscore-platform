@@ -5,7 +5,7 @@
 ## Release identity
 | Field | Value |
 |---|---|
-| Current protected main | `4b8a532aea404dd5b696b5d9b2cd3eb45c72852b` |
+| Current application-source baseline (PR #391) | `859a7f6f9d7759910602f4c89136c5d0a38d522d` |
 | Production source | `2a4938a70220d3375497e94499850476b4b505de` |
 | Production deployment | `dpl_G7r6CDntYarpafuawie8CKWDLBB7` |
 | Public alias | https://opscore-platform.vercel.app |
