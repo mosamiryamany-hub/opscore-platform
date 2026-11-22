@@ -6,16 +6,7 @@ const {DatabaseSync} = require('node:sqlite');
 const { CURRENT_SCHEMA_VERSION } = require('./schema-version');
 const config = require('./config');
 function ensureDir(file) {
-  const directory = path.dirname(path.resolve(file));
-  fs.mkdirSync(directory, { recursive: true, mode: 0o700 });
-  if (process.platform === 'linux' && typeof process.geteuid === 'function') {
-    const realDirectory = fs.realpathSync(directory);
-    const stat = fs.statSync(realDirectory);
-    if (!stat.isDirectory() || stat.uid !== process.geteuid()) {
-      throw new Error('SQLITE_DATABASE_DIRECTORY_OWNER_MISMATCH');
-    }
-    fs.chmodSync(realDirectory, 0o700);
-  }
+  fs.mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 });
 }
 function addColumn(db, table, column, definition) {
   const cols = db.prepare(`PRAGMA table_info(${ table })`).all().map(x => x.name);
