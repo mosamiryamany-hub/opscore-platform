@@ -2,7 +2,7 @@
 
 **Reconciled:** 2026-11-22
 **Product label:** `0.11.62`
-**Current main closeout commit:** `63682774b7f81e123f996f6508fed5a714fea0be`  
+**Main SHA at reconciliation start:** `63682774b7f81e123f996f6508fed5a714fea0be`  
 **Application/runtime baseline:** `43554492218adbf0cde2d700bd0dedfadce67f5e` (the closeout merge changed documentation, tests and static audit tooling only)
 
 ## Decision
@@ -13,9 +13,9 @@ The source may be discussed as a work in progress, but a qualified release packa
 
 ## Evidence on the verified head
 
-Post-merge GitHub run `44993913435` passed on closeout commit `63682774…`: 960 passed, 0 failed and 3 skipped. Vercel workflow `44993913475` passed source verification, disposable PostgreSQL 18 acceptance, contract verification and isolated RLS/HTTP acceptance; its PITR, Neon Preview migration and deploy jobs were skipped. These results are limited to their tested scopes and do not establish production deployment, production isolation, or recovery objectives.
+Post-merge GitHub run `44993913435` passed on reconciliation base SHA `63682774…`: 960 passed, 0 failed and 3 skipped. Vercel workflow `44993913475` passed source verification, disposable PostgreSQL 18 acceptance, contract verification and isolated RLS/HTTP acceptance; its PITR, Neon Preview migration and deploy jobs were skipped. These results are limited to their tested scopes and do not establish production deployment, production isolation, or recovery objectives.
 
-Read-only Vercel checks found no deployment record for closeout commit `63682774…`. Two READY Production-target deployments exist on its application/runtime parent SHA `43554492218adbf0cde2d700bd0dedfadce67f5e`: `dpl_G15K6Sg9Q7xJQKrHKFRYJGSNDerN` and `dpl_EC2Ri4BJrZTN7ca53xurrUV9LvmR`, both with empty alias lists. The canonical domain `opscore-platform.vercel.app` remains attached to deployment `dpl_EacspS7o2jntgw8uS1YMpzf45CFt`, whose Git commit is `b7f63445c1748ebaec426a9ebe0ea629e4998839`. The public domain is still on the older release; no current-main production promotion or runtime certification is established.
+Read-only Vercel checks found no deployment record for reconciliation base SHA `63682774…`. Two READY Production-target deployments exist on its application/runtime parent SHA `43554492218adbf0cde2d700bd0dedfadce67f5e`: `dpl_G15K6Sg9Q7xJQKrHKFRYJGSNDerN` and `dpl_EC2Ri4BJrZTN7ca53xurrUV9LvmR`, both with empty alias lists. The canonical domain `opscore-platform.vercel.app` remains attached to deployment `dpl_EacspS7o2jntgw8uS1YMpzf45CFt`, whose Git commit is `b7f63445c1748ebaec426a9ebe0ea629e4998839`. The public domain is still on the older release; no current-main production promotion or runtime certification is established.
 
 On 2026-11-22, full and `--omit=dev` npm audits returned zero findings for the root, backend, and mobile lockfiles in the checkout at this SHA. GitHub's advisory API and OSV's API both report GHSA-fc5q-39xc-vjpf / CVE-2026-112366 withdrawn at `2026-11-18T15:38:56Z`. This resolves the current database status of that advisory only. It is not a complete dependency review, security certification, or guarantee against vulnerabilities; repeat audits on the exact release package before delivery.
 
@@ -25,7 +25,7 @@ The current `main` audit result initially contained five `MUTATION_NOT_IDEMPOTEN
 
 ## Production environment binding
 
-Read-only Vercel environment inspection found `OPSC_PRODUCTION_HOLD=false`, `OPSC_RELEASE_VERIFIED=true`, and internal `OPSC_PRODUCTION_ISOLATION_CERTIFICATION=CERTIFIED`. These flags are bound to release/source commit `b7f63445c1748ebaec426a9ebe0ea629e4998839`, matching the canonical domain alias deployment; the configured probe deployment is a separate READY Production-target deployment on that same SHA. The internal `CERTIFIED` flag is not an external ISO/SOC/PCI certification and does not qualify current closeout commit `63682774…`.
+Read-only Vercel environment inspection found `OPSC_PRODUCTION_HOLD=false`, `OPSC_RELEASE_VERIFIED=true`, and internal `OPSC_PRODUCTION_ISOLATION_CERTIFICATION=CERTIFIED`. These flags are bound to release/source commit `b7f63445c1748ebaec426a9ebe0ea629e4998839`, matching the canonical domain alias deployment; the configured probe deployment is a separate READY Production-target deployment on that same SHA. The internal `CERTIFIED` flag is not an external ISO/SOC/PCI certification and does not qualify current reconciliation base SHA `63682774…`.
 
 Production TLS configuration is strict (`OPSC_PG_SSL_MODE=verify-full`, `OPSC_PG_SSL_REJECT_UNAUTHORIZED=true`), but this does not prove a verified TLS handshake on the actual application worker. Keep the worker TLS gate open until exact-deployment runtime evidence passes.
 
