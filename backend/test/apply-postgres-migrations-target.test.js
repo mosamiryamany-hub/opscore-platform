@@ -66,7 +66,7 @@ test('Preview, Production and test migrations require the exact Neon migration o
 
 test('pinned Neon identity is limited to the exact disposable Preview project, branch, direct host and database', async () => {
   const env = {
-    ...envFor('preview', { OPSC_MIGRATION_EXPECTED_OWNER_ROLE: 'opscore_owner' }),
+    ...envFor('preview', { OPSC_MIGRATION_EXPECTED_OWNER_ROLE: 'neondb_owner' }),
     OPSC_MIGRATION_PINNED_NEON_IDENTITY: '1',
     OPSC_MIGRATION_EXPECTED_PROJECT_ID: 'sweet-union-58466913',
     OPSC_MIGRATION_EXPECTED_BRANCH_ID: 'br-solitary-band-bbczy982',
