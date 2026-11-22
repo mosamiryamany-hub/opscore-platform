@@ -191,6 +191,7 @@ test('production database diagnostic returns sanitized identity without secrets 
   assert.equal(body.database.identity.server_version, '18.6');
   assert.equal(body.applicationConnectionTls.scope, 'APPLICATION_POSTGRES_WORKER_CONNECTION');
   assert.equal(body.applicationConnectionTls.status, 'VERIFIED');
+  assert.equal(body.applicationConnectionTls.verified, true);
   assert.equal(body.applicationConnectionTls.authorized, true);
   assert.equal(body.applicationConnectionTls.bits, null);
   assert.equal(body.database.identity.tls_enabled, true);
