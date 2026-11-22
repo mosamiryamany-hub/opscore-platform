@@ -96,6 +96,9 @@ try {
   assert.equal(hash(destination), originalDestinationHash, 'active managed handle must prevent destination mutation');
   activeApplicationDb.close();
   for (const suffix of ['-wal', '-shm', '-journal']) fs.rmSync(destination + suffix, { force: true });
+  // Closing the managed WAL connection may checkpoint pages into the main file;
+  // establish a fresh byte baseline after close, before testing the unmanaged FD.
+  const beforeUnmanagedHandleHash = hash(destination);
 
   // A raw SQLite/file descriptor in the restoring process bypasses openDb leases,
   // so the direct /proc/self/fd guard must catch it before any destination mutation.
@@ -115,7 +118,7 @@ try {
     () => restoreWithUnmanagedHandle({ sourcePath: backup, destinationPath: destination }),
     /SQLITE_DATABASE_OPEN_HANDLE_PRESENT/
   );
-  assert.equal(hash(destination), originalDestinationHash, 'unmanaged open file descriptor must prevent destination mutation');
+  assert.equal(hash(destination), beforeUnmanagedHandleHash, 'unmanaged open file descriptor must prevent destination mutation');
   fs.closeSync(unmanagedFd);
   for (const suffix of ['-wal', '-shm', '-journal']) fs.rmSync(destination + suffix, { force: true });
 
