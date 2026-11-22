@@ -61,6 +61,12 @@ try {
   assert.notEqual(failedBackup.status, 0, 'corrupt source must fail closed');
   assert.equal(hash(backup), priorBackupHash, 'previous backup must remain byte-for-byte unchanged');
 
+  fs.writeFileSync(backup + '-journal', 'sidecar sentinel');
+  const blockedBackup = run(backupScript, [backup], { SQLITE_PATH: source });
+  expectFailure(blockedBackup, 'BACKUP_DESTINATION_HAS_SQLITE_SIDECARS');
+  assert.equal(hash(backup), priorBackupHash, 'backup sidecars must block replacement without touching the destination');
+  fs.rmSync(backup + '-journal', { force: true });
+
   // Source and destination equality must be rejected before any mutation.
   const samePathHash = hash(backup);
   const samePath = run(backupScript, [backup], { SQLITE_PATH: backup });
@@ -106,18 +112,21 @@ try {
   assert.equal(hash(destination), sameRestoreHash);
 
   // An active WAL/SHM pair is an explicit operational stop condition.
-  fs.writeFileSync(destination + '-wal', 'sidecar sentinel');
+  fs.writeFileSync(destination + '-wal', 'wal sentinel');
+  fs.writeFileSync(destination + '-journal', 'journal sentinel');
   const sidecarHash = hash(destination);
   const sidecarRestore = run(restoreScript, [backup], { SQLITE_PATH: destination });
   expectFailure(sidecarRestore, 'RESTORE_DESTINATION_HAS_SQLITE_SIDECARS');
   assert.equal(hash(destination), sidecarHash);
   fs.rmSync(destination + '-wal', { force: true });
+  fs.rmSync(destination + '-journal', { force: true });
 
   console.log(JSON.stringify({
     status: 'PASS',
     checks: [
       'backup integrity and foreign-key verification',
       'failed backup preserves the prior backup byte-for-byte',
+      'backup refuses WAL/SHM/journal sidecars without replacing the prior file',
       'backup rejects source/destination identity',
       'restore stages and validates before replacement',
       'restore preserves a pre-restore safety copy',
