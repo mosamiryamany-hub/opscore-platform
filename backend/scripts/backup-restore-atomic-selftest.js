@@ -94,6 +94,8 @@ try {
 
   // A raw SQLite handle that bypasses openDb must still be caught by Linux /proc FD inspection.
   const unmanagedDb = new DatabaseSync(destination);
+  // Force SQLite to acquire a descriptor before the restore process inspects /proc.
+  unmanagedDb.prepare('PRAGMA schema_version').get();
   const unmanagedRestore = run(restoreScript, [backup], { SQLITE_PATH: destination });
   expectFailure(unmanagedRestore, 'SQLITE_DATABASE_OPEN_HANDLE_PRESENT');
   assert.equal(hash(destination), originalDestinationHash, 'unmanaged open file descriptor must prevent destination mutation');
