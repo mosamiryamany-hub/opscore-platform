@@ -16,11 +16,15 @@ The exact-run mobile and root dependency-audit JSON files are authoritative for 
 
 Backend/API and web operations source; work orders, scheduling and dispatch; Contact Center runtime and locale resources; authentication and tenant controls; PostgreSQL migrations and RLS; Expo mobile source; tests, scripts, release tooling, documentation and CI evidence.
 
-Translation catalog: 114 locale codes, 1 English source, 109 machine-assisted drafts, 4 English fallbacks, and 89 keys per locale. Structural/forensic automation is not linguistic qualification. Native-speaker review and production language qualification remain 0/114 until independently completed. Keep the machine-translation notice visible.
+Contact Center locale inventory: 105 runtime-selectable locales (1 English source, 100 machine-assisted drafts, 4 explicit English-fallback locales), with 89 keys per locale. The separate qualification register has 114 source rows; 9 locale codes (ms, sw, hy, uz, my, ml, es, sr, te) are withdrawn from runtime pending remediation. Native-speaker review and production language qualification remain 0/114. The 114-row register is not evidence that 114 locales are currently selectable. Keep machine-draft and English-fallback notices visible.
+
+## Seller operational residuals
+
+Neon remains on Free: the Production branch is unprotected, no automatic snapshot schedule exists, and the current plan blocked branch protection, schedule creation and an additional manual snapshot. Vercel remains on Hobby: firewall is enabled, login rate limiting is active, but Generic/RCE/SQLi/XSS and Bot Protection rules are log-only; OWASP CRS enforcement was rejected under the current entitlement. These limits prevent a blanket backup/edge-security SLA claim until plans and controls are upgraded and retested.
 
 ## Buyer/environment residuals
 
-External provider accounts/licenses/credentials/live acceptance (including identity, messaging, call-center and telephony); maps/road-routing provider license, keys, attribution and quotas; Android/iOS EAS setup, signing, native builds, physical-device QA, developer accounts and store publication; native-speaker translation review; buyer-environment installation, database migration/isolation, restore, WAF/TLS and operational acceptance; post-handover dependency maintenance.
+External provider accounts/licenses/credentials/live acceptance (including identity, messaging, call-center and telephony); maps/road-routing provider license, keys, attribution and quotas; Android/iOS EAS setup, signing, native builds, physical-device QA, developer accounts and store publication; native-speaker translation review; buyer-environment installation, database migration/isolation, restore and operational acceptance; post-handover dependency maintenance.
 
 ## Seller-owned scope
 
@@ -28,7 +32,7 @@ Source correctness, internal adapters, authorization, database migrations, RLS, 
 
 ## Technical truth
 
-The current stored seller-reference production isolation evidence is NOT_VERIFIED: it contains a rebind marker showing probes were not re-executed and a recovery record tied to a previous Neon branch. Do not claim certification until fresh dual-tenant and recovery probes are bound to the exact active Production commit and Neon branch and independently reviewed. This does not certify buyer environments, all business flows, full PITR/RPO/RTO, or external integrations. The technical classification is valid only for its exact verified evidence scope.
+Current evidence cut (2026-11-22): Production release workflow run 45013074938 passed and promoted deployment dpl_G7r6CDntYarpafuawie8CKWDLBB7 on source commit 2a4938a70220d3375497e94499850476b4b505de to opscore-platform.vercel.app. The workflow qualified the exact release evidence as production isolation CERTIFIED. Evidence includes 67/67 signed-tenant candidate routes; 358/358 PostgreSQL HTTP route probes; 3/3 explicit authenticated tenant flows with cross-tenant denial and cleanup; full-data recovery-point v4 and native PITR v2 covering 136 public tables with SHA-256 parity and zero mismatches; plus staged runtime/database/TLS/domain gates. The 67/358/3 behavioral tests are bound to candidate deployment dpl_FgDTqKJxCDw3SAGLtgPxqfQHGu7v, not a separate rerun against the final promoted deployment ID. This is internal scope-bound evidence, not ISO/SOC 2/PCI or other third-party certification; it does not certify buyer environments, every business flow, scheduled backup coverage, or contractual RPO/RTO.
 
 ## Commercial offer and rights
 
