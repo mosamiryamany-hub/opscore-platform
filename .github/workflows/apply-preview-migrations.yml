@@ -456,6 +456,7 @@ jobs:
           export OPSC_PG_ACCEPTANCE_URL="$(cat "$RUNNER_TEMP/runtime.uri")"
           export OPSC_PG_ACCEPTANCE_CLEANUP_URL="$(cat "$RUNNER_TEMP/bootstrap.uri")"
           export OPSC_PG_ACCEPTANCE_CLEANUP_HOST='ep-green-frog-bbyayuh5.c-15.us-east-1.aws.neon.tech'
+          export OPSC_PG_ACCEPTANCE_CLEANUP_ROLE='opscore_owner'
           export OPSC_PG_ACCEPTANCE_HOST='ep-green-frog-bbyayuh5.c-15.us-east-1.aws.neon.tech'
           export OPSC_PG_ACCEPTANCE_STRICT='true'
           export OPSC_PG_ACCEPTANCE_RESULT_FILE="${GITHUB_WORKSPACE}/POSTGRES_HTTP_ACCEPTANCE_RESULT.json"
