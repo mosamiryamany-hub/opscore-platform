@@ -89,7 +89,8 @@ async function osrmRoute(d = {}, ctx = null) {
   const base=clean(process.env.OSRM_BASE_URL).replace(/\/+$/,'');
   if(!base) throw new Error('OSRM_NOT_CONFIGURED');
   if(!breaker.allow(gateway,ctx?.organizationId)) throw new Error('GATEWAY_CIRCUIT_OPEN');
-  validateOsrmBaseUrl(base,{production:String(process.env.NODE_ENV||'development')==='production'});
+  const production=String(process.env.NODE_ENV||'development').trim().toLowerCase()==='production' || String(process.env.VERCEL_ENV||'').trim().toLowerCase()==='production';
+  validateOsrmBaseUrl(base,{production});
   const resolved=await assertOsrmHostResolvesSafely(base);
   const profile=clean(d.profile||'driving');
   if(!/^[a-z0-9_-]{1,40}$/i.test(profile)) throw new Error('INVALID_OSRM_PROFILE');
