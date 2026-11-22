@@ -126,3 +126,30 @@ test('Preview HTTP acceptance passes the bootstrap URL only to exact-target fixt
   assert.match(httpStep, /OPSC_PG_ACCEPTANCE_CLEANUP_URL=.*bootstrap\.uri/);
   assert.doesNotMatch(httpStep, /OPSC_MIGRATION_DATABASE_URL/);
 });
+
+test('Preview HTTP acceptance signs with a short-lived isolated HMAC key and revokes it even on failure', () => {
+  const prepareStart = previewApply.indexOf('Prepare ephemeral HMAC key for isolated Preview HTTP acceptance');
+  const httpStart = previewApply.indexOf('Run PostgreSQL HTTP commercial acceptance against isolated Neon');
+  const cleanupStart = previewApply.indexOf('Revoke ephemeral Preview HMAC acceptance key');
+  const finalizeStart = previewApply.indexOf('Finalize Preview acceptance gate');
+  assert.ok(prepareStart >= 0 && httpStart > prepareStart && cleanupStart > httpStart && finalizeStart > cleanupStart);
+  const prepare = previewApply.slice(prepareStart, httpStart);
+  const http = previewApply.slice(httpStart, cleanupStart);
+  const cleanup = previewApply.slice(cleanupStart, finalizeStart);
+  const finalize = previewApply.slice(finalizeStart);
+  assert.match(prepare, /openssl rand -hex 32/);
+  assert.match(prepare, /context_hmac_keys/);
+  assert.match(prepare, /interval '30 minutes'/);
+  assert.match(prepare, /OPSC_TENANT_CONTEXT_KEY_JSON/);
+  assert.match(prepare, /OPSC_TENANT_CONTEXT_HMAC_KEY/);
+  assert.match(prepare, /OPSC_TENANT_CONTEXT_KEY_ID/);
+  assert.match(prepare, /add-mask/);
+  assert.match(http, /OPSC_PG_ACCEPTANCE_URL=.*runtime\.uri/);
+  assert.match(http, /OPSC_PG_ACCEPTANCE_CLEANUP_URL=.*bootstrap\.uri/);
+  assert.match(cleanup, /if: always\(\)/);
+  assert.match(cleanup, /DELETE FROM opscore_security\.context_hmac_keys WHERE key_id/);
+  assert.match(cleanup, /PREVIEW_EPHEMERAL_TENANT_HMAC_CLEANUP=PASS/);
+  assert.match(finalize, /steps\.preview_hmac_prepare\.outcome/);
+  assert.match(finalize, /steps\.preview_hmac_cleanup\.outcome/);
+});
+
