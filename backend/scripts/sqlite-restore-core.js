@@ -138,9 +138,11 @@ function restoreDatabase({
     // Same-filesystem rename is the only operation that changes the live path.
     fs.renameSync(staged, destination);
 
+    let restoredSha256;
     try {
       syncDirectory(destinationDirectory);
       verifyDatabase(destination, 'RESTORED_DATABASE');
+      restoredSha256 = sha256File(destination);
     } catch (verificationError) {
       try {
         if (destinationExists) {
@@ -172,7 +174,7 @@ function restoreDatabase({
       status: 'PASS',
       destination,
       safetyCopy: destinationExists ? beforeRestore : null,
-      restoredSha256: sha256File(destination),
+      restoredSha256,
       rollbackProtection: 'PASS',
       restorerProcessOpenHandleCheck: 'PASS'
     };
