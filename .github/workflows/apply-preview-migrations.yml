@@ -425,7 +425,7 @@ jobs:
           echo "::add-mask::$KEY_HEX"
           echo "::add-mask::$KEY_JSON"
           psql "$URI" -v ON_ERROR_STOP=1 -q -f "$RUNNER_TEMP/preview-acceptance-hmac.sql"
-          KEY_ID="$KEY_ID" psql "$URI" -v ON_ERROR_STOP=1 -AtXc "SELECT count(*) FROM opscore_security.context_hmac_keys WHERE key_id = :'KEY_ID' AND enabled AND octet_length(secret)=32 AND not_before <= clock_timestamp() AND not_after > clock_timestamp()" -v KEY_ID="$KEY_ID" > "$RUNNER_TEMP/preview-acceptance-hmac-count"
+          psql "$URI" -v ON_ERROR_STOP=1 -v KEY_ID="$KEY_ID" -AtXc "SELECT count(*) FROM opscore_security.context_hmac_keys WHERE key_id = :'KEY_ID' AND enabled AND octet_length(secret)=32 AND not_before <= clock_timestamp() AND not_after > clock_timestamp()" > "$RUNNER_TEMP/preview-acceptance-hmac-count"
           test "$(cat "$RUNNER_TEMP/preview-acceptance-hmac-count")" = "1" || { echo "PREVIEW_HMAC_KEY_PERSISTENCE_NOT_VERIFIED" >&2; exit 1; }
           {
             printf 'OPSC_TENANT_CONTEXT_KEY_JSON=%s\n' "$KEY_JSON"
@@ -467,7 +467,7 @@ jobs:
           URI="$(cat "$RUNNER_TEMP/bootstrap.uri")"
           case "$URI" in *"?"*) URI="$URI&sslrootcert=system";; *) URI="$URI?sslrootcert=system";; esac
           psql "$URI" -v ON_ERROR_STOP=1 -v KEY_ID="$KEY_ID" -q -c "DELETE FROM opscore_security.context_hmac_keys WHERE key_id = :'KEY_ID'"
-          psql "$URI" -v ON_ERROR_STOP=1 -AtXc "SELECT count(*) FROM opscore_security.context_hmac_keys WHERE key_id = :'KEY_ID'" -v KEY_ID="$KEY_ID" > "$RUNNER_TEMP/preview-acceptance-hmac-remaining"
+          psql "$URI" -v ON_ERROR_STOP=1 -v KEY_ID="$KEY_ID" -AtXc "SELECT count(*) FROM opscore_security.context_hmac_keys WHERE key_id = :'KEY_ID'" > "$RUNNER_TEMP/preview-acceptance-hmac-remaining"
           test "$(cat "$RUNNER_TEMP/preview-acceptance-hmac-remaining")" = "0" || { echo "PREVIEW_HMAC_KEY_CLEANUP_NOT_VERIFIED" >&2; exit 1; }
           rm -f "$KEY_FILE" "$RUNNER_TEMP/preview-acceptance-hmac.hex" "$RUNNER_TEMP/preview-acceptance-hmac.json" "$RUNNER_TEMP/preview-acceptance-hmac.sql" "$RUNNER_TEMP/preview-acceptance-hmac-count" "$RUNNER_TEMP/preview-acceptance-hmac-remaining"
           echo "PREVIEW_EPHEMERAL_TENANT_HMAC_CLEANUP=PASS"
