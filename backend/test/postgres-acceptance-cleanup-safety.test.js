@@ -98,3 +98,19 @@ test('Production PITR runtime probe stays within read-only catalog grants and ne
   assert.doesNotMatch(probe, /schema_migrations/);
   assert.match(probe, /migration ledger excluded by runtime-role boundary/);
 });
+
+test('privileged cleanup is exact-target only and never becomes the application connection', () => {
+  assert.match(source, /OPSC_PG_ACCEPTANCE_CLEANUP_URL/);
+  assert.match(source, /OPSC_PG_ACCEPTANCE_CLEANUP_HOST/);
+  assert.match(source, /cleanupTarget\.database !== database/);
+  assert.match(source, /cleanupTarget\.hostname !== parsed\.hostname/);
+  assert.match(source, /decodeURIComponent\(cleanupTarget\.parsed\.username\) !== 'opscore_owner'/);
+  assert.match(source, /identity\.superuser !== false/);
+  assert.match(source, /identity\.bypass_rls !== true/);
+  assert.match(source, /OPSC_PG_ACCEPTANCE_URL/);
+  assert.match(source, /DATABASE_URL: urlText/);
+  assert.match(source, /application_name: 'opscore-acceptance-targeted-cleanup'/);
+  assert.match(source, /exact-target-opscore_owner-cleanup/);
+  assert.match(source, /created\.organizations/);
+  assert.match(source, /created\.users/);
+});
