@@ -192,84 +192,45 @@ function scanOpenDatabaseHandles(databasePath) {
 
   const matches = [];
   const seen = new Set();
-  const inspectFdDirectory = (pidText, fdDirectory) => {
-    let descriptors;
-    try { descriptors = fs.readdirSync(fdDirectory); }
-    catch (error) {
-      if (error?.code === 'ENOENT') return;
-      throw new Error('SQLITE_OPEN_HANDLE_SCAN_INCOMPLETE', { cause: error });
-    }
-
-    for (const descriptor of descriptors) {
-      if (!/^\d+$/.test(descriptor)) continue;
-      const key = pidText + ':' + descriptor;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      const descriptorPath = path.join(fdDirectory, descriptor);
-      let openedStat;
-      let linkTarget;
-      try {
-        openedStat = fs.statSync(descriptorPath);
-        linkTarget = fs.readlinkSync(descriptorPath);
-      } catch (error) {
-        if (error?.code === 'ENOENT' || error?.code === 'EBADF') continue;
-        throw new Error('SQLITE_OPEN_HANDLE_SCAN_INCOMPLETE', { cause: error });
-      }
-
-      const normalizedTarget = linkTarget.endsWith(' (deleted)')
-        ? linkTarget.slice(0, -10)
-        : linkTarget;
-      const sameInode = openedStat.dev === targetStat.dev && openedStat.ino === targetStat.ino;
-      const samePath = path.isAbsolute(normalizedTarget) && path.resolve(normalizedTarget) === canonicalTarget;
-      if (!sameInode && !samePath) continue;
-
-      let command = 'unknown';
-      try { command = fs.readFileSync('/proc/' + pidText + '/comm', 'utf8').trim() || command; }
-      catch (error) {
-        if (!['ENOENT', 'EACCES', 'EPERM'].includes(error?.code)) {
-          throw new Error('SQLITE_OPEN_HANDLE_SCAN_INCOMPLETE', { cause: error });
-        }
-      }
-      matches.push({ pid: pidText === 'self' ? process.pid : Number(pidText), command, descriptor: Number(descriptor) });
-    }
-  };
-
-  // Processes running as this database's owning UID are scanned in full. The
-  // database file is owner-only (0600); unrelated UIDs cannot open it through
-  // normal filesystem permissions. Root/privileged host processes and
-  // other PID namespaces remain outside this application's supported SQLite
-  // concurrency boundary; operators must stop those external actors separately.
-  const processCanAccessPrivateDatabase = pidText => {
-    let status;
-    try {
-      status = fs.readFileSync('/proc/' + pidText + '/status', 'utf8');
-    } catch (error) {
-      if (error?.code === 'ENOENT') return false;
-      throw new Error('SQLITE_OPEN_HANDLE_SCAN_INCOMPLETE', { cause: error });
-    }
-    const uidLine = status.split('\n').find(line => line.startsWith('Uid:'));
-    const uids = uidLine ? uidLine.trim().split(/\s+/).slice(1, 5).map(Number) : [];
-    if (uids.length !== 4 || uids.some(uid => !Number.isSafeInteger(uid))) {
-      throw new Error('SQLITE_OPEN_HANDLE_SCAN_INCOMPLETE');
-    }
-    // Root is privileged and may bypass DAC; its open handles are an explicit
-    // operator stop condition rather than silently claimed as covered by /proc.
-    if (uids.every(uid => uid === 0)) return false;
-    return uids.includes(effectiveUid);
-  };
-
-  // Inspect this process explicitly; /proc/self works even when other PIDs are
-  // hidden by a container's procfs policy.
-  inspectFdDirectory('self', '/proc/self/fd');
-  let entries;
-  try { entries = fs.readdirSync('/proc'); }
-  catch (error) { throw new Error('SQLITE_OPEN_HANDLE_SCAN_UNAVAILABLE', { cause: error }); }
-
-  for (const pidText of entries) {
-    if (!/^\d+$/.test(pidText) || Number(pidText) === process.pid) continue;
-    if (!processCanAccessPrivateDatabase(pidText)) continue;
-    inspectFdDirectory(pidText, '/proc/' + pidText + '/fd');
+  const fdDirectory = '/proc/self/fd';
+  let descriptors;
+  try { descriptors = fs.readdirSync(fdDirectory); }
+  catch (error) {
+    throw new Error('SQLITE_OPEN_HANDLE_SCAN_INCOMPLETE', { cause: error });
   }
+
+  for (const descriptor of descriptors) {
+    if (!/^\\d+$/.test(descriptor)) continue;
+    if (seen.has(descriptor)) continue;
+    seen.add(descriptor);
+    const descriptorPath = path.join(fdDirectory, descriptor);
+    let openedStat;
+    let linkTarget;
+    try {
+      openedStat = fs.statSync(descriptorPath);
+      linkTarget = fs.readlinkSync(descriptorPath);
+    } catch (error) {
+      // The descriptor list may change while it is inspected; a closed FD is
+      // no longer an active use. Permission and other failures remain fail-closed.
+      if (error?.code === 'ENOENT' || error?.code === 'EBADF') continue;
+      throw new Error('SQLITE_OPEN_HANDLE_SCAN_INCOMPLETE', { cause: error });
+    }
+
+    const normalizedTarget = linkTarget.endsWith(' (deleted)')
+      ? linkTarget.slice(0, -10)
+      : linkTarget;
+    const sameInode = openedStat.dev === targetStat.dev && openedStat.ino === targetStat.ino;
+    const samePath = path.isAbsolute(normalizedTarget) && path.resolve(normalizedTarget) === canonicalTarget;
+    if (!sameInode && !samePath) continue;
+    matches.push({ pid: process.pid, command: process.title || 'node', descriptor: Number(descriptor) });
+  }
+
+  // Cross-process application-managed openDb connections are covered by the
+  // per-database lease/fence protocol. This procfs check intentionally proves
+  // only descriptors in the restoring process itself: GitHub runners and
+  // container procfs policies can deny access to unrelated PIDs even when
+  // UID values match. Non-managed external processes must be stopped by the
+  // operator; this function does not certify their quiescence.
   return matches;
 }
 
