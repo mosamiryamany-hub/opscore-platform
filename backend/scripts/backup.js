@@ -17,7 +17,7 @@ function assertRegularFile(file, code) {
 }
 
 function assertNoSidecars(file, code) {
-  for (const suffix of ['-wal', '-shm']) {
+  for (const suffix of ['-wal', '-shm', '-journal']) {
     if (fs.existsSync(file + suffix)) throw new Error(code);
   }
 }
