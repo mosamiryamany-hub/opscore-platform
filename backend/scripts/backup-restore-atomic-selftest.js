@@ -100,6 +100,15 @@ try {
   unmanagedDb.close();
   for (const suffix of ['-wal', '-shm', '-journal']) fs.rmSync(destination + suffix, { force: true });
 
+  // A maintenance lock fences new opens for the full replacement window.
+  const { acquireDatabaseMaintenanceLock } = require('../src/sqlite-lifecycle');
+  const maintenanceLock = acquireDatabaseMaintenanceLock(destination);
+  try {
+    assert.throws(() => openDb(destination), /SQLITE_DATABASE_MAINTENANCE_IN_PROGRESS/);
+  } finally {
+    maintenanceLock.release();
+  }
+
   const restored = run(restoreScript, [backup], { SQLITE_PATH: destination });
   assert.equal(restored.status, 0, restored.stderr || restored.stdout);
   assert.ok(fs.existsSync(destination + '.before-restore'), 'restore must preserve a pre-restore safety copy');
@@ -219,6 +228,7 @@ try {
       'restore refuses active SQLite WAL/SHM/journal sidecars',
       'restore blocks a live application-managed openDb connection',
       'restore detects an unmanaged SQLite file descriptor through Linux /proc',
+      'maintenance lock prevents new application connections during the file swap',
       'injected post-swap verification failure restores original bytes and re-verifies rollback',
       'injected post-swap failure removes a destination that did not exist before restore'
     ]
