@@ -83,6 +83,23 @@ try {
     destinationDb.close();
   }
 
+  // An open application-managed connection must block restore before any file changes.
+  const originalDestinationHash = hash(destination);
+  const activeApplicationDb = openDb(destination);
+  const activeLeaseRestore = run(restoreScript, [backup], { SQLITE_PATH: destination });
+  expectFailure(activeLeaseRestore, 'SQLITE_DATABASE_IN_USE');
+  assert.equal(hash(destination), originalDestinationHash, 'active managed handle must prevent destination mutation');
+  activeApplicationDb.close();
+  for (const suffix of ['-wal', '-shm', '-journal']) fs.rmSync(destination + suffix, { force: true });
+
+  // A raw SQLite handle that bypasses openDb must still be caught by Linux /proc FD inspection.
+  const unmanagedDb = new DatabaseSync(destination);
+  const unmanagedRestore = run(restoreScript, [backup], { SQLITE_PATH: destination });
+  expectFailure(unmanagedRestore, 'SQLITE_DATABASE_OPEN_HANDLE_PRESENT');
+  assert.equal(hash(destination), originalDestinationHash, 'unmanaged open file descriptor must prevent destination mutation');
+  unmanagedDb.close();
+  for (const suffix of ['-wal', '-shm', '-journal']) fs.rmSync(destination + suffix, { force: true });
+
   const restored = run(restoreScript, [backup], { SQLITE_PATH: destination });
   assert.equal(restored.status, 0, restored.stderr || restored.stdout);
   assert.ok(fs.existsSync(destination + '.before-restore'), 'restore must preserve a pre-restore safety copy');
@@ -132,6 +149,61 @@ try {
   fs.rmSync(destination + '-wal', { force: true });
   fs.rmSync(destination + '-journal', { force: true });
 
+  // Force verification to fail only after the staged database has replaced the destination.
+  const rollbackDestination = path.join(root, 'rollback-destination.sqlite');
+  const rollbackDb = openDb(rollbackDestination);
+  try {
+    rollbackDb.exec('CREATE TABLE rollback_marker (value TEXT NOT NULL)');
+    rollbackDb.prepare('INSERT INTO rollback_marker(value) VALUES(?)').run('original-before-swap');
+  } finally {
+    rollbackDb.close();
+  }
+  for (const suffix of ['-wal', '-shm', '-journal']) fs.rmSync(rollbackDestination + suffix, { force: true });
+  const rollbackOriginalHash = hash(rollbackDestination);
+  let postSwapFailureInjected = false;
+  const { restoreDatabase, assertDatabaseIntegrity } = require('./sqlite-restore-core');
+  assert.throws(() => restoreDatabase({
+    sourcePath: backup,
+    destinationPath: rollbackDestination,
+    verifyDatabase(file, prefix) {
+      if (prefix === 'RESTORED_DATABASE') {
+        const postSwapDb = new DatabaseSync(file, { readOnly: true });
+        try {
+          assert.equal(postSwapDb.prepare('SELECT value FROM recovery_marker').get().value, 'from-backup',
+            'fault injection must occur only after the new database is live at the destination path');
+        } finally {
+          postSwapDb.close();
+        }
+        postSwapFailureInjected = true;
+        throw new Error('TEST_INJECTED_POST_SWAP_VERIFICATION_FAILURE');
+      }
+      return assertDatabaseIntegrity(file, prefix);
+    }
+  }), /RESTORE_POST_SWAP_VERIFICATION_FAILED_ROLLED_BACK/);
+  assert.equal(postSwapFailureInjected, true, 'post-swap verification fault must actually execute');
+  assert.equal(hash(rollbackDestination), rollbackOriginalHash,
+    'post-swap verification failure must restore the original destination bytes');
+  assert.equal(hash(rollbackDestination + '.before-restore'), rollbackOriginalHash,
+    'the preserved pre-restore copy must match the restored original database byte-for-byte');
+  const rolledBackDb = new DatabaseSync(rollbackDestination, { readOnly: true });
+  try {
+    assert.equal(rolledBackDb.prepare('SELECT value FROM rollback_marker').get().value, 'original-before-swap');
+  } finally {
+    rolledBackDb.close();
+  }
+
+  // Also prove rollback removes a newly created destination when none existed before restore.
+  const absentDestination = path.join(root, 'absent-destination.sqlite');
+  assert.throws(() => restoreDatabase({
+    sourcePath: backup,
+    destinationPath: absentDestination,
+    verifyDatabase(file, prefix) {
+      if (prefix === 'RESTORED_DATABASE') throw new Error('TEST_INJECTED_POST_SWAP_FAILURE_WITHOUT_OLD_FILE');
+      return assertDatabaseIntegrity(file, prefix);
+    }
+  }), /RESTORE_POST_SWAP_VERIFICATION_FAILED_ROLLED_BACK/);
+  assert.equal(fs.existsSync(absentDestination), false, 'rollback must remove an invalid newly-created destination');
+
   console.log(JSON.stringify({
     status: 'PASS',
     checks: [
@@ -144,7 +216,11 @@ try {
       'invalid restore leaves the live database byte-for-byte unchanged',
       'restore rejects source/destination identity',
       'restore refuses to overwrite an existing pre-restore safety copy',
-      'restore refuses active SQLite WAL/SHM sidecars'
+      'restore refuses active SQLite WAL/SHM/journal sidecars',
+      'restore blocks a live application-managed openDb connection',
+      'restore detects an unmanaged SQLite file descriptor through Linux /proc',
+      'injected post-swap verification failure restores original bytes and re-verifies rollback',
+      'injected post-swap failure removes a destination that did not exist before restore'
     ]
   }, null, 2));
 } finally {
