@@ -16,6 +16,7 @@
  */
 const crypto = require('node:crypto');
 const { Client } = require('pg');
+const { normalizePostgresConnectionString } = require('../src/adapters/postgres');
 
 const REQUIRED_CONFIRM = 'SWITCH_PRODUCTION_DB_TO_DIRECT_TLS';
 const POOLER_SUFFIX = '-pooler';
@@ -59,10 +60,35 @@ function variants(rawUrl) {
   });
 }
 
+function buildTlsProbeConfig(href, env = process.env) {
+  const sslMode = String(env.OPSC_PG_SSL_MODE || 'verify-full').trim().toLowerCase();
+  const rejectUnauthorized = String(env.OPSC_PG_SSL_REJECT_UNAUTHORIZED || 'true').trim().toLowerCase();
+  if (sslMode !== 'verify-full' || rejectUnauthorized !== 'true') {
+    const error = new Error('TLS_PROBE_STRICT_TLS_REQUIRED');
+    error.code = 'TLS_PROBE_STRICT_TLS_REQUIRED';
+    throw error;
+  }
+
+  // Keep this probe aligned with the production adapter. node-postgres lets
+  // sslmode/sslrootcert/sslcert/sslkey URL parameters replace the explicit ssl
+  // object; normalize first so a stale sslmode=disable cannot silently turn
+  // the supposedly verified probe into a plaintext connection.
+  const normalized = normalizePostgresConnectionString(href, env);
+  return {
+    connectionString: normalized.connectionString,
+    ssl: {
+      rejectUnauthorized: true,
+      ca: env.OPSC_PG_CA_CERT || normalized.tls.ca || undefined,
+      cert: normalized.tls.cert || undefined,
+      key: normalized.tls.key || undefined
+    }
+  };
+}
+
 async function probe(href) {
+  const tlsConfig = buildTlsProbeConfig(href);
   const client = new Client({
-    connectionString: href,
-    ssl: { rejectUnauthorized: true },
+    ...tlsConfig,
     connectionTimeoutMillis: 12000,
     statement_timeout: 8000,
     application_name: 'ops-tls-probe-readonly'
@@ -127,29 +153,28 @@ async function main() {
   }
 
   const asConfigured = observed.find(entry => entry.variant === 'as-configured');
-  const directEntry = observed.find(entry => entry.variant === 'direct' && entry.ssl === true);
+  if (configuredClass === 'direct') directHostname = configuredHostname;
+  const directEntry = configuredClass === 'direct'
+    ? asConfigured
+    : observed.find(entry => entry.variant === 'direct' && entry.ssl === true);
   const expectedDatabase = (asConfigured && asConfigured.database) || EXPECTED_DATABASE;
   const directQualified = Boolean(directEntry) &&
+    directEntry.ssl === true &&
     ['TLSv1.2', 'TLSv1.3'].includes(String(directEntry.tlsVersion || '')) &&
     Number.isInteger(directEntry.tlsBits) && directEntry.tlsBits >= 128 &&
     directEntry.currentUser === EXPECTED_RUNTIME_USER &&
     directEntry.database === expectedDatabase;
 
-  if (configuredClass === 'direct') {
-    if (asConfigured && asConfigured.ssl === true) {
-      console.log('ALREADY_DIRECT_TLS_VERIFIED_NO_SWITCH');
-      process.exit(0);
-    }
-    console.log('TLS_PROBE_DIRECT_NOT_VERIFIED_NO_SWITCH');
-    process.exit(1);
-  }
-
   if (!directQualified) {
-    console.log('TLS_PROBE_DIRECT_NOT_QUALIFIED_NO_SWITCH');
+    console.log(configuredClass === 'direct'
+      ? 'TLS_PROBE_DIRECT_NOT_VERIFIED_NO_SWITCH'
+      : 'TLS_PROBE_DIRECT_NOT_QUALIFIED_NO_SWITCH');
     process.exit(1);
   }
 
-  const directHref = withHostname(raw, directHostname);
+  const directUrl = new URL(withHostname(raw, directHostname));
+  directUrl.searchParams.set('sslmode', 'verify-full');
+  const directHref = directUrl.toString();
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   const query = teamId ? `?teamId=${encodeURIComponent(teamId)}` : '';
   const listResponse = await fetch(`https://api.vercel.com/v9/projects/${encodeURIComponent(projectId)}/env${query}`, { headers });
@@ -179,7 +204,11 @@ async function main() {
   console.log('SWITCH_DONE production database URLs now use the direct endpoint; TLS is negotiated into the compute node with certificate verification. Values are not echoed.');
 }
 
-main().catch(error => {
-  console.log('TLS_SWITCH_UNEXPECTED ' + String((error && error.code) || (error && error.name) || 'ERROR'));
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch(error => {
+    console.log('TLS_SWITCH_UNEXPECTED ' + String((error && error.code) || (error && error.name) || 'ERROR'));
+    process.exit(1);
+  });
+}
+
+module.exports = { buildTlsProbeConfig, classifyHostname, variants, withHostname };
