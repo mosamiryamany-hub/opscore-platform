@@ -34,6 +34,10 @@ const currentCloseoutRunbook = fs.readFileSync(
   path.join(root, 'CLOSEOUT_EXECUTION_RUNBOOK.md'),
   'utf8'
 );
+const commercialClosureStatus = fs.readFileSync(
+  path.join(root, 'COMMERCIAL_CLOSURE_STATUS.md'),
+  'utf8'
+);
 
 const localesManifest = JSON.parse(fs.readFileSync(
   path.join(root, 'backend', 'web', 'i18n', 'locales', 'manifest.json'),
@@ -149,4 +153,16 @@ test('GitHub Environment reviewer protection is not claimed without a verified s
   assert.match(runbook, /their presence is \*\*UNVERIFIED\*\*/);
   assert.match(runbook, /Verify Settings → Environments → production before any dispatch/);
   assert.doesNotMatch(runbook, /protected GitHub `production` Environment approval/);
+});
+
+
+test('Production release flags remain bound to the older public SHA and do not qualify the current closeout base', () => {
+  assert.match(commercialClosureStatus, /OPSC_PRODUCTION_HOLD=false/);
+  assert.match(commercialClosureStatus, /OPSC_RELEASE_VERIFIED=true/);
+  assert.match(commercialClosureStatus, /OPSC_PRODUCTION_ISOLATION_CERTIFICATION=CERTIFIED/);
+  assert.match(commercialClosureStatus, /b7f63445c1748ebaec426a9ebe0ea629e4998839/);
+  assert.match(commercialClosureStatus, /OPSC_PG_SSL_MODE=verify-full/);
+  assert.match(commercialClosureStatus, /OPSC_PG_SSL_REJECT_UNAUTHORIZED=true/);
+  assert.match(commercialClosureStatus, /63682774/);
+  assert.match(commercialClosureStatus, /NOT_ESTABLISHED/);
 });

@@ -6,17 +6,28 @@ This register separates seller release blockers from buyer-specific deliverables
 
 | Item | Measured value | Scope |
 |---|---|---|
-| GitHub main | `43554492218adbf0cde2d700bd0dedfadce67f5e` | Confirmed by remote ref lookup on 2026-11-22 |
-| GitHub Actions | Run `44953249616` | Post-merge checks succeeded; Vercel deploy, PITR and Neon Preview migration jobs were skipped |
+| Main SHA at reconciliation start | `63682774b7f81e123f996f6508fed5a714fea0be` | Verified remote head after PR #382 merge |
+| Application/runtime baseline | `43554492218adbf0cde2d700bd0dedfadce67f5e` | PR #382 changed docs, tests and static audit tooling; no runtime/migration/lockfile changes |
+| GitHub Actions | Run `44993913435` | Post-merge verify PASS: 960 passed, 0 failed, 3 skipped |
+| Vercel workflow | Run `44993913475` | Source verification, isolated PostgreSQL 18, contract verification and isolated RLS/HTTP acceptance PASS; PITR, Neon Preview migration and deploy SKIPPED |
+| Signed-tenant PostgreSQL 18 CI coverage | `PASS 67/67`, 0 failed | Artifact `signed-tenant-postgres-18-ci-coverage-44993913475`; source hint `63682774…`; runtime role `opscore_runtime`; signed/session/transaction binding and raw-GUC tamper denial 67/67; CI-only, no deployment ID or Production promotion/certification |
+| Mobile dependency audit | `PASS`, 0 findings | Full and production audit trees, 497 dependency nodes; exact source hint `63682774…`; artifact `mobile-dependency-audit-44993913475-63682774…` |
 | Production certification / promotion | `NOT_ESTABLISHED` / `NOT_PROVEN` | No exact-head authorized Production run or matching runtime proof |
-| Vercel Production-target deployments on current main | `dpl_G15K6Sg9Q7xJQKrHKFRYJGSNDerN`; `dpl_EC2Ri4BJrZTN7ca53xurrUV9LvmR` | Both `READY`, source SHA `43554492218adbf0cde2d700bd0dedfadce67f5e`, both have empty alias lists |
+| Vercel deployment for current main closeout commit | SHA `63682774b7f81e123f996f6508fed5a714fea0be` | No deployment record found for this SHA |
+| Latest current-source Vercel Production-target deployments | `dpl_G15K6Sg9Q7xJQKrHKFRYJGSNDerN`; `dpl_EC2Ri4BJrZTN7ca53xurrUV9LvmR` | Both `READY` on application/runtime parent SHA `43554492218adbf0cde2d700bd0dedfadce67f5e`, both have empty alias lists |
 | Canonical production domain | `opscore-platform.vercel.app` → `dpl_EacspS7o2jntgw8uS1YMpzf45CFt` | Verified domain record; current alias deployment source SHA `b7f63445c1748ebaec426a9ebe0ea629e4998839`, not current main |
 | Focused local test suite | 89 / 89 PASS | Includes local unmerged red-team regression test; not an official main CI result |
 | Red-team result | Main: `REVIEW`; local adjusted analyzer: `PASS` | Five bounded contracts verified locally; analyzer change is uncommitted and not attributable to main |
 | Dependency audit | 6 audits, zero findings | Full and `--omit=dev` for root/backend/mobile on current SHA lockfiles; not a software security certification |
 | Secure Release package | Not established | No exact-main ZIP, SBOM, signed provenance or release statement found |
 
-**Release interpretation:** successful post-merge CI is not a completed Production release or commercial technical certification. Two Vercel Production-target deployment records now exist on current main SHA `43554492218adbf0cde2d700bd0dedfadce67f5e`, both READY but with empty alias lists. The verified canonical domain record resolves to the older alias deployment on SHA `b7f63445c1748ebaec426a9ebe0ea629e4998839`. Therefore current-main deployment records exist, but the public domain is still not shown serving that SHA; production runtime/security proof and promotion remain unproven.
+**Release interpretation:** successful post-merge CI is not a completed Production release or commercial technical certification. No Vercel deployment record exists for reconciliation base SHA `63682774b7f81e123f996f6508fed5a714fea0be`. Two READY Production-target records exist on its application/runtime parent SHA `43554492218adbf0cde2d700bd0dedfadce67f5e`, both with empty alias lists. The verified canonical domain record resolves to deployment `dpl_EacspS7o2jntgw8uS1YMpzf45CFt` on SHA `b7f63445c1748ebaec426a9ebe0ea629e4998839`. The public domain is therefore still on the older release; current-main production deployment and promotion remain unproven.
+
+## Production environment binding — read-only Vercel inspection, 2026-11-22
+
+Production environment flags currently read `OPSC_PRODUCTION_HOLD=false`, `OPSC_RELEASE_VERIFIED=true`, and `OPSC_PRODUCTION_ISOLATION_CERTIFICATION=CERTIFIED`. These are internal flags only, not external ISO/SOC/PCI certification. The release package, CI and source commit variables all bind to SHA `b7f63445c1748ebaec426a9ebe0ea629e4998839`, matching the canonical domain alias deployment. The configured production probe deployment is a separate READY deployment on that same older SHA. These settings do not qualify reconciliation base SHA `63682774…`.
+
+Production TLS configuration is `OPSC_PG_SSL_MODE=verify-full` and `OPSC_PG_SSL_REJECT_UNAUTHORIZED=true`. This confirms strict configuration values, not a successful TLS handshake on the actual application worker. No fresh exact-head Production worker TLS proof exists.
 
 ## Required public-proof semantics
 

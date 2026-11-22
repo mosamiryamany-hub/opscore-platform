@@ -1,7 +1,8 @@
 # OpsCore — Technical and Commercial Closure Status
 
 **Reconciled:** 2026-11-22
-**Current main:** `43554492218adbf0cde2d700bd0dedfadce67f5e`
+**Main SHA at reconciliation start:** `63682774b7f81e123f996f6508fed5a714fea0be`  
+**Application/runtime baseline:** `43554492218adbf0cde2d700bd0dedfadce67f5e` (closeout merge changed docs, tests and static audit tooling only)
 **Current classification:** `HOLD — SELLER RELEASE NOT CERTIFIED`  
 **Buyer-specific qualification:** `NOT_ESTABLISHED`  
 **Buyer environment:** `NOT_VERIFIED` — seller evidence does not transfer to buyer infrastructure.
@@ -11,12 +12,16 @@
 | Control | Current verified value | Interpretation |
 |---|---|---|
 | GitHub main | `43554492218adbf0cde2d700bd0dedfadce67f5e` | Confirmed from `origin/main` on 2026-11-22 |
-| GitHub workflow | `44953249616` | Post-merge checks succeeded; Vercel deploy, PITR and Neon Preview migration jobs skipped |
+| GitHub workflow | `44993913435` | Post-merge verify PASS: 960 passed, 0 failed, 3 skipped |
+| Vercel workflow | `44993913475` | Source, isolated PostgreSQL 18, contract and isolated RLS/HTTP checks PASS; PITR, Neon Preview migration and deploy jobs SKIPPED |
+| Signed-tenant PostgreSQL 18 artifact | `PASS 67/67` | Disposable CI route probes; all 67 signed/session/transaction-bound and raw-GUC tamper-denied; no Production deployment ID/certification/promotion |
+| Mobile audit artifact | `PASS`, 0 findings | Full and production trees, 497 dependency nodes, exact reconciliation-base source hint |
 | Production certification / promotion | `NOT_ESTABLISHED` / `NOT_PROVEN` | No exact-head authorized Production workflow or matching runtime evidence |
-| Current-main Vercel Production-target deployments | `dpl_G15K6Sg9Q7xJQKrHKFRYJGSNDerN`; `dpl_EC2Ri4BJrZTN7ca53xurrUV9LvmR` | Both READY on SHA `43554492218adbf0cde2d700bd0dedfadce67f5e`; both alias lists empty |
+| Vercel deployment for reconciliation base SHA `63682774…` | None found | No deployment record for current main closeout commit |
+| Latest application-source Vercel Production-target deployments | `dpl_G15K6Sg9Q7xJQKrHKFRYJGSNDerN`; `dpl_EC2Ri4BJrZTN7ca53xurrUV9LvmR` | Both READY on application/runtime parent SHA `43554492218adbf0cde2d700bd0dedfadce67f5e`; both alias lists empty |
 | Canonical production domain | `opscore-platform.vercel.app` → `dpl_EacspS7o2jntgw8uS1YMpzf45CFt` | Domain verified; alias deployment source SHA `b7f63445c1748ebaec426a9ebe0ea629e4998839`, not current main |
 
-The workflow's source and isolated PostgreSQL 18 checks passed, but its Vercel deploy, PITR and Neon Preview migration jobs were skipped. Two subsequent Production-target Vercel deployments are READY on current main SHA `43554492218adbf0cde2d700bd0dedfadce67f5e`, but both have empty alias lists. The verified canonical domain remains attached to an older deployment on SHA `b7f63445c1748ebaec426a9ebe0ea629e4998839`. A current-main deployment record exists, but the public domain is not shown serving it; final runtime/database proof, promotion and canonical-domain verification remain unproven.
+The workflow's source and isolated PostgreSQL 18 checks passed, but its Vercel deploy, PITR and Neon Preview migration jobs were skipped. No Vercel deployment record exists for reconciliation base SHA `63682774…`. Two READY Production-target deployments exist on its application/runtime parent SHA `435544922…`, both with empty alias lists. The verified canonical domain remains attached to deployment `dpl_EacspS7o2jntgw8uS1YMpzf45CFt` on SHA `b7f63445…`. The public domain is still on the older release; final runtime/database proof, promotion and canonical-domain verification remain unproven.
 
 ## Seller-owned closeout gates
 
@@ -32,6 +37,12 @@ The workflow's source and isolated PostgreSQL 18 checks passed, but its Vercel d
 PR #381 is included in current `main` and updates release-proof controls. The local red-team analyzer correction and regression test are uncommitted and not in `main`; its local PASS cannot replace main's current REVIEW report. Production functional route/business-flow evidence, a post-merge authorized workflow and exact-target proof remain absent, so release stays HOLD.
 
 **NO LICENSE GRANT.** No buyer license or commercial distribution right exists until the rights holder and named buyer execute a **signed** exact-deliverable License Schedule.
+
+## Production environment binding
+
+Read-only Vercel environment inspection on 2026-11-22 found `OPSC_PRODUCTION_HOLD=false`, `OPSC_RELEASE_VERIFIED=true`, and internal `OPSC_PRODUCTION_ISOLATION_CERTIFICATION=CERTIFIED`. These are deployment flags, not external certification. `OPSC_RELEASE_PACKAGE_COMMIT`, `OPSC_RELEASE_CI_COMMIT` and `OPSC_SOURCE_COMMIT_SHA` all bind to `b7f63445c1748ebaec426a9ebe0ea629e4998839`, the canonical alias source SHA. `OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID` points to a separate READY Production-target deployment on the same SHA. This state is consistent with the older public release, not current reconciliation base SHA `63682774…`.
+
+Production TLS settings are `OPSC_PG_SSL_MODE=verify-full` and `OPSC_PG_SSL_REJECT_UNAUTHORIZED=true`. This confirms strict configuration, not actual worker TLS negotiation. Keep the application-worker TLS gate open until exact-deployment runtime evidence passes.
 
 ## Neon and database boundaries
 
