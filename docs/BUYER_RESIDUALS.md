@@ -10,6 +10,8 @@ This register separates seller release blockers from buyer-specific deliverables
 | Application/runtime baseline | `43554492218adbf0cde2d700bd0dedfadce67f5e` | PR #382 changed docs, tests and static audit tooling; no runtime/migration/lockfile changes |
 | GitHub Actions | Run `44993913435` | Post-merge verify PASS: 960 passed, 0 failed, 3 skipped |
 | Vercel workflow | Run `44993913475` | Source verification, isolated PostgreSQL 18, contract verification and isolated RLS/HTTP acceptance PASS; PITR, Neon Preview migration and deploy SKIPPED |
+| Signed-tenant PostgreSQL 18 CI coverage | `PASS 67/67`, 0 failed | Artifact `signed-tenant-postgres-18-ci-coverage-44993913475`; source hint `63682774…`; runtime role `opscore_runtime`; signed/session/transaction binding and raw-GUC tamper denial 67/67; CI-only, no deployment ID or Production promotion/certification |
+| Mobile dependency audit | `PASS`, 0 findings | Full and production audit trees, 497 dependency nodes; exact source hint `63682774…`; artifact `mobile-dependency-audit-44993913475-63682774…` |
 | Production certification / promotion | `NOT_ESTABLISHED` / `NOT_PROVEN` | No exact-head authorized Production run or matching runtime proof |
 | Vercel deployment for current main closeout commit | SHA `63682774b7f81e123f996f6508fed5a714fea0be` | No deployment record found for this SHA |
 | Latest current-source Vercel Production-target deployments | `dpl_G15K6Sg9Q7xJQKrHKFRYJGSNDerN`; `dpl_EC2Ri4BJrZTN7ca53xurrUV9LvmR` | Both `READY` on application/runtime parent SHA `43554492218adbf0cde2d700bd0dedfadce67f5e`, both have empty alias lists |
