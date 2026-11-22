@@ -179,7 +179,7 @@ async function verifyNeonEndpointIdentity(url,env=process.env,fetchImpl=globalTh
  const projectId=String(env.OPSC_MIGRATION_EXPECTED_PROJECT_ID||'').trim();
  const branchId=String(env.OPSC_MIGRATION_EXPECTED_BRANCH_ID||'').trim();
  if(target==='preview'&&env.OPSC_MIGRATION_PINNED_NEON_IDENTITY==='1'){
-  const exact={projectId:'sweet-union-58466913',branchId:'br-solitary-band-bbczy982',host:'ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech',endpointId:'ep-dry-mouse-bbf5ozwy',database:'opscore_acceptance'};
+  const exact={projectId:'sweet-union-58466913',branchId:'br-muddy-pine-bbrexgxx',host:'ep-green-frog-bbyayuh5.c-15.us-east-1.aws.neon.tech',endpointId:'ep-green-frog-bbyayuh5',database:'opscore_acceptance'};
   const database=String(url.pathname||'').replace(/^\/+/, '');
   if(projectId!==exact.projectId||branchId!==exact.branchId||hostname!==exact.host||endpointId!==exact.endpointId||database!==exact.database){
    throw new Error('MIGRATION_PINNED_NEON_IDENTITY_MISMATCH');
