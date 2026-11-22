@@ -52,6 +52,7 @@ try {
   const report = JSON.parse(verify.stdout);
   assert.equal(report.integrity, 'PASS');
   assert.equal(report.foreignKeys, 'PASS');
+  assert.equal(fs.statSync(backup).mode & 0o077, 0, 'backup must not grant group/other file access');
 
   // A failed new backup must not truncate or delete a valid prior backup.
   fs.writeFileSync(corrupt, 'this is deliberately not a SQLite database');
@@ -77,6 +78,8 @@ try {
   const restored = run(restoreScript, [backup], { SQLITE_PATH: destination });
   assert.equal(restored.status, 0, restored.stderr || restored.stdout);
   assert.ok(fs.existsSync(destination + '.before-restore'), 'restore must preserve a pre-restore safety copy');
+  assert.equal(fs.statSync(destination).mode & 0o077, 0, 'restored database must not grant group/other file access');
+  assert.equal(fs.statSync(destination + '.before-restore').mode & 0o077, 0, 'safety copy must not grant group/other file access');
 
   const liveDb = new DatabaseSync(destination);
   try {
