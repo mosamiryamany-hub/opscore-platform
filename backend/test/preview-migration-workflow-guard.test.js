@@ -27,6 +27,8 @@ test('Preview migrations require one exact pinned non-primary branch and the app
   assert.match(previewApply, /PREVIEW_MIGRATION_LOGIN_ROLE_MUST_BE_NEONDB_OWNER/);
   assert.match(previewApply, /PREVIEW_MIGRATION_OWNER_ROLE_CAPABILITIES_INVALID/);
   assert.match(previewApply, /PREVIEW_MIGRATION_HASHES_057_065_070=PASS/);
+  assert.match(previewApply, /st != \"APPLIED_AND_VERIFIED\"/);
+  assert.match(previewApply, /APPLY_STATUS_NOT_VERIFIED/);
   assert.doesNotMatch(previewApply, /PREVIEW_MIGRATION_APPLY=NOT_APPLICABLE_ROLE_MODEL/);
   assert.doesNotMatch(previewApply, /PREVIEW_ACCEPTANCE=PASS_WITH_ROLE_MODEL_LIMITATION/);
   assert.doesNotMatch(previewApply, /CREATE ROLE neondb_owner|ALTER ROLE neondb_owner/);
