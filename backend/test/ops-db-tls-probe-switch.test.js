@@ -65,16 +65,45 @@ test('direct endpoint rewrite explicitly sets sslmode=verify-full', () => {
 });
 
 
-test('both production URL secrets are preflighted for matching host and database identity before updates', () => {
-  const reference = 'postgresql://opscore_runtime:secret@ep-example.neon.tech/opscore_acceptance?sslmode=disable';
+test('production URLs may use pooled/direct hosts and independent passwords for the same endpoint identity', () => {
+  const reference = 'postgresql://opscore_runtime:first-secret@ep-example-pooler.neon.tech/opscore_acceptance?sslmode=disable';
   const values = validateEnvironmentUrls({
     OPSC_DATABASE_URL: reference,
-    DATABASE_URL: 'postgresql://opscore_runtime:secret@ep-example.neon.tech/opscore_acceptance?sslmode=require'
+    DATABASE_URL: 'postgresql://opscore_runtime:rotated-secret@ep-example.neon.tech/opscore_acceptance?sslmode=require&channel_binding=require'
   }, reference);
-  assert.equal(new URL(values.OPSC_DATABASE_URL).hostname, 'ep-example.neon.tech');
-  assert.equal(new URL(values.DATABASE_URL).pathname, '/opscore_acceptance');
+  assert.equal(new URL(values.OPSC_DATABASE_URL).hostname, 'ep-example-pooler.neon.tech');
+  assert.equal(new URL(values.DATABASE_URL).hostname, 'ep-example.neon.tech');
+  assert.equal(new URL(values.DATABASE_URL).searchParams.get('channel_binding'), 'require');
 });
 
+test('production URL preflight rejects a different Neon endpoint', () => {
+  const reference = 'postgresql://opscore_runtime:secret@ep-example.neon.tech/opscore_acceptance';
+  assert.throws(
+    () => validateEnvironmentUrls({
+      OPSC_DATABASE_URL: reference,
+      DATABASE_URL: 'postgresql://opscore_runtime:secret@ep-other.neon.tech/opscore_acceptance'
+    }, reference),
+    { code: 'ENV_KEY_ENDPOINT_UNEXPECTED' }
+  );
+});
+
+test('production URL preflight rejects an unexpected runtime role or database', () => {
+  const reference = 'postgresql://opscore_runtime:secret@ep-example.neon.tech/opscore_acceptance';
+  assert.throws(
+    () => validateEnvironmentUrls({
+      OPSC_DATABASE_URL: reference,
+      DATABASE_URL: 'postgresql://postgres:secret@ep-example.neon.tech/opscore_acceptance'
+    }, reference),
+    { code: 'ENV_KEY_RUNTIME_ROLE_UNEXPECTED' }
+  );
+  assert.throws(
+    () => validateEnvironmentUrls({
+      OPSC_DATABASE_URL: reference,
+      DATABASE_URL: 'postgresql://opscore_runtime:secret@ep-example.neon.tech/other'
+    }, reference),
+    { code: 'ENV_KEY_DATABASE_UNEXPECTED' }
+  );
+});
 test('environment URL preflight fails before writes when a URL secret is missing', () => {
   assert.throws(
     () => validateEnvironmentUrls({
@@ -84,27 +113,4 @@ test('environment URL preflight fails before writes when a URL secret is missing
   );
 });
 
-test('environment URL preflight rejects mismatched host, credentials or database', () => {
-  const reference = 'postgresql://opscore_runtime:secret@ep-example.neon.tech/opscore_acceptance';
-  assert.throws(
-    () => validateEnvironmentUrls({
-      OPSC_DATABASE_URL: reference,
-      DATABASE_URL: 'postgresql://opscore_runtime:secret@ep-other.neon.tech/opscore_acceptance'
-    }, reference),
-    { code: 'ENV_KEY_IDENTITY_UNEXPECTED' }
-  );
-  assert.throws(
-    () => validateEnvironmentUrls({
-      OPSC_DATABASE_URL: reference,
-      DATABASE_URL: 'postgresql://opscore_runtime:other@ep-example.neon.tech/opscore_acceptance'
-    }, reference),
-    { code: 'ENV_KEY_IDENTITY_UNEXPECTED' }
-  );
-  assert.throws(
-    () => validateEnvironmentUrls({
-      OPSC_DATABASE_URL: reference,
-      DATABASE_URL: 'postgresql://opscore_runtime:secret@ep-example.neon.tech/other'
-    }, reference),
-    { code: 'ENV_KEY_IDENTITY_UNEXPECTED' }
-  );
-});
+
