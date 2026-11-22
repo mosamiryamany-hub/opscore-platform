@@ -13,9 +13,15 @@ END
 $migration$;
 
 REVOKE ALL PRIVILEGES ON TABLE public.feature_flags, public.safe_mode_states, public.control_plane_runs FROM PUBLIC;
-REVOKE ALL PRIVILEGES ON TABLE public.feature_flags, public.safe_mode_states, public.control_plane_runs FROM opscore_app;
 
-GRANT SELECT, INSERT, UPDATE ON TABLE public.feature_flags TO opscore_app;
-GRANT SELECT, INSERT, UPDATE ON TABLE public.safe_mode_states TO opscore_app;
-GRANT INSERT ON TABLE public.control_plane_runs TO opscore_app;
+DO $legacy_app_acl$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname='opscore_app') THEN
+    EXECUTE 'REVOKE ALL PRIVILEGES ON TABLE public.feature_flags, public.safe_mode_states, public.control_plane_runs FROM opscore_app';
+    EXECUTE 'GRANT SELECT, INSERT, UPDATE ON TABLE public.feature_flags TO opscore_app';
+    EXECUTE 'GRANT SELECT, INSERT, UPDATE ON TABLE public.safe_mode_states TO opscore_app';
+    EXECUTE 'GRANT INSERT ON TABLE public.control_plane_runs TO opscore_app';
+  END IF;
+END
+$legacy_app_acl$;
 COMMIT;
