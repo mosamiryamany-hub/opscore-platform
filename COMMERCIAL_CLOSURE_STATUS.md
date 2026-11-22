@@ -14,6 +14,8 @@
 | GitHub main | `43554492218adbf0cde2d700bd0dedfadce67f5e` | Confirmed from `origin/main` on 2026-11-22 |
 | GitHub workflow | `44993913435` | Post-merge verify PASS: 960 passed, 0 failed, 3 skipped |
 | Vercel workflow | `44993913475` | Source, isolated PostgreSQL 18, contract and isolated RLS/HTTP checks PASS; PITR, Neon Preview migration and deploy jobs SKIPPED |
+| Signed-tenant PostgreSQL 18 artifact | `PASS 67/67` | Disposable CI route probes; all 67 signed/session/transaction-bound and raw-GUC tamper-denied; no Production deployment ID/certification/promotion |
+| Mobile audit artifact | `PASS`, 0 findings | Full and production trees, 497 dependency nodes, exact reconciliation-base source hint |
 | Production certification / promotion | `NOT_ESTABLISHED` / `NOT_PROVEN` | No exact-head authorized Production workflow or matching runtime evidence |
 | Vercel deployment for reconciliation base SHA `63682774…` | None found | No deployment record for current main closeout commit |
 | Latest application-source Vercel Production-target deployments | `dpl_G15K6Sg9Q7xJQKrHKFRYJGSNDerN`; `dpl_EC2Ri4BJrZTN7ca53xurrUV9LvmR` | Both READY on application/runtime parent SHA `43554492218adbf0cde2d700bd0dedfadce67f5e`; both alias lists empty |
