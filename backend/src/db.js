@@ -654,7 +654,12 @@ function openDb(dbPath = config.sqlitePath) {
     addColumn(db, 'customer_signoffs', 'signature_image_png', 'TEXT');
   addColumn(db, 'customer_signoffs', 'signature_image_sha256', 'TEXT');
   db.exec(`PRAGMA user_version = ${ CURRENT_SCHEMA_VERSION }`);
-  return db;
+    return db;
+  } catch (error) {
+    try { if (db) db.close(); } catch {}
+    releaseLifecycleLease();
+    throw error;
+  }
 }
 module.exports = {
   openDb,
