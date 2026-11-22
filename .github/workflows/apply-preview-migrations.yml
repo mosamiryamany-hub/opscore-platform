@@ -375,6 +375,65 @@ jobs:
           test "$ledger_outcome" = "success" || { echo "PREVIEW_MIGRATION_LEDGER_NOT_PASS:$ledger_outcome" >&2; exit 1; }
           echo "PREVIEW_MIGRATION_APPLY=PASS"
 
+      - name: Prepare ephemeral HMAC key for isolated Preview HTTP acceptance
+        id: preview_hmac_prepare
+        working-directory: backend
+        run: |
+          set -euo pipefail
+          URI="$(cat "$RUNNER_TEMP/bootstrap.uri")"
+          case "$URI" in *"?"*) URI="$URI&sslrootcert=system";; *) URI="$URI?sslrootcert=system";; esac
+
+          KEY_ID="ci-acceptance-$(date -u +%Y%m%dT%H%M%SZ)-$(openssl rand -hex 4)"
+          openssl rand -hex 32 > "$RUNNER_TEMP/preview-acceptance-hmac.hex"
+          chmod 600 "$RUNNER_TEMP/preview-acceptance-hmac.hex"
+          KEY_HEX="$(cat "$RUNNER_TEMP/preview-acceptance-hmac.hex")"
+          printf '%s' "$KEY_ID" > "$RUNNER_TEMP/preview-acceptance-hmac.key-id"
+          chmod 600 "$RUNNER_TEMP/preview-acceptance-hmac.key-id"
+
+          KEY_ID="$KEY_ID" KEY_HEX="$KEY_HEX" python3 - <<'PY'
+          import json, os, pathlib, re
+          key_id = os.environ["KEY_ID"]
+          key_hex = os.environ["KEY_HEX"]
+          if not re.fullmatch(r"ci-acceptance-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}", key_id):
+              raise SystemExit("PREVIEW_HMAC_KEY_ID_INVALID")
+          if not re.fullmatch(r"[0-9a-f]{64}", key_hex):
+              raise SystemExit("PREVIEW_HMAC_KEY_FORMAT_INVALID")
+          key_json = json.dumps({"key_id": key_id, "secret_hex": key_hex}, separators=(",", ":"))
+          pathlib.Path(os.environ["RUNNER_TEMP"], "preview-acceptance-hmac.json").write_text(key_json, encoding="utf-8")
+          sql = f"""
+          BEGIN;
+          DO $target$
+          BEGIN
+            IF current_user <> 'opscore_owner'
+               OR current_database() <> 'opscore_acceptance' THEN
+              RAISE EXCEPTION 'PREVIEW_HMAC_KEY_WRONG_TARGET';
+            END IF;
+          END
+          $target$;
+          INSERT INTO opscore_security.context_hmac_keys
+            (key_id, secret, enabled, not_before, not_after)
+          VALUES
+            ('{key_id}', decode('{key_hex}', 'hex'), true,
+             clock_timestamp() - interval '1 minute',
+             clock_timestamp() + interval '30 minutes');
+          COMMIT;
+          """
+          pathlib.Path(os.environ["RUNNER_TEMP"], "preview-acceptance-hmac.sql").write_text(sql, encoding="utf-8")
+          PY
+          chmod 600 "$RUNNER_TEMP/preview-acceptance-hmac.json" "$RUNNER_TEMP/preview-acceptance-hmac.sql"
+          KEY_JSON="$(cat "$RUNNER_TEMP/preview-acceptance-hmac.json")"
+          echo "::add-mask::$KEY_HEX"
+          echo "::add-mask::$KEY_JSON"
+          psql "$URI" -v ON_ERROR_STOP=1 -q -f "$RUNNER_TEMP/preview-acceptance-hmac.sql"
+          KEY_ID="$KEY_ID" psql "$URI" -v ON_ERROR_STOP=1 -AtXc "SELECT count(*) FROM opscore_security.context_hmac_keys WHERE key_id = :'KEY_ID' AND enabled AND octet_length(secret)=32 AND not_before <= clock_timestamp() AND not_after > clock_timestamp()" -v KEY_ID="$KEY_ID" > "$RUNNER_TEMP/preview-acceptance-hmac-count"
+          test "$(cat "$RUNNER_TEMP/preview-acceptance-hmac-count")" = "1" || { echo "PREVIEW_HMAC_KEY_PERSISTENCE_NOT_VERIFIED" >&2; exit 1; }
+          {
+            printf 'OPSC_TENANT_CONTEXT_KEY_JSON=%s\n' "$KEY_JSON"
+            printf 'OPSC_TENANT_CONTEXT_HMAC_KEY=%s\n' "$KEY_HEX"
+            printf 'OPSC_TENANT_CONTEXT_KEY_ID=%s\n' "$KEY_ID"
+          } >> "$GITHUB_ENV"
+          echo "PREVIEW_EPHEMERAL_TENANT_HMAC=PASS ttl_minutes=30"
+
       - name: Run PostgreSQL HTTP commercial acceptance against isolated Neon
         id: preview_http
         continue-on-error: true
@@ -392,15 +451,42 @@ jobs:
           export CI_PIPELINE_ID="${GITHUB_RUN_ID}"
           node --test test/postgres-commercial-acceptance-http.test.js
 
+      - name: Revoke ephemeral Preview HMAC acceptance key
+        id: preview_hmac_cleanup
+        if: always()
+        working-directory: backend
+        run: |
+          set -euo pipefail
+          KEY_FILE="$RUNNER_TEMP/preview-acceptance-hmac.key-id"
+          if [ ! -s "$KEY_FILE" ]; then
+            echo "PREVIEW_EPHEMERAL_TENANT_HMAC_CLEANUP=NOT_REQUIRED"
+            exit 0
+          fi
+          KEY_ID="$(cat "$KEY_FILE")"
+          case "$KEY_ID" in ci-acceptance-????????T??????Z-????????) ;; *) echo "PREVIEW_HMAC_CLEANUP_ID_INVALID" >&2; exit 1;; esac
+          URI="$(cat "$RUNNER_TEMP/bootstrap.uri")"
+          case "$URI" in *"?"*) URI="$URI&sslrootcert=system";; *) URI="$URI?sslrootcert=system";; esac
+          psql "$URI" -v ON_ERROR_STOP=1 -v KEY_ID="$KEY_ID" -q -c "DELETE FROM opscore_security.context_hmac_keys WHERE key_id = :'KEY_ID'"
+          psql "$URI" -v ON_ERROR_STOP=1 -AtXc "SELECT count(*) FROM opscore_security.context_hmac_keys WHERE key_id = :'KEY_ID'" -v KEY_ID="$KEY_ID" > "$RUNNER_TEMP/preview-acceptance-hmac-remaining"
+          test "$(cat "$RUNNER_TEMP/preview-acceptance-hmac-remaining")" = "0" || { echo "PREVIEW_HMAC_KEY_CLEANUP_NOT_VERIFIED" >&2; exit 1; }
+          rm -f "$KEY_FILE" "$RUNNER_TEMP/preview-acceptance-hmac.hex" "$RUNNER_TEMP/preview-acceptance-hmac.json" "$RUNNER_TEMP/preview-acceptance-hmac.sql" "$RUNNER_TEMP/preview-acceptance-hmac-count" "$RUNNER_TEMP/preview-acceptance-hmac-remaining"
+          echo "PREVIEW_EPHEMERAL_TENANT_HMAC_CLEANUP=PASS"
+
       - name: Finalize Preview acceptance gate
         run: |
           set -euo pipefail
           apply_outcome="${{ steps.preview_apply.outcome }}"
           ledger_outcome="${{ steps.preview_ledger_verify.outcome }}"
           http_outcome="${{ steps.preview_http.outcome }}"
+          hmac_prepare_outcome="${{ steps.preview_hmac_prepare.outcome }}"
+          hmac_cleanup_outcome="${{ steps.preview_hmac_cleanup.outcome }}"
           echo "PREVIEW_APPLY_OUTCOME=${apply_outcome}"
           echo "PREVIEW_LEDGER_VERIFY_OUTCOME=${ledger_outcome}"
           echo "PREVIEW_HTTP_OUTCOME=${http_outcome}"
+          echo "PREVIEW_HMAC_PREPARE_OUTCOME=${hmac_prepare_outcome}"
+          echo "PREVIEW_HMAC_CLEANUP_OUTCOME=${hmac_cleanup_outcome}"
+          test "$hmac_prepare_outcome" = "success" || { echo "PREVIEW_HMAC_PREPARE_NOT_PASS:$hmac_prepare_outcome" >&2; exit 1; }
+          test "$hmac_cleanup_outcome" = "success" || { echo "PREVIEW_HMAC_CLEANUP_NOT_PASS:$hmac_cleanup_outcome" >&2; exit 1; }
           test "$apply_outcome" = "success" || { echo "PREVIEW_MIGRATION_APPLY_NOT_PASS:$apply_outcome" >&2; exit 1; }
           test "$ledger_outcome" = "success" || { echo "PREVIEW_MIGRATION_LEDGER_NOT_PASS:$ledger_outcome" >&2; exit 1; }
           test "$http_outcome" = "success" || { echo "PREVIEW_HTTP_ACCEPTANCE_NOT_PASS:$http_outcome" >&2; exit 1; }
