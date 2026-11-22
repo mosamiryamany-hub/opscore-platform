@@ -583,6 +583,7 @@ function openDb(dbPath = config.sqlitePath) {
   let db;
   try {
     db = new DatabaseSync(dbPath);
+    if (dbPath !== ':memory:') fs.chmodSync(dbPath, 0o600);
     if (lifecycleLease) {
       const nativeClose = db.close.bind(db);
       let closed = false;
@@ -656,8 +657,14 @@ function openDb(dbPath = config.sqlitePath) {
   db.exec(`PRAGMA user_version = ${ CURRENT_SCHEMA_VERSION }`);
     return db;
   } catch (error) {
-    try { if (db) db.close(); } catch {}
-    releaseLifecycleLease();
+    let closeError;
+    try { if (db) db.close(); }
+    catch (caught) { closeError = caught; }
+    try { releaseLifecycleLease(); }
+    catch (leaseError) {
+      warn('sqlite.lifecycle_lease_release_failed_after_open_error', { error: leaseError });
+    }
+    if (closeError) warn('sqlite.database_close_failed_after_open_error', { error: closeError });
     throw error;
   }
 }
