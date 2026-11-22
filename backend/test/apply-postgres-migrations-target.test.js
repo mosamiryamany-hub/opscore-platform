@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { assertTarget, expectedMigrationOwnerRole, extractNeonEndpointId, readMigrations, unwrapOuterTransaction, verifyNeonEndpointIdentity, tenantPolicyExprValid, validateAppRolePreflight } = require('../scripts/apply-postgres-migrations');
+const { assertTarget, expectedMigrationOwnerRole, extractNeonEndpointId, readMigrations, unwrapOuterTransaction, verifyNeonEndpointIdentity, tenantPolicyExprValid, validateAppRolePreflight, verifyLegacyAppRoleOptionalCatalog } = require('../scripts/apply-postgres-migrations');
 
 const database = 'opscore_acceptance';
 const projectId = 'summer-leaf-18448271';
@@ -500,4 +500,31 @@ test('migration plan includes one in-place lockdown and reports the Neon-managed
   assert.match(repairs[0].content, /OPSC_LOCKED_APP_ROLE_MEMBERSHIP_POSTCONDITION_FAILED/);
   assert.match(repairs[0].content, /neon_superuser/);
   assert.match(repairs[0].content, /OPSC_LEGACY_APP_ROLE_ADMIN_OPTION_REQUIRED/);
+});
+
+test('legacy app-role migration reconciliation requires complete catalog-equivalence evidence', async () => {
+  const validRow = {
+    required_table_count: '12',
+    forced_rls_table_count: '12',
+    system_policy_target_table_count: '3',
+    work_order_context_policy: true,
+    ledger_owner_policy: true,
+    privileged_function_definer: true,
+    contextual_functions_present: true,
+    legacy_app_role_contract: true
+  };
+  const verified = await verifyLegacyAppRoleOptionalCatalog({
+    query: async sql => {
+      assert.match(sql, /opscore_system_table_guard/);
+      assert.match(sql, /opscore_schema_migrations_owner_only/);
+      assert.match(sql, /opscore_app/);
+      return { rows: [validRow] };
+    }
+  });
+  assert.equal(verified.verified, true);
+  assert.equal(verified.verifier, 'legacy_app_role_optional_catalog_equivalence_v1');
+  const rejected = await verifyLegacyAppRoleOptionalCatalog({
+    query: async () => ({ rows: [{ ...validRow, forced_rls_table_count: '11' }] })
+  });
+  assert.equal(rejected.verified, false);
 });
