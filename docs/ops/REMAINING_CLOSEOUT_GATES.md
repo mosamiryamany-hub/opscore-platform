@@ -20,7 +20,7 @@
 
 ## Main and Production source divergence
 
-Current protected `main` is `859a7f6f9d7759910602f4c89136c5d0a38d522d`. Post-merge OpsCore CI, Vercel source/contract/isolated PostgreSQL acceptance and CodeQL all passed (runs `45018113019`, `45018113156`, `45018112500`). The push event skipped Production deployment, Production PITR historical branch probe and Neon Preview migration; no live Production change occurred. Public Production remains on `2a4938a70220d3375497e94499850476b4b505de`.
+Current application-source baseline from PR #391 is `859a7f6f9d7759910602f4c89136c5d0a38d522d`. Post-merge OpsCore CI, Vercel source/contract/isolated PostgreSQL acceptance and CodeQL all passed (runs `45018113019`, `45018113156`, `45018112500`). The push event skipped Production deployment, Production PITR historical branch probe and Neon Preview migration; no live Production change occurred. Public Production remains on `2a4938a70220d3375497e94499850476b4b505de`.
 
 ## Protected Production deployment
 
