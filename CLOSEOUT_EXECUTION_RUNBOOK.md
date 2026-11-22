@@ -1,7 +1,7 @@
 # OpsCore v0.11.62 — Commercial Closeout Execution Runbook
 
 **Reconciled:** 2026-11-22
-**Current main closeout commit:** `63682774b7f81e123f996f6508fed5a714fea0be`  
+**Main SHA at reconciliation start:** `63682774b7f81e123f996f6508fed5a714fea0be`  
 **Application/runtime baseline audited:** `43554492218adbf0cde2d700bd0dedfadce67f5e` (the merge added closeout documentation, test and static-audit tooling changes; it did not change application runtime, migrations or lockfiles)
 **Seller release status:** `HOLD — CANDIDATE EVIDENCE ONLY`  
 **Buyer/product qualification:** `NOT ESTABLISHED`  
@@ -23,7 +23,7 @@ This runbook is a current operational register, not a certificate. Each proof mu
 | Canonical domain | `opscore-platform.vercel.app` | Alias lookup resolves to `dpl_EacspS7o2jntgw8uS1YMpzf45CFt` |
 | Canonical alias deployment source | `b7f63445c1748ebaec426a9ebe0ea629e4998839` | Different from current main; not verified as current release |
 
-The post-merge GitHub `verify` run on closeout commit `63682774…` passed with 960 tests, zero failures and three skips. Vercel workflow `44993913475` passed source verification, disposable PostgreSQL 18 acceptance, contract verification and isolated RLS/HTTP acceptance; its PITR, Neon Preview migration and deploy jobs were skipped. No Vercel deployment exists for closeout commit `63682774…`. Two READY Production-target deployments exist for its application/runtime parent SHA `435544922…`, both with empty alias lists. The canonical domain alias remains attached to deployment `dpl_EacspS7o2jntgw8uS1YMpzf45CFt` on SHA `b7f63445…`. Therefore the public domain still serves the older release, not the current main commit; production promotion and exact-head runtime proof remain unproven.
+The post-merge GitHub `verify` run on reconciliation base SHA `63682774…` passed with 960 tests, zero failures and three skips. Vercel workflow `44993913475` passed source verification, disposable PostgreSQL 18 acceptance, contract verification and isolated RLS/HTTP acceptance; its PITR, Neon Preview migration and deploy jobs were skipped. No Vercel deployment exists for reconciliation base SHA `63682774…`. Two READY Production-target deployments exist for its application/runtime parent SHA `435544922…`, both with empty alias lists. The canonical domain alias remains attached to deployment `dpl_EacspS7o2jntgw8uS1YMpzf45CFt` on SHA `b7f63445…`. Therefore the public domain still serves the older release, not the current main commit; production promotion and exact-head runtime proof remain unproven.
 
 ## 2. Required release-proof semantics
 
@@ -35,7 +35,7 @@ The post-merge GitHub `verify` run on closeout commit `63682774…` passed with 
 
 ## 2A. Production environment binding (read-only Vercel inspection, 2026-11-22)
 
-The Production environment currently reports `OPSC_PRODUCTION_HOLD=false`, `OPSC_RELEASE_VERIFIED=true`, and the application flag `OPSC_PRODUCTION_ISOLATION_CERTIFICATION=CERTIFIED`. These are internal deployment settings, not external ISO/SOC/PCI certification. The related `OPSC_RELEASE_PACKAGE_COMMIT`, `OPSC_RELEASE_CI_COMMIT`, and `OPSC_SOURCE_COMMIT_SHA` all resolve to `b7f63445c1748ebaec426a9ebe0ea629e4998839`, which is the source SHA of the canonical domain alias deployment. `OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID` resolves to a separate READY Production-target deployment on the same `b7f63445…` source SHA. These flags therefore describe the older deployed release, not closeout commit `63682774…`.
+The Production environment currently reports `OPSC_PRODUCTION_HOLD=false`, `OPSC_RELEASE_VERIFIED=true`, and the application flag `OPSC_PRODUCTION_ISOLATION_CERTIFICATION=CERTIFIED`. These are internal deployment settings, not external ISO/SOC/PCI certification. The related `OPSC_RELEASE_PACKAGE_COMMIT`, `OPSC_RELEASE_CI_COMMIT`, and `OPSC_SOURCE_COMMIT_SHA` all resolve to `b7f63445c1748ebaec426a9ebe0ea629e4998839`, which is the source SHA of the canonical domain alias deployment. `OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID` resolves to a separate READY Production-target deployment on the same `b7f63445…` source SHA. These flags therefore describe the older deployed release, not reconciliation base SHA `63682774…`.
 
 Production TLS configuration variables are set to `OPSC_PG_SSL_MODE=verify-full` and `OPSC_PG_SSL_REJECT_UNAUTHORIZED=true`. This is the expected strict configuration, but configuration presence is not proof that the actual application worker connection negotiated and verified TLS. The last application-worker TLS diagnostic remains a separate gate; no fresh exact-head Production worker TLS proof is established.
 
