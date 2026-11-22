@@ -3,7 +3,7 @@
 **Current classification: PASS_WITH_RESIDUALS.** Production deployment and scope-specific engineering evidence pass. This is not full commercial closure, a license grant, buyer-environment qualification or an external certification.
 
 ## Current identities
-- Protected `main`: `4b8a532aea404dd5b696b5d9b2cd3eb45c72852b`
+- Application-source baseline (PR #391): `859a7f6f9d7759910602f4c89136c5d0a38d522d`
 - Current Production source: `2a4938a70220d3375497e94499850476b4b505de`
 - Production deployment: `dpl_G7r6CDntYarpafuawie8CKWDLBB7`
 - Public domain: https://opscore-platform.vercel.app
