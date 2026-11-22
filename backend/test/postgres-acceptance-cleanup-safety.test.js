@@ -111,9 +111,10 @@ test('privileged cleanup is exact-target only and never becomes the application 
   assert.match(source, /DATABASE_URL: urlText/);
   assert.match(source, /application_name: 'opscore-acceptance-targeted-cleanup'/);
   assert.match(source, /exact-target-opscore_owner-cleanup/);
-  assert.match(source, /cleanupUsesPrivilegedRole[\\s\\S]*?SELECT count\\(\\*\\)::int AS n FROM users/);
-  assert.match(source, /identity\\.bypass_rls !== true/);
-  assert.match(source, /identity\\.superuser !== false/);
+  assert.ok(source.includes('cleanupUsesPrivilegedRole'));
+  assert.ok(source.includes('SELECT count(*)::int AS n FROM users'));
+  assert.ok(source.includes('identity.bypass_rls !== true'));
+  assert.ok(source.includes('identity.superuser !== false'));
   assert.match(source, /created\.organizations/);
   assert.match(source, /created\.users/);
 });
