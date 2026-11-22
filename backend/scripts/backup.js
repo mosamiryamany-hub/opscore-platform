@@ -33,6 +33,7 @@ const dbPath = path.resolve(process.env.SQLITE_PATH || './data/opscore.sqlite');
 const outputPath = path.resolve(process.argv[2] || `./data/backups/opscore-${new Date().toISOString().replace(/[:.]/g, '-')}.db`);
 
 assertRegularFile(dbPath, 'SOURCE_DATABASE_REQUIRED');
+if (fs.statSync(dbPath).size === 0) throw new Error('SOURCE_DATABASE_EMPTY');
 const sourceRealPath = fs.realpathSync(dbPath);
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 const outputDirectory = fs.realpathSync(path.dirname(outputPath));
@@ -54,7 +55,8 @@ try {
   sourceDb = null;
 
   assertRegularFile(temp, 'BACKUP_TEMP_FILE_MISSING');
-  const verify = new DatabaseSync(temp);
+  fs.chmodSync(temp, 0o600);
+  const verify = new DatabaseSync(temp, { readOnly: true });
   try { assertIntegrity(verify, 'BACKUP'); }
   finally { verify.close(); }
 
