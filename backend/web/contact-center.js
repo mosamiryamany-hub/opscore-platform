@@ -92,7 +92,7 @@
         option.textContent=`${x.name} (${x.code})${option.disabled ? " — English fallback only; conversations disabled" : ""}`;
         return option;
       }));
-      $('languageSelect').value=unique.some(x=>x.code===previousLanguage) ? previousLanguage : (unique.some(x=>x.code==='en') ? 'en' : (unique[0]?.code || ''));
+      $('languageSelect').value=unique.some(x=>x.code===previousLanguage && x.conversationSelectable!==false) ? previousLanguage : (unique.some(x=>x.code==='en' && x.conversationSelectable!==false) ? 'en' : (unique.find(x=>x.conversationSelectable!==false)?.code || ''));
       const missing=[];
       if(!status.enabled) missing.push('OPSC_CONTACT_CENTER_ENABLED=true');
       if(!status.encryptionConfigured) missing.push('32-byte OPSC_CONTACT_CENTER_ENCRYPTION_KEY');
