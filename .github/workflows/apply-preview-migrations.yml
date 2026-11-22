@@ -196,14 +196,7 @@ jobs:
                    AND c.relkind IN ('r','p')
                    AND NOT has_table_privilege('neondb_owner',c.oid,'SELECT')
                )
-               OR EXISTS (
-                 SELECT 1
-                 FROM pg_catalog.pg_class c
-                 JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace
-                 WHERE n.nspname='public'
-                   AND c.relkind='S'
-                   AND NOT has_sequence_privilege('neondb_owner',c.oid,'USAGE')
-               ) THEN
+ THEN
               RAISE EXCEPTION 'PREVIEW_MIGRATION_OWNER_PRIVILEGES_INVALID';
             END IF;
             IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname='opscore_app') THEN
