@@ -30,6 +30,10 @@ test('release proof page publishes successful CI evidence separately from Produc
   assert.match(html, /Automated Neon backup schedule/);
   assert.match(html, /CRS \/ BOT RULES LOG-ONLY/);
   assert.match(html, /NO LICENSE GRANT/);
+  assert.match(html, /114 INTERFACE \/ 105 CONVERSATION/);
+  assert.match(html, /13 explicit English-fallback locales/);
+  assert.match(html, /Nine options \(ms, sw, hy, uz, my, ml, es, sr, te\) are English-fallback-only/);
+  assert.match(html, /disabled for customer conversations/);
   assert.match(html, /0 \/ 114 REVIEWED/);
 });
 
