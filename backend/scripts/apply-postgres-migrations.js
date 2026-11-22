@@ -462,7 +462,7 @@ async function main(){
   for(const migration of plan.pending){
    await client.query('BEGIN');
    try{
-    await client.query("SELECT set_config('opscore.app_role','opscore_app',true),set_config('opscore.fn_owner',$1,true)",[info.role]);
+    await client.query(`SELECT set_config('opscore.app_role',CASE WHEN EXISTS(SELECT 1 FROM pg_catalog.pg_roles WHERE rolname='opscore_app') THEN 'opscore_app' ELSE '' END,true),set_config('opscore.fn_owner',$1,true)`,[info.role]);
     await client.query(unwrapOuterTransaction(migration.content,migration.filename));
     await client.query('INSERT INTO public.schema_migrations(filename,sha256,applied_at) VALUES ($1,$2,clock_timestamp())',[migration.filename,migration.sha256]);
     await client.query('COMMIT');applied.push({filename:migration.filename,sha256:migration.sha256});
