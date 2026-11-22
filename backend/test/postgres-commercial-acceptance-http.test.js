@@ -826,7 +826,12 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
       if (!cleanupUsesPrivilegedRole) await attemptCleanup('set-cleanup-verification-context',
         'SELECT public.opscore_access_mode() AS mode');
       const remainingUsers = virginDatabaseVerified
-        ? await attemptCleanup('verify-no-user-residue', 'SELECT opscore_count_users()::int AS n')
+        ? await attemptCleanup(
+            'verify-no-user-residue',
+            cleanupUsesPrivilegedRole
+              ? 'SELECT count(*)::int AS n FROM users'
+              : 'SELECT opscore_count_users()::int AS n'
+          )
         : null;
       if (remainingUsers && Number(remainingUsers.rows?.[0]?.n || 0) !== 0) {
         cleanupErrors.push({ operation: 'verify-no-user-residue', code: null, message: `The disposable acceptance database still has ${remainingUsers.rows[0].n} user row(s).` });
