@@ -7,7 +7,7 @@ on:
         description: Exact non-default Neon acceptance branch ID
         required: false
         type: string
-        default: "br-solitary-band-bbczy982"
+        default: "br-muddy-pine-bbrexgxx"
       database:
         description: Exact isolated application database
         required: false
@@ -34,7 +34,7 @@ on:
       branch:
         description: Exact Neon Preview branch ID (primary, default, and protected branches are rejected)
         required: true
-        default: "br-solitary-band-bbczy982"
+        default: "br-muddy-pine-bbrexgxx"
       database:
         description: Application database name (fixed to opscore_acceptance)
         required: true
@@ -70,19 +70,19 @@ jobs:
       - name: Bind exact isolated Neon acceptance branch
         id: neon
         env:
-          INPUT_BRANCH: ${{ inputs.branch || github.event.inputs.branch || 'br-solitary-band-bbczy982' }}
+          INPUT_BRANCH: ${{ inputs.branch || github.event.inputs.branch || 'br-muddy-pine-bbrexgxx' }}
           INPUT_DB: ${{ inputs.database || github.event.inputs.database || 'opscore_acceptance' }}
         run: |
           set -euo pipefail
           PROJECT_ID='sweet-union-58466913'
           PRIMARY_BRANCH_ID='br-weathered-tree-bbha3dx4'
-          BRANCH_ID='br-solitary-band-bbczy982'
-          HOST='ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech'
+          BRANCH_ID='br-muddy-pine-bbrexgxx'
+          HOST='ep-green-frog-bbyayuh5.c-15.us-east-1.aws.neon.tech'
           test "$INPUT_BRANCH" = "$BRANCH_ID" || { echo 'EXACT_ACCEPTANCE_BRANCH_REQUIRED'; exit 1; }
           test "$INPUT_DB" = 'opscore_acceptance' || { echo 'EXACT_ACCEPTANCE_DATABASE_REQUIRED'; exit 1; }
           test "$BRANCH_ID" != "$PRIMARY_BRANCH_ID" || { echo 'REFUSING_NEON_PRIMARY_BRANCH'; exit 1; }
           echo "branch_id=$BRANCH_ID" >> "$GITHUB_OUTPUT"
-          echo "branch_name=acceptance/migrations-2026-11-19" >> "$GITHUB_OUTPUT"
+          echo "branch_name=acceptance-clean-security-2026-11-22" >> "$GITHUB_OUTPUT"
           echo "database=$INPUT_DB" >> "$GITHUB_OUTPUT"
           echo "project_id=$PROJECT_ID" >> "$GITHUB_OUTPUT"
           echo "host=$HOST" >> "$GITHUB_OUTPUT"
@@ -122,7 +122,7 @@ jobs:
           import os,sys
           from urllib.parse import urlsplit,parse_qs
           root=os.environ['RUNNER_TEMP']+'/'
-          expected_host='ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech'
+          expected_host='ep-green-frog-bbyayuh5.c-15.us-east-1.aws.neon.tech'
           expected_db='opscore_acceptance'
           checks=[
             ('OPSC_MIGRATION_DATABASE_URL','neondb_owner','owner.uri'),
@@ -304,7 +304,7 @@ jobs:
           print("pending_count", len(pending))
           for p in pending: print(" pending", p.get("filename"))
           identity=obj.get("neonIdentity") or {}
-          if identity.get("pinned") is not True or identity.get("projectId") != "sweet-union-58466913" or identity.get("branchId") != "br-solitary-band-bbczy982" or identity.get("host") != "ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech":
+          if identity.get("pinned") is not True or identity.get("projectId") != "sweet-union-58466913" or identity.get("branchId") != "br-muddy-pine-bbrexgxx" or identity.get("host") != "ep-green-frog-bbyayuh5.c-15.us-east-1.aws.neon.tech":
             print("DRY_RUN_NEON_PINNED_IDENTITY_MISMATCH"); sys.exit(1)
           if obj.get("status") != "DRY_RUN_PASS":
             print(json.dumps(obj, indent=2)[:2500]); sys.exit(1)
@@ -343,7 +343,7 @@ jobs:
             print(raw[-2500:]); print("APPLY_PARSE_FAIL"); sys.exit(1)
           print(json.dumps({k:obj.get(k) for k in ("status","applied","target","neonIdentity","serverVersion")}, indent=2, default=str)[:4000])
           identity=obj.get("neonIdentity") or {}
-          if identity.get("pinned") is not True or identity.get("projectId") != "sweet-union-58466913" or identity.get("branchId") != "br-solitary-band-bbczy982" or identity.get("host") != "ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech":
+          if identity.get("pinned") is not True or identity.get("projectId") != "sweet-union-58466913" or identity.get("branchId") != "br-muddy-pine-bbrexgxx" or identity.get("host") != "ep-green-frog-bbyayuh5.c-15.us-east-1.aws.neon.tech":
             print("APPLY_NEON_PINNED_IDENTITY_MISMATCH"); sys.exit(1)
           st=str(obj.get("status") or "")
           if st != "APPLIED_AND_VERIFIED":
@@ -388,7 +388,7 @@ jobs:
         run: |
           set -euo pipefail
           export OPSC_PG_ACCEPTANCE_URL="$(cat "$RUNNER_TEMP/runtime.uri")"
-          export OPSC_PG_ACCEPTANCE_HOST='ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech'
+          export OPSC_PG_ACCEPTANCE_HOST='ep-green-frog-bbyayuh5.c-15.us-east-1.aws.neon.tech'
           export OPSC_PG_ACCEPTANCE_STRICT='true'
           export OPSC_PG_ACCEPTANCE_RESULT_FILE="${GITHUB_WORKSPACE}/POSTGRES_HTTP_ACCEPTANCE_RESULT.json"
           export OPSC_WRITE_EVIDENCE='1'
