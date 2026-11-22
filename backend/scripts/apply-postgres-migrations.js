@@ -280,6 +280,102 @@ async function verifyControlPlane053Catalog(client){
   note:'Catalog-equivalence proof only; it does not establish byte-for-byte identity of the historical migration payload or behavioral Tenant A/B acceptance.'
  };
 }
+async function verifyLegacyAppRoleOptionalCatalog(client){
+ const row=(await client.query(String.raw\`
+WITH app_role AS (
+ SELECT oid,rolcanlogin,rolsuper,rolbypassrls,rolcreaterole,rolcreatedb,rolinherit
+ FROM pg_catalog.pg_roles WHERE rolname='opscore_app'
+),
+required_tables(name) AS (VALUES
+ ('sync_blocks'),('operational_event_receipts'),('firewall_rate_buckets'),('login_throttle'),
+ ('worker_guard_system_events'),('schema_migrations'),('feature_flags'),('safe_mode_states'),
+ ('control_plane_runs'),('incident_replays'),('decision_memory'),('autopilot_proposals')
+),
+tables AS (
+ SELECT rt.name,c.oid,c.relrowsecurity,c.relforcerowsecurity
+ FROM required_tables rt
+ LEFT JOIN pg_catalog.pg_class c ON c.oid=pg_catalog.to_regclass('public.'||rt.name)
+),
+system_policy_targets AS (
+ SELECT count(DISTINCT c.relname) AS valid_table_count
+ FROM pg_catalog.pg_policy p
+ JOIN pg_catalog.pg_class c ON c.oid=p.polrelid
+ WHERE p.polname='opscore_system_table_guard'
+   AND c.relname IN ('firewall_rate_buckets','login_throttle','worker_guard_system_events')
+   AND EXISTS (
+     SELECT 1
+     FROM unnest(p.polroles) AS role_oid
+     JOIN pg_catalog.pg_roles rr ON rr.oid=role_oid
+     WHERE rr.rolname='opscore_runtime'
+        OR (EXISTS(SELECT 1 FROM app_role) AND rr.rolname='opscore_app')
+   )
+),
+legacy_memberships AS (
+ SELECT
+   count(*) FILTER (WHERE am.roleid=(SELECT oid FROM app_role)) AS incoming_count,
+   count(*) FILTER (WHERE am.member=(SELECT oid FROM app_role)) AS outgoing_count,
+   count(*) FILTER (WHERE am.member=(SELECT oid FROM app_role) AND granted.rolname<>'neon_superuser') AS unexpected_outgoing_count
+ FROM pg_catalog.pg_auth_members am
+ JOIN pg_catalog.pg_roles granted ON granted.oid=am.roleid
+ WHERE am.roleid=(SELECT oid FROM app_role) OR am.member=(SELECT oid FROM app_role)
+)
+SELECT
+ (SELECT count(*) FROM tables WHERE oid IS NOT NULL) AS required_table_count,
+ (SELECT count(*) FROM tables WHERE oid IS NOT NULL AND relrowsecurity AND relforcerowsecurity) AS forced_rls_table_count,
+ (SELECT valid_table_count FROM system_policy_targets) AS system_policy_target_table_count,
+ EXISTS(
+   SELECT 1 FROM pg_catalog.pg_policy p
+   WHERE p.polname='opscore_work_order_context'
+     AND p.polrelid=pg_catalog.to_regclass('public.work_orders')
+ ) AS work_order_context_policy,
+ EXISTS(
+   SELECT 1 FROM pg_catalog.pg_policy p
+   JOIN LATERAL unnest(p.polroles) AS role_oid ON true
+   JOIN pg_catalog.pg_roles rr ON rr.oid=role_oid
+   WHERE p.polname='opscore_schema_migrations_owner_only'
+     AND p.polrelid=pg_catalog.to_regclass('public.schema_migrations')
+     AND rr.rolname='neondb_owner'
+ ) AS ledger_owner_policy,
+ (SELECT prosecdef FROM pg_catalog.pg_proc WHERE oid=pg_catalog.to_regprocedure('public.opscore_is_privileged()')) AS privileged_function_definer,
+ (
+  pg_catalog.to_regprocedure('public.opscore_current_tenant()') IS NOT NULL
+  AND pg_catalog.to_regprocedure('public.opscore_current_user()') IS NOT NULL
+  AND pg_catalog.to_regprocedure('public.opscore_actor_lat()') IS NOT NULL
+  AND pg_catalog.to_regprocedure('public.opscore_actor_lon()') IS NOT NULL
+  AND pg_catalog.to_regprocedure('public.opscore_access_mode()') IS NOT NULL
+ ) AS contextual_functions_present,
+ CASE WHEN NOT EXISTS(SELECT 1 FROM app_role) THEN true ELSE
+  (
+   NOT (SELECT rolcanlogin OR rolsuper OR rolbypassrls OR rolcreaterole OR rolcreatedb OR rolinherit FROM app_role)
+   AND (SELECT incoming_count=0 AND unexpected_outgoing_count=0 AND outgoing_count<=1 FROM legacy_memberships)
+   AND NOT pg_catalog.has_database_privilege('opscore_app',pg_catalog.current_database(),'CREATE')
+   AND NOT pg_catalog.has_schema_privilege('opscore_app','public','CREATE')
+   AND NOT pg_catalog.has_table_privilege('opscore_app','public.schema_migrations','SELECT')
+  )
+ END AS legacy_app_role_contract
+\`)).rows[0]||{};
+ const verified=Number(row.required_table_count)===12
+  &&Number(row.forced_rls_table_count)===12
+  &&Number(row.system_policy_target_table_count)===3
+  &&row.work_order_context_policy===true
+  &&row.ledger_owner_policy===true
+  &&row.privileged_function_definer===true
+  &&row.contextual_functions_present===true
+  &&row.legacy_app_role_contract===true;
+ return {
+  verified,
+  verifier:'legacy_app_role_optional_catalog_equivalence_v1',
+  requiredTables:Number(row.required_table_count||0),
+  forcedRlsTables:Number(row.forced_rls_table_count||0),
+  systemPolicyTargets:Number(row.system_policy_target_table_count||0),
+  workOrderContextPolicy:row.work_order_context_policy===true,
+  migrationLedgerOwnerPolicy:row.ledger_owner_policy===true,
+  privilegedFunctionIsDefiner:row.privileged_function_definer===true,
+  contextualFunctionsPresent:row.contextual_functions_present===true,
+  legacyAppRoleContract:row.legacy_app_role_contract===true,
+  note:'Current catalog-equivalence evidence only; it does not prove historical SQL bytes or tenant-behavior acceptance.'
+ };
+}
 async function main(){
  const raw=String(process.env.OPSC_MIGRATION_DATABASE_URL||'').trim();if(!raw)throw new Error('OPSC_MIGRATION_DATABASE_URL_REQUIRED');
  let url;try{url=new URL(raw);}catch{throw new Error('OPSC_MIGRATION_DATABASE_URL_INVALID');}
@@ -324,8 +420,18 @@ async function main(){
   let legacy042Evidence=null,controlPlane053Evidence=null,verifiedLegacy=[];
   if(row42&&file42&&String(row42.sha256).toLowerCase()===legacy.ledgerSha256&&file42.sha256===legacy.sourceSha256){legacy042Evidence=await verifyLegacy042Catalog(client);if(legacy042Evidence.verified)verifiedLegacy.push('042_control_plane_tables.sql');}
   if(row53&&file53&&String(row53.sha256).toLowerCase()===reconciliation053.ledgerSha256&&file53.sha256===reconciliation053.sourceSha256){controlPlane053Evidence=await verifyControlPlane053Catalog(client);if(controlPlane053Evidence.verified)verifiedLegacy.push('053_control_plane_restrictive_tenant_guards.sql');}
+  let legacyAppRoleOptionalEvidence=null;
+  for(const [filename,reconciliation] of Object.entries(LEGACY_CHECKSUM_RECONCILIATIONS)){
+   if(reconciliation.verifier!=='legacy_app_role_optional_catalog_equivalence_v1')continue;
+   const row=ledger.find(x=>x.filename===reconciliation.ledgerFilename);
+   const file=migrations.find(x=>x.filename===filename);
+   if(row&&file&&String(row.sha256).toLowerCase()===reconciliation.ledgerSha256&&file.sha256===reconciliation.sourceSha256){
+    if(!legacyAppRoleOptionalEvidence)legacyAppRoleOptionalEvidence=await verifyLegacyAppRoleOptionalCatalog(client);
+    if(legacyAppRoleOptionalEvidence.verified)verifiedLegacy.push(filename);
+   }
+  }
   const plan=buildMigrationPlan(migrations,ledger,verifiedLegacy);
-  if(plan.blockers.length){emit({status:'BLOCKED',target:{database:info.database,role:info.role,targetClass},neonIdentity,serverVersion:info.server_version,legacy042Evidence,controlPlane053Evidence,pending:plan.pending.map(x=>x.filename),skipped:plan.skipped,blockers:plan.blockers,note:'No SQL changes were made because migration history or catalog reconciliation was not fully verified.'},2);return;}
+  if(plan.blockers.length){emit({status:'BLOCKED',target:{database:info.database,role:info.role,targetClass},neonIdentity,serverVersion:info.server_version,legacy042Evidence,controlPlane053Evidence,legacyAppRoleOptionalEvidence,pending:plan.pending.map(x=>x.filename),skipped:plan.skipped,blockers:plan.blockers,note:'No SQL changes were made because migration history or catalog reconciliation was not fully verified.'},2);return;}
   const appPreflight=(await client.query(`WITH app AS (
     SELECT oid,rolsuper,rolbypassrls,rolcreaterole,rolcreatedb,rolcanlogin,rolinherit FROM pg_roles WHERE rolname='opscore_app'
    )
@@ -351,7 +457,7 @@ async function main(){
         AND membership.member=(SELECT oid FROM pg_roles WHERE rolname=current_user)),false) AS current_user_admin_option`)).rows[0];
   const appRoleRepairPending=plan.pending.some(x=>x.filename===APP_ROLE_REPAIR_MIGRATION);
   const appRolePreflight=validateAppRolePreflight(appPreflight,appRoleRepairPending);
-  if(!apply){emit({status:'DRY_RUN_PASS',target:{database:info.database,role:info.role,targetClass},neonIdentity,serverVersion:info.server_version,legacy042Evidence,controlPlane053Evidence,appRolePreflight,pending:plan.pending.map(x=>({filename:x.filename,sha256:x.sha256})),skipped:plan.skipped,note:'No database changes were made. Apply requires --apply and exact OPSC_MIGRATION_CONFIRM_DATABASE.'});return;}
+  if(!apply){emit({status:'DRY_RUN_PASS',target:{database:info.database,role:info.role,targetClass},neonIdentity,serverVersion:info.server_version,legacy042Evidence,controlPlane053Evidence,legacyAppRoleOptionalEvidence,appRolePreflight,pending:plan.pending.map(x=>({filename:x.filename,sha256:x.sha256})),skipped:plan.skipped,note:'No database changes were made. Apply requires --apply and exact OPSC_MIGRATION_CONFIRM_DATABASE.'});return;}
   const applied=[];
   for(const migration of plan.pending){
    await client.query('BEGIN');
@@ -524,7 +630,7 @@ SELECT
   post.control_plane_policy_results=controlPlanePolicyResults;
   post.control_plane_restrictive_policy_gap_count=controlPlanePolicyResults.filter(x=>x.status!=='PASS').length;
   if((!post.runtime_role_exists&&(post.app_can_create_database_schema||post.app_can_create_public_objects||post.app_can_select||post.app_can_insert||post.app_can_update||post.app_can_delete||Number(post.control_plane_privilege_gap_count)!==0))||!validateAppRolePostconditions(post)||!post.ledger_forced_rls||!post.privileged_is_definer||!post.reset_token_row_security_off||Number(post.control_plane_table_count)!==3||Number(post.control_plane_restrictive_policy_gap_count)!==0||(post.runtime_role_exists&&(!post.runtime_login||post.runtime_superuser||post.runtime_bypassrls||post.runtime_create_role||post.runtime_create_db||Number(post.runtime_privileged_membership_count)!==0||post.runtime_database_create||post.runtime_schema_create||post.runtime_neon_superuser_member||post.runtime_neon_superuser_set||post.runtime_app_role_member||post.runtime_schema_migrations_access||!post.runtime_privileged_execute||Number(post.runtime_policy_function_gap_count)!==0||Number(post.runtime_control_plane_privilege_gap_count)!==0||Number(post.runtime_autopilot_table_privilege_gap_count)!==0)))throw new Error('MIGRATION_POSTCONDITION_FAILED');
-  emit({status:'APPLIED_AND_VERIFIED',target:{database:info.database,role:info.role,targetClass},neonIdentity,serverVersion:info.server_version,legacy042Evidence,controlPlane053Evidence,applied,skipped:plan.skipped,postconditions:post,note:'Only the explicitly confirmed target database was changed. The sole allowed app-role residual is a dormant Neon-managed neon_superuser membership on a NOLOGIN/NOINHERIT/NOBYPASSRLS role with zero incoming memberships; removing that membership requires Neon role-admin authority. Production certification remains separate.'});
+  emit({status:'APPLIED_AND_VERIFIED',target:{database:info.database,role:info.role,targetClass},neonIdentity,serverVersion:info.server_version,legacy042Evidence,controlPlane053Evidence,legacyAppRoleOptionalEvidence,applied,skipped:plan.skipped,postconditions:post,note:'Only the explicitly confirmed target database was changed. The sole allowed app-role residual is a dormant Neon-managed neon_superuser membership on a NOLOGIN/NOINHERIT/NOBYPASSRLS role with zero incoming memberships; removing that membership requires Neon role-admin authority. Production certification remains separate.'});
  }finally{
   if(locked&&client)try{await client.query("SELECT pg_advisory_unlock(hashtext(current_database()),hashtext('opscore-schema-migrations'))");}catch(_){}
   if(client)client.release();await pool.end();
@@ -533,4 +639,4 @@ SELECT
 if (require.main === module) {
  main().catch(error=>emit({status:'FAIL',reason:error.message||String(error),note:'Connection values are never emitted; no production fallback is used.'},1));
 }
-module.exports = { readMigrations, verifyLegacy042Catalog, verifyControlPlane053Catalog, assertTarget, expectedMigrationOwnerRole, unwrapOuterTransaction, extractNeonEndpointId, verifyNeonEndpointIdentity, tenantPolicyExprValid, validateAppRolePreflight, validateAppRolePostconditions };
+module.exports = { readMigrations, verifyLegacy042Catalog, verifyControlPlane053Catalog, verifyLegacyAppRoleOptionalCatalog, assertTarget, expectedMigrationOwnerRole, unwrapOuterTransaction, extractNeonEndpointId, verifyNeonEndpointIdentity, tenantPolicyExprValid, validateAppRolePreflight, validateAppRolePostconditions };
