@@ -113,6 +113,16 @@ try {
   expectFailure(sameRestore, 'RESTORE_SOURCE_EQUALS_DESTINATION');
   assert.equal(hash(destination), sameRestoreHash);
 
+  const priorSafetyPath = destination + '.before-restore';
+  fs.writeFileSync(priorSafetyPath, 'preserve previous safety artifact');
+  const priorSafetyHash = hash(priorSafetyPath);
+  const destinationBeforeSafetyGuard = hash(destination);
+  const safetyGuard = run(restoreScript, [backup], { SQLITE_PATH: destination });
+  expectFailure(safetyGuard, 'RESTORE_SAFETY_COPY_ALREADY_EXISTS');
+  assert.equal(hash(destination), destinationBeforeSafetyGuard, 'existing destination must remain unchanged when prior safety copy exists');
+  assert.equal(hash(priorSafetyPath), priorSafetyHash, 'existing safety copy must never be overwritten');
+  fs.rmSync(priorSafetyPath, { force: true });
+
   // An active WAL/SHM pair is an explicit operational stop condition.
   fs.writeFileSync(destination + '-wal', 'wal sentinel');
   fs.writeFileSync(destination + '-journal', 'journal sentinel');
@@ -134,6 +144,7 @@ try {
       'restore preserves a pre-restore safety copy',
       'invalid restore leaves the live database byte-for-byte unchanged',
       'restore rejects source/destination identity',
+      'restore refuses to overwrite an existing pre-restore safety copy',
       'restore refuses active SQLite WAL/SHM sidecars'
     ]
   }, null, 2));
