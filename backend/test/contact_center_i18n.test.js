@@ -153,6 +153,13 @@ test('BCP-47 browser tags map onto package locale codes (zh-CN, zh-TW, fil, nb, 
   }
 });
 
+test('conversation locale picker disables the nine English-fallback-only options', () => {
+  const app = fs.readFileSync(path.join(webRoot, 'contact-center.js'), 'utf8');
+  assert.match(app, /option\.disabled=x\.conversationSelectable===false/);
+  assert.match(app, /English fallback only; conversations disabled/);
+  assert.match(app, /x\.code===previousLanguage && x\.conversationSelectable!==false/);
+});
+
 test('all 114 interface locales load with explicit translation provenance notices and direction', async () => {
   const manifest = JSON.parse(fs.readFileSync(path.join(localeRoot, 'manifest.json'), 'utf8'));
   assert.equal(manifest.locales.length, 114);
