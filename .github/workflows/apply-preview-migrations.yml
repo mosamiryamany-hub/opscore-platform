@@ -199,12 +199,6 @@ jobs:
             THEN
               RAISE EXCEPTION 'PREVIEW_MIGRATION_OWNER_PRIVILEGES_INVALID';
             END IF;
-            IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname='opscore_app') THEN
-              CREATE ROLE opscore_app NOLOGIN NOINHERIT NOCREATEROLE NOCREATEDB NOBYPASSRLS;
-              RAISE NOTICE 'OPSC_LEGACY_APP_ROLE_PROVISIONED_LOCKED';
-            ELSE
-              RAISE NOTICE 'OPSC_LEGACY_APP_ROLE_ALREADY_PRESENT';
-            END IF;
           END $$;
           SQL
           MIGRATION_URI="$(cat "$RUNNER_TEMP/owner.uri")"
@@ -278,7 +272,6 @@ jobs:
       - name: Dry-run migrations on Preview
         env:
           OPSC_MIGRATION_TARGET_CLASS: preview
-          OPSC_MIGRATION_PREVIEW_ALLOW_UNREVOCABLE_APP_MEMBERS: '1'
           OPSC_MIGRATION_EXPECTED_OWNER_ROLE: neondb_owner
           OPSC_MIGRATION_PINNED_NEON_IDENTITY: '1'
           OPSC_MIGRATION_EXPECTED_DATABASE: ${{ steps.neon.outputs.database }}
@@ -315,7 +308,6 @@ jobs:
         continue-on-error: true
         env:
           OPSC_MIGRATION_TARGET_CLASS: preview
-          OPSC_MIGRATION_PREVIEW_ALLOW_UNREVOCABLE_APP_MEMBERS: '1'
           OPSC_MIGRATION_EXPECTED_OWNER_ROLE: neondb_owner
           OPSC_MIGRATION_PINNED_NEON_IDENTITY: '1'
           OPSC_MIGRATION_EXPECTED_DATABASE: ${{ steps.neon.outputs.database }}
