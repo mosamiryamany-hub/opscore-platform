@@ -102,17 +102,21 @@ function productionSafetyGate(config, env = process.env, releaseVerifier = hasVe
   return {allowed:true,mode:'production'};
 }
 function validateOsrmBaseUrl(raw, {production=false}={}){
+  const productionRuntime=production || String(process.env.NODE_ENV||'development').trim().toLowerCase()==='production' ||
+    String(process.env.VERCEL_ENV||'').trim().toLowerCase()==='production';
   let u; try{u=new URL(String(raw||''));}catch{throw new Error('OSRM_BASE_URL_INVALID');}
   if(!['http:','https:'].includes(u.protocol) || u.username || u.password) throw new Error('OSRM_BASE_URL_INVALID');
+  if(productionRuntime && u.protocol!=='https:') throw new Error('OSRM_HTTPS_REQUIRED');
   const hosts=String(process.env.OSRM_ALLOWED_HOSTS||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
   const host=u.hostname.toLowerCase();
-  if(production && (!hosts.length || !hosts.includes(host))) throw new Error('OSRM_HOST_NOT_ALLOWLISTED');
+  if(productionRuntime && (!hosts.length || !hosts.includes(host))) throw new Error('OSRM_HOST_NOT_ALLOWLISTED');
   if(host==='localhost' || host==='127.0.0.1' || host==='::1') return u;
   if(net.isIP(host)) return u;
   return u;
 }
 async function assertOsrmHostResolvesSafely(raw){
-  const production=String(process.env.NODE_ENV||'development').toLowerCase()==='production';
+  const production=String(process.env.NODE_ENV||'development').trim().toLowerCase()==='production' ||
+    String(process.env.VERCEL_ENV||'').trim().toLowerCase()==='production';
   const u=validateOsrmBaseUrl(raw,{production});
   const hosts=String(process.env.OSRM_ALLOWED_HOSTS||'').split(',').map(x=>x.trim().toLowerCase()).filter(Boolean);
   if(hosts.length && !hosts.includes(u.hostname.toLowerCase())) throw new Error('OSRM_HOST_NOT_ALLOWLISTED');

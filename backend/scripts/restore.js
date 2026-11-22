@@ -1,30 +1,22 @@
-const fs = require('node:fs');
+'use strict';
+
+// Restore is a Linux-only maintenance operation. It fails closed when process
+// descriptor inspection is unavailable or when any process still has the DB open.
+process.umask(0o077);
+
 const path = require('node:path');
-const {openDb} = require('../src/db');
-const {DatabaseSync} = require('node:sqlite');
-const src = path.resolve(process.argv[2] || '');
-const dst = path.resolve(process.env.SQLITE_PATH || './data/opscore.sqlite');
-if (!src || !fs.existsSync(src))
-  throw new Error('BACKUP_FILE_REQUIRED');
-const probe = new DatabaseSync(src);
-try {
-  const integrity = probe.prepare('PRAGMA integrity_check').get();
-  if (integrity.integrity_check !== 'ok')
-    throw new Error('BACKUP_INTEGRITY_FAILED');
-} finally {
-  probe.close();
-}
-if (fs.existsSync(dst))
-  fs.copyFileSync(dst, dst + '.before-restore');
-fs.mkdirSync(path.dirname(dst), { recursive: true });
-fs.copyFileSync(src, dst);
-const db = openDb(dst);
-try {
-  const integrity = db.prepare('PRAGMA integrity_check').get();
-  if (integrity.integrity_check !== 'ok')
-    throw new Error('RESTORED_DATABASE_INTEGRITY_FAILED');
-  console.log(`Restore completed: ${ dst }`);
-  console.log('Integrity: PASS');
-} finally {
-  db.close();
-}
+const { restoreDatabase } = require('./sqlite-restore-core');
+
+const sourcePath = process.argv[2];
+if (!sourcePath) throw new Error('BACKUP_FILE_REQUIRED');
+const destinationPath = path.resolve(process.env.SQLITE_PATH || './data/opscore.sqlite');
+const result = restoreDatabase({ sourcePath, destinationPath });
+
+console.log('Restore completed: ' + result.destination);
+console.log('Integrity: PASS');
+console.log('Foreign keys: PASS');
+console.log('Restorer-process open handles: PASS');
+console.log('Other processes, privileged actors and external PID namespaces: must be stopped by operator; not independently certified');
+console.log('Rollback protection: PASS');
+if (result.safetyCopy) console.log('Safety copy: ' + result.safetyCopy);
+console.log('Restored SHA-256: ' + result.restoredSha256);

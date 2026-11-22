@@ -6,7 +6,7 @@ if (!src || !fs.existsSync(src)) {
   console.error('BACKUP_FILE_REQUIRED');
   process.exit(2);
 }
-const db = new DatabaseSync(src);
+const db = new DatabaseSync(src, { readOnly: true });
 try {
   const integrity = db.prepare('PRAGMA integrity_check').get();
   if (integrity.integrity_check !== 'ok')

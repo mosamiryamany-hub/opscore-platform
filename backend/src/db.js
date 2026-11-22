@@ -6,7 +6,7 @@ const {DatabaseSync} = require('node:sqlite');
 const { CURRENT_SCHEMA_VERSION } = require('./schema-version');
 const config = require('./config');
 function ensureDir(file) {
-  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 });
 }
 function addColumn(db, table, column, definition) {
   const cols = db.prepare(`PRAGMA table_info(${ table })`).all().map(x => x.name);
@@ -571,9 +571,29 @@ function migrate28(db, storedVersion) {
 }
 
 function openDb(dbPath = config.sqlitePath) {
-  if (dbPath !== ':memory:')
-    ensureDir(dbPath);
-  const db = new DatabaseSync(dbPath);
+  if (dbPath !== ':memory:') ensureDir(dbPath);
+  const lifecycleLease = dbPath === ':memory:' ? null : require('./sqlite-lifecycle').acquireDatabaseLease(dbPath);
+  let leaseReleased = false;
+  const releaseLifecycleLease = () => {
+    if (leaseReleased || !lifecycleLease) return;
+    leaseReleased = true;
+    try { lifecycleLease.release(); }
+    catch (error) { warn('sqlite.lifecycle_lease_release_failed', { error }); }
+  };
+  let db;
+  try {
+    db = new DatabaseSync(dbPath);
+    if (dbPath !== ':memory:') fs.chmodSync(dbPath, 0o600);
+    if (lifecycleLease) {
+      const nativeClose = db.close.bind(db);
+      let closed = false;
+      db.close = (...args) => {
+        try { return nativeClose(...args); }
+        finally {
+          if (!closed) { closed = true; releaseLifecycleLease(); }
+        }
+      };
+    }
   db.exec(schema);
   const storedVersion = Number(db.prepare('PRAGMA user_version').get().user_version || 0);
   if (storedVersion > CURRENT_SCHEMA_VERSION)
@@ -635,7 +655,18 @@ function openDb(dbPath = config.sqlitePath) {
     addColumn(db, 'customer_signoffs', 'signature_image_png', 'TEXT');
   addColumn(db, 'customer_signoffs', 'signature_image_sha256', 'TEXT');
   db.exec(`PRAGMA user_version = ${ CURRENT_SCHEMA_VERSION }`);
-  return db;
+    return db;
+  } catch (error) {
+    let closeError;
+    try { if (db) db.close(); }
+    catch (caught) { closeError = caught; }
+    try { releaseLifecycleLease(); }
+    catch (leaseError) {
+      warn('sqlite.lifecycle_lease_release_failed_after_open_error', { error: leaseError });
+    }
+    if (closeError) warn('sqlite.database_close_failed_after_open_error', { error: closeError });
+    throw error;
+  }
 }
 module.exports = {
   openDb,
