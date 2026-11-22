@@ -48,6 +48,38 @@ function directEndpointUrl(rawUrl, hostname) {
   return url.toString();
 }
 
+function validateEnvironmentUrls(env, referenceUrl) {
+  const reference = new URL(referenceUrl);
+  const values = {};
+  for (const key of ENV_KEYS) {
+    const value = String(env[key] || '').trim();
+    if (!value) {
+      const error = new Error('ENV_KEY_SECRET_ABSENT');
+      error.code = 'ENV_KEY_SECRET_ABSENT';
+      throw error;
+    }
+    let parsed;
+    try { parsed = new URL(value); }
+    catch {
+      const error = new Error('ENV_KEY_URL_INVALID');
+      error.code = 'ENV_KEY_URL_INVALID';
+      throw error;
+    }
+    if (
+      parsed.hostname !== reference.hostname ||
+      parsed.username !== reference.username ||
+      parsed.password !== reference.password ||
+      parsed.pathname !== reference.pathname
+    ) {
+      const error = new Error('ENV_KEY_IDENTITY_UNEXPECTED');
+      error.code = 'ENV_KEY_IDENTITY_UNEXPECTED';
+      throw error;
+    }
+    values[key] = value;
+  }
+  return values;
+}
+
 function variants(rawUrl) {
   const url = new URL(rawUrl);
   const label = endpointLabel(url.hostname);
@@ -122,6 +154,12 @@ async function main() {
   if (!raw) { console.log('OPSC_DATABASE_URL_SECRET_ABSENT'); process.exit(2); }
 
   const configuredHostname = new URL(raw).hostname;
+  let envValues;
+  try { envValues = validateEnvironmentUrls(process.env, raw); }
+  catch (error) {
+    console.log(String((error && error.code) || 'ENVIRONMENT_URL_PREFLIGHT_FAILED'));
+    process.exit(1);
+  }
   const configuredClass = classifyHostname(configuredHostname);
   console.log('CONFIGURED_ENDPOINT_CLASS ' + configuredClass);
   console.log('CONFIGURED_ENDPOINT_HOST_SHA256 ' + sha256(configuredHostname));
@@ -178,7 +216,6 @@ async function main() {
     process.exit(1);
   }
 
-  const directHref = directEndpointUrl(raw, directHostname);
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   const query = teamId ? `?teamId=${encodeURIComponent(teamId)}` : '';
   const listResponse = await fetch(`https://api.vercel.com/v9/projects/${encodeURIComponent(projectId)}/env${query}`, { headers });
@@ -187,12 +224,7 @@ async function main() {
   const envs = Array.isArray(listPayload.envs) ? listPayload.envs : [];
 
   for (const key of ENV_KEYS) {
-    const envValue = String(process.env[key] || '').trim();
-    if (!envValue) { console.log('ENV_KEY_SECRET_ABSENT ' + key); process.exit(1); }
-    if (new URL(envValue).hostname !== configuredHostname) {
-      console.log('ENV_KEY_HOST_UNEXPECTED ' + key);
-      process.exit(1);
-    }
+    const directHref = directEndpointUrl(envValues[key], directHostname);
     const existing = envs.find(entry => entry.key === key);
     const body = JSON.stringify({ key, value: directHref, type: 'encrypted', target: ['production'] });
     const url = existing
@@ -215,4 +247,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { buildTlsProbeConfig, classifyHostname, directEndpointUrl, variants, withHostname };
+module.exports = { buildTlsProbeConfig, classifyHostname, directEndpointUrl, validateEnvironmentUrls, variants, withHostname };
