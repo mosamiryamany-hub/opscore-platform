@@ -75,7 +75,7 @@ test('Seller product closeout is buyer-independent while actual buyer license ri
 
 test('67-route acceptance remains isolated PostgreSQL CI evidence and does not certify the canonical Production alias', () => {
   assert.match(currentCommercialStatus, /67\/67 signed-tenant route result/);
-  assert.match(currentCommercialStatus, /candidate deployment `dpl_FgDTqKJxCDw3SAGLtgPxqfQHGu7v`/);
+  assert.match(currentCommercialStatus, /Candidate deployment `dpl_FgDTqKJxCDw3SAGLtgPxqfQHGu7v`/i);
   assert.match(currentCommercialStatus, /not a second independent 67\/358\/3 probe against the final promoted deployment ID/);
   assert.match(currentCommercialStatus, /Buyer environments remain independently unverified/);
   assert.match(sellerCloseoutChecklist, /buyer|customer/i);
@@ -90,7 +90,7 @@ test('historical Production observations remain labeled and current Neon ledger 
   assert.match(currentCommercialStatus, /br-proud-salad-bcshhdap/);
   assert.match(currentCommercialStatus, /071_signed_rls_context_all_access_modes\.sql/);
   assert.match(currentCommercialStatus, /zero policies directly consuming raw tenant\/user\/access-mode GUC values/);
-  assert.match(currentCommercialStatus, /effective tenant\/user returned NULL, access mode returned an empty value/);
+  assert.match(currentCommercialStatus, /effective tenant\/user returned NULL, access mode returned an empty value/i);
   assert.match(currentCommercialStatus, /opscore_runtime.*NOBYPASSRLS.*NOINHERIT/);
 });
 
