@@ -16,7 +16,7 @@ function assertRegularFile(file, code) {
 }
 
 function assertIntegrity(file, prefix) {
-  const db = new DatabaseSync(file);
+  const db = new DatabaseSync(file, { readOnly: true });
   try {
     const integrity = db.prepare('PRAGMA integrity_check').get();
     if (integrity?.integrity_check !== 'ok') throw new Error(prefix + '_INTEGRITY_FAILED');
@@ -60,28 +60,29 @@ if (fs.existsSync(beforeRestore)) {
   const stat = fs.lstatSync(beforeRestore);
   if (!stat.isFile() || stat.isSymbolicLink()) throw new Error('RESTORE_SAFETY_COPY_NOT_REGULAR_FILE');
 }
+assertNoSidecars(beforeRestore, 'RESTORE_SAFETY_COPY_HAS_SQLITE_SIDECARS');
 
 const token = `${process.pid}.${crypto.randomUUID()}`;
 const staged = path.join(destinationDirectory, `.${path.basename(dst)}.${token}.restore.tmp`);
 const safetyStage = path.join(destinationDirectory, `.${path.basename(dst)}.${token}.safety.tmp`);
 const rollbackStage = path.join(destinationDirectory, `.${path.basename(dst)}.${token}.rollback.tmp`);
-let swapped = false;
 try {
   // Validate the exact bytes that will be installed, not just the source path.
   fs.copyFileSync(src, staged, fs.constants.COPYFILE_EXCL);
+  fs.chmodSync(staged, 0o600);
   assertRegularFile(staged, 'RESTORE_STAGING_FILE_MISSING');
   assertIntegrity(staged, 'BACKUP');
 
   // Preserve the current destination only after the incoming file is proven valid.
   if (destinationExists) {
     fs.copyFileSync(dst, safetyStage, fs.constants.COPYFILE_EXCL);
+    fs.chmodSync(safetyStage, 0o600);
     fs.renameSync(safetyStage, beforeRestore);
   }
 
   // Staging is on the destination filesystem, so the replacement is a single
   // rename operation on POSIX. No partial database bytes are copied over dst.
   fs.renameSync(staged, dst);
-  swapped = true;
 
   try {
     assertIntegrity(dst, 'RESTORED_DATABASE');
@@ -89,11 +90,11 @@ try {
     try {
       if (destinationExists) {
         fs.copyFileSync(beforeRestore, rollbackStage, fs.constants.COPYFILE_EXCL);
+        fs.chmodSync(rollbackStage, 0o600);
         fs.renameSync(rollbackStage, dst);
       } else {
         fs.rmSync(dst, { force: true });
       }
-      swapped = false;
     } catch (rollbackError) {
       throw new Error('RESTORE_ROLLBACK_FAILED', { cause: rollbackError });
     }
