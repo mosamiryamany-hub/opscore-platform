@@ -2,8 +2,9 @@
 -- on disposable preview/acceptance databases only. RLS still enforces row access.
 DO $migration$
 BEGIN
-  EXECUTE format('GRANT CREATE ON DATABASE %I TO opscore_app', current_database());
+  IF EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname='opscore_app') THEN
+    EXECUTE format('GRANT CREATE ON DATABASE %I TO opscore_app', current_database());
+    EXECUTE 'GRANT CREATE, USAGE ON SCHEMA public TO opscore_app';
+  END IF;
 END
 $migration$;
-
-GRANT CREATE, USAGE ON SCHEMA public TO opscore_app;

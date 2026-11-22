@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { assertTarget, expectedMigrationOwnerRole, extractNeonEndpointId, readMigrations, unwrapOuterTransaction, verifyNeonEndpointIdentity, tenantPolicyExprValid, validateAppRolePreflight } = require('../scripts/apply-postgres-migrations');
+const { assertTarget, expectedMigrationOwnerRole, extractNeonEndpointId, readMigrations, unwrapOuterTransaction, verifyNeonEndpointIdentity, tenantPolicyExprValid, validateAppRolePreflight, verifyLegacyAppRoleOptionalCatalog } = require('../scripts/apply-postgres-migrations');
 
 const database = 'opscore_acceptance';
 const projectId = 'summer-leaf-18448271';
@@ -69,24 +69,24 @@ test('pinned Neon identity is limited to the exact disposable Preview project, b
     ...envFor('preview', { OPSC_MIGRATION_EXPECTED_OWNER_ROLE: 'neondb_owner' }),
     OPSC_MIGRATION_PINNED_NEON_IDENTITY: '1',
     OPSC_MIGRATION_EXPECTED_PROJECT_ID: 'sweet-union-58466913',
-    OPSC_MIGRATION_EXPECTED_BRANCH_ID: 'br-solitary-band-bbczy982',
-    OPSC_MIGRATION_EXPECTED_HOST: 'ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech'
+    OPSC_MIGRATION_EXPECTED_BRANCH_ID: 'br-muddy-pine-bbrexgxx',
+    OPSC_MIGRATION_EXPECTED_HOST: 'ep-green-frog-bbyayuh5.c-15.us-east-1.aws.neon.tech'
   };
-  const url = new URL('postgresql://neondb_owner:never-print-this@ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech/opscore_acceptance?sslmode=verify-full&channel_binding=require');
+  const url = new URL('postgresql://neondb_owner:never-print-this@ep-green-frog-bbyayuh5.c-15.us-east-1.aws.neon.tech/opscore_acceptance?sslmode=verify-full&channel_binding=require');
   const result = await verifyNeonEndpointIdentity(url, env);
   assert.equal(result.verified, false);
   assert.equal(result.skipped, true);
   assert.equal(result.pinned, true);
   assert.equal(result.verification, 'STATIC_EXACT_PREVIEW_TARGET');
   assert.equal(result.projectId, 'sweet-union-58466913');
-  assert.equal(result.branchId, 'br-solitary-band-bbczy982');
-  assert.equal(result.host, 'ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech');
+  assert.equal(result.branchId, 'br-muddy-pine-bbrexgxx');
+  assert.equal(result.host, 'ep-green-frog-bbyayuh5.c-15.us-east-1.aws.neon.tech');
   await assert.rejects(
     () => verifyNeonEndpointIdentity(new URL('postgresql://opscore_owner:x@ep-other.c-15.us-east-1.aws.neon.tech/opscore_acceptance'), env),
     /MIGRATION_PINNED_NEON_IDENTITY_MISMATCH/
   );
   await assert.rejects(
-    () => verifyNeonEndpointIdentity(new URL('postgresql://opscore_owner:x@ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech/neondb'), env),
+    () => verifyNeonEndpointIdentity(new URL('postgresql://opscore_owner:x@ep-green-frog-bbyayuh5.c-15.us-east-1.aws.neon.tech/neondb'), env),
     /MIGRATION_PINNED_NEON_IDENTITY_MISMATCH/
   );
 });
@@ -203,9 +203,10 @@ test('runner requires a least-privilege runtime role before migration work', () 
   const path = require('node:path');
   const source = fs.readFileSync(path.join(__dirname, '../scripts/apply-postgres-migrations.js'), 'utf8');
   assert.match(source, /MIGRATION_RUNTIME_ROLE_NOT_LEAST_PRIVILEGED/);
-  // Migration grants are performed in the opscore_app GUC context; the live
-  // application role is independently constrained as opscore_runtime above.
-  assert.match(source, /set_config\('opscore\.app_role','opscore_app',true\)/);
+  // The legacy app role is optional on Neon; migration context is bound only
+  // when the role exists. Runtime authorization remains independently constrained.
+  assert.match(source, /set_config\('opscore\.app_role',CASE WHEN EXISTS\(SELECT 1 FROM pg_catalog\.pg_roles WHERE rolname='opscore_app'\) THEN 'opscore_app' ELSE '' END,true\)/);
+  assert.doesNotMatch(source, /set_config\('opscore\.app_role','opscore_app',true\)/);
   assert.match(source, /has_table_privilege\('opscore_runtime'/);
   assert.match(source, /MIGRATION_APP_ROLE_NOT_LEAST_PRIVILEGED/);
   assert.match(source, /app_bypassrls/);
@@ -500,4 +501,31 @@ test('migration plan includes one in-place lockdown and reports the Neon-managed
   assert.match(repairs[0].content, /OPSC_LOCKED_APP_ROLE_MEMBERSHIP_POSTCONDITION_FAILED/);
   assert.match(repairs[0].content, /neon_superuser/);
   assert.match(repairs[0].content, /OPSC_LEGACY_APP_ROLE_ADMIN_OPTION_REQUIRED/);
+});
+
+test('legacy app-role migration reconciliation requires complete catalog-equivalence evidence', async () => {
+  const validRow = {
+    required_table_count: '12',
+    forced_rls_table_count: '12',
+    system_policy_target_table_count: '3',
+    work_order_context_policy: true,
+    ledger_owner_policy: true,
+    privileged_function_definer: true,
+    contextual_functions_present: true,
+    legacy_app_role_contract: true
+  };
+  const verified = await verifyLegacyAppRoleOptionalCatalog({
+    query: async sql => {
+      assert.match(sql, /opscore_system_table_guard/);
+      assert.match(sql, /opscore_schema_migrations_owner_only/);
+      assert.match(sql, /opscore_app/);
+      return { rows: [validRow] };
+    }
+  });
+  assert.equal(verified.verified, true);
+  assert.equal(verified.verifier, 'legacy_app_role_optional_catalog_equivalence_v1');
+  const rejected = await verifyLegacyAppRoleOptionalCatalog({
+    query: async () => ({ rows: [{ ...validRow, forced_rls_table_count: '11' }] })
+  });
+  assert.equal(rejected.verified, false);
 });

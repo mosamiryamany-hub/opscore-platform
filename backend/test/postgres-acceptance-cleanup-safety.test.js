@@ -98,3 +98,40 @@ test('Production PITR runtime probe stays within read-only catalog grants and ne
   assert.doesNotMatch(probe, /schema_migrations/);
   assert.match(probe, /migration ledger excluded by runtime-role boundary/);
 });
+
+test('privileged cleanup is exact-target only and never becomes the application connection', () => {
+  assert.match(source, /OPSC_PG_ACCEPTANCE_CLEANUP_URL/);
+  assert.match(source, /OPSC_PG_ACCEPTANCE_CLEANUP_HOST/);
+  assert.match(source, /cleanupTarget\.database !== database/);
+  assert.match(source, /cleanupTarget\.hostname !== parsed\.hostname/);
+  assert.ok(source.includes("allowedCleanupRoles = ['opscore_owner', 'neondb_owner']"));
+  assert.match(source, /decodeURIComponent\(cleanupTarget\.parsed\.username\) !== cleanupRoleName/);
+  assert.match(source, /identity\.role !== cleanupRoleName/);
+  assert.match(source, /identity\.superuser !== false/);
+  assert.match(source, /identity\.bypass_rls !== true/);
+  assert.match(source, /OPSC_PG_ACCEPTANCE_URL/);
+  assert.match(source, /DATABASE_URL: urlText/);
+  assert.match(source, /application_name: 'opscore-acceptance-targeted-cleanup'/);
+  assert.match(source, /exact-target-privileged-cleanup/);
+  assert.ok(source.includes('cleanupUsesPrivilegedRole'));
+  assert.ok(source.includes('SELECT count(*)::int AS n FROM users'));
+  assert.ok(source.includes('identity.bypass_rls !== true'));
+  assert.ok(source.includes('identity.superuser !== false'));
+  assert.match(source, /created\.organizations/);
+  assert.match(source, /created\.users/);
+});
+
+test('Preview and disposable PostgreSQL 18 pass separate exact-target migration-owner cleanup URLs', () => {
+  const workflowDir = path.resolve(__dirname, '..', '..', '.github', 'workflows');
+  const previewWorkflow = fs.readFileSync(path.join(workflowDir, 'apply-preview-migrations.yml'), 'utf8');
+  const pg18Workflow = fs.readFileSync(path.join(workflowDir, 'digital-twin-postgres-live.yml'), 'utf8');
+
+  assert.ok(previewWorkflow.includes('export OPSC_PG_ACCEPTANCE_URL="$(cat "$RUNNER_TEMP/runtime.uri")"'));
+  assert.ok(previewWorkflow.includes('export OPSC_PG_ACCEPTANCE_CLEANUP_URL="$(cat "$RUNNER_TEMP/bootstrap.uri")"'));
+  assert.ok(previewWorkflow.includes("OPSC_PG_ACCEPTANCE_CLEANUP_ROLE='opscore_owner'"));
+
+  assert.ok(pg18Workflow.includes('OPSC_PG_ACCEPTANCE_URL=postgresql://opscore_runtime:'));
+  assert.ok(pg18Workflow.includes('OPSC_PG_ACCEPTANCE_CLEANUP_URL=postgresql://neondb_owner:${owner_password}@127.0.0.1:5432/opscore_http_acceptance'));
+  assert.ok(pg18Workflow.includes('OPSC_PG_ACCEPTANCE_CLEANUP_ROLE=neondb_owner'));
+  assert.ok(pg18Workflow.includes('CREATE DATABASE opscore_http_acceptance OWNER neondb_owner'));
+});

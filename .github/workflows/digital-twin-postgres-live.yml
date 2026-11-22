@@ -158,6 +158,9 @@ jobs:
           {
             echo "OPSC_CI_MIGRATION_OWNER_PASSWORD=${owner_password}"
             echo "OPSC_PG_ACCEPTANCE_URL=postgresql://opscore_runtime:${runtime_password}@127.0.0.1:5432/opscore_http_acceptance"
+            echo "OPSC_PG_ACCEPTANCE_CLEANUP_URL=postgresql://neondb_owner:${owner_password}@127.0.0.1:5432/opscore_http_acceptance"
+            echo "OPSC_PG_ACCEPTANCE_CLEANUP_HOST=127.0.0.1"
+            echo "OPSC_PG_ACCEPTANCE_CLEANUP_ROLE=neondb_owner"
             echo "OPSC_PG_ACCEPTANCE_HOST=127.0.0.1"
             echo "OPSC_TENANT_MATRIX_DATABASE_URL=postgresql://opscore_runtime:${runtime_password}@127.0.0.1:5432/opscore_matrix_test"
           } >> "$GITHUB_ENV"

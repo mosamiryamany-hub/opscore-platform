@@ -17,7 +17,13 @@ AS $function$
 $function$;
 
 REVOKE ALL ON FUNCTION public.opscore_is_privileged() FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.opscore_is_privileged() TO opscore_app;
+DO $legacy_app_grant$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'opscore_app') THEN
+    EXECUTE 'GRANT EXECUTE ON FUNCTION public.opscore_is_privileged() TO opscore_app';
+  END IF;
+END
+$legacy_app_grant$;
 
 DO $migration$
 BEGIN

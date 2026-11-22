@@ -7,7 +7,7 @@ on:
         description: Exact non-default Neon acceptance branch ID
         required: false
         type: string
-        default: "br-solitary-band-bbczy982"
+        default: "br-muddy-pine-bbrexgxx"
       database:
         description: Exact isolated application database
         required: false
@@ -34,7 +34,7 @@ on:
       branch:
         description: Exact Neon Preview branch ID (primary, default, and protected branches are rejected)
         required: true
-        default: "br-solitary-band-bbczy982"
+        default: "br-muddy-pine-bbrexgxx"
       database:
         description: Application database name (fixed to opscore_acceptance)
         required: true
@@ -49,7 +49,7 @@ concurrency:
 
 jobs:
   apply-preview-only:
-    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'ops/acceptance-neon-target-2026-11-19'
+    if: github.event_name == 'workflow_dispatch' || github.head_ref == 'ops/acceptance-neon-target-2026-11-19' || github.head_ref == 'fix/neon-preview-sequence-acl-check-2026-11-22'
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -70,19 +70,19 @@ jobs:
       - name: Bind exact isolated Neon acceptance branch
         id: neon
         env:
-          INPUT_BRANCH: ${{ inputs.branch || github.event.inputs.branch || 'br-solitary-band-bbczy982' }}
+          INPUT_BRANCH: ${{ inputs.branch || github.event.inputs.branch || 'br-muddy-pine-bbrexgxx' }}
           INPUT_DB: ${{ inputs.database || github.event.inputs.database || 'opscore_acceptance' }}
         run: |
           set -euo pipefail
           PROJECT_ID='sweet-union-58466913'
           PRIMARY_BRANCH_ID='br-weathered-tree-bbha3dx4'
-          BRANCH_ID='br-solitary-band-bbczy982'
-          HOST='ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech'
+          BRANCH_ID='br-muddy-pine-bbrexgxx'
+          HOST='ep-green-frog-bbyayuh5.c-15.us-east-1.aws.neon.tech'
           test "$INPUT_BRANCH" = "$BRANCH_ID" || { echo 'EXACT_ACCEPTANCE_BRANCH_REQUIRED'; exit 1; }
           test "$INPUT_DB" = 'opscore_acceptance' || { echo 'EXACT_ACCEPTANCE_DATABASE_REQUIRED'; exit 1; }
           test "$BRANCH_ID" != "$PRIMARY_BRANCH_ID" || { echo 'REFUSING_NEON_PRIMARY_BRANCH'; exit 1; }
           echo "branch_id=$BRANCH_ID" >> "$GITHUB_OUTPUT"
-          echo "branch_name=acceptance/migrations-2026-11-19" >> "$GITHUB_OUTPUT"
+          echo "branch_name=acceptance-clean-security-2026-11-22" >> "$GITHUB_OUTPUT"
           echo "database=$INPUT_DB" >> "$GITHUB_OUTPUT"
           echo "project_id=$PROJECT_ID" >> "$GITHUB_OUTPUT"
           echo "host=$HOST" >> "$GITHUB_OUTPUT"
@@ -122,7 +122,7 @@ jobs:
           import os,sys
           from urllib.parse import urlsplit,parse_qs
           root=os.environ['RUNNER_TEMP']+'/'
-          expected_host='ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech'
+          expected_host='ep-green-frog-bbyayuh5.c-15.us-east-1.aws.neon.tech'
           expected_db='opscore_acceptance'
           checks=[
             ('OPSC_MIGRATION_DATABASE_URL','neondb_owner','owner.uri'),
@@ -169,6 +169,7 @@ jobs:
               RAISE EXCEPTION 'PREVIEW_BOOTSTRAP_ROLE_CAPABILITIES_INVALID';
             END IF;
           END $$;
+          GRANT CREATE ON DATABASE opscore_acceptance TO neondb_owner;
           GRANT CREATE, USAGE ON SCHEMA public TO neondb_owner;
           GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO neondb_owner;
           GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO neondb_owner;
@@ -188,6 +189,7 @@ jobs:
                OR migration_role.rolcreaterole IS NOT TRUE
                OR NOT has_schema_privilege('neondb_owner','public','CREATE')
                OR NOT has_schema_privilege('neondb_owner','public','USAGE')
+               OR NOT has_database_privilege('neondb_owner',current_database(),'CREATE')
                OR EXISTS (
                  SELECT 1
                  FROM pg_catalog.pg_class c
@@ -196,28 +198,15 @@ jobs:
                    AND c.relkind IN ('r','p')
                    AND NOT has_table_privilege('neondb_owner',c.oid,'SELECT')
                )
-               OR EXISTS (
-                 SELECT 1
-                 FROM pg_catalog.pg_class c
-                 JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace
-                 WHERE n.nspname='public'
-                   AND c.relkind='S'
-                   AND NOT has_sequence_privilege('neondb_owner',c.oid,'USAGE')
-               ) THEN
+            THEN
               RAISE EXCEPTION 'PREVIEW_MIGRATION_OWNER_PRIVILEGES_INVALID';
-            END IF;
-            IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname='opscore_app') THEN
-              CREATE ROLE opscore_app NOLOGIN NOINHERIT NOCREATEROLE NOCREATEDB NOBYPASSRLS;
-              RAISE NOTICE 'OPSC_LEGACY_APP_ROLE_PROVISIONED_LOCKED';
-            ELSE
-              RAISE NOTICE 'OPSC_LEGACY_APP_ROLE_ALREADY_PRESENT';
             END IF;
           END $$;
           SQL
           MIGRATION_URI="$(cat "$RUNNER_TEMP/owner.uri")"
           case "$MIGRATION_URI" in *"?"*) MIGRATION_URI="$MIGRATION_URI&sslrootcert=system";; *) MIGRATION_URI="$MIGRATION_URI?sslrootcert=system";; esac
           psql "$MIGRATION_URI" -v ON_ERROR_STOP=1 -q <<'SQL'
-          DO $
+          DO $$
           DECLARE
             migration_role record;
           BEGIN
@@ -236,7 +225,7 @@ jobs:
                OR NOT has_schema_privilege(current_user,'public','USAGE') THEN
               RAISE EXCEPTION 'PREVIEW_MIGRATION_OWNER_PRIVILEGES_INVALID';
             END IF;
-          END $;
+          END $$;
           SQL
           echo "NEON_MIGRATION_OWNER_ROLE=PASS"
           echo "PREVIEW_MIGRATION_BOOTSTRAP_PRIVILEGES=PASS"
@@ -244,7 +233,11 @@ jobs:
       - name: Clear unintended opscore_app memberships on isolated Preview
         run: |
           set -euo pipefail
-          export PGURI="$(cat "$RUNNER_TEMP/owner.uri")"; case "$PGURI" in *"?"*) PGURI="$PGURI&sslrootcert=system";; *) PGURI="$PGURI?sslrootcert=system";; esac; export PGURI
+          # Membership was granted to opscore_owner with ADMIN OPTION; neondb_owner
+          # is the migration executor and is not the membership grantor/admin.
+          # Use the already pinned, verified Preview bootstrap identity for this
+          # narrowly scoped role-membership repair.
+          export PGURI="$(cat "$RUNNER_TEMP/bootstrap.uri")"; case "$PGURI" in *"?"*) PGURI="$PGURI&sslrootcert=system";; *) PGURI="$PGURI?sslrootcert=system";; esac; export PGURI
           # opscore_app must not have members before 068 repair preflight. Preview
           # acceptance DBs can accumulate GRANT opscore_app TO <role> from older tests.
           # Revoke only membership *into* opscore_app; never touch production project.
@@ -281,7 +274,6 @@ jobs:
       - name: Dry-run migrations on Preview
         env:
           OPSC_MIGRATION_TARGET_CLASS: preview
-          OPSC_MIGRATION_PREVIEW_ALLOW_UNREVOCABLE_APP_MEMBERS: '1'
           OPSC_MIGRATION_EXPECTED_OWNER_ROLE: neondb_owner
           OPSC_MIGRATION_PINNED_NEON_IDENTITY: '1'
           OPSC_MIGRATION_EXPECTED_DATABASE: ${{ steps.neon.outputs.database }}
@@ -307,7 +299,7 @@ jobs:
           print("pending_count", len(pending))
           for p in pending: print(" pending", p.get("filename"))
           identity=obj.get("neonIdentity") or {}
-          if identity.get("pinned") is not True or identity.get("projectId") != "sweet-union-58466913" or identity.get("branchId") != "br-solitary-band-bbczy982" or identity.get("host") != "ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech":
+          if identity.get("pinned") is not True or identity.get("projectId") != "sweet-union-58466913" or identity.get("branchId") != "br-muddy-pine-bbrexgxx" or identity.get("host") != "ep-green-frog-bbyayuh5.c-15.us-east-1.aws.neon.tech":
             print("DRY_RUN_NEON_PINNED_IDENTITY_MISMATCH"); sys.exit(1)
           if obj.get("status") != "DRY_RUN_PASS":
             print(json.dumps(obj, indent=2)[:2500]); sys.exit(1)
@@ -318,7 +310,6 @@ jobs:
         continue-on-error: true
         env:
           OPSC_MIGRATION_TARGET_CLASS: preview
-          OPSC_MIGRATION_PREVIEW_ALLOW_UNREVOCABLE_APP_MEMBERS: '1'
           OPSC_MIGRATION_EXPECTED_OWNER_ROLE: neondb_owner
           OPSC_MIGRATION_PINNED_NEON_IDENTITY: '1'
           OPSC_MIGRATION_EXPECTED_DATABASE: ${{ steps.neon.outputs.database }}
@@ -346,7 +337,7 @@ jobs:
             print(raw[-2500:]); print("APPLY_PARSE_FAIL"); sys.exit(1)
           print(json.dumps({k:obj.get(k) for k in ("status","applied","target","neonIdentity","serverVersion")}, indent=2, default=str)[:4000])
           identity=obj.get("neonIdentity") or {}
-          if identity.get("pinned") is not True or identity.get("projectId") != "sweet-union-58466913" or identity.get("branchId") != "br-solitary-band-bbczy982" or identity.get("host") != "ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech":
+          if identity.get("pinned") is not True or identity.get("projectId") != "sweet-union-58466913" or identity.get("branchId") != "br-muddy-pine-bbrexgxx" or identity.get("host") != "ep-green-frog-bbyayuh5.c-15.us-east-1.aws.neon.tech":
             print("APPLY_NEON_PINNED_IDENTITY_MISMATCH"); sys.exit(1)
           st=str(obj.get("status") or "")
           if st != "APPLIED_AND_VERIFIED":
@@ -384,6 +375,78 @@ jobs:
           test "$ledger_outcome" = "success" || { echo "PREVIEW_MIGRATION_LEDGER_NOT_PASS:$ledger_outcome" >&2; exit 1; }
           echo "PREVIEW_MIGRATION_APPLY=PASS"
 
+      - name: Prepare ephemeral HMAC key for isolated Preview HTTP acceptance
+        id: preview_hmac_prepare
+        working-directory: backend
+        run: |
+          set -euo pipefail
+          URI="$(cat "$RUNNER_TEMP/bootstrap.uri")"
+          case "$URI" in *"?"*) URI="$URI&sslrootcert=system";; *) URI="$URI?sslrootcert=system";; esac
+
+          KEY_ID="ci-acceptance-$(date -u +%Y%m%dT%H%M%SZ)-$(openssl rand -hex 4)"
+          openssl rand -hex 32 > "$RUNNER_TEMP/preview-acceptance-hmac.hex"
+          chmod 600 "$RUNNER_TEMP/preview-acceptance-hmac.hex"
+          KEY_HEX="$(cat "$RUNNER_TEMP/preview-acceptance-hmac.hex")"
+          printf '%s' "$KEY_ID" > "$RUNNER_TEMP/preview-acceptance-hmac.key-id"
+          chmod 600 "$RUNNER_TEMP/preview-acceptance-hmac.key-id"
+
+          KEY_ID="$KEY_ID" KEY_HEX="$KEY_HEX" python3 - <<'PY'
+          import json, os, pathlib, re
+          key_id = os.environ["KEY_ID"]
+          key_hex = os.environ["KEY_HEX"]
+          if not re.fullmatch(r"ci-acceptance-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}", key_id):
+              raise SystemExit("PREVIEW_HMAC_KEY_ID_INVALID")
+          if not re.fullmatch(r"[0-9a-f]{64}", key_hex):
+              raise SystemExit("PREVIEW_HMAC_KEY_FORMAT_INVALID")
+          key_json = json.dumps({"key_id": key_id, "secret_hex": key_hex}, separators=(",", ":"))
+          pathlib.Path(os.environ["RUNNER_TEMP"], "preview-acceptance-hmac.json").write_text(key_json, encoding="utf-8")
+          sql = f"""
+          BEGIN;
+          DO $target$
+          BEGIN
+            IF current_user <> 'opscore_owner'
+               OR current_database() <> 'opscore_acceptance' THEN
+              RAISE EXCEPTION 'PREVIEW_HMAC_KEY_WRONG_TARGET';
+            END IF;
+          END
+          $target$;
+          INSERT INTO opscore_security.context_hmac_keys
+            (key_id, secret, enabled, not_before, not_after)
+          VALUES
+            ('{key_id}', decode('{key_hex}', 'hex'), true,
+             clock_timestamp() - interval '1 minute',
+             clock_timestamp() + interval '30 minutes');
+          COMMIT;
+          """
+          pathlib.Path(os.environ["RUNNER_TEMP"], "preview-acceptance-hmac.sql").write_text(sql, encoding="utf-8")
+          PY
+          chmod 600 "$RUNNER_TEMP/preview-acceptance-hmac.json" "$RUNNER_TEMP/preview-acceptance-hmac.sql"
+          KEY_JSON="$(cat "$RUNNER_TEMP/preview-acceptance-hmac.json")"
+          echo "::add-mask::$KEY_HEX"
+          echo "::add-mask::$KEY_JSON"
+          psql "$URI" -v ON_ERROR_STOP=1 -q -f "$RUNNER_TEMP/preview-acceptance-hmac.sql"
+          KEY_ID="$KEY_ID" python3 - <<'PY'
+          import os, pathlib, re
+          key_id = os.environ["KEY_ID"]
+          if not re.fullmatch(r"ci-acceptance-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}", key_id):
+              raise SystemExit("PREVIEW_HMAC_KEY_ID_INVALID")
+          sql = (
+              "SELECT count(*)::int FROM opscore_security.context_hmac_keys "
+              f"WHERE key_id = '{key_id}' AND enabled AND octet_length(secret)=32 "
+              "AND not_before <= clock_timestamp() AND not_after > clock_timestamp();"
+          )
+          pathlib.Path(os.environ["RUNNER_TEMP"], "preview-acceptance-hmac-verify.sql").write_text(sql, encoding="utf-8")
+          PY
+          chmod 600 "$RUNNER_TEMP/preview-acceptance-hmac-verify.sql"
+          psql "$URI" -v ON_ERROR_STOP=1 -qAt -f "$RUNNER_TEMP/preview-acceptance-hmac-verify.sql" > "$RUNNER_TEMP/preview-acceptance-hmac-count"
+          test "$(cat "$RUNNER_TEMP/preview-acceptance-hmac-count")" = "1" || { echo "PREVIEW_HMAC_KEY_PERSISTENCE_NOT_VERIFIED" >&2; exit 1; }
+          {
+            printf 'OPSC_TENANT_CONTEXT_KEY_JSON=%s\n' "$KEY_JSON"
+            printf 'OPSC_TENANT_CONTEXT_HMAC_KEY=%s\n' "$KEY_HEX"
+            printf 'OPSC_TENANT_CONTEXT_KEY_ID=%s\n' "$KEY_ID"
+          } >> "$GITHUB_ENV"
+          echo "PREVIEW_EPHEMERAL_TENANT_HMAC=PASS ttl_minutes=30"
+
       - name: Run PostgreSQL HTTP commercial acceptance against isolated Neon
         id: preview_http
         continue-on-error: true
@@ -391,7 +454,10 @@ jobs:
         run: |
           set -euo pipefail
           export OPSC_PG_ACCEPTANCE_URL="$(cat "$RUNNER_TEMP/runtime.uri")"
-          export OPSC_PG_ACCEPTANCE_HOST='ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech'
+          export OPSC_PG_ACCEPTANCE_CLEANUP_URL="$(cat "$RUNNER_TEMP/bootstrap.uri")"
+          export OPSC_PG_ACCEPTANCE_CLEANUP_HOST='ep-green-frog-bbyayuh5.c-15.us-east-1.aws.neon.tech'
+          export OPSC_PG_ACCEPTANCE_CLEANUP_ROLE='opscore_owner'
+          export OPSC_PG_ACCEPTANCE_HOST='ep-green-frog-bbyayuh5.c-15.us-east-1.aws.neon.tech'
           export OPSC_PG_ACCEPTANCE_STRICT='true'
           export OPSC_PG_ACCEPTANCE_RESULT_FILE="${GITHUB_WORKSPACE}/POSTGRES_HTTP_ACCEPTANCE_RESULT.json"
           export OPSC_WRITE_EVIDENCE='1'
@@ -399,15 +465,54 @@ jobs:
           export CI_PIPELINE_ID="${GITHUB_RUN_ID}"
           node --test test/postgres-commercial-acceptance-http.test.js
 
+      - name: Revoke ephemeral Preview HMAC acceptance key
+        id: preview_hmac_cleanup
+        if: always()
+        working-directory: backend
+        run: |
+          set -euo pipefail
+          KEY_FILE="$RUNNER_TEMP/preview-acceptance-hmac.key-id"
+          if [ ! -s "$KEY_FILE" ]; then
+            echo "PREVIEW_EPHEMERAL_TENANT_HMAC_CLEANUP=NOT_REQUIRED"
+            exit 0
+          fi
+          KEY_ID="$(cat "$KEY_FILE")"
+          case "$KEY_ID" in ci-acceptance-????????T??????Z-????????) ;; *) echo "PREVIEW_HMAC_CLEANUP_ID_INVALID" >&2; exit 1;; esac
+          URI="$(cat "$RUNNER_TEMP/bootstrap.uri")"
+          case "$URI" in *"?"*) URI="$URI&sslrootcert=system";; *) URI="$URI?sslrootcert=system";; esac
+          KEY_ID="$KEY_ID" python3 - <<'PY'
+          import os, pathlib, re
+          key_id = os.environ["KEY_ID"]
+          if not re.fullmatch(r"ci-acceptance-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}", key_id):
+              raise SystemExit("PREVIEW_HMAC_CLEANUP_ID_INVALID")
+          delete_sql = f"DELETE FROM opscore_security.context_hmac_keys WHERE key_id = '{key_id}';"
+          verify_sql = f"SELECT count(*)::int FROM opscore_security.context_hmac_keys WHERE key_id = '{key_id}';"
+          root = pathlib.Path(os.environ["RUNNER_TEMP"])
+          (root / "preview-acceptance-hmac-delete.sql").write_text(delete_sql, encoding="utf-8")
+          (root / "preview-acceptance-hmac-verify-cleanup.sql").write_text(verify_sql, encoding="utf-8")
+          PY
+          chmod 600 "$RUNNER_TEMP/preview-acceptance-hmac-delete.sql" "$RUNNER_TEMP/preview-acceptance-hmac-verify-cleanup.sql"
+          psql "$URI" -v ON_ERROR_STOP=1 -q -f "$RUNNER_TEMP/preview-acceptance-hmac-delete.sql"
+          psql "$URI" -v ON_ERROR_STOP=1 -qAt -f "$RUNNER_TEMP/preview-acceptance-hmac-verify-cleanup.sql" > "$RUNNER_TEMP/preview-acceptance-hmac-remaining"
+          test "$(cat "$RUNNER_TEMP/preview-acceptance-hmac-remaining")" = "0" || { echo "PREVIEW_HMAC_KEY_CLEANUP_NOT_VERIFIED" >&2; exit 1; }
+          rm -f "$KEY_FILE" "$RUNNER_TEMP/preview-acceptance-hmac.hex" "$RUNNER_TEMP/preview-acceptance-hmac.json" "$RUNNER_TEMP/preview-acceptance-hmac.sql" "$RUNNER_TEMP/preview-acceptance-hmac-verify.sql" "$RUNNER_TEMP/preview-acceptance-hmac-delete.sql" "$RUNNER_TEMP/preview-acceptance-hmac-verify-cleanup.sql" "$RUNNER_TEMP/preview-acceptance-hmac-count" "$RUNNER_TEMP/preview-acceptance-hmac-remaining"
+          echo "PREVIEW_EPHEMERAL_TENANT_HMAC_CLEANUP=PASS"
+
       - name: Finalize Preview acceptance gate
         run: |
           set -euo pipefail
           apply_outcome="${{ steps.preview_apply.outcome }}"
           ledger_outcome="${{ steps.preview_ledger_verify.outcome }}"
           http_outcome="${{ steps.preview_http.outcome }}"
+          hmac_prepare_outcome="${{ steps.preview_hmac_prepare.outcome }}"
+          hmac_cleanup_outcome="${{ steps.preview_hmac_cleanup.outcome }}"
           echo "PREVIEW_APPLY_OUTCOME=${apply_outcome}"
           echo "PREVIEW_LEDGER_VERIFY_OUTCOME=${ledger_outcome}"
           echo "PREVIEW_HTTP_OUTCOME=${http_outcome}"
+          echo "PREVIEW_HMAC_PREPARE_OUTCOME=${hmac_prepare_outcome}"
+          echo "PREVIEW_HMAC_CLEANUP_OUTCOME=${hmac_cleanup_outcome}"
+          test "$hmac_prepare_outcome" = "success" || { echo "PREVIEW_HMAC_PREPARE_NOT_PASS:$hmac_prepare_outcome" >&2; exit 1; }
+          test "$hmac_cleanup_outcome" = "success" || { echo "PREVIEW_HMAC_CLEANUP_NOT_PASS:$hmac_cleanup_outcome" >&2; exit 1; }
           test "$apply_outcome" = "success" || { echo "PREVIEW_MIGRATION_APPLY_NOT_PASS:$apply_outcome" >&2; exit 1; }
           test "$ledger_outcome" = "success" || { echo "PREVIEW_MIGRATION_LEDGER_NOT_PASS:$ledger_outcome" >&2; exit 1; }
           test "$http_outcome" = "success" || { echo "PREVIEW_HTTP_ACCEPTANCE_NOT_PASS:$http_outcome" >&2; exit 1; }

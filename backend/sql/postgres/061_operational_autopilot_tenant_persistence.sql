@@ -116,7 +116,15 @@ REVOKE ALL PRIVILEGES ON TABLE
   public.incident_replays,
   public.decision_memory,
   public.autopilot_proposals
-FROM PUBLIC, opscore_app;
+FROM PUBLIC;
+
+DO $legacy_app_acl$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname='opscore_app') THEN
+    EXECUTE 'REVOKE ALL PRIVILEGES ON TABLE public.incident_replays, public.decision_memory, public.autopilot_proposals FROM opscore_app';
+  END IF;
+END
+$legacy_app_acl$;
 
 GRANT SELECT, INSERT ON TABLE public.incident_replays, public.decision_memory
   TO opscore_runtime;
