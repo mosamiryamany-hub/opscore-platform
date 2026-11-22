@@ -11,7 +11,7 @@ const previewApplyPath = path.join(workflowDir, 'apply-preview-migrations.yml');
 const previewApply = fs.readFileSync(previewApplyPath, 'utf8');
 
 test('Preview migrations require one exact pinned non-primary branch and the application database', () => {
-  assert.match(previewApply, /branch:[\s\S]*?required: true[\s\S]*?default: "br-solitary-band-bbczy982"/);
+  assert.match(previewApply, /branch:[\s\S]*?required: true[\s\S]*?default: "br-muddy-pine-bbrexgxx"/);
   assert.ok(previewApply.includes("pull_request:\n    branches:\n      - main\n    paths:"));
   assert.ok(previewApply.includes("github.head_ref == 'ops/acceptance-neon-target-2026-11-19'"));
   assert.match(previewApply, /database:[\s\S]*?required: true[\s\S]*?default: "opscore_acceptance"/);
@@ -47,7 +47,7 @@ test('Preview migrations require one exact pinned non-primary branch and the app
   assert.match(previewApply, /APPLY_NEON_PINNED_IDENTITY_MISMATCH/);
   assert.match(previewApply, /OPSC_MIGRATION_EXPECTED_BRANCH_ID/);
   assert.match(previewApply, /OPSC_MIGRATION_CONFIRM_BRANCH_ID/);
-  assert.match(previewApply, /BRANCH_ID=\x27br-solitary-band-bbczy982\x27/);
+  assert.match(previewApply, /BRANCH_ID=\x27br-muddy-pine-bbrexgxx\x27/);
   assert.match(previewApply, /PRIMARY_BRANCH_ID=\x27br-weathered-tree-bbha3dx4\x27/);
   assert.match(previewApply, /OPSC_MIGRATION_DATABASE_URL/);
   assert.match(previewApply, /OPSC_ACCEPTANCE_RUNTIME_DATABASE_URL/);
