@@ -259,9 +259,12 @@ try {
   }), /RESTORE_ROLLBACK_FAILED/);
   assert.equal(fs.existsSync(rollbackFailureLockPath), true,
     'maintenance fence must remain when rollback cannot be verified');
+  const retainedLockMetadata = JSON.parse(fs.readFileSync(rollbackFailureLockPath, 'utf8'));
+  retainedLockMetadata.pid = 2147483647; // simulate the owner process having exited
+  fs.writeFileSync(rollbackFailureLockPath, JSON.stringify(retainedLockMetadata) + '\\n', { mode: 0o600 });
   assert.throws(() => openDb(rollbackFailureDestination),
     /SQLITE_DATABASE_MAINTENANCE_IN_PROGRESS/,
-    'application connections must remain blocked while recovery state is uncertain');
+    'a dead lock-owner PID must not auto-clear an unverified recovery fence');
 
   console.log(JSON.stringify({
     status: 'PASS',
