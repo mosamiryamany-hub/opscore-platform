@@ -17,15 +17,20 @@ test('release proof page publishes successful CI evidence separately from Produc
   assert.doesNotMatch(html, /44552772156|44552772494|d672dce8f18e1d7095aed3126aedb0f995796144/);
   assert.match(html, /id="signedRoutesEvidence"/);
   assert.match(html, /id="pitrEvidence"/);
-  assert.match(html, /PASS — Run 44735471699/);
-  assert.match(html, /historical branch creation and catalog parity only/);
-  assert.match(html, /does not prove row-content restoration, a full production rollback, or RPO\/RTO/);
+  assert.match(html, /PASS — Run 45013074938/);
+  assert.match(html, /full-data comparison covered 136 public tables/);
+  assert.match(html, /does not establish a contractual RPO\/RTO/);
   assert.match(html, /id="archiveEvidence"/);
   assert.match(html, /NOT BOUND TO THIS DEPLOYMENT/);
   assert.doesNotMatch(html, /no Production route results (0 tested)/);
   assert.doesNotMatch(html, /PITR probe not run; restore differs in six application tables/);
   assert.doesNotMatch(html, /NOT PRODUCED — no verified signed archive/);
   assert.match(html, /Live PostgreSQL catalog configuration/);
+  assert.match(html, /358\/358 route-specific PostgreSQL HTTP probes and 3\/3 authenticated tenant business flows/);
+  assert.match(html, /Automated Neon backup schedule/);
+  assert.match(html, /CRS \/ BOT RULES LOG-ONLY/);
+  assert.match(html, /NO LICENSE GRANT/);
+  assert.match(html, /0 \/ 114 REVIEWED/);
 });
 
 test('release proof renderer distinguishes native deployment identity and live catalog configuration from Action attestation', async () => {
