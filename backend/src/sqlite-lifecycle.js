@@ -95,16 +95,10 @@ function makeOwnerMetadata(token) {
 }
 
 function clearStaleMaintenanceLock(lockPath) {
-  if (!fs.existsSync(lockPath)) return false;
-  const metadata = readMetadata(lockPath);
-  if (!metadata || ownerIsAlive(metadata)) return false;
-  try {
-    fs.unlinkSync(lockPath);
-    return true;
-  } catch (error) {
-    if (error?.code === 'ENOENT') return true;
-    return false;
-  }
+  // A maintenance lock may survive a crash between atomic rename and durable
+  // verification/rollback. Never infer that the database is safe merely
+  // because its lock owner's PID has exited. Operator review is required.
+  return false;
 }
 
 function acquireDatabaseLease(dbPath) {
