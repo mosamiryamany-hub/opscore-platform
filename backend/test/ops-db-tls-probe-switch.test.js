@@ -5,6 +5,8 @@ const assert = require('node:assert/strict');
 const {
   buildTlsProbeConfig,
   directEndpointUrl,
+  readClientTlsEvidence,
+  tlsEvidenceQualified,
   validateEnvironmentUrls
 } = require('../scripts/ops_db_tls_probe_switch');
 
@@ -111,3 +113,55 @@ test('environment URL preflight fails before writes when a URL secret is missing
 });
 
 
+
+test('TLS probe qualifies the verified client TLSSocket, not PostgreSQL backend pg_stat_ssl', () => {
+  const evidence = readClientTlsEvidence({
+    connection: {
+      stream: {
+        authorized: true,
+        getProtocol: () => 'TLSv1.3',
+        getCipher: () => ({ name: 'TLS_AES_256_GCM_SHA384' })
+      }
+    }
+  });
+  assert.deepEqual(evidence, {
+    ssl: true,
+    authorized: true,
+    tlsVersion: 'TLSv1.3',
+    tlsCipher: 'TLS_AES_256_GCM_SHA384',
+    tlsBits: 256
+  });
+  assert.equal(tlsEvidenceQualified(evidence), true);
+});
+
+test('TLS probe refuses client sockets without negotiated, authorized TLS 1.2+ and strong cipher', () => {
+  const cases = [
+    { authorized: false, protocol: 'TLSv1.3', cipher: 'TLS_AES_256_GCM_SHA384' },
+    { authorized: true, protocol: 'TLSv1.1', cipher: 'TLS_AES_256_GCM_SHA384' },
+    { authorized: true, protocol: 'TLSv1.3', cipher: 'UNRECOGNIZED_AES_256_GCM_SHA384' }
+  ];
+  for (const item of cases) {
+    const evidence = readClientTlsEvidence({
+      connection: {
+        stream: {
+          authorized: item.authorized,
+          getProtocol: () => item.protocol,
+          getCipher: () => ({ name: item.cipher })
+        }
+      }
+    });
+    assert.equal(tlsEvidenceQualified(evidence), false);
+  }
+});
+
+test('TLS probe refuses a non-TLS client stream', () => {
+  const evidence = readClientTlsEvidence({ connection: { stream: {} } });
+  assert.deepEqual(evidence, {
+    ssl: false,
+    authorized: false,
+    tlsVersion: null,
+    tlsCipher: null,
+    tlsBits: null
+  });
+  assert.equal(tlsEvidenceQualified(evidence), false);
+});
