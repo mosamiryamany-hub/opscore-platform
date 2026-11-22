@@ -69,24 +69,24 @@ test('pinned Neon identity is limited to the exact disposable Preview project, b
     ...envFor('preview', { OPSC_MIGRATION_EXPECTED_OWNER_ROLE: 'neondb_owner' }),
     OPSC_MIGRATION_PINNED_NEON_IDENTITY: '1',
     OPSC_MIGRATION_EXPECTED_PROJECT_ID: 'sweet-union-58466913',
-    OPSC_MIGRATION_EXPECTED_BRANCH_ID: 'br-solitary-band-bbczy982',
-    OPSC_MIGRATION_EXPECTED_HOST: 'ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech'
+    OPSC_MIGRATION_EXPECTED_BRANCH_ID: 'br-muddy-pine-bbrexgxx',
+    OPSC_MIGRATION_EXPECTED_HOST: 'ep-green-frog-bbyayuh5.c-15.us-east-1.aws.neon.tech'
   };
-  const url = new URL('postgresql://neondb_owner:never-print-this@ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech/opscore_acceptance?sslmode=verify-full&channel_binding=require');
+  const url = new URL('postgresql://neondb_owner:never-print-this@ep-green-frog-bbyayuh5.c-15.us-east-1.aws.neon.tech/opscore_acceptance?sslmode=verify-full&channel_binding=require');
   const result = await verifyNeonEndpointIdentity(url, env);
   assert.equal(result.verified, false);
   assert.equal(result.skipped, true);
   assert.equal(result.pinned, true);
   assert.equal(result.verification, 'STATIC_EXACT_PREVIEW_TARGET');
   assert.equal(result.projectId, 'sweet-union-58466913');
-  assert.equal(result.branchId, 'br-solitary-band-bbczy982');
-  assert.equal(result.host, 'ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech');
+  assert.equal(result.branchId, 'br-muddy-pine-bbrexgxx');
+  assert.equal(result.host, 'ep-green-frog-bbyayuh5.c-15.us-east-1.aws.neon.tech');
   await assert.rejects(
     () => verifyNeonEndpointIdentity(new URL('postgresql://opscore_owner:x@ep-other.c-15.us-east-1.aws.neon.tech/opscore_acceptance'), env),
     /MIGRATION_PINNED_NEON_IDENTITY_MISMATCH/
   );
   await assert.rejects(
-    () => verifyNeonEndpointIdentity(new URL('postgresql://opscore_owner:x@ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech/neondb'), env),
+    () => verifyNeonEndpointIdentity(new URL('postgresql://opscore_owner:x@ep-green-frog-bbyayuh5.c-15.us-east-1.aws.neon.tech/neondb'), env),
     /MIGRATION_PINNED_NEON_IDENTITY_MISMATCH/
   );
 });
