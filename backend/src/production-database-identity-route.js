@@ -78,6 +78,10 @@ function sanitizeApplicationConnectionTls(report, probeErrorCode = null) {
     scope: 'APPLICATION_POSTGRES_WORKER_CONNECTION',
     status: verified ? 'VERIFIED' : 'UNVERIFIED',
     reasonCode,
+    // Preserve the explicit verification boolean consumed by the downstream
+    // production promotion diagnostic. Omitting it turns valid socket evidence
+    // into UNVERIFIED even when the worker proved authorized TLS.
+    verified,
     negotiated: value.negotiated === true,
     authorized: value.authorized === true,
     protocol,
