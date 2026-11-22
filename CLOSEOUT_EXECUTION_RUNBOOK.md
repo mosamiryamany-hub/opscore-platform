@@ -15,6 +15,8 @@ This runbook is a current operational register, not a certificate. Each proof mu
 |---|---|---|
 | GitHub Actions | Run `44993913435` | Post-merge `verify` PASS: 960 passed, 0 failed, 3 skipped |
 | Vercel workflow | Run `44993913475` | Source verification, isolated PostgreSQL 18 acceptance, contract verification and isolated RLS/HTTP acceptance PASS; PITR and Neon Preview migration jobs SKIPPED; deploy SKIPPED |
+| Signed-tenant PostgreSQL 18 evidence | Artifact `signed-tenant-postgres-18-ci-coverage-44993913475` | `PASS 67/67`, 0 failures; source hint `63682774…`; `opscore_runtime`; disposable CI only, not Production |
+| Mobile dependency audit evidence | Artifact `mobile-dependency-audit-44993913475-63682774…` | Full and production trees PASS with 0 findings across 497 dependency nodes |
 | Vercel deploy job | Same run | `SKIPPED`; no deployment proven by this run |
 | PITR / Neon Preview migration jobs | Same run | `SKIPPED`; no fresh recovery or Preview migration proof |
 | Secure Release package | SHA `43554492218adbf0cde2d700bd0dedfadce67f5e` | No matching ZIP, SBOM, signed provenance or release statement established |
