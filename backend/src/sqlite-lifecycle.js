@@ -154,7 +154,10 @@ function scanOpenDatabaseHandles(databasePath) {
 
   let targetStat;
   try { targetStat = fs.statSync(databasePath); }
-  catch { throw new Error('SQLITE_DATABASE_IDENTITY_UNAVAILABLE'); }
+  catch (error) {
+    if (error?.code === 'ENOENT') return [];
+    throw new Error('SQLITE_DATABASE_IDENTITY_UNAVAILABLE', { cause: error });
+  }
 
   let entries;
   try { entries = fs.readdirSync('/proc'); }
