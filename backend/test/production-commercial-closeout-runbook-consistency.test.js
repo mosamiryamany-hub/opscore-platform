@@ -77,7 +77,7 @@ test('67-route acceptance remains isolated PostgreSQL CI evidence and does not c
   assert.match(currentCommercialStatus, /67\/67 signed-tenant route result/);
   assert.match(currentCommercialStatus, /Candidate deployment `dpl_FgDTqKJxCDw3SAGLtgPxqfQHGu7v`/i);
   assert.match(currentCommercialStatus, /not a second independent 67\/358\/3 probe against the final promoted deployment ID/);
-  assert.match(currentCommercialStatus, /Buyer environments remain independently unverified/);
+  assert.match(currentCommercialStatus, /buyer environments remain independently unverified/i);
   assert.match(sellerCloseoutChecklist, /buyer|customer/i);
 });
 
