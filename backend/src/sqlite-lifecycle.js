@@ -163,18 +163,47 @@ function scanOpenDatabaseHandles(databasePath) {
     throw new Error('SQLITE_DATABASE_IDENTITY_UNAVAILABLE', { cause: error });
   }
 
+  const effectiveUid = typeof process.geteuid === 'function' ? process.geteuid() : null;
+  if (effectiveUid === null || targetStat.uid !== effectiveUid) {
+    throw new Error('SQLITE_DATABASE_OWNER_MISMATCH');
+  }
+  if ((targetStat.mode & 0o077) !== 0) {
+    throw new Error('SQLITE_DATABASE_PERMISSIONS_NOT_PRIVATE');
+  }
+
   let entries;
   try { entries = fs.readdirSync('/proc'); }
   catch (error) { throw new Error('SQLITE_OPEN_HANDLE_SCAN_UNAVAILABLE', { cause: error }); }
 
   const matches = [];
   for (const pidText of entries) {
-    if (!/^\d+$/.test(pidText)) continue;
-    const fdDirectory = '/proc/' + pidText + '/fd';
+    if (!/^\\d+$/.test(pidText)) continue;
+    const processDirectory = '/proc/' + pidText;
+    const fdDirectory = processDirectory + '/fd';
     let descriptors;
     try { descriptors = fs.readdirSync(fdDirectory); }
     catch (error) {
-      if (error?.code === 'ENOENT') continue; // process exited during the scan
+      if (error?.code === 'ENOENT') continue;
+      if (error?.code === 'EACCES' || error?.code === 'EPERM') {
+        // The database is owner-only (0600) and owned by this UID.
+        // Different unprivileged UIDs cannot open it; privileged root processes
+        // remain outside the supported SQLite application concurrency domain.
+        let processStatus;
+        try { processStatus = fs.readFileSync(processDirectory + '/status', 'utf8'); }
+        catch (statusError) {
+          if (statusError?.code === 'ENOENT') continue;
+          throw new Error('SQLITE_OPEN_HANDLE_SCAN_INCOMPLETE', { cause: statusError });
+        }
+        const uidLine = processStatus.split('\\n').find(line => line.startsWith('Uid:'));
+        const uids = uidLine ? uidLine.trim().split(/\\s+/).slice(1, 5).map(Number) : [];
+        if (!uids.length || uids.some(uid => !Number.isInteger(uid))) {
+          throw new Error('SQLITE_OPEN_HANDLE_SCAN_INCOMPLETE');
+        }
+        if (uids.includes(effectiveUid) || uids.includes(0)) {
+          throw new Error('SQLITE_OPEN_HANDLE_SCAN_INCOMPLETE', { cause: error });
+        }
+        continue;
+      }
       throw new Error('SQLITE_OPEN_HANDLE_SCAN_INCOMPLETE', { cause: error });
     }
 
