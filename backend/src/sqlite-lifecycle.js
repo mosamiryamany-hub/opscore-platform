@@ -173,6 +173,10 @@ function scanOpenDatabaseHandles(databasePath) {
   if ((targetStat.mode & 0o077) !== 0) {
     throw new Error('SQLITE_DATABASE_PERMISSIONS_NOT_PRIVATE');
   }
+  const directoryStat = fs.statSync(path.dirname(canonicalTarget));
+  if (directoryStat.uid !== effectiveUid || !directoryStat.isDirectory() || (directoryStat.mode & 0o077) !== 0) {
+    throw new Error('SQLITE_DATABASE_DIRECTORY_NOT_PRIVATE');
+  }
 
   const matches = [];
   const seen = new Set();
@@ -240,6 +244,30 @@ function scanOpenDatabaseHandles(databasePath) {
     }
   };
 
+  // Processes running as this database's owning UID are scanned in full. The
+  // database file and its parent directory are both owner-only (0600/0700), so
+  // unrelated UIDs cannot open the path. Root/privileged host processes and
+  // other PID namespaces remain outside this application's supported SQLite
+  // concurrency boundary; operators must stop those external actors separately.
+  const processCanAccessPrivateDatabase = pidText => {
+    let status;
+    try {
+      status = fs.readFileSync('/proc/' + pidText + '/status', 'utf8');
+    } catch (error) {
+      if (error?.code === 'ENOENT') return false;
+      throw new Error('SQLITE_OPEN_HANDLE_SCAN_INCOMPLETE', { cause: error });
+    }
+    const uidLine = status.split('\\n').find(line => line.startsWith('Uid:'));
+    const uids = uidLine ? uidLine.trim().split(/\\s+/).slice(1, 5).map(Number) : [];
+    if (uids.length !== 4 || uids.some(uid => !Number.isSafeInteger(uid))) {
+      throw new Error('SQLITE_OPEN_HANDLE_SCAN_INCOMPLETE');
+    }
+    // Root is privileged and may bypass DAC; its open handles are an explicit
+    // operator stop condition rather than silently claimed as covered by /proc.
+    if (uids.every(uid => uid === 0)) return false;
+    return uids.includes(effectiveUid);
+  };
+
   // Inspect this process explicitly; /proc/self works even when other PIDs are
   // hidden by a container's procfs policy.
   inspectFdDirectory('self', '/proc/self/fd');
@@ -248,8 +276,9 @@ function scanOpenDatabaseHandles(databasePath) {
   catch (error) { throw new Error('SQLITE_OPEN_HANDLE_SCAN_UNAVAILABLE', { cause: error }); }
 
   for (const pidText of entries) {
-    if (!/^\d+$/.test(pidText) || Number(pidText) === process.pid) continue;
-    inspectFdDirectory(pidText, '/proc/' + pidText + '/fd', { tolerateHiddenForeignUid: true });
+    if (!/^\\d+$/.test(pidText) || Number(pidText) === process.pid) continue;
+    if (!processCanAccessPrivateDatabase(pidText)) continue;
+    inspectFdDirectory(pidText, '/proc/' + pidText + '/fd');
   }
   return matches;
 }
