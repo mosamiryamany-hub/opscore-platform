@@ -97,12 +97,11 @@ try {
   activeApplicationDb.close();
   for (const suffix of ['-wal', '-shm', '-journal']) fs.rmSync(destination + suffix, { force: true });
 
-  // A raw SQLite handle that bypasses openDb must still be caught by Linux /proc FD inspection.
-  // A raw file descriptor from an external process bypasses openDb leases.
-  // The scanner compares device+inode, so it must catch every visible descriptor
-  // pointing at the database file regardless of which library opened it.
+  // A raw SQLite/file descriptor in the restoring process bypasses openDb leases,
+  // so the direct /proc/self/fd guard must catch it before any destination mutation.
   const unmanagedFd = fs.openSync(destination, 'r');
   const { scanOpenDatabaseHandles } = require('../src/sqlite-lifecycle');
+  const { restoreDatabase: restoreWithUnmanagedHandle } = require('./sqlite-restore-core');
   const directDescriptorPath = '/proc/self/fd/' + unmanagedFd;
   const directDescriptorLink = fs.readlinkSync(directDescriptorPath);
   const directDescriptorStat = fs.statSync(directDescriptorPath);
@@ -112,8 +111,10 @@ try {
   const detectedDescriptors = scanOpenDatabaseHandles(destination);
   assert.ok(detectedDescriptors.some(handle => handle.pid === process.pid),
     'the Linux descriptor scan must observe this process own unmanaged database-file descriptor: ' + JSON.stringify(detectedDescriptors));
-  const unmanagedRestore = run(restoreScript, [backup], { SQLITE_PATH: destination });
-  expectFailure(unmanagedRestore, 'SQLITE_DATABASE_OPEN_HANDLE_PRESENT');
+  assert.throws(
+    () => restoreWithUnmanagedHandle({ sourcePath: backup, destinationPath: destination }),
+    /SQLITE_DATABASE_OPEN_HANDLE_PRESENT/
+  );
   assert.equal(hash(destination), originalDestinationHash, 'unmanaged open file descriptor must prevent destination mutation');
   fs.closeSync(unmanagedFd);
   for (const suffix of ['-wal', '-shm', '-journal']) fs.rmSync(destination + suffix, { force: true });
