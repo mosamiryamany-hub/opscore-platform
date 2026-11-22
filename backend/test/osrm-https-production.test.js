@@ -59,6 +59,7 @@ test('non-production OSRM retains explicit HTTP compatibility',()=>{
 
 test('Vercel Production target rejects HTTP even when NODE_ENV is not production',async()=>{
   await withEnv({NODE_ENV:'test',VERCEL_ENV:'production',OSRM_ALLOWED_HOSTS:'router.example.test'},async()=>{
+    assert.throws(()=>validateOsrmBaseUrl('http://router.example.test',{production:false}),/OSRM_HTTPS_REQUIRED/);
     await assert.rejects(assertOsrmHostResolvesSafely('http://router.example.test'),/OSRM_HTTPS_REQUIRED/);
   });
 });
