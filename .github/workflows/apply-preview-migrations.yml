@@ -425,7 +425,20 @@ jobs:
           echo "::add-mask::$KEY_HEX"
           echo "::add-mask::$KEY_JSON"
           psql "$URI" -v ON_ERROR_STOP=1 -q -f "$RUNNER_TEMP/preview-acceptance-hmac.sql"
-          psql "$URI" -v ON_ERROR_STOP=1 -v KEY_ID="$KEY_ID" -AtXc "SELECT count(*) FROM opscore_security.context_hmac_keys WHERE key_id = :'KEY_ID' AND enabled AND octet_length(secret)=32 AND not_before <= clock_timestamp() AND not_after > clock_timestamp()" > "$RUNNER_TEMP/preview-acceptance-hmac-count"
+          KEY_ID="$KEY_ID" python3 - <<'PY'
+          import os, pathlib, re
+          key_id = os.environ["KEY_ID"]
+          if not re.fullmatch(r"ci-acceptance-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}", key_id):
+              raise SystemExit("PREVIEW_HMAC_KEY_ID_INVALID")
+          sql = (
+              "SELECT count(*)::int FROM opscore_security.context_hmac_keys "
+              f"WHERE key_id = '{key_id}' AND enabled AND octet_length(secret)=32 "
+              "AND not_before <= clock_timestamp() AND not_after > clock_timestamp();\\n"
+          )
+          pathlib.Path(os.environ["RUNNER_TEMP"], "preview-acceptance-hmac-verify.sql").write_text(sql, encoding="utf-8")
+          PY
+          chmod 600 "$RUNNER_TEMP/preview-acceptance-hmac-verify.sql"
+          psql "$URI" -v ON_ERROR_STOP=1 -qAt -f "$RUNNER_TEMP/preview-acceptance-hmac-verify.sql" > "$RUNNER_TEMP/preview-acceptance-hmac-count"
           test "$(cat "$RUNNER_TEMP/preview-acceptance-hmac-count")" = "1" || { echo "PREVIEW_HMAC_KEY_PERSISTENCE_NOT_VERIFIED" >&2; exit 1; }
           {
             printf 'OPSC_TENANT_CONTEXT_KEY_JSON=%s\n' "$KEY_JSON"
@@ -466,10 +479,22 @@ jobs:
           case "$KEY_ID" in ci-acceptance-????????T??????Z-????????) ;; *) echo "PREVIEW_HMAC_CLEANUP_ID_INVALID" >&2; exit 1;; esac
           URI="$(cat "$RUNNER_TEMP/bootstrap.uri")"
           case "$URI" in *"?"*) URI="$URI&sslrootcert=system";; *) URI="$URI?sslrootcert=system";; esac
-          psql "$URI" -v ON_ERROR_STOP=1 -v KEY_ID="$KEY_ID" -q -c "DELETE FROM opscore_security.context_hmac_keys WHERE key_id = :'KEY_ID'"
-          psql "$URI" -v ON_ERROR_STOP=1 -v KEY_ID="$KEY_ID" -AtXc "SELECT count(*) FROM opscore_security.context_hmac_keys WHERE key_id = :'KEY_ID'" > "$RUNNER_TEMP/preview-acceptance-hmac-remaining"
+          KEY_ID="$KEY_ID" python3 - <<'PY'
+          import os, pathlib, re
+          key_id = os.environ["KEY_ID"]
+          if not re.fullmatch(r"ci-acceptance-[0-9]{8}T[0-9]{6}Z-[0-9a-f]{8}", key_id):
+              raise SystemExit("PREVIEW_HMAC_CLEANUP_ID_INVALID")
+          delete_sql = f"DELETE FROM opscore_security.context_hmac_keys WHERE key_id = '{key_id}';\\n"
+          verify_sql = f"SELECT count(*)::int FROM opscore_security.context_hmac_keys WHERE key_id = '{key_id}';\\n"
+          root = pathlib.Path(os.environ["RUNNER_TEMP"])
+          (root / "preview-acceptance-hmac-delete.sql").write_text(delete_sql, encoding="utf-8")
+          (root / "preview-acceptance-hmac-verify-cleanup.sql").write_text(verify_sql, encoding="utf-8")
+          PY
+          chmod 600 "$RUNNER_TEMP/preview-acceptance-hmac-delete.sql" "$RUNNER_TEMP/preview-acceptance-hmac-verify-cleanup.sql"
+          psql "$URI" -v ON_ERROR_STOP=1 -q -f "$RUNNER_TEMP/preview-acceptance-hmac-delete.sql"
+          psql "$URI" -v ON_ERROR_STOP=1 -qAt -f "$RUNNER_TEMP/preview-acceptance-hmac-verify-cleanup.sql" > "$RUNNER_TEMP/preview-acceptance-hmac-remaining"
           test "$(cat "$RUNNER_TEMP/preview-acceptance-hmac-remaining")" = "0" || { echo "PREVIEW_HMAC_KEY_CLEANUP_NOT_VERIFIED" >&2; exit 1; }
-          rm -f "$KEY_FILE" "$RUNNER_TEMP/preview-acceptance-hmac.hex" "$RUNNER_TEMP/preview-acceptance-hmac.json" "$RUNNER_TEMP/preview-acceptance-hmac.sql" "$RUNNER_TEMP/preview-acceptance-hmac-count" "$RUNNER_TEMP/preview-acceptance-hmac-remaining"
+          rm -f "$KEY_FILE" "$RUNNER_TEMP/preview-acceptance-hmac.hex" "$RUNNER_TEMP/preview-acceptance-hmac.json" "$RUNNER_TEMP/preview-acceptance-hmac.sql" "$RUNNER_TEMP/preview-acceptance-hmac-verify.sql" "$RUNNER_TEMP/preview-acceptance-hmac-delete.sql" "$RUNNER_TEMP/preview-acceptance-hmac-verify-cleanup.sql" "$RUNNER_TEMP/preview-acceptance-hmac-count" "$RUNNER_TEMP/preview-acceptance-hmac-remaining"
           echo "PREVIEW_EPHEMERAL_TENANT_HMAC_CLEANUP=PASS"
 
       - name: Finalize Preview acceptance gate
