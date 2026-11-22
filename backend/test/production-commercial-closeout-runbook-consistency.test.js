@@ -164,5 +164,5 @@ test('Production release flags remain bound to the older public SHA and do not q
   assert.match(commercialClosureStatus, /OPSC_PG_SSL_MODE=verify-full/);
   assert.match(commercialClosureStatus, /OPSC_PG_SSL_REJECT_UNAUTHORIZED=true/);
   assert.match(commercialClosureStatus, /63682774/);
-  assert.match(commercialClosureStatus, /NOT ESTABLISHED/);
+  assert.match(commercialClosureStatus, /NOT_ESTABLISHED/);
 });
