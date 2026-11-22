@@ -25,10 +25,11 @@ test('Preview migrations require one exact pinned non-primary branch and the app
   assert.match(previewApply, /PREVIEW_MIGRATION_OWNER_PRIVILEGES_INVALID/);
   assert.match(previewApply, /GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO neondb_owner/);
   assert.doesNotMatch(previewApply, /has_sequence_privilege\('neondb_owner'/);
-  assert.doesNotMatch(previewApply, /^\\s*DO \\$\\s*$/m);
-  assert.doesNotMatch(previewApply, /^\\s*END \\$;$/m);
-  assert.doesNotMatch(previewApply, /^ {0,9}THEN\\s*$/m);
-  assert.equal((previewApply.match(/^\\s*DO \\$\\$/gm) || []).length, (previewApply.match(/^\\s*END \\$;$/gm) || []).length);
+  const previewApplyLines = previewApply.split(/\r?\n/);
+  assert.equal(previewApplyLines.some(line => line.trim() === 'DO $'), false);
+  assert.equal(previewApplyLines.some(line => line.trim() === 'END $;'), false);
+  assert.equal(previewApplyLines.some(line => line.trim() === 'THEN' && line.length - line.trimStart().length < 10), false);
+  assert.equal(previewApplyLines.filter(line => line.trim() === 'DO $$').length, previewApplyLines.filter(line => line.trim() === 'END $$;').length);
 
   assert.match(previewApply, /NEON_MIGRATION_BOOTSTRAP_AND_RUNTIME_CONNECTIONS=PASS roles=neondb_owner,opscore_owner,opscore_runtime TLS=verify-full/);
   assert.match(previewApply, /chmod 600 [^\n]*owner\.uri[^\n]*runtime\.uri[^\n]*bootstrap\.uri/);
