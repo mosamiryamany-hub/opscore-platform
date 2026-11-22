@@ -1,6 +1,6 @@
 # Buyer and seller residuals — reconciled 2026-11-22
 
-This register separates seller release blockers from buyer-specific deliverables. GitHub and Vercel observations below were rechecked on 2026-11-22; Neon, WAF and public legal routes were not freshly checked in this reconciliation and remain dated historical evidence. No production migration, role change, branch deletion, backup-plan upgrade, WAF enforcement change, legal publication or license grant is implied.
+This register separates seller release blockers from buyer-specific deliverables. GitHub, Vercel, Neon and WAF were rechecked on 2026-11-22; public legal routes were not freshly checked and remain unverified. No production migration, role change, branch deletion, backup-plan upgrade, WAF enforcement change, legal publication or license grant is implied.
 
 ## Current seller release evidence
 
@@ -9,14 +9,14 @@ This register separates seller release blockers from buyer-specific deliverables
 | GitHub main | `43554492218adbf0cde2d700bd0dedfadce67f5e` | Confirmed by remote ref lookup on 2026-11-22 |
 | GitHub Actions | Run `44953249616` | Post-merge checks succeeded; Vercel deploy, PITR and Neon Preview migration jobs were skipped |
 | Production certification / promotion | `NOT_ESTABLISHED` / `NOT_PROVEN` | No exact-head authorized Production run or matching runtime proof |
-| Latest Vercel Production-target record | `dpl_3Ls8gZdacPzNa1iJEe1r6amVEKRp` | READY, commit `970db239bc1b94401e39669e09b106e16c4defc1`; no aliases |
-| Canonical production alias | `dpl_EacspS7o2jntgw8uS1YMpzf45CFt` | Alias lookup returned `opscore-platform.vercel.app`; deployment commit `b7f63445c1748ebaec426a9ebe0ea629e4998839` differs from current main |
+| Vercel Production-target deployments on current main | `dpl_G15K6Sg9Q7xJQKrHKFRYJGSNDerN`; `dpl_EC2Ri4BJrZTN7ca53xurrUV9LvmR` | Both `READY`, source SHA `43554492218adbf0cde2d700bd0dedfadce67f5e`, both have empty alias lists |
+| Canonical production domain | `opscore-platform.vercel.app` → `dpl_EacspS7o2jntgw8uS1YMpzf45CFt` | Verified domain record; current alias deployment source SHA `b7f63445c1748ebaec426a9ebe0ea629e4998839`, not current main |
 | Focused local test suite | 89 / 89 PASS | Includes local unmerged red-team regression test; not an official main CI result |
 | Red-team result | Main: `REVIEW`; local adjusted analyzer: `PASS` | Five bounded contracts verified locally; analyzer change is uncommitted and not attributable to main |
 | Dependency audit | 6 audits, zero findings | Full and `--omit=dev` for root/backend/mobile on current SHA lockfiles; not a software security certification |
 | Secure Release package | Not established | No exact-main ZIP, SBOM, signed provenance or release statement found |
 
-**Release interpretation:** successful post-merge CI is not a completed Production release or commercial technical certification. The latest Vercel Production-target record is on a different SHA and has no alias; the canonical alias is attached to another SHA that also differs from current main. Production publication on current main, final runtime/database/security proof, promotion and public-domain verification remain unproven.
+**Release interpretation:** successful post-merge CI is not a completed Production release or commercial technical certification. Two Vercel Production-target deployment records now exist on current main SHA `43554492218adbf0cde2d700bd0dedfadce67f5e`, both READY but with empty alias lists. The verified canonical domain record resolves to the older alias deployment on SHA `b7f63445c1748ebaec426a9ebe0ea629e4998839`. Therefore current-main deployment records exist, but the public domain is still not shown serving that SHA; production runtime/security proof and promotion remain unproven.
 
 ## Required public-proof semantics
 
@@ -46,13 +46,16 @@ The 67/67 signed-session matrix is isolated PostgreSQL CI evidence, not buyer-en
 | Branch logical-size limit | 1 GiB |
 | Primary branch protected | No (`protected=false`) |
 | Listed snapshots | One listed manual snapshot: `snap-aged-thunder-bcsxc1a5` |
-| Automatic snapshot schedule | None; no scheduled snapshot capability on the current plan |
+| Automatic snapshot schedule | None (live schedule query returned an empty schedule) |
+| Main migration ledger | 70 rows; latest `071_signed_rls_context_all_access_modes.sql` (read 2026-11-22) |
+| Recovery branch migration ledger | 68 rows; latest `069_technician_location_trail_tenant_persistence.sql` (read 2026-11-22) |
+| Network restrictions | Allowed IP list empty; public connections not blocked |
 
-The last recorded primary ledger contained 69 rows and ended at `070_evidence_upload_postgres_blob_storage.sql`, applied at `2026-11-19T18:38:00.349Z`. Restore branch `br-calm-poetry-bc7l7wik` contained 68 rows and ended at migration 069 because its snapshot lineage predates migration 070. This dated one-row difference was time-ordered and was not evidence of data corruption; Neon was not re-read in this reconciliation. Do not describe the current setup as scheduled-backup coverage, multi-day PITR, or an RPO/RTO guarantee. The 2026-11-20 native instant-restore probe returned PASS for a disposable historical branch and schema/catalog match; it did not prove all row contents, application-level recovery or recovery objectives. Do not delete the only listed manual snapshot without separate approval.
+A fresh read-only Neon ledger query on 2026-11-22 found 70 rows on Primary, latest `071_signed_rls_context_all_access_modes.sql`, and 68 rows on recovery branch `br-calm-poetry-bc7l7wik`, latest migration 069. The difference reflects the recovery branch's older snapshot lineage; it is not evidence of data corruption. The migration number 071 is not the ledger row count. Do not describe the current setup as scheduled-backup coverage, multi-day PITR, or an RPO/RTO guarantee. The 2026-11-20 native instant-restore probe returned PASS for a disposable historical branch and schema/catalog match; it did not prove all row contents, application-level recovery or recovery objectives. Do not delete the only listed manual snapshot without separate approval.
 
 ## Database security boundaries
 
-The last detailed catalog read found 136 public tables, 135 with RLS and FORCE RLS; `spatial_ref_sys` is the non-tenant PostGIS metadata exception. The `opscore_runtime` role then had no superuser or BYPASSRLS attributes. **Historical P0 reproduction, 2026-11-21:** a read-only transaction-local probe under `opscore_runtime`, with no signed context, showed raw `app.tenant_id`, `app.user_id` and `app.access_mode` values flowing through public context accessors; a count-only read observed 2 `activity_log` rows after setting an existing tenant context. No row contents were read; no persistent DB changes were made. Migration 071 now exists in current source and verifies signed context, but no fresh Production catalog read confirms it was applied or that all table grants and policies are correct. The earlier probe remains material evidence; Production isolation stays NOT_CERTIFIED until current state is verified and runtime-role denial/regression tests pass. Catalog coverage is not behavioral isolation certification.
+The last detailed catalog read found 136 public tables, 135 with RLS and FORCE RLS; `spatial_ref_sys` is the non-tenant PostGIS metadata exception. The `opscore_runtime` role then had no superuser or BYPASSRLS attributes. **Historical P0 reproduction, 2026-11-21:** a read-only transaction-local probe under `opscore_runtime`, with no signed context, showed raw `app.tenant_id`, `app.user_id` and `app.access_mode` values flowing through public context accessors; a count-only read observed 2 `activity_log` rows after setting an existing tenant context. No row contents were read; no persistent DB changes were made. Migration 071 now exists in current source and verifies signed context, but no fresh Production catalog read confirms it was applied or that all table grants and policies are correct. A fresh read-only probe on 2026-11-22 as `opscore_runtime` set synthetic raw `app.tenant_id`, `app.user_id` and `app.access_mode` values; `opscore_current_tenant()` and `opscore_current_user()` returned NULL, `opscore_access_mode()` returned an empty value, and `verified_rls_context()` was NULL. This supports rejection of raw-GUC-only identity in this probe, but does not establish complete cross-tenant read/write isolation or every application path. Production isolation remains NOT_CERTIFIED until the full runtime-role denial/regression matrix passes on the exact deployment/database. Catalog coverage is not behavioral isolation certification.
 
 The 67/67 signed-session route result is isolated PostgreSQL CI evidence, **not buyer-environment qualification**. Buyer environments remain independently unverified.
 
@@ -60,7 +63,7 @@ The 67/67 signed-session route result is isolated PostgreSQL CI evidence, **not 
 
 The Contact Center currently has 105 selectable locales (1 English source, 100 machine-assisted drafts, and 4 English fallbacks); 9 locale codes are withdrawn. The separate qualification matrix retains 114 source rows. Native-speaker review is 0/114 and production qualification is 0/114. No linguistic quality approval is claimed.
 
-## Vercel firewall enforcement posture — live read 2026-11-21
+## Vercel firewall enforcement posture — live read 2026-11-22
 
 The firewall is enabled. Managed CRS rules for generic attack, RCE, SQLi and XSS, plus Bot Protection, are active in `log` mode. One authentication endpoint rule rate-limits 60 requests per source IP per fixed 60-second window. This is not full enforcement certification; do not switch managed rules to deny/challenge until representative Preview rehearsal and false-positive review are complete. Application account/session-level throttling remains required.
 
