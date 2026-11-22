@@ -133,8 +133,8 @@ try {
 
   // A maintenance fence left by a crashed/uncertain restore must never be
   // silently cleared by a later restore attempt.
-  const { lifecyclePaths } = require('../src/sqlite-lifecycle');
-  const maintenancePaths = lifecyclePaths(destination);
+  const { lifecyclePaths: retainedFenceLifecyclePaths } = require('../src/sqlite-lifecycle');
+  const maintenancePaths = retainedFenceLifecyclePaths(destination);
   fs.mkdirSync(maintenancePaths.controlDirectory, { recursive: true, mode: 0o700 });
   fs.mkdirSync(maintenancePaths.leasesDirectory, { recursive: true, mode: 0o700 });
   const retainedMaintenanceMetadata = {
