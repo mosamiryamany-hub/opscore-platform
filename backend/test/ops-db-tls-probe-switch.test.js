@@ -94,7 +94,7 @@ test('production URL preflight rejects an unexpected runtime role or database', 
       OPSC_DATABASE_URL: reference,
       DATABASE_URL: 'postgresql://postgres:secret@ep-example.neon.tech/opscore_acceptance'
     }, reference),
-    { code: 'ENV_KEY_RUNTIME_ROLE_UNEXPECTED' }
+    error => error.code === 'ENV_KEY_RUNTIME_ROLE_UNEXPECTED' && error.key === 'DATABASE_URL'
   );
   assert.throws(
     () => validateEnvironmentUrls({
