@@ -38,7 +38,7 @@ The current plan blocked enabling scheduled snapshots, protecting the Production
 
 ## Buyer and provider residuals
 - Native Android/iOS signed store artifacts, store accounts, device QA and publication.
-- Runtime locale selector currently exposes 105 locales: 1 English source, 100 machine-assisted drafts and 4 English fallbacks. The qualification register has 114 source rows; 9 are withdrawn pending remediation. Native-speaker review and production language qualification remain 0/114.
+- Runtime interface selector exposes 114 locales: 1 English source, 100 machine-assisted drafts and 13 explicit English fallbacks. 105 remain conversation-language targets; the nine historical withdrawal codes are selectable only as English-fallback interface options and disabled for conversations. Native-speaker review and production language qualification remain 0/114.
 - Licensed maps/road-routing provider, keys, attribution, quotas and buyer acceptance.
 - Buyer-specific identity, messaging, telephony, payment and other provider agreements/credentials.
 - Buyer installation, migration, tenant isolation, restore and operational acceptance in the buyer's environment.
