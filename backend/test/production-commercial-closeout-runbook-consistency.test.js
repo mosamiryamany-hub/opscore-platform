@@ -82,7 +82,7 @@ test('historical Production observations remain labeled and current Neon ledger 
   assert.match(buyerResiduals, /br-proud-salad-bcshhdap/);
   assert.match(buyerResiduals, /br-calm-poetry-bc7l7wik/);
   assert.match(buyerResiduals, /071_signed_rls_context_all_access_modes\.sql/);
-  assert.match(buyerResiduals, /71 rows/);
+  assert.match(buyerResiduals, /70 rows/);
   assert.match(buyerResiduals, /68 rows/);
   assert.match(buyerResiduals, /not evidence of data corruption/i);
 });
