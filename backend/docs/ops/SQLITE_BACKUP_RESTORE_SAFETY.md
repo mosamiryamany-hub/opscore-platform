@@ -36,6 +36,7 @@ The restore operation fails closed on non-Linux systems because a complete proce
 - newly created SQLite parent directories use mode `0700`, and a shared writable parent without the sticky bit is rejected;
 - the maintenance fence prevents new `openDb` connections;
 - a fault is injected after the candidate database has replaced the destination, forcing the real rollback path; the test verifies the original database bytes, safety-copy bytes, and data are restored;
-- a separate post-swap fault with no previous destination proves the incomplete destination is removed;\n- an injected rollback-verification failure proves the maintenance fence remains and application opens stay blocked.
+- a separate post-swap fault with no previous destination proves the incomplete destination is removed;
+- an injected rollback-verification failure proves the maintenance fence remains after the owner PID is dead, and application opens stay blocked.
 
 A passing SQLite self-test proves only this local-file recovery contract. It is not evidence of Neon instant restore, historical PITR, automated managed backup retention, PostgreSQL role/RLS parity on a restored branch, or Production recovery qualification.
