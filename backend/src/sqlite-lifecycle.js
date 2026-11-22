@@ -199,9 +199,10 @@ function scanOpenDatabaseHandles(databasePath) {
         if (!uids.length || uids.some(uid => !Number.isInteger(uid))) {
           throw new Error('SQLITE_OPEN_HANDLE_SCAN_INCOMPLETE');
         }
-        if (uids.includes(effectiveUid) || uids.includes(0)) {
+        if (uids.includes(effectiveUid)) {
           throw new Error('SQLITE_OPEN_HANDLE_SCAN_INCOMPLETE', { cause: error });
         }
+        if (uids.includes(0)) continue;
         continue;
       }
       throw new Error('SQLITE_OPEN_HANDLE_SCAN_INCOMPLETE', { cause: error });
