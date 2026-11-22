@@ -36,7 +36,7 @@
 4. Vercel plan capability for OWASP CRS / Bot Protection enforcement; the currently configured generic/RCE/SQLi/XSS/Bot rules are log-only, while a custom login rate-limit rule is active.
 5. No license grant until a rights-holder and named buyer execute the deliverable-bound License Schedule.
 6. Native mobile builds/store signing, provider/map licenses and buyer-environment acceptance.
-7. Language reconciliation: 105 runtime-selectable locales vs 114 qualification rows; 9 are withheld and 0/114 are native-reviewed or production-qualified.
+7. Language status: 114 interface locales are selectable (1 English source, 100 machine-assisted drafts, 13 English fallbacks); 105 conversation-language targets. Nine historical withdrawal codes are interface-only English fallbacks, disabled for conversations. Native-speaker review and production qualification remain 0/114.
 
 ## Explicit non-claims
 - No ISO 27001, SOC 2, PCI DSS or other third-party certificate has been evidenced.
