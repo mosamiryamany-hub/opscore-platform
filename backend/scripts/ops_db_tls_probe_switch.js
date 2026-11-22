@@ -16,6 +16,7 @@
  */
 const crypto = require('node:crypto');
 const { Client } = require('pg');
+const { normalizePostgresConnectionString } = require('../src/adapters/postgres');
 
 const REQUIRED_CONFIRM = 'SWITCH_PRODUCTION_DB_TO_DIRECT_TLS';
 const POOLER_SUFFIX = '-pooler';
@@ -41,6 +42,44 @@ function withHostname(rawUrl, hostname) {
   return url.toString();
 }
 
+function directEndpointUrl(rawUrl, hostname) {
+  const url = new URL(withHostname(rawUrl, hostname));
+  url.searchParams.set('sslmode', 'verify-full');
+  return url.toString();
+}
+
+function validateEnvironmentUrls(env, referenceUrl) {
+  const reference = new URL(referenceUrl);
+  const values = {};
+  for (const key of ENV_KEYS) {
+    const value = String(env[key] || '').trim();
+    if (!value) {
+      const error = new Error('ENV_KEY_SECRET_ABSENT');
+      error.code = 'ENV_KEY_SECRET_ABSENT';
+      throw error;
+    }
+    let parsed;
+    try { parsed = new URL(value); }
+    catch {
+      const error = new Error('ENV_KEY_URL_INVALID');
+      error.code = 'ENV_KEY_URL_INVALID';
+      throw error;
+    }
+    if (
+      parsed.hostname !== reference.hostname ||
+      parsed.username !== reference.username ||
+      parsed.password !== reference.password ||
+      parsed.pathname !== reference.pathname
+    ) {
+      const error = new Error('ENV_KEY_IDENTITY_UNEXPECTED');
+      error.code = 'ENV_KEY_IDENTITY_UNEXPECTED';
+      throw error;
+    }
+    values[key] = value;
+  }
+  return values;
+}
+
 function variants(rawUrl) {
   const url = new URL(rawUrl);
   const label = endpointLabel(url.hostname);
@@ -59,10 +98,35 @@ function variants(rawUrl) {
   });
 }
 
+function buildTlsProbeConfig(href, env = process.env) {
+  const sslMode = String(env.OPSC_PG_SSL_MODE || 'verify-full').trim().toLowerCase();
+  const rejectUnauthorized = String(env.OPSC_PG_SSL_REJECT_UNAUTHORIZED || 'true').trim().toLowerCase();
+  if (sslMode !== 'verify-full' || rejectUnauthorized !== 'true') {
+    const error = new Error('TLS_PROBE_STRICT_TLS_REQUIRED');
+    error.code = 'TLS_PROBE_STRICT_TLS_REQUIRED';
+    throw error;
+  }
+
+  // Keep this probe aligned with the production adapter. node-postgres lets
+  // sslmode/sslrootcert/sslcert/sslkey URL parameters replace the explicit ssl
+  // object; normalize first so a stale sslmode=disable cannot silently turn
+  // the supposedly verified probe into a plaintext connection.
+  const normalized = normalizePostgresConnectionString(href, env);
+  return {
+    connectionString: normalized.connectionString,
+    ssl: {
+      rejectUnauthorized: true,
+      ca: env.OPSC_PG_CA_CERT || normalized.tls.ca || undefined,
+      cert: normalized.tls.cert || undefined,
+      key: normalized.tls.key || undefined
+    }
+  };
+}
+
 async function probe(href) {
+  const tlsConfig = buildTlsProbeConfig(href);
   const client = new Client({
-    connectionString: href,
-    ssl: { rejectUnauthorized: true },
+    ...tlsConfig,
     connectionTimeoutMillis: 12000,
     statement_timeout: 8000,
     application_name: 'ops-tls-probe-readonly'
@@ -90,6 +154,12 @@ async function main() {
   if (!raw) { console.log('OPSC_DATABASE_URL_SECRET_ABSENT'); process.exit(2); }
 
   const configuredHostname = new URL(raw).hostname;
+  let envValues;
+  try { envValues = validateEnvironmentUrls(process.env, raw); }
+  catch (error) {
+    console.log(String((error && error.code) || 'ENVIRONMENT_URL_PREFLIGHT_FAILED'));
+    process.exit(1);
+  }
   const configuredClass = classifyHostname(configuredHostname);
   console.log('CONFIGURED_ENDPOINT_CLASS ' + configuredClass);
   console.log('CONFIGURED_ENDPOINT_HOST_SHA256 ' + sha256(configuredHostname));
@@ -127,29 +197,25 @@ async function main() {
   }
 
   const asConfigured = observed.find(entry => entry.variant === 'as-configured');
-  const directEntry = observed.find(entry => entry.variant === 'direct' && entry.ssl === true);
+  if (configuredClass === 'direct') directHostname = configuredHostname;
+  const directEntry = configuredClass === 'direct'
+    ? asConfigured
+    : observed.find(entry => entry.variant === 'direct' && entry.ssl === true);
   const expectedDatabase = (asConfigured && asConfigured.database) || EXPECTED_DATABASE;
   const directQualified = Boolean(directEntry) &&
+    directEntry.ssl === true &&
     ['TLSv1.2', 'TLSv1.3'].includes(String(directEntry.tlsVersion || '')) &&
     Number.isInteger(directEntry.tlsBits) && directEntry.tlsBits >= 128 &&
     directEntry.currentUser === EXPECTED_RUNTIME_USER &&
     directEntry.database === expectedDatabase;
 
-  if (configuredClass === 'direct') {
-    if (asConfigured && asConfigured.ssl === true) {
-      console.log('ALREADY_DIRECT_TLS_VERIFIED_NO_SWITCH');
-      process.exit(0);
-    }
-    console.log('TLS_PROBE_DIRECT_NOT_VERIFIED_NO_SWITCH');
-    process.exit(1);
-  }
-
   if (!directQualified) {
-    console.log('TLS_PROBE_DIRECT_NOT_QUALIFIED_NO_SWITCH');
+    console.log(configuredClass === 'direct'
+      ? 'TLS_PROBE_DIRECT_NOT_VERIFIED_NO_SWITCH'
+      : 'TLS_PROBE_DIRECT_NOT_QUALIFIED_NO_SWITCH');
     process.exit(1);
   }
 
-  const directHref = withHostname(raw, directHostname);
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   const query = teamId ? `?teamId=${encodeURIComponent(teamId)}` : '';
   const listResponse = await fetch(`https://api.vercel.com/v9/projects/${encodeURIComponent(projectId)}/env${query}`, { headers });
@@ -158,12 +224,7 @@ async function main() {
   const envs = Array.isArray(listPayload.envs) ? listPayload.envs : [];
 
   for (const key of ENV_KEYS) {
-    const envValue = String(process.env[key] || '').trim();
-    if (!envValue) { console.log('ENV_KEY_SECRET_ABSENT ' + key); process.exit(1); }
-    if (new URL(envValue).hostname !== configuredHostname) {
-      console.log('ENV_KEY_HOST_UNEXPECTED ' + key);
-      process.exit(1);
-    }
+    const directHref = directEndpointUrl(envValues[key], directHostname);
     const existing = envs.find(entry => entry.key === key);
     const body = JSON.stringify({ key, value: directHref, type: 'encrypted', target: ['production'] });
     const url = existing
@@ -179,7 +240,11 @@ async function main() {
   console.log('SWITCH_DONE production database URLs now use the direct endpoint; TLS is negotiated into the compute node with certificate verification. Values are not echoed.');
 }
 
-main().catch(error => {
-  console.log('TLS_SWITCH_UNEXPECTED ' + String((error && error.code) || (error && error.name) || 'ERROR'));
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch(error => {
+    console.log('TLS_SWITCH_UNEXPECTED ' + String((error && error.code) || (error && error.name) || 'ERROR'));
+    process.exit(1);
+  });
+}
+
+module.exports = { buildTlsProbeConfig, classifyHostname, directEndpointUrl, validateEnvironmentUrls, variants, withHostname };
