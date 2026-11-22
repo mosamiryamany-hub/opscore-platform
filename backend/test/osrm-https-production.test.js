@@ -10,12 +10,23 @@ function withEnv(values,fn){
     if(value===undefined) delete process.env[key];
     else process.env[key]=value;
   }
-  try{return fn();}
-  finally{
+  let restored=false;
+  const restore=()=>{
+    if(restored)return;
+    restored=true;
     for(const [key,value] of previous){
       if(value===undefined) delete process.env[key];
       else process.env[key]=value;
     }
+  };
+  try{
+    const result=fn();
+    if(result && typeof result.then==='function') return result.finally(restore);
+    restore();
+    return result;
+  }catch(error){
+    restore();
+    throw error;
   }
 }
 
