@@ -16,7 +16,7 @@ The exact-run mobile and root dependency-audit JSON files are authoritative for 
 
 Backend/API and web operations source; work orders, scheduling and dispatch; Contact Center runtime and locale resources; authentication and tenant controls; PostgreSQL migrations and RLS; Expo mobile source; tests, scripts, release tooling, documentation and CI evidence.
 
-Contact Center locale inventory: 105 runtime-selectable locales (1 English source, 100 machine-assisted drafts, 4 explicit English-fallback locales), with 89 keys per locale. The separate qualification register has 114 source rows; 9 locale codes (ms, sw, hy, uz, my, ml, es, sr, te) are withdrawn from runtime pending remediation. Native-speaker review and production language qualification remain 0/114. The 114-row register is not evidence that 114 locales are currently selectable. Keep machine-draft and English-fallback notices visible.
+Contact Center interface catalogue: 114 selectable locale options (1 English source, 100 machine-assisted drafts, 13 explicit English fallbacks), with 89 keys per locale. Of these, 105 remain enabled as conversation-language targets; 9 historically withheld codes (ms, sw, hy, uz, my, ml, es, sr, te) are listed only as English-fallback interface choices and are disabled for conversations until remediation and acceptance. Native-speaker review and production language qualification remain 0/114. Keep the machine-draft and explicit English-fallback notices visible.
 
 ## Seller operational residuals
 
