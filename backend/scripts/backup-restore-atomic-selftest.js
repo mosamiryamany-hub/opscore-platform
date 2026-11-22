@@ -144,7 +144,7 @@ try {
     createdAt: new Date(0).toISOString()
   };
   fs.writeFileSync(maintenancePaths.maintenanceLockPath,
-    JSON.stringify(retainedMaintenanceMetadata) + '\\n', { mode: 0o600 });
+    JSON.stringify(retainedMaintenanceMetadata) + '\n', { mode: 0o600 });
   const beforeRetainedFenceHash = hash(destination);
   const retainedFenceRestore = run(restoreScript, [backup], { SQLITE_PATH: destination });
   expectFailure(retainedFenceRestore, 'SQLITE_DATABASE_MAINTENANCE_LOCKED');
@@ -308,6 +308,7 @@ try {
       'restore blocks a live application-managed openDb connection',
       'restore detects an unmanaged SQLite file descriptor through Linux /proc',
       'maintenance lock prevents new application connections during the file swap',
+      'a retained maintenance fence blocks restore without changing the database',
       'injected post-swap verification failure restores original bytes and re-verifies rollback',
       'injected post-swap failure removes a destination that did not exist before restore',
       'failed rollback retains maintenance fence even after owner PID exits and blocks application opens'
