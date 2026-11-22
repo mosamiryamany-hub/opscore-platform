@@ -23,7 +23,7 @@
     "api:inventory": "node scripts/api-inventory.js",
     "db:postgres-parity": "node scripts/postgres-parity-check.js",
     "buyer:acceptance": "node scripts/buyer-acceptance.js",
-    "backup:verify": "node scripts/backup-verify-selftest.js",
+    "backup:verify": "node scripts/backup-restore-atomic-selftest.js",
     "recovery:drill": "node scripts/recovery-drill.js",
     "recovery:logical-restore-drill": "node scripts/postgres-logical-restore-drill.js",
     "export:verify": "node scripts/export-verify-selftest.js",
