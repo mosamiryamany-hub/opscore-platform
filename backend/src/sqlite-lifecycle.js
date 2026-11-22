@@ -156,57 +156,42 @@ function scanOpenDatabaseHandles(databasePath) {
     throw new Error('SQLITE_OPEN_HANDLE_SCAN_UNSUPPORTED');
   }
 
+  const effectiveUid = typeof process.geteuid === 'function' ? process.geteuid() : null;
+  if (effectiveUid === null) throw new Error('SQLITE_DATABASE_OWNER_MISMATCH');
+
   let targetStat;
   let canonicalTarget;
+  let directoryStat;
   try {
-    targetStat = fs.statSync(databasePath);
-    canonicalTarget = fs.realpathSync(databasePath);
+    const canonicalDirectory = fs.realpathSync(path.dirname(databasePath));
+    canonicalTarget = path.join(canonicalDirectory, path.basename(databasePath));
+    directoryStat = fs.statSync(canonicalDirectory);
+    targetStat = fs.statSync(canonicalTarget);
   } catch (error) {
-    if (error?.code === 'ENOENT') return [];
-    throw new Error('SQLITE_DATABASE_IDENTITY_UNAVAILABLE', { cause: error });
+    if (error?.code === 'ENOENT' && fs.existsSync(path.dirname(databasePath))) {
+      // A missing database is allowed only after its containing directory has
+      // been resolved and validated below.
+      targetStat = null;
+    } else {
+      throw new Error('SQLITE_DATABASE_IDENTITY_UNAVAILABLE', { cause: error });
+    }
   }
 
-  const effectiveUid = typeof process.geteuid === 'function' ? process.geteuid() : null;
-  if (effectiveUid === null || targetStat.uid !== effectiveUid) {
-    throw new Error('SQLITE_DATABASE_OWNER_MISMATCH');
-  }
-  if ((targetStat.mode & 0o077) !== 0) {
-    throw new Error('SQLITE_DATABASE_PERMISSIONS_NOT_PRIVATE');
-  }
-  const directoryStat = fs.statSync(path.dirname(canonicalTarget));
-  if (directoryStat.uid !== effectiveUid || !directoryStat.isDirectory() || (directoryStat.mode & 0o077) !== 0) {
+  if (!directoryStat || !directoryStat.isDirectory() || directoryStat.uid !== effectiveUid ||
+      (directoryStat.mode & 0o077) !== 0) {
     throw new Error('SQLITE_DATABASE_DIRECTORY_NOT_PRIVATE');
   }
+  if (!targetStat) return [];
+  if (targetStat.uid !== effectiveUid) throw new Error('SQLITE_DATABASE_OWNER_MISMATCH');
+  if ((targetStat.mode & 0o077) !== 0) throw new Error('SQLITE_DATABASE_PERMISSIONS_NOT_PRIVATE');
 
   const matches = [];
   const seen = new Set();
-  const inspectFdDirectory = (pidText, fdDirectory, { tolerateHiddenForeignUid = false } = {}) => {
+  const inspectFdDirectory = (pidText, fdDirectory) => {
     let descriptors;
     try { descriptors = fs.readdirSync(fdDirectory); }
     catch (error) {
       if (error?.code === 'ENOENT') return;
-      if ((error?.code === 'EACCES' || error?.code === 'EPERM') && tolerateHiddenForeignUid) {
-        const processDirectory = '/proc/' + pidText;
-        let processStatus;
-        try { processStatus = fs.readFileSync(processDirectory + '/status', 'utf8'); }
-        catch (statusError) {
-          if (statusError?.code === 'ENOENT') return;
-          throw new Error('SQLITE_OPEN_HANDLE_SCAN_INCOMPLETE', { cause: statusError });
-        }
-        const uidLine = processStatus.split('\n').find(line => line.startsWith('Uid:'));
-        const uids = uidLine ? uidLine.trim().split(/\s+/).slice(1, 5).map(Number) : [];
-        if (!uids.length || uids.some(uid => !Number.isInteger(uid))) {
-          throw new Error('SQLITE_OPEN_HANDLE_SCAN_INCOMPLETE');
-        }
-        // The database is owner-only (0600): foreign UIDs cannot open it.
-        // Root processes are privileged host control-plane and outside this
-        // application's supported SQLite concurrency domain.
-        if (uids.includes(effectiveUid)) {
-          throw new Error('SQLITE_OPEN_HANDLE_SCAN_INCOMPLETE', { cause: error });
-        }
-        if (uids.includes(0)) return;
-        return;
-      }
       throw new Error('SQLITE_OPEN_HANDLE_SCAN_INCOMPLETE', { cause: error });
     }
 
