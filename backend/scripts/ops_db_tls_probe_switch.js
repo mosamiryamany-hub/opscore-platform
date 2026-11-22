@@ -88,7 +88,7 @@ function validateEnvironmentUrls(env, referenceUrl) {
       error.code = 'ENV_KEY_RUNTIME_ROLE_UNEXPECTED';
       throw error;
     }
-    if (parsed.pathname.replace(/^\\//, '') !== EXPECTED_DATABASE) {
+    if (parsed.pathname.replace(/^\/+/, '') !== EXPECTED_DATABASE) {
       const error = new Error('ENV_KEY_DATABASE_UNEXPECTED');
       error.code = 'ENV_KEY_DATABASE_UNEXPECTED';
       throw error;
@@ -104,7 +104,7 @@ function variants(rawUrl) {
   const url = new URL(rawUrl);
   const label = endpointLabel(url.hostname);
   const rest = url.hostname.split('.').slice(1).join('.');
-  const base = label.endsWith(POOLER_SUFFIX) ? label.slice(0, POOLER_SUFFIX.length) : label;
+  const base = label.endsWith(POOLER_SUFFIX) ? label.slice(0, -POOLER_SUFFIX.length) : label;
   const candidates = [
     { variant: 'as-configured', hostname: url.hostname },
     { variant: 'direct', hostname: `${base}.${rest}` },
