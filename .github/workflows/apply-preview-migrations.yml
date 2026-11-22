@@ -210,7 +210,7 @@ jobs:
           MIGRATION_URI="$(cat "$RUNNER_TEMP/owner.uri")"
           case "$MIGRATION_URI" in *"?"*) MIGRATION_URI="$MIGRATION_URI&sslrootcert=system";; *) MIGRATION_URI="$MIGRATION_URI?sslrootcert=system";; esac
           psql "$MIGRATION_URI" -v ON_ERROR_STOP=1 -q <<'SQL'
-          DO $
+          DO $$
           DECLARE
             migration_role record;
           BEGIN
@@ -229,7 +229,7 @@ jobs:
                OR NOT has_schema_privilege(current_user,'public','USAGE') THEN
               RAISE EXCEPTION 'PREVIEW_MIGRATION_OWNER_PRIVILEGES_INVALID';
             END IF;
-          END $;
+          END $$;
           SQL
           echo "NEON_MIGRATION_OWNER_ROLE=PASS"
           echo "PREVIEW_MIGRATION_BOOTSTRAP_PRIVILEGES=PASS"
