@@ -44,12 +44,12 @@ const languageQualificationRows = fs.readFileSync(
   'utf8'
 ).trim().split('\n').slice(1);
 
-test('2026-11-18 maintenance observations remain historical and the 2026-11-21 register is authoritative', () => {
+test('2026-11-18 maintenance observations remain historical and the 2026-11-22 register is authoritative', () => {
   const historical = runbook.split('## Current evidence reconciliation')[1] || '';
   assert.match(runbook, /2026-11-18/);
   assert.match(historical, /live Production 67-route signed-session matrix remains \*\*NOT ESTABLISHED\*\*/);
-  assert.match(buyerResiduals, /reconciled 2026-11-21/);
-  assert.match(buyerResiduals, /67 expected \/ 67 covered \/ 0 failed/);
+  assert.match(buyerResiduals, /reconciled 2026-11-22/);
+  assert.match(buyerResiduals, /67\/67 signed-session route result is isolated PostgreSQL CI evidence/);
   assert.match(buyerResiduals, /not buyer-environment qualification/);
   assert.match(buyerResiduals, /one listed manual snapshot/i);
   assert.match(buyerResiduals, /protected=false/i);
@@ -60,13 +60,13 @@ test('Seller product closeout is buyer-independent while actual buyer license ri
   assert.match(sellerCloseoutChecklist, /A named buyer, buyer signature, buyer-specific legal review, payment, or transaction schedule is \*\*not\*\* a prerequisite/);
   assert.match(sellerCloseoutChecklist, /Transaction boundary — explicitly outside product closeout/);
   assert.match(sellerCloseoutChecklist, /required before granting the buyer licensed use or delivery rights/);
-  assert.match(commercialCloseout, /No prospective buyer or buyer signature is needed to complete the product/);
-  assert.match(commercialCloseout, /No license grant is made to a buyer until/);
+  assert.match(commercialCloseout, /A named buyer is not required for seller-side release preparation/);
+  assert.match(commercialCloseout, /No license grant/);
   assert.doesNotMatch(sellerCloseoutChecklist, /Buyer-specific work — not a seller launch or marketing gate/);
 });
 
 test('67-route acceptance remains isolated PostgreSQL CI evidence and does not certify the canonical Production alias', () => {
-  assert.match(buyerResiduals, /67 expected \/ 67 covered \/ 0 failed/);
+  assert.match(buyerResiduals, /67\/67 signed-session route result is isolated PostgreSQL CI evidence/);
   assert.match(buyerResiduals, /Isolated PostgreSQL CI fixture evidence only; not a certification of the canonical production alias/);
   assert.match(buyerResiduals, /Buyer environments remain independently unverified/);
   assert.match(sellerCloseoutChecklist, /buyer|customer/i);
@@ -78,11 +78,11 @@ test('historical Production observations remain labeled and current Neon ledger 
   assert.match(historical, /context_hmac_keys.*exists with the expected schema and ownership/);
   assert.match(historical, /zero Production HMAC key rows/);
   assert.match(historical, /live Production 67-route signed-session matrix remains \*\*NOT ESTABLISHED\*\*/);
-  assert.match(buyerResiduals, /67 expected \/ 67 covered \/ 0 failed/);
+  assert.match(buyerResiduals, /67\/67 signed-session route result is isolated PostgreSQL CI evidence/);
   assert.match(buyerResiduals, /br-proud-salad-bcshhdap/);
   assert.match(buyerResiduals, /br-calm-poetry-bc7l7wik/);
-  assert.match(buyerResiduals, /070_evidence_upload_postgres_blob_storage\.sql/);
-  assert.match(buyerResiduals, /69 rows/);
+  assert.match(buyerResiduals, /071_signed_rls_context_all_access_modes\.sql/);
+  assert.match(buyerResiduals, /71 rows/);
   assert.match(buyerResiduals, /68 rows/);
   assert.match(buyerResiduals, /not evidence of data corruption/i);
 });
