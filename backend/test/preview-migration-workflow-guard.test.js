@@ -27,6 +27,7 @@ test('Preview migrations require one exact pinned non-primary branch and the app
   assert.doesNotMatch(previewApply, /has_sequence_privilege\('neondb_owner'/);
   assert.doesNotMatch(previewApply, /^\\s*DO \\$\\s*$/m);
   assert.doesNotMatch(previewApply, /^\\s*END \\$;$/m);
+  assert.doesNotMatch(previewApply, /^ {0,9}THEN\\s*$/m);
   assert.equal((previewApply.match(/^\\s*DO \\$\\$/gm) || []).length, (previewApply.match(/^\\s*END \\$;$/gm) || []).length);
 
   assert.match(previewApply, /NEON_MIGRATION_BOOTSTRAP_AND_RUNTIME_CONNECTIONS=PASS roles=neondb_owner,opscore_owner,opscore_runtime TLS=verify-full/);
