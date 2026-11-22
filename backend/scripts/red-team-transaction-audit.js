@@ -74,10 +74,64 @@ for(const file of files){
 
 const server=fs.readFileSync(path.join(ROOT,'server.js'),'utf8'),sl=server.split(/\n/);
 const mutationLines=sl.map((line,i)=>({line,i:i+1})).filter(x=>/req\.method===['"](?:POST|PUT|PATCH|DELETE)['"]/.test(x.line));
+// These handlers span more than the local +/-3-line heuristic above. Keep
+// explicit source-bounded contracts so the review cannot accidentally borrow
+// a neighbouring route's idempotency wrapper. A moved/changed boundary or a
+// missing required marker reopens the finding.
+const mutationRouteContracts = [
+  {
+    id:'portal_self_schedule_booking',
+    start:'const psb=url.pathname.match(',
+    end:"  if (req.method === 'GET' && url.pathname === '/api/v1/portal/overview') {",
+    required:['idempotencyKey(req)','IDEMPOTENCY_KEY_REQUIRED','store.bookSelfSchedule(portalToken,psb[1],b,k)'],
+    persistenceRequired:['idempotency_key','naturalKeyReplay']
+  },
+  {
+    id:'customer_service_line_assignment',
+    start:'const csl=url.pathname.match(/^\\/api\\/v1\\/customers\\/',
+    end:"if(req.method==='POST'&&url.pathname==='/api/v1/service-line-migrations/preflight')",
+    required:['runSignedRouteWrite','store.idempotentWrite','idempotencyKey(req)']
+  },
+  {
+    id:'geofence_create',
+    start:"if(req.method==='POST'&&url.pathname==='/api/v1/geofences'){",
+    end:'const gta=url.pathname.match(/^\\/api\\/v1\\/geofences\\/',
+    required:['runSignedRouteWrite','store.idempotentWrite','idempotencyKey(req)']
+  },
+  {
+    id:'geofence_technician_assignment',
+    start:'const gta=url.pathname.match(/^\\/api\\/v1\\/geofences\\/',
+    end:'const gtl=url.pathname.match(/^\\/api\\/v1\\/technicians\\/',
+    required:['runSignedRouteWrite','store.idempotentWrite','idempotencyKey(req)']
+  },
+  {
+    id:'geofence_dynamic_event',
+    start:"if(req.method==='POST'&&url.pathname==='/api/v1/geofences/dynamic-events'){",
+    end:"if(req.method==='POST'&&url.pathname==='/api/v1/geofences/dynamic-evaluate')",
+    required:['runSignedRouteWrite','store.idempotentWrite','idempotencyKey(req)']
+  }
+];
+const bookingSource=fs.readFileSync(path.join(ROOT,'enterprise-2026-additions.js'),'utf8');
+const reviewedMutationContracts=mutationRouteContracts.map(contract=>{
+  const start=server.indexOf(contract.start);
+  const end=start<0?-1:server.indexOf(contract.end,start+contract.start.length);
+  const segment=start>=0&&end>start?server.slice(start,end):'';
+  const persistenceOk=!contract.persistenceRequired||contract.persistenceRequired.every(marker=>bookingSource.includes(marker));
+  const verified=Boolean(segment&&contract.required.every(marker=>segment.includes(marker))&&persistenceOk);
+  return {
+    id:contract.id,
+    verified,
+    startLine:start<0?null:server.slice(0,start).split('\n').length,
+    endLine:end<0?null:server.slice(0,end).split('\n').length,
+    missing:contract.required.filter(marker=>!segment.includes(marker)).concat(persistenceOk?[]:contract.persistenceRequired.filter(marker=>!bookingSource.includes(marker)))
+  };
+});
+const verifiedMutationSpans=reviewedMutationContracts.filter(x=>x.verified);
 const idemBlocks=[];
 for(const m of mutationLines){
   const block=sl.slice(Math.max(0,m.i-3),Math.min(sl.length,m.i+3)).join('\n');
-  idemBlocks.push({line:m.i,wrapped:/idempotentWrite\(|idempotentAsyncWrite\(/.test(block)||(/idempotencyKey\(req\)/.test(block)&&/IDEMPOTENCY_KEY_REQUIRED/.test(block)),route:m.line.trim().slice(0,220)});
+  const coveredByVerifiedContract=verifiedMutationSpans.some(x=>m.i+1>=x.startLine&&m.i+1<=x.endLine);
+  idemBlocks.push({line:m.i,wrapped:/idempotentWrite\(|idempotentAsyncWrite\(/.test(block)||(/idempotencyKey\(req\)/.test(block)&&/IDEMPOTENCY_KEY_REQUIRED/.test(block))||coveredByVerifiedContract,route:m.line.trim().slice(0,220)});
 }
 const explicitNonMutating=[
   /custom-domains\/[^ ]*\/verify/, // retained here as a backwards-compatible exclusion; route is actually wrapped and checked by route inventory.
@@ -97,9 +151,12 @@ const report={
     sourceFiles:files.length,
     mutationRoutes:mutationLines.length,
     unwrappedMutationRoutes:unwrapped.length,
+    reviewedMutationRouteContracts:verifiedMutationSpans.length,
+    unverifiedMutationRouteContracts:reviewedMutationContracts.filter(x=>!x.verified).length,
     semanticallyReviewedScopeFindings:reviewedFindings.length,
     staleSemanticReviewEntries:staleReviewEntries.length
   },
+  reviewedMutationContracts,
   findings,
   semanticallyReviewed:reviewedFindings,
   staleSemanticReviewEntries:staleReviewEntries,

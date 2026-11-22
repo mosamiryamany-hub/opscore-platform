@@ -1,60 +1,44 @@
 # OpsCore — Commercial Closeout Status
 
-**Reconciled:** 2026-11-21  
-**Product version label:** 0.11.62  
-**Current source:** `b4f3bc81135acbf1bbe7262a0ae58b3573cddf82`
+**Reconciled:** 2026-11-22
+**Product label:** `0.11.62`
+**Verified source head:** `43554492218adbf0cde2d700bd0dedfadce67f5e`
 
-## Current decision
+## Decision
 
-**HOLD — SELLER RELEASE NOT CERTIFIED.** The latest main workflow (run `44808632964`) completed successfully in `CANDIDATE_EVIDENCE_ONLY` mode. It explicitly reports `productionCertification=false`, `productionPromotionPerformed=false` and `productionEnvironmentRestored=true`. Current Vercel candidate `dpl_4vSUfZX9p1iwbbyGQV3hoPUDvuRV` is READY on current main but has no aliases. The public domain remains mapped to an older deployment. Candidate readiness is not production release.
+**Marketing discovery with disclosure: permitted for owner review. Qualified source delivery: HOLD. Production certification: NOT ESTABLISHED. No license grant.**
 
-## Product closeout independence
+The source may be discussed as a work in progress, but a qualified release package for this exact source head has not been demonstrated. Do not describe the project as production-ready, certified, or free of defects. A named buyer is not required for seller-side release preparation; commercial rights still require a signed transaction-specific license schedule.
 
-No prospective buyer or buyer signature is needed to complete the product. A named buyer is not a seller technical gate and is not a prerequisite for seller-side technical closure, release packaging, offer publication or sales discussions.
+## Evidence on the verified head
 
-No license grant is made to a buyer until the rights holder and that named buyer execute a signed License Schedule that pins the exact deliverable (`sourceCommit` and/or package SHA-256).
+Post-merge GitHub run `44953249616` completed source checks and isolated PostgreSQL 18 acceptance successfully on the verified SHA. Vercel deployment, Neon Preview migration, and PITR jobs were skipped. These results are limited to their tested scopes and do not establish production deployment, production isolation, or recovery objectives.
 
-Seller advertising, listings, demonstrations and negotiations may happen before a buyer is known. **OPEN FOR MARKETING** does not equal delivery rights. **NO LICENSE GRANT** by repository presence or this file.
+Read-only Vercel checks on 2026-11-22 found two READY Production-target deployments from verified main SHA `43554492218adbf0cde2d700bd0dedfadce67f5e`: `dpl_G15K6Sg9Q7xJQKrHKFRYJGSNDerN` and `dpl_EC2Ri4BJrZTN7ca53xurrUV9LvmR`. Both have empty alias lists. The canonical domain `opscore-platform.vercel.app` remains attached to deployment `dpl_EacspS7o2jntgw8uS1YMpzf45CFt`, whose Git commit is `b7f63445c1748ebaec426a9ebe0ea629e4998839`. Current-main Production-target deployments exist, but the public domain is not shown serving the current SHA; no promotion or production runtime certification is established.
 
-Buyer-specific qualification is **NOT_ESTABLISHED** and buyer environments remain independently **NOT_VERIFIED**. The seller's current tests do not transfer to customer-managed infrastructure.
+On 2026-11-22, full and `--omit=dev` npm audits returned zero findings for the root, backend, and mobile lockfiles in the checkout at this SHA. GitHub's advisory API and OSV's API both report GHSA-fc5q-39xc-vjpf / CVE-2026-112366 withdrawn at `2026-11-18T15:38:56Z`. This resolves the current database status of that advisory only. It is not a complete dependency review, security certification, or guarantee against vulnerabilities; repeat audits on the exact release package before delivery.
 
-## Seller release gates
+The source still requires production-bound database privilege and policy verification before seller security closure. Migration 059 grants broad DML on `public` by default to `opscore_runtime`, relying on RLS and later table-specific privilege changes. Migration 071 subsequently replaces the tenant/user/access-mode accessors with HMAC-verified context and fails if tenant policies still reference raw identity GUCs. This source-level correction supersedes the raw-GUC fallback in migration 064 when the complete migration chain is applied. A fresh read-only Primary ledger query on 2026-11-22 confirms 70 rows and latest migration `071_signed_rls_context_all_access_modes.sql`; the recovery branch contains 68 rows and ends at migration 069. A transaction-local probe as `opscore_runtime` using synthetic raw tenant/user/access-mode GUC values returned NULL/empty context and `verified_rls_context() IS NULL`. This supports the HMAC-only trust boundary for that probe, but does not prove complete cross-tenant read/write isolation or least-privilege grants across all tables. Do not describe the historical 064 behavior as the current intended final schema, and do not infer complete live remediation from one probe.
 
-| Gate | Current state |
-|---|---|
-| Candidate CI and isolated PostgreSQL acceptance | PASS in their measured scopes |
-| Full Production PostgreSQL API route + business-flow acceptance | NOT VERIFIED; required before release PASS |
-| Seller PostgreSQL tenant trust boundary | P0 — raw GUC impersonation reproduced under `opscore_runtime`; NOT CERTIFIED |
-| Mobile dependency audit | GHSA-fc5q-39xc-vjpf withdrawn 2026-11-18; fresh exact-head full + `--omit=dev` audit still required |
-| Scheduled protected backup and full recovery objectives | NOT ESTABLISHED on current Neon Free plan |
-| Vercel managed attack/bot enforcement | LOG ONLY; Preview rehearsal required |
-| Secure Release exact-current-main package | NOT YET PRODUCED for current main |
-| Production promotion and public-domain identity | NOT DONE |
+The current `main` audit result initially contained five `MUTATION_NOT_IDEMPOTENT_WRAPPED` findings because its local source window did not include the complete multi-line handlers. The finding paths were inspected; four invoke the explicit idempotency wrapper and the portal booking route requires and persists an idempotency key with natural-slot replay protection. In the separate, uncommitted audit worktree, the analyzer now verifies bounded source contracts for those exact routes and fails closed if any required marker or boundary changes. The refreshed local static audit is `PASS` with zero unwrapped routes, five verified contracts, and zero stale semantic reviews. This is a local audit-tool change, not yet part of `main`; the repository's current `main` still has the prior `REVIEW` result until this change is reviewed and merged. Static analysis is not runtime concurrency or tenant-isolation certification. Focused unit tests passed; they do not replace live Production verification.
 
-The in-progress fail-closed change on `fix/fail-closed-production-functional-release-proof-2026-11-21` rejects missing or contract-only route evidence for full Production release. It is not merged and does not itself generate the required Production evidence.
+## Commercial and production boundaries
 
-**NO LICENSE GRANT.** No buyer license or commercial distribution is authorized until the rights holder and named buyer sign the transaction-specific License Schedule.
+No current-head Secure Release ZIP, archive digest, SBOM, signature bundle, or same-run release statement has been produced in the evidence examined. The workflow definition describes how these may be generated; it is not evidence that they were generated.
 
-## Published asking floors (USD)
+The available production evidence remains insufficient to establish that this source head serves the public production alias, that production tenant isolation is fully certified, or that Neon PITR meets full data-parity or RPO/RTO objectives. Keep `productionIsolationCertification` and production recovery readiness unclaimed. Neon remains on the Free plan; live reads confirm six-hour history retention, one manual snapshot, no automatic snapshot schedule, and unprotected Primary/recovery branches. Do not upgrade it, alter production configuration, promote deployments, or delete retained recovery material without a separate authorization.
 
-| Tier | Rights | Minimum asking floor |
-|---|---|---:|
-| **L1** | Use only | **45,000** |
-| **L2** | Use + modify + redistribute | **85,000** |
-| **L3** | Exclusive / IP assignment, subject to executed terms | **175,000** |
+No independent ISO/IEC 27001, SOC 2, PCI DSS, penetration-test certificate, or equivalent current certification was found in the reviewed evidence. Do not use certification logos or imply external approval without original, scope-matched documentation.
 
-These are seller asking floors, not validated market valuations, an accepted offer or a signed transaction. Buyer-specific price and rights are fixed only in the executed License Schedule.
+The owner specified 30 days of support, maintenance, and updates. The start date, response targets, covered defect definition, exclusions, and update boundaries remain unapproved contract terms; do not present them as a binding SLA until recorded in the executed license schedule. Legal entity, jurisdiction, privacy, sales, and refund terms also require owner-approved facts and legal review; do not invent them.
 
-## Buyer-owned residuals — explicitly disclosed
+## Required before qualified delivery
 
-- Android/iOS signing, native builds, device QA and app-store publication.
-- Native-speaker translation review and production qualification (0/114).
-- Licensed maps/road-routing and buyer/provider credentials, attribution, quotas and live acceptance.
+1. Resolve and validate the database trust-boundary issues with focused tests and a complete current-head regression run.
+2. Run Secure Release on the exact agreed source SHA; verify the ZIP, archive SHA-256, SBOM, signature, audit outputs, tests, and release statement all come from that same run and source.
+3. Inspect the generated archive for secrets, customer data, and unintended files.
+4. Complete the transaction-specific rights schedule and approved support terms. Keep production deployment and buyer-environment qualification separate from source delivery.
 
-## Explicit non-claims
+## Changes in this reconciliation
 
-1. Candidate CI success is not Production certification or promotion.
-2. PostgreSQL CI and SQLite contract checks do not prove every Production business flow.
-3. A historical-branch schema/catalog PITR probe is not full row-content equality or RPO/RTO certification.
-4. A signature or archive digest does not grant buyer use or distribution rights.
-5. Buyer residuals are not complete merely because they are disclosed.
+The local audit branch `closeout/audit-4355449` is based on the verified main SHA; it is separate from local `main`. The worktree contains a small red-team analyzer change, one regression test, and corrections to the historical advisory review, sales/closeout documents, and existing red-team result. The application runtime, migrations, and lockfiles were not changed. Nothing was committed, merged, or pushed. No workflow was dispatched, no production deployment or promotion was performed, no access keys or service configuration were changed, no paid plan was selected, and no snapshot or recovery branch was deleted.
