@@ -197,9 +197,10 @@ function scanOpenDatabaseHandles(databasePath) {
         // The database is owner-only (0600): foreign UIDs cannot open it.
         // Root processes are privileged host control-plane and outside this
         // application's supported SQLite concurrency domain.
-        if (uids.includes(effectiveUid) || uids.includes(0)) {
+        if (uids.includes(effectiveUid)) {
           throw new Error('SQLITE_OPEN_HANDLE_SCAN_INCOMPLETE', { cause: error });
         }
+        if (uids.includes(0)) return;
         return;
       }
       throw new Error('SQLITE_OPEN_HANDLE_SCAN_INCOMPLETE', { cause: error });
