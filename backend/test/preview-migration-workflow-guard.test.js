@@ -114,3 +114,15 @@ test('historical migrations tolerate the absent legacy opscore_app role without 
   assert.match(migrationRunner, /set_config\('opscore\.app_role',CASE WHEN EXISTS\(SELECT 1 FROM pg_catalog\.pg_roles WHERE rolname='opscore_app'\) THEN 'opscore_app' ELSE '' END,true\)/);
   assert.doesNotMatch(migrationRunner, /set_config\('opscore\.app_role','opscore_app'/);
 });
+
+test('Preview HTTP acceptance passes the bootstrap URL only to exact-target fixture cleanup', () => {
+  assert.match(previewApply, /OPSC_PG_ACCEPTANCE_CLEANUP_URL=.*bootstrap\.uri/);
+  assert.match(previewApply, /OPSC_PG_ACCEPTANCE_CLEANUP_HOST='ep-green-frog-bbyayuh5\.c-15\.us-east-1\.aws\.neon\.tech'/);
+  const httpStepStart = previewApply.indexOf('Run PostgreSQL HTTP commercial acceptance against isolated Neon');
+  const finalizeStepStart = previewApply.indexOf('Finalize Preview acceptance gate', httpStepStart);
+  assert.ok(httpStepStart >= 0 && finalizeStepStart > httpStepStart);
+  const httpStep = previewApply.slice(httpStepStart, finalizeStepStart);
+  assert.match(httpStep, /OPSC_PG_ACCEPTANCE_URL=.*runtime\.uri/);
+  assert.match(httpStep, /OPSC_PG_ACCEPTANCE_CLEANUP_URL=.*bootstrap\.uri/);
+  assert.doesNotMatch(httpStep, /OPSC_MIGRATION_DATABASE_URL/);
+});
