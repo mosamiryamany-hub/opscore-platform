@@ -86,6 +86,7 @@ function validateEnvironmentUrls(env, referenceUrl) {
     if (decodeURIComponent(parsed.username) !== EXPECTED_RUNTIME_USER) {
       const error = new Error('ENV_KEY_RUNTIME_ROLE_UNEXPECTED');
       error.code = 'ENV_KEY_RUNTIME_ROLE_UNEXPECTED';
+      error.key = key;
       throw error;
     }
     if (parsed.pathname.replace(/^\/+/, '') !== EXPECTED_DATABASE) {
@@ -177,7 +178,9 @@ async function main() {
   let envValues;
   try { envValues = validateEnvironmentUrls(process.env, raw); }
   catch (error) {
-    console.log(String((error && error.code) || 'ENVIRONMENT_URL_PREFLIGHT_FAILED'));
+    const code = String((error && error.code) || 'ENVIRONMENT_URL_PREFLIGHT_FAILED');
+    const key = ENV_KEYS.includes(error && error.key) ? ' ' + error.key : '';
+    console.log(code + key);
     process.exit(1);
   }
   const configuredClass = classifyHostname(configuredHostname);
