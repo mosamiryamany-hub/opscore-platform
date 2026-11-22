@@ -9,7 +9,7 @@ This document supersedes earlier closeout snapshots that reference pre-2026-11-2
 | Item | Current verified value |
 |---|---|
 | Repository | `mosamiryamany-hub/opscore-platform` |
-| Current protected `main` | `4b8a532aea404dd5b696b5d9b2cd3eb45c72852b` |
+| Current application-source baseline (PR #391) | `859a7f6f9d7759910602f4c89136c5d0a38d522d` |
 | Latest Production deployment | `dpl_G7r6CDntYarpafuawie8CKWDLBB7` |
 | Production source SHA | `2a4938a70220d3375497e94499850476b4b505de` |
 | Public Production domain | https://opscore-platform.vercel.app |
