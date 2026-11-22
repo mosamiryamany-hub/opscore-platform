@@ -3,12 +3,14 @@
 **Current classification: PASS_WITH_RESIDUALS.** Production deployment and scope-specific engineering evidence pass. This is not full commercial closure, a license grant, buyer-environment qualification or an external certification.
 
 ## Current identities
-- Protected `main`: `4b8a532aea404dd5b696b5d9b2cd3eb45c72852b`
+- Application-source baseline (PR #391): `859a7f6f9d7759910602f4c89136c5d0a38d522d`
 - Current Production source: `2a4938a70220d3375497e94499850476b4b505de`
 - Production deployment: `dpl_G7r6CDntYarpafuawie8CKWDLBB7`
 - Public domain: https://opscore-platform.vercel.app
 - Latest protected Production evidence run: [45013074938](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45013074938)
-- Evidence-page update: [PR #390](https://github.com/mosamiryamany-hub/opscore-platform/pull/390), merged to main. The page refresh is not yet deployed because push-triggered Vercel runs skip the protected deploy job.
+- Evidence-page update: [PR #390](https://github.com/mosamiryamany-hub/opscore-platform/pull/390), merged to main but not yet Production-deployed.
+- 114-locale catalogue and safe fallback update: [PR #391](https://github.com/mosamiryamany-hub/opscore-platform/pull/391), merged as `859a7f6`. Nine previously withheld locale codes are English-fallback-only interface options, disabled for conversations; native-speaker review and production qualification remain 0/114.
+- Post-merge checks on `859a7f6`: OpsCore CI [45018113019](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45018113019), Vercel source/contract/isolated PostgreSQL [45018113156](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45018113156), CodeQL [45018112500](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45018112500): all PASS. Production deploy, PITR historical probe and Preview migration were intentionally skipped on push; live Production remains source `2a4938a`.
 
 ## Verified production evidence
 | Evidence | Status | Bound target |
@@ -30,7 +32,7 @@
 - CodeQL [45016372078](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45016372078): SUCCESS.
 
 ## Open handoff items
-1. Production deploy of current main `4b8a532` through the protected manual workflow; do not use a direct deployment bypass.
+1. Production deploy of current main `859a7f6` through the protected manual workflow; do not use a direct deployment bypass.
 2. Exact-current-head secure source release: ZIP, checksum, SBOM, Sigstore signature bundle and external statement.
 3. Neon plan upgrade for protected Production branch and scheduled backups; no automatic schedule is presently configured and the Production branch is unprotected.
 4. Vercel plan capability for OWASP CRS / Bot Protection enforcement; the currently configured generic/RCE/SQLi/XSS/Bot rules are log-only, while a custom login rate-limit rule is active.

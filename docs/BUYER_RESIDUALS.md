@@ -9,15 +9,16 @@ This document supersedes earlier closeout snapshots that reference pre-2026-11-2
 | Item | Current verified value |
 |---|---|
 | Repository | `mosamiryamany-hub/opscore-platform` |
-| Current protected `main` | `4b8a532aea404dd5b696b5d9b2cd3eb45c72852b` |
+| Current application-source baseline (PR #391) | `859a7f6f9d7759910602f4c89136c5d0a38d522d` |
 | Latest Production deployment | `dpl_G7r6CDntYarpafuawie8CKWDLBB7` |
 | Production source SHA | `2a4938a70220d3375497e94499850476b4b505de` |
 | Public Production domain | https://opscore-platform.vercel.app |
 | Version reported by the release page | `0.11.62` |
 | Production release workflow | [Run 45013074938](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45013074938) |
-| Main evidence-page refresh | [PR #390](https://github.com/mosamiryamany-hub/opscore-platform/pull/390), merged as `4b8a532` |
+| Main evidence-page refresh | [PR #390](https://github.com/mosamiryamany-hub/opscore-platform/pull/390), merged as `4b8a532` (source update not yet deployed) |
+| Contact Center 114-locale safe catalogue | [PR #391](https://github.com/mosamiryamany-hub/opscore-platform/pull/391), merged as `859a7f6` |
 
-The latest `main` commit `4b8a532` changes the release-proof HTML and its regression test only. It is **not yet deployed**: the Vercel push workflow passed source and disposable PostgreSQL checks but skipped its protected `deploy` job, and Vercel has no deployment record for SHA `4b8a532`. The live domain still serves deployment `dpl_G7r6...` at source SHA `2a4938a`. A fresh authorized `workflow_dispatch` release is needed to publish the refreshed evidence page.
+The latest application-source commit `859a7f6f9d7759910602f4c89136c5d0a38d522d` (merged from PR #391) includes both the release-proof page refresh (PR #390) and the safe 114-locale Contact Center interface catalogue (PR #391). The new catalogue exposes 114 interface options (1 English source, 100 machine-assisted drafts and 13 explicit English fallbacks) while retaining only 105 conversation-enabled targets; nine English-fallback-only options are disabled for conversations and rejected server-side. This source head is **not yet deployed**. Post-merge runs 45018113019, 45018113156 and 45018112500 all passed CI/source/contract/isolated PostgreSQL/CodeQL checks; the push event skipped Production deployment, Production PITR and Preview migration jobs. The live domain remains on deployment `dpl_G7r6CDntYarpafuawie8CKWDLBB7` at source SHA `2a4938a70220d3375497e94499850476b4b505de`. Publishing the new source requires the protected manual `workflow_dispatch` Production release.
 
 ## 2. Production evidence — successful, with scope boundaries
 
@@ -72,7 +73,7 @@ Before offering an operational SLA, select an eligible plan, rehearse the strict
 
 ## 5. Buyer package and legal rights — HOLD
 
-The latest public commercial source package is a draft from an older source commit; it is not the exact current `main`/Production deliverable. The secure-release workflow has not yet generated a signed archive, SBOM, Sigstore bundle and release statement for current `main` SHA `4b8a532`. The deployment workflow's internal release-evidence fingerprint is not a replacement for the buyer-downloadable secure-release archive.
+The latest public commercial source package is a draft from an older source commit; it is not the exact current `main`/Production deliverable. The secure-release workflow has not yet generated a signed archive, SBOM, Sigstore bundle and release statement for application-source baseline SHA `859a7f6f9d7759910602f4c89136c5d0a38d522d`. The deployment workflow's internal release-evidence fingerprint is not a replacement for the buyer-downloadable secure-release archive.
 
 **No license grant exists.** The repository, sales kit, deployment, test evidence, SBOM or signed archive does not convey a right to install, use, modify, host, redistribute, resell or sublicense. The rights holder and named buyer must execute a License Schedule pinning the exact deliverable SHA-256 and stating the permitted rights before any such grant or delivery.
 

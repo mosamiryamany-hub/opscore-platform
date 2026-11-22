@@ -5,7 +5,7 @@
 ## Release identity
 | Field | Value |
 |---|---|
-| Current protected main | `4b8a532aea404dd5b696b5d9b2cd3eb45c72852b` |
+| Current application-source baseline (PR #391) | `859a7f6f9d7759910602f4c89136c5d0a38d522d` |
 | Production source | `2a4938a70220d3375497e94499850476b4b505de` |
 | Production deployment | `dpl_G7r6CDntYarpafuawie8CKWDLBB7` |
 | Public alias | https://opscore-platform.vercel.app |
@@ -21,6 +21,10 @@
 
 **Scope boundary:** behavioral evidence is bound to the exact candidate deployment and source/pipeline/database identity. It was not independently rerun against the final promoted deployment ID. The final deployment passed its staged runtime gates, smoke tests and public-domain exact-SHA verification. `CERTIFIED` is the internal, evidence-scoped Production isolation classification; no external ISO/SOC 2/PCI certification is claimed.
 
+## Current main validation and deployment boundary
+
+Post-merge main `859a7f6` passed OpsCore CI (run `45018113019`), Vercel source/contract plus isolated PostgreSQL acceptance (run `45018113156`), and CodeQL (run `45018112500`). The push workflow skipped Production deployment, Production PITR historical probe and Preview migration by design. The live domain still serves deployment `dpl_G7r6CDntYarpafuawie8CKWDLBB7` at source `2a4938a`; the 114-locale catalogue and release-proof page are not yet live.
+
 ## Current operating posture
 | Control | State |
 |---|---|
@@ -32,7 +36,7 @@
 | Edge Firewall | Enabled |
 | Generic/RCE/SQLi/XSS/Bot rules | Log-only |
 | Login/mobile-login edge rate limit | 60 requests/IP/60 seconds |
-| Current main vs live Production | main `4b8a532`; Production `2a4938a`; evidence-page refresh not yet deployed |
+| Current main vs live Production | main `859a7f6`; Production `2a4938a`; release-proof page and 114-locale catalogue not yet Production-deployed |
 
 The current plan blocked enabling scheduled snapshots, protecting the Production branch and creating another snapshot. Vercel rejected enabling OWASP CRS enforcement under the current entitlement. No plan upgrade or WAF policy change was made.
 
@@ -51,9 +55,9 @@ No independent ISO/IEC 27001, SOC 2, PCI DSS or current third-party penetration-
 
 ## Verification links
 - [Production release workflow](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45013074938)
-- [Current main CI](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45016371911)
-- [Current main Vercel/PostgreSQL acceptance](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45016372092)
-- [Current main CodeQL](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45016372078)
+- [Post-merge main OpsCore CI](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45018113019)
+- [Post-merge main Vercel source/contract + isolated PostgreSQL acceptance](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45018113156)
+- [Post-merge main CodeQL](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45018112500)
 - [Live release proof](https://opscore-platform.vercel.app/api/verify/release)
 - [Live database security proof](https://opscore-platform.vercel.app/api/verify/database-security)
 - [Live deployment identity](https://opscore-platform.vercel.app/api/verify/deployment)
