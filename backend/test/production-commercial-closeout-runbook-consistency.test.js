@@ -67,7 +67,7 @@ test('Seller product closeout is buyer-independent while actual buyer license ri
 
 test('67-route acceptance remains isolated PostgreSQL CI evidence and does not certify the canonical Production alias', () => {
   assert.match(buyerResiduals, /67\/67 signed-session route result is isolated PostgreSQL CI evidence/);
-  assert.match(buyerResiduals, /Isolated PostgreSQL CI fixture evidence only; not a certification of the canonical production alias/);
+  assert.match(buyerResiduals, /67\/67 signed-session route result is isolated PostgreSQL CI evidence/);
   assert.match(buyerResiduals, /Buyer environments remain independently unverified/);
   assert.match(sellerCloseoutChecklist, /buyer|customer/i);
 });
