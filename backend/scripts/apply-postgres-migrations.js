@@ -281,7 +281,7 @@ async function verifyControlPlane053Catalog(client){
  };
 }
 async function verifyLegacyAppRoleOptionalCatalog(client){
- const row=(await client.query(String.raw\`
+ const row=(await client.query(String.raw`
 WITH app_role AS (
  SELECT oid,rolcanlogin,rolsuper,rolbypassrls,rolcreaterole,rolcreatedb,rolinherit
  FROM pg_catalog.pg_roles WHERE rolname='opscore_app'
@@ -353,7 +353,7 @@ SELECT
    AND NOT pg_catalog.has_table_privilege('opscore_app','public.schema_migrations','SELECT')
   )
  END AS legacy_app_role_contract
-\`)).rows[0]||{};
+`)).rows[0]||{};
  const verified=Number(row.required_table_count)===12
   &&Number(row.forced_rls_table_count)===12
   &&Number(row.system_policy_target_table_count)===3
