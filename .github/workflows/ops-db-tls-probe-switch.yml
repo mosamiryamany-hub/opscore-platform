@@ -41,5 +41,7 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          OPSC_PG_SSL_MODE: verify-full
+          OPSC_PG_SSL_REJECT_UNAUTHORIZED: 'true'
         run: node scripts/ops_db_tls_probe_switch.js SWITCH_PRODUCTION_DB_TO_DIRECT_TLS
         working-directory: backend
