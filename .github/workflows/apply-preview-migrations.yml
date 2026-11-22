@@ -169,6 +169,7 @@ jobs:
               RAISE EXCEPTION 'PREVIEW_BOOTSTRAP_ROLE_CAPABILITIES_INVALID';
             END IF;
           END $$;
+          GRANT CREATE ON DATABASE opscore_acceptance TO neondb_owner;
           GRANT CREATE, USAGE ON SCHEMA public TO neondb_owner;
           GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO neondb_owner;
           GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO neondb_owner;
@@ -188,6 +189,7 @@ jobs:
                OR migration_role.rolcreaterole IS NOT TRUE
                OR NOT has_schema_privilege('neondb_owner','public','CREATE')
                OR NOT has_schema_privilege('neondb_owner','public','USAGE')
+               OR NOT has_database_privilege('neondb_owner',current_database(),'CREATE')
                OR EXISTS (
                  SELECT 1
                  FROM pg_catalog.pg_class c
