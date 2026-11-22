@@ -177,9 +177,14 @@ function scanOpenDatabaseHandles(databasePath) {
     }
   }
 
-  if (!directoryStat || !directoryStat.isDirectory() || directoryStat.uid !== effectiveUid ||
-      (directoryStat.mode & 0o077) !== 0) {
-    throw new Error('SQLITE_DATABASE_DIRECTORY_NOT_PRIVATE');
+  if (!directoryStat || !directoryStat.isDirectory()) {
+    throw new Error('SQLITE_DATABASE_DIRECTORY_INVALID');
+  }
+  // Shared writable directories are accepted only with the sticky bit (for
+  // example /tmp). This prevents other UIDs from unlinking/replacing a file
+  // they do not own; the database itself must still be owner-only (0600).
+  if ((directoryStat.mode & 0o022) !== 0 && (directoryStat.mode & 0o1000) === 0) {
+    throw new Error('SQLITE_DATABASE_DIRECTORY_SHARED_WRITABLE');
   }
   if (!targetStat) return [];
   if (targetStat.uid !== effectiveUid) throw new Error('SQLITE_DATABASE_OWNER_MISMATCH');
@@ -230,8 +235,8 @@ function scanOpenDatabaseHandles(databasePath) {
   };
 
   // Processes running as this database's owning UID are scanned in full. The
-  // database file and its parent directory are both owner-only (0600/0700), so
-  // unrelated UIDs cannot open the path. Root/privileged host processes and
+  // database file is owner-only (0600); unrelated UIDs cannot open it through
+  // normal filesystem permissions. Root/privileged host processes and
   // other PID namespaces remain outside this application's supported SQLite
   // concurrency boundary; operators must stop those external actors separately.
   const processCanAccessPrivateDatabase = pidText => {
