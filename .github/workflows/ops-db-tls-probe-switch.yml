@@ -37,7 +37,6 @@ jobs:
       - name: Probe endpoint TLS and switch production URLs when direct verifies
         env:
           OPSC_DATABASE_URL: ${{ secrets.OPSC_DATABASE_URL }}
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
