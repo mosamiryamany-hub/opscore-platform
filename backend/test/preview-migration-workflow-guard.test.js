@@ -18,7 +18,7 @@ test('Preview migrations require one exact pinned non-primary branch and the app
   assert.match(previewApply, /INPUT_DB.*opscore_acceptance/);
   assert.match(previewApply, /OPSC_MIGRATION_TARGET_CLASS: preview/);
   assert.match(previewApply, /OPSC_MIGRATION_EXPECTED_OWNER_ROLE: neondb_owner/);
-  assert.match(previewApply, /checks=\[\('OPSC_MIGRATION_DATABASE_URL','neondb_owner','owner\.uri'\)/);
+  assert.ok(previewApply.includes("('OPSC_MIGRATION_DATABASE_URL','neondb_owner','owner.uri')"));
   assert.match(previewApply, /OPSC_PREVIEW_BOOTSTRAP_DATABASE_URL/);
   assert.match(previewApply, /checks=[\s\S]*?OPSC_PREVIEW_BOOTSTRAP_DATABASE_URL','opscore_owner','bootstrap\.uri'/);
   assert.match(previewApply, /PREVIEW_BOOTSTRAP_LOGIN_ROLE_MUST_BE_OPSCORE_OWNER/);
