@@ -104,13 +104,15 @@ test('privileged cleanup is exact-target only and never becomes the application 
   assert.match(source, /OPSC_PG_ACCEPTANCE_CLEANUP_HOST/);
   assert.match(source, /cleanupTarget\.database !== database/);
   assert.match(source, /cleanupTarget\.hostname !== parsed\.hostname/);
-  assert.match(source, /decodeURIComponent\(cleanupTarget\.parsed\.username\) !== 'opscore_owner'/);
+  assert.ok(source.includes("allowedCleanupRoles = ['opscore_owner', 'neondb_owner']"));
+  assert.match(source, /decodeURIComponent\(cleanupTarget\.parsed\.username\) !== cleanupRoleName/);
+  assert.match(source, /identity\.role !== cleanupRoleName/);
   assert.match(source, /identity\.superuser !== false/);
   assert.match(source, /identity\.bypass_rls !== true/);
   assert.match(source, /OPSC_PG_ACCEPTANCE_URL/);
   assert.match(source, /DATABASE_URL: urlText/);
   assert.match(source, /application_name: 'opscore-acceptance-targeted-cleanup'/);
-  assert.match(source, /exact-target-opscore_owner-cleanup/);
+  assert.match(source, /exact-target-privileged-cleanup/);
   assert.ok(source.includes('cleanupUsesPrivilegedRole'));
   assert.ok(source.includes('SELECT count(*)::int AS n FROM users'));
   assert.ok(source.includes('identity.bypass_rls !== true'));
