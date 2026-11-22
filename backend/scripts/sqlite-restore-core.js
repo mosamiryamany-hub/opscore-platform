@@ -97,6 +97,7 @@ function restoreDatabase({
   const safetyStage = path.join(destinationDirectory, '.' + path.basename(destination) + '.' + token + '.safety.tmp');
   const rollbackStage = path.join(destinationDirectory, '.' + path.basename(destination) + '.' + token + '.rollback.tmp');
   let maintenance = null;
+  let retainMaintenanceFence = false;
 
   try {
     // Validate the exact incoming bytes before asking the application to quiesce.
@@ -158,6 +159,10 @@ function restoreDatabase({
           if (fs.existsSync(destination)) throw new Error('RESTORE_ROLLBACK_DESTINATION_REMAINS');
         }
       } catch (rollbackError) {
+        // The live database path is now of uncertain state. Keep the fence in
+        // place so no application connection can reopen it until an operator
+        // inspects the database and explicitly resolves the maintenance lock.
+        retainMaintenanceFence = true;
         throw new Error('RESTORE_ROLLBACK_FAILED', { cause: rollbackError });
       }
       throw new Error('RESTORE_POST_SWAP_VERIFICATION_FAILED_ROLLED_BACK', { cause: verificationError });
@@ -175,7 +180,7 @@ function restoreDatabase({
     try { fs.rmSync(staged, { force: true }); } catch {}
     try { fs.rmSync(safetyStage, { force: true }); } catch {}
     try { fs.rmSync(rollbackStage, { force: true }); } catch {}
-    if (maintenance) maintenance.release();
+    if (maintenance && !retainMaintenanceFence) maintenance.release();
   }
 }
 
