@@ -13,7 +13,7 @@
 | Current-head buyer archive | HOLD — not produced for `4b8a532` | Secure Release exact-head ZIP, checksum, SBOM, Sigstore bundle and statement |
 | License / distribution | NO LICENSE GRANT | Rights holder + named buyer execute exact-deliverable License Schedule |
 | Mobile | Buyer residual | Signed native Android/iOS builds, device QA and store publication |
-| Languages | 105 runtime selectable; 114 qualification rows; 9 withheld; 0/114 native reviewed | Reconcile missing locales and fix translation defects; preserve machine-draft notices |
+| Languages | 114 interface-selectable; 105 conversation-enabled; 9 English-fallback interface-only; 0/114 native reviewed | Preserve the safe English-fallback options; enable conversation use only after remediation, native review and provider acceptance |
 | Maps / external providers | Buyer residual | Contracts, keys, attribution, quotas and live buyer acceptance |
 | Buyer installation | Not verified | Buyer environment install, migration, tenant isolation, restore and operations acceptance |
 | Independent certifications | Not evidenced | Obtain and verify original, scope-matched external certificates before claiming them |
