@@ -214,6 +214,31 @@ jobs:
             END IF;
           END $$;
           SQL
+          MIGRATION_URI="$(cat "$RUNNER_TEMP/owner.uri")"
+          case "$MIGRATION_URI" in *"?"*) MIGRATION_URI="$MIGRATION_URI&sslrootcert=system";; *) MIGRATION_URI="$MIGRATION_URI?sslrootcert=system";; esac
+          psql "$MIGRATION_URI" -v ON_ERROR_STOP=1 -q <<'SQL'
+          DO $
+          DECLARE
+            migration_role record;
+          BEGIN
+            IF current_user <> 'neondb_owner' THEN
+              RAISE EXCEPTION 'PREVIEW_MIGRATION_LOGIN_ROLE_MUST_BE_NEONDB_OWNER';
+            END IF;
+            SELECT rolcanlogin, rolsuper, rolbypassrls
+            INTO migration_role
+            FROM pg_catalog.pg_roles
+            WHERE rolname = current_user;
+            IF NOT FOUND
+               OR migration_role.rolcanlogin IS NOT TRUE
+               OR migration_role.rolsuper IS NOT FALSE
+               OR migration_role.rolbypassrls IS NOT TRUE
+               OR NOT has_schema_privilege(current_user,'public','CREATE')
+               OR NOT has_schema_privilege(current_user,'public','USAGE') THEN
+              RAISE EXCEPTION 'PREVIEW_MIGRATION_OWNER_PRIVILEGES_INVALID';
+            END IF;
+          END $;
+          SQL
+          echo "NEON_MIGRATION_OWNER_ROLE=PASS"
           echo "PREVIEW_MIGRATION_BOOTSTRAP_PRIVILEGES=PASS"
 
       - name: Clear unintended opscore_app memberships on isolated Preview
