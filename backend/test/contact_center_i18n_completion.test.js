@@ -1,5 +1,5 @@
 'use strict';
-// Completion gate for the 105-locale pack: fails if UI copy is hardcoded again,
+// Completion gate for the 114-locale interface pack: fails if UI copy is hardcoded again,
 // if a locale drifts from the source key set, or if the coverage register lies.
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -26,8 +26,8 @@ const read = name => JSON.parse(fs.readFileSync(path.join(localeRoot, name), 'ut
 const source = flatten(read('en.json'));
 const sourceKeys = Object.keys(source).sort();
 
-test('all 105 locales carry the full source key set with non-empty values and no raw English leakage in Arabic', () => {
-  assert.equal(localeFiles.length, 105);
+test('all 114 locales carry the full source key set with non-empty values and no raw English leakage in Arabic', () => {
+  assert.equal(localeFiles.length, 114);
   assert.equal(sourceKeys.length, 89, 'source key count must be 89 after the completion pass');
   for (const file of localeFiles) {
     const flat = flatten(read(file));
@@ -81,13 +81,21 @@ test('per-locale coverage register matches the real English-fallback key set on 
   const register = JSON.parse(fs.readFileSync(registerPath, 'utf8'));
   assert.equal(register.schemaVersion, 'opscore.i18n-completion-register.v2');
   assert.equal(register.keyCount, 89);
-  assert.equal(Object.keys(register.locales).length, 105);
-  assert.equal(register.catalogueLanguages, 105);
-  assert.deepEqual(register.withdrawnLocales.map(item => item.code).sort(), ['es','hy','ml','ms','my','sr','sw','te','uz']);
+  assert.equal(Object.keys(register.locales).length, 114);
+  assert.equal(register.catalogueLanguages, 114);
+  assert.deepEqual(register.withdrawnLocales, []);
+  assert.deepEqual(register.previouslyWithdrawnLocales.map(item => item.code).sort(), ['es','hy','ml','ms','my','sr','sw','te','uz']);
+  for (const code of ['es','hy','ml','ms','my','sr','sw','te','uz']) {
+    assert.equal(register.locales[code].status, 'english_fallback_interface_only');
+    assert.equal(register.locales[code].translationProvenance, 'english_fallback');
+    assert.equal(register.locales[code].interfaceSelectable, true);
+    assert.equal(register.locales[code].conversationSelectable, false);
+    assert.equal(register.locales[code].englishFallbackCount, 88);
+  }
   assert.equal(register.locales.en.status, 'source');
   assert.equal(register.locales.ar.status, 'draft_translation_pending_native_review');
   assert.equal(register.locales.ff.status, 'draft_translation_pending_native_review');
-  assert.equal(register.locales.din.status, 'english_fallback_pending');
+  assert.equal(register.locales.din.status, 'english_fallback');
   assert.deepEqual(register.locales.ar.englishFallbackKeys, []);
   for (const file of localeFiles) {
     const code = file.slice(0, -5);
@@ -103,10 +111,13 @@ test('per-locale coverage register matches the real English-fallback key set on 
     assert.equal(register.locales[code].englishFallbackCount, actual.length);
   }
   assert.deepEqual(register.summary.rtlLocales, ['ar', 'dv', 'fa', 'ks', 'ps', 'ur'].sort());
-  const expectedFallback = Object.values(register.locales).filter(item => item.status === 'english_fallback_pending').length;
+  const expectedFallback = Object.values(register.locales).filter(item => ['english_fallback_pending','english_fallback','english_fallback_interface_only'].includes(item.status)).length;
   assert.equal(register.summary.englishFallbackLocales, expectedFallback);
-  assert.equal(register.summary.draftTranslationLocales + expectedFallback + 1, 105);
-  assert.equal(register.summary.catalogue, 105);
+  assert.equal(expectedFallback,13);
+  assert.equal(register.summary.conversationSelectable,105);
+  assert.equal(register.summary.interfaceSelectable,114);
+  assert.equal(register.summary.draftTranslationLocales + expectedFallback + 1, 114);
+  assert.equal(register.summary.catalogue, 114);
   assert.ok(register.summary.draftTranslationLocaleCodes.length === register.summary.draftTranslationLocales);
 });
 
@@ -151,5 +162,5 @@ test('loader canonicalises requested locale case and still resolves RTL directio
 test('package i18n validator passes on the completed pack', () => {
   const result = cp.spawnSync(process.execPath, ['scripts/validate-i18n.js'], { cwd: backendRoot, encoding: 'utf8' });
   assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
-  assert.match(result.stdout, /PASS locale count: 105/);
+  assert.match(result.stdout, /PASS locale count: 114/);
 });

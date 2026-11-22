@@ -1,74 +1,59 @@
-# OpsCore — Client Trust Pack
+# OpsCore — Client Trust Pack (2026-11-22)
 
-**Generated:** 2026-11-20 (synced to live production pin)  
-**Authority:** Live endpoint only — [https://opscore-platform.vercel.app/api/verify/release](https://opscore-platform.vercel.app/api/verify/release)  
-**NO LICENSE GRANT** by this document. Buyer rights require a signed License Schedule (see `LICENSE_FRAMEWORK.md` L1/L2/L3). Prices are not published here.
+**Classification: PASS_WITH_RESIDUALS. No license grant.** This pack reports scope-specific Production evidence and open handoff conditions. It is not a third-party security certificate or buyer-environment acceptance.
 
-## Live release identity
-
+## Release identity
 | Field | Value |
 |---|---|
-| Product / version | OpsCore / 0.11.62 |
-| Public status | **PASS** |
-| sourceCommit | `066810de46b206d15f74c5f23d39491880960027` |
-| Deployment ID | `dpl_3MD2asVaLCnFUW4om13F1z4PfZ2b` |
-| Deployment ref / env | `main` / `production` |
-| CI pipeline | [44717454341](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44717454341) — PASS |
-| Package SHA-256 | `1f2a39de7ae84c4e7c502fc00cb5369ee82e161b0d4a109e8d8888549c9c27df` (PUBLISHED) |
-| Checked at (endpoint sample) | 2026-11-20T10:43:35.490Z |
+| Current protected main | `4b8a532aea404dd5b696b5d9b2cd3eb45c72852b` |
+| Production source | `2a4938a70220d3375497e94499850476b4b505de` |
+| Production deployment | `dpl_G7r6CDntYarpafuawie8CKWDLBB7` |
+| Public alias | https://opscore-platform.vercel.app |
+| Evidence workflow | [45013074938](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45013074938) |
 
-## Gate board (live)
+## Production trust evidence
+- Runtime promotion, TLS 1.3, database/security and public-domain exact-commit checks: PASS.
+- Signed-tenant route matrix: 67/67 PASS on candidate deployment `dpl_FgDTqKJxCDw3SAGLtgPxqfQHGu7v`.
+- PostgreSQL HTTP route probes: 358/358 PASS, candidate-bound.
+- Authenticated tenant E2E workflows: 3/3 PASS (customer, work-order, asset/event), with cross-tenant denial and cleanup.
+- Native PITR v2 and recovery-point v4: PASS; 136 public tables compared using SHA-256, zero content mismatches, RLS/FORCE-RLS parity and temporary-branch cleanup.
+- Live raw-GUC forgery probe under `opscore_runtime`: effective tenant/user NULL, access mode empty, zero rows visible in `activity_log` and `sessions` under the forged context.
 
-| Gate | Result |
+**Scope boundary:** behavioral evidence is bound to the exact candidate deployment and source/pipeline/database identity. It was not independently rerun against the final promoted deployment ID. The final deployment passed its staged runtime gates, smoke tests and public-domain exact-SHA verification. `CERTIFIED` is the internal, evidence-scoped Production isolation classification; no external ISO/SOC 2/PCI certification is claimed.
+
+## Current operating posture
+| Control | State |
 |---|---|
-| commercialClosure | `PASS` |
-| productionIsolationCertification | **`CERTIFIED`** |
-| signedTenantSessionRouteCoverage | `PASS_PRODUCTION_ROUTE_SCOPE` |
-| productionSessionTenantBoundary | `PASS_PRODUCTION_PROBE_SCOPE` |
-| productionRecoveryBundle | `PASS_PRODUCTION_ROW_COUNT_SCOPE` |
-| neonPointInTimeRecovery | `PASS_BRANCH_POINT` |
-| livePostgresRls | `PASS_TEST_SCOPE` |
-| postgresHttpAcceptance | `PASS` |
-| tenantRouteSecurityCoverage | `PASS_TEST_SCOPE` |
-| functionalApiRouteAcceptance | `PASS_CONTRACT_SCOPE` |
+| Production database | Neon Free; branch `br-proud-salad-bcshhdap` ready, `protected=false` |
+| Automatic Neon snapshots | No schedule configured |
+| Listed manual snapshot | One; `snap-aged-thunder-bcsxc1a5` |
+| Neon full-data restore proof | Historical v2 drill passed; no contractual RPO/RTO |
+| Vercel | Hobby |
+| Edge Firewall | Enabled |
+| Generic/RCE/SQLi/XSS/Bot rules | Log-only |
+| Login/mobile-login edge rate limit | 60 requests/IP/60 seconds |
+| Current main vs live Production | main `4b8a532`; Production `2a4938a`; evidence-page refresh not yet deployed |
 
-## Production acceptance binding
+The current plan blocked enabling scheduled snapshots, protecting the Production branch and creating another snapshot. Vercel rejected enabling OWASP CRS enforcement under the current entitlement. No plan upgrade or WAF policy change was made.
 
-| Field | Value |
-|---|---|
-| status | PASS |
-| commitSha | `066810de46b206d15f74c5f23d39491880960027` |
-| pipelineId | `44717454341` |
-| evidenceSha256 | `171f8daa38b44821ff11d19b22962c84cf6c8d0ebfa805bfde62fe0edf44c12a` |
-| checkedAt | 2026-11-20T10:17:47.866Z |
+## Buyer and provider residuals
+- Native Android/iOS signed store artifacts, store accounts, device QA and publication.
+- Runtime interface selector exposes 114 locales: 1 English source, 100 machine-assisted drafts and 13 explicit English fallbacks. 105 remain conversation-language targets; the nine historical withdrawal codes are selectable only as English-fallback interface options and disabled for conversations. Native-speaker review and production language qualification remain 0/114.
+- Licensed maps/road-routing provider, keys, attribution, quotas and buyer acceptance.
+- Buyer-specific identity, messaging, telephony, payment and other provider agreements/credentials.
+- Buyer installation, migration, tenant isolation, restore and operational acceptance in the buyer's environment.
 
-## Scope notes (honest boundaries)
+## License and distribution
+**NO LICENSE GRANT.** No installation, use, modification, hosting, redistribution, resale or sublicense right is granted by this pack, the repository or the live Production deployment. The rights holder and named buyer must execute a License Schedule that pins the exact current deliverable SHA-256 and states the granted rights. The current-main signed buyer archive has not yet been generated; do not substitute an older draft release.
 
-1. **CERTIFIED** means the v2 live probes, recovery-point evidence, 67 signed-session routes, same-commit/same-pipeline identity, acceptance proof, and explicit certification flag passed together on this pin.
-2. `PASS_TEST_SCOPE` / `PASS_CONTRACT_SCOPE` gates remain CI- or contract-scoped and are **not** full business-flow certification.
-3. Recovery evidence is row-count / branch-point scope — not full content equality, RPO/RTO, or unlimited PITR history.
-4. Hosted production success does **not** grant a commercial license or authorize redistribution.
-5. Buyer residuals remain with the buyer: mobile store signing, human translation QA, licensed maps, buyer payment keys.
+## External certification
+No independent ISO/IEC 27001, SOC 2, PCI DSS or current third-party penetration-test certification is evidenced here. Do not use certification logos or claim external approval.
 
-## Org / account residuals (outside code pin)
-
-| Control | Status at doc generation |
-|---|---|
-| GitHub secret scanning | enabled |
-| GitHub push protection | enabled |
-| Secret scanning non-provider patterns | disabled (plan/account eligibility) |
-| Secret scanning validity checks | disabled (plan/account eligibility) |
-| Neon org `require_mfa` | operator must confirm in Neon console |
-| Second maintainer / break-glass collaborator | operator decision |
-| License Schedule with named buyer | none — **NO LICENSE GRANT** |
-
-## Verify yourself
-
-```bash
-curl -sS https://opscore-platform.vercel.app/api/verify/release | jq '.status, .sourceCommit, .gates.productionIsolationCertification, .packageFingerprint'
-curl -sS https://opscore-platform.vercel.app/api/health
-```
-
-## Arabic summary
-
-النشر العام على `066810de46b2` بحالة **PASS** وشهادة عزل **CERTIFIED**، مع مصفوفة 67 مسارًا مربوطة بنفس الالتزام وخط الأنابيب. هذا إثبات تشغيلي للإنتاج المستضاف، وليس ترخيص بيع أو إعادة توزيع. التسعير وجدول الترخيص (L1/L2/L3) يُستكملان مع المشتري خارج المستودع.
+## Verification links
+- [Production release workflow](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45013074938)
+- [Current main CI](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45016371911)
+- [Current main Vercel/PostgreSQL acceptance](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45016372092)
+- [Current main CodeQL](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45016372078)
+- [Live release proof](https://opscore-platform.vercel.app/api/verify/release)
+- [Live database security proof](https://opscore-platform.vercel.app/api/verify/database-security)
+- [Live deployment identity](https://opscore-platform.vercel.app/api/verify/deployment)

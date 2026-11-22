@@ -1,5 +1,8 @@
 # OpsCore — Commercial Closeout Status
 
+> **HISTORICAL / SUPERSEDED — 2026-11-22.** This record describes an earlier source and deployment state and must not be used as the current buyer status. It is retained for historical audit context only. The canonical current status is [COMMERCIAL_CLOSEOUT_STATUS_2026-11-22.md](COMMERCIAL_CLOSEOUT_STATUS_2026-11-22.md), with the current source, Production deployment, evidence scopes and remaining commercial gates.
+
+
 **Reconciled:** 2026-11-22
 **Product label:** `0.11.62`
 **Main SHA at reconciliation start:** `63682774b7f81e123f996f6508fed5a714fea0be`  

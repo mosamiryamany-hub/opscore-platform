@@ -27,22 +27,38 @@ function setup() {
   db.prepare('INSERT INTO memberships (user_id,organization_id,role,created_at) VALUES (?,?,?,?)').run('user_b','org_b','member',stamp);
   return { db, ctx:{organizationId:'org_a',userId:'user_a',role:'member'}, peer:{organizationId:'org_a',userId:'user_peer',role:'member'}, agent:{organizationId:'org_a',userId:'user_agent',role:'manager'}, other:{organizationId:'org_b',userId:'user_b',role:'member'} };
 }
-test('catalog has 105 unique target languages and never claims qualification without acceptance evidence', () => {
+test('catalog lists 114 interface locales, retains 105 conversation targets and never claims qualification', () => {
   const summary = cc.languageSummary();
-  assert.equal(summary.sourceRows,105);
-  assert.equal(summary.uniqueLanguageCodes,105);
+  assert.equal(summary.sourceRows,114);
+  assert.equal(summary.uniqueLanguageCodes,114);
+  assert.equal(summary.interfaceSelectableLanguageCodes,114);
+  assert.equal(summary.conversationSelectableLanguageCodes,105);
+  assert.equal(summary.machineDraftedLocales,100);
+  assert.equal(summary.englishFallbackLocales,13);
+  assert.equal(summary.interfaceOnlyEnglishFallbackLocales,9);
   for (const code of ['ms','sw','hy','uz','my','ml','es','sr','te']) {
-    assert.equal(cc.getLanguage(code), null, `${code} must not be supported in the 105-locale runtime`);
+    const language=cc.getLanguage(code);
+    assert.ok(language, `${code} must remain listed in the 114-locale interface catalogue`);
+    assert.equal(language.interfaceSelectable,true);
+    assert.equal(language.conversationSelectable,false);
+    assert.equal(language.translationProvenance,'english_fallback');
+    assert.equal(language.humanReviewCompleted,false);
   }
   assert.deepEqual(summary.duplicateRows,[]);
   assert.equal(summary.qualifiedForProduction,0);
-  // The active 105-locale manifest uses canonical codes; do not assert legacy
-  // catalogue entries that are not shipped or exposed by the UI.
   assert.equal(cc.getLanguage('zh').name,'Mandarin Chinese');
   assert.equal(cc.getLanguage('zh').duplicateOf,null);
   assert.equal(cc.getLanguage('ar').dir,'rtl');
   assert.equal(cc.getLanguage('cy'),null);
   assert.equal(cc.getLanguage('fo'),null);
+});
+
+test('English-fallback-only interface locales cannot start customer conversations', () => {
+  const fixture=setup();
+  assert.throws(
+    ()=>cc.createConversation(fixture.db,fixture.ctx,{consentAccepted:true,languageCode:'ms',channel:'web_chat'},env),
+    error=>error.message==='CONTACT_CENTER_LANGUAGE_NOT_ENABLED_FOR_CONVERSATIONS'
+  );
 });
 test('feature fails closed and encryption requires a valid 32-byte key', () => {
   assert.throws(()=>cc.createConversation({},{organizationId:'org_a',userId:'user_a'},{consentAccepted:true,languageCode:'en'},{}),e=>e.message==='CONTACT_CENTER_DISABLED');
