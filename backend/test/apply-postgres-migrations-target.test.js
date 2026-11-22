@@ -45,13 +45,17 @@ function envFor(targetClass, overrides = {}) {
   };
 }
 
-test('Preview migration owner role is an explicit narrow override; Production and test remain neondb_owner', () => {
+test('Preview, Production and test migrations require the exact Neon migration owner role', () => {
   assert.equal(expectedMigrationOwnerRole(envFor('preview')), 'neondb_owner');
-  assert.equal(expectedMigrationOwnerRole(envFor('preview', { OPSC_MIGRATION_EXPECTED_OWNER_ROLE: 'opscore_owner' })), 'opscore_owner');
+  assert.equal(expectedMigrationOwnerRole(envFor('preview', { OPSC_MIGRATION_EXPECTED_OWNER_ROLE: 'neondb_owner' })), 'neondb_owner');
   assert.equal(expectedMigrationOwnerRole(envFor('production')), 'neondb_owner');
   assert.equal(expectedMigrationOwnerRole(envFor('test')), 'neondb_owner');
   assert.throws(
     () => expectedMigrationOwnerRole(envFor('production', { OPSC_MIGRATION_EXPECTED_OWNER_ROLE: 'opscore_owner' })),
+    /MIGRATION_OWNER_ROLE_NOT_ALLOWED/
+  );
+  assert.throws(
+    () => expectedMigrationOwnerRole(envFor('preview', { OPSC_MIGRATION_EXPECTED_OWNER_ROLE: 'opscore_owner' })),
     /MIGRATION_OWNER_ROLE_NOT_ALLOWED/
   );
   assert.throws(
@@ -62,13 +66,13 @@ test('Preview migration owner role is an explicit narrow override; Production an
 
 test('pinned Neon identity is limited to the exact disposable Preview project, branch, direct host and database', async () => {
   const env = {
-    ...envFor('preview', { OPSC_MIGRATION_EXPECTED_OWNER_ROLE: 'opscore_owner' }),
+    ...envFor('preview', { OPSC_MIGRATION_EXPECTED_OWNER_ROLE: 'neondb_owner' }),
     OPSC_MIGRATION_PINNED_NEON_IDENTITY: '1',
     OPSC_MIGRATION_EXPECTED_PROJECT_ID: 'sweet-union-58466913',
     OPSC_MIGRATION_EXPECTED_BRANCH_ID: 'br-solitary-band-bbczy982',
     OPSC_MIGRATION_EXPECTED_HOST: 'ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech'
   };
-  const url = new URL('postgresql://opscore_owner:never-print-this@ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech/opscore_acceptance?sslmode=verify-full&channel_binding=require');
+  const url = new URL('postgresql://neondb_owner:never-print-this@ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech/opscore_acceptance?sslmode=verify-full&channel_binding=require');
   const result = await verifyNeonEndpointIdentity(url, env);
   assert.equal(result.verified, false);
   assert.equal(result.skipped, true);

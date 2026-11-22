@@ -104,7 +104,8 @@ jobs:
           import json,os,subprocess
           envs={
             "OPSC_MIGRATION_DATABASE_URL":"NaIbwIDagdogTmWE",
-            "OPSC_ACCEPTANCE_RUNTIME_DATABASE_URL":"2ACxh1Oi5TWMDn5v"
+            "OPSC_ACCEPTANCE_RUNTIME_DATABASE_URL":"2ACxh1Oi5TWMDn5v",
+            "OPSC_PREVIEW_BOOTSTRAP_DATABASE_URL":"mF7e7nmzY2h6uaT0"
           }
           for key,env_id in envs.items():
             url="https://api.vercel.com/v1/projects/"+os.environ["VERCEL_PROJECT_ID"]+"/env/"+env_id+"?teamId="+os.environ["VERCEL_TEAM_ID"]
@@ -123,63 +124,89 @@ jobs:
           root=os.environ['RUNNER_TEMP']+'/'
           expected_host='ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech'
           expected_db='opscore_acceptance'
-          checks=[('OPSC_MIGRATION_DATABASE_URL','opscore_owner'),('OPSC_ACCEPTANCE_RUNTIME_DATABASE_URL','opscore_runtime')]
-          for key,role in checks:
+          checks=[
+            ('OPSC_MIGRATION_DATABASE_URL','neondb_owner','owner.uri'),
+            ('OPSC_ACCEPTANCE_RUNTIME_DATABASE_URL','opscore_runtime','runtime.uri'),
+            ('OPSC_PREVIEW_BOOTSTRAP_DATABASE_URL','opscore_owner','bootstrap.uri')
+          ]
+          for key,role,target_name in checks:
             value=open(root+key+'.uri').read().strip()
             u=urlsplit(value)
             q=parse_qs(u.query)
             if u.scheme!='postgresql' or u.username!=role or u.hostname!=expected_host or u.path.lstrip('/')!=expected_db or q.get('sslmode')!=['verify-full'] or q.get('channel_binding')!=['require']:
               raise SystemExit('VERCEL_NEON_CONNECTION_IDENTITY_MISMATCH:'+key)
             print('::add-mask::'+value)
-            target=root+('owner.uri' if role=='opscore_owner' else 'runtime.uri')
+            target=root+target_name
             open(target,'w').write(value)
           PY
-          chmod 600 "$RUNNER_TEMP/owner.uri" "$RUNNER_TEMP/runtime.uri"
-          echo 'NEON_MIGRATION_AND_RUNTIME_CONNECTIONS=PASS roles=opscore_owner,opscore_runtime TLS=verify-full'
+          chmod 600 "$RUNNER_TEMP/owner.uri" "$RUNNER_TEMP/runtime.uri" "$RUNNER_TEMP/bootstrap.uri"
+          echo 'NEON_MIGRATION_BOOTSTRAP_AND_RUNTIME_CONNECTIONS=PASS roles=neondb_owner,opscore_owner,opscore_runtime TLS=verify-full'
 
-      - name: Provision locked legacy application role required by historical grants
+      - name: Bootstrap Neon Preview migration privileges from the dedicated admin connection
         run: |
           set -euo pipefail
-          export PGURI="$(cat "$RUNNER_TEMP/owner.uri")"; case "$PGURI" in *"?"*) PGURI="$PGURI&sslrootcert=system";; *) PGURI="$PGURI?sslrootcert=system";; esac; export PGURI
-          test -n "${PGURI}" || { echo "OWNER_URI_MISSING" >&2; exit 1; }
+          PGURI="$(cat "$RUNNER_TEMP/bootstrap.uri")"
+          case "$PGURI" in *"?"*) PGURI="$PGURI&sslrootcert=system";; *) PGURI="$PGURI?sslrootcert=system";; esac
+          test -n "$PGURI" || { echo "PREVIEW_BOOTSTRAP_URI_MISSING" >&2; exit 1; }
           psql "$PGURI" -v ON_ERROR_STOP=1 -q <<'SQL'
           DO $$
+          DECLARE
+            bootstrap_role record;
           BEGIN
-            -- Historical migrations (e.g. 046/057/058/059) target production role name
-            -- neondb_owner. Isolated acceptance Preview uses opscore_owner as the
-            -- connection principal; provision a compatibility role so policy/OWNER
-            -- clauses resolve (42704 undefined_object) without rewriting applied SQL.
-            IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'neondb_owner') THEN
-              CREATE ROLE neondb_owner NOLOGIN NOINHERIT;
-              RAISE NOTICE 'OPSC_NEONDB_OWNER_COMPAT_ROLE_PROVISIONED';
-            ELSE
-              RAISE NOTICE 'OPSC_NEONDB_OWNER_COMPAT_ROLE_ALREADY_PRESENT';
+            IF current_user <> 'opscore_owner' THEN
+              RAISE EXCEPTION 'PREVIEW_BOOTSTRAP_LOGIN_ROLE_MUST_BE_OPSCORE_OWNER';
             END IF;
-            -- Migrations 057+ require neondb_owner with BYPASSRLS and current_user=neondb_owner.
-            BEGIN
-              EXECUTE 'ALTER ROLE neondb_owner NOLOGIN NOINHERIT BYPASSRLS NOSUPERUSER';
-              RAISE NOTICE 'OPSC_NEONDB_OWNER_BYPASSRLS_SET';
-            EXCEPTION WHEN insufficient_privilege THEN
-              RAISE NOTICE 'OPSC_NEONDB_OWNER_BYPASSRLS_DENIED';
-            WHEN others THEN
-              RAISE NOTICE 'OPSC_NEONDB_OWNER_ALTER_SKIPPED sqlstate=%', SQLSTATE;
-            END;
-            BEGIN
-              EXECUTE 'GRANT neondb_owner TO CURRENT_USER';
-            EXCEPTION WHEN duplicate_object THEN
-              NULL;
-            WHEN others THEN
-              RAISE NOTICE 'OPSC_NEONDB_OWNER_GRANT_TO_CURRENT_USER_SKIPPED sqlstate=%', SQLSTATE;
-            END;
-            BEGIN
-              EXECUTE 'GRANT CREATE, USAGE ON SCHEMA public TO neondb_owner';
-              EXECUTE 'GRANT ALL ON ALL TABLES IN SCHEMA public TO neondb_owner';
-              EXECUTE 'GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO neondb_owner';
-            EXCEPTION WHEN others THEN
-              RAISE NOTICE 'OPSC_NEONDB_OWNER_SCHEMA_GRANTS_SKIPPED sqlstate=%', SQLSTATE;
-            END;
-
-            IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'opscore_app') THEN
+            SELECT rolcanlogin, rolsuper, rolbypassrls, rolcreatedb, rolcreaterole
+            INTO bootstrap_role
+            FROM pg_catalog.pg_roles
+            WHERE rolname = current_user;
+            IF NOT FOUND
+               OR bootstrap_role.rolcanlogin IS NOT TRUE
+               OR bootstrap_role.rolsuper IS NOT FALSE
+               OR bootstrap_role.rolbypassrls IS NOT TRUE
+               OR bootstrap_role.rolcreatedb IS NOT TRUE
+               OR bootstrap_role.rolcreaterole IS NOT TRUE THEN
+              RAISE EXCEPTION 'PREVIEW_BOOTSTRAP_ROLE_CAPABILITIES_INVALID';
+            END IF;
+          END $$;
+          GRANT CREATE, USAGE ON SCHEMA public TO neondb_owner;
+          GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO neondb_owner;
+          GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO neondb_owner;
+          DO $$
+          DECLARE
+            migration_role record;
+          BEGIN
+            SELECT rolcanlogin, rolsuper, rolbypassrls, rolcreatedb, rolcreaterole
+            INTO migration_role
+            FROM pg_catalog.pg_roles
+            WHERE rolname = 'neondb_owner';
+            IF NOT FOUND
+               OR migration_role.rolcanlogin IS NOT TRUE
+               OR migration_role.rolsuper IS NOT FALSE
+               OR migration_role.rolbypassrls IS NOT TRUE
+               OR migration_role.rolcreatedb IS NOT TRUE
+               OR migration_role.rolcreaterole IS NOT TRUE
+               OR NOT has_schema_privilege('neondb_owner','public','CREATE')
+               OR NOT has_schema_privilege('neondb_owner','public','USAGE')
+               OR EXISTS (
+                 SELECT 1
+                 FROM pg_catalog.pg_class c
+                 JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace
+                 WHERE n.nspname='public'
+                   AND c.relkind IN ('r','p')
+                   AND NOT has_table_privilege('neondb_owner',c.oid,'SELECT')
+               )
+               OR EXISTS (
+                 SELECT 1
+                 FROM pg_catalog.pg_class c
+                 JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace
+                 WHERE n.nspname='public'
+                   AND c.relkind='S'
+                   AND NOT has_sequence_privilege('neondb_owner',c.oid,'USAGE')
+               ) THEN
+              RAISE EXCEPTION 'PREVIEW_MIGRATION_OWNER_PRIVILEGES_INVALID';
+            END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname='opscore_app') THEN
               CREATE ROLE opscore_app NOLOGIN NOINHERIT NOCREATEROLE NOCREATEDB NOBYPASSRLS;
               RAISE NOTICE 'OPSC_LEGACY_APP_ROLE_PROVISIONED_LOCKED';
             ELSE
@@ -187,8 +214,32 @@ jobs:
             END IF;
           END $$;
           SQL
-          psql "$PGURI" -Atc "SELECT rolname||'|canlogin='||rolcanlogin||'|inherit='||rolinherit||'|bypassrls='||rolbypassrls FROM pg_roles WHERE rolname IN ('opscore_app','neondb_owner') ORDER BY rolname"
-          echo "LEGACY_APP_ROLE_PROVISION=PASS"
+          MIGRATION_URI="$(cat "$RUNNER_TEMP/owner.uri")"
+          case "$MIGRATION_URI" in *"?"*) MIGRATION_URI="$MIGRATION_URI&sslrootcert=system";; *) MIGRATION_URI="$MIGRATION_URI?sslrootcert=system";; esac
+          psql "$MIGRATION_URI" -v ON_ERROR_STOP=1 -q <<'SQL'
+          DO $
+          DECLARE
+            migration_role record;
+          BEGIN
+            IF current_user <> 'neondb_owner' THEN
+              RAISE EXCEPTION 'PREVIEW_MIGRATION_LOGIN_ROLE_MUST_BE_NEONDB_OWNER';
+            END IF;
+            SELECT rolcanlogin, rolsuper, rolbypassrls
+            INTO migration_role
+            FROM pg_catalog.pg_roles
+            WHERE rolname = current_user;
+            IF NOT FOUND
+               OR migration_role.rolcanlogin IS NOT TRUE
+               OR migration_role.rolsuper IS NOT FALSE
+               OR migration_role.rolbypassrls IS NOT TRUE
+               OR NOT has_schema_privilege(current_user,'public','CREATE')
+               OR NOT has_schema_privilege(current_user,'public','USAGE') THEN
+              RAISE EXCEPTION 'PREVIEW_MIGRATION_OWNER_PRIVILEGES_INVALID';
+            END IF;
+          END $;
+          SQL
+          echo "NEON_MIGRATION_OWNER_ROLE=PASS"
+          echo "PREVIEW_MIGRATION_BOOTSTRAP_PRIVILEGES=PASS"
 
       - name: Clear unintended opscore_app memberships on isolated Preview
         run: |
@@ -231,7 +282,7 @@ jobs:
         env:
           OPSC_MIGRATION_TARGET_CLASS: preview
           OPSC_MIGRATION_PREVIEW_ALLOW_UNREVOCABLE_APP_MEMBERS: '1'
-          OPSC_MIGRATION_EXPECTED_OWNER_ROLE: opscore_owner
+          OPSC_MIGRATION_EXPECTED_OWNER_ROLE: neondb_owner
           OPSC_MIGRATION_PINNED_NEON_IDENTITY: '1'
           OPSC_MIGRATION_EXPECTED_DATABASE: ${{ steps.neon.outputs.database }}
           OPSC_MIGRATION_EXPECTED_HOST: ${{ steps.neon.outputs.host }}
@@ -268,7 +319,7 @@ jobs:
         env:
           OPSC_MIGRATION_TARGET_CLASS: preview
           OPSC_MIGRATION_PREVIEW_ALLOW_UNREVOCABLE_APP_MEMBERS: '1'
-          OPSC_MIGRATION_EXPECTED_OWNER_ROLE: opscore_owner
+          OPSC_MIGRATION_EXPECTED_OWNER_ROLE: neondb_owner
           OPSC_MIGRATION_PINNED_NEON_IDENTITY: '1'
           OPSC_MIGRATION_EXPECTED_DATABASE: ${{ steps.neon.outputs.database }}
           OPSC_MIGRATION_EXPECTED_HOST: ${{ steps.neon.outputs.host }}
@@ -298,70 +349,40 @@ jobs:
           if identity.get("pinned") is not True or identity.get("projectId") != "sweet-union-58466913" or identity.get("branchId") != "br-solitary-band-bbczy982" or identity.get("host") != "ep-dry-mouse-bbf5ozwy.c-15.us-east-1.aws.neon.tech":
             print("APPLY_NEON_PINNED_IDENTITY_MISMATCH"); sys.exit(1)
           st=str(obj.get("status") or "")
-          if "FAIL" in st.upper() or st in ("ERROR",):
+          if st != "APPLIED_AND_VERIFIED":
+            print("APPLY_STATUS_NOT_VERIFIED:"+st)
             sys.exit(1)
           PY
 
-      - name: Verify schema_migrations includes 066-068
+      - name: Verify exact Preview migration hashes for 057, 065, and 070
         id: preview_ledger_verify
         continue-on-error: true
         run: |
           set -euo pipefail
           sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client >/dev/null
           URI="$(cat "$RUNNER_TEMP/owner.uri")"; case "$URI" in *"?"*) URI="$URI&sslrootcert=system";; *) URI="$URI?sslrootcert=system";; esac; export URI
-          psql "$URI" -v ON_ERROR_STOP=1 -c \
-            "SELECT filename, left(sha256,12) AS sha12, applied_at
-             FROM public.schema_migrations
-             WHERE filename IN (
-               '063_signed_tenant_context_verifier.sql',
-               '064_signed_tenant_context_work_orders_routing.sql',
-               '065_signed_tenant_context_evidence_upload_chunks.sql',
-               '066_signed_tenant_context_verifier_search_path_hardening.sql',
-               '067_signed_tenant_context_rls_policy_accessor_alignment.sql',
-               '068_opscore_app_role_privilege_lockdown.sql'
-             )
-             ORDER BY filename;"
-          COUNT=$(psql "$URI" -Atc \
-            "SELECT count(*) FROM public.schema_migrations
-             WHERE filename IN (
-               '063_signed_tenant_context_verifier.sql',
-               '064_signed_tenant_context_work_orders_routing.sql',
-               '065_signed_tenant_context_evidence_upload_chunks.sql',
-               '066_signed_tenant_context_verifier_search_path_hardening.sql',
-               '067_signed_tenant_context_rls_policy_accessor_alignment.sql',
-               '068_opscore_app_role_privilege_lockdown.sql'
-             );")
-          test "$COUNT" = "6" || { echo "MIGRATION_VERIFY_COUNT=$COUNT"; exit 1; }
-          echo "PREVIEW_MIGRATIONS_066_068_VERIFIED=PASS"
+          for migration in \
+            057_read_only_runtime_migration_ledger_attestation.sql \
+            065_signed_tenant_context_evidence_upload_chunks.sql \
+            070_evidence_upload_postgres_blob_storage.sql; do
+            expected="$(sha256sum "backend/sql/postgres/$migration" | awk '{print $1}')"
+            actual="$(psql "$URI" -v ON_ERROR_STOP=1 -AtXc "SELECT lower(sha256) FROM public.schema_migrations WHERE filename = '$migration'")"
+            test -n "$actual" || { echo "PREVIEW_MIGRATION_LEDGER_ENTRY_MISSING=$migration"; exit 1; }
+            test "$actual" = "$expected" || { echo "PREVIEW_MIGRATION_LEDGER_HASH_MISMATCH=$migration"; exit 1; }
+            echo "PREVIEW_MIGRATION_LEDGER_HASH_MATCH=PASS $migration"
+          done
+          echo "PREVIEW_MIGRATION_HASHES_057_065_070=PASS"
 
-      - name: Record Preview migration role-model outcome
+      - name: Require Preview migration application and ledger verification
         run: |
           set -euo pipefail
           apply_outcome="${{ steps.preview_apply.outcome }}"
           ledger_outcome="${{ steps.preview_ledger_verify.outcome }}"
           echo "PREVIEW_APPLY_OUTCOME=${apply_outcome}"
           echo "PREVIEW_LEDGER_VERIFY_OUTCOME=${ledger_outcome}"
-          if [ "$apply_outcome" = "success" ] && [ "$ledger_outcome" = "success" ]; then
-            echo "PREVIEW_MIGRATION_APPLY=PASS"
-            exit 0
-          fi
-          # Neon acceptance project cannot grant BYPASSRLS on neondb_owner; historical
-          # migrations 057+ require that production role model. Dry-run remains required.
-          if [ ! -f "$RUNNER_TEMP/dry-run.json" ]; then
-            echo "PREVIEW_DRY_RUN_ARTIFACT_MISSING"; exit 1
-          fi
-          python3 - <<'PY'
-          import json,os,re,sys
-          raw=open(os.environ["RUNNER_TEMP"]+"/dry-run.json").read()
-          obj=None
-          for m in re.finditer(r"\{[\s\S]*\}", raw):
-            try: obj=json.loads(m.group(0))
-            except: pass
-          if not obj or obj.get("status")!="DRY_RUN_PASS":
-            print("PREVIEW_APPLY_SOFT_SKIP_REQUIRES_DRY_RUN_PASS"); sys.exit(1)
-          print("PREVIEW_MIGRATION_APPLY=NOT_APPLICABLE_ROLE_MODEL")
-          print("dry_pending", len(obj.get("pending") or []))
-          PY
+          test "$apply_outcome" = "success" || { echo "PREVIEW_MIGRATION_APPLY_NOT_PASS:$apply_outcome" >&2; exit 1; }
+          test "$ledger_outcome" = "success" || { echo "PREVIEW_MIGRATION_LEDGER_NOT_PASS:$ledger_outcome" >&2; exit 1; }
+          echo "PREVIEW_MIGRATION_APPLY=PASS"
 
       - name: Run PostgreSQL HTTP commercial acceptance against isolated Neon
         id: preview_http
@@ -382,28 +403,12 @@ jobs:
         run: |
           set -euo pipefail
           apply_outcome="${{ steps.preview_apply.outcome }}"
+          ledger_outcome="${{ steps.preview_ledger_verify.outcome }}"
           http_outcome="${{ steps.preview_http.outcome }}"
           echo "PREVIEW_APPLY_OUTCOME=${apply_outcome}"
+          echo "PREVIEW_LEDGER_VERIFY_OUTCOME=${ledger_outcome}"
           echo "PREVIEW_HTTP_OUTCOME=${http_outcome}"
-          if [ "$apply_outcome" = "success" ] && [ "$http_outcome" = "success" ]; then
-            echo "PREVIEW_ACCEPTANCE=PASS"
-            exit 0
-          fi
-          # Role-model limitation on Neon acceptance: cannot BYPASSRLS / apply 057+.
-          # Isolated disposable Postgres + Production PITR remain the hard gates.
-          if [ -f "$RUNNER_TEMP/dry-run.json" ]; then
-            python3 - <<'PY'
-          import json,os,re,sys
-          raw=open(os.environ["RUNNER_TEMP"]+"/dry-run.json").read()
-          obj=None
-          for m in re.finditer(r"\{[\s\S]*\}", raw):
-            try: obj=json.loads(m.group(0))
-            except: pass
-          if not obj or obj.get("status")!="DRY_RUN_PASS":
-            print("PREVIEW_FINAL_GATE_REQUIRES_DRY_RUN_PASS"); sys.exit(1)
-          print("PREVIEW_ACCEPTANCE=PASS_WITH_ROLE_MODEL_LIMITATION")
-          print("preview_http_not_proven_due_to_incomplete_schema_after_unapplicable_migrations")
-          PY
-            exit 0
-          fi
-          echo "PREVIEW_FINAL_GATE_FAILED"; exit 1
+          test "$apply_outcome" = "success" || { echo "PREVIEW_MIGRATION_APPLY_NOT_PASS:$apply_outcome" >&2; exit 1; }
+          test "$ledger_outcome" = "success" || { echo "PREVIEW_MIGRATION_LEDGER_NOT_PASS:$ledger_outcome" >&2; exit 1; }
+          test "$http_outcome" = "success" || { echo "PREVIEW_HTTP_ACCEPTANCE_NOT_PASS:$http_outcome" >&2; exit 1; }
+          echo "PREVIEW_ACCEPTANCE=PASS"
