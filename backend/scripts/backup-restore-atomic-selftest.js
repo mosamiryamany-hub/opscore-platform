@@ -114,7 +114,6 @@ try {
   assert.equal(hash(destination), sameRestoreHash);
 
   const priorSafetyPath = destination + '.before-restore';
-  fs.writeFileSync(priorSafetyPath, 'preserve previous safety artifact');
   const priorSafetyHash = hash(priorSafetyPath);
   const destinationBeforeSafetyGuard = hash(destination);
   const safetyGuard = run(restoreScript, [backup], { SQLITE_PATH: destination });
