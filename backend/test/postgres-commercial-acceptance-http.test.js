@@ -871,7 +871,7 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           ? { status: 'NOT_RUN', reason: 'PREFLIGHT_DID_NOT_PASS' }
           : cleanupErrors.length
             ? { status: 'FAIL', errors: cleanupErrors }
-            : { status: 'PASS', method: cleanupUsesPrivilegedRole ? 'exact-target-opscore_owner-cleanup' : 'runtime-signed-context-cleanup', trackedUsers: created.users.length, trackedOrganizations: created.organizations.length, syntheticThrottleKeysHandled: created.loginThrottleKeys.length };
+            : { status: 'PASS', method: cleanupUsesPrivilegedRole ? 'exact-target-privileged-cleanup' : 'runtime-signed-context-cleanup', trackedUsers: created.users.length, trackedOrganizations: created.organizations.length, syntheticThrottleKeysHandled: created.loginThrottleKeys.length };
         if (cleanupErrors.length) {
           prior.status = 'FAIL';
           prior.reason = 'ACCEPTANCE_CLEANUP_FAILED';
