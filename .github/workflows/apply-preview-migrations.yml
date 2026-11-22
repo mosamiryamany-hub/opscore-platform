@@ -237,7 +237,11 @@ jobs:
       - name: Clear unintended opscore_app memberships on isolated Preview
         run: |
           set -euo pipefail
-          export PGURI="$(cat "$RUNNER_TEMP/owner.uri")"; case "$PGURI" in *"?"*) PGURI="$PGURI&sslrootcert=system";; *) PGURI="$PGURI?sslrootcert=system";; esac; export PGURI
+          # Membership was granted to opscore_owner with ADMIN OPTION; neondb_owner
+          # is the migration executor and is not the membership grantor/admin.
+          # Use the already pinned, verified Preview bootstrap identity for this
+          # narrowly scoped role-membership repair.
+          export PGURI="$(cat "$RUNNER_TEMP/bootstrap.uri")"; case "$PGURI" in *"?"*) PGURI="$PGURI&sslrootcert=system";; *) PGURI="$PGURI?sslrootcert=system";; esac; export PGURI
           # opscore_app must not have members before 068 repair preflight. Preview
           # acceptance DBs can accumulate GRANT opscore_app TO <role> from older tests.
           # Revoke only membership *into* opscore_app; never touch production project.
