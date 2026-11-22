@@ -136,9 +136,9 @@ function restoreDatabase({
 
     // Same-filesystem rename is the only operation that changes the live path.
     fs.renameSync(staged, destination);
-    syncDirectory(destinationDirectory);
 
     try {
+      syncDirectory(destinationDirectory);
       verifyDatabase(destination, 'RESTORED_DATABASE');
     } catch (verificationError) {
       try {
@@ -169,7 +169,7 @@ function restoreDatabase({
       safetyCopy: destinationExists ? beforeRestore : null,
       restoredSha256: sha256File(destination),
       rollbackProtection: 'PASS',
-      openHandleCheck: 'PASS'
+      databaseOwnerUidOpenHandleCheck: 'PASS'
     };
   } finally {
     try { fs.rmSync(staged, { force: true }); } catch {}
