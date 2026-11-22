@@ -10,7 +10,8 @@ const { openDb } = require('../src/db');
 const { DatabaseSync } = require('node:sqlite');
 
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-atomic-recovery-'));
-const source = path.join(root, 'source.sqlite');
+const sourceDirectory = path.join(root, 'private-data');
+const source = path.join(sourceDirectory, 'source.sqlite');
 const backup = path.join(root, 'backup.sqlite');
 const destination = path.join(root, 'destination.sqlite');
 const corrupt = path.join(root, 'corrupt.sqlite');
@@ -44,6 +45,10 @@ try {
   } finally {
     sourceDb.close();
   }
+  assert.equal(fs.statSync(sourceDirectory).mode & 0o077, 0,
+    'SQLite parent directory must be private to its owner on Linux');
+  assert.equal(fs.statSync(sourceDirectory).uid, process.geteuid(),
+    'SQLite parent directory must be owned by the process running the application');
 
   const create = run(backupScript, [backup], { SQLITE_PATH: source });
   assert.equal(create.status, 0, create.stderr || create.stdout);
