@@ -102,9 +102,10 @@ test('production runtime URL preflight rejects a non-runtime role or wrong datab
 });
 test('environment URL preflight fails before writes when a URL secret is missing', () => {
   assert.throws(
-    () => validateEnvironmentUrls({
-      OPSC_DATABASE_URL: 'postgresql://opscore_runtime:secret@ep-example.neon.tech/opscore_acceptance'
-    }, 'postgresql://opscore_runtime:secret@ep-example.neon.tech/opscore_acceptance'),
+    () => validateEnvironmentUrls(
+      {},
+      'postgresql://opscore_runtime:secret@ep-example.neon.tech/opscore_acceptance'
+    ),
     { code: 'ENV_KEY_SECRET_ABSENT' }
   );
 });
