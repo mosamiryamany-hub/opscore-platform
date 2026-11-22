@@ -47,8 +47,10 @@ try {
 
   const create = run(backupScript, [backup], { SQLITE_PATH: source });
   assert.equal(create.status, 0, create.stderr || create.stdout);
+  const backupBeforeVerify = hash(backup);
   const verify = run(verifyScript, [backup], {});
   assert.equal(verify.status, 0, verify.stderr || verify.stdout);
+  assert.equal(hash(backup), backupBeforeVerify, 'read-only verification must not mutate the backup file');
   const report = JSON.parse(verify.stdout);
   assert.equal(report.integrity, 'PASS');
   assert.equal(report.foreignKeys, 'PASS');
