@@ -53,7 +53,7 @@ test('2026-11-18 maintenance observations remain historical and the 2026-11-22 r
   assert.match(buyerResiduals, /not buyer-environment qualification/);
   assert.match(buyerResiduals, /one listed manual snapshot/i);
   assert.match(buyerResiduals, /protected=false/i);
-  assert.match(buyerResiduals, /no scheduled snapshot capability/i);
+  assert.match(buyerResiduals, /Automatic snapshot schedule.*None/i);
 });
 
 test('Seller product closeout is buyer-independent while actual buyer license rights remain transaction-gated', () => {
