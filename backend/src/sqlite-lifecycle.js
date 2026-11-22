@@ -11,7 +11,9 @@ function canonicalDatabasePath(dbPath) {
   const absolute = path.resolve(String(dbPath));
   try {
     if (fs.existsSync(absolute)) return fs.realpathSync(absolute);
-  } catch {}
+  } catch (error) {
+    if (error?.code !== 'ENOENT') throw error;
+  }
   const parent = fs.realpathSync(path.dirname(absolute));
   return path.join(parent, path.basename(absolute));
 }
@@ -38,7 +40,8 @@ function processIdentity(pid = process.pid) {
     const startTicks = fields[19];
     if (!bootId || !startTicks) return null;
     return { bootId, startTicks };
-  } catch {
+  } catch (error) {
+    if (!['ENOENT', 'EACCES', 'EPERM', 'ESRCH'].includes(error?.code)) throw error;
     return null;
   }
 }
@@ -65,8 +68,9 @@ function ownerIsAlive(metadata) {
 function readMetadata(filePath) {
   try {
     return JSON.parse(fs.readFileSync(filePath, 'utf8'));
-  } catch {
+  } catch (error) {
     // An unreadable or malformed live lock must never be treated as stale.
+    if (error?.code === 'ENOENT' || error instanceof SyntaxError || error?.code === 'EACCES' || error?.code === 'EPERM') return null;
     return null;
   }
 }
@@ -77,7 +81,7 @@ function ensurePrivateDirectory(directory) {
   if (!stat.isDirectory() || stat.isSymbolicLink()) {
     throw new Error('SQLITE_LIFECYCLE_DIRECTORY_INVALID');
   }
-  try { fs.chmodSync(directory, 0o700); } catch {}
+  fs.chmodSync(directory, 0o700);
 }
 
 function makeOwnerMetadata(token) {
@@ -130,7 +134,7 @@ function acquireDatabaseLease(dbPath) {
 
   // Close the race with a maintenance operation that began after the first check.
   if (fs.existsSync(paths.maintenanceLockPath)) {
-    try { fs.unlinkSync(leasePath); } catch {}
+    try { fs.unlinkSync(leasePath); } catch (error) { if (error?.code !== 'ENOENT') throw error; }
     throw new Error('SQLITE_DATABASE_MAINTENANCE_IN_PROGRESS');
   }
 
@@ -161,7 +165,7 @@ function scanOpenDatabaseHandles(databasePath) {
 
   let entries;
   try { entries = fs.readdirSync('/proc'); }
-  catch { throw new Error('SQLITE_OPEN_HANDLE_SCAN_UNAVAILABLE'); }
+  catch (error) { throw new Error('SQLITE_OPEN_HANDLE_SCAN_UNAVAILABLE', { cause: error }); }
 
   const matches = [];
   for (const pidText of entries) {
@@ -186,7 +190,8 @@ function scanOpenDatabaseHandles(databasePath) {
       if (openedStat.dev !== targetStat.dev || openedStat.ino !== targetStat.ino) continue;
 
       let command = 'unknown';
-      try { command = fs.readFileSync('/proc/' + pidText + '/comm', 'utf8').trim() || command; } catch {}
+      try { command = fs.readFileSync('/proc/' + pidText + '/comm', 'utf8').trim() || command; }
+      catch (error) { if (!['ENOENT', 'EACCES', 'EPERM'].includes(error?.code)) throw new Error('SQLITE_OPEN_HANDLE_SCAN_INCOMPLETE', { cause: error }); }
       matches.push({ pid: Number(pidText), command, descriptor: Number(descriptor) });
     }
   }
@@ -263,7 +268,7 @@ function acquireDatabaseMaintenanceLock(dbPath) {
       release
     };
   } catch (error) {
-    try { release(); } catch {}
+    try { release(); } catch (releaseError) { throw new Error('SQLITE_MAINTENANCE_LOCK_RELEASE_FAILED', { cause: releaseError }); }
     throw error;
   }
 }
