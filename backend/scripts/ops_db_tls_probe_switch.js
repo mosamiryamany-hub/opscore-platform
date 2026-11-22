@@ -5,11 +5,11 @@
  * credentials, role, and database — rewrite only the production Vercel
  * OPSC_DATABASE_URL, the runtime connection selected by production config.
  *
- * Why: node-pg negotiates TLS, but when the connection enters through Neon's
- * pooled proxy the TLS leg terminates at the proxy and pg_stat_ssl reports
- * ssl=false for the backend session. A direct endpoint keeps TLS all the way
- * into the compute node, which is what the production runtime diagnostic
- * (client_tls_configuration) requires as evidence.
+ * TLS qualification reads the actual Node TLSSocket used by the client. Neon
+ * terminates client TLS at its proxy, so PostgreSQL pg_stat_ssl can report
+ * ssl=false for the backend leg even when this client-to-Neon connection is
+ * encrypted and its certificate is authorized. The runtime diagnostic uses
+ * the same client-socket evidence for client_tls_configuration.
  *
  * The script never prints a hostname, credential, or URL. Only SHA-256
  * host fingerprints and non-secret TLS metadata are emitted.
@@ -146,6 +146,40 @@ function buildTlsProbeConfig(href, env = process.env) {
   };
 }
 
+function cipherStrengthBits(value) {
+  const cipher = String(value || '');
+  if (cipher === 'TLS_AES_128_GCM_SHA256') return 128;
+  if (cipher === 'TLS_AES_256_GCM_SHA384' || cipher === 'TLS_CHACHA20_POLY1305_SHA256') return 256;
+  const match = cipher.match(/^(?:ECDHE-(?:RSA|ECDSA)|DHE-RSA)-AES(128|256)-GCM-SHA(?:256|384)$/);
+  return match ? Number(match[1]) : null;
+}
+
+function readClientTlsEvidence(client) {
+  const stream = client && client.connection && client.connection.stream;
+  if (!stream || typeof stream.getProtocol !== 'function' || typeof stream.getCipher !== 'function') {
+    return { ssl: false, authorized: false, tlsVersion: null, tlsCipher: null, tlsBits: null };
+  }
+  const protocol = String(stream.getProtocol() || '');
+  const cipherValue = stream.getCipher();
+  const cipher = cipherValue && /^[A-Za-z0-9_.-]{1,128}$/.test(String(cipherValue.name || ''))
+    ? String(cipherValue.name) : null;
+  return {
+    ssl: Boolean(protocol),
+    authorized: stream.authorized === true,
+    tlsVersion: /^[A-Za-z0-9.]{1,32}$/.test(protocol) ? protocol : null,
+    tlsCipher: cipher,
+    tlsBits: cipherStrengthBits(cipher)
+  };
+}
+
+function tlsEvidenceQualified(evidence) {
+  return Boolean(evidence) &&
+    evidence.ssl === true &&
+    evidence.authorized === true &&
+    ['TLSv1.2', 'TLSv1.3'].includes(String(evidence.tlsVersion || '')) &&
+    Number.isInteger(evidence.tlsBits) && evidence.tlsBits >= 128;
+}
+
 async function probe(href) {
   const tlsConfig = buildTlsProbeConfig(href);
   const client = new Client({
@@ -156,9 +190,13 @@ async function probe(href) {
   });
   try {
     await client.connect();
-    const tls = await client.query('SELECT ssl, version, cipher, bits FROM pg_stat_ssl WHERE pid = pg_backend_pid()');
-    const identity = await client.query('SELECT current_user, current_database()');
-    return { ...tls.rows[0], ...identity.rows[0] };
+    // Read TLS from the actual client socket. pg_stat_ssl is server-side and
+    // does not attest the client-to-Neon-proxy TLS leg.
+    const tls = readClientTlsEvidence(client);
+    const identity = await client.query(
+      'SELECT current_user, current_database(), current_setting(\'server_version\') AS server_version, pg_backend_pid() AS backend_pid'
+    );
+    return { ...tls, ...identity.rows[0] };
   } finally {
     try { await client.end(); } catch { /* already closed */ }
   }
@@ -202,9 +240,10 @@ async function main() {
         pooled: candidate.pooled,
         hostSha256: sha256(candidate.hostname),
         ssl: row.ssl === true,
-        tlsVersion: row.version || null,
-        tlsCipher: row.cipher || null,
-        tlsBits: Number.isInteger(row.bits) ? row.bits : null,
+        authorized: row.authorized === true,
+        tlsVersion: row.tlsVersion || null,
+        tlsCipher: row.tlsCipher || null,
+        tlsBits: Number.isInteger(row.tlsBits) ? row.tlsBits : null,
         currentUser: row.current_user || null,
         database: row.current_database || null
       };
@@ -227,10 +266,7 @@ async function main() {
     ? asConfigured
     : observed.find(entry => entry.variant === 'direct' && entry.ssl === true);
   const expectedDatabase = (asConfigured && asConfigured.database) || EXPECTED_DATABASE;
-  const directQualified = Boolean(directEntry) &&
-    directEntry.ssl === true &&
-    ['TLSv1.2', 'TLSv1.3'].includes(String(directEntry.tlsVersion || '')) &&
-    Number.isInteger(directEntry.tlsBits) && directEntry.tlsBits >= 128 &&
+  const directQualified = tlsEvidenceQualified(directEntry) &&
     directEntry.currentUser === EXPECTED_RUNTIME_USER &&
     directEntry.database === expectedDatabase;
 
@@ -241,9 +277,9 @@ async function main() {
     process.exit(1);
   }
 
-  // Verify both independently managed production credentials against the
-  // direct endpoint. A successful probe with OPSC_DATABASE_URL must never be
-  // treated as evidence for DATABASE_URL.
+  // Verify the exact production runtime credential again against the selected
+  // direct endpoint. The client socket must negotiate verified TLS; a backend
+  // pg_stat_ssl row is not evidence for the external client-to-Neon TLS leg.
   for (const key of ENV_KEYS) {
     const candidateUrl = directEndpointUrl(envValues[key], directHostname);
     let row;
@@ -256,16 +292,14 @@ async function main() {
       }));
       process.exit(1);
     }
-    const qualified = row.ssl === true &&
-      ['TLSv1.2', 'TLSv1.3'].includes(String(row.version || '')) &&
-      Number.isInteger(row.bits) && row.bits >= 128 &&
+    const qualified = tlsEvidenceQualified(row) &&
       row.current_user === EXPECTED_RUNTIME_USER &&
       row.current_database === EXPECTED_DATABASE;
     if (!qualified) {
       console.log('TLS_PROBE_ENV_KEY_NOT_QUALIFIED ' + key);
       process.exit(1);
     }
-    console.log('TLS_PROBE_ENV_KEY_VERIFIED ' + key + ' ' + String(row.version));
+    console.log('TLS_PROBE_ENV_KEY_VERIFIED ' + key + ' ' + String(row.tlsVersion));
   }
 
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
@@ -299,4 +333,7 @@ if (require.main === module) {
   });
 }
 
-module.exports = { buildTlsProbeConfig, classifyHostname, directEndpointUrl, validateEnvironmentUrls, variants, withHostname };
+module.exports = {
+  buildTlsProbeConfig, cipherStrengthBits, classifyHostname, directEndpointUrl,
+  readClientTlsEvidence, tlsEvidenceQualified, validateEnvironmentUrls, variants, withHostname
+};
