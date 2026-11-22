@@ -42,6 +42,12 @@ function withHostname(rawUrl, hostname) {
   return url.toString();
 }
 
+function directEndpointUrl(rawUrl, hostname) {
+  const url = new URL(withHostname(rawUrl, hostname));
+  url.searchParams.set('sslmode', 'verify-full');
+  return url.toString();
+}
+
 function variants(rawUrl) {
   const url = new URL(rawUrl);
   const label = endpointLabel(url.hostname);
@@ -172,9 +178,7 @@ async function main() {
     process.exit(1);
   }
 
-  const directUrl = new URL(withHostname(raw, directHostname));
-  directUrl.searchParams.set('sslmode', 'verify-full');
-  const directHref = directUrl.toString();
+  const directHref = directEndpointUrl(raw, directHostname);
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   const query = teamId ? `?teamId=${encodeURIComponent(teamId)}` : '';
   const listResponse = await fetch(`https://api.vercel.com/v9/projects/${encodeURIComponent(projectId)}/env${query}`, { headers });
@@ -211,4 +215,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { buildTlsProbeConfig, classifyHostname, variants, withHostname };
+module.exports = { buildTlsProbeConfig, classifyHostname, directEndpointUrl, variants, withHostname };
