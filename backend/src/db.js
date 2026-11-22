@@ -571,9 +571,28 @@ function migrate28(db, storedVersion) {
 }
 
 function openDb(dbPath = config.sqlitePath) {
-  if (dbPath !== ':memory:')
-    ensureDir(dbPath);
-  const db = new DatabaseSync(dbPath);
+  if (dbPath !== ':memory:') ensureDir(dbPath);
+  const lifecycleLease = dbPath === ':memory:' ? null : require('./sqlite-lifecycle').acquireDatabaseLease(dbPath);
+  let leaseReleased = false;
+  const releaseLifecycleLease = () => {
+    if (leaseReleased || !lifecycleLease) return;
+    leaseReleased = true;
+    try { lifecycleLease.release(); }
+    catch (error) { warn('sqlite.lifecycle_lease_release_failed', { error }); }
+  };
+  let db;
+  try {
+    db = new DatabaseSync(dbPath);
+    if (lifecycleLease) {
+      const nativeClose = db.close.bind(db);
+      let closed = false;
+      db.close = (...args) => {
+        try { return nativeClose(...args); }
+        finally {
+          if (!closed) { closed = true; releaseLifecycleLease(); }
+        }
+      };
+    }
   db.exec(schema);
   const storedVersion = Number(db.prepare('PRAGMA user_version').get().user_version || 0);
   if (storedVersion > CURRENT_SCHEMA_VERSION)
