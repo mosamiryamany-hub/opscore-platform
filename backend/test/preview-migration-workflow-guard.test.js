@@ -23,6 +23,8 @@ test('Preview migrations require one exact pinned non-primary branch and the app
   assert.match(previewApply, /checks=[\s\S]*?OPSC_PREVIEW_BOOTSTRAP_DATABASE_URL','opscore_owner','bootstrap\.uri'/);
   assert.match(previewApply, /PREVIEW_BOOTSTRAP_LOGIN_ROLE_MUST_BE_OPSCORE_OWNER/);
   assert.match(previewApply, /PREVIEW_MIGRATION_OWNER_PRIVILEGES_INVALID/);
+  assert.match(previewApply, /GRANT CREATE ON DATABASE opscore_acceptance TO neondb_owner/);
+  assert.match(previewApply, /has_database_privilege\('neondb_owner',current_database\(\),'CREATE'\)/);
   assert.doesNotMatch(previewApply, /CREATE ROLE opscore_app/);
   assert.doesNotMatch(previewApply, /OPSC_MIGRATION_PREVIEW_ALLOW_UNREVOCABLE_APP_MEMBERS/);
   assert.match(previewApply, /GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO neondb_owner/);
