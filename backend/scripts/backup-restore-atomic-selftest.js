@@ -131,6 +131,29 @@ try {
     maintenanceLock.release();
   }
 
+  // A maintenance fence left by a crashed/uncertain restore must never be
+  // silently cleared by a later restore attempt.
+  const { lifecyclePaths } = require('../src/sqlite-lifecycle');
+  const maintenancePaths = lifecyclePaths(destination);
+  fs.mkdirSync(maintenancePaths.controlDirectory, { recursive: true, mode: 0o700 });
+  fs.mkdirSync(maintenancePaths.leasesDirectory, { recursive: true, mode: 0o700 });
+  const retainedMaintenanceMetadata = {
+    token: 'retained-after-crash',
+    pid: 2147483647,
+    hostname: 'prior-owner',
+    createdAt: new Date(0).toISOString()
+  };
+  fs.writeFileSync(maintenancePaths.maintenanceLockPath,
+    JSON.stringify(retainedMaintenanceMetadata) + '\\n', { mode: 0o600 });
+  const beforeRetainedFenceHash = hash(destination);
+  const retainedFenceRestore = run(restoreScript, [backup], { SQLITE_PATH: destination });
+  expectFailure(retainedFenceRestore, 'SQLITE_DATABASE_MAINTENANCE_LOCKED');
+  assert.equal(hash(destination), beforeRetainedFenceHash,
+    'restore must not change the database when a prior maintenance fence exists');
+  assert.equal(fs.existsSync(maintenancePaths.maintenanceLockPath), true,
+    'restore must preserve the existing maintenance fence');
+
+  fs.rmSync(maintenancePaths.maintenanceLockPath);
   const restored = run(restoreScript, [backup], { SQLITE_PATH: destination });
   assert.equal(restored.status, 0, restored.stderr || restored.stdout);
   assert.ok(fs.existsSync(destination + '.before-restore'), 'restore must preserve a pre-restore safety copy');
