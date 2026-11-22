@@ -200,7 +200,7 @@ function scanOpenDatabaseHandles(databasePath) {
   }
 
   for (const descriptor of descriptors) {
-    if (!/^\\d+$/.test(descriptor)) continue;
+    if (!/^\d+$/.test(descriptor)) continue;
     if (seen.has(descriptor)) continue;
     seen.add(descriptor);
     const descriptorPath = path.join(fdDirectory, descriptor);
