@@ -83,3 +83,31 @@ test('every third-party GitHub Action used by repository workflows is pinned to 
   }
   assert.deepEqual(floating, []);
 });
+
+test('historical migrations tolerate the absent legacy opscore_app role without weakening runtime RLS', () => {
+  const sqlDir = path.join(root, 'backend', 'sql', 'postgres');
+  const read = name => fs.readFileSync(path.join(sqlDir, name), 'utf8');
+  const guarded = [
+    '023_contextual_sync_and_rls.sql',
+    '043_work_order_context_privileged_definer.sql',
+    '046_migration_ledger_access_lockdown.sql',
+    '047_control_plane_runtime_privileges.sql',
+    '048_system_table_app_grants.sql',
+    '049_app_role_table_privileges.sql',
+    '050_app_role_schema_create.sql',
+    '051_revoke_runtime_role_ddl_privileges.sql',
+    '061_operational_autopilot_tenant_persistence.sql'
+  ];
+  for (const name of guarded) {
+    const source = read(name);
+    assert.match(source, /IF EXISTS\s*\(SELECT 1 FROM pg_catalog\.pg_roles WHERE rolname\s*=\s*'opscore_app'\)/, name);
+  }
+  const systemRls = read('044_system_tables_rls.sql');
+  assert.match(systemRls, /policy_role\s*:=\s*'opscore_runtime'/);
+  assert.match(systemRls, /CREATE POLICY opscore_system_table_guard/);
+  assert.match(systemRls, /ENABLE ROW LEVEL SECURITY/);
+  assert.match(systemRls, /FORCE ROW LEVEL SECURITY/);
+  const legacy = read('068_opscore_app_role_privilege_lockdown.sql');
+  assert.match(legacy, /OPSC_LEGACY_APP_ROLE_ABSENT_TREATED_AS_LOCKED/);
+  assert.doesNotMatch(previewApply, /CREATE ROLE opscore_app/);
+});
