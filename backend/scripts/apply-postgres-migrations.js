@@ -166,8 +166,8 @@ function expectedMigrationOwnerRole(env=process.env) {
   return 'neondb_owner';
  }
  if(target==='preview'){
-  if(configured&& !['neondb_owner','opscore_owner'].includes(configured))throw new Error('MIGRATION_OWNER_ROLE_NOT_ALLOWED');
-  return configured||'neondb_owner';
+  if(configured&&configured!=='neondb_owner')throw new Error('MIGRATION_OWNER_ROLE_NOT_ALLOWED');
+  return 'neondb_owner';
  }
  throw new Error('MIGRATION_TARGET_CLASS_REQUIRED');
 }
@@ -290,25 +290,11 @@ async function main(){
  try{
   client=await pool.connect();
   let info=(await client.query("SELECT current_database() AS database,current_user AS role,current_setting('server_version') AS server_version,r.rolsuper AS superuser,r.rolbypassrls AS bypass_rls FROM pg_roles r WHERE r.rolname=current_user")).rows[0];
-  // Isolated Preview connects as opscore_owner; historical SQL requires current_user=neondb_owner
-  // with BYPASSRLS. Assume the compatibility role when the target class is preview.
-  if(String(process.env.OPSC_MIGRATION_TARGET_CLASS||'').trim().toLowerCase()==='preview'
-     && String(info.role||'')==='opscore_owner'){
-   const compat=(await client.query("SELECT r.rolname,r.rolbypassrls,r.rolsuper FROM pg_roles r WHERE r.rolname='neondb_owner'")).rows[0];
-   if(compat && (compat.rolbypassrls===true||compat.rolbypassrls==='t') && !(compat.rolsuper===true||compat.rolsuper==='t')){
-    await client.query('SET ROLE neondb_owner');
-    info=(await client.query("SELECT current_database() AS database,current_user AS role,current_setting('server_version') AS server_version,r.rolsuper AS superuser,r.rolbypassrls AS bypass_rls FROM pg_roles r WHERE r.rolname=current_user")).rows[0];
-    if(String(info.role||'')!=='neondb_owner')throw new Error('MIGRATION_PREVIEW_SET_ROLE_NEONDB_OWNER_FAILED');
-   }
-  }
   if(!info)throw new Error('MIGRATION_ROLE_NOT_ALLOWED');
   const targetClass=assertTarget(url,info.database,apply);
   const expectedOwnerRole=expectedMigrationOwnerRole();
-  const previewRoleOk=String(process.env.OPSC_MIGRATION_TARGET_CLASS||'').trim().toLowerCase()==='preview'
-    && ((info.role===expectedOwnerRole) || (info.role==='neondb_owner' && expectedOwnerRole==='opscore_owner'));
-  // Preview acceptance DBs often cannot set BYPASSRLS; dry-run may run as opscore_owner without bypass.
-  const bypassOk=!!info.bypass_rls || (String(process.env.OPSC_MIGRATION_TARGET_CLASS||'').trim().toLowerCase()==='preview' && info.role==='opscore_owner');
-  if(((info.role!==expectedOwnerRole)&&!previewRoleOk)||info.superuser||!bypassOk)throw new Error('MIGRATION_ROLE_NOT_ALLOWED');
+  const bypassOk=!!info.bypass_rls;
+  if(info.role!==expectedOwnerRole||info.superuser||!bypassOk)throw new Error('MIGRATION_ROLE_NOT_ALLOWED');
   const runtimePreflight=(await client.query(`SELECT r.rolcanlogin,r.rolsuper,r.rolbypassrls,r.rolcreaterole,r.rolcreatedb,
     (SELECT count(*) FROM pg_roles elevated
      WHERE (elevated.rolsuper OR elevated.rolbypassrls OR elevated.rolcreaterole OR elevated.rolcreatedb)
