@@ -39,7 +39,7 @@ try {
   if (!fs.existsSync(loaderPath)) throw new Error('LOCALE_LOADER_MISSING');
   const files = fs.readdirSync(localesDir).filter(name => name.endsWith('.json') && name !== 'manifest.json').sort();
   const codes = files.map(name => name.slice(0, -5));
-  if (files.length !== 105) fail(`Expected 105 locale JSON files; found ${files.length}`);
+  if (files.length !== 114) fail(`Expected 114 locale JSON files; found ${files.length}`);
   if (new Set(codes).size !== codes.length) fail('Duplicate locale filenames detected');
   for (const code of sourceCodeSet) if (!codes.includes(code)) fail(`Missing locale file for catalog code ${code}`);
   for (const code of codes) if (!sourceCodeSet.has(code)) fail(`Locale ${code} is not in the server language catalog`);
@@ -58,9 +58,16 @@ try {
   if (sourceFlat.nativeName !== 'English') fail('en.json nativeName must be English');
   const manifest = readJson(path.join(localesDir, 'manifest.json'));
   if (manifest.schemaVersion !== 'opscore.contact-center-i18n-manifest.v1') fail('Locale manifest schema version is invalid');
-  if (manifest.localeCount !== 105 || !Array.isArray(manifest.locales) || manifest.locales.length !== 105) fail('Locale manifest must enumerate exactly 105 locales');
+  if (manifest.localeCount !== 114 || !Array.isArray(manifest.locales) || manifest.locales.length !== 114) fail('Locale manifest must enumerate exactly 114 interface locales');
   const manifestCodes = manifest.locales.map(item => item && item.code);
   if (new Set(manifestCodes).size !== manifestCodes.length) fail('Locale manifest contains duplicate language codes');
+  const interfaceOnlyFallbackCodes = ['es','hy','ml','ms','my','sr','sw','te','uz'];
+  for (const code of interfaceOnlyFallbackCodes) {
+    const entry = manifest.locales.find(item => item && item.code === code);
+    const registered = completionRegister && completionRegister.locales && completionRegister.locales[code];
+    if (!entry || entry.status !== 'english_fallback_interface_only') fail(`${code} must be explicitly marked as an English-fallback-only interface locale`);
+    if (!registered || registered.interfaceSelectable !== true || registered.conversationSelectable !== false) fail(`${code} must be interface-selectable and conversation-disabled`);
+  }
   for (const code of codes) if (!manifestCodes.includes(code)) fail(`Locale manifest misses ${code}`);
   for (const entry of manifest.locales) {
     if (!entry || typeof entry.code !== 'string' || !sourceCodeSet.has(entry.code) || typeof entry.nativeName !== 'string' || !entry.nativeName.trim()) {
@@ -122,7 +129,7 @@ try {
   if (!supportedMatch) fail('Locale loader supported-code table was not found');
   else {
     const loaderCodes = [...supportedMatch[1].matchAll(/'([^']+)'/g)].map(match => match[1]);
-    if (loaderCodes.length !== 105 || new Set(loaderCodes).size !== 105) fail('Loader must list exactly 105 unique locales');
+    if (loaderCodes.length !== 114 || new Set(loaderCodes).size !== 114) fail('Loader must list exactly 114 unique interface locales');
     for (const code of sourceCodeSet) if (!loaderCodes.includes(code)) fail(`Loader does not support catalog code ${code}`);
     for (const code of loaderCodes) if (!sourceCodeSet.has(code)) fail(`Loader supports unknown locale ${code}`);
   }
