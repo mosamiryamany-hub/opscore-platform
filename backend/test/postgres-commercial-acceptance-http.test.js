@@ -131,6 +131,8 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
   // A separate exact-target bootstrap URL is accepted only for deleting this run's
   // synthetic fixtures. HTTP routes and all acceptance assertions stay on runtime.
   const cleanupUrlText = String(process.env.OPSC_PG_ACCEPTANCE_CLEANUP_URL || '').trim();
+  const cleanupRoleName = String(process.env.OPSC_PG_ACCEPTANCE_CLEANUP_ROLE || '').trim();
+  const allowedCleanupRoles = ['opscore_owner', 'neondb_owner'];
   let cleanupPool = null;
   let cleanupUsesPrivilegedRole = false;
   if (cleanupUrlText) {
@@ -144,9 +146,10 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
       await control.end().catch(() => {});
       throw new Error('ACCEPTANCE_CLEANUP_TARGET_INVALID:' + (error.code || 'INVALID_TARGET'));
     }
-    if (cleanupTarget.database !== database
+    if (!allowedCleanupRoles.includes(cleanupRoleName)
+        || cleanupTarget.database !== database
         || cleanupTarget.hostname !== parsed.hostname
-        || decodeURIComponent(cleanupTarget.parsed.username) !== 'opscore_owner') {
+        || decodeURIComponent(cleanupTarget.parsed.username) !== cleanupRoleName) {
       await control.end().catch(() => {});
       throw new Error('ACCEPTANCE_CLEANUP_TARGET_IDENTITY_MISMATCH');
     }
@@ -164,7 +167,8 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
       )).rows[0];
       if (!identity
           || identity.database !== database
-          || identity.role !== 'opscore_owner'
+          || identity.role !== cleanupRoleName
+          || !allowedCleanupRoles.includes(identity.role)
           || identity.superuser !== false
           || identity.bypass_rls !== true) {
         throw new Error('ACCEPTANCE_CLEANUP_ROLE_CONTRACT_FAILED');
