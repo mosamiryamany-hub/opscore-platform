@@ -48,6 +48,14 @@ function directEndpointUrl(rawUrl, hostname) {
   return url.toString();
 }
 
+function canonicalEndpointHost(hostname) {
+  const labels = String(hostname).split('.');
+  labels[0] = labels[0].endsWith(POOLER_SUFFIX)
+    ? labels[0].slice(0, -POOLER_SUFFIX.length)
+    : labels[0];
+  return labels.join('.').toLowerCase();
+}
+
 function validateEnvironmentUrls(env, referenceUrl) {
   const reference = new URL(referenceUrl);
   const values = {};
@@ -65,26 +73,38 @@ function validateEnvironmentUrls(env, referenceUrl) {
       error.code = 'ENV_KEY_URL_INVALID';
       throw error;
     }
-    if (
-      parsed.hostname !== reference.hostname ||
-      parsed.username !== reference.username ||
-      parsed.password !== reference.password ||
-      parsed.pathname !== reference.pathname
-    ) {
-      const error = new Error('ENV_KEY_IDENTITY_UNEXPECTED');
-      error.code = 'ENV_KEY_IDENTITY_UNEXPECTED';
+    if (!['postgres:', 'postgresql:'].includes(parsed.protocol)) {
+      const error = new Error('ENV_KEY_PROTOCOL_UNEXPECTED');
+      error.code = 'ENV_KEY_PROTOCOL_UNEXPECTED';
       throw error;
     }
+    if (canonicalEndpointHost(parsed.hostname) !== canonicalEndpointHost(reference.hostname)) {
+      const error = new Error('ENV_KEY_ENDPOINT_UNEXPECTED');
+      error.code = 'ENV_KEY_ENDPOINT_UNEXPECTED';
+      throw error;
+    }
+    if (decodeURIComponent(parsed.username) !== EXPECTED_RUNTIME_USER) {
+      const error = new Error('ENV_KEY_RUNTIME_ROLE_UNEXPECTED');
+      error.code = 'ENV_KEY_RUNTIME_ROLE_UNEXPECTED';
+      throw error;
+    }
+    if (parsed.pathname.replace(/^\/+/, '') !== EXPECTED_DATABASE) {
+      const error = new Error('ENV_KEY_DATABASE_UNEXPECTED');
+      error.code = 'ENV_KEY_DATABASE_UNEXPECTED';
+      throw error;
+    }
+    // Passwords and URL query parameters may legitimately differ between the
+    // two independently managed production variables. Each URL is probed
+    // separately below before either Vercel value is changed.
     values[key] = value;
   }
   return values;
 }
-
 function variants(rawUrl) {
   const url = new URL(rawUrl);
   const label = endpointLabel(url.hostname);
   const rest = url.hostname.split('.').slice(1).join('.');
-  const base = label.endsWith(POOLER_SUFFIX) ? label.slice(0, POOLER_SUFFIX.length) : label;
+  const base = label.endsWith(POOLER_SUFFIX) ? label.slice(0, -POOLER_SUFFIX.length) : label;
   const candidates = [
     { variant: 'as-configured', hostname: url.hostname },
     { variant: 'direct', hostname: `${base}.${rest}` },
@@ -214,6 +234,33 @@ async function main() {
       ? 'TLS_PROBE_DIRECT_NOT_VERIFIED_NO_SWITCH'
       : 'TLS_PROBE_DIRECT_NOT_QUALIFIED_NO_SWITCH');
     process.exit(1);
+  }
+
+  // Verify both independently managed production credentials against the
+  // direct endpoint. A successful probe with OPSC_DATABASE_URL must never be
+  // treated as evidence for DATABASE_URL.
+  for (const key of ENV_KEYS) {
+    const candidateUrl = directEndpointUrl(envValues[key], directHostname);
+    let row;
+    try { row = await probe(candidateUrl); }
+    catch (error) {
+      console.log('TLS_PROBE_ENV_KEY_FAILED ' + JSON.stringify({
+        key,
+        code: (error && error.code) || 'CONNECT_FAILED',
+        authFailure: /password|authentication/i.test(String(error && error.message || ''))
+      }));
+      process.exit(1);
+    }
+    const qualified = row.ssl === true &&
+      ['TLSv1.2', 'TLSv1.3'].includes(String(row.version || '')) &&
+      Number.isInteger(row.bits) && row.bits >= 128 &&
+      row.current_user === EXPECTED_RUNTIME_USER &&
+      row.current_database === EXPECTED_DATABASE;
+    if (!qualified) {
+      console.log('TLS_PROBE_ENV_KEY_NOT_QUALIFIED ' + key);
+      process.exit(1);
+    }
+    console.log('TLS_PROBE_ENV_KEY_VERIFIED ' + key + ' ' + String(row.version));
   }
 
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
