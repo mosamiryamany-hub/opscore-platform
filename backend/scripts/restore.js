@@ -62,6 +62,7 @@ const beforeRestore = dst + '.before-restore';
 if (fs.existsSync(beforeRestore)) {
   const stat = fs.lstatSync(beforeRestore);
   if (!stat.isFile() || stat.isSymbolicLink()) throw new Error('RESTORE_SAFETY_COPY_NOT_REGULAR_FILE');
+  throw new Error('RESTORE_SAFETY_COPY_ALREADY_EXISTS');
 }
 assertNoSidecars(beforeRestore, 'RESTORE_SAFETY_COPY_HAS_SQLITE_SIDECARS');
 
