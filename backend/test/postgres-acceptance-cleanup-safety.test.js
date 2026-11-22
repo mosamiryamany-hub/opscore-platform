@@ -126,12 +126,12 @@ test('Preview and disposable PostgreSQL 18 pass separate exact-target migration-
   const previewWorkflow = fs.readFileSync(path.join(workflowDir, 'apply-preview-migrations.yml'), 'utf8');
   const pg18Workflow = fs.readFileSync(path.join(workflowDir, 'digital-twin-postgres-live.yml'), 'utf8');
 
-  assert.match(previewWorkflow, /OPSC_PG_ACCEPTANCE_URL=.*runtime\\.uri/);
-  assert.match(previewWorkflow, /OPSC_PG_ACCEPTANCE_CLEANUP_URL=.*bootstrap\\.uri/);
-  assert.match(previewWorkflow, /OPSC_PG_ACCEPTANCE_CLEANUP_ROLE='opscore_owner'/);
+  assert.ok(previewWorkflow.includes('export OPSC_PG_ACCEPTANCE_URL="$(cat "$RUNNER_TEMP/runtime.uri")"'));
+  assert.ok(previewWorkflow.includes('export OPSC_PG_ACCEPTANCE_CLEANUP_URL="$(cat "$RUNNER_TEMP/bootstrap.uri")"'));
+  assert.ok(previewWorkflow.includes("OPSC_PG_ACCEPTANCE_CLEANUP_ROLE='opscore_owner'"));
 
-  assert.match(pg18Workflow, /OPSC_PG_ACCEPTANCE_URL=postgresql:\\/\\/opscore_runtime:/);
-  assert.match(pg18Workflow, /OPSC_PG_ACCEPTANCE_CLEANUP_URL=postgresql:\\/\\/neondb_owner:\\$\\{owner_password\\}@127\\.0\\.0\\.1:5432\\/opscore_http_acceptance/);
-  assert.match(pg18Workflow, /OPSC_PG_ACCEPTANCE_CLEANUP_ROLE=neondb_owner/);
-  assert.match(pg18Workflow, /CREATE DATABASE opscore_http_acceptance OWNER neondb_owner/);
+  assert.ok(pg18Workflow.includes('OPSC_PG_ACCEPTANCE_URL=postgresql://opscore_runtime:'));
+  assert.ok(pg18Workflow.includes('OPSC_PG_ACCEPTANCE_CLEANUP_URL=postgresql://neondb_owner:${owner_password}@127.0.0.1:5432/opscore_http_acceptance'));
+  assert.ok(pg18Workflow.includes('OPSC_PG_ACCEPTANCE_CLEANUP_ROLE=neondb_owner'));
+  assert.ok(pg18Workflow.includes('CREATE DATABASE opscore_http_acceptance OWNER neondb_owner'));
 });
