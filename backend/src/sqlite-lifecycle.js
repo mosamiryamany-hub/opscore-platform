@@ -94,20 +94,10 @@ function makeOwnerMetadata(token) {
   };
 }
 
-function clearStaleMaintenanceLock(lockPath) {
-  // A maintenance lock may survive a crash between atomic rename and durable
-  // verification/rollback. Never infer that the database is safe merely
-  // because its lock owner's PID has exited. Operator review is required.
-  return false;
-}
-
 function acquireDatabaseLease(dbPath) {
   const paths = lifecyclePaths(dbPath);
   if (!paths) return { release() {} };
 
-  if (fs.existsSync(paths.maintenanceLockPath)) {
-    clearStaleMaintenanceLock(paths.maintenanceLockPath);
-  }
   if (fs.existsSync(paths.maintenanceLockPath)) {
     throw new Error('SQLITE_DATABASE_MAINTENANCE_IN_PROGRESS');
   }
