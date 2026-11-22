@@ -107,8 +107,8 @@ function restoreDatabase({
     assertRegularFile(staged, 'RESTORE_STAGING_FILE_MISSING');
     verifyDatabase(staged, 'BACKUP');
 
-    // Fences new app opens, rejects every live openDb lease, and scans Linux
-    // /proc/<pid>/fd for raw/unmanaged file descriptors before any destination write.
+    // Fences new app opens, rejects every live openDb lease across processes,
+    // and scans /proc/self/fd for raw handles in this restorer process.
     maintenance = acquireMaintenance(destination);
 
     assertNoSidecars(destination, 'RESTORE_DESTINATION_HAS_SQLITE_SIDECARS');
@@ -174,7 +174,7 @@ function restoreDatabase({
       safetyCopy: destinationExists ? beforeRestore : null,
       restoredSha256: sha256File(destination),
       rollbackProtection: 'PASS',
-      databaseOwnerUidOpenHandleCheck: 'PASS'
+      restorerProcessOpenHandleCheck: 'PASS'
     };
   } finally {
     try { fs.rmSync(staged, { force: true }); } catch {}
