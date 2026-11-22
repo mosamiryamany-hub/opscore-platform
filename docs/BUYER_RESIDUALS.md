@@ -34,7 +34,7 @@ Run [45013074938](https://github.com/mosamiryamany-hub/opscore-platform/actions/
 | Native Neon PITR evidence v2 | PASS | 136 public tables compared; SHA-256 content parity; zero content mismatches; RLS/FORCE-RLS parity passed with the explicit PostGIS `spatial_ref_sys` exception |
 | Production promotion and public-domain smoke | PASS | Candidate promoted to `dpl_G7r6CDntYarpafuawie8CKWDLBB7`; public domain resolved to the exact production source commit; tested endpoints returned HTTP 200 |
 
-**Evidence boundary:** the 67 signed routes, 358 route probes and 3 authenticated flows are bound to candidate deployment `dpl_FgDTqKJxCDw3SAGLtgPxqfQHGu7v`, not a second independent 67/358/3 probe against the final promoted deployment ID. The final promoted deployment passed its staged runtime/release gates, smoke tests and public-domain exact-commit verification. Do not describe the 358 route probes as 358 authenticated happy-path workflows: the authenticated business-flow scope is the three named flows.
+**Evidence boundary:** the 67/67 signed-tenant route result, 358 route probes and 3 authenticated flows are candidate-bound Production evidence on deployment `dpl_FgDTqKJxCDw3SAGLtgPxqfQHGu7v`; this is not isolated disposable PostgreSQL CI evidence and is not a second independent 67/358/3 probe against the final promoted deployment ID. The final promoted deployment passed its staged runtime/release gates, smoke tests and public-domain exact-commit verification. Do not describe the 358 route probes as 358 authenticated happy-path workflows: the authenticated business-flow scope is the three named flows.
 
 The release workflow qualified production isolation as `CERTIFIED` for its bound release evidence. This is an internal, scope-specific engineering certificate; it is not an independent ISO 27001, SOC 2, PCI DSS or third-party penetration-test certification. No RPO/RTO commitment is established by the recovery drill.
 
@@ -61,7 +61,7 @@ A transaction-local probe as `opscore_runtime` set forged `app.tenant_id`, `app.
 
 No retained branch or snapshot was deleted. The successful full-data recovery/PITR drill does not replace scheduled backups, retention guarantees or a defined RPO/RTO.
 
-### Vercel edge firewall
+### Vercel firewall enforcement posture (edge WAF)
 - Plan at preflight: Hobby.
 - Firewall is enabled.
 - A custom POST login/mobile-login rate limit is active at 60 requests per source IP per 60-second window.
@@ -86,7 +86,7 @@ The latest public commercial source package is a draft from an older source comm
 | Native-speaker review / production language qualification | 0/114 / 0/114 |
 | Maps/road-routing provider | No buyer/provider license, credentials, attribution, quotas or live acceptance evidence |
 | External identity, messaging, telephony and payment providers | Buyer/provider accounts, credentials, contracts and live acceptance remain environment-specific |
-| Buyer installation / migration / RLS / restore acceptance | Must be performed against the buyer's own environment |
+| Buyer installation / migration / RLS / restore acceptance | Must be performed against the buyer's own environment; buyer environments remain independently unverified |
 
 The 114-entry interface catalogue is selectable. It contains 1 English source, 100 machine-assisted drafts and 13 explicit English-fallback locales. Of the 114 interface choices, 105 are conversation-language targets; the nine historically withheld codes are available only as English-fallback interface options, and the conversation selector disables them until translation remediation, native-speaker review and provider acceptance. Their previously flagged defective translations are not shipped. Machine-draft and English-fallback notices remain visible; native-speaker review and production qualification remain 0/114.
 
