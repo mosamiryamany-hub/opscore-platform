@@ -312,7 +312,16 @@ async function main() {
   for (const key of ENV_KEYS) {
     const directHref = directEndpointUrl(envValues[key], directHostname);
     const existing = envs.find(entry => entry.key === key);
-    const body = JSON.stringify({ key, value: directHref, type: 'encrypted', target: ['production'] });
+    // Vercel rejects PATCH bodies that restate `key` or change `type` on a
+    // Sensitive Environment Variable (HTTP 400). Verified live:
+    //   PATCH {key,value,type}      -> 400 "You cannot change the type of a Sensitive Environment Variable."
+    //   PATCH {key,value,type:same} -> 400 "You cannot change the key of a Sensitive Environment Variable."
+    //   PATCH {value}               -> 200
+    // So an existing variable is updated with a value-only PATCH that preserves
+    // its original type; the typed POST branch only runs when the key is absent.
+    const body = existing
+      ? JSON.stringify({ value: directHref })
+      : JSON.stringify({ key, value: directHref, type: 'encrypted', target: ['production'] });
     const url = existing
       ? `https://api.vercel.com/v9/projects/${encodeURIComponent(projectId)}/env/${existing.id}${query}`
       : `https://api.vercel.com/v9/projects/${encodeURIComponent(projectId)}/env${query}`;
