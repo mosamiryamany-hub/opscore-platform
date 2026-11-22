@@ -4,7 +4,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
   buildTlsProbeConfig,
-  directEndpointUrl
+  directEndpointUrl,
+  validateEnvironmentUrls
 } = require('../scripts/ops_db_tls_probe_switch');
 
 const strictEnv = {
@@ -61,4 +62,49 @@ test('direct endpoint rewrite explicitly sets sslmode=verify-full', () => {
   assert.equal(rewritten.hostname, 'ep-example.neon.tech');
   assert.equal(rewritten.searchParams.get('sslmode'), 'verify-full');
   assert.equal(rewritten.searchParams.get('channel_binding'), 'require');
+});
+
+
+test('both production URL secrets are preflighted for matching host and database identity before updates', () => {
+  const reference = 'postgresql://opscore_runtime:secret@ep-example.neon.tech/opscore_acceptance?sslmode=disable';
+  const values = validateEnvironmentUrls({
+    OPSC_DATABASE_URL: reference,
+    DATABASE_URL: 'postgresql://opscore_runtime:secret@ep-example.neon.tech/opscore_acceptance?sslmode=require'
+  }, reference);
+  assert.equal(new URL(values.OPSC_DATABASE_URL).hostname, 'ep-example.neon.tech');
+  assert.equal(new URL(values.DATABASE_URL).pathname, '/opscore_acceptance');
+});
+
+test('environment URL preflight fails before writes when a URL secret is missing', () => {
+  assert.throws(
+    () => validateEnvironmentUrls({
+      OPSC_DATABASE_URL: 'postgresql://opscore_runtime:secret@ep-example.neon.tech/opscore_acceptance'
+    }, 'postgresql://opscore_runtime:secret@ep-example.neon.tech/opscore_acceptance'),
+    { code: 'ENV_KEY_SECRET_ABSENT' }
+  );
+});
+
+test('environment URL preflight rejects mismatched host, credentials or database', () => {
+  const reference = 'postgresql://opscore_runtime:secret@ep-example.neon.tech/opscore_acceptance';
+  assert.throws(
+    () => validateEnvironmentUrls({
+      OPSC_DATABASE_URL: reference,
+      DATABASE_URL: 'postgresql://opscore_runtime:secret@ep-other.neon.tech/opscore_acceptance'
+    }, reference),
+    { code: 'ENV_KEY_IDENTITY_UNEXPECTED' }
+  );
+  assert.throws(
+    () => validateEnvironmentUrls({
+      OPSC_DATABASE_URL: reference,
+      DATABASE_URL: 'postgresql://opscore_runtime:other@ep-example.neon.tech/opscore_acceptance'
+    }, reference),
+    { code: 'ENV_KEY_IDENTITY_UNEXPECTED' }
+  );
+  assert.throws(
+    () => validateEnvironmentUrls({
+      OPSC_DATABASE_URL: reference,
+      DATABASE_URL: 'postgresql://opscore_runtime:secret@ep-example.neon.tech/other'
+    }, reference),
+    { code: 'ENV_KEY_IDENTITY_UNEXPECTED' }
+  );
 });
