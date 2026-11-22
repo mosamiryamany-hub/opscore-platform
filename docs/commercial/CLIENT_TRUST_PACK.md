@@ -21,6 +21,10 @@
 
 **Scope boundary:** behavioral evidence is bound to the exact candidate deployment and source/pipeline/database identity. It was not independently rerun against the final promoted deployment ID. The final deployment passed its staged runtime gates, smoke tests and public-domain exact-SHA verification. `CERTIFIED` is the internal, evidence-scoped Production isolation classification; no external ISO/SOC 2/PCI certification is claimed.
 
+## Current main validation and deployment boundary
+
+Post-merge main `859a7f6` passed OpsCore CI (run `45018113019`), Vercel source/contract plus isolated PostgreSQL acceptance (run `45018113156`), and CodeQL (run `45018112500`). The push workflow skipped Production deployment, Production PITR historical probe and Preview migration by design. The live domain still serves deployment `dpl_G7r6CDntYarpafuawie8CKWDLBB7` at source `2a4938a`; the 114-locale catalogue and release-proof page are not yet live.
+
 ## Current operating posture
 | Control | State |
 |---|---|
@@ -32,7 +36,7 @@
 | Edge Firewall | Enabled |
 | Generic/RCE/SQLi/XSS/Bot rules | Log-only |
 | Login/mobile-login edge rate limit | 60 requests/IP/60 seconds |
-| Current main vs live Production | main `4b8a532`; Production `2a4938a`; evidence-page refresh not yet deployed |
+| Current main vs live Production | main `859a7f6`; Production `2a4938a`; release-proof page and 114-locale catalogue not yet Production-deployed |
 
 The current plan blocked enabling scheduled snapshots, protecting the Production branch and creating another snapshot. Vercel rejected enabling OWASP CRS enforcement under the current entitlement. No plan upgrade or WAF policy change was made.
 
