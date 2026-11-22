@@ -232,6 +232,37 @@ try {
   }), /RESTORE_POST_SWAP_VERIFICATION_FAILED_ROLLED_BACK/);
   assert.equal(fs.existsSync(absentDestination), false, 'rollback must remove an invalid newly-created destination');
 
+  // If rollback itself fails, preserve the maintenance fence so application
+  // connections cannot reopen a database whose final state is not proven.
+  const rollbackFailureDestination = path.join(root, 'rollback-failure-destination.sqlite');
+  const rollbackFailureDb = openDb(rollbackFailureDestination);
+  try {
+    rollbackFailureDb.exec('CREATE TABLE rollback_failure_marker (value TEXT NOT NULL)');
+    rollbackFailureDb.prepare('INSERT INTO rollback_failure_marker(value) VALUES(?)').run('must-not-be-served');
+  } finally {
+    rollbackFailureDb.close();
+  }
+  const { lifecyclePaths } = require('../src/sqlite-lifecycle');
+  const rollbackFailureLockPath = lifecyclePaths(rollbackFailureDestination).maintenanceLockPath;
+  assert.throws(() => restoreDatabase({
+    sourcePath: backup,
+    destinationPath: rollbackFailureDestination,
+    verifyDatabase(file, prefix) {
+      if (prefix === 'RESTORED_DATABASE') {
+        throw new Error('TEST_INJECTED_POST_SWAP_VERIFICATION_FAILURE');
+      }
+      if (prefix === 'ROLLBACK_DATABASE') {
+        throw new Error('TEST_INJECTED_ROLLBACK_VERIFICATION_FAILURE');
+      }
+      return assertDatabaseIntegrity(file, prefix);
+    }
+  }), /RESTORE_ROLLBACK_FAILED/);
+  assert.equal(fs.existsSync(rollbackFailureLockPath), true,
+    'maintenance fence must remain when rollback cannot be verified');
+  assert.throws(() => openDb(rollbackFailureDestination),
+    /SQLITE_DATABASE_MAINTENANCE_IN_PROGRESS/,
+    'application connections must remain blocked while recovery state is uncertain');
+
   console.log(JSON.stringify({
     status: 'PASS',
     checks: [
@@ -249,7 +280,7 @@ try {
       'restore detects an unmanaged SQLite file descriptor through Linux /proc',
       'maintenance lock prevents new application connections during the file swap',
       'injected post-swap verification failure restores original bytes and re-verifies rollback',
-      'injected post-swap failure removes a destination that did not exist before restore'
+      'injected post-swap failure removes a destination that did not exist before restore',\n      'failed rollback retains maintenance fence and blocks application opens'
     ]
   }, null, 2));
 } finally {
