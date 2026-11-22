@@ -98,6 +98,12 @@ try {
   // pointing at the database file regardless of which library opened it.
   const unmanagedFd = fs.openSync(destination, 'r');
   const { scanOpenDatabaseHandles } = require('../src/sqlite-lifecycle');
+  const directDescriptorPath = '/proc/self/fd/' + unmanagedFd;
+  const directDescriptorLink = fs.readlinkSync(directDescriptorPath);
+  const directDescriptorStat = fs.statSync(directDescriptorPath);
+  const destinationStat = fs.statSync(destination);
+  assert.equal(directDescriptorStat.ino, destinationStat.ino, 'raw descriptor must point to the target database inode');
+  assert.ok(directDescriptorLink.endsWith(path.basename(destination)), 'raw descriptor symlink must identify the target database path');
   const detectedDescriptors = scanOpenDatabaseHandles(destination);
   assert.ok(detectedDescriptors.some(handle => handle.pid === process.pid),
     'the Linux descriptor scan must observe this process own unmanaged database-file descriptor: ' + JSON.stringify(detectedDescriptors));
