@@ -225,7 +225,9 @@ function acquireDatabaseMaintenanceLock(dbPath) {
   ensurePrivateDirectory(paths.leasesDirectory);
 
   if (fs.existsSync(paths.maintenanceLockPath)) {
-    clearStaleMaintenanceLock(paths.maintenanceLockPath);
+    // A prior owner may have crashed after changing the live database path.
+    // Never clear a maintenance fence automatically; require operator review.
+    throw new Error('SQLITE_DATABASE_MAINTENANCE_LOCKED');
   }
 
   const token = crypto.randomUUID();
