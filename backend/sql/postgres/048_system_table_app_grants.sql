@@ -12,11 +12,17 @@ BEGIN
 END
 $migration$;
 
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.login_throttle TO opscore_app;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.firewall_rate_buckets TO opscore_app;
-GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.worker_guard_system_events TO opscore_app;
-
--- Keep PostGIS catalog read-only for the app role.
-REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE public.spatial_ref_sys FROM opscore_app;
-GRANT SELECT ON TABLE public.spatial_ref_sys TO opscore_app;
+DO $legacy_app_acl$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname='opscore_app') THEN
+    EXECUTE 'GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.login_throttle TO opscore_app';
+    EXECUTE 'GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.firewall_rate_buckets TO opscore_app';
+    EXECUTE 'GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.worker_guard_system_events TO opscore_app';
+    IF to_regclass('public.spatial_ref_sys') IS NOT NULL THEN
+      EXECUTE 'REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON TABLE public.spatial_ref_sys FROM opscore_app';
+      EXECUTE 'GRANT SELECT ON TABLE public.spatial_ref_sys TO opscore_app';
+    END IF;
+  END IF;
+END
+$legacy_app_acl$;
 COMMIT;
