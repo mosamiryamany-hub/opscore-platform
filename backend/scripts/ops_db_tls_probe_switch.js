@@ -2,8 +2,8 @@
 /**
  * Read-only TLS probe of the production database endpoints, then — only when a
  * direct (non-pooler) endpoint negotiates verified TLS with the SAME
- * credentials, role, and database — rewrite the production Vercel environment
- * database URLs to that direct endpoint.
+ * credentials, role, and database — rewrite only the production Vercel
+ * OPSC_DATABASE_URL, the runtime connection selected by production config.
  *
  * Why: node-pg negotiates TLS, but when the connection enters through Neon's
  * pooled proxy the TLS leg terminates at the proxy and pg_stat_ssl reports
@@ -22,7 +22,10 @@ const REQUIRED_CONFIRM = 'SWITCH_PRODUCTION_DB_TO_DIRECT_TLS';
 const POOLER_SUFFIX = '-pooler';
 const EXPECTED_RUNTIME_USER = 'opscore_runtime';
 const EXPECTED_DATABASE = 'opscore_acceptance';
-const ENV_KEYS = ['OPSC_DATABASE_URL', 'DATABASE_URL'];
+// Production config intentionally uses OPSC_DATABASE_URL only and refuses
+// DATABASE_URL fallback. DATABASE_URL may be an administrative/migration URL;
+// do not validate or rewrite it as an application-worker connection.
+const ENV_KEYS = ['OPSC_DATABASE_URL'];
 
 function sha256(value) {
   return crypto.createHash('sha256').update(String(value)).digest('hex');
@@ -94,9 +97,8 @@ function validateEnvironmentUrls(env, referenceUrl) {
       error.code = 'ENV_KEY_DATABASE_UNEXPECTED';
       throw error;
     }
-    // Passwords and URL query parameters may legitimately differ between the
-    // two independently managed production variables. Each URL is probed
-    // separately below before either Vercel value is changed.
+    // This is the exact runtime URL selected by backend/src/config.js in
+    // production. DATABASE_URL is deliberately outside this switch.
     values[key] = value;
   }
   return values;
