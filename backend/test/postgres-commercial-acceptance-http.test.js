@@ -127,6 +127,61 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
 
   const { Pool } = require('pg');
   const control = new Pool({ connectionString: urlText, max: 2, connectionTimeoutMillis: 60000, idleTimeoutMillis: 30000, application_name: 'opscore-acceptance-control' });
+
+  // A separate exact-target bootstrap URL is accepted only for deleting this run's
+  // synthetic fixtures. HTTP routes and all acceptance assertions stay on runtime.
+  const cleanupUrlText = String(process.env.OPSC_PG_ACCEPTANCE_CLEANUP_URL || '').trim();
+  let cleanupPool = null;
+  let cleanupUsesPrivilegedRole = false;
+  if (cleanupUrlText) {
+    let cleanupTarget;
+    try {
+      cleanupTarget = validatePostgresAcceptanceTarget({
+        urlText: cleanupUrlText,
+        expectedHost: process.env.OPSC_PG_ACCEPTANCE_CLEANUP_HOST || process.env.OPSC_PG_ACCEPTANCE_HOST
+      });
+    } catch (error) {
+      await control.end().catch(() => {});
+      throw new Error('ACCEPTANCE_CLEANUP_TARGET_INVALID:' + (error.code || 'INVALID_TARGET'));
+    }
+    if (cleanupTarget.database !== database
+        || cleanupTarget.hostname !== parsed.hostname
+        || decodeURIComponent(cleanupTarget.parsed.username) !== 'opscore_owner') {
+      await control.end().catch(() => {});
+      throw new Error('ACCEPTANCE_CLEANUP_TARGET_IDENTITY_MISMATCH');
+    }
+    cleanupPool = new Pool({
+      connectionString: cleanupUrlText,
+      max: 1,
+      connectionTimeoutMillis: 60000,
+      idleTimeoutMillis: 30000,
+      application_name: 'opscore-acceptance-targeted-cleanup'
+    });
+    const cleanupProbe = await cleanupPool.connect();
+    try {
+      const identity = (await cleanupProbe.query(
+        "SELECT current_database() AS database,current_user AS role,r.rolsuper AS superuser,r.rolbypassrls AS bypass_rls FROM pg_roles r WHERE r.rolname=current_user"
+      )).rows[0];
+      if (!identity
+          || identity.database !== database
+          || identity.role !== 'opscore_owner'
+          || identity.superuser !== false
+          || identity.bypass_rls !== true) {
+        throw new Error('ACCEPTANCE_CLEANUP_ROLE_CONTRACT_FAILED');
+      }
+      cleanupUsesPrivilegedRole = true;
+    } catch (error) {
+      cleanupProbe.release();
+      await cleanupPool.end().catch(() => {});
+      await control.end().catch(() => {});
+      throw error;
+    }
+    cleanupProbe.release();
+  } else if (String(process.env.OPSC_PG_ACCEPTANCE_STRICT || '').trim() === 'true') {
+    await control.end().catch(() => {});
+    throw new Error('OPSC_PG_ACCEPTANCE_CLEANUP_URL_REQUIRED');
+  }
+
   const checks = [];
   const record = (id, detail) => checks.push({ id, status: 'PASS', detail });
 
@@ -725,10 +780,13 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
     // Target only fixture IDs and exact synthetic throttle keys. Do not hide cleanup
     // errors: a green acceptance result is not valid if the disposable DB retains data.
     try {
-      cleanupClient = await control.connect();
+      cleanupClient = await (cleanupPool || control).connect();
+      const bindCleanupContext = async context => {
+        if (!cleanupUsesPrivilegedRole) await bindSignedRlsSessionContext(cleanupClient, context);
+      };
       for (const orgId of created.organizations) {
-        await bindSignedRlsSessionContext(cleanupClient, { tenantId: orgId, accessMode: 'system' });
-        await attemptCleanup('set-organization-cleanup-context',
+        await bindCleanupContext({ tenantId: orgId, accessMode: 'system' });
+        if (!cleanupUsesPrivilegedRole) await attemptCleanup('set-organization-cleanup-context',
           'SELECT public.opscore_current_tenant() AS tenant, public.opscore_access_mode() AS mode');
         await attemptCleanup('delete-organization-memberships', 'DELETE FROM memberships WHERE organization_id=$1', [orgId]);
         await attemptCleanup('delete-organization-customers', 'DELETE FROM customers WHERE organization_id=$1', [orgId]);
@@ -743,8 +801,8 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
       for (const userId of created.users) {
         // The restrictive identity SELECT policy requires the current-user GUC to match
         // the row being deleted; access_mode=system alone does not make the row visible.
-        await bindSignedRlsSessionContext(cleanupClient, { userId, accessMode: 'system' });
-        await attemptCleanup('set-user-cleanup-context',
+        await bindCleanupContext({ userId, accessMode: 'system' });
+        if (!cleanupUsesPrivilegedRole) await attemptCleanup('set-user-cleanup-context',
           'SELECT public.opscore_current_user() AS user_id, public.opscore_access_mode() AS mode');
         await attemptCleanup('delete-user-memberships', 'DELETE FROM memberships WHERE user_id=$1', [userId]);
         await attemptCleanup('delete-user-reset-tokens', 'DELETE FROM password_reset_tokens WHERE user_id=$1', [userId]);
@@ -756,16 +814,16 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
       }
       // A wrong-password check creates this row; successful logins may already have
       // cleared their keys. Deleting an absent exact key is intentionally a no-op.
-      await bindSignedRlsSessionContext(cleanupClient, { accessMode: 'auth' });
-      await attemptCleanup('set-throttle-cleanup-context',
+      await bindCleanupContext({ accessMode: 'auth' });
+      if (!cleanupUsesPrivilegedRole) await attemptCleanup('set-throttle-cleanup-context',
         'SELECT public.opscore_access_mode() AS mode');
       for (const throttleKey of created.loginThrottleKeys) {
         await attemptCleanup('delete-synthetic-login-throttle', 'DELETE FROM login_throttle WHERE throttle_key=$1', [throttleKey]);
       }
       // Verify global residue while access_mode is explicitly system; blank context can
       // make RLS hide users and falsely report zero. Reset the GUCs only after the checks.
-      await bindSignedRlsSessionContext(cleanupClient, { accessMode: 'system' });
-      await attemptCleanup('set-cleanup-verification-context',
+      await bindCleanupContext({ accessMode: 'system' });
+      if (!cleanupUsesPrivilegedRole) await attemptCleanup('set-cleanup-verification-context',
         'SELECT public.opscore_access_mode() AS mode');
       const remainingUsers = virginDatabaseVerified
         ? await attemptCleanup('verify-no-user-residue', 'SELECT opscore_count_users()::int AS n')
@@ -795,6 +853,7 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
       cleanupErrors.push({ operation: 'release-cleanup-client', code: error && error.code || null, message: String(error && error.message || error).slice(0, 240) });
     } }
     await control.end().catch(() => {});
+    if (cleanupPool) await cleanupPool.end().catch(() => {});
     fs.rmSync(dir, { recursive: true, force: true });
     if (fs.existsSync(RESULT_PATH)) {
       try {
@@ -803,7 +862,7 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           ? { status: 'NOT_RUN', reason: 'PREFLIGHT_DID_NOT_PASS' }
           : cleanupErrors.length
             ? { status: 'FAIL', errors: cleanupErrors }
-            : { status: 'PASS', trackedUsers: created.users.length, trackedOrganizations: created.organizations.length, syntheticThrottleKeysHandled: created.loginThrottleKeys.length };
+            : { status: 'PASS', method: cleanupUsesPrivilegedRole ? 'exact-target-opscore_owner-cleanup' : 'runtime-signed-context-cleanup', trackedUsers: created.users.length, trackedOrganizations: created.organizations.length, syntheticThrottleKeysHandled: created.loginThrottleKeys.length };
         if (cleanupErrors.length) {
           prior.status = 'FAIL';
           prior.reason = 'ACCEPTANCE_CLEANUP_FAILED';
