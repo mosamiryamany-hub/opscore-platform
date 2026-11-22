@@ -261,7 +261,7 @@ try {
     'maintenance fence must remain when rollback cannot be verified');
   const retainedLockMetadata = JSON.parse(fs.readFileSync(rollbackFailureLockPath, 'utf8'));
   retainedLockMetadata.pid = 2147483647; // simulate the owner process having exited
-  fs.writeFileSync(rollbackFailureLockPath, JSON.stringify(retainedLockMetadata) + '\\n', { mode: 0o600 });
+  fs.writeFileSync(rollbackFailureLockPath, JSON.stringify(retainedLockMetadata) + '\n', { mode: 0o600 });
   assert.throws(() => openDb(rollbackFailureDestination),
     /SQLITE_DATABASE_MAINTENANCE_IN_PROGRESS/,
     'a dead lock-owner PID must not auto-clear an unverified recovery fence');
@@ -283,7 +283,8 @@ try {
       'restore detects an unmanaged SQLite file descriptor through Linux /proc',
       'maintenance lock prevents new application connections during the file swap',
       'injected post-swap verification failure restores original bytes and re-verifies rollback',
-      'injected post-swap failure removes a destination that did not exist before restore',\n      'failed rollback retains maintenance fence and blocks application opens'
+      'injected post-swap failure removes a destination that did not exist before restore',
+      'failed rollback retains maintenance fence even after owner PID exits and blocks application opens'
     ]
   }, null, 2));
 } finally {
