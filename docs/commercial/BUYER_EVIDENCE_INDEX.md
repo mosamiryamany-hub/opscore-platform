@@ -101,3 +101,6 @@ The full measured register is in [Buyer Residuals](../BUYER_RESIDUALS.md) and [F
 
 - Language boundary remains explicit: 105 selectable locales (1 English source, 100 machine-assisted drafts, 4 English fallbacks); 0/105 native-speaker reviewed and 0/105 production-qualified. The 114-row qualification register is historical, not the selectable catalog.
 - Android/iOS signed builds, physical-device QA and app-store publication require buyer signing keys/accounts and remain buyer-side or separately contracted.
+
+
+PR #403 adds an explicit `productionIsolationCertificationScope` to distinguish catalog-only status from behavioral evidence bound to the running deployment. This contract update remains pending normal review/merge.
