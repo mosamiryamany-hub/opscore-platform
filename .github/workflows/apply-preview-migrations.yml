@@ -317,7 +317,7 @@ jobs:
           print("pending_count", len(pending))
           for p in pending: print(" pending", p.get("filename"))
           identity=obj.get("neonIdentity") or {}
-          if identity.get("pinned") is not True or identity.get("projectId") != "sweet-union-58466913" or identity.get("branchId") != "br-muddy-pine-bbrexgxx" or identity.get("host") != "ep-green-frog-bbyayuh5.c-15.us-east-1.aws.neon.tech":
+          if identity.get("pinned") is not True or identity.get("projectId") != os.environ["OPSC_MIGRATION_EXPECTED_PROJECT_ID"] or identity.get("branchId") != os.environ["OPSC_MIGRATION_EXPECTED_BRANCH_ID"] or identity.get("host") != os.environ["OPSC_MIGRATION_EXPECTED_HOST"]:
             print("DRY_RUN_NEON_PINNED_IDENTITY_MISMATCH"); sys.exit(1)
           if obj.get("status") != "DRY_RUN_PASS":
             print(json.dumps(obj, indent=2)[:2500]); sys.exit(1)
@@ -355,7 +355,7 @@ jobs:
             print(raw[-2500:]); print("APPLY_PARSE_FAIL"); sys.exit(1)
           print(json.dumps({k:obj.get(k) for k in ("status","applied","target","neonIdentity","serverVersion")}, indent=2, default=str)[:4000])
           identity=obj.get("neonIdentity") or {}
-          if identity.get("pinned") is not True or identity.get("projectId") != "sweet-union-58466913" or identity.get("branchId") != "br-muddy-pine-bbrexgxx" or identity.get("host") != "ep-green-frog-bbyayuh5.c-15.us-east-1.aws.neon.tech":
+          if identity.get("pinned") is not True or identity.get("projectId") != os.environ["OPSC_MIGRATION_EXPECTED_PROJECT_ID"] or identity.get("branchId") != os.environ["OPSC_MIGRATION_EXPECTED_BRANCH_ID"] or identity.get("host") != os.environ["OPSC_MIGRATION_EXPECTED_HOST"]:
             print("APPLY_NEON_PINNED_IDENTITY_MISMATCH"); sys.exit(1)
           st=str(obj.get("status") or "")
           if st != "APPLIED_AND_VERIFIED":
