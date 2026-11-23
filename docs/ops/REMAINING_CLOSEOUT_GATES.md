@@ -201,3 +201,6 @@ This section supersedes Section 9's stale evidence cut and gate statuses. PR #40
 - No legal text, pricing, refund policy, certification or license grant is invented.
 
 **Current decision: OPEN.** Engineering CI and disposable PostgreSQL acceptance pass, but live Production identity, same-deployment proof, WAF enforcement, legal pages, credential rotation, scheduled backup strategy, exact-main release package, and license authority remain unresolved.
+
+
+Official Neon limits used for this classification: [Neon plans](https://neon.com/docs/introduction/plans) and [Backup & Restore](https://neon.com/docs/guides/backup-restore). Free includes one manual snapshot and a six-hour history window; automated backup schedules are paid-plan functionality.
