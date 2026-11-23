@@ -227,7 +227,11 @@ function environmentSnapshot(configuredEnv, effectiveEnv, releaseProofVerified) 
     releaseVerifiedConfiguredTrue: releaseConfigured === 'true',
     releaseVerifiedEffective: releaseEffective === 'true',
     releaseProofVerified: releaseProofVerified === true,
-    isolationCertification: safeCode(configured.OPSC_PRODUCTION_ISOLATION_CERTIFICATION) || 'NOT_SET'
+    isolationCertification: safeCode(configured.OPSC_PRODUCTION_ISOLATION_CERTIFICATION) || 'NOT_SET',
+    signedTenantContextProductionEnabled: String(configured.OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED || '').trim().toLowerCase() === 'true',
+    sessionAutobindEnabled: String(configured.OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED || '').trim().toLowerCase() === 'true',
+    candidateProbeEnabled: String(configured.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED || '').trim().toLowerCase() === 'true',
+    candidateModeEnabled: String(configured.OPSC_PRODUCTION_CANDIDATE_MODE || '').trim().toLowerCase() === 'true'
   };
 }
 
@@ -313,6 +317,8 @@ function createProductionDatabaseIdentityHandler(dependencies = {}) {
         generatedAt: new Date().toISOString(),
         deployment: {
           environment: safeString(effective.VERCEL_ENV, 32),
+          deploymentId: /^dpl_[A-Za-z0-9]+$/.test(String(effective.VERCEL_DEPLOYMENT_ID || ''))
+            ? String(effective.VERCEL_DEPLOYMENT_ID) : null,
           expectedDeploymentHostMatched: true,
           commitSha: embedded && /^[a-f0-9]{40}$/.test(String(embedded.commitSha || '').toLowerCase())
             ? String(embedded.commitSha).toLowerCase() : null,

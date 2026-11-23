@@ -2,13 +2,25 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { evaluateRuntimeDiagnostic, DIAGNOSTIC_PATH, REQUIRED_DIAGNOSTIC_CHECKS, ADVISORY_CHECKS, failClosedExitCode, runDiagnostic } = require('./production-runtime-diagnostic');
+const {
+  evaluateRuntimeDiagnostic,
+  evaluateRuntimeIdentityPreflight,
+  DIAGNOSTIC_PATH,
+  REQUIRED_DIAGNOSTIC_CHECKS,
+  REQUIRED_IDENTITY_PREFLIGHT_CHECKS,
+  ADVISORY_CHECKS,
+  failClosedExitCode,
+  runDiagnostic,
+  runIdentityPreflight
+} = require('./production-runtime-diagnostic');
 
 function validPayload() {
   return {
     schemaVersion: 'opscore.production-runtime-database-diagnostic.v1',
+    diagnostic: { status: 'VERIFIED', reasonCode: null },
     deployment: {
       environment: 'production',
+      deploymentId: 'dpl_candidateabc123',
       expectedDeploymentHostMatched: true,
       commitSha: 'a'.repeat(40),
       pipelineId: '123456789',
@@ -27,7 +39,11 @@ function validPayload() {
       releaseVerifiedConfiguredTrue: true,
       releaseVerifiedEffective: true,
       releaseProofVerified: true,
-      isolationCertification: 'CERTIFIED'
+      isolationCertification: 'CERTIFIED',
+      signedTenantContextProductionEnabled: false,
+      sessionAutobindEnabled: false,
+      candidateProbeEnabled: true,
+      candidateModeEnabled: true
     },
     applicationConnectionTls: {
       scope: 'APPLICATION_POSTGRES_WORKER_CONNECTION',
@@ -118,6 +134,105 @@ function validPayload() {
     }
   };
 }
+
+
+function heldCandidatePayload() {
+  const payload = validPayload();
+  payload.environment.productionHoldConfiguredFalse = false;
+  payload.environment.productionHoldEffectiveActive = true;
+  payload.environment.releaseVerifiedConfiguredTrue = false;
+  payload.environment.releaseVerifiedEffective = false;
+  payload.environment.releaseProofVerified = false;
+  payload.environment.isolationCertification = 'NOT_CERTIFIED';
+  payload.environment.signedTenantContextProductionEnabled = false;
+  payload.environment.sessionAutobindEnabled = false;
+  payload.environment.candidateProbeEnabled = true;
+  payload.environment.candidateModeEnabled = true;
+  return payload;
+}
+
+test('held-candidate runtime identity preflight passes only with exact deployment, DB, role, RLS and application TLS proof', () => {
+  const result = evaluateRuntimeIdentityPreflight(
+    heldCandidatePayload(), 200, 'a'.repeat(40), '123456789', 'dpl_candidateabc123'
+  );
+  assert.equal(result.schemaVersion, 'opscore.production-runtime-identity-preflight.v1');
+  assert.equal(result.status, 'PASS');
+  assert.equal(result.identityPreflightAllowed, true);
+  assert.equal(result.promotionAllowed, false, 'identity preflight is not release authorization');
+  assert.equal(failClosedExitCode(result), 0);
+  assert.deepEqual(result.checks.map(item => item.name), REQUIRED_IDENTITY_PREFLIGHT_CHECKS);
+  assert.ok(result.checks.every(item => item.status === 'PASS'));
+});
+
+test('held-candidate identity preflight rejects wrong deployment ID and never promotes', () => {
+  const result = evaluateRuntimeIdentityPreflight(
+    heldCandidatePayload(), 200, 'a'.repeat(40), '123456789', 'dpl_anothercandidate'
+  );
+  assert.equal(result.identityPreflightAllowed, false);
+  assert.equal(result.promotionAllowed, false);
+  assert.ok(result.checks.some(item => item.name === 'deployment_id_binding' && item.status === 'BLOCKED'));
+  assert.equal(failClosedExitCode(result), 1);
+});
+
+test('held-candidate identity preflight rejects a released HOLD or pre-enabled signed context', () => {
+  for (const mutate of [
+    payload => { payload.environment.productionHoldConfiguredFalse = true; payload.environment.productionHoldEffectiveActive = false; },
+    payload => { payload.environment.signedTenantContextProductionEnabled = true; },
+    payload => { payload.environment.candidateProbeEnabled = false; },
+    payload => { payload.environment.sessionAutobindEnabled = true; }
+  ]) {
+    const payload = heldCandidatePayload();
+    mutate(payload);
+    const result = evaluateRuntimeIdentityPreflight(
+      payload, 200, 'a'.repeat(40), '123456789', 'dpl_candidateabc123'
+    );
+    assert.equal(result.identityPreflightAllowed, false);
+    assert.ok(result.checks.some(item => item.name === 'production_hold_active' && item.status === 'BLOCKED'));
+  }
+});
+
+test('held-candidate identity preflight transport sends both OIDC headers and the per-run candidate token to the exact URL', async () => {
+  let requestedUrl;
+  let requestedOptions;
+  const oidc = 'header.payload.signature';
+  const candidateProbeToken = 'e'.repeat(64);
+  const responsePayload = heldCandidatePayload();
+  const result = await runIdentityPreflight(
+    'https://opscore-platform-staged-abc.vercel.app',
+    'a'.repeat(40), '123456789', 'dpl_candidateabc123',
+    {
+      token: oidc,
+      candidateProbeToken,
+      fetchImpl: async (url, options) => {
+        requestedUrl = url;
+        requestedOptions = options;
+        return {
+          status: 200,
+          headers: { get: () => 'application/json' },
+          text: async () => JSON.stringify(responsePayload)
+        };
+      }
+    }
+  );
+  assert.equal(requestedUrl, 'https://opscore-platform-staged-abc.vercel.app/api/internal/production-database-identity');
+  assert.equal(requestedOptions.method, 'GET');
+  assert.equal(requestedOptions.redirect, 'manual');
+  assert.equal(requestedOptions.headers['x-opscore-trusted-oidc-idp-token'], oidc);
+  assert.equal(requestedOptions.headers['x-vercel-trusted-oidc-idp-token'], oidc);
+  assert.equal(requestedOptions.headers['x-opscore-signed-context-probe'], candidateProbeToken);
+  assert.equal(result.identityPreflightAllowed, true);
+});
+
+test('identity preflight exit gate rejects incomplete, reordered, and promotion-forged inventories', () => {
+  const passing = evaluateRuntimeIdentityPreflight(
+    heldCandidatePayload(), 200, 'a'.repeat(40), '123456789', 'dpl_candidateabc123'
+  );
+  assert.equal(failClosedExitCode(passing), 0);
+  assert.equal(failClosedExitCode({ ...passing, checks: passing.checks.slice(1) }), 1);
+  assert.equal(failClosedExitCode({ ...passing, checks: [...passing.checks].reverse() }), 1);
+  assert.equal(failClosedExitCode({ ...passing, promotionAllowed: true }), 1);
+  assert.equal(failClosedExitCode({ ...passing, identityPreflightAllowed: false }), 1);
+});
 
 test('runtime diagnostic uses the protected internal route contract', () => {
   assert.equal(DIAGNOSTIC_PATH, '/api/internal/production-database-identity');

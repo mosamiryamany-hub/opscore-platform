@@ -58,7 +58,7 @@ jobs:
           node --check scripts/request-vercel-trusted-oidc.js
           node --check backend/scripts/postgres-logical-restore-drill.js
       - name: Production runtime diagnostic contract tests
-        run: node --test backend/test/production-database-identity-route.test.js scripts/production-runtime-diagnostic.test.js
+        run: node --test backend/test/production-database-identity-route.test.js backend/test/production-hold.test.js scripts/production-runtime-diagnostic.test.js
       - name: OIDC and logical restore safety contract tests
         run: node --test backend/test/request-vercel-trusted-oidc.test.js backend/test/postgres-logical-restore-drill.test.js
       - name: Hardened metadata gate
@@ -904,6 +904,37 @@ jobs:
           test "$ISOLATION_CERT" = "CERTIFIED" || { echo "::error::PRODUCTION_ISOLATION_NOT_CERTIFIED"; exit 1; }
           test "$BEHAVIORAL_EVIDENCE" = "true" || { echo "::error::PRODUCTION_BEHAVIORAL_EVIDENCE_NOT_VERIFIED"; exit 1; }
 
+      - name: Request fresh scoped OIDC identity for held-candidate runtime identity preflight
+        if: ${{ github.event.inputs.run_mode == 'AUTHORIZE_PRODUCTION_RELEASE' }}
+        id: vercel_oidc_runtime_preflight
+        run: node scripts/request-vercel-trusted-oidc.js
+
+      - name: Verify exact held-candidate runtime identity before publishing release flags
+        if: ${{ github.event.inputs.run_mode == 'AUTHORIZE_PRODUCTION_RELEASE' }}
+        id: production_runtime
+        run: |
+          set -euo pipefail
+          node scripts/production-runtime-diagnostic.js --identity-preflight-only \
+            "${{ steps.candidate_deploy.outputs.url }}" "$GITHUB_SHA" "$GITHUB_RUN_ID" \
+            "${{ steps.candidate_deployment.outputs.id }}" \
+            | tee "$RUNNER_TEMP/production-runtime-identity-preflight.json"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_SCOPE: mosamiryamany-1692
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TRUSTED_OIDC_TOKEN: ${{ steps.vercel_oidc_runtime_preflight.outputs.token }}
+          OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN: ${{ steps.prepare_candidate_env.outputs.probe_token }}
+
+      - name: Upload held-candidate runtime identity preflight evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: production-runtime-identity-preflight-${{ github.run_id }}
+          path: ${{ runner.temp }}/production-runtime-identity-preflight.json
+          if-no-files-found: warn
+          retention-days: 30
+
       - name: Publish exact certified release evidence and enable signed tenant context
         if: ${{ github.event.inputs.run_mode == 'AUTHORIZE_PRODUCTION_RELEASE' }}
         env:
@@ -1213,18 +1244,9 @@ jobs:
         if: ${{ github.event.inputs.run_mode == 'AUTHORIZE_PRODUCTION_RELEASE' }}
         id: vercel_oidc
         run: node scripts/request-vercel-trusted-oidc.js
-      - name: Verify staged production runtime identity and all release gates
-        if: ${{ github.event.inputs.run_mode == 'AUTHORIZE_PRODUCTION_RELEASE' }}
-        id: production_runtime
-        continue-on-error: true
-        run: node scripts/production-runtime-diagnostic.js "${{ steps.staged_deploy.outputs.url }}" "$GITHUB_SHA" "$GITHUB_RUN_ID"
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_SCOPE: mosamiryamany-1692
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          VERCEL_TRUSTED_OIDC_TOKEN: ${{ steps.vercel_oidc.outputs.token }}
-          OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN: ${{ steps.prepare_candidate_env.outputs.probe_token }}
+      # Runtime DB identity is checked on the exact held candidate before release flags
+      # are published. This final staged deployment is independently checked by the
+      # full release, database, security, and HTTP smoke contract below.
       - name: Verify staged production HTTP, database, security and release proofs
         id: production_smoke
         if: ${{ github.event.inputs.run_mode == 'AUTHORIZE_PRODUCTION_RELEASE' && steps.production_runtime.outputs.allowed == 'true' }}
