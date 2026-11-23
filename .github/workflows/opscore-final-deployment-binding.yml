@@ -252,10 +252,94 @@ jobs:
           })().catch(e => { console.error(e.message || e); process.exitCode = 1; });
           NODE
 
-      - name: Confirm original deploy run completed final-domain HTTP verification
+      - name: Re-run six live public HTTP checks against the verified final deployment alias
+        id: public_smoke
         env:
-          DEPLOY_RUN_ID: ${{ inputs.deploy_run_id }}
-        run: echo "FINAL_PUBLIC_DOMAIN_SMOKE_VERIFIED_FROM_SUCCESSFUL_DEPLOY_RUN=$DEPLOY_RUN_ID"
+          FINAL_DEPLOYMENT_ID: ${{ steps.final_deployment.outputs.deployment_id }}
+          EXPECTED_DEPLOYMENT_URL: ${{ steps.final_deployment.outputs.deployment_url }}
+          PUBLIC_BASE_URL: https://opscore-platform.vercel.app
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const crypto = require('node:crypto');
+
+          const base = new URL(process.env.PUBLIC_BASE_URL);
+          const expectedDeployment = new URL(process.env.EXPECTED_DEPLOYMENT_URL);
+          const deploymentId = process.env.FINAL_DEPLOYMENT_ID;
+          const paths = [
+            '/',
+            '/api/health',
+            '/api/verify/deployment',
+            '/api/verify/database',
+            '/api/verify/database-security',
+            '/api/verify/release'
+          ];
+
+          if (base.protocol !== 'https:' || base.hostname !== 'opscore-platform.vercel.app' ||
+              !/^dpl_[A-Za-z0-9]+$/.test(deploymentId || '') ||
+              expectedDeployment.protocol !== 'https:' ||
+              !expectedDeployment.hostname.endsWith('.vercel.app')) {
+            throw new Error('PUBLIC_SMOKE_TARGET_INVALID');
+          }
+
+          (async () => {
+            const checkedAt = new Date().toISOString();
+            const checks = [];
+            for (const path of paths) {
+              const requestUrl = new URL(path, base).toString();
+              const response = await fetch(requestUrl, {
+                method: 'GET',
+                redirect: 'follow',
+                cache: 'no-store',
+                headers: { 'cache-control': 'no-cache', accept: '*/*' },
+                signal: AbortSignal.timeout(20000)
+              });
+              const body = Buffer.from(await response.arrayBuffer());
+              const finalUrl = new URL(response.url);
+              const allowedHosts = new Set([base.hostname, expectedDeployment.hostname]);
+              if (!response.ok || finalUrl.protocol !== 'https:' ||
+                  !allowedHosts.has(finalUrl.hostname) || body.length === 0) {
+                throw new Error('PUBLIC_HTTP_CHECK_FAILED:' + path +
+                  ':status=' + response.status + ':finalUrl=' + response.url +
+                  ':bodyBytes=' + body.length);
+              }
+              const result = {
+                path,
+                statusCode: response.status,
+                finalUrl: response.url,
+                contentType: response.headers.get('content-type'),
+                responseBytes: body.length,
+                responseSha256: crypto.createHash('sha256').update(body).digest('hex'),
+                checkedAt: new Date().toISOString()
+              };
+              checks.push(result);
+              console.log('PUBLIC_HTTP_CHECK=PASS path=' + path +
+                ' status=' + response.status + ' bytes=' + body.length);
+            }
+
+            const evidence = {
+              schemaVersion: 'opscore.final-public-http-smoke.v1',
+              status: 'PASS',
+              baseUrl: base.toString().replace(/\/$/, ''),
+              deploymentId,
+              expectedDeploymentUrl: expectedDeployment.toString(),
+              checkedAt,
+              checks
+            };
+            fs.writeFileSync('FINAL_PUBLIC_HTTP_SMOKE.json',
+              JSON.stringify(evidence, null, 2) + '\\n',
+              { flag: 'wx', mode: 0o600 });
+            fs.appendFileSync(process.env.GITHUB_OUTPUT,
+              'results_path=FINAL_PUBLIC_HTTP_SMOKE.json\\n' +
+              'checked_at=' + checkedAt + '\\n' +
+              'status=PASS\\n');
+            console.log('FINAL_PUBLIC_HTTP_SMOKE=PASS checks=' + checks.length);
+          })().catch(error => {
+            console.error(error.message || error);
+            process.exitCode = 1;
+          });
+          NODE
 
       - name: Create signed in-toto archive-to-final-deployment association
         id: binding
@@ -269,12 +353,31 @@ jobs:
           FINAL_DEPLOYMENT_URL: ${{ steps.final_deployment.outputs.deployment_url }}
           ARCHIVE_SHA256: ${{ steps.verify_archive.outputs.archive_sha256 }}
           ROUTE_EVIDENCE_PATH: ${{ env.ROUTE_EVIDENCE_PATH }}
+          PUBLIC_HTTP_SMOKE_PATH: ${{ steps.public_smoke.outputs.results_path }}
         run: |
           set -euo pipefail
           node <<'NODE'
           const fs = require('node:fs');
           const crypto = require('node:crypto');
           const route = JSON.parse(fs.readFileSync(process.env.ROUTE_EVIDENCE_PATH, 'utf8'));
+          const smoke = JSON.parse(fs.readFileSync(process.env.PUBLIC_HTTP_SMOKE_PATH, 'utf8'));
+          const requiredSmokePaths = [
+            '/', '/api/health', '/api/verify/deployment', '/api/verify/database',
+            '/api/verify/database-security', '/api/verify/release'
+          ];
+          if (smoke.schemaVersion !== 'opscore.final-public-http-smoke.v1' ||
+              smoke.status !== 'PASS' ||
+              smoke.deploymentId !== process.env.FINAL_DEPLOYMENT_ID ||
+              !Array.isArray(smoke.checks) ||
+              smoke.checks.length !== requiredSmokePaths.length ||
+              requiredSmokePaths.some(path => {
+                const item = smoke.checks.find(check => check.path === path);
+                return !item || item.statusCode < 200 || item.statusCode >= 300 ||
+                  !/^[a-f0-9]{64}$/.test(String(item.responseSha256 || '')) ||
+                  Number(item.responseBytes) <= 0;
+              })) {
+            throw new Error('FINAL_PUBLIC_HTTP_SMOKE_EVIDENCE_INVALID');
+          }
           const statement = {
             _type: 'https://in-toto.io/Statement/v1',
             subject: [{
@@ -301,7 +404,13 @@ jobs:
                 url: process.env.FINAL_DEPLOYMENT_URL,
                 publicAlias: 'https://opscore-platform.vercel.app',
                 publicAliasVerified: true,
-                productionHttpSmoke: 'PASS',
+                productionHttpSmoke: {
+                  status: smoke.status,
+                  baseUrl: smoke.baseUrl,
+                  deploymentId: smoke.deploymentId,
+                  checkedAt: smoke.checkedAt,
+                  checks: smoke.checks
+                },
                 deployWorkflowRunId: Number(process.env.DEPLOY_RUN_ID),
                 deployWorkflowRunAttempt: Number(process.env.DEPLOY_RUN_ATTEMPT),
                 candidateDeploymentId: process.env.CANDIDATE_DEPLOYMENT_ID
@@ -319,8 +428,10 @@ jobs:
                   status: 'NOT_REVERIFIED_BY_THIS_BINDING_RUN'
                 },
                 finalDeploymentSmoke: {
-                  status: 'PASS',
-                  scope: ['/', '/api/health', '/api/verify/deployment', '/api/verify/database', '/api/verify/database-security', '/api/verify/release']
+                  status: smoke.status,
+                  checkedAt: smoke.checkedAt,
+                  deploymentId: smoke.deploymentId,
+                  checks: smoke.checks
                 }
               },
               certification: {
@@ -364,5 +475,6 @@ jobs:
             FINAL_DEPLOYMENT_BINDING.statement.json
             FINAL_DEPLOYMENT_BINDING.statement.sha256
             FINAL_DEPLOYMENT_BINDING.statement.sigstore.json
+            FINAL_PUBLIC_HTTP_SMOKE.json
           if-no-files-found: error
           retention-days: 90
