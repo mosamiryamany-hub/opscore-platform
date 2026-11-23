@@ -4,10 +4,9 @@ on:
   workflow_call:
     inputs:
       branch:
-        description: Exact non-default Neon acceptance branch ID
-        required: false
+        description: Exact non-default Neon acceptance branch ID (required for direct manual runs)
+        required: true
         type: string
-        default: "br-muddy-pine-bbrexgxx"
       database:
         description: Exact isolated application database
         required: false
@@ -70,25 +69,44 @@ jobs:
       - name: Bind exact isolated Neon acceptance branch
         id: neon
         env:
-          INPUT_BRANCH: ${{ inputs.branch || github.event.inputs.branch || 'br-muddy-pine-bbrexgxx' }}
+          INPUT_BRANCH: ${{ inputs.branch || github.event.inputs.branch || '' }}
           INPUT_DB: ${{ inputs.database || github.event.inputs.database || 'opscore_acceptance' }}
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
         run: |
           set -euo pipefail
           PROJECT_ID='sweet-union-58466913'
           PRIMARY_BRANCH_ID='br-weathered-tree-bbha3dx4'
-          BRANCH_ID='br-muddy-pine-bbrexgxx'
+          BRANCH_ID="$INPUT_BRANCH"
           HOST='ep-green-frog-bbyayuh5.c-15.us-east-1.aws.neon.tech'
-          test "$INPUT_BRANCH" = "$BRANCH_ID" || { echo 'EXACT_ACCEPTANCE_BRANCH_REQUIRED'; exit 1; }
-          test "$INPUT_DB" = 'opscore_acceptance' || { echo 'EXACT_ACCEPTANCE_DATABASE_REQUIRED'; exit 1; }
+          test -n "$NEON_API_KEY" || { echo 'NEON_API_KEY_REQUIRED'; exit 1; }
+          test "$BRANCH_ID" = "${BRANCH_ID#br-}" && { echo 'INVALID_NEON_ACCEPTANCE_BRANCH_ID' >&2; exit 1; } || true
           test "$BRANCH_ID" != "$PRIMARY_BRANCH_ID" || { echo 'REFUSING_NEON_PRIMARY_BRANCH'; exit 1; }
+          test "$INPUT_DB" = 'opscore_acceptance' || { echo 'EXACT_ACCEPTANCE_DATABASE_REQUIRED'; exit 1; }
+          BRANCH_JSON="$(curl -fsS -H "Authorization: Bearer $NEON_API_KEY" -H 'Accept: application/json' "https://console.neon.tech/api/v2/projects/$PROJECT_ID/branches/$BRANCH_ID")"
+          PRIMARY_JSON="$(curl -fsS -H "Authorization: Bearer $NEON_API_KEY" -H 'Accept: application/json' "https://console.neon.tech/api/v2/projects/$PROJECT_ID/branches/$PRIMARY_BRANCH_ID")"
+          BRANCH_JSON="$BRANCH_JSON" PRIMARY_JSON="$PRIMARY_JSON" PROJECT_ID="$PROJECT_ID" BRANCH_ID="$BRANCH_ID" PRIMARY_BRANCH_ID="$PRIMARY_BRANCH_ID" python3 - <<'PY'
+          import json, os
+          branch = json.loads(os.environ["BRANCH_JSON"]).get("branch") or {}
+          primary = json.loads(os.environ["PRIMARY_JSON"]).get("branch") or {}
+          if branch.get("id") != os.environ["BRANCH_ID"]:
+              raise SystemExit("NEON_ACCEPTANCE_BRANCH_IDENTITY_MISMATCH")
+          if branch.get("project_id") != os.environ["PROJECT_ID"]:
+              raise SystemExit("NEON_ACCEPTANCE_PROJECT_IDENTITY_MISMATCH")
+          if branch.get("parent_id") != os.environ["PRIMARY_BRANCH_ID"]:
+              raise SystemExit("NEON_ACCEPTANCE_PARENT_MISMATCH")
+          if branch.get("primary") is True or branch.get("default") is True:
+              raise SystemExit("REFUSING_NEON_PRIMARY_OR_DEFAULT_BRANCH")
+          if branch.get("current_state") != "ready":
+              raise SystemExit("NEON_ACCEPTANCE_BRANCH_NOT_READY")
+          if primary.get("id") != os.environ["PRIMARY_BRANCH_ID"] or primary.get("primary") is not True or primary.get("default") is not True:
+              raise SystemExit("NEON_PRIMARY_BRANCH_IDENTITY_MISMATCH")
+          PY
           echo "branch_id=$BRANCH_ID" >> "$GITHUB_OUTPUT"
           echo "branch_name=acceptance-clean-security-2026-11-22" >> "$GITHUB_OUTPUT"
           echo "database=$INPUT_DB" >> "$GITHUB_OUTPUT"
           echo "project_id=$PROJECT_ID" >> "$GITHUB_OUTPUT"
           echo "host=$HOST" >> "$GITHUB_OUTPUT"
           echo "NEON_ACCEPTANCE_TARGET=PASS project=$PROJECT_ID branch=$BRANCH_ID database=$INPUT_DB host=$HOST"
-          # STATIC_EXACT_PREVIEW_TARGET guard: exactly one pinned non-primary branch.
-          case "${BRANCH_ID}" in ""|*,*) echo "STATIC_EXACT_PREVIEW_TARGET_VIOLATION branch=$BRANCH_ID" >&2; exit 1 ;; esac
 
       - name: Resolve isolated Neon owner and runtime connections from Vercel Development secrets
         id: connections
