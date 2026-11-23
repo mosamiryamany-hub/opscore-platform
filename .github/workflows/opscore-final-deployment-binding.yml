@@ -1,0 +1,716 @@
+name: OpsCore final deployment binding
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_run_id:
+        description: Successful secure-release workflow run that produced the signed OpsCore-release.zip
+        required: true
+        type: string
+      archive_artifact_id:
+        description: Exact GitHub artifact ID from release_run_id
+        required: true
+        type: string
+      deploy_run_id:
+        description: Successful vercel-deploy workflow run that promoted the final production deployment
+        required: true
+        type: string
+      candidate_deployment_id:
+        description: Held candidate deployment ID used by candidate-only route probes
+        required: true
+        type: string
+      candidate_route_artifact_id:
+        description: Artifact ID containing API_ROUTE_ACCEPTANCE_RESULT.json from deploy_run_id
+        required: true
+        type: string
+      signed_tenant_artifact_id:
+        description: Artifact ID containing the separate 67-route disposable PostgreSQL CI evidence
+        required: true
+        type: string
+      final_deployment_id:
+        description: Exact Vercel deployment ID currently assigned to opscore-platform.vercel.app
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+  attestations: read
+  id-token: write
+
+concurrency:
+  group: opscore-final-deployment-binding
+  cancel-in-progress: false
+
+jobs:
+  bind:
+    name: verify-and-sign-final-deployment-binding
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: production
+    steps:
+      - name: Checkout source pinned to the deployment run commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Validate identifiers and successful source runs
+        id: validate_runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_RUN_ID: ${{ inputs.release_run_id }}
+          DEPLOY_RUN_ID: ${{ inputs.deploy_run_id }}
+          ARCHIVE_ARTIFACT_ID: ${{ inputs.archive_artifact_id }}
+          ROUTE_ARTIFACT_ID: ${{ inputs.candidate_route_artifact_id }}
+          SIGNED_TENANT_ARTIFACT_ID: ${{ inputs.signed_tenant_artifact_id }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          for value in "$RELEASE_RUN_ID" "$DEPLOY_RUN_ID" "$ARCHIVE_ARTIFACT_ID" "$ROUTE_ARTIFACT_ID" "$SIGNED_TENANT_ARTIFACT_ID"; do
+            [[ "$value" =~ ^[1-9][0-9]{0,14}$ ]] || { echo "INVALID_GITHUB_RUN_OR_ARTIFACT_ID" >&2; exit 1; }
+          done
+          release="$(curl --fail --silent --show-error -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$REPOSITORY/actions/runs/$RELEASE_RUN_ID")"
+          deploy="$(curl --fail --silent --show-error -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$REPOSITORY/actions/runs/$DEPLOY_RUN_ID")"
+          jobs="$(curl --fail --silent --show-error -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$REPOSITORY/actions/runs/$DEPLOY_RUN_ID/jobs?per_page=100")"
+          node - "$GITHUB_OUTPUT" "$release" "$deploy" "$jobs" <<'NODE'
+          const fs = require('node:fs');
+          const [out, releaseRaw, deployRaw, jobsRaw] = process.argv.slice(2);
+          const release = JSON.parse(releaseRaw), deploy = JSON.parse(deployRaw), jobs = JSON.parse(jobsRaw);
+          const repo = process.env.GITHUB_REPOSITORY;
+          if (release.status !== 'completed' || release.conclusion !== 'success' ||
+              release.path !== '.github/workflows/opscore-secure-release.yml' ||
+              release.repository?.full_name !== repo) throw new Error('SECURE_RELEASE_RUN_NOT_SUCCESSFUL_OR_WRONG_WORKFLOW');
+          if (deploy.status !== 'completed' || deploy.conclusion !== 'success' ||
+              deploy.path !== '.github/workflows/vercel-deploy.yml' ||
+              deploy.head_branch !== 'main' || deploy.repository?.full_name !== repo) {
+            throw new Error('PRODUCTION_DEPLOY_RUN_NOT_SUCCESSFUL_OR_WRONG_WORKFLOW');
+          }
+          if (!/^[a-f0-9]{40}$/.test(String(deploy.head_sha || ''))) throw new Error('DEPLOY_COMMIT_INVALID');
+          const deployJob = (jobs.jobs || []).find(job => job.name === 'deploy');
+          if (!deployJob || deployJob.conclusion !== 'success') throw new Error('DEPLOY_JOB_NOT_SUCCESSFUL');
+          const requiredSteps = [
+            'Verify staged production HTTP, database, security and release proofs',
+            'Promote only the verified staged deployment',
+            'Verify production domain resolves to the exact promoted commit',
+            'Fail unless production promotion and public-domain verification completed'
+          ];
+          for (const name of requiredSteps) {
+            const step = (deployJob.steps || []).find(item => item.name === name);
+            if (!step || step.conclusion !== 'success') throw new Error('REQUIRED_FINAL_DEPLOY_STEP_NOT_SUCCESSFUL:' + name);
+          }
+          if (!/^[a-f0-9]{40}$/.test(String(release.head_sha || '')) ||
+              !Number.isInteger(Number(release.run_attempt)) || Number(release.run_attempt) < 1 ||
+              !/^refs\/heads\/[A-Za-z0-9._/-]+$/.test('refs/heads/' + String(release.head_branch || ''))) {
+            throw new Error('RELEASE_WORKFLOW_REVISION_INVALID');
+          }
+          fs.appendFileSync(out, 'source_commit=' + deploy.head_sha + '\n');
+          fs.appendFileSync(out, 'deploy_run_attempt=' + String(deploy.run_attempt || '') + '\n');
+          fs.appendFileSync(out, 'deploy_head_branch=' + deploy.head_branch + '\n');
+          fs.appendFileSync(out, 'release_workflow_commit=' + release.head_sha + '\n');
+          fs.appendFileSync(out, 'release_workflow_ref=refs/heads/' + release.head_branch + '\n');
+          fs.appendFileSync(out, 'release_run_attempt=' + String(release.run_attempt) + '\n');
+          console.log('SOURCE_RUN_IDENTITIES=PASS');
+          NODE
+
+      - name: Download exact signed-release and candidate-route artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          ARCHIVE_ARTIFACT_ID: ${{ inputs.archive_artifact_id }}
+          ROUTE_ARTIFACT_ID: ${{ inputs.candidate_route_artifact_id }}
+          SIGNED_TENANT_ARTIFACT_ID: ${{ inputs.signed_tenant_artifact_id }}
+          RELEASE_RUN_ID: ${{ inputs.release_run_id }}
+          DEPLOY_RUN_ID: ${{ inputs.deploy_run_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/archive-artifact" "$RUNNER_TEMP/route-artifact" "$RUNNER_TEMP/signed-tenant-artifact"
+          curl --fail --location --silent --show-error -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$REPOSITORY/actions/artifacts/$ARCHIVE_ARTIFACT_ID/zip" \
+            -o "$RUNNER_TEMP/archive-artifact.zip"
+          curl --fail --location --silent --show-error -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$REPOSITORY/actions/artifacts/$ROUTE_ARTIFACT_ID/zip" \
+            -o "$RUNNER_TEMP/route-artifact.zip"
+          curl --fail --location --silent --show-error -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$REPOSITORY/actions/artifacts/$SIGNED_TENANT_ARTIFACT_ID/zip" \
+            -o "$RUNNER_TEMP/signed-tenant-artifact.zip"
+          archive_meta="$(curl --fail --silent --show-error -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$REPOSITORY/actions/artifacts/$ARCHIVE_ARTIFACT_ID")"
+          route_meta="$(curl --fail --silent --show-error -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$REPOSITORY/actions/artifacts/$ROUTE_ARTIFACT_ID")"
+          signed_tenant_meta="$(curl --fail --silent --show-error -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$REPOSITORY/actions/artifacts/$SIGNED_TENANT_ARTIFACT_ID")"
+          node - "$archive_meta" "$route_meta" "$signed_tenant_meta" "$RELEASE_RUN_ID" "$DEPLOY_RUN_ID" <<'NODE'
+          const [aRaw, rRaw, sRaw, releaseRun, deployRun] = process.argv.slice(2);
+          const a = JSON.parse(aRaw), r = JSON.parse(rRaw), s = JSON.parse(sRaw);
+          if (String(a.workflow_run?.id) !== releaseRun || a.expired || a.name !== 'opscore-release-' + releaseRun) throw new Error('ARCHIVE_ARTIFACT_NOT_FROM_SELECTED_RELEASE_RUN');
+          if (String(r.workflow_run?.id) !== deployRun || r.expired || r.name !== 'production-api-route-acceptance-' + deployRun) throw new Error('ROUTE_ARTIFACT_NOT_FROM_SELECTED_DEPLOY_RUN');
+          if (String(s.workflow_run?.id) !== deployRun || s.expired || s.name !== 'signed-tenant-postgres-18-ci-coverage-' + deployRun) throw new Error('SIGNED_TENANT_CI_ARTIFACT_NOT_FROM_SELECTED_DEPLOY_RUN');
+          NODE
+          unzip -q "$RUNNER_TEMP/archive-artifact.zip" -d "$RUNNER_TEMP/archive-artifact"
+          unzip -q "$RUNNER_TEMP/route-artifact.zip" -d "$RUNNER_TEMP/route-artifact"
+          unzip -q "$RUNNER_TEMP/signed-tenant-artifact.zip" -d "$RUNNER_TEMP/signed-tenant-artifact"
+          archive="$(find "$RUNNER_TEMP/archive-artifact" -type f -name 'OpsCore-release.zip' -print -quit)"
+          statement="$(find "$RUNNER_TEMP/archive-artifact" -type f -name 'COMMERCIAL_RELEASE_STATEMENT.json' -print -quit)"
+          bundle="$(find "$RUNNER_TEMP/archive-artifact" -type f -name 'OpsCore-release.zip.sigstore.json' -print -quit)"
+          provenance="$(find "$RUNNER_TEMP/archive-artifact" -type f -name 'source-pinned-provenance.json' -print -quit)"
+          test -s "$archive" && test -s "$statement" && test -s "$bundle" && test -s "$provenance"
+          echo "ARCHIVE_PATH=$archive" >> "$GITHUB_ENV"
+          echo "STATEMENT_PATH=$statement" >> "$GITHUB_ENV"
+          echo "BUNDLE_PATH=$bundle" >> "$GITHUB_ENV"
+          echo "PROVENANCE_PATH=$provenance" >> "$GITHUB_ENV"
+          route="$(find "$RUNNER_TEMP/route-artifact" -type f -name 'API_ROUTE_ACCEPTANCE_RESULT.json' -print -quit)"
+          test -s "$route" || { echo "CANDIDATE_ROUTE_EVIDENCE_MISSING" >&2; exit 1; }
+          echo "ROUTE_EVIDENCE_PATH=$route" >> "$GITHUB_ENV"
+          signed_tenant="$(find "$RUNNER_TEMP/signed-tenant-artifact" -type f -name 'SIGNED_TENANT_CONTEXT_CI_ROUTE_COVERAGE.json' -print -quit)"
+          test -s "$signed_tenant" || { echo "SIGNED_TENANT_CI_EVIDENCE_MISSING" >&2; exit 1; }
+          cp "$signed_tenant" "$GITHUB_WORKSPACE/SIGNED_TENANT_CONTEXT_CI_ROUTE_COVERAGE.json"
+          echo "SIGNED_TENANT_EVIDENCE_PATH=$GITHUB_WORKSPACE/SIGNED_TENANT_CONTEXT_CI_ROUTE_COVERAGE.json" >> "$GITHUB_ENV"
+
+      - name: Verify archive digest, source pin, and original Sigstore signature
+        id: verify_archive
+        env:
+          SOURCE_COMMIT: ${{ steps.validate_runs.outputs.source_commit }}
+          EXPECTED_RELEASE_RUN_ID: ${{ inputs.release_run_id }}
+          EXPECTED_RELEASE_WORKFLOW_COMMIT: ${{ steps.validate_runs.outputs.release_workflow_commit }}
+          EXPECTED_RELEASE_WORKFLOW_REF: ${{ steps.validate_runs.outputs.release_workflow_ref }}
+        run: |
+          set -euo pipefail
+          archive_sha="$(sha256sum "$ARCHIVE_PATH" | awk '{print $1}')"
+          node - "$STATEMENT_PATH" "$PROVENANCE_PATH" "$archive_sha" "$SOURCE_COMMIT" "$EXPECTED_RELEASE_RUN_ID" "$ARCHIVE_PATH" <<'NODE'
+          const fs = require('node:fs');
+          const [statementPath, provenancePath, digest, expectedCommit, expectedRun, archivePath] = process.argv.slice(2);
+          const statement = JSON.parse(fs.readFileSync(statementPath, 'utf8'));
+          const provenance = JSON.parse(fs.readFileSync(provenancePath, 'utf8'));
+          if (statement.schemaVersion !== 'opscore.commercial-release-statement.v2' ||
+              statement.artifact?.filename !== 'OpsCore-release.zip' ||
+              statement.artifact?.sha256?.algorithm !== 'SHA-256' ||
+              statement.artifact?.sha256?.value !== digest ||
+              statement.sourceCommit !== expectedCommit ||
+              String(statement.pipelineId) !== expectedRun) throw new Error('ARCHIVE_STATEMENT_DIGEST_SOURCE_OR_RUN_MISMATCH');
+          const expectedRepository = 'https://github.com/' + process.env.GITHUB_REPOSITORY;
+          const expectedWorkflow = expectedRepository + '/.github/workflows/opscore-secure-release.yml';
+          const archiveBytes = fs.statSync(archivePath).size;
+          if (provenance.schemaVersion !== 'opscore.source-pinned-build.v1' ||
+              provenance.source?.repository !== expectedRepository ||
+              provenance.source?.commit !== expectedCommit ||
+              provenance.subject?.name !== 'OpsCore-release.zip' ||
+              provenance.subject?.digest?.sha256 !== digest ||
+              Number(provenance.subject?.sizeBytes) !== archiveBytes ||
+              provenance.builder?.workflow !== expectedWorkflow ||
+              provenance.builder?.workflowRef !== process.env.EXPECTED_RELEASE_WORKFLOW_REF ||
+              provenance.builder?.workflowCommit !== process.env.EXPECTED_RELEASE_WORKFLOW_COMMIT ||
+              provenance.builder?.runUrl !== 'https://github.com/' + process.env.GITHUB_REPOSITORY + '/actions/runs/' + expectedRun) {
+            throw new Error('SOURCE_PINNED_PROVENANCE_MISMATCH');
+          }
+          const identity = provenance.builder.workflow + '@' + provenance.builder.workflowRef;
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, 'archive_sha256=' + digest + '\n');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, 'archive_signer_identity=' + identity + '\n');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, 'archive_source_commit=' + expectedCommit + '\n');
+          console.log('ARCHIVE_DIGEST_AND_SOURCE_PIN=PASS');
+          NODE
+
+      - name: Install pinned Cosign
+        uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+        with:
+          cosign-release: 'v3.1.4'
+
+      - name: Independently verify GitHub source-pinned and SLSA attestations
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          EXPECTED_SOURCE_COMMIT: ${{ steps.validate_runs.outputs.source_commit }}
+          EXPECTED_RELEASE_RUN_ID: ${{ inputs.release_run_id }}
+          EXPECTED_RELEASE_RUN_ATTEMPT: ${{ steps.validate_runs.outputs.release_run_attempt }}
+          EXPECTED_RELEASE_WORKFLOW_COMMIT: ${{ steps.validate_runs.outputs.release_workflow_commit }}
+          EXPECTED_RELEASE_WORKFLOW_REF: ${{ steps.validate_runs.outputs.release_workflow_ref }}
+          ARCHIVE_SHA256: ${{ steps.verify_archive.outputs.archive_sha256 }}
+        run: |
+          set -euo pipefail
+          source_attestation="$RUNNER_TEMP/source-pinned-attestation-verification.json"
+          slsa_attestation="$RUNNER_TEMP/slsa-attestation-verification.json"
+          gh attestation verify "$ARCHIVE_PATH" --repo "$GITHUB_REPOSITORY" \
+            --predicate-type "https://github.com/mosamiryamany-hub/opscore-platform/attestations/source-pinned-build/v1" \
+            --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/opscore-secure-release.yml" \
+            --format json > "$source_attestation"
+          gh attestation verify "$ARCHIVE_PATH" --repo "$GITHUB_REPOSITORY" \
+            --predicate-type "https://slsa.dev/provenance/v1" \
+            --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/opscore-secure-release.yml" \
+            --format json > "$slsa_attestation"
+          node - "$source_attestation" "$slsa_attestation" <<'NODE'
+          const fs = require('node:fs');
+          const [sourcePath, slsaPath] = process.argv.slice(2);
+          const sourceItems = JSON.parse(fs.readFileSync(sourcePath, 'utf8'));
+          const slsaItems = JSON.parse(fs.readFileSync(slsaPath, 'utf8'));
+          const sourceItem = Array.isArray(sourceItems) ? sourceItems.find(item =>
+            item.verificationResult?.statement?.predicateType ===
+            'https://github.com/mosamiryamany-hub/opscore-platform/attestations/source-pinned-build/v1') : null;
+          const slsaItem = Array.isArray(slsaItems) ? slsaItems.find(item =>
+            item.verificationResult?.statement?.predicateType === 'https://slsa.dev/provenance/v1') : null;
+          if (!sourceItem || !slsaItem) throw new Error('GITHUB_ATTESTATION_VERIFICATION_RESULT_MISSING');
+          const sourceStatement = sourceItem.verificationResult.statement;
+          const source = sourceStatement.predicate;
+          const slsaStatement = slsaItem.verificationResult.statement;
+          const slsa = slsaStatement.predicate;
+          const sourceCert = sourceItem.verificationResult.signature?.certificate || {};
+          const slsaCert = slsaItem.verificationResult.signature?.certificate || {};
+          const expectedWorkflow = 'https://github.com/' + process.env.GITHUB_REPOSITORY +
+            '/.github/workflows/opscore-secure-release.yml';
+          const expectedIdentity = expectedWorkflow + '@' + process.env.EXPECTED_RELEASE_WORKFLOW_REF;
+          const expectedSubject = (sourceStatement.subject || []).some(subject =>
+            subject.name === 'OpsCore-release.zip' &&
+            subject.digest?.sha256 === process.env.ARCHIVE_SHA256);
+          const slsaSubject = (slsaStatement.subject || []).some(subject =>
+            subject.name === 'OpsCore-release.zip' &&
+            subject.digest?.sha256 === process.env.ARCHIVE_SHA256);
+          if (!expectedSubject ||
+              source.source?.repository !== 'https://github.com/' + process.env.GITHUB_REPOSITORY ||
+              source.source?.commit !== process.env.EXPECTED_SOURCE_COMMIT ||
+              source.builder?.workflow !== expectedWorkflow ||
+              source.builder?.workflowRef !== process.env.EXPECTED_RELEASE_WORKFLOW_REF ||
+              source.builder?.workflowCommit !== process.env.EXPECTED_RELEASE_WORKFLOW_COMMIT ||
+              source.builder?.runUrl !== 'https://github.com/' + process.env.GITHUB_REPOSITORY +
+                '/actions/runs/' + process.env.EXPECTED_RELEASE_RUN_ID ||
+              sourceCert.subjectAlternativeName !== expectedIdentity ||
+              sourceCert.githubWorkflowSHA !== process.env.EXPECTED_RELEASE_WORKFLOW_COMMIT ||
+              slsaCert.subjectAlternativeName !== expectedIdentity ||
+              slsaCert.githubWorkflowSHA !== process.env.EXPECTED_RELEASE_WORKFLOW_COMMIT ||
+              !slsaSubject ||
+              slsa.buildDefinition?.buildType !== 'https://actions.github.io/buildtypes/workflow/v1' ||
+              slsa.buildDefinition?.externalParameters?.workflow?.path !== '.github/workflows/opscore-secure-release.yml' ||
+              slsa.buildDefinition?.externalParameters?.workflow?.ref !== process.env.EXPECTED_RELEASE_WORKFLOW_REF ||
+              slsa.buildDefinition?.externalParameters?.workflow?.repository !== 'https://github.com/' + process.env.GITHUB_REPOSITORY ||
+              !(slsa.buildDefinition?.resolvedDependencies || []).some(dep =>
+                dep.digest?.gitCommit === process.env.EXPECTED_RELEASE_WORKFLOW_COMMIT) ||
+              slsa.runDetails?.builder?.id !== expectedIdentity ||
+              slsa.runDetails?.metadata?.invocationId !== 'https://github.com/' + process.env.GITHUB_REPOSITORY +
+                '/actions/runs/' + process.env.EXPECTED_RELEASE_RUN_ID +
+                '/attempts/' + process.env.EXPECTED_RELEASE_RUN_ATTEMPT) {
+            throw new Error('GITHUB_SOURCE_PIN_OR_SLSA_ATTESTATION_MISMATCH');
+          }
+          console.log('GITHUB_SOURCE_PINNED_ATTESTATION=PASS');
+          console.log('GITHUB_SLSA_PROVENANCE_ATTESTATION=PASS');
+          NODE
+          cp "$source_attestation" "$GITHUB_WORKSPACE/SOURCE_PINNED_ATTESTATION_VERIFICATION.json"
+          cp "$slsa_attestation" "$GITHUB_WORKSPACE/SLSA_ATTESTATION_VERIFICATION.json"
+
+      - name: Verify original Sigstore signature on the exact archive bytes
+        env:
+          EXPECTED_SIGNER: ${{ steps.verify_archive.outputs.archive_signer_identity }}
+          ARCHIVE_SHA256: ${{ steps.verify_archive.outputs.archive_sha256 }}
+        run: |
+          set -euo pipefail
+          cosign verify-blob "$ARCHIVE_PATH" --bundle "$BUNDLE_PATH" \
+            --certificate-identity "$EXPECTED_SIGNER" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+          echo "ORIGINAL_ARCHIVE_SIGSTORE_VERIFICATION=PASS"
+
+      - name: Verify candidate route artifact remains candidate-only and exact
+        env:
+          EXPECTED_COMMIT: ${{ steps.validate_runs.outputs.source_commit }}
+          EXPECTED_PIPELINE: ${{ inputs.deploy_run_id }}
+          EXPECTED_CANDIDATE_ID: ${{ inputs.candidate_deployment_id }}
+        run: |
+          set -euo pipefail
+          node - "$ROUTE_EVIDENCE_PATH" <<'NODE'
+          const fs = require('node:fs');
+          const e = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          if (e.schemaVersion !== 'opscore.api-route-acceptance.v2' ||
+              e.status !== 'PASS' || e.engine !== 'postgres' || e.environment !== 'production' ||
+              e.verificationScope !== 'PRODUCTION_POSTGRESQL_HTTP_FULL_ROUTE_AND_BUSINESS_FLOW_INVENTORY' ||
+              String(e.commitSha || '').toLowerCase() !== process.env.EXPECTED_COMMIT.toLowerCase() ||
+              String(e.pipelineId || '') !== process.env.EXPECTED_PIPELINE ||
+              String(e.deploymentId || '') !== process.env.EXPECTED_CANDIDATE_ID ||
+              Number(e.testedRoutes) !== Number(e.inventoryRouteCount) ||
+              Number(e.passed) !== Number(e.testedRoutes) || Number(e.failed) !== 0) {
+            throw new Error('CANDIDATE_ROUTE_EVIDENCE_IDENTITY_OR_SCOPE_INVALID');
+          }
+          console.log('CANDIDATE_ROUTE_EVIDENCE=PASS tested=' + e.testedRoutes + ' deployment=' + e.deploymentId);
+          NODE
+
+      - name: Verify the separate 67-route signed-tenant evidence is CI-only
+        env:
+          EXPECTED_COMMIT: ${{ steps.validate_runs.outputs.source_commit }}
+          EXPECTED_PIPELINE: ${{ inputs.deploy_run_id }}
+        run: |
+          set -euo pipefail
+          node - "$SIGNED_TENANT_EVIDENCE_PATH" <<'NODE'
+          const fs = require('node:fs');
+          const e = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          const routes = Array.isArray(e.routes) ? e.routes : [];
+          const allRoutesProven = routes.length === 67 && routes.every(route => {
+            const common = route.status === 'PASS' &&
+              route.signedContextBound === true &&
+              route.sessionBound === true &&
+              route.transactionBound === true &&
+              route.rawGucTamperDenied === true &&
+              Array.isArray(route.unresolvedReasons) &&
+              route.unresolvedReasons.length === 0;
+            if (route.operation === 'read') {
+              return common && route.tenantARead === true &&
+                route.tenantBRead === true && route.crossTenantReadDenied === true;
+            }
+            if (route.operation === 'write') {
+              return common && route.tenantAWrite === true &&
+                route.tenantBWrite === true && route.crossTenantWriteDenied === true;
+            }
+            return false;
+          });
+          if (e.schemaVersion !== 'opscore.signed-tenant-context-ci-route-coverage.v1' ||
+              e.evidenceClass !== 'DISPOSABLE_POSTGRESQL_18_CI_ROUTE_PROBES' ||
+              e.environment !== 'ci' || e.status !== 'PASS' ||
+              Number(e.expectedRouteCount) !== 67 ||
+              Number(e.coveredRouteCount) !== 67 ||
+              Number(e.failedRouteCount) !== 0 ||
+              String(e.pipelineId || '') !== process.env.EXPECTED_PIPELINE ||
+              String(e.sourceCommitHint || '').toLowerCase() !== process.env.EXPECTED_COMMIT.toLowerCase() ||
+              e.deploymentId !== null || e.productionCertification !== false ||
+              e.manifestComplete !== true || !allRoutesProven ||
+              !/^[a-f0-9]{64}$/.test(String(e.routeManifestSha256 || '')) ||
+              !/^[a-f0-9]{64}$/.test(String(e.routeInventorySha256 || ''))) {
+            throw new Error('SIGNED_TENANT_67_CI_EVIDENCE_SCOPE_OR_COUNTS_INVALID');
+          }
+          console.log('SIGNED_TENANT_CI_EVIDENCE=PASS expected=67 covered=67 failed=0 deploymentId=null environment=ci');
+          NODE
+
+      - name: Verify final Vercel deployment and public alias identity
+        id: final_deployment
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          FINAL_DEPLOYMENT_ID: ${{ inputs.final_deployment_id }}
+          EXPECTED_COMMIT: ${{ steps.validate_runs.outputs.source_commit }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          (async () => {
+            const token = process.env.VERCEL_TOKEN;
+            const team = process.env.VERCEL_ORG_ID;
+            const id = process.env.FINAL_DEPLOYMENT_ID;
+            const expectedCommit = process.env.EXPECTED_COMMIT;
+            if (!/^dpl_[A-Za-z0-9]+$/.test(id || '') || !token || !team) throw new Error('FINAL_DEPLOYMENT_INPUT_INVALID');
+            const headers = { Authorization: 'Bearer ' + token, Accept: 'application/json' };
+            const deploymentUrl = new URL('https://api.vercel.com/v13/deployments/' + encodeURIComponent(id));
+            deploymentUrl.searchParams.set('teamId', team);
+            const dr = await fetch(deploymentUrl, { headers });
+            const d = await dr.json();
+            if (!dr.ok || d.id !== id || d.readyState !== 'READY' ||
+                String(d.target || '').toLowerCase() !== 'production' ||
+                String(d.meta?.githubCommitSha || '').toLowerCase() !== expectedCommit ||
+                d.meta?.githubRepo !== 'opscore-platform' || d.meta?.githubOrg !== 'mosamiryamany-hub') {
+              throw new Error('FINAL_DEPLOYMENT_NOT_READY_OR_SOURCE_MISMATCH');
+            }
+            const aliasUrl = new URL('https://api.vercel.com/v4/aliases/opscore-platform.vercel.app');
+            aliasUrl.searchParams.set('teamId', team);
+            const ar = await fetch(aliasUrl, { headers });
+            const a = await ar.json();
+            if (!ar.ok || a.deploymentId !== id || a.alias !== 'opscore-platform.vercel.app') {
+              throw new Error('PUBLIC_ALIAS_NOT_BOUND_TO_FINAL_DEPLOYMENT');
+            }
+            const out = process.env.GITHUB_OUTPUT;
+            const aliasVerifiedAt = new Date().toISOString();
+            require('node:fs').appendFileSync(out, 'deployment_url=https://' + d.url + '\n');
+            require('node:fs').appendFileSync(out, 'deployment_id=' + d.id + '\n');
+            require('node:fs').appendFileSync(out, 'deployment_created_at=' + new Date(d.createdAt).toISOString() + '\n');
+            require('node:fs').appendFileSync(out, 'alias_verified_at=' + aliasVerifiedAt + '\n');
+            console.log('FINAL_DEPLOYMENT_AND_ALIAS_BINDING=PASS');
+          })().catch(e => { console.error(e.message || e); process.exitCode = 1; });
+          NODE
+
+      - name: Re-run six live public HTTP checks against the verified final deployment alias
+        id: public_smoke
+        env:
+          FINAL_DEPLOYMENT_ID: ${{ steps.final_deployment.outputs.deployment_id }}
+          EXPECTED_DEPLOYMENT_URL: ${{ steps.final_deployment.outputs.deployment_url }}
+          INITIAL_ALIAS_VERIFIED_AT: ${{ steps.final_deployment.outputs.alias_verified_at }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          PUBLIC_BASE_URL: https://opscore-platform.vercel.app
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const crypto = require('node:crypto');
+          const newline = String.fromCharCode(10);
+
+          const base = new URL(process.env.PUBLIC_BASE_URL);
+          const expectedDeployment = new URL(process.env.EXPECTED_DEPLOYMENT_URL);
+          const deploymentId = process.env.FINAL_DEPLOYMENT_ID;
+          const paths = [
+            '/',
+            '/api/health',
+            '/api/verify/deployment',
+            '/api/verify/database',
+            '/api/verify/database-security',
+            '/api/verify/release'
+          ];
+
+          if (base.protocol !== 'https:' || base.hostname !== 'opscore-platform.vercel.app' ||
+              !/^dpl_[A-Za-z0-9]+$/.test(deploymentId || '') ||
+              expectedDeployment.protocol !== 'https:' ||
+              !expectedDeployment.hostname.endsWith('.vercel.app')) {
+            throw new Error('PUBLIC_SMOKE_TARGET_INVALID');
+          }
+
+          (async () => {
+            const checkedAt = new Date().toISOString();
+            const checks = [];
+            for (const path of paths) {
+              const requestUrl = new URL(path, base).toString();
+              const response = await fetch(requestUrl, {
+                method: 'GET',
+                redirect: 'follow',
+                cache: 'no-store',
+                headers: { 'cache-control': 'no-cache', accept: '*/*' },
+                signal: AbortSignal.timeout(20000)
+              });
+              const body = Buffer.from(await response.arrayBuffer());
+              const finalUrl = new URL(response.url);
+              const allowedHosts = new Set([base.hostname, expectedDeployment.hostname]);
+              const contentType = response.headers.get('content-type') || '';
+              if (!response.ok || finalUrl.protocol !== 'https:' ||
+                  !allowedHosts.has(finalUrl.hostname) || finalUrl.pathname !== path ||
+                  body.length === 0) {
+                throw new Error('PUBLIC_HTTP_CHECK_FAILED:' + path +
+                  ':status=' + response.status + ':finalUrl=' + response.url +
+                  ':bodyBytes=' + body.length);
+              }
+              if (path.startsWith('/api/')) {
+                if (!/application\/(?:[a-z0-9.+-]+\+)?json(?:;|$)/i.test(contentType)) {
+                  throw new Error('PUBLIC_API_CONTENT_TYPE_INVALID:' + path + ':' + contentType);
+                }
+                let parsed;
+                try { parsed = JSON.parse(body.toString('utf8')); } catch {
+                  throw new Error('PUBLIC_API_RESPONSE_NOT_VALID_JSON:' + path);
+                }
+                if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+                  throw new Error('PUBLIC_API_RESPONSE_NOT_OBJECT:' + path);
+                }
+              }
+              const result = {
+                path,
+                statusCode: response.status,
+                finalUrl: response.url,
+                contentType,
+                responseBytes: body.length,
+                responseSha256: crypto.createHash('sha256').update(body).digest('hex'),
+                checkedAt: new Date().toISOString()
+              };
+              checks.push(result);
+              console.log('PUBLIC_HTTP_CHECK=PASS path=' + path +
+                ' status=' + response.status + ' bytes=' + body.length);
+            }
+
+            const aliasUrl = new URL('https://api.vercel.com/v4/aliases/opscore-platform.vercel.app');
+            aliasUrl.searchParams.set('teamId', process.env.VERCEL_ORG_ID);
+            const aliasResponse = await fetch(aliasUrl, {
+              headers: {
+                Authorization: 'Bearer ' + process.env.VERCEL_TOKEN,
+                Accept: 'application/json'
+              }
+            });
+            const alias = await aliasResponse.json();
+            if (!aliasResponse.ok || alias.alias !== base.hostname ||
+                alias.deploymentId !== deploymentId) {
+              throw new Error('PUBLIC_ALIAS_CHANGED_DURING_HTTP_SMOKE');
+            }
+            const aliasVerifiedAfterAt = new Date().toISOString();
+
+            const evidence = {
+              schemaVersion: 'opscore.final-public-http-smoke.v1',
+              status: 'PASS',
+              baseUrl: base.toString().replace(/\/$/, ''),
+              deploymentId,
+              expectedDeploymentUrl: process.env.EXPECTED_DEPLOYMENT_URL,
+              aliasVerifiedBeforeAt: process.env.INITIAL_ALIAS_VERIFIED_AT,
+              aliasVerifiedAfterAt,
+              checkedAt,
+              checks
+            };
+            fs.writeFileSync('FINAL_PUBLIC_HTTP_SMOKE.json',
+              JSON.stringify(evidence, null, 2) + newline,
+              { flag: 'wx', mode: 0o600 });
+            fs.appendFileSync(process.env.GITHUB_OUTPUT,
+              'results_path=FINAL_PUBLIC_HTTP_SMOKE.json' + newline +
+              'checked_at=' + checkedAt + newline +
+              'status=PASS' + newline);
+            console.log('FINAL_PUBLIC_HTTP_SMOKE=PASS checks=' + checks.length);
+          })().catch(error => {
+            console.error(error.message || error);
+            process.exitCode = 1;
+          });
+          NODE
+
+      - name: Create signed in-toto archive-to-final-deployment association
+        id: binding
+        env:
+          SOURCE_COMMIT: ${{ steps.validate_runs.outputs.source_commit }}
+          RELEASE_RUN_ID: ${{ inputs.release_run_id }}
+          DEPLOY_RUN_ID: ${{ inputs.deploy_run_id }}
+          DEPLOY_RUN_ATTEMPT: ${{ steps.validate_runs.outputs.deploy_run_attempt }}
+          CANDIDATE_DEPLOYMENT_ID: ${{ inputs.candidate_deployment_id }}
+          FINAL_DEPLOYMENT_ID: ${{ steps.final_deployment.outputs.deployment_id }}
+          FINAL_DEPLOYMENT_URL: ${{ steps.final_deployment.outputs.deployment_url }}
+          ARCHIVE_SHA256: ${{ steps.verify_archive.outputs.archive_sha256 }}
+          ROUTE_EVIDENCE_PATH: ${{ env.ROUTE_EVIDENCE_PATH }}
+          PUBLIC_HTTP_SMOKE_PATH: ${{ steps.public_smoke.outputs.results_path }}
+          SIGNED_TENANT_EVIDENCE_PATH: ${{ env.SIGNED_TENANT_EVIDENCE_PATH }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const crypto = require('node:crypto');
+          const route = JSON.parse(fs.readFileSync(process.env.ROUTE_EVIDENCE_PATH, 'utf8'));
+          const signedTenant = JSON.parse(fs.readFileSync(process.env.SIGNED_TENANT_EVIDENCE_PATH, 'utf8'));
+          const smoke = JSON.parse(fs.readFileSync(process.env.PUBLIC_HTTP_SMOKE_PATH, 'utf8'));
+          const requiredSmokePaths = [
+            '/', '/api/health', '/api/verify/deployment', '/api/verify/database',
+            '/api/verify/database-security', '/api/verify/release'
+          ];
+          const allowedHosts = new Set([
+            'opscore-platform.vercel.app',
+            new URL(process.env.FINAL_DEPLOYMENT_URL).hostname
+          ]);
+          const aliasBeforeMs = Date.parse(smoke.aliasVerifiedBeforeAt);
+          const aliasAfterMs = Date.parse(smoke.aliasVerifiedAfterAt);
+          const smokeStartedMs = Date.parse(smoke.checkedAt);
+          if (smoke.schemaVersion !== 'opscore.final-public-http-smoke.v1' ||
+              smoke.status !== 'PASS' ||
+              smoke.baseUrl !== 'https://opscore-platform.vercel.app' ||
+              smoke.expectedDeploymentUrl !== process.env.FINAL_DEPLOYMENT_URL ||
+              smoke.deploymentId !== process.env.FINAL_DEPLOYMENT_ID ||
+              !Number.isFinite(aliasBeforeMs) || !Number.isFinite(aliasAfterMs) ||
+              !Number.isFinite(smokeStartedMs) ||
+              aliasBeforeMs > smokeStartedMs || smokeStartedMs > aliasAfterMs ||
+              !Array.isArray(smoke.checks) ||
+              smoke.checks.length !== requiredSmokePaths.length ||
+              new Set(smoke.checks.map(check => check.path)).size !== requiredSmokePaths.length ||
+              requiredSmokePaths.some(path => {
+                const item = smoke.checks.find(check => check.path === path);
+                let finalUrl;
+                try { finalUrl = new URL(item?.finalUrl || ''); } catch { return true; }
+                const checkedMs = Date.parse(item?.checkedAt || '');
+                const contentType = String(item?.contentType || '');
+                const apiContentValid = !path.startsWith('/api/') ||
+                  (/application\\/(?:[a-z0-9.+-]+\\+)?json(?:;|$)/i.test(contentType));
+                return !item || !Number.isInteger(item.statusCode) ||
+                  item.statusCode < 200 || item.statusCode >= 300 ||
+                  finalUrl.protocol !== 'https:' || !allowedHosts.has(finalUrl.hostname) ||
+                  finalUrl.pathname !== path || !apiContentValid ||
+                  !Number.isInteger(Number(item.responseBytes)) || Number(item.responseBytes) <= 0 ||
+                  !/^[a-f0-9]{64}$/.test(String(item.responseSha256 || '')) ||
+                  !Number.isFinite(checkedMs) || checkedMs < aliasBeforeMs || checkedMs > aliasAfterMs;
+              })) {
+            throw new Error('FINAL_PUBLIC_HTTP_SMOKE_EVIDENCE_INVALID');
+          }
+          const statement = {
+            _type: 'https://in-toto.io/Statement/v1',
+            subject: [{
+              name: 'OpsCore-release.zip',
+              digest: { sha256: process.env.ARCHIVE_SHA256 }
+            }],
+            predicateType: 'https://github.com/mosamiryamany-hub/opscore-platform/attestations/final-deployment-binding/v1',
+            predicate: {
+              relationship: 'signed-association-of-separately-built-release-archive-and-final-production-deployment',
+              signatureFormat: 'Cosign keyless blob signature over this in-toto Statement JSON; not a DSSE attestation',
+              source: {
+                repository: process.env.GITHUB_REPOSITORY,
+                commit: process.env.SOURCE_COMMIT,
+                secureReleaseWorkflowRunId: Number(process.env.RELEASE_RUN_ID)
+              },
+              archive: {
+                filename: 'OpsCore-release.zip',
+                sha256: process.env.ARCHIVE_SHA256,
+                originalSigstoreSignatureVerified: true
+              },
+              deployment: {
+                provider: 'Vercel',
+                id: process.env.FINAL_DEPLOYMENT_ID,
+                url: process.env.FINAL_DEPLOYMENT_URL,
+                publicAlias: 'https://opscore-platform.vercel.app',
+                publicAliasVerified: true,
+                productionHttpSmoke: {
+                  status: smoke.status,
+                  baseUrl: smoke.baseUrl,
+                  deploymentId: smoke.deploymentId,
+                  checkedAt: smoke.checkedAt,
+                  checks: smoke.checks
+                },
+                deployWorkflowRunId: Number(process.env.DEPLOY_RUN_ID),
+                deployWorkflowRunAttempt: Number(process.env.DEPLOY_RUN_ATTEMPT),
+                candidateDeploymentId: process.env.CANDIDATE_DEPLOYMENT_ID
+              },
+              evidenceScope: {
+                apiRouteAcceptance: {
+                  status: route.status,
+                  testedRoutes: Number(route.testedRoutes),
+                  failedRoutes: Number(route.failed),
+                  deploymentId: route.deploymentId,
+                  classification: 'CANDIDATE_DEPLOYMENT_ONLY_NOT_FINAL_DEPLOYMENT_ACCEPTANCE'
+                },
+                signedTenantContext67Routes: {
+                  status: signedTenant.status,
+                  expectedRoutes: Number(signedTenant.expectedRouteCount),
+                  coveredRoutes: Number(signedTenant.coveredRouteCount),
+                  failedRoutes: Number(signedTenant.failedRouteCount),
+                  evidenceClass: signedTenant.evidenceClass,
+                  environment: signedTenant.environment,
+                  pipelineId: String(signedTenant.pipelineId),
+                  sourceCommitHint: signedTenant.sourceCommitHint,
+                  deploymentId: signedTenant.deploymentId,
+                  productionCertification: signedTenant.productionCertification,
+                  routeManifestSha256: signedTenant.routeManifestSha256,
+                  routeInventorySha256: signedTenant.routeInventorySha256,
+                  classification: 'DISPOSABLE_POSTGRESQL_18_CI_ONLY_NOT_BOUND_TO_ANY_VERCEL_DEPLOYMENT'
+                },
+                finalDeploymentSmoke: {
+                  status: smoke.status,
+                  checkedAt: smoke.checkedAt,
+                  deploymentId: smoke.deploymentId,
+                  checks: smoke.checks
+                }
+              },
+              certification: {
+                isolationEvidenceLabel: 'INTERNAL_PRODUCTION_ISOLATION_TEST_SCOPE',
+                internalResult: 'CERTIFIED',
+                externalAccreditation: false,
+                externalSchemes: [],
+                note: 'This is an internal evidence qualification only; it is not ISO, SOC 2, PCI DSS, or independent third-party certification.'
+              },
+              limitations: {
+                archiveAndVercelDeploymentAreNotByteIdenticalArtifacts: true,
+                claim: 'The signed statement binds the exact signed archive digest to the exact Vercel deployment ID and source commit as a release association. It does not claim the ZIP bytes are the deployed Vercel output.'
+              }
+            }
+          };
+          const body = JSON.stringify(statement, null, 2) + '\n';
+          fs.writeFileSync('FINAL_DEPLOYMENT_BINDING.statement.json', body, { flag: 'wx', mode: 0o600 });
+          fs.writeFileSync('FINAL_DEPLOYMENT_BINDING.statement.sha256',
+            crypto.createHash('sha256').update(body).digest('hex') + '  FINAL_DEPLOYMENT_BINDING.statement.json\n',
+            { flag: 'wx', mode: 0o600 });
+          console.log('FINAL_DEPLOYMENT_BINDING_STATEMENT=PASS');
+          NODE
+
+      - name: Sign and verify in-toto statement blob with Sigstore keyless OIDC
+        env:
+          EXPECTED_BINDER_IDENTITY: https://github.com/${{ github.repository }}/.github/workflows/opscore-final-deployment-binding.yml@refs/heads/${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          cosign sign-blob --yes FINAL_DEPLOYMENT_BINDING.statement.json --bundle FINAL_DEPLOYMENT_BINDING.statement.sigstore.json
+          cosign verify-blob FINAL_DEPLOYMENT_BINDING.statement.json \
+            --bundle FINAL_DEPLOYMENT_BINDING.statement.sigstore.json \
+            --certificate-identity "$EXPECTED_BINDER_IDENTITY" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+          echo "SIGNED_IN_TOTO_STATEMENT_BLOB=PASS"
+
+      - name: Upload immutable binding statement and verification evidence
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: opscore-final-deployment-binding-${{ inputs.deploy_run_id }}-${{ inputs.final_deployment_id }}
+          path: |
+            FINAL_DEPLOYMENT_BINDING.statement.json
+            FINAL_DEPLOYMENT_BINDING.statement.sha256
+            FINAL_DEPLOYMENT_BINDING.statement.sigstore.json
+            FINAL_PUBLIC_HTTP_SMOKE.json
+            SIGNED_TENANT_CONTEXT_CI_ROUTE_COVERAGE.json
+            SOURCE_PINNED_ATTESTATION_VERIFICATION.json
+            SLSA_ATTESTATION_VERIFICATION.json
+          if-no-files-found: error
+          retention-days: 90
