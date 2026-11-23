@@ -10,6 +10,7 @@ const {
 const baseEnv = {
   VERCEL_ENV: 'production',
   VERCEL_URL: 'opscore-platform-staged-abc-mosamiryamany-1692.vercel.app',
+  VERCEL_DEPLOYMENT_ID: 'dpl_candidateabc123',
   NODE_ENV: 'production',
   DATABASE_ENGINE: 'postgres',
   OPSC_DATABASE_URL: 'postgresql://runtime:secret@ep-prod.example.neon.tech/app?sslmode=require&channel_binding=require',
@@ -17,7 +18,10 @@ const baseEnv = {
   OPSC_PRODUCTION_HOLD: 'true',
   OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED: 'true',
   OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN: 'a'.repeat(64),
+  OPSC_PRODUCTION_CANDIDATE_MODE: 'true',
   OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'true',
+  OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED: 'false',
+  OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED: 'false',
   OPSC_RELEASE_VERIFIED: 'false',
   OPSC_PRODUCTION_ISOLATION_CERTIFICATION: 'NOT_CERTIFIED'
 };
@@ -183,7 +187,14 @@ test('production database diagnostic returns sanitized identity without secrets 
   assert.equal(res.headers['x-robots-tag'], 'noindex, nofollow');
   const body = JSON.parse(res.body);
   assert.equal(body.deployment.environment, 'production');
+  assert.equal(body.deployment.deploymentId, 'dpl_candidateabc123');
   assert.equal(body.environment.vercelEnvironment, 'production');
+  assert.equal(body.environment.productionHoldEffectiveActive, true);
+  assert.equal(body.environment.releaseVerifiedConfiguredTrue, false);
+  assert.equal(body.environment.signedTenantContextProductionEnabled, false);
+  assert.equal(body.environment.sessionAutobindEnabled, false);
+  assert.equal(body.environment.candidateProbeEnabled, true);
+  assert.equal(body.environment.candidateModeEnabled, true);
   assert.equal(body.deployment.commitSha, 'a'.repeat(40));
   assert.equal(body.deployment.ref, 'main');
   assert.equal(body.database.applicationDatabaseBinding, 'PRESENT');
