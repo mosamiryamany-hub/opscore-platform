@@ -301,7 +301,8 @@ test('publish refuses unbound evidence and removes candidate credentials only af
   await assert.rejects(() => publish({ env: { ...env, ISOLATION_CERT: 'NOT_CERTIFIED' }, fetchImpl: store.fetchImpl }), /PRODUCTION_BEHAVIORAL_CERTIFICATION_REQUIRED/);
   await assert.rejects(() => publish({ env: { ...env, OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID: '' }, fetchImpl: store.fetchImpl }), /PRODUCTION_RELEASE_ENV_IDENTITY_INVALID/);
   await publish({ env, fetchImpl: store.fetchImpl });
-  assert.equal(store.items.find(x => x.key === 'OPSC_PRODUCTION_ISOLATION_CERTIFICATION').value, 'CERTIFIED');
+  assert.equal(store.items.some(x => x.key === 'OPSC_PRODUCTION_ISOLATION_CERTIFICATION'), false,
+    'the legacy text certification flag must not be published');
   assert.equal(store.items.find(x => x.key === 'OPSC_RELEASE_VERIFIED').value, 'true');
   assert.equal(store.items.find(x => x.key === 'OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID').value, 'dpl_Production123');
   assert.equal(store.items.find(x => x.key === 'OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED').value, 'true');
