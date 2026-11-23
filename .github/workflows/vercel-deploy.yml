@@ -1299,6 +1299,10 @@ jobs:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_RUN_ID: ${{ github.run_id }}
+          # Owner (neondb_owner) connection for migration-072 evidence recording.
+          # Run 45187309089 failed with EVIDENCE_RECORDER_UNEXPECTED:ECONNREFUSED
+          # because this env was absent, so pg connected to an empty host.
+          OPSC_EVIDENCE_OWNER_URL: ${{ secrets.DATABASE_URL }}
 
       - name: Fail unless production promotion and public-domain verification completed
         id: final_gate
