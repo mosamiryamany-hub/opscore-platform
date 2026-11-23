@@ -277,7 +277,8 @@ async function checkMigrationLedger(ownerClient) {
   const {
     readMigrations,
     verifyLegacy042Catalog,
-    verifyControlPlane053Catalog
+    verifyControlPlane053Catalog,
+    verifyLegacyAppRoleOptionalCatalog
   } = require('./apply-postgres-migrations');
   const identityResult = await ownerClient.query(
     'SELECT current_database() AS database_name, current_user AS role_name'
@@ -313,6 +314,25 @@ async function checkMigrationLedger(ownerClient) {
     if (legacy053Evidence.verified) verifiedLegacy.push('053_control_plane_restrictive_tenant_guards.sql');
   }
 
+  // Match the migration runner's exact, catalog-gated reconciliation for the ten
+  // historical app-role-optional migrations. A checksum exception is accepted only
+  // when both ledger/source hashes match the pinned reconciliation and the live
+  // catalog verifier proves the expected RLS/ownership/function contract.
+  let legacyAppRoleOptionalEvidence = null;
+  for (const [filename, reconciliation] of Object.entries(LEGACY_CHECKSUM_RECONCILIATIONS)) {
+    if (reconciliation.verifier !== 'legacy_app_role_optional_catalog_equivalence_v1') continue;
+    const row = ledger.find(item => item.filename === reconciliation.ledgerFilename);
+    const file = sourceByName.get(filename);
+    if (row && file &&
+        String(row.sha256 || '').toLowerCase() === reconciliation.ledgerSha256 &&
+        file.sha256 === reconciliation.sourceSha256) {
+      if (!legacyAppRoleOptionalEvidence) {
+        legacyAppRoleOptionalEvidence = await verifyLegacyAppRoleOptionalCatalog(ownerClient);
+      }
+      if (legacyAppRoleOptionalEvidence.verified) verifiedLegacy.push(filename);
+    }
+  }
+
   const plan = buildMigrationPlan(source, ledger, verifiedLegacy);
   const stagedPreviewPending = plan.pending.filter(item => isStagedPreviewOnlyMigration(item.filename));
   const productionBlockingPending = plan.pending.filter(item => !isStagedPreviewOnlyMigration(item.filename));
@@ -342,7 +362,8 @@ async function checkMigrationLedger(ownerClient) {
       blockers: plan.blockers,
       verifiedLegacyMigrations: verifiedLegacy,
       legacy042Evidence,
-      legacy053Evidence
+      legacy053Evidence,
+      legacyAppRoleOptionalEvidence
     }
   };
 }
