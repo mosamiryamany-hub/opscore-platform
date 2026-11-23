@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: production-public-route-diagnostic-\${{ github.event.pull_request.number || github.ref }}
+  group: production-public-route-diagnostic-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -40,14 +40,14 @@ jobs:
 
       - name: Collect production GET-only public-route observations
         env:
-          OPSC_PRODUCTION_PUBLIC_ROUTE_RESULT_FILE: \${{ runner.temp }}/OPSC_PRODUCTION_PUBLIC_ROUTE_DIAGNOSTIC.json
+          OPSC_PRODUCTION_PUBLIC_ROUTE_RESULT_FILE: ${{ runner.temp }}/OPSC_PRODUCTION_PUBLIC_ROUTE_DIAGNOSTIC.json
         run: node scripts/production-public-route-diagnostic.js
 
       - name: Upload timestamped diagnostic evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: production-public-route-diagnostic-\${{ github.run_id }}
-          path: \${{ runner.temp }}/OPSC_PRODUCTION_PUBLIC_ROUTE_DIAGNOSTIC.json
+          name: production-public-route-diagnostic-${{ github.run_id }}
+          path: ${{ runner.temp }}/OPSC_PRODUCTION_PUBLIC_ROUTE_DIAGNOSTIC.json
           if-no-files-found: warn
           retention-days: 30
