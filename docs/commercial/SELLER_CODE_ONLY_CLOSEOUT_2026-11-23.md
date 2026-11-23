@@ -27,7 +27,7 @@ This scope exception removes seller-hosting and seller-database operations from 
 | Source commit | `fbc4a3082325dff98e2ed41fffe42c3d76863254` |
 | Main branch | Protected main; latest observed head above |
 | Secure Release run | `45122272270`, completed / success |
-| Run jobs | 33 successful steps, 1 conditional skip, 0 failures |
+| Workflow steps | 30 completed successfully, 1 conditional tag check skipped; no failed workflow steps |
 | Conditional skip | Release-tag-to-package-version check; skipped because this run had no release tag (`releaseTag=null`). This is not a passed tag check and no tag is claimed. |
 | Archive | `OpsCore-release.zip`, 2,615,311 bytes |
 | Archive SHA-256 | `7783d6614c033ecf85ee181db394fbd499dccd8f19a0b0509b97d0495e69c6ac` |
@@ -41,7 +41,7 @@ This scope exception removes seller-hosting and seller-database operations from 
 | OIDC issuer | `https://token.actions.githubusercontent.com` |
 | Release statement | `commercialClosure=PASS_WITH_BUYER_RESIDUALS`; `licenseGrant=NONE_PENDING_RIGHTS_HOLDER_DECISION`; `distributionAuthorized=false`; `productionCertification=false`; `productionAcceptance=NOT_VERIFIED_AT_BUILD` |
 
-The run's one skipped conditional step must remain disclosed. If a formal version tag is required for the final delivery channel, create and verify a tag-bound release through the approved workflow as a separate gate; do not rewrite the existing run's evidence or call the skipped step a pass.
+The workflow's conditional tag-check skip must remain disclosed; this run was manually dispatched on main and had no release tag. Separately, the backend regression runner reported **PASS_WITH_SKIPS**: 990 total, 987 passed, 0 failed, 3 skipped, 0 unaccounted. The three skipped tests are `firewall-rate-limit-postgres.test.js` (requires `OPSC_PG_ACCEPTANCE_URL`), `postgres-commercial-acceptance-http.test.js` (requires a dedicated isolated PostgreSQL acceptance URL), and `tenant-isolation-matrix.test.js` (requires a dedicated PostgreSQL test URL). These are database-backed tests relevant to code sale; they are **not waived** by excluding seller Neon. They must be run against a disposable isolated PostgreSQL instance and produce PASS evidence before all-tests closure. The exact skipped reason for the third test is missing database URL, as its test setup is guarded by the same required acceptance connection. Do not call the suite all-pass until these three tests are executed successfully.
 
 ## 3. Localization baseline — exactly 105 current locales
 
