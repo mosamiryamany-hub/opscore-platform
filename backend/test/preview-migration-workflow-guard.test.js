@@ -28,6 +28,9 @@ test('Preview migrations require one exact pinned non-primary branch and the app
   assert.match(previewApply, /branch\.get\("current_state"\) != "ready"/);
   assert.match(previewApply, /primary\.get\("primary"\) is not True/);
   assert.match(previewApply, /primary\.get\("default"\) is not True/);
+  assert.match(previewApply, /branch\.get\("protected"\) is True/);
+  assert.match(previewApply, /REFUSING_NEON_PROTECTED_BRANCH/);
+  assert.match(previewApply, /primary\.get\("project_id"\) != os\.environ\["PROJECT_ID"\]/);
   assert.ok(previewApply.indexOf('Bind exact isolated Neon acceptance branch') < previewApply.indexOf('Resolve isolated Neon owner and runtime connections'));
   assert.ok(previewApply.includes("pull_request:\n    branches:\n      - main\n    paths:"));
   assert.ok(previewApply.includes("github.head_ref == 'ops/acceptance-neon-target-2026-11-19'"));
