@@ -277,3 +277,16 @@ This section is the latest evidence cut and supersedes older deployment-binding 
 Tracking issue: [#418 — remaining seller and buyer commercial gates](https://github.com/mosamiryamany-hub/opscore-platform/issues/418).
 
 **Decision: final archive-to-deployment binding PASS; full seller commercial closeout remains OPEN/HOLD.** Preserve Neon Primary, all branches/snapshots, production settings and the current Vercel alias. Do not mark any skipped or out-of-scope check as passed.
+
+
+### 11.1 Read-only Production Primary spot probe — 2026-11-23
+
+A fresh read-only inspection of Neon project `summer-leaf-18448271`, Primary branch `br-proud-salad-bcshhdap`, database `opscore_acceptance` (PostgreSQL `18.7`) found:
+
+- Migration ledger: 71 rows; latest filename `072_deployment_release_evidence_store.sql`, applied at `2026-11-23T08:57:33.905Z`.
+- Public tables: 137; RLS enabled and FORCE RLS on 136/137. The public exception is `spatial_ref_sys`; `opscore_security.context_hmac_keys` is outside public and is not RLS-enabled.
+- Runtime role `opscore_runtime`: not superuser, no BYPASSRLS, no CREATEDB/CREATEROLE. It cannot SELECT `opscore_security.context_hmac_keys`.
+- Runtime-role behavioral probe used transaction-local forged `app.signed_context_payload`, invalid HMAC signature, and forged legacy tenant/user/access-mode GUCs. Results: resolved tenant NULL, resolved user NULL, resolved access mode empty, and visible row counts were zero for `activity_log`, `users`, `memberships`, and `organizations`.
+- Relevant RLS policies on sessions, users, memberships, organizations, governance and tenant tables were inspected; policy expressions depend on verified context accessors, not direct raw-GUC tenant selection.
+
+This is fresh, exact-Primary behavioral evidence for the tested forged-context denial path. It does **not** close the complete Production tenant trust-boundary gate: it is one read-only negative probe, not full signed positive-flow coverage, all access modes, all privileged-helper grants, independent AI/search pools, every non-PostgreSQL worker, or complete per-route HTTP acceptance. Keep the full gate OPEN until those scopes are evidenced.
