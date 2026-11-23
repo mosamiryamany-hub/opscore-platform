@@ -79,7 +79,7 @@ jobs:
           BRANCH_ID="$INPUT_BRANCH"
           HOST='ep-green-frog-bbyayuh5.c-15.us-east-1.aws.neon.tech'
           test -n "$NEON_API_KEY" || { echo 'NEON_API_KEY_REQUIRED'; exit 1; }
-          test "$BRANCH_ID" = "${BRANCH_ID#br-}" && { echo 'INVALID_NEON_ACCEPTANCE_BRANCH_ID' >&2; exit 1; } || true
+          [[ "$BRANCH_ID" =~ ^br-[a-z0-9-]{8,80}$ ]] || { echo 'INVALID_NEON_ACCEPTANCE_BRANCH_ID' >&2; exit 1; }
           test "$BRANCH_ID" != "$PRIMARY_BRANCH_ID" || { echo 'REFUSING_NEON_PRIMARY_BRANCH'; exit 1; }
           test "$INPUT_DB" = 'opscore_acceptance' || { echo 'EXACT_ACCEPTANCE_DATABASE_REQUIRED'; exit 1; }
           BRANCH_JSON="$(curl -fsS -H "Authorization: Bearer $NEON_API_KEY" -H 'Accept: application/json' "https://console.neon.tech/api/v2/projects/$PROJECT_ID/branches/$BRANCH_ID")"
