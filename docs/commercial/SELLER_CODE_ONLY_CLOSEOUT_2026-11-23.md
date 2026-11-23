@@ -45,3 +45,6 @@ The current Vercel firewall has active CRS and Bot Protection in `log` mode, no 
 The release-proof design still needs correction: the code consumes a textual `CERTIFIED` flag and evidence pinned to a probe deployment ID, while the workflow later builds a separate staged deployment. Same-final-deployment evidence is not established. The catalog-only database-security proof's `NOT_CERTIFIED` result has a different scope from the behavioral release proof; the public contract must make those scopes explicit.
 
 **Commercial closeout remains OPEN.** No buyer license is granted. No external certification is claimed. The exact current-main release package must be regenerated after the release workflow and proof-binding design are corrected.
+
+
+**Buyer-transfer boundary:** Closing the seller's website and infrastructure is an operational acceptance task, not an automatic transfer of the seller's Vercel/Neon accounts, production database, customer data, domain, or hosting to a buyer. Buyer scope remains source code and release evidence unless a separate signed agreement defines a transfer.
