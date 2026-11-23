@@ -20,7 +20,7 @@ test('Preview migrations require one exact pinned non-primary branch and the app
   assert.match(workflowDispatchBranch, /required: true/);
   assert.doesNotMatch(workflowDispatchBranch, /default:/);
   assert.equal((previewApply.match(/default: "br-muddy-pine-bbrexgxx"/g) || []).length, 1);
-  assert.match(previewApply, /INPUT_BRANCH: \${{ inputs.branch || github.event.inputs.branch || '' }}/);
+  assert.ok(previewApply.includes("INPUT_BRANCH: ${{ inputs.branch || github.event.inputs.branch || '' }}"));
   assert.match(previewApply, /BRANCH_ID="\$INPUT_BRANCH"/);
   assert.match(previewApply, /branch\.get\("id"\) != os\.environ\["BRANCH_ID"\]/);
   assert.match(previewApply, /branch\.get\("project_id"\) != os\.environ\["PROJECT_ID"\]/);
@@ -65,8 +65,8 @@ test('Preview migrations require one exact pinned non-primary branch and the app
   assert.match(previewApply, /OPSC_MIGRATION_PINNED_NEON_IDENTITY: '1'/);
   assert.match(previewApply, /DRY_RUN_NEON_PINNED_IDENTITY_MISMATCH/);
   assert.match(previewApply, /APPLY_NEON_PINNED_IDENTITY_MISMATCH/);
-  assert.match(previewApply, /OPSC_MIGRATION_EXPECTED_BRANCH_ID: \${{ steps.neon.outputs.branch_id }}/);
-  assert.match(previewApply, /OPSC_MIGRATION_CONFIRM_BRANCH_ID: \${{ steps.neon.outputs.branch_id }}/);
+  assert.ok(previewApply.includes("OPSC_MIGRATION_EXPECTED_BRANCH_ID: ${{ steps.neon.outputs.branch_id }}"));
+  assert.ok(previewApply.includes("OPSC_MIGRATION_CONFIRM_BRANCH_ID: ${{ steps.neon.outputs.branch_id }}"));
   assert.match(previewApply, /identity\.get\("branchId"\) != os\.environ\["OPSC_MIGRATION_EXPECTED_BRANCH_ID"\]/);
   assert.equal((previewApply.match(/br-muddy-pine-bbrexgxx/g) || []).length, 1);
   assert.match(previewApply, /PRIMARY_BRANCH_ID=\x27br-weathered-tree-bbha3dx4\x27/);
