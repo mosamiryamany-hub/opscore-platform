@@ -218,6 +218,7 @@ jobs:
           EXPECTED_RELEASE_RUN_ID: ${{ inputs.release_run_id }}
           EXPECTED_RELEASE_WORKFLOW_COMMIT: ${{ steps.validate_runs.outputs.release_workflow_commit }}
           EXPECTED_RELEASE_WORKFLOW_REF: ${{ steps.validate_runs.outputs.release_workflow_ref }}
+          ARCHIVE_SHA256: ${{ steps.verify_archive.outputs.archive_sha256 }}
         run: |
           set -euo pipefail
           source_attestation="$RUNNER_TEMP/source-pinned-attestation-verification.json"
@@ -266,6 +267,8 @@ jobs:
                 '/actions/runs/' + process.env.EXPECTED_RELEASE_RUN_ID ||
               sourceCert.subjectAlternativeName !== expectedIdentity ||
               sourceCert.githubWorkflowSHA !== process.env.EXPECTED_RELEASE_WORKFLOW_COMMIT ||
+              slsaCert.subjectAlternativeName !== expectedIdentity ||
+              slsaCert.githubWorkflowSHA !== process.env.EXPECTED_RELEASE_WORKFLOW_COMMIT ||
               !slsaSubject ||
               slsa.buildDefinition?.buildType !== 'https://actions.github.io/buildtypes/workflow/v1' ||
               slsa.buildDefinition?.externalParameters?.workflow?.path !== '.github/workflows/opscore-secure-release.yml' ||
