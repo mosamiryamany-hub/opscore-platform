@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { evaluateRuntimeDiagnostic, DIAGNOSTIC_PATH, REQUIRED_DIAGNOSTIC_CHECKS, ADVISORY_CHECKS, failClosedExitCode } = require('./production-runtime-diagnostic');
+const { evaluateRuntimeDiagnostic, DIAGNOSTIC_PATH, REQUIRED_DIAGNOSTIC_CHECKS, ADVISORY_CHECKS, failClosedExitCode, runDiagnostic } = require('./production-runtime-diagnostic');
 
 function validPayload() {
   return {
@@ -121,6 +121,58 @@ function validPayload() {
 
 test('runtime diagnostic uses the protected internal route contract', () => {
   assert.equal(DIAGNOSTIC_PATH, '/api/internal/production-database-identity');
+});
+
+test('runtime diagnostic sends both Trusted OIDC headers only to the exact staged deployment host', async () => {
+  let requestedUrl;
+  let requestedOptions;
+  const token = 'header.payload.signature';
+  const candidateProbeToken = 'd'.repeat(64);
+  const result = await runDiagnostic('https://opscore-platform-staged-abc.vercel.app', 'a'.repeat(40), '123456789', {
+    token,
+    candidateProbeToken,
+    fetchImpl: async (url, options) => {
+      requestedUrl = url;
+      requestedOptions = options;
+      return { status: 404, headers: { get: () => 'application/json' }, text: async () => '{}' };
+    }
+  });
+
+  assert.equal(requestedUrl, 'https://opscore-platform-staged-abc.vercel.app/api/internal/production-database-identity');
+  assert.equal(requestedOptions.method, 'GET');
+  assert.equal(requestedOptions.redirect, 'manual');
+  assert.equal(requestedOptions.headers['x-opscore-trusted-oidc-idp-token'], token);
+  assert.equal(requestedOptions.headers['x-vercel-trusted-oidc-idp-token'], token);
+  assert.equal(requestedOptions.headers['x-opscore-signed-context-probe'], candidateProbeToken);
+  assert.equal(result.httpStatus, 404);
+  assert.equal(result.promotionAllowed, false);
+});
+
+test('runtime diagnostic fails closed before transport when the candidate probe credential is absent or malformed', async () => {
+  let requests = 0;
+  for (const candidateProbeToken of ['', 'not-a-64-character-hex-token']) {
+    await assert.rejects(
+      runDiagnostic('https://opscore-platform-staged-abc.vercel.app', 'a'.repeat(40), '123456789', {
+        token: 'header.payload.signature',
+        candidateProbeToken,
+        fetchImpl: async () => { requests++; throw new Error('must not be called'); }
+      }),
+      /CANDIDATE_PROBE_TOKEN_REQUIRED_OR_INVALID/
+    );
+  }
+  assert.equal(requests, 0);
+});
+
+test('runtime diagnostic rejects an out-of-scope hostname before making an authenticated request', async () => {
+  let requests = 0;
+  await assert.rejects(
+    runDiagnostic('https://opscore-platform-staged-abc.evil.com', 'a'.repeat(40), '123456789', {
+      token: 'header.payload.signature',
+      fetchImpl: async () => { requests++; throw new Error('must not be called'); }
+    }),
+    /DEPLOYMENT_URL_NOT_ALLOWED/
+  );
+  assert.equal(requests, 0);
 });
 
 test('runtime diagnostic blocks only if every production identity and release gate passes', () => {

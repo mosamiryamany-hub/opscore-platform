@@ -140,6 +140,10 @@ async function runTrustedOidcFetch(baseUrl, requestPath, options = {}) {
   if (!pathValue.startsWith('/') || /[\r\n]/.test(pathValue) || pathValue.startsWith('//')) {
     throw new Error('VERCEL_REQUEST_PATH_INVALID');
   }
+  const candidateProbeToken = String(options.candidateProbeToken || '').trim();
+  if (candidateProbeToken && !/^[a-f0-9]{64}$/i.test(candidateProbeToken)) {
+    throw new Error('CANDIDATE_PROBE_TOKEN_INVALID');
+  }
   const fetchImpl = options.fetchImpl || globalThis.fetch;
   if (typeof fetchImpl !== 'function') throw new Error('VERCEL_TRUSTED_FETCH_UNAVAILABLE');
   const timeoutMs = Number.isSafeInteger(options.processTimeoutMs) && options.processTimeoutMs > 0
@@ -150,7 +154,9 @@ async function runTrustedOidcFetch(baseUrl, requestPath, options = {}) {
     const response = await fetchImpl(new URL(pathValue, deployment.origin).toString(), {
       method: 'GET',
       headers: {
-        'x-opscore-trusted-oidc-idp-token': token, 'x-vercel-trusted-oidc-idp-token': token,
+        'x-opscore-trusted-oidc-idp-token': token,
+        'x-vercel-trusted-oidc-idp-token': token,
+        ...(candidateProbeToken ? { 'x-opscore-signed-context-probe': candidateProbeToken } : {}),
         accept: '*/*'
       },
       redirect: 'manual',

@@ -351,6 +351,25 @@ test('post-publish staged diagnostic accepts OIDC-only authorization only when t
   assert.equal(JSON.parse(res.body).applicationConnectionTls.status, 'VERIFIED');
 });
 
+test('staged diagnostic rejects requests without candidate-probe or Trusted OIDC authorization', async () => {
+  let inspections = 0;
+  const handler = createProductionDatabaseIdentityHandler({
+    inspectDatabase: async () => { inspections++; return identityReport(); },
+    inspectApplicationConnection: async () => applicationTlsReport(),
+    hasVerifiedProductionRelease: () => true
+  });
+  const unauthorizedRequest = request();
+  delete unauthorizedRequest.headers['x-opscore-signed-context-probe'];
+  delete unauthorizedRequest.headers['x-opscore-trusted-oidc-idp-token'];
+  delete unauthorizedRequest.headers['x-vercel-trusted-oidc-idp-token'];
+  const res = responseSink();
+
+  await handler(unauthorizedRequest, res, baseEnv, baseEnv);
+  assert.equal(res.statusCode, 404);
+  assert.equal(res.body, '');
+  assert.equal(inspections, 0);
+});
+
 test('post-publish staged diagnostic remains hidden on aliases and without a verified release proof', async () => {
   let inspections = 0;
   const handler = createProductionDatabaseIdentityHandler({
@@ -376,5 +395,57 @@ test('post-publish staged diagnostic remains hidden on aliases and without a ver
   const unverifiedResponse = responseSink();
   await unverifiedHandler(stagedRequest, unverifiedResponse, baseEnv, baseEnv);
   assert.equal(unverifiedResponse.statusCode, 404);
+  assert.equal(inspections, 0);
+});
+
+test('held staged runtime identity diagnostic can read the database while configured release flags are true but in-process proof is pending', async () => {
+  let inspections = 0;
+  const stagedEnv = {
+    ...baseEnv,
+    OPSC_RELEASE_VERIFIED: 'true',
+    OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED: 'true',
+    OPSC_PRODUCTION_CANDIDATE_MODE: 'true'
+  };
+  const handler = createProductionDatabaseIdentityHandler({
+    inspectDatabase: async () => { inspections++; return identityReport(); },
+    inspectApplicationConnection: async () => applicationTlsReport(),
+    hasVerifiedProductionRelease: () => false,
+    readEmbeddedBuildIdentity: () => null
+  });
+  const res = responseSink();
+  await handler(request(), res, stagedEnv, stagedEnv);
+  assert.equal(res.statusCode, 200);
+  assert.equal(inspections, 1);
+  const body = JSON.parse(res.body);
+  assert.equal(body.database.status, 'IDENTITY_RESOLVED');
+  assert.equal(body.database.productionCertification, false);
+});
+
+test('staged runtime identity diagnostic still rejects a mismatched candidate probe token and disabled candidate mode', async () => {
+  let inspections = 0;
+  const stagedEnv = {
+    ...baseEnv,
+    OPSC_RELEASE_VERIFIED: 'true',
+    OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED: 'true',
+    OPSC_PRODUCTION_CANDIDATE_MODE: 'true'
+  };
+  const handler = createProductionDatabaseIdentityHandler({
+    inspectDatabase: async () => { inspections++; return identityReport(); },
+    inspectApplicationConnection: async () => applicationTlsReport(),
+    hasVerifiedProductionRelease: () => false,
+    readEmbeddedBuildIdentity: () => null
+  });
+  const mismatched = request({ headers: {
+    ...request().headers,
+    'x-opscore-signed-context-probe': '0'.repeat(64)
+  } });
+  const mismatchResponse = responseSink();
+  await handler(mismatched, mismatchResponse, stagedEnv, stagedEnv);
+  assert.equal(mismatchResponse.statusCode, 404);
+
+  const disabledMode = { ...stagedEnv, OPSC_PRODUCTION_CANDIDATE_MODE: 'false' };
+  const modeResponse = responseSink();
+  await handler(request(), modeResponse, disabledMode, disabledMode);
+  assert.equal(modeResponse.statusCode, 404);
   assert.equal(inspections, 0);
 });
