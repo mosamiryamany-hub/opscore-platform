@@ -329,3 +329,17 @@ This is fresh, exact-Primary behavioral evidence for the tested forged-context d
 - No plan upgrade, snapshot schedule change, branch protection mutation, branch deletion, snapshot deletion, or recovery operation was attempted.
 
 **Current DB conclusion:** migration 071/072 are recorded; runtime direct access to HMAC key material is denied; raw legacy-GUC tenant/user/access-mode forgery was rejected in the direct runtime-role probe; 136/137 public base tables enforce RLS+FORCE RLS. **Production-wide isolation certification remains NOT_CERTIFIED** until exact-deployment HTTP behavioral proofs cover the complete route inventory, application/business flows and all non-HTTP workers. Recovery remains **PLAN-LIMITED / OPEN** until protected scheduled snapshots and an accepted restore/RPO/RTO process exist.
+
+
+## 13. Vercel WAF active configuration — 2026-11-23
+
+Read-only inspection of project `prj_8jMqBt0l6OALicWSwQ3ECQTn8yPe` and its active firewall configuration (version 6) found:
+
+- Firewall enabled.
+- Managed CRS rules `gen`, `rce`, `sqli`, `xss` enabled in **log-only** action; other listed CRS rules inactive.
+- Bot Protection enabled in **log-only** action.
+- No IP allow/deny rules configured.
+- A valid active login endpoint rule rate-limits `POST /api/v1/auth/login` and `POST /api/v1/auth/mobile-login` at 60 requests per source IP per fixed 60-second window; intended response is HTTP 429.
+- Last-day active attack query returned no anomalies.
+
+**Conclusion:** the login rate limit is an active enforcement control. The managed attack/bot rules are not blocking controls because their actions are `log`; absence of observed anomalies does not prove WAF effectiveness. Remain OPEN until a controlled Preview rehearsal, false-positive review, approved narrow blocking/challenge configuration, and a real block verification are recorded. No firewall configuration was changed.
