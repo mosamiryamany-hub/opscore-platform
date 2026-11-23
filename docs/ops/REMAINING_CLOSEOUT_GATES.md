@@ -214,3 +214,6 @@ PR #403 is the fail-closed code correction. Its latest OpsCore CI verify job pas
 
 
 The Production database has no existing system-level deployment-attestation store. Existing `evidence_uploads` and `evidence_upload_chunks` are tenant/work-order scoped and must not be repurposed for global release proof. A new isolated attestation table, signing/verification contract, and least-privilege writer/reader grants are required; no schema was changed in this audit.
+
+
+Restore-artifact preservation: the replay branch `br-orange-union-bc90bp8r` previously had a 2026-11-29 expiry. Its expiry was removed on 2026-11-23 and verified as absent; no restore branch or snapshot was deleted.
