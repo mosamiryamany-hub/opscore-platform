@@ -1,0 +1,53 @@
+name: Production public-route diagnostic
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/production-public-route-diagnostic.js'
+      - 'scripts/production-public-route-diagnostic.test.js'
+      - '.github/workflows/production-public-route-diagnostic.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-public-route-diagnostic-\${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  anonymous-get-diagnostic:
+    name: anonymous-get-public-routes
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout diagnostic source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22.23.4'
+
+      - name: Validate script syntax and deterministic classification tests
+        run: |
+          set -euo pipefail
+          node --check scripts/production-public-route-diagnostic.js
+          node --test scripts/production-public-route-diagnostic.test.js
+
+      - name: Collect production GET-only public-route observations
+        env:
+          OPSC_PRODUCTION_PUBLIC_ROUTE_RESULT_FILE: \${{ runner.temp }}/OPSC_PRODUCTION_PUBLIC_ROUTE_DIAGNOSTIC.json
+        run: node scripts/production-public-route-diagnostic.js
+
+      - name: Upload timestamped diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: production-public-route-diagnostic-\${{ github.run_id }}
+          path: \${{ runner.temp }}/OPSC_PRODUCTION_PUBLIC_ROUTE_DIAGNOSTIC.json
+          if-no-files-found: warn
+          retention-days: 30
