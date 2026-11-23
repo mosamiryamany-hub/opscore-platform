@@ -94,3 +94,6 @@ This section supersedes the preceding code-only sale paragraph. The current owne
 - Historical GitHub, Vercel and Neon credentials require provider-side revocation and replacement; connected actions cannot revoke those account-level tokens.
 
 The full measured register is in [Buyer Residuals](../BUYER_RESIDUALS.md) and [Full-site Closeout Scope](SELLER_CODE_ONLY_CLOSEOUT_2026-11-23.md). Current decision: **OPEN**. No license grant or independent external certification is evidenced.
+
+
+**Buyer-transfer boundary:** This full-site closeout measures the seller's own Vercel/Neon operations and website. It does not transfer seller Vercel or Neon accounts, customer records, live database contents, domains, or hosting to a buyer. The buyer deliverable remains source code and release evidence unless a separate written transfer agreement explicitly adds hosted services or data migration.
