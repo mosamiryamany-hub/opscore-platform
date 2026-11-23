@@ -26,12 +26,13 @@ The workflow:
 1. Downloads the exact archive artifact selected by ID from a successful secure-release run.
 2. Recomputes SHA-256 from the downloaded ZIP bytes.
 3. Checks the external commercial statement and source-pinned provenance against the digest, source commit, and release run ID.
-4. Verifies the original archive Sigstore bundle with Cosign using the signer identity declared by the source-pinned builder metadata and GitHub OIDC issuer.
-5. Verifies the successful deployment workflow run, the final Vercel deployment ID, its production/READY state, source commit, and the public alias mapping.
-6. Confirms the original deploy run's staged HTTP smoke, promotion, public-domain verification, and final-gate steps all concluded successfully; independently confirms the public alias still resolves to the exact final deployment ID.
-7. Executes fresh HTTPS GET checks against all six public endpoints after alias verification and records per-endpoint status, response-body digest, byte count, final URL, and timestamp. The signed predicate consumes this generated evidence; it does not hardcode a PASS.
-8. Creates an in-toto Statement JSON whose subject is the exact archive SHA-256 and whose predicate includes the final Vercel deployment ID, deployment URL, source commit, both workflow run IDs, candidate deployment ID, and evidence-scope limitations.
-9. Signs that binding statement with a separate keyless Sigstore signature from this workflow and verifies that signature before uploading the statement, checksum, Sigstore bundle, and live HTTP smoke evidence.
+4. Independently verifies the GitHub source-pinned build attestation and SLSA provenance using `gh attestation verify`, enforcing the expected signer workflow, archive digest, source commit, workflow commit/ref, and exact release run invocation.
+5. Verifies the original archive Sigstore bundle with Cosign using the signer identity declared by the verified source-pinned builder metadata and GitHub OIDC issuer.
+6. Verifies the successful deployment workflow run, the final Vercel deployment ID, its production/READY state, source commit, and the public alias mapping.
+7. Confirms the original deploy run's staged HTTP smoke, promotion, public-domain verification, and final-gate steps all concluded successfully; independently confirms the public alias still resolves to the exact final deployment ID.
+8. Executes fresh HTTPS GET checks against all six public endpoints after alias verification and records per-endpoint status, response-body digest, byte count, final URL, and timestamp. The signed predicate consumes this generated evidence; it does not hardcode a PASS.
+9. Creates an in-toto Statement JSON whose subject is the exact archive SHA-256 and whose predicate includes the final Vercel deployment ID, deployment URL, source commit, both workflow run IDs, candidate deployment ID, and evidence-scope limitations.
+10. Signs that binding statement with a separate keyless Sigstore signature from this workflow and verifies that signature before uploading the statement, checksum, Sigstore bundle, and live HTTP smoke evidence.
 
 ### Important semantics
 
