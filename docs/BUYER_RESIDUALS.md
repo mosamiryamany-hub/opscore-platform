@@ -199,3 +199,6 @@ After PR #403 was squash-merged, current main is `3f7d9110f2f092e0f146b36d007345
 - Vercel workflow run `45132141500`: SUCCESS. Source verification, contract verification, both isolated PostgreSQL 18 RLS/HTTP acceptance jobs passed. Neon Preview migration and Production PITR historical probe were skipped; Production deploy was skipped.
 - Push-on-main CodeQL run `45132141084`: Actions, JavaScript/TypeScript and Python all passed.
 - No Production deployment was created by these runs.
+
+
+The current public domain still runs the old 88df deployment and therefore does not contain the fail-closed PR #403 correction. Any existing `/api/verify/release` response of `PASS` from that live deployment is not accepted as final-deployment certification: the historical workflow evidence was bound to the held candidate ID, not the public-domain deployment ID. Do not use that response as a buyer trust claim.
