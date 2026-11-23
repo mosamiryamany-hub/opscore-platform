@@ -184,3 +184,6 @@ Reproducible table-content manifest roots (SHA-256 over sorted per-table SHA-256
 - Both restore branches: `6f1af6f95f242e12d66e409d8c0d72b8c57132d99a629dd1085e8e61e57817b2` (exact match).
 - Current Primary: `a4e9293bc9fa1628182c6e9b26fbfe1084c7781d5697c58a1ade6ec0f1266242` (different, as expected for newer data).
 These are read-only diagnostic content manifests, not signed backup attestations or proof that the historical snapshot contains current Primary data.
+
+
+Scope limitation: the 136-table manifest covers the `public` schema only. The separate `opscore_security.context_hmac_keys` table is outside that manifest and its restore parity is not claimed.
