@@ -232,3 +232,126 @@ Post-merge CI evidence on main `3f7d9110f2f092e0f146b36d007345fe1977107d`: OpsCo
 
 
 The active public deployment predates the fail-closed proof correction. Its historical `/api/verify/release = PASS` response is not accepted as final-deployment certification because the proof was bound to the held candidate deployment ID rather than the deployment serving the public domain.
+
+
+## 11. Final deployment-binding evidence and remaining closeout — 2026-11-23
+
+This section is the latest evidence cut and supersedes older deployment-binding classifications above where they conflict. Historical observations remain preserved as historical; they are not silently re-dated.
+
+### Verified final binding
+
+- Current `main` at this cut: `8e00b72995876910d3f21506c09f821462e24aec` (PR #417 merged; binding workflow SAN parsing and content-type validation corrected).
+- Final binding workflow: [run 45236113208](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45236113208) — SUCCESS.
+- Binding artifact ID: `14850520927`.
+- in-toto statement SHA-256: `97208c28f918223a36a101c9cb1e19f1affa6f3c472295682425eb8330c0ff22`.
+- Archive SHA-256: `47a1afb9718437c5f4c9f67c449525efed0646a98b70bdc424efe7cc54c340e0` (2,651,915 bytes; release source commit `8011bc5550372a318dbf47bf89e6837059987f58`).
+- Final Vercel deployment: `dpl_6r4ZCJiuVHonja32AXhsjwMSDoig`; public alias `opscore-platform.vercel.app` verified before and after the six-request smoke sequence.
+- Six public HTTPS checks passed: `/`, `/api/health`, `/api/verify/deployment`, `/api/verify/database`, `/api/verify/database-security`, `/api/verify/release` (all HTTP 200; JSON content validated for API routes).
+- Source-pinned GitHub attestation, SLSA verification, original archive Cosign signature, final binding statement signature, and Vercel alias binding passed in that run.
+
+### Evidence scope — do not overstate
+
+- The 358-route acceptance artifact is classified as candidate-deployment-only; it is not full route acceptance for the final production deployment.
+- The 67-route signed tenant artifact is disposable PostgreSQL 18 CI-only, has `deploymentId=null`, and is not Production certification.
+- The binding statement associates the exact ZIP digest with the exact Vercel deployment and source commit. It explicitly does not claim that the ZIP bytes are the Vercel deployment output.
+- The six HTTP checks are smoke checks, not complete route/business-flow acceptance.
+- Internal isolation qualification is not ISO 27001, SOC 2, PCI DSS, or independent third-party accreditation.
+
+### Remaining commercial/technical gates
+
+1. **Current application-source package alignment — VERIFIED for this code delta.** GitHub compare `8011bc5550372a318dbf47bf89e6837059987f58...8e00b72995876910d3f21506c09f821462e24aec` shows exactly two added files: `.github/workflows/opscore-final-deployment-binding.yml` and `docs/release/FINAL_DEPLOYMENT_BINDING_PLAN.md`. Both are absent from the inner `OpsCore-release.zip` (936 entries), so the application payload in the existing release remains aligned with current `main` application source. Do not rebuild solely for these workflow/docs-only changes. Rebuild and regenerate SBOM/provenance only if application source, runtime dependencies/lockfiles, release metadata, or packaging inputs change.
+2. Complete full final-deployment Production route and business-flow acceptance with route inventory, source commit, pipeline, deployment ID, database identity and zero unresolved failures.
+3. Re-run Production tenant-boundary behavioral probes on the exact live deployment and Primary database, including raw-GUC tampering, runtime-role denials, identity-table grants, privileged helpers, AI/search pools and non-PostgreSQL workers. CI-only 67-route evidence is insufficient.
+4. Establish protected scheduled backups, retention, restore rehearsal and measured RPO/RTO. No Neon/Vercel paid upgrade is authorized by this record.
+5. Rehearse WAF blocking/challenge policy on Preview, inspect false positives, then capture approved production enforcement and a real block test. Log-only rules are not enforcement.
+6. Publish Terms, Privacy, Refund, Pricing, Legal and Security pages only after rights-holder-approved legal entity, jurisdiction, contact, privacy/data practices, refund, pricing/tax and licensing content is supplied.
+7. Execute a rights-holder and named-buyer License Schedule pinning exact artifact SHA and selected rights. Until then `licenseGrant=NONE` and `distributionAuthorized=false` remain controlling.
+
+### Buyer-owned and third-party qualification boundaries
+
+- I18N forensic audit: 105 selectable locales = 1 English source, 100 machine-assisted drafts, 4 English fallbacks; 0 native-speaker-reviewed and 0 production-qualified. Structural integrity PASS is not linguistic quality approval.
+- Mobile source and dependency audit are included; signed Android/iOS binaries, physical-device QA, store credentials and publication are not evidenced in this package.
+- Licensed maps/road routing, provider accounts, API credentials, attribution, quotas and live acceptance require buyer/provider arrangements.
+- External accreditation remains absent.
+
+Tracking issue: [#418 — remaining seller and buyer commercial gates](https://github.com/mosamiryamany-hub/opscore-platform/issues/418).
+
+**Decision: final archive-to-deployment binding PASS; full seller commercial closeout remains OPEN/HOLD.** Preserve Neon Primary, all branches/snapshots, production settings and the current Vercel alias. Do not mark any skipped or out-of-scope check as passed.
+
+
+### 11.1 Read-only Production Primary spot probe — 2026-11-23
+
+A fresh read-only inspection of Neon project `summer-leaf-18448271`, Primary branch `br-proud-salad-bcshhdap`, database `opscore_acceptance` (PostgreSQL `18.7`) found:
+
+- Migration ledger: 71 rows; latest filename `072_deployment_release_evidence_store.sql`, applied at `2026-11-23T08:57:33.905Z`.
+- Public tables: 137; RLS enabled and FORCE RLS on 136/137. The public exception is `spatial_ref_sys`; `opscore_security.context_hmac_keys` is outside public and is not RLS-enabled.
+- Runtime role `opscore_runtime`: not superuser, no BYPASSRLS, no CREATEDB/CREATEROLE. It cannot SELECT `opscore_security.context_hmac_keys`.
+- Runtime-role behavioral probe used transaction-local forged `app.signed_context_payload`, invalid HMAC signature, and forged legacy tenant/user/access-mode GUCs. Results: resolved tenant NULL, resolved user NULL, resolved access mode empty, and visible row counts were zero for `activity_log`, `users`, `memberships`, and `organizations`.
+- Relevant RLS policies on sessions, users, memberships, organizations, governance and tenant tables were inspected; policy expressions depend on verified context accessors, not direct raw-GUC tenant selection.
+
+This is fresh, exact-Primary behavioral evidence for the tested forged-context denial path. It does **not** close the complete Production tenant trust-boundary gate: it is one read-only negative probe, not full signed positive-flow coverage, all access modes, all privileged-helper grants, independent AI/search pools, every non-PostgreSQL worker, or complete per-route HTTP acceptance. Keep the full gate OPEN until those scopes are evidenced.
+
+
+## 12. Read-only Neon Primary inspection — 2026-11-23
+
+**Target:** Neon project `summer-leaf-18448271`, Primary/default branch `br-proud-salad-bcshhdap`, database `opscore_acceptance`. All SQL below was read-only except one deliberately transaction-local test that set forged legacy GUC values for the duration of its SELECT; a fresh subsequent connection confirmed the session context clean. No persistent data, schema, role, branch, snapshot, endpoint, or plan was changed.
+
+### Applied migration and database identity
+
+- PostgreSQL reports `18.7 (84da7d8)`.
+- `public.schema_migrations`: 71 rows; latest is `072_deployment_release_evidence_store.sql`, SHA-256 `84c8ad55d4aae5aaa33a7e1edbb1dec5c25cfab773c2238c93956eea67dd2b17`, applied `2026-11-23T08:57:33.905Z`.
+- `071_signed_rls_context_all_access_modes.sql` is present, SHA-256 `46645f6b199e17f55ac46f63518b611c77171980ece6efed8b3ef9be7d4886f6`, applied `2026-11-21T01:28:31.910Z`.
+- Independently recomputed SHA-256 from the exact `main` SQL file bytes matched the ledger for both migrations: `071` = `46645f6b199e17f55ac46f63518b611c77171980ece6efed8b3ef9be7d4886f6` (15,102 bytes) and `072` = `84c8ad55d4aae5aaa33a7e1edbb1dec5c25cfab773c2238c93956eea67dd2b17` (3,761 bytes). Source-to-live-ledger digest parity is therefore 2/2 for these latest security/release migrations.
+
+### Runtime role, signed context and HMAC key isolation
+
+- `opscore_runtime`: `rolsuper=false`, `rolbypassrls=false`, `rolcreaterole=false`, `rolcreatedb=false`, login enabled.
+- `opscore_auth_definer`: `rolsuper=false`, `rolbypassrls=true`, `rolcanlogin=false`; runtime is not a member of this role or `neondb_owner`.
+- `opscore_security.context_hmac_keys` is owned by `opscore_auth_definer`. Runtime has schema USAGE but no SELECT/INSERT/UPDATE/DELETE privilege on the key table.
+- `opscore_security.verified_tenant_context()` and `verified_rls_context()` are SECURITY DEFINER functions owned by `opscore_auth_definer`; runtime may EXECUTE them but cannot directly access the key table. Both pin `search_path` to `pg_catalog, opscore_security, pg_temp`.
+- `opscore_current_tenant()`, `opscore_current_user()` and `opscore_access_mode()` derive values from `verified_rls_context()`, with pinned search paths.
+- Behavioral test as `opscore_runtime`: transaction-local raw writes to `app.tenant_id`, `app.current_tenant_id`, `app.organization_id`, `app.user_id`, `app.current_user_id` and `app.access_mode=system` yielded `verified_tenant=NULL`, `verified_user=NULL`, `verified_access_mode=''`, and `opscore_is_privileged()=false`. A subsequent fresh runtime connection returned `context_clean=true` and empty legacy tenant/user GUC values.
+- A second behavioral test used an active key ID (`prod-20261121013505`, key material was not read) with a structurally valid `system_operation` payload but an intentionally invalid 64-hex HMAC signature. As `opscore_runtime`, all verified identity/access-mode fields remained null/empty and `opscore_is_privileged()=false`; a fresh subsequent connection had `context_clean=true` and empty signed payload/signature settings. This rejects a forged signed-context envelope at the database verifier boundary.
+- `opscore_is_privileged()` is a SECURITY DEFINER function owned by `neondb_owner` (which has BYPASSRLS), and is executable by runtime. Its observed body checks owner/admin/manager membership only by matching the signed `opscore_current_tenant()` and `opscore_current_user()` accessors. Keep this privileged helper in the explicit code-review scope; the raw-GUC test above does not replace review of all caller paths.
+
+### RLS and policy inventory
+
+- 137 public base tables; 136 have both RLS and FORCE RLS.
+- The only public base-table exception is PostGIS `spatial_ref_sys`, owned by `cloud_admin`; `opscore_runtime` has SELECT only and no INSERT/UPDATE/DELETE.
+- 279 public RLS policies observed; none of their `qual` or `with_check` expressions reference raw `current_setting`. 266 policies reference signed tenant/user accessors.
+- 126 public tables expose an `organization_id` column; all 126 have at least one policy using the signed tenant accessor.
+- Dedicated non-standard policies were also inspected: `deployment_release_evidence` and `schema_migrations` deny runtime table privileges; `technician_location_trail` has a restrictive signed-tenant guard; `password_reset_tokens` has a restrictive no-SELECT guard; system rate-limit tables are explicitly shared for runtime; `worker_guard_system_events` has runtime INSERT only.
+- This is a fresh catalog read plus one raw-GUC behavioral probe. It does not establish live cross-tenant acceptance for all HTTP routes, AI/search pools, background workers, or every transaction lifecycle.
+
+### Recovery and plan limitations
+
+- Neon organization `free`; project history retention `21,600 seconds` (6 hours); branch logical-size limit `1,073,741,824 bytes` (1 GiB).
+- Eight branches were listed, all READY; Primary `br-proud-salad-bcshhdap` is default/primary but `protected=false`. The seven non-primary branches are also `protected=false`; preserve all of them.
+- One manual snapshot exists: `snap-aged-thunder-bcsxc1a5`, created `2026-11-19T06:58:55Z`; no automatic snapshot schedule is configured on any of the eight branches.
+- No plan upgrade, snapshot schedule change, branch protection mutation, branch deletion, snapshot deletion, or recovery operation was attempted.
+
+**Current DB conclusion:** migration 071/072 are recorded; runtime direct access to HMAC key material is denied; raw legacy-GUC tenant/user/access-mode forgery was rejected in the direct runtime-role probe; 136/137 public base tables enforce RLS+FORCE RLS. **Production-wide isolation certification remains NOT_CERTIFIED** until exact-deployment HTTP behavioral proofs cover the complete route inventory, application/business flows and all non-HTTP workers. Recovery remains **PLAN-LIMITED / OPEN** until protected scheduled snapshots and an accepted restore/RPO/RTO process exist.
+
+
+## 13. Vercel WAF active configuration — 2026-11-23
+
+Read-only inspection of project `prj_8jMqBt0l6OALicWSwQ3ECQTn8yPe` and its active firewall configuration (version 6) found:
+
+- Firewall enabled.
+- Managed CRS rules `gen`, `rce`, `sqli`, `xss` enabled in **log-only** action; other listed CRS rules inactive.
+- Bot Protection enabled in **log-only** action.
+- No IP allow/deny rules configured.
+- A valid active login endpoint rule rate-limits `POST /api/v1/auth/login` and `POST /api/v1/auth/mobile-login` at 60 requests per source IP per fixed 60-second window; intended response is HTTP 429.
+- Last-day active attack query returned no anomalies.
+
+**Conclusion:** the login rate limit is an active enforcement control. The managed attack/bot rules are not blocking controls because their actions are `log`; absence of observed anomalies does not prove WAF effectiveness. Remain OPEN until a controlled Preview rehearsal, false-positive review, approved narrow blocking/challenge configuration, and a real block verification are recorded. No firewall configuration was changed.
+
+
+## 14. Legal/commercial page assets — source and package inspection
+
+The six legal/commercial HTML assets are present in both current source `backend/web/` and the inner `OpsCore-release.zip`:
+`terms.html`, `privacy.html`, `refund.html`, `pricing.html`, `legal.html`, and `security.html`.
+
+They are **not finished or approved legal content**. Each file explicitly labels itself `OWNER DATA REQUIRED`, states that it is a scaffold, and contains 12 bracketed fields: legal entity, jurisdiction, registration number, contact email/address, privacy contact, data-practices summary, refund policy, price, currency, tax treatment, and update date. The homepage `backend/web/index.html` has no matching links to these pages in the inspected source.
+
+**Corrected classification:** the six page files exist in the release package; the remaining gate is owner-approved content, navigation/public route verification on the live deployment, and legal review before the placeholders can be replaced or represented as published terms. Historical observations that extensionless URLs returned 404 remain historical and are not treated as a current re-test. No legal data has been invented and no placeholder has been published as legal terms.

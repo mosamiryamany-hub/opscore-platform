@@ -69,3 +69,38 @@ Published seller asking floors remain L1 USD 45,000 (use), L2 USD 85,000 (use, m
 **OPEN FOR MARKETING** does not mean delivery authorization. The repository remains `UNLICENSED`; no buyer license is granted until the rights holder and the named buyer execute a transaction-specific License Schedule pinning the exact released artifact and rights.
 
 `backend/docs/verification/COMMERCIAL_CLOSURE_GATE_RESULT.json` dated 2026-11-02 is historical evidence only; it is not the current release verdict.
+
+
+## Latest reconciliation — 2026-11-23 final deployment binding
+
+The final deployment-binding workflow succeeded on run [45236113208](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45236113208). Binding artifact ID: `14850520927`; in-toto statement SHA-256: `97208c28f918223a36a101c9cb1e19f1affa6f3c472295682425eb8330c0ff22`. It associates release archive SHA-256 `47a1afb9718437c5f4c9f67c449525efed0646a98b70bdc424efe7cc54c340e0` (source `8011bc5550372a318dbf47bf89e6837059987f58`) with final Vercel deployment `dpl_6r4ZCJiuVHonja32AXhsjwMSDoig` and the verified public alias. Six public HTTPS smoke checks, source-pinned GitHub attestation, SLSA verification, original Cosign archive signature and final binding statement signature passed.
+
+This result supersedes the older statement that no final deployment binding existed. It does **not** supersede the following boundaries: 358 API routes remain candidate-only; 67 signed-tenant routes remain disposable PostgreSQL 18 CI-only; six public HTTP checks are smoke checks, not complete route/business-flow acceptance; the archive and Vercel deployment are separately built outputs, not byte-identical; and internal evidence is not external accreditation.
+
+The release archive remains version 0.11.62 and is pinned to source commit `8011bc...`. The later main commit `8e00b72995876910d3f21506c09f821462e24aec` contains the binding-workflow/docs correction, not a regenerated application release. GitHub compare from release source `8011bc5550372a318dbf47bf89e6837059987f58` to current `main` `8e00b72995876910d3f21506c09f821462e24aec` contains only the final deployment-binding workflow and its plan document. Both are excluded from the 936-entry inner `OpsCore-release.zip`; therefore the current application payload remains aligned with current `main` application source for this delta. A new secure package is required only after an application-source, runtime-dependency/lockfile, release-metadata, or packaging-input change.
+
+Commercial rights remain unchanged: `licenseGrant=NONE_PENDING_RIGHTS_HOLDER_DECISION`, `distributionAuthorized=false`. No buyer license, resale or distribution permission is created by CI, signatures or deployment evidence. The I18N audit reports 105 selectable locales (1 English source, 100 machine-assisted drafts, 4 English fallbacks), 0 native-speaker reviewed and 0 production-qualified. Mobile signed binaries/device acceptance, licensed maps, legal-page owner content, full production business-flow acceptance, production tenant behavioral proof, protected scheduled backup/restore/RPO/RTO, WAF enforcement, and external accreditation remain open or buyer-owned as detailed in [issue #418](https://github.com/mosamiryamany-hub/opscore-platform/issues/418).
+
+**Updated decision: final deployment binding PASS; commercial closure remains HOLD / OPEN.**
+
+
+## Production Primary spot probe — 2026-11-23
+
+Read-only inspection of Neon Primary `br-proud-salad-bcshhdap`, database `opscore_acceptance`, PostgreSQL 18.7: migration ledger has 71 rows, latest `072_deployment_release_evidence_store.sql` applied at `2026-11-23T08:57:33.905Z`; 136 of 137 public tables have both RLS and FORCE RLS (the public exception is `spatial_ref_sys`). `opscore_runtime` is not superuser and has no BYPASSRLS, CREATEDB or CREATEROLE; it cannot read the HMAC key table. A transaction-local forged signed-context payload, invalid signature and forged legacy tenant/user/access-mode GUCs resolved to NULL/empty context, with zero visible rows in `activity_log`, `users`, `memberships` and `organizations`. This proves the tested negative raw-GUC path only; complete Production tenant isolation remains OPEN pending signed positive paths, all access modes, privileged-helper review, independent AI/search pools, non-PostgreSQL workers and full route/business-flow acceptance.
+
+
+## Latest Neon Primary read-only verification — 2026-11-23
+
+Fresh inspection of Neon project `summer-leaf-18448271`, Primary branch `br-proud-salad-bcshhdap`, database `opscore_acceptance` found PostgreSQL 18.7 and 71 applied migrations, latest `072_deployment_release_evidence_store.sql`; migration 071 signed RLS context is also recorded. The runtime role is non-superuser, lacks BYPASSRLS/CREATEROLE/CREATEDB, cannot read or mutate `opscore_security.context_hmac_keys`, and is not a member of either owner/definer role. A direct raw-GUC forgery probe as `opscore_runtime` returned null verified tenant/user, empty verified access mode and false privileged result; a fresh follow-up connection had clean context. A second test supplied a structurally valid system-purpose signed-context payload with an active key ID but an invalid HMAC signature; it was also rejected, and the next connection showed empty signed payload/signature state. Catalog found 136/137 public base tables with RLS and FORCE RLS; the sole exception `spatial_ref_sys` is PostGIS-owned and runtime read-only. The 126 tables with `organization_id` each have at least one policy bound to the signed tenant accessor. This does not prove complete live HTTP/business-flow or worker-level isolation; production-wide isolation remains NOT_CERTIFIED pending exact-deployment acceptance. The exact SHA-256 of each latest SQL file on `main` also matches its Neon migration-ledger digest (071 2/2; 072 2/2), confirming source-to-ledger migration-byte parity for these two migrations.
+
+Recovery posture is currently confirmed directly: Neon org plan `free`, 6-hour history retention, 1 GiB branch logical-size limit, eight READY branches all unprotected, one manual snapshot (`snap-aged-thunder-bcsxc1a5`, 2026-11-19), and no automated snapshot schedules on any branch. No upgrade or database mutation was made. Protected scheduled backups and measured restore/RPO/RTO remain OPEN / PLAN-LIMITED.
+
+
+### Latest Vercel WAF read — 2026-11-23
+
+The active Vercel firewall is enabled. Managed CRS rules `gen`, `rce`, `sqli`, `xss` and Bot Protection are enabled in log-only mode; no IP allow/deny rules exist. A valid, active authentication rate-limit rule enforces 60 POST login/mobile-login requests per source IP per 60 seconds. The last-day attack query returned no anomalies. Therefore authentication edge rate limiting is active, but managed WAF attack/bot enforcement remains OPEN; log-only is not blocking. No config was changed.
+
+
+### Legal/commercial web pages — source/package verification
+
+The six HTML files `terms.html`, `privacy.html`, `refund.html`, `pricing.html`, `legal.html`, and `security.html` are included in the current application source and the 0.11.62 release ZIP. They are clearly marked `OWNER DATA REQUIRED` and each carries 12 unresolved placeholders for entity/jurisdiction/registration/contact/privacy/refund/price/tax/update date. The inspected homepage source contains no links to these assets. They are therefore existing scaffolds, **not published or approved legal content**. Live route reachability/navigation and legal review remain open. Do not call the files missing, and do not call their presence legal publication.
