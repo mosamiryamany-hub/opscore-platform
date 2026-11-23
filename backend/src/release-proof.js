@@ -945,6 +945,7 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
       postgresHttpAcceptance: postgresHttpAcceptance.status
     },
     productionEvidenceDeploymentBinding,
+    productionIsolationCertificationScope: 'BEHAVIORAL_PRODUCTION_DEPLOYMENT_EVIDENCE_BOUND_TO_RUNTIME_DEPLOYMENT_ID',
     productionAcceptance: {
       status: acceptanceVerified ? 'PASS' : 'NOT_VERIFIED',
       commitSha: acceptanceVerified ? productionAcceptance.sourceCommit : null,
