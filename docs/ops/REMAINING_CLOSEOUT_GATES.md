@@ -217,3 +217,9 @@ The Production database has no existing system-level deployment-attestation stor
 
 
 Restore-artifact preservation: the replay branch `br-orange-union-bc90bp8r` previously had a 2026-11-29 expiry. Its expiry was removed on 2026-11-23 and verified as absent; no restore branch or snapshot was deleted.
+
+
+Read-only SHA-256 table-content manifest roots across 136 public base tables:
+- Restore proof and replay branches both: `6f1af6f95f242e12d66e409d8c0d72b8c57132d99a629dd1085e8e61e57817b2`.
+- Current Primary: `a4e9293bc9fa1628182c6e9b26fbfe1084c7781d5697c58a1ade6ec0f1266242`.
+The equal restore roots verify identical table content between the two branches; the different Primary root confirms point-in-time divergence. These are diagnostic hashes, not signed backup attestations or current-Primary restore parity.
