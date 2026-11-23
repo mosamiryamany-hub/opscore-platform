@@ -263,6 +263,7 @@ jobs:
           node <<'NODE'
           const fs = require('node:fs');
           const crypto = require('node:crypto');
+          const newline = String.fromCharCode(10);
 
           const base = new URL(process.env.PUBLIC_BASE_URL);
           const expectedDeployment = new URL(process.env.EXPECTED_DEPLOYMENT_URL);
@@ -328,12 +329,12 @@ jobs:
               checks
             };
             fs.writeFileSync('FINAL_PUBLIC_HTTP_SMOKE.json',
-              JSON.stringify(evidence, null, 2) + '\\n',
+              JSON.stringify(evidence, null, 2) + newline,
               { flag: 'wx', mode: 0o600 });
             fs.appendFileSync(process.env.GITHUB_OUTPUT,
-              'results_path=FINAL_PUBLIC_HTTP_SMOKE.json\\n' +
-              'checked_at=' + checkedAt + '\\n' +
-              'status=PASS\\n');
+              'results_path=FINAL_PUBLIC_HTTP_SMOKE.json' + newline +
+              'checked_at=' + checkedAt + newline +
+              'status=PASS' + newline);
             console.log('FINAL_PUBLIC_HTTP_SMOKE=PASS checks=' + checks.length);
           })().catch(error => {
             console.error(error.message || error);
@@ -365,17 +366,30 @@ jobs:
             '/', '/api/health', '/api/verify/deployment', '/api/verify/database',
             '/api/verify/database-security', '/api/verify/release'
           ];
+          const allowedHosts = new Set([
+            'opscore-platform.vercel.app',
+            new URL(process.env.FINAL_DEPLOYMENT_URL).hostname
+          ]);
           if (smoke.schemaVersion !== 'opscore.final-public-http-smoke.v1' ||
               smoke.status !== 'PASS' ||
+              smoke.baseUrl !== 'https://opscore-platform.vercel.app' ||
+              smoke.expectedDeploymentUrl !== process.env.FINAL_DEPLOYMENT_URL ||
               smoke.deploymentId !== process.env.FINAL_DEPLOYMENT_ID ||
               !Array.isArray(smoke.checks) ||
               smoke.checks.length !== requiredSmokePaths.length ||
+              new Set(smoke.checks.map(check => check.path)).size !== requiredSmokePaths.length ||
               requiredSmokePaths.some(path => {
                 const item = smoke.checks.find(check => check.path === path);
-                return !item || item.statusCode < 200 || item.statusCode >= 300 ||
+                let finalUrl;
+                try { finalUrl = new URL(item?.finalUrl || ''); } catch { return true; }
+                return !item || !Number.isInteger(item.statusCode) ||
+                  item.statusCode < 200 || item.statusCode >= 300 ||
+                  finalUrl.protocol !== 'https:' || !allowedHosts.has(finalUrl.hostname) ||
                   !/^[a-f0-9]{64}$/.test(String(item.responseSha256 || '')) ||
-                  Number(item.responseBytes) <= 0;
-              })) {
+                  Number(item.responseBytes) <= 0 ||
+                  !Number.isFinite(Date.parse(item.checkedAt));
+              }) ||
+              !Number.isFinite(Date.parse(smoke.checkedAt))) {
             throw new Error('FINAL_PUBLIC_HTTP_SMOKE_EVIDENCE_INVALID');
           }
           const statement = {
