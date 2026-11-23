@@ -599,7 +599,7 @@ jobs:
                 const checkedMs = Date.parse(item?.checkedAt || '');
                 const contentType = String(item?.contentType || '');
                 const apiContentValid = !path.startsWith('/api/') ||
-                  (/application\\/(?:[a-z0-9.+-]+\\+)?json(?:;|$)/i.test(contentType));
+                  (/application\/(?:[a-z0-9.+-]+\+)?json(?:;|$)/i.test(contentType));
                 return !item || !Number.isInteger(item.statusCode) ||
                   item.statusCode < 200 || item.statusCode >= 300 ||
                   finalUrl.protocol !== 'https:' || !allowedHosts.has(finalUrl.hostname) ||
