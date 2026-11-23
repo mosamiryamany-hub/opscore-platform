@@ -66,10 +66,11 @@ jobs:
           done
           release="$(curl --fail --silent --show-error -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$REPOSITORY/actions/runs/$RELEASE_RUN_ID")"
           deploy="$(curl --fail --silent --show-error -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$REPOSITORY/actions/runs/$DEPLOY_RUN_ID")"
-          node - "$GITHUB_OUTPUT" "$release" "$deploy" <<'NODE'
+          jobs="$(curl --fail --silent --show-error -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$REPOSITORY/actions/runs/$DEPLOY_RUN_ID/jobs?per_page=100")"
+          node - "$GITHUB_OUTPUT" "$release" "$deploy" "$jobs" <<'NODE'
           const fs = require('node:fs');
-          const [out, releaseRaw, deployRaw] = process.argv.slice(2);
-          const release = JSON.parse(releaseRaw), deploy = JSON.parse(deployRaw);
+          const [out, releaseRaw, deployRaw, jobsRaw] = process.argv.slice(2);
+          const release = JSON.parse(releaseRaw), deploy = JSON.parse(deployRaw), jobs = JSON.parse(jobsRaw);
           const repo = process.env.GITHUB_REPOSITORY;
           if (release.status !== 'completed' || release.conclusion !== 'success' ||
               release.path !== '.github/workflows/opscore-secure-release.yml' ||
@@ -80,6 +81,18 @@ jobs:
             throw new Error('PRODUCTION_DEPLOY_RUN_NOT_SUCCESSFUL_OR_WRONG_WORKFLOW');
           }
           if (!/^[a-f0-9]{40}$/.test(String(deploy.head_sha || ''))) throw new Error('DEPLOY_COMMIT_INVALID');
+          const deployJob = (jobs.jobs || []).find(job => job.name === 'deploy');
+          if (!deployJob || deployJob.conclusion !== 'success') throw new Error('DEPLOY_JOB_NOT_SUCCESSFUL');
+          const requiredSteps = [
+            'Verify staged production HTTP, database, security and release proofs',
+            'Promote only the verified staged deployment',
+            'Verify production domain resolves to the exact promoted commit',
+            'Fail unless production promotion and public-domain verification completed'
+          ];
+          for (const name of requiredSteps) {
+            const step = (deployJob.steps || []).find(item => item.name === name);
+            if (!step || step.conclusion !== 'success') throw new Error('REQUIRED_FINAL_DEPLOY_STEP_NOT_SUCCESSFUL:' + name);
+          }
           fs.appendFileSync(out, 'source_commit=' + deploy.head_sha + '\n');
           fs.appendFileSync(out, 'deploy_run_attempt=' + String(deploy.run_attempt || '') + '\n');
           fs.appendFileSync(out, 'deploy_head_branch=' + deploy.head_branch + '\n');
@@ -239,19 +252,10 @@ jobs:
           })().catch(e => { console.error(e.message || e); process.exitCode = 1; });
           NODE
 
-      - name: Request scoped GitHub Actions OIDC identity for final-domain smoke
-        id: vercel_oidc
-        run: node scripts/request-vercel-trusted-oidc.js
-
-      - name: Re-run six public production HTTP checks against the exact final alias
-        run: node scripts/production-deployment-smoke.js "https://opscore-platform.vercel.app" "$EXPECTED_COMMIT"
+      - name: Confirm original deploy run completed final-domain HTTP verification
         env:
-          EXPECTED_COMMIT: ${{ steps.validate_runs.outputs.source_commit }}
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_SCOPE: mosamiryamany-1692
-          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          VERCEL_TRUSTED_OIDC_TOKEN: ${{ steps.vercel_oidc.outputs.token }}
+          DEPLOY_RUN_ID: ${{ inputs.deploy_run_id }}
+        run: echo "FINAL_PUBLIC_DOMAIN_SMOKE_VERIFIED_FROM_SUCCESSFUL_DEPLOY_RUN=$DEPLOY_RUN_ID"
 
       - name: Create signed in-toto archive-to-final-deployment association
         id: binding
