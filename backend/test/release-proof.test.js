@@ -759,9 +759,9 @@ test('functionalApiRouteAcceptance flips to PASS_CONTRACT_SCOPE only with commit
     assert.equal(incompleteProof.gates.functionalApiRouteAcceptance, 'NOT_VERIFIED', 'incomplete inventory evidence cannot pass');
 
     // A full Production route result requires exact PostgreSQL, database,
-    // deployment, commit and pipeline binding plus zero-failure route and
-    // business-flow inventories. This fixture validates only the proof contract;
-    // it is not evidence that the current live deployment has passed it.
+    // held-probe deployment, commit and pipeline binding plus zero-failure route
+    // and business-flow inventories. The staged runtime has its own deployment
+    // identity and is smoke-verified independently after this evidence is embedded.
     const productionEnv = {
       ...env,
       OPSC_PRODUCTION_DATABASE_NAME: 'opscore_acceptance',
@@ -861,14 +861,17 @@ test('functionalApiRouteAcceptance flips to PASS_CONTRACT_SCOPE only with commit
     const candidateProof = createPublicReleaseProof(
       candidateEnv, fixedNow, identityPath, acceptance.path, postgresHttp.path, candidateRoute.path
     );
-    assert.equal(candidateProof.gates.functionalApiRouteAcceptance, 'NOT_VERIFIED',
-      'candidate evidence cannot certify a different final runtime deployment');
+    assert.equal(candidateProof.gates.functionalApiRouteAcceptance, 'PASS_PRODUCTION_FUNCTIONAL_SCOPE',
+      'valid route evidence stays bound to the exact held probe deployment, even when the staged bundle has a distinct deployment ID');
     assert.equal(candidateProof.gates.productionEvidenceDeploymentBinding, 'NOT_VERIFIED');
     assert.equal(candidateProof.productionEvidenceDeploymentBinding.currentDeploymentId, 'dpl_final654321');
     assert.equal(candidateProof.productionEvidenceDeploymentBinding.configuredProbeDeploymentId, 'dpl_123456');
+    assert.equal(candidateProof.productionEvidenceDeploymentBinding.evidenceDeploymentId, 'dpl_123456');
+    assert.equal(candidateProof.productionEvidenceDeploymentBinding.evidenceBindingSource,
+      'EXACT_HELD_PROBE_DEPLOYMENT_ID_AND_RUNTIME_DEPLOYMENT_ID');
     assert.equal(candidateProof.gates.productionIsolationCertification, 'NOT_CERTIFIED',
-      'a CERTIFIED environment string cannot override a deployment-ID mismatch');
-    assert.equal(candidateProof.productionIsolationCertificationScope, 'BEHAVIORAL_PRODUCTION_DEPLOYMENT_EVIDENCE_BOUND_TO_RUNTIME_DEPLOYMENT_ID');
+      'a CERTIFIED environment string cannot replace missing production session, recovery, and PITR evidence');
+    assert.equal(candidateProof.productionIsolationCertificationScope, 'BEHAVIORAL_PRODUCTION_DEPLOYMENT_EVIDENCE_BOUND_TO_EXACT_PROBE_DEPLOYMENT_ID');
     assert.equal(candidateProof.productionEvidenceDeploymentBinding.configuredProbeMatchesCurrent, false);
     assert.equal(productionProof.gates.commercialClosure, 'UNVERIFIED',
       'route-scope evidence alone must not certify the complete release');
