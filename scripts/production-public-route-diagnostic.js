@@ -79,9 +79,12 @@ async function requestTarget(target) {
     }
     const body = bytes.toString('utf8');
     const contentType = response.headers.get('content-type') || '';
+    const ownerDataRequiredMarkerFound = target.kind === 'legal-page' && /OWNER\\s+DATA\\s+REQUIRED/i.test(body);
     const result = {
       path: target.path,
       kind: target.kind,
+      expected: target.expected,
+      ownerDataRequiredMarkerFound,
       statusCode: response.status,
       contentType,
       responseBytes: bytes.byteLength,
@@ -153,6 +156,7 @@ async function requestTarget(target) {
     return {
       path: target.path,
       kind: target.kind,
+      expected: target.expected,
       statusCode: null,
       contentType: '',
       responseBytes: 0,
@@ -173,7 +177,7 @@ function finalizeLegalClassifications(observations) {
     row.classification = classifyLegalResponse({
       statusCode: row.statusCode,
       contentType: row.contentType,
-      body: '',
+      body: row.ownerDataRequiredMarkerFound ? 'OWNER DATA REQUIRED' : '',
       bodySha256: row.responseSha256,
       homepageSha256: homepage.responseSha256
     });
