@@ -76,3 +76,31 @@ Exact release evidence and the current full-site closeout scope are documented i
 Current locale catalog: exactly 105 (1 English source, 100 machine-assisted drafts, 4 English fallbacks); 0 native-speaker reviewed and 0 production-qualified. The historical 114-row qualification matrix is not the current catalog.
 
 Seller-side code gates remain: complete applicable test accounting on exact source, isolated PostgreSQL migration/schema/RLS/tenant/FK tests, dependency/security audits, deterministic SBOM/provenance, archive/signature verification, clean-room reproducibility, and exact-source trust-link reconciliation. External ISO/SOC2/PCI certificates are not evidenced and cannot be self-issued by CI. Buyer environment acceptance and license grant remain separate.
+
+
+## Superseding full-site evidence update — 2026-11-23
+
+This section supersedes the preceding code-only sale paragraph. The current owner-approved scope includes the seller Vercel website, Production deployment, Neon Production database and recovery posture, and six legal/commercial pages.
+
+- Evidence-cut `main`: `5e3cb211b7660002418757612033ff8928f25b69`; PR #401 merged.
+- OpsCore CI run `45129195704`: 990 total / 987 passed / 0 failed / 3 skipped (`PASS_WITH_SKIPS`).
+- PostgreSQL 18 acceptance run `45129195834`: HTTP commercial acceptance 1/1 PASS; PostgreSQL firewall rate-limit 1/1 PASS; tenant matrix 2/2 PASS; 346 source-derived tenant routes PASS; disposable logical restore 137 tables PASS.
+- The three generic-runner skips were separately run and passed in the isolated PostgreSQL job. Do not relabel the generic runner's own result.
+- Production deployment remains `dpl_FVXwPoqefvkNsxA3BqVrxYnxRQka` on `88df9046...`; no Production deployment exists for `5e3cb211...` in the Vercel deployment query. The successful push workflow did not run the separately gated Production deploy job.
+- Vercel WAF: active CRS/Bot Protection rules are log-only; auth rate limit is active at 60/IP/60s; active attack query returned no anomalies.
+- Neon Free: 6-hour history, one existing manual snapshot, no scheduled backups, Primary unprotected due plan limit. Two restore branches from the same snapshot matched SHA-256 content digests across 136/136 public tables, while Primary-versus-restore differences remain expected historical point-in-time divergence, not current parity.
+- Production proof binding remains open: the code uses a textual certification flag and evidence pinned to a probe deployment; the workflow subsequently builds a separate staged deployment. Same-final-deployment certification is not established.
+- Six legal/commercial pages were reported 404 by the supplied probe; publishing requires owner-approved legal and commercial facts.
+- Historical GitHub, Vercel and Neon credentials require provider-side revocation and replacement; connected actions cannot revoke those account-level tokens.
+
+The full measured register is in [Buyer Residuals](../BUYER_RESIDUALS.md) and [Full-site Closeout Scope](SELLER_CODE_ONLY_CLOSEOUT_2026-11-23.md). Current decision: **OPEN**. No license grant or independent external certification is evidenced.
+
+
+**Buyer-transfer boundary:** This full-site closeout measures the seller's own Vercel/Neon operations and website. It does not transfer seller Vercel or Neon accounts, customer records, live database contents, domains, or hosting to a buyer. The buyer deliverable remains source code and release evidence unless a separate written transfer agreement explicitly adds hosted services or data migration.
+
+
+- Language boundary remains explicit: 105 selectable locales (1 English source, 100 machine-assisted drafts, 4 English fallbacks); 0/105 native-speaker reviewed and 0/105 production-qualified. The 114-row qualification register is historical, not the selectable catalog.
+- Android/iOS signed builds, physical-device QA and app-store publication require buyer signing keys/accounts and remain buyer-side or separately contracted.
+
+
+PR #403 adds an explicit `productionIsolationCertificationScope` to distinguish catalog-only status from behavioral evidence bound to the running deployment. This contract update remains pending normal review/merge.
