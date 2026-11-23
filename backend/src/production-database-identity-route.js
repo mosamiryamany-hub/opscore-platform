@@ -313,6 +313,8 @@ function createProductionDatabaseIdentityHandler(dependencies = {}) {
         generatedAt: new Date().toISOString(),
         deployment: {
           environment: safeString(effective.VERCEL_ENV, 32),
+          deploymentId: /^dpl_[A-Za-z0-9]+$/.test(String(effective.VERCEL_DEPLOYMENT_ID || ''))
+            ? String(effective.VERCEL_DEPLOYMENT_ID) : null,
           expectedDeploymentHostMatched: true,
           commitSha: embedded && /^[a-f0-9]{40}$/.test(String(embedded.commitSha || '').toLowerCase())
             ? String(embedded.commitSha).toLowerCase() : null,
