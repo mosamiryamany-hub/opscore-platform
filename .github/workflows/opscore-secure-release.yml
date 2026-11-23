@@ -235,7 +235,7 @@ jobs:
           }
           const predicate = {
             buildDefinition: {
-              buildType: 'https://github.com/' + repository + '/.github/workflows/opscore-secure-release.yml',
+              buildType: 'https://github.com/slsa-framework/github-actions-buildtypes/tree/main/workflow/v1',
               externalParameters: {
                 sourceRepository: 'https://github.com/' + repository,
                 sourceCommit: sourceSha,
@@ -266,6 +266,7 @@ jobs:
           NODE
 
       - name: Attest release archive with source-pinned SLSA provenance
+        id: provenance_attestation
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: "${{ runner.temp }}/OpsCore-release.zip"
@@ -273,6 +274,7 @@ jobs:
           predicate-path: "${{ runner.temp }}/source-pinned-provenance.json"
 
       - name: Attest CycloneDX SBOM against release archive
+        id: sbom_attestation
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: "${{ runner.temp }}/OpsCore-release.zip"
@@ -297,15 +299,17 @@ jobs:
           echo "GITHUB_CYCLONEDX_SBOM_ATTESTATION_VERIFICATION=PASS"
 
       - name: Collect downloadable attestation bundles
+        env:
+          PROVENANCE_BUNDLE: "${{ steps.provenance_attestation.outputs.bundle-path }}"
+          SBOM_BUNDLE: "${{ steps.sbom_attestation.outputs.bundle-path }}"
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/opscore-attestation-bundles"
-          test -s "$RUNNER_TEMP/created_attestation_paths.txt"
-          while IFS= read -r bundle; do
-            test -s "$bundle"
-            cp "$bundle" "$RUNNER_TEMP/opscore-attestation-bundles/"
-          done < "$RUNNER_TEMP/created_attestation_paths.txt"
-          test "$(find "$RUNNER_TEMP/opscore-attestation-bundles" -type f | wc -l)" -ge 2
+          test -s "$PROVENANCE_BUNDLE"
+          test -s "$SBOM_BUNDLE"
+          cp "$PROVENANCE_BUNDLE" "$RUNNER_TEMP/opscore-attestation-bundles/provenance-attestation.jsonl"
+          cp "$SBOM_BUNDLE" "$RUNNER_TEMP/opscore-attestation-bundles/sbom-attestation.jsonl"
+          test "$(find "$RUNNER_TEMP/opscore-attestation-bundles" -type f | wc -l)" -eq 2
 
       - name: Install pinned Cosign
         uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
