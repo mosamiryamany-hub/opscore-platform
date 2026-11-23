@@ -568,13 +568,17 @@ jobs:
             'opscore-platform.vercel.app',
             new URL(process.env.FINAL_DEPLOYMENT_URL).hostname
           ]);
+          const aliasBeforeMs = Date.parse(smoke.aliasVerifiedBeforeAt);
+          const aliasAfterMs = Date.parse(smoke.aliasVerifiedAfterAt);
+          const smokeStartedMs = Date.parse(smoke.checkedAt);
           if (smoke.schemaVersion !== 'opscore.final-public-http-smoke.v1' ||
               smoke.status !== 'PASS' ||
               smoke.baseUrl !== 'https://opscore-platform.vercel.app' ||
               smoke.expectedDeploymentUrl !== process.env.FINAL_DEPLOYMENT_URL ||
               smoke.deploymentId !== process.env.FINAL_DEPLOYMENT_ID ||
-              !Number.isFinite(Date.parse(smoke.aliasVerifiedBeforeAt)) ||
-              !Number.isFinite(Date.parse(smoke.aliasVerifiedAfterAt)) ||
+              !Number.isFinite(aliasBeforeMs) || !Number.isFinite(aliasAfterMs) ||
+              !Number.isFinite(smokeStartedMs) ||
+              aliasBeforeMs > smokeStartedMs || smokeStartedMs > aliasAfterMs ||
               !Array.isArray(smoke.checks) ||
               smoke.checks.length !== requiredSmokePaths.length ||
               new Set(smoke.checks.map(check => check.path)).size !== requiredSmokePaths.length ||
@@ -582,14 +586,18 @@ jobs:
                 const item = smoke.checks.find(check => check.path === path);
                 let finalUrl;
                 try { finalUrl = new URL(item?.finalUrl || ''); } catch { return true; }
+                const checkedMs = Date.parse(item?.checkedAt || '');
+                const contentType = String(item?.contentType || '');
+                const apiContentValid = !path.startsWith('/api/') ||
+                  (/application\\/(?:[a-z0-9.+-]+\\+)?json(?:;|$)/i.test(contentType));
                 return !item || !Number.isInteger(item.statusCode) ||
                   item.statusCode < 200 || item.statusCode >= 300 ||
                   finalUrl.protocol !== 'https:' || !allowedHosts.has(finalUrl.hostname) ||
+                  finalUrl.pathname !== path || !apiContentValid ||
+                  !Number.isInteger(Number(item.responseBytes)) || Number(item.responseBytes) <= 0 ||
                   !/^[a-f0-9]{64}$/.test(String(item.responseSha256 || '')) ||
-                  Number(item.responseBytes) <= 0 ||
-                  !Number.isFinite(Date.parse(item.checkedAt));
-              }) ||
-              !Number.isFinite(Date.parse(smoke.checkedAt))) {
+                  !Number.isFinite(checkedMs) || checkedMs < aliasBeforeMs || checkedMs > aliasAfterMs;
+              })) {
             throw new Error('FINAL_PUBLIC_HTTP_SMOKE_EVIDENCE_INVALID');
           }
           const statement = {
