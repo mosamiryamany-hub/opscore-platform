@@ -1016,7 +1016,7 @@ test('Production signed-session route validator rejects structurally consistent 
 });
 
 
-test('Production session and recovery evidence bind to the explicit probe deployment rather than rebinding to the final deployment', () => {
+test('low-level Production session and recovery readers validate their explicit expected deployment ID', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-probe-deployment-evidence-'));
   const probeDeploymentId = 'dpl_CandidateProbe123';
   const finalDeploymentId = 'dpl_FinalRelease456';
