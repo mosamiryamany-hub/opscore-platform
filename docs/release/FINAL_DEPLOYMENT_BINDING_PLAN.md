@@ -81,7 +81,7 @@ These observations were read from the downloaded artifact contents, not inferred
 
 ## Follow-up hardening: Sigstore certificate field parsing
 
-The binding workflow consumes the JSON verification representation produced by `gh attestation verify`. The certificate SAN is treated as a structured URI value (`type` plus `value`), not as a plain string. Both the source-pinned and SLSA certificates must match the exact signer identity, GitHub Actions OIDC issuer, build signer/config URIs and digests, and run invocation ID including attempt. The statement predicate remains separately checked against the source SHA and exact archive SHA-256.
+The binding workflow consumes the normalized JSON verification representation produced by `gh attestation verify`. In that representation, `verificationResult.signature.certificate.subjectAlternativeName` is a plain URI string, not an object with `type` and `value`; the validator compares the complete value to the exact expected workflow identity. Both the source-pinned and SLSA certificates must match that exact identity, the GitHub Actions OIDC issuer, build signer/config URIs and digests, and the run invocation URI including the exact attempt. The statement predicate is separately checked against the source SHA and exact archive SHA-256. This field shape was confirmed against the saved verification JSON from the selected historical release artifact.
 
 
 ## Follow-up correction: GitHub CLI normalized SAN representation
