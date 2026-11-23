@@ -29,7 +29,7 @@ The workflow:
 4. Verifies the original archive Sigstore bundle with Cosign using the signer identity declared by the source-pinned builder metadata and GitHub OIDC issuer.
 5. Verifies the successful deployment workflow run, the final Vercel deployment ID, its production/READY state, source commit, and the public alias mapping.
 6. Confirms the original deploy run's staged HTTP smoke, promotion, public-domain verification, and final-gate steps all concluded successfully; independently confirms the public alias still resolves to the exact final deployment ID.
-7. Creates an in-toto statement whose subject is the exact archive SHA-256 and whose predicate includes the final Vercel deployment ID, deployment URL, source commit, both workflow run IDs, candidate deployment ID, and evidence-scope limitations.
+7. Creates an in-toto Statement JSON whose subject is the exact archive SHA-256 and whose predicate includes the final Vercel deployment ID, deployment URL, source commit, both workflow run IDs, candidate deployment ID, and evidence-scope limitations.
 8. Signs that binding statement with a separate keyless Sigstore signature from this workflow and verifies that signature before uploading the statement, checksum, and Sigstore bundle.
 
 ### Important semantics
