@@ -35,6 +35,7 @@ on:
 permissions:
   contents: read
   actions: read
+  attestations: read
   id-token: write
 
 concurrency:
@@ -98,9 +99,15 @@ jobs:
             const step = (deployJob.steps || []).find(item => item.name === name);
             if (!step || step.conclusion !== 'success') throw new Error('REQUIRED_FINAL_DEPLOY_STEP_NOT_SUCCESSFUL:' + name);
           }
+          if (!/^[a-f0-9]{40}$/.test(String(release.head_sha || '')) ||
+              !/^refs\/heads\/[A-Za-z0-9._/-]+$/.test('refs/heads/' + String(release.head_branch || ''))) {
+            throw new Error('RELEASE_WORKFLOW_REVISION_INVALID');
+          }
           fs.appendFileSync(out, 'source_commit=' + deploy.head_sha + '\n');
           fs.appendFileSync(out, 'deploy_run_attempt=' + String(deploy.run_attempt || '') + '\n');
           fs.appendFileSync(out, 'deploy_head_branch=' + deploy.head_branch + '\n');
+          fs.appendFileSync(out, 'release_workflow_commit=' + release.head_sha + '\n');
+          fs.appendFileSync(out, 'release_workflow_ref=refs/heads/' + release.head_branch + '\n');
           console.log('SOURCE_RUN_IDENTITIES=PASS');
           NODE
 
@@ -160,12 +167,14 @@ jobs:
         env:
           SOURCE_COMMIT: ${{ steps.validate_runs.outputs.source_commit }}
           EXPECTED_RELEASE_RUN_ID: ${{ inputs.release_run_id }}
+          EXPECTED_RELEASE_WORKFLOW_COMMIT: ${{ steps.validate_runs.outputs.release_workflow_commit }}
+          EXPECTED_RELEASE_WORKFLOW_REF: ${{ steps.validate_runs.outputs.release_workflow_ref }}
         run: |
           set -euo pipefail
           archive_sha="$(sha256sum "$ARCHIVE_PATH" | awk '{print $1}')"
-          node - "$STATEMENT_PATH" "$PROVENANCE_PATH" "$archive_sha" "$SOURCE_COMMIT" "$EXPECTED_RELEASE_RUN_ID" <<'NODE'
+          node - "$STATEMENT_PATH" "$PROVENANCE_PATH" "$archive_sha" "$SOURCE_COMMIT" "$EXPECTED_RELEASE_RUN_ID" "$ARCHIVE_PATH" <<'NODE'
           const fs = require('node:fs');
-          const [statementPath, provenancePath, digest, expectedCommit, expectedRun] = process.argv.slice(2);
+          const [statementPath, provenancePath, digest, expectedCommit, expectedRun, archivePath] = process.argv.slice(2);
           const statement = JSON.parse(fs.readFileSync(statementPath, 'utf8'));
           const provenance = JSON.parse(fs.readFileSync(provenancePath, 'utf8'));
           if (statement.schemaVersion !== 'opscore.commercial-release-statement.v2' ||
@@ -174,11 +183,19 @@ jobs:
               statement.artifact?.sha256?.value !== digest ||
               statement.sourceCommit !== expectedCommit ||
               String(statement.pipelineId) !== expectedRun) throw new Error('ARCHIVE_STATEMENT_DIGEST_SOURCE_OR_RUN_MISMATCH');
+          const expectedRepository = 'https://github.com/' + process.env.GITHUB_REPOSITORY;
+          const expectedWorkflow = expectedRepository + '/.github/workflows/opscore-secure-release.yml';
+          const archiveBytes = fs.statSync(archivePath).size;
           if (provenance.schemaVersion !== 'opscore.source-pinned-build.v1' ||
+              provenance.source?.repository !== expectedRepository ||
               provenance.source?.commit !== expectedCommit ||
+              provenance.subject?.name !== 'OpsCore-release.zip' ||
               provenance.subject?.digest?.sha256 !== digest ||
-              provenance.builder?.workflow !== 'https://github.com/' + process.env.GITHUB_REPOSITORY + '/.github/workflows/opscore-secure-release.yml' ||
-              !/^refs\/heads\/[A-Za-z0-9._/-]+$/.test(String(provenance.builder?.workflowRef || ''))) {
+              Number(provenance.subject?.sizeBytes) !== archiveBytes ||
+              provenance.builder?.workflow !== expectedWorkflow ||
+              provenance.builder?.workflowRef !== process.env.EXPECTED_RELEASE_WORKFLOW_REF ||
+              provenance.builder?.workflowCommit !== process.env.EXPECTED_RELEASE_WORKFLOW_COMMIT ||
+              provenance.builder?.runUrl !== 'https://github.com/' + process.env.GITHUB_REPOSITORY + '/actions/runs/' + expectedRun) {
             throw new Error('SOURCE_PINNED_PROVENANCE_MISMATCH');
           }
           const identity = provenance.builder.workflow + '@' + provenance.builder.workflowRef;
@@ -193,9 +210,83 @@ jobs:
         with:
           cosign-release: 'v3.1.4'
 
+      - name: Independently verify GitHub source-pinned and SLSA attestations
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          EXPECTED_SOURCE_COMMIT: ${{ steps.validate_runs.outputs.source_commit }}
+          EXPECTED_RELEASE_RUN_ID: ${{ inputs.release_run_id }}
+          EXPECTED_RELEASE_WORKFLOW_COMMIT: ${{ steps.validate_runs.outputs.release_workflow_commit }}
+          EXPECTED_RELEASE_WORKFLOW_REF: ${{ steps.validate_runs.outputs.release_workflow_ref }}
+        run: |
+          set -euo pipefail
+          source_attestation="$RUNNER_TEMP/source-pinned-attestation-verification.json"
+          slsa_attestation="$RUNNER_TEMP/slsa-attestation-verification.json"
+          gh attestation verify "$ARCHIVE_PATH" --repo "$GITHUB_REPOSITORY" \
+            --predicate-type "https://github.com/mosamiryamany-hub/opscore-platform/attestations/source-pinned-build/v1" \
+            --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/opscore-secure-release.yml" \
+            --format json > "$source_attestation"
+          gh attestation verify "$ARCHIVE_PATH" --repo "$GITHUB_REPOSITORY" \
+            --predicate-type "https://slsa.dev/provenance/v1" \
+            --signer-workflow "$GITHUB_REPOSITORY/.github/workflows/opscore-secure-release.yml" \
+            --format json > "$slsa_attestation"
+          node - "$source_attestation" "$slsa_attestation" <<'NODE'
+          const fs = require('node:fs');
+          const [sourcePath, slsaPath] = process.argv.slice(2);
+          const sourceItems = JSON.parse(fs.readFileSync(sourcePath, 'utf8'));
+          const slsaItems = JSON.parse(fs.readFileSync(slsaPath, 'utf8'));
+          const sourceItem = Array.isArray(sourceItems) ? sourceItems.find(item =>
+            item.verificationResult?.statement?.predicateType ===
+            'https://github.com/mosamiryamany-hub/opscore-platform/attestations/source-pinned-build/v1') : null;
+          const slsaItem = Array.isArray(slsaItems) ? slsaItems.find(item =>
+            item.verificationResult?.statement?.predicateType === 'https://slsa.dev/provenance/v1') : null;
+          if (!sourceItem || !slsaItem) throw new Error('GITHUB_ATTESTATION_VERIFICATION_RESULT_MISSING');
+          const sourceStatement = sourceItem.verificationResult.statement;
+          const source = sourceStatement.predicate;
+          const slsaStatement = slsaItem.verificationResult.statement;
+          const slsa = slsaStatement.predicate;
+          const sourceCert = sourceItem.verificationResult.signature?.certificate || {};
+          const slsaCert = slsaItem.verificationResult.signature?.certificate || {};
+          const expectedWorkflow = 'https://github.com/' + process.env.GITHUB_REPOSITORY +
+            '/.github/workflows/opscore-secure-release.yml';
+          const expectedIdentity = expectedWorkflow + '@' + process.env.EXPECTED_RELEASE_WORKFLOW_REF;
+          const expectedSubject = (sourceStatement.subject || []).some(subject =>
+            subject.name === 'OpsCore-release.zip' &&
+            subject.digest?.sha256 === process.env.ARCHIVE_SHA256);
+          const slsaSubject = (slsaStatement.subject || []).some(subject =>
+            subject.name === 'OpsCore-release.zip' &&
+            subject.digest?.sha256 === process.env.ARCHIVE_SHA256);
+          if (!expectedSubject ||
+              source.source?.repository !== 'https://github.com/' + process.env.GITHUB_REPOSITORY ||
+              source.source?.commit !== process.env.EXPECTED_SOURCE_COMMIT ||
+              source.builder?.workflow !== expectedWorkflow ||
+              source.builder?.workflowRef !== process.env.EXPECTED_RELEASE_WORKFLOW_REF ||
+              source.builder?.workflowCommit !== process.env.EXPECTED_RELEASE_WORKFLOW_COMMIT ||
+              source.builder?.runUrl !== 'https://github.com/' + process.env.GITHUB_REPOSITORY +
+                '/actions/runs/' + process.env.EXPECTED_RELEASE_RUN_ID ||
+              sourceCert.subjectAlternativeName !== expectedIdentity ||
+              sourceCert.githubWorkflowSHA !== process.env.EXPECTED_RELEASE_WORKFLOW_COMMIT ||
+              !slsaSubject ||
+              slsa.buildDefinition?.buildType !== 'https://actions.github.io/buildtypes/workflow/v1' ||
+              slsa.buildDefinition?.externalParameters?.workflow?.path !== '.github/workflows/opscore-secure-release.yml' ||
+              slsa.buildDefinition?.externalParameters?.workflow?.ref !== process.env.EXPECTED_RELEASE_WORKFLOW_REF ||
+              slsa.buildDefinition?.externalParameters?.workflow?.repository !== 'https://github.com/' + process.env.GITHUB_REPOSITORY ||
+              !(slsa.buildDefinition?.resolvedDependencies || []).some(dep =>
+                dep.digest?.gitCommit === process.env.EXPECTED_RELEASE_WORKFLOW_COMMIT) ||
+              slsa.runDetails?.builder?.id !== expectedIdentity ||
+              !String(slsa.runDetails?.metadata?.invocationId || '').includes('/actions/runs/' + process.env.EXPECTED_RELEASE_RUN_ID + '/attempts/')) {
+            throw new Error('GITHUB_SOURCE_PIN_OR_SLSA_ATTESTATION_MISMATCH');
+          }
+          console.log('GITHUB_SOURCE_PINNED_ATTESTATION=PASS');
+          console.log('GITHUB_SLSA_PROVENANCE_ATTESTATION=PASS');
+          NODE
+          cp "$source_attestation" "$GITHUB_WORKSPACE/SOURCE_PINNED_ATTESTATION_VERIFICATION.json"
+          cp "$slsa_attestation" "$GITHUB_WORKSPACE/SLSA_ATTESTATION_VERIFICATION.json"
+
       - name: Verify original Sigstore signature on the exact archive bytes
         env:
           EXPECTED_SIGNER: ${{ steps.verify_archive.outputs.archive_signer_identity }}
+          ARCHIVE_SHA256: ${{ steps.verify_archive.outputs.archive_sha256 }}
         run: |
           set -euo pipefail
           cosign verify-blob "$ARCHIVE_PATH" --bundle "$BUNDLE_PATH" \
@@ -589,5 +680,7 @@ jobs:
             FINAL_DEPLOYMENT_BINDING.statement.sigstore.json
             FINAL_PUBLIC_HTTP_SMOKE.json
             SIGNED_TENANT_CONTEXT_CI_ROUTE_COVERAGE.json
+            SOURCE_PINNED_ATTESTATION_VERIFICATION.json
+            SLSA_ATTESTATION_VERIFICATION.json
           if-no-files-found: error
           retention-days: 90
