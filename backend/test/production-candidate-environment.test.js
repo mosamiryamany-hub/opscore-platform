@@ -90,7 +90,7 @@ test('baseline snapshot validates a known fail-closed Production state', () => {
   assert.throws(() => validateInitialState(unsafe), /PRODUCTION_RELEASE_BASELINE_NOT_FALSE/);
 });
 
-test('baseline snapshot accepts a coherent previously-certified Production state and fails closed otherwise', () => {
+test('baseline validation uses coherent release state, not the legacy certification text flag', () => {
   const certified = envFile()
     .replace('OPSC_RELEASE_VERIFIED=false', 'OPSC_RELEASE_VERIFIED=true')
     .replace('OPSC_PRODUCTION_ISOLATION_CERTIFICATION=NOT_CERTIFIED', 'OPSC_PRODUCTION_ISOLATION_CERTIFICATION=CERTIFIED')
@@ -106,8 +106,9 @@ test('baseline snapshot accepts a coherent previously-certified Production state
   assert.throws(() => validateInitialState(split), /PRODUCTION_CERTIFIED_BASELINE_INCOHERENT/);
   const held = { ...snapshot, entries: { ...snapshot.entries, OPSC_PRODUCTION_HOLD: { present: true, value: 'true' } } };
   assert.throws(() => validateInitialState(held), /PRODUCTION_CERTIFIED_BASELINE_INCOHERENT/);
-  const uncertifiedReuse = { ...snapshot, entries: { ...snapshot.entries, OPSC_PRODUCTION_ISOLATION_CERTIFICATION: { present: true, value: 'NOT_CERTIFIED' }, OPSC_RELEASE_VERIFIED: { present: true, value: 'true' } } };
-  assert.throws(() => validateInitialState(uncertifiedReuse), /PRODUCTION_RELEASE_BASELINE_NOT_FALSE/);
+  const legacyFlagNotCertified = { ...snapshot, entries: { ...snapshot.entries, OPSC_PRODUCTION_ISOLATION_CERTIFICATION: { present: true, value: 'NOT_CERTIFIED' } } };
+  assert.doesNotThrow(() => validateInitialState(legacyFlagNotCertified),
+    'a legacy text flag cannot veto or grant a coherent release baseline');
 });
 
 test('prepare writes a recovery snapshot before fail-closed candidate values and masks its probe token', async () => {
