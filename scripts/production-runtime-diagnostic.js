@@ -47,6 +47,33 @@ const REQUIRED_DIAGNOSTIC_CHECKS = Object.freeze([
   'production_isolation_certified'
 ]);
 
+// Narrow identity-only gate used before the production release flags are published.
+// A PASS here never authorizes promotion; the final staged build must still pass its
+// full release/database/security/HTTP smoke tests and public-domain verification.
+const REQUIRED_IDENTITY_PREFLIGHT_CHECKS = Object.freeze([
+  'diagnostic_endpoint_reached',
+  'diagnostic_schema',
+  'deployment_environment',
+  'deployment_host_binding',
+  'deployment_id_binding',
+  'deployment_commit_binding',
+  'deployment_pipeline_binding',
+  'deployment_main_ref',
+  'production_hold_active',
+  'application_database_binding',
+  'database_url_alignment',
+  'runtime_environment',
+  'migration_and_bootstrap_urls_absent',
+  'read_only_execution',
+  'postgres_runtime_identity',
+  'runtime_role_least_privilege',
+  'client_tls_configuration',
+  'row_level_security_coverage',
+  'auth_function_grants',
+  'migration_056_attestation_security',
+  'migration_056_hash'
+]);
+
 function negotiatedCipherStrengthBits(value) {
   const cipher = String(value || '');
   if (cipher === 'TLS_AES_128_GCM_SHA256') return 128;
@@ -56,6 +83,14 @@ function negotiatedCipherStrengthBits(value) {
 }
 
 function failClosedExitCode(result) {
+  if (result && result.schemaVersion === 'opscore.production-runtime-identity-preflight.v1') {
+    const checks = Array.isArray(result.checks) ? result.checks : [];
+    const exactInventory = checks.length === REQUIRED_IDENTITY_PREFLIGHT_CHECKS.length &&
+      checks.every((item, index) => item && item.name === REQUIRED_IDENTITY_PREFLIGHT_CHECKS[index]);
+    const allPassed = checks.every(item => item && item.status === 'PASS');
+    return result.status === 'PASS' && result.identityPreflightAllowed === true &&
+      result.promotionAllowed === false && exactInventory && allPassed ? 0 : 1;
+  }
   if (!result || !['PASS', 'PASS_WITH_ADVISORIES'].includes(result.status) ||
       result.promotionAllowed !== true || !Array.isArray(result.checks) ||
       result.checks.length !== REQUIRED_DIAGNOSTIC_CHECKS.length) return 1;
@@ -219,26 +254,159 @@ function evaluateRuntimeDiagnostic(payload, httpStatus, expectedCommit, expected
   };
 }
 
+
+function evaluateRuntimeIdentityPreflight(payload, httpStatus, expectedCommit, expectedPipelineId, expectedDeploymentId) {
+  const value = payload && typeof payload === 'object' ? payload : {};
+  const deployment = value.deployment || {};
+  const environment = value.environment || {};
+  const database = value.database || {};
+  const applicationConnectionTls = value.applicationConnectionTls || {};
+  const target = database.target || {};
+  const envChecks = database.environmentChecks || {};
+  const identity = database.identity || {};
+  const roles = Array.isArray(database.roles) ? database.roles : [];
+  const runtimeRole = roles.find(role => role.role_name === identity.current_user);
+  const grants = database.authFunctionGrants || {};
+  const rls = database.rowLevelSecurity || {};
+  const ledger = database.migrationLedger || {};
+  const appCipherBits = negotiatedCipherStrengthBits(applicationConnectionTls.cipher);
+  const identityVersion = /^([0-9]{1,2}\.[0-9]{1,2})/.exec(String(identity.server_version || ''));
+  const applicationConnectionTlsVerified =
+    applicationConnectionTls.scope === 'APPLICATION_POSTGRES_WORKER_CONNECTION' &&
+    applicationConnectionTls.status === 'VERIFIED' &&
+    applicationConnectionTls.verified === true &&
+    applicationConnectionTls.negotiated === true &&
+    applicationConnectionTls.authorized === true &&
+    ['TLSv1.2', 'TLSv1.3'].includes(String(applicationConnectionTls.protocol || '')) &&
+    Number.isSafeInteger(applicationConnectionTls.backendPid) && applicationConnectionTls.backendPid > 0 &&
+    String(applicationConnectionTls.databaseName || '') === String(identity.database_name || '') &&
+    String(applicationConnectionTls.roleName || '') === String(identity.current_user || '') &&
+    Boolean(identityVersion) && String(applicationConnectionTls.serverVersion || '') === identityVersion[1] &&
+    Number.isSafeInteger(appCipherBits) && appCipherBits >= 128;
+
+  const checks = [
+    check('diagnostic_endpoint_reached', httpStatus === 200, `HTTP_${httpStatus}`),
+    check('diagnostic_schema', value.schemaVersion === 'opscore.production-runtime-database-diagnostic.v1' &&
+      value.diagnostic?.status === 'VERIFIED' && !value.diagnostic?.reasonCode),
+    check('deployment_environment', environment.vercelEnvironment === 'production' && deployment.environment === 'production'),
+    check('deployment_host_binding', deployment.expectedDeploymentHostMatched === true),
+    check('deployment_id_binding', /^dpl_[A-Za-z0-9]+$/.test(String(expectedDeploymentId || '')) &&
+      String(deployment.deploymentId || '') === String(expectedDeploymentId || '')),
+    check('deployment_commit_binding', String(deployment.commitSha || '').toLowerCase() === String(expectedCommit || '').toLowerCase()),
+    check('deployment_pipeline_binding', String(deployment.pipelineId || '') === String(expectedPipelineId || '')),
+    check('deployment_main_ref', deployment.ref === 'main'),
+    check('production_hold_active', environment.productionHoldConfiguredFalse === false &&
+      environment.productionHoldEffectiveActive === true &&
+      environment.releaseVerifiedConfiguredTrue === false &&
+      environment.releaseVerifiedEffective === false &&
+      environment.releaseProofVerified === false &&
+      environment.signedTenantContextProductionEnabled === false &&
+      environment.sessionAutobindEnabled === false &&
+      environment.candidateProbeEnabled === true &&
+      environment.candidateModeEnabled === true),
+    check('application_database_binding', database.status === 'IDENTITY_RESOLVED' &&
+      database.applicationDatabaseBinding === 'PRESENT' &&
+      database.identityScope === 'APPLICATION_DATABASE' &&
+      database.connectionSource === 'OPSC_DATABASE_URL' &&
+      envChecks.opscDatabaseUrlPresent === true),
+    check('database_url_alignment', envChecks.databaseUrlMatchesOpscDatabaseUrl === true &&
+      environment.applicationDatabaseUrlAligned === true),
+    check('runtime_environment', environment.nodeEnvironmentProduction === true &&
+      environment.databaseEnginePostgres === true),
+    check('migration_and_bootstrap_urls_absent', environment.migrationDatabaseUrlAbsent === true &&
+      environment.bootstrapDatabaseUrlAbsent === true),
+    check('read_only_execution', database.transactionMode === 'READ_ONLY' &&
+      database.writeOperations === 0 && database.productionCertification === false),
+    check('postgres_runtime_identity', identity.current_user === 'opscore_runtime' &&
+      identity.session_user === 'opscore_runtime' &&
+      /^18\./.test(String(identity.server_version || '')) &&
+      identity.transaction_read_only === 'on' && database.transactionMode === 'READ_ONLY'),
+    check('runtime_role_least_privilege', runtimeRole &&
+      runtimeRole.role_exists === true && runtimeRole.can_login === true &&
+      runtimeRole.superuser === false && runtimeRole.bypass_rls === false &&
+      runtimeRole.create_role === false && runtimeRole.create_db === false &&
+      runtimeRole.elevated_role_membership === false),
+    check('client_tls_configuration', applicationConnectionTlsVerified),
+    check('row_level_security_coverage', Number.isInteger(rls.public_application_tables) &&
+      rls.public_application_tables > 0 &&
+      rls.rls_enabled_tables === rls.public_application_tables &&
+      rls.force_rls_tables === rls.public_application_tables),
+    check('auth_function_grants', grants.required === 10 && grants.present === 10 &&
+      grants.securityDefiner === 10 && grants.runtimeExecute === 10 &&
+      grants.publicExecuteAbsent === 10 && grants.ownerBypassesRls === 10 &&
+      grants.searchPathPinned === 10 &&
+      (!Array.isArray(grants.missingFunctions) || grants.missingFunctions.length === 0) &&
+      (!Array.isArray(grants.publicExecutePresent) || grants.publicExecutePresent.length === 0)),
+    check('migration_056_attestation_security', ledger.attestationFunctionPresent === true &&
+      ledger.attestationSecurityDefiner === true &&
+      ledger.attestationOwner === 'neondb_owner' &&
+      ledger.attestationOwnerBypassesRls === true &&
+      ledger.attestationOwnerSuperuser === false &&
+      ledger.attestationRuntimeExecute === true &&
+      ledger.attestationPublicExecuteAbsent === true &&
+      ledger.attestationSearchPathPinned === true &&
+      ledger.attestationRowSecurityDisabled === true),
+    check('migration_056_hash', ledger.status === 'MIGRATION_056_HASH_MATCH' &&
+      ledger.migration056Recorded === true && ledger.migration056SourceHashMatches === true &&
+      /^[a-f0-9]{64}$/.test(String(ledger.sourceSha256 || '')))
+  ];
+  const allowed = checks.length === REQUIRED_IDENTITY_PREFLIGHT_CHECKS.length &&
+    checks.every((item, index) => item.name === REQUIRED_IDENTITY_PREFLIGHT_CHECKS[index] && item.status === 'PASS');
+  return {
+    schemaVersion: 'opscore.production-runtime-identity-preflight.v1',
+    status: allowed ? 'PASS' : 'BLOCKED',
+    identityPreflightAllowed: allowed,
+    promotionAllowed: false,
+    expectedCommit: String(expectedCommit || '').toLowerCase(),
+    expectedPipelineId: String(expectedPipelineId || ''),
+    expectedDeploymentId: String(expectedDeploymentId || ''),
+    runtimeDatabase: {
+      name: /^[A-Za-z0-9_]{1,63}$/.test(String(identity.database_name || '')) ? String(identity.database_name) : null,
+      provider: target.provider === 'neon' || target.provider === 'postgresql' ? target.provider : null,
+      region: /^[a-z0-9-]{1,32}$/.test(String(target.region || '')) ? String(target.region) : null,
+      hostnameSha256: /^[a-f0-9]{64}$/.test(String(target.hostnameSha256 || '')) ? String(target.hostnameSha256) : null,
+      runtimeRole: /^[A-Za-z0-9_]{1,63}$/.test(String(identity.current_user || '')) ? String(identity.current_user) : null,
+      serverVersion: /^[0-9]{1,2}\.[0-9]{1,3}$/.test(String(identity.server_version || '')) ? String(identity.server_version) : null,
+      tlsVersion: applicationConnectionTlsVerified ? String(applicationConnectionTls.protocol) : null,
+      tlsCipher: applicationConnectionTlsVerified ? String(applicationConnectionTls.cipher) : null,
+      tlsEvidenceStatus: applicationConnectionTlsVerified ? 'VERIFIED' : 'UNVERIFIED'
+    },
+    checks
+  };
+}
+
 function writeGateOutput(result, env = process.env) {
+  const isIdentityPreflight = result && result.schemaVersion === 'opscore.production-runtime-identity-preflight.v1';
+  const allowed = isIdentityPreflight
+    ? result.identityPreflightAllowed === true
+    : result && result.promotionAllowed === true;
   const outputPath = String(env.GITHUB_OUTPUT || '').trim();
   if (outputPath) {
-    fs.appendFileSync(outputPath, `allowed=${result.promotionAllowed ? 'true' : 'false'}\n`, { encoding: 'utf8', mode: 0o600 });
+    fs.appendFileSync(outputPath, `allowed=${allowed ? 'true' : 'false'}\n`, { encoding: 'utf8', mode: 0o600 });
   }
   const summaryPath = String(env.GITHUB_STEP_SUMMARY || '').trim();
   if (summaryPath) {
-    const failed = result.checks.filter(item => isBlocking(item) && item.status !== 'PASS');
+    const failed = result.checks.filter(item => isIdentityPreflight
+      ? item.status !== 'PASS'
+      : isBlocking(item) && item.status !== 'PASS');
     const advisories = Array.isArray(result.advisories) ? result.advisories : [];
-    const completion = !result.promotionAllowed
-      ? 'Production remains blocked. No production domain promotion was authorized.'
-      : advisories.length
-        ? `All blocking checks passed; advisory checks remain: ${advisories.join(', ')}. This diagnostic does not certify production isolation.`
-        : 'All runtime and release gates passed; the staged deployment may proceed to full smoke verification.';
+    const completion = isIdentityPreflight
+      ? (allowed
+        ? 'Held-candidate runtime identity is verified. This preflight does not authorize release or promotion; separate release, smoke, and public-domain gates still apply.'
+        : 'Held-candidate runtime identity remains unverified. Production HOLD stays in place and release publication must not proceed.')
+      : !allowed
+        ? 'Production remains blocked. No production domain promotion was authorized.'
+        : advisories.length
+          ? `All blocking checks passed; advisory checks remain: ${advisories.join(', ')}. This diagnostic does not certify production isolation.`
+          : 'All runtime and release gates passed; the staged deployment may proceed to full smoke verification.';
     const lines = [
-      '### Production runtime identity and release gate',
+      isIdentityPreflight ? '### Held-candidate runtime identity preflight' : '### Production runtime identity and release gate',
       `Status: **${result.status}**`,
       `HTTP status: ${result.httpStatus}`,
       `Expected source: ${result.expectedCommit}`,
-      `Promotion allowed: ${result.promotionAllowed ? 'yes' : 'no'}`,
+      isIdentityPreflight
+        ? `Expected deployment: ${result.expectedDeploymentId}`
+        : `Promotion allowed: ${allowed ? 'yes' : 'no'}`,
       ...result.checks.map(item => `- ${item.status}: ${item.name}${item.detail ? ` (${item.detail})` : ''}`),
       '',
       completion,
@@ -247,7 +415,9 @@ function writeGateOutput(result, env = process.env) {
     fs.appendFileSync(summaryPath, lines.join('\n'), { encoding: 'utf8', mode: 0o600 });
     return failed.length;
   }
-  return result.checks.filter(item => isBlocking(item) && item.status !== 'PASS').length;
+  return result.checks.filter(item => isIdentityPreflight
+    ? item.status !== 'PASS'
+    : isBlocking(item) && item.status !== 'PASS').length;
 }
 
 async function runDiagnostic(deploymentUrl, expectedCommit, expectedPipelineId, options = {}) {
@@ -273,15 +443,55 @@ async function runDiagnostic(deploymentUrl, expectedCommit, expectedPipelineId, 
   return evaluateRuntimeDiagnostic(payload, response.statusCode, expectedCommit, expectedPipelineId);
 }
 
+
+async function runIdentityPreflight(deploymentUrl, expectedCommit, expectedPipelineId, expectedDeploymentId, options = {}) {
+  const parsed = parseDeploymentUrl(deploymentUrl);
+  if (!/^dpl_[A-Za-z0-9]+$/.test(String(expectedDeploymentId || ''))) {
+    throw new Error('EXPECTED_DEPLOYMENT_ID_INVALID');
+  }
+  const candidateProbeToken = String(options.candidateProbeToken || process.env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN || '').trim();
+  if (!/^[a-f0-9]{64}$/i.test(candidateProbeToken)) {
+    throw new Error('CANDIDATE_PROBE_TOKEN_REQUIRED_OR_INVALID');
+  }
+  const trustedFetch = options.fetchRunner || runTrustedOidcFetch;
+  const response = await trustedFetch(parsed, DIAGNOSTIC_PATH, {
+    connectTimeoutSeconds: 5,
+    maxTimeSeconds: 45,
+    processTimeoutMs: 60000,
+    token: options.token || process.env.VERCEL_TRUSTED_OIDC_TOKEN,
+    candidateProbeToken,
+    fetchImpl: options.fetchImpl
+  });
+  let payload = {};
+  try { payload = JSON.parse(response.body); } catch {}
+  return evaluateRuntimeIdentityPreflight(payload, response.statusCode, expectedCommit,
+    expectedPipelineId, expectedDeploymentId);
+}
+
 async function main() {
-  const [deploymentUrl, expectedCommit, expectedPipelineId] = process.argv.slice(2);
+  const args = process.argv.slice(2);
+  const identityPreflightOnly = args[0] === '--identity-preflight-only';
+  const values = identityPreflightOnly ? args.slice(1) : args;
+  const [deploymentUrl, expectedCommit, expectedPipelineId, expectedDeploymentId] = values;
   let result;
   try {
-    result = await runDiagnostic(deploymentUrl, expectedCommit, expectedPipelineId);
+    result = identityPreflightOnly
+      ? await runIdentityPreflight(deploymentUrl, expectedCommit, expectedPipelineId, expectedDeploymentId)
+      : await runDiagnostic(deploymentUrl, expectedCommit, expectedPipelineId);
   } catch (error) {
     const safeReason = /^[A-Z0-9_]{1,96}$/.test(String(error && error.message || ''))
       ? String(error.message) : 'RUNTIME_DIAGNOSTIC_EXECUTION_FAILED';
-    result = {
+    result = identityPreflightOnly ? {
+      schemaVersion: 'opscore.production-runtime-identity-preflight.v1',
+      status: 'BLOCKED',
+      identityPreflightAllowed: false,
+      promotionAllowed: false,
+      httpStatus: null,
+      expectedCommit: String(expectedCommit || '').toLowerCase(),
+      expectedPipelineId: String(expectedPipelineId || ''),
+      expectedDeploymentId: String(expectedDeploymentId || ''),
+      checks: [check('diagnostic_execution', false, safeReason)]
+    } : {
       schemaVersion: 'opscore.production-runtime-diagnostic-result.v1',
       status: 'BLOCKED',
       promotionAllowed: false,
@@ -311,4 +521,15 @@ if (require.main === module) {
   });
 }
 
-module.exports = { DIAGNOSTIC_PATH, REQUIRED_DIAGNOSTIC_CHECKS, ADVISORY_CHECKS, evaluateRuntimeDiagnostic, runDiagnostic, writeGateOutput, failClosedExitCode };
+module.exports = {
+  DIAGNOSTIC_PATH,
+  REQUIRED_DIAGNOSTIC_CHECKS,
+  REQUIRED_IDENTITY_PREFLIGHT_CHECKS,
+  ADVISORY_CHECKS,
+  evaluateRuntimeDiagnostic,
+  evaluateRuntimeIdentityPreflight,
+  runDiagnostic,
+  runIdentityPreflight,
+  writeGateOutput,
+  failClosedExitCode
+};
