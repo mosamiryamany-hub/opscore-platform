@@ -82,11 +82,11 @@ Seller-side code gates remain: complete applicable test accounting on exact sour
 
 This section supersedes the preceding code-only sale paragraph. The current owner-approved scope includes the seller Vercel website, Production deployment, Neon Production database and recovery posture, and six legal/commercial pages.
 
-- Evidence-cut \`main\`: \`5e3cb211b7660002418757612033ff8928f25b69\`; PR #401 merged.
-- OpsCore CI run \`45129195704\`: 990 total / 987 passed / 0 failed / 3 skipped (\`PASS_WITH_SKIPS\`).
-- PostgreSQL 18 acceptance run \`45129195834\`: HTTP commercial acceptance 1/1 PASS; PostgreSQL firewall rate-limit 1/1 PASS; tenant matrix 2/2 PASS; 346 source-derived tenant routes PASS; disposable logical restore 137 tables PASS.
+- Evidence-cut `main`: `5e3cb211b7660002418757612033ff8928f25b69`; PR #401 merged.
+- OpsCore CI run `45129195704`: 990 total / 987 passed / 0 failed / 3 skipped (`PASS_WITH_SKIPS`).
+- PostgreSQL 18 acceptance run `45129195834`: HTTP commercial acceptance 1/1 PASS; PostgreSQL firewall rate-limit 1/1 PASS; tenant matrix 2/2 PASS; 346 source-derived tenant routes PASS; disposable logical restore 137 tables PASS.
 - The three generic-runner skips were separately run and passed in the isolated PostgreSQL job. Do not relabel the generic runner's own result.
-- Production deployment remains \`dpl_FVXwPoqefvkNsxA3BqVrxYnxRQka\` on \`88df9046...\`; no Production deployment exists for \`5e3cb211...\` in the Vercel deployment query. The successful push workflow did not run the separately gated Production deploy job.
+- Production deployment remains `dpl_FVXwPoqefvkNsxA3BqVrxYnxRQka` on `88df9046...`; no Production deployment exists for `5e3cb211...` in the Vercel deployment query. The successful push workflow did not run the separately gated Production deploy job.
 - Vercel WAF: active CRS/Bot Protection rules are log-only; auth rate limit is active at 60/IP/60s; active attack query returned no anomalies.
 - Neon Free: 6-hour history, one existing manual snapshot, no scheduled backups, Primary unprotected due plan limit. Two restore branches from the same snapshot matched SHA-256 content digests across 136/136 public tables, while Primary-versus-restore differences remain expected historical point-in-time divergence, not current parity.
 - Production proof binding remains open: the code uses a textual certification flag and evidence pinned to a probe deployment; the workflow subsequently builds a separate staged deployment. Same-final-deployment certification is not established.
