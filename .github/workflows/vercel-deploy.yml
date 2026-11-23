@@ -1292,7 +1292,7 @@ jobs:
         run: |
           set -euo pipefail
           npm ci --ignore-scripts
-          node backend/scripts/record-deployment-release-evidence.js RECORD_PROMOTED_DEPLOYMENT_RELEASE_EVIDENCE
+          node scripts/record-deployment-release-evidence.js RECORD_PROMOTED_DEPLOYMENT_RELEASE_EVIDENCE
         working-directory: backend
         env:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
