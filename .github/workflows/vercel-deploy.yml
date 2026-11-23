@@ -1295,6 +1295,7 @@ jobs:
           node scripts/record-deployment-release-evidence.js RECORD_PROMOTED_DEPLOYMENT_RELEASE_EVIDENCE
         working-directory: backend
         env:
+          OPSC_EVIDENCE_OWNER_URL: ${{ secrets.OPSC_EVIDENCE_OWNER_URL }}
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
           GITHUB_SHA: ${{ github.sha }}
           GITHUB_RUN_ID: ${{ github.run_id }}
