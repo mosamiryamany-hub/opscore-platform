@@ -99,3 +99,8 @@ Recovery posture is currently confirmed directly: Neon org plan `free`, 6-hour h
 ### Latest Vercel WAF read — 2026-11-23
 
 The active Vercel firewall is enabled. Managed CRS rules `gen`, `rce`, `sqli`, `xss` and Bot Protection are enabled in log-only mode; no IP allow/deny rules exist. A valid, active authentication rate-limit rule enforces 60 POST login/mobile-login requests per source IP per 60 seconds. The last-day attack query returned no anomalies. Therefore authentication edge rate limiting is active, but managed WAF attack/bot enforcement remains OPEN; log-only is not blocking. No config was changed.
+
+
+### Legal/commercial web pages — source/package verification
+
+The six HTML files `terms.html`, `privacy.html`, `refund.html`, `pricing.html`, `legal.html`, and `security.html` are included in the current application source and the 0.11.62 release ZIP. They are clearly marked `OWNER DATA REQUIRED` and each carries 12 unresolved placeholders for entity/jurisdiction/registration/contact/privacy/refund/price/tax/update date. The inspected homepage source contains no links to these assets. They are therefore existing scaffolds, **not published or approved legal content**. Live route reachability/navigation and legal review remain open. Do not call the files missing, and do not call their presence legal publication.
