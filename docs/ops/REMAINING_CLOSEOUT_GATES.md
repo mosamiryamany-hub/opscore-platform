@@ -290,3 +290,42 @@ A fresh read-only inspection of Neon project `summer-leaf-18448271`, Primary bra
 - Relevant RLS policies on sessions, users, memberships, organizations, governance and tenant tables were inspected; policy expressions depend on verified context accessors, not direct raw-GUC tenant selection.
 
 This is fresh, exact-Primary behavioral evidence for the tested forged-context denial path. It does **not** close the complete Production tenant trust-boundary gate: it is one read-only negative probe, not full signed positive-flow coverage, all access modes, all privileged-helper grants, independent AI/search pools, every non-PostgreSQL worker, or complete per-route HTTP acceptance. Keep the full gate OPEN until those scopes are evidenced.
+
+
+## 12. Read-only Neon Primary inspection — 2026-11-23
+
+**Target:** Neon project `summer-leaf-18448271`, Primary/default branch `br-proud-salad-bcshhdap`, database `opscore_acceptance`. All SQL below was read-only except one deliberately transaction-local test that set forged legacy GUC values for the duration of its SELECT; a fresh subsequent connection confirmed the session context clean. No persistent data, schema, role, branch, snapshot, endpoint, or plan was changed.
+
+### Applied migration and database identity
+
+- PostgreSQL reports `18.7 (84da7d8)`.
+- `public.schema_migrations`: 71 rows; latest is `072_deployment_release_evidence_store.sql`, SHA-256 `84c8ad55d4aae5aaa33a7e1edbb1dec5c25cfab773c2238c93956eea67dd2b17`, applied `2026-11-23T08:57:33.905Z`.
+- `071_signed_rls_context_all_access_modes.sql` is present, SHA-256 `46645f6b199e17f55ac46f63518b611c77171980ece6efed8b3ef9be7d4886f6`, applied `2026-11-21T01:28:31.910Z`.
+
+### Runtime role, signed context and HMAC key isolation
+
+- `opscore_runtime`: `rolsuper=false`, `rolbypassrls=false`, `rolcreaterole=false`, `rolcreatedb=false`, login enabled.
+- `opscore_auth_definer`: `rolsuper=false`, `rolbypassrls=true`, `rolcanlogin=false`; runtime is not a member of this role or `neondb_owner`.
+- `opscore_security.context_hmac_keys` is owned by `opscore_auth_definer`. Runtime has schema USAGE but no SELECT/INSERT/UPDATE/DELETE privilege on the key table.
+- `opscore_security.verified_tenant_context()` and `verified_rls_context()` are SECURITY DEFINER functions owned by `opscore_auth_definer`; runtime may EXECUTE them but cannot directly access the key table. Both pin `search_path` to `pg_catalog, opscore_security, pg_temp`.
+- `opscore_current_tenant()`, `opscore_current_user()` and `opscore_access_mode()` derive values from `verified_rls_context()`, with pinned search paths.
+- Behavioral test as `opscore_runtime`: transaction-local raw writes to `app.tenant_id`, `app.current_tenant_id`, `app.organization_id`, `app.user_id`, `app.current_user_id` and `app.access_mode=system` yielded `verified_tenant=NULL`, `verified_user=NULL`, `verified_access_mode=''`, and `opscore_is_privileged()=false`. A subsequent fresh runtime connection returned `context_clean=true` and empty legacy tenant/user GUC values.
+- `opscore_is_privileged()` is a SECURITY DEFINER function owned by `neondb_owner` (which has BYPASSRLS), and is executable by runtime. Its observed body checks owner/admin/manager membership only by matching the signed `opscore_current_tenant()` and `opscore_current_user()` accessors. Keep this privileged helper in the explicit code-review scope; the raw-GUC test above does not replace review of all caller paths.
+
+### RLS and policy inventory
+
+- 137 public base tables; 136 have both RLS and FORCE RLS.
+- The only public base-table exception is PostGIS `spatial_ref_sys`, owned by `cloud_admin`; `opscore_runtime` has SELECT only and no INSERT/UPDATE/DELETE.
+- 279 public RLS policies observed; none of their `qual` or `with_check` expressions reference raw `current_setting`. 266 policies reference signed tenant/user accessors.
+- 126 public tables expose an `organization_id` column; all 126 have at least one policy using the signed tenant accessor.
+- Dedicated non-standard policies were also inspected: `deployment_release_evidence` and `schema_migrations` deny runtime table privileges; `technician_location_trail` has a restrictive signed-tenant guard; `password_reset_tokens` has a restrictive no-SELECT guard; system rate-limit tables are explicitly shared for runtime; `worker_guard_system_events` has runtime INSERT only.
+- This is a fresh catalog read plus one raw-GUC behavioral probe. It does not establish live cross-tenant acceptance for all HTTP routes, AI/search pools, background workers, or every transaction lifecycle.
+
+### Recovery and plan limitations
+
+- Neon organization `free`; project history retention `21,600 seconds` (6 hours); branch logical-size limit `1,073,741,824 bytes` (1 GiB).
+- Eight branches were listed, all READY; Primary `br-proud-salad-bcshhdap` is default/primary but `protected=false`. The seven non-primary branches are also `protected=false`; preserve all of them.
+- One manual snapshot exists: `snap-aged-thunder-bcsxc1a5`, created `2026-11-19T06:58:55Z`; no automatic snapshot schedule is configured on any of the eight branches.
+- No plan upgrade, snapshot schedule change, branch protection mutation, branch deletion, snapshot deletion, or recovery operation was attempted.
+
+**Current DB conclusion:** migration 071/072 are recorded; runtime direct access to HMAC key material is denied; raw legacy-GUC tenant/user/access-mode forgery was rejected in the direct runtime-role probe; 136/137 public base tables enforce RLS+FORCE RLS. **Production-wide isolation certification remains NOT_CERTIFIED** until exact-deployment HTTP behavioral proofs cover the complete route inventory, application/business flows and all non-HTTP workers. Recovery remains **PLAN-LIMITED / OPEN** until protected scheduled snapshots and an accepted restore/RPO/RTO process exist.
