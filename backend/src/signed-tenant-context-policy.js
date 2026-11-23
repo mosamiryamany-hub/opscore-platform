@@ -14,12 +14,13 @@ function isPreview(env = process.env) {
 // A Production environment switch is insufficient: the deployment's immutable
 // release proof must already certify the exact 67-route Production evidence,
 // and the global traffic hold must be explicitly open.
-function candidateProbeDenialReason(req, env = process.env, readiness = {}) {
+function candidateProbeDenialReason(req, env = process.env, readiness = {}, options = {}) {
+  const allowConfiguredReleaseFlagsForIdentityRead = options.allowConfiguredReleaseFlagsForIdentityRead === true;
   if (String(env.VERCEL_ENV || '') !== 'production') return 'vercel_env';
   if (!enabled(env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_ENABLED)) return 'probe_disabled';
   if (String(env.OPSC_PRODUCTION_HOLD || '').trim().toLowerCase() !== 'true') return 'hold_not_true';
-  if (enabled(env.OPSC_RELEASE_VERIFIED)) return 'release_verified';
-  if (enabled(env.OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED)) return 'production_signed_enabled';
+  if (enabled(env.OPSC_RELEASE_VERIFIED) && !allowConfiguredReleaseFlagsForIdentityRead) return 'release_verified';
+  if (enabled(env.OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED) && !allowConfiguredReleaseFlagsForIdentityRead) return 'production_signed_enabled';
   if (enabled(env.OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED)) return 'session_autobind_enabled';
   if (String(env.OPSC_REQUIRE_SIGNED_TENANT_CONTEXT || '').trim().toLowerCase() !== 'true') return 'require_signed_missing';
   if (readiness.productionReleaseVerified === true) return 'readiness_release_verified';

@@ -1,7 +1,7 @@
 'use strict';
 
 const fs = require('node:fs');
-const { parseDeploymentUrl, runVercelCurl } = require('./production-deployment-smoke');
+const { parseDeploymentUrl, runTrustedOidcFetch } = require('./production-deployment-smoke');
 
 const DIAGNOSTIC_PATH = '/api/internal/production-database-identity';
 
@@ -252,8 +252,22 @@ function writeGateOutput(result, env = process.env) {
 
 async function runDiagnostic(deploymentUrl, expectedCommit, expectedPipelineId, options = {}) {
   const parsed = parseDeploymentUrl(deploymentUrl);
-  const curlRunner = options.curlRunner || runVercelCurl;
-  const response = await curlRunner(parsed, DIAGNOSTIC_PATH, { connectTimeoutSeconds: 5, maxTimeSeconds: 45, processTimeoutMs: 60000 });
+  // This protected endpoint requires both Trusted OIDC headers; call the OIDC
+  // transport explicitly rather than relying on runVercelCurl's environment-based
+  // transport selection.
+  const candidateProbeToken = String(options.candidateProbeToken || process.env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN || '').trim();
+  if (!/^[a-f0-9]{64}$/i.test(candidateProbeToken)) {
+    throw new Error('CANDIDATE_PROBE_TOKEN_REQUIRED_OR_INVALID');
+  }
+  const trustedFetch = options.fetchRunner || runTrustedOidcFetch;
+  const response = await trustedFetch(parsed, DIAGNOSTIC_PATH, {
+    connectTimeoutSeconds: 5,
+    maxTimeSeconds: 45,
+    processTimeoutMs: 60000,
+    token: options.token || process.env.VERCEL_TRUSTED_OIDC_TOKEN,
+    candidateProbeToken,
+    fetchImpl: options.fetchImpl
+  });
   let payload = {};
   try { payload = JSON.parse(response.body); } catch {}
   return evaluateRuntimeDiagnostic(payload, response.statusCode, expectedCommit, expectedPipelineId);

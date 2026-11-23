@@ -224,6 +224,20 @@ function isAuthorizedProductionCandidateDatabaseIdentityRequest(req, env = proce
       && exactUnaliasedDeploymentHostMatched(req, env)) {
     return true;
   }
+
+  // C) read-only staged identity diagnostic. The staged deployment may have its
+  // release flags configured before the in-process proof is complete; the diagnostic
+  // itself must be able to inspect and report that proof. This exception is limited
+  // to this GET-only identity route and still requires active HOLD, candidate mode,
+  // the per-run probe token, Trusted OIDC, and the exact unaliased deployment host.
+  if (String(env.OPSC_PRODUCTION_CANDIDATE_MODE || '').trim().toLowerCase() === 'true'
+      && trustedOidcPresent(req)
+      && exactUnaliasedDeploymentHostMatched(req, env)
+      && signedTenantContextPolicy.candidateProbeDenialReason(req, env, readiness, {
+        allowConfiguredReleaseFlagsForIdentityRead: true
+      }) === null) {
+    return true;
+  }
   return false;
 }
 
