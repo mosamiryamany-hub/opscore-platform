@@ -214,12 +214,13 @@ jobs:
             sha256sum -c "RELEASE_SHA256SUMS.txt"
           )
 
-      - name: Write source-pinned SLSA provenance predicate
+      - name: Write source-pinned build provenance predicate
         env:
           SOURCE_SHA: "${{ env.OPSC_RELEASE_SOURCE_SHA }}"
           WORKFLOW_SHA: "${{ github.sha }}"
           WORKFLOW_REF: "${{ github.ref }}"
           RUN_URL: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          RELEASE_ARCHIVE: "${{ runner.temp }}/OpsCore-release.zip"
           OUTPUT: "${{ runner.temp }}/source-pinned-provenance.json"
         run: |
           set -euo pipefail
@@ -230,47 +231,47 @@ jobs:
           const sourceSha = process.env.SOURCE_SHA || '';
           const workflowSha = process.env.WORKFLOW_SHA || '';
           const repository = process.env.GITHUB_REPOSITORY || '';
-          if (!/^[a-f0-9]{40}$/.test(sourceSha) || !/^[a-f0-9]{40}$/.test(workflowSha) || !repository) {
+          const archivePath = process.env.RELEASE_ARCHIVE;
+          if (!/^[a-f0-9]{40}$/.test(sourceSha) || !/^[a-f0-9]{40}$/.test(workflowSha) || !repository || !fs.existsSync(archivePath)) {
             throw new Error('SOURCE_PINNED_PROVENANCE_INPUT_INVALID');
           }
+          const archive = fs.readFileSync(archivePath);
           const predicate = {
-            buildDefinition: {
-              buildType: 'https://github.com/slsa-framework/github-actions-buildtypes/tree/main/workflow/v1',
-              externalParameters: {
-                sourceRepository: 'https://github.com/' + repository,
-                sourceCommit: sourceSha,
-                workflowRef: process.env.WORKFLOW_REF,
-                workflowCommit: workflowSha
-              },
-              internalParameters: {
-                runnerImage: 'ubuntu-24.04',
-                checkedOutSourceCommit: sourceSha
-              },
-              resolvedDependencies: [
-                {
-                  uri: 'git+https://github.com/' + repository,
-                  digest: { gitCommit: sourceSha }
-                },
-                {
-                  uri: 'git+https://github.com/' + repository + '/.github/workflows/opscore-secure-release.yml',
-                  digest: { gitCommit: workflowSha }
-                }
-              ]
+            schemaVersion: 'opscore.source-pinned-build.v1',
+            source: {
+              repository: 'https://github.com/' + repository,
+              commit: sourceSha
             },
-            runDetails: {
-              builder: { id: 'https://github.com/actions/runner' },
-              metadata: { invocationId: process.env.RUN_URL }
+            builder: {
+              workflow: 'https://github.com/' + repository + '/.github/workflows/opscore-secure-release.yml',
+              workflowRef: process.env.WORKFLOW_REF,
+              workflowCommit: workflowSha,
+              runUrl: process.env.RUN_URL,
+              runnerImage: 'ubuntu-24.04'
+            },
+            subject: {
+              name: 'OpsCore-release.zip',
+              digest: { sha256: crypto.createHash('sha256').update(archive).digest('hex') },
+              sizeBytes: archive.length
             }
           };
           fs.writeFileSync(process.env.OUTPUT, JSON.stringify(predicate, null, 2) + '\n');
           NODE
 
-      - name: Attest release archive with source-pinned SLSA provenance
+      # Use GitHub's built-in provenance mode so GitHub assigns its accepted
+      # SLSA buildType; do not inject a custom SLSA predicate here.
+      - name: Attest archive with GitHub-generated SLSA provenance
         id: provenance_attestation
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
           subject-path: "${{ runner.temp }}/OpsCore-release.zip"
-          predicate-type: "https://slsa.dev/provenance/v1"
+
+      - name: Attest exact source SHA and archive digest
+        id: source_pin_attestation
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: "${{ runner.temp }}/OpsCore-release.zip"
+          predicate-type: "https://github.com/mosamiryamany-hub/opscore-platform/attestations/source-pinned-build/v1"
           predicate-path: "${{ runner.temp }}/source-pinned-provenance.json"
 
       - name: Attest CycloneDX SBOM against release archive
@@ -280,36 +281,45 @@ jobs:
           subject-path: "${{ runner.temp }}/OpsCore-release.zip"
           sbom-path: "${{ runner.temp }}/opscore-v0.11.62.cyclonedx.json"
 
-      - name: Verify provenance and SBOM attestations from GitHub
+      - name: Verify SLSA, source-pinned and SBOM attestations from GitHub
         env:
           GH_TOKEN: "${{ github.token }}"
           RELEASE_ARCHIVE: "${{ runner.temp }}/OpsCore-release.zip"
           SOURCE_SHA: "${{ env.OPSC_RELEASE_SOURCE_SHA }}"
           PROVENANCE_RESULT: "${{ runner.temp }}/provenance-verification.json"
+          SOURCE_PIN_RESULT: "${{ runner.temp }}/source-pin-verification.json"
           SBOM_RESULT: "${{ runner.temp }}/sbom-attestation-verification.json"
         run: |
           set -euo pipefail
           gh attestation verify "$RELEASE_ARCHIVE" -R "$GITHUB_REPOSITORY" \
             --predicate-type "https://slsa.dev/provenance/v1" --format json > "$PROVENANCE_RESULT"
           gh attestation verify "$RELEASE_ARCHIVE" -R "$GITHUB_REPOSITORY" \
+            --predicate-type "https://github.com/mosamiryamany-hub/opscore-platform/attestations/source-pinned-build/v1" \
+            --format json > "$SOURCE_PIN_RESULT"
+          gh attestation verify "$RELEASE_ARCHIVE" -R "$GITHUB_REPOSITORY" \
             --predicate-type "https://cyclonedx.org/bom" --format json > "$SBOM_RESULT"
-          grep -q "$SOURCE_SHA" "$PROVENANCE_RESULT"
+          grep -q "$SOURCE_SHA" "$SOURCE_PIN_RESULT"
+          test -s "$PROVENANCE_RESULT"
           test -s "$SBOM_RESULT"
           echo "GITHUB_SLSA_PROVENANCE_VERIFICATION=PASS"
+          echo "SOURCE_PINNED_BUILD_ATTESTATION_VERIFICATION=PASS"
           echo "GITHUB_CYCLONEDX_SBOM_ATTESTATION_VERIFICATION=PASS"
 
       - name: Collect downloadable attestation bundles
         env:
           PROVENANCE_BUNDLE: "${{ steps.provenance_attestation.outputs.bundle-path }}"
+          SOURCE_PIN_BUNDLE: "${{ steps.source_pin_attestation.outputs.bundle-path }}"
           SBOM_BUNDLE: "${{ steps.sbom_attestation.outputs.bundle-path }}"
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/opscore-attestation-bundles"
           test -s "$PROVENANCE_BUNDLE"
+          test -s "$SOURCE_PIN_BUNDLE"
           test -s "$SBOM_BUNDLE"
-          cp "$PROVENANCE_BUNDLE" "$RUNNER_TEMP/opscore-attestation-bundles/provenance-attestation.jsonl"
+          cp "$PROVENANCE_BUNDLE" "$RUNNER_TEMP/opscore-attestation-bundles/slsa-provenance-attestation.jsonl"
+          cp "$SOURCE_PIN_BUNDLE" "$RUNNER_TEMP/opscore-attestation-bundles/source-pinned-build-attestation.jsonl"
           cp "$SBOM_BUNDLE" "$RUNNER_TEMP/opscore-attestation-bundles/sbom-attestation.jsonl"
-          test "$(find "$RUNNER_TEMP/opscore-attestation-bundles" -type f | wc -l)" -eq 2
+          test "$(find "$RUNNER_TEMP/opscore-attestation-bundles" -type f | wc -l)" -eq 3
 
       - name: Install pinned Cosign
         uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
@@ -372,6 +382,7 @@ jobs:
             ${{ runner.temp }}/opscore-v0.11.62.cyclonedx.json
             ${{ runner.temp }}/source-pinned-provenance.json
             ${{ runner.temp }}/provenance-verification.json
+            ${{ runner.temp }}/source-pin-verification.json
             ${{ runner.temp }}/sbom-attestation-verification.json
             ${{ runner.temp }}/opscore-attestation-bundles/
             ${{ runner.temp }}/OpsCore-release.zip.sigstore.json
