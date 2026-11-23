@@ -158,3 +158,71 @@ This section supersedes Sections 1, 4, 5, 6 and 8 above wherever they classify t
 **No paid upgrade is authorized by this document.** Preserve Neon branches, snapshots and Production data.
 
 See [Full-site closeout scope](../commercial/SELLER_CODE_ONLY_CLOSEOUT_2026-11-23.md). Closeout remains **OPEN**.
+
+
+---
+
+## 10. Latest measured full-site status — 2026-11-23
+
+This section supersedes Section 9's stale evidence cut and gate statuses. PR #401 is merged; the current `main` evidence cut is `5e3cb211b7660002418757612033ff8928f25b69`.
+
+### Verified in this evidence cut
+
+- OpsCore CI `45129195704`: success; release runner 990 total, 987 pass, 0 fail, 3 skipped (`PASS_WITH_SKIPS`).
+- Isolated PostgreSQL 18 acceptance `45129195834`: success; PostgreSQL HTTP acceptance 1/1, firewall shared rate limiter 1/1, tenant matrix 2/2, route matrix 346 routes, logical restore drill 137 tables. The three DB-gated files skipped in the generic runner were executed separately in this job with zero skips.
+- Neon restore branches `br-calm-poetry-bc7l7wik` and `br-orange-union-bc90bp8r` originate from `snap-aged-thunder-bcsxc1a5`; SHA-256 row-content digests matched across 136/136 public base tables.
+- Vercel active firewall configuration read: firewall enabled; `gen`, `rce`, `sqli`, `xss` and Bot Protection are log-only; no IP allow/deny rules; auth edge rate limit is active at 60 requests/IP/60 seconds. Active attack status returned no anomalies.
+
+### Open gates — current measured state
+
+| Gate | State | Evidence / required action |
+|---|---|---|
+| Current `main` deployed to Production | **OPEN** | Vercel Production still `dpl_FVXwPoqefvkNsxA3BqVrxYnxRQka` / commit `88df9046...`; zero Production deployment records for `5e3cb211...` |
+| Production release workflow | **NOT RUN** | Run `45129195834` was a push; its Production deploy job was skipped. Workflow requires `workflow_dispatch` with `run_mode=AUTHORIZE_PRODUCTION_RELEASE` |
+| Same-final-deployment certification | **OPEN** | Evidence is pinned to `OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID`; workflow later builds a separate staged deployment. Redesign required so every behavioral proof is bound to the final promoted deployment ID |
+| Certification flag semantics | **OPEN** | `OPSC_PRODUCTION_ISOLATION_CERTIFICATION=CERTIFIED` is a text environment flag. It cannot independently establish certification; derive status from exact, signed, deployment-bound evidence |
+| Catalog vs behavioral proof naming | **OPEN** | Database-security endpoint is catalog-only and returns `NOT_CERTIFIED`; release endpoint uses behavioral evidence. Public field names/scopes must be explicit and non-ambiguous |
+| Neon Primary protection | **PLAN-LIMITED** | Primary is `protected=false`; Neon rejected protection because the Free plan limit was reached. No upgrade or branch unprotection performed |
+| Neon scheduled backups | **PLAN-LIMITED** | Schedule is empty; Free plan has one manual snapshot and no scheduled backup schedules. Existing snapshot preserved; paid upgrade not authorized |
+| Neon Production current-state restore parity | **NOT VERIFIED** | Two restored branches match each other 136/136 by SHA-256, but are from the 2026-11-19 snapshot. Primary is newer: seven row-count differences; migration ledger 70 vs 68. Not evidence of corruption, not current-primary parity |
+| WAF enforcement | **OPEN** | CRS/Bot Protection log-only. Auth rate limit is active; active attack query had no anomalies. An approved blocking policy and observed block test are still needed |
+| Six legal/commercial pages | **BLOCKED ON OWNER DATA** | `/terms`, `/privacy`, `/refund`, `/pricing`, `/legal`, `/security` were reported 404. Legal entity, jurisdiction, contact, privacy/data practices, refund policy, price/currency/tax, and license limits required |
+| Historical credential exposure | **OPEN / SECURITY PRIORITY** | Revoke GitHub PAT, Vercel token and Neon API key in provider consoles; replace corresponding GitHub Actions secrets. Do not paste credentials into chat |
+| Exact-current-main release archive | **OPEN** | Previous Secure Release artifact is bound to `fbc4a308...`; regenerate SBOM, archive SHA-256 and signature on `5e3cb211...` |
+| External certification | **NOT EVIDENCED** | Internal CI/SBOM/Sigstore is not ISO/SOC 2/PCI or third-party certification |
+| License/distribution authority | **NOT GRANTED** | `UNLICENSED`; signed rights-holder License Schedule required before any buyer use or distribution |
+
+### Resource and safety decisions
+
+- No Neon/Vercel paid upgrade.
+- No branch, snapshot, database row, restore artifact, or Production environment variable was deleted or promoted.
+- The attempted Neon Primary protection change failed at the provider plan limit; no other branch was unprotected to make room.
+- No Production deployment was created through a direct API or CLI shortcut; only the gated workflow is acceptable.
+- No legal text, pricing, refund policy, certification or license grant is invented.
+
+**Current decision: OPEN.** Engineering CI and disposable PostgreSQL acceptance pass, but live Production identity, same-deployment proof, WAF enforcement, legal pages, credential rotation, scheduled backup strategy, exact-main release package, and license authority remain unresolved.
+
+
+Official Neon limits used for this classification: [Neon plans](https://neon.com/docs/introduction/plans) and [Backup & Restore](https://neon.com/docs/guides/backup-restore). Free includes one manual snapshot and a six-hour history window; automated backup schedules are paid-plan functionality.
+
+
+### Exact same-deployment evidence gap
+
+Historical Production run `45116314003` used held probe deployment `dpl_7PcZ9ym1nc1vEJqPssYioPLEBJd6`, then promoted staged deployment `dpl_FVXwPoqefvkNsxA3BqVrxYnxRQka`. The production probes were pinned to the first ID; the public domain served the second. Same commit and pipeline do not make these the same deployment.
+
+PR #403 is the fail-closed code correction. Its latest OpsCore CI verify job passed; release-proof tests 18/18 and production-candidate environment tests 9/9 passed, with full backend runner 990/987/0/3 (`PASS_WITH_SKIPS`). CodeQL and Analyze checks passed. The earlier Vercel PR run `45131203007` was cancelled with zero jobs. A later PR #403 run `45131755968` on head `b3feb4b...` completed successfully: source verification, contract verification and isolated PostgreSQL 18 RLS/HTTP acceptance all PASS. Production deploy was skipped as expected for a PR; Neon Preview migration and Production PITR probes were also skipped. No Production deployment occurred. PR #403 remains open and blocked with no review submitted. The current workflow must be redesigned to persist signed evidence keyed to the final staged deployment ID (or use an equivalent same-ID promotion flow) before Production can be certified. Do not run the gated Production release until that redesign and its tests pass.
+
+
+The Production database has no existing system-level deployment-attestation store. Existing `evidence_uploads` and `evidence_upload_chunks` are tenant/work-order scoped and must not be repurposed for global release proof. A new isolated attestation table, signing/verification contract, and least-privilege writer/reader grants are required; no schema was changed in this audit.
+
+
+Restore-artifact preservation: the replay branch `br-orange-union-bc90bp8r` previously had a 2026-11-29 expiry. Its expiry was removed on 2026-11-23 and verified as absent; no restore branch or snapshot was deleted.
+
+
+Read-only SHA-256 table-content manifest roots across 136 public base tables:
+- Restore proof and replay branches both: `6f1af6f95f242e12d66e409d8c0d72b8c57132d99a629dd1085e8e61e57817b2`.
+- Current Primary: `a4e9293bc9fa1628182c6e9b26fbfe1084c7781d5697c58a1ade6ec0f1266242`.
+The equal restore roots verify identical table content between the two branches; the different Primary root confirms point-in-time divergence. These are diagnostic hashes, not signed backup attestations or current-Primary restore parity.
+
+
+Scope limitation: the 136-table SHA-256 manifest covers the `public` schema only; `opscore_security.context_hmac_keys` was not included, so its restore parity remains unverified.
