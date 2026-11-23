@@ -1402,7 +1402,7 @@ jobs:
           const nativePitrBytes = fs.readFileSync(evidenceFiles.nativePitr);
           const nativePitrSidecar = fs.readFileSync(evidenceFiles.nativePitr + '.sha256', 'utf8');
           const nativePitrSidecarExpected = crypto.createHash('sha256').update(nativePitrBytes).digest('hex')
-            + '  PRODUCTION_NATIVE_PITR_EVIDENCE.json\\n';
+            + '  PRODUCTION_NATIVE_PITR_EVIDENCE.json\n';
           if (nativePitrSidecar !== nativePitrSidecarExpected) {
             throw new Error('CANDIDATE_NATIVE_PITR_SIDECAR_DIGEST_MISMATCH');
           }
