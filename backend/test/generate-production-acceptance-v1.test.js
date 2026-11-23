@@ -73,9 +73,9 @@ test('production acceptance generator is read-only against production and fails 
   assert.match(src, /full source-to-ledger checksum parity/);
   assert.match(src, /verifyLegacyAppRoleOptionalCatalog/);
   assert.match(src, /legacy_app_role_optional_catalog_equivalence_v1/);
-  assert.match(src, /reconciliation\\.ledgerSha256/);
-  assert.match(src, /reconciliation\\.sourceSha256/);
-  assert.match(src, /legacyAppRoleOptionalEvidence\\.verified/);
+  assert.ok(src.includes('reconciliation.ledgerSha256'));
+  assert.ok(src.includes('reconciliation.sourceSha256'));
+  assert.ok(src.includes('legacyAppRoleOptionalEvidence.verified'));
   assert.doesNotMatch(src, /NEON_API_KEY|console\.neon\.tech|DELETE FROM|INSERT INTO organizations/);
 });
 
