@@ -96,9 +96,11 @@ jobs:
               raise SystemExit("NEON_ACCEPTANCE_PARENT_MISMATCH")
           if branch.get("primary") is True or branch.get("default") is True:
               raise SystemExit("REFUSING_NEON_PRIMARY_OR_DEFAULT_BRANCH")
+          if branch.get("protected") is True:
+              raise SystemExit("REFUSING_NEON_PROTECTED_BRANCH")
           if branch.get("current_state") != "ready":
               raise SystemExit("NEON_ACCEPTANCE_BRANCH_NOT_READY")
-          if primary.get("id") != os.environ["PRIMARY_BRANCH_ID"] or primary.get("primary") is not True or primary.get("default") is not True:
+          if primary.get("id") != os.environ["PRIMARY_BRANCH_ID"] or primary.get("project_id") != os.environ["PROJECT_ID"] or primary.get("primary") is not True or primary.get("default") is not True:
               raise SystemExit("NEON_PRIMARY_BRANCH_IDENTITY_MISMATCH")
           PY
           echo "branch_id=$BRANCH_ID" >> "$GITHUB_OUTPUT"
