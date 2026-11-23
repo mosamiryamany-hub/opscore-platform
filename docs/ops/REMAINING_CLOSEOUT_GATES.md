@@ -204,3 +204,10 @@ This section supersedes Section 9's stale evidence cut and gate statuses. PR #40
 
 
 Official Neon limits used for this classification: [Neon plans](https://neon.com/docs/introduction/plans) and [Backup & Restore](https://neon.com/docs/guides/backup-restore). Free includes one manual snapshot and a six-hour history window; automated backup schedules are paid-plan functionality.
+
+
+### Exact same-deployment evidence gap
+
+Historical Production run `45116314003` used held probe deployment `dpl_7PcZ9ym1nc1vEJqPssYioPLEBJd6`, then promoted staged deployment `dpl_FVXwPoqefvkNsxA3BqVrxYnxRQka`. The production probes were pinned to the first ID; the public domain served the second. Same commit and pipeline do not make these the same deployment.
+
+PR #403 is the fail-closed code correction. It is open, unmerged, and its CI is still running at this evidence cut. The current workflow must be redesigned to persist signed evidence keyed to the final staged deployment ID (or use an equivalent same-ID promotion flow) before Production can be certified. Do not run the gated Production release until that redesign and its tests pass.
