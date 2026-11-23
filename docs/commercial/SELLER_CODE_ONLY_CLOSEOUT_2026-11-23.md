@@ -34,7 +34,7 @@ Current closeout remains **OPEN**; see `docs/ops/REMAINING_CLOSEOUT_GATES.md` fo
 
 The full-site scope above remains controlling. The latest evidence cut is `main` `5e3cb211b7660002418757612033ff8928f25b69`; PR #401 is merged. The successful push workflows do not mean Production was deployed: `45129195834` completed successfully, but the `deploy` job was skipped because the run was a push, not the separately authorized `workflow_dispatch` release.
 
-Production still points to `dpl_FVXwPoqefvkNsxA3BqVrxYnxRQka` / `88df9046ea5d57b392530565bc8cf6a10627ac4a` (CLI source). A Production deployment search for `5e3cb211...` returned zero results. The six commercial/legal routes were reported 404 in the supplied probe and require owner data; no placeholder pages are accepted.
+Production still points to `dpl_FVXwPoqefvkNsxA3BqVrxYnxRQka` / `88df9046ea5d57b392530565bc8cf6a10627ac4a` (CLI source). Vercel lists READY Production-target deployment `dpl_9Xnqs1UrK74N7YpVr6s11S2KJ2Ur` on `5e3cb211...`, but it has `alias=[]`; the public domain resolves to `dpl_FVXwPoqefvkNsxA3BqVrxYnxRQka` on `88df9046...`. Current main after PR #403 is `3f7d9110...` and has zero Production deployments. The six commercial/legal routes were reported 404 in the supplied probe and require owner data; no placeholder pages are accepted.
 
 The generic OpsCore runner is `PASS_WITH_SKIPS` (990 tests, 987 pass, 0 fail, 3 skip). The three database-gated files were separately executed in the same-commit PostgreSQL 18 acceptance job and passed: HTTP acceptance 1/1, shared PostgreSQL rate limiter 1/1, tenant matrix 2/2; the overall route matrix passed 346 routes and the disposable logical restore drill passed 137 tables. These are isolated CI proofs, not Production evidence.
 
