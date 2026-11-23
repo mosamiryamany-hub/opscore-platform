@@ -32,6 +32,14 @@ CREATE POLICY deployment_release_evidence_owner_all
   WITH CHECK (current_user = 'neondb_owner');
 
 REVOKE ALL ON public.deployment_release_evidence FROM PUBLIC;
+-- Migrations 049/059 installed DEFAULT PRIVILEGES for neondb_owner in the
+-- public schema (to opscore_app and opscore_runtime). Without an explicit
+-- revoke, every new table is born pre-granted and the least-privilege
+-- contract below would fail. Measured: run 45134208932 job 137556473544
+-- failed with OPSC_DEPLOYMENT_EVIDENCE_STORE_CONTRACT_FAILED for exactly
+-- this reason.
+REVOKE ALL ON public.deployment_release_evidence FROM opscore_app;
+REVOKE ALL ON public.deployment_release_evidence FROM opscore_runtime;
 
 DO $verify$
 DECLARE

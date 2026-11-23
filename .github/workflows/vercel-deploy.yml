@@ -1264,6 +1264,18 @@ jobs:
           VERCEL_TRUSTED_OIDC_TOKEN: ${{ steps.vercel_oidc_domain.outputs.token }}
 
 
+      - name: Persist promoted-deployment release evidence (072 store, owner-only)
+        if: ${{ github.event.inputs.run_mode == 'AUTHORIZE_PRODUCTION_RELEASE' && steps.production_domain_verify.outcome == 'success' }}
+        run: |
+          set -euo pipefail
+          npm ci --ignore-scripts
+          node backend/scripts/record-deployment-release-evidence.js RECORD_PROMOTED_DEPLOYMENT_RELEASE_EVIDENCE
+        working-directory: backend
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+
       - name: Fail unless production promotion and public-domain verification completed
         id: final_gate
         if: ${{ always() && !cancelled() && github.event.inputs.run_mode == 'AUTHORIZE_PRODUCTION_RELEASE' }}

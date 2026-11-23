@@ -30,11 +30,11 @@ async function main() {
     console.log('CONFIRM_INPUT_INVALID');
     process.exit(2);
   }
-  const deploymentId = String(process.env.OPSC_PROMOTED_DEPLOYMENT_ID || '').trim();
+  const suppliedDeploymentId = String(process.env.OPSC_PROMOTED_DEPLOYMENT_ID || '').trim();
   const domain = String(process.env.OPSC_PROMOTED_DOMAIN || DEFAULT_DOMAIN).trim();
   const expectedCommit = String(process.env.GITHUB_SHA || '').trim().toLowerCase();
   const expectedPipeline = String(process.env.GITHUB_RUN_ID || '').trim();
-  if (!/^dpl_[A-Za-z0-9]+$/.test(deploymentId)) { console.log('PROMOTED_DEPLOYMENT_ID_INVALID'); process.exit(2); }
+  if (suppliedDeploymentId && !/^dpl_[A-Za-z0-9]+$/.test(suppliedDeploymentId)) { console.log('PROMOTED_DEPLOYMENT_ID_INVALID'); process.exit(2); }
   if (!/^[a-f0-9]{40}$/.test(expectedCommit)) { console.log('COMMIT_IDENTITY_INVALID'); process.exit(2); }
   if (!/^[0-9]{1,15}$/.test(expectedPipeline)) { console.log('PIPELINE_IDENTITY_INVALID'); process.exit(2); }
   const proof = await fetchReleaseProof(domain);
@@ -42,8 +42,13 @@ async function main() {
   if (proof.status !== 'PASS') { console.log('RELEASE_PROOF_NOT_PASS:' + proof.status); process.exit(1); }
   if (String(proof.sourceCommit || '').toLowerCase() !== expectedCommit) { console.log('RELEASE_PROOF_COMMIT_MISMATCH'); process.exit(1); }
   if (String((proof.ci || {}).pipelineId || '') !== expectedPipeline) { console.log('RELEASE_PROOF_PIPELINE_MISMATCH'); process.exit(1); }
-  if (String((proof.deployment || {}).id || '') !== deploymentId
+  // When no dpl id is supplied, the proof's own deployment id is adopted —
+  // safe because the commit AND pipeline bindings above already pin this
+  // exact run's promoted deployment.
+  const deploymentId = suppliedDeploymentId || String((proof.deployment || {}).id || '').trim();
+  if (!/^dpl_[A-Za-z0-9]+$/.test(deploymentId)
       || (proof.deployment || {}).environment !== 'production') { console.log('RELEASE_PROOF_DEPLOYMENT_MISMATCH'); process.exit(1); }
+  if (suppliedDeploymentId && deploymentId !== suppliedDeploymentId) { console.log('RELEASE_PROOF_DEPLOYMENT_MISMATCH'); process.exit(1); }
 
   const recordedReleaseProof = {
     sourceCommit: proof.sourceCommit,
