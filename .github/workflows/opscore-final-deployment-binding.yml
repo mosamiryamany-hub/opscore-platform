@@ -121,8 +121,8 @@ jobs:
           node - "$archive_meta" "$route_meta" "$RELEASE_RUN_ID" "$DEPLOY_RUN_ID" <<'NODE'
           const [aRaw, rRaw, releaseRun, deployRun] = process.argv.slice(2);
           const a = JSON.parse(aRaw), r = JSON.parse(rRaw);
-          if (String(a.workflow_run?.id) !== releaseRun || a.expired) throw new Error('ARCHIVE_ARTIFACT_NOT_FROM_SELECTED_RELEASE_RUN');
-          if (String(r.workflow_run?.id) !== deployRun || r.expired) throw new Error('ROUTE_ARTIFACT_NOT_FROM_SELECTED_DEPLOY_RUN');
+          if (String(a.workflow_run?.id) !== releaseRun || a.expired || a.name !== 'opscore-release-' + releaseRun) throw new Error('ARCHIVE_ARTIFACT_NOT_FROM_SELECTED_RELEASE_RUN');
+          if (String(r.workflow_run?.id) !== deployRun || r.expired || r.name !== 'production-api-route-acceptance-' + deployRun) throw new Error('ROUTE_ARTIFACT_NOT_FROM_SELECTED_DEPLOY_RUN');
           NODE
           unzip -q "$RUNNER_TEMP/archive-artifact.zip" -d "$RUNNER_TEMP/archive-artifact"
           unzip -q "$RUNNER_TEMP/route-artifact.zip" -d "$RUNNER_TEMP/route-artifact"
@@ -281,9 +281,10 @@ jobs:
               name: 'OpsCore-release.zip',
               digest: { sha256: process.env.ARCHIVE_SHA256 }
             }],
-            predicateType: 'https://opscore.example/attestations/final-deployment-binding/v1',
+            predicateType: 'https://github.com/mosamiryamany-hub/opscore-platform/attestations/final-deployment-binding/v1',
             predicate: {
               relationship: 'signed-association-of-separately-built-release-archive-and-final-production-deployment',
+              signatureFormat: 'Cosign keyless blob signature over this in-toto Statement JSON; not a DSSE attestation',
               source: {
                 repository: process.env.GITHUB_REPOSITORY,
                 commit: process.env.SOURCE_COMMIT,
@@ -343,7 +344,7 @@ jobs:
           console.log('FINAL_DEPLOYMENT_BINDING_STATEMENT=PASS');
           NODE
 
-      - name: Sign and verify deployment-binding statement with Sigstore keyless OIDC
+      - name: Sign and verify in-toto statement blob with Sigstore keyless OIDC
         env:
           EXPECTED_BINDER_IDENTITY: https://github.com/${{ github.repository }}/.github/workflows/opscore-final-deployment-binding.yml@refs/heads/${{ github.ref_name }}
         run: |
@@ -353,7 +354,7 @@ jobs:
             --bundle FINAL_DEPLOYMENT_BINDING.statement.sigstore.json \
             --certificate-identity "$EXPECTED_BINDER_IDENTITY" \
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
-          echo "SIGNED_FINAL_DEPLOYMENT_BINDING=PASS"
+          echo "SIGNED_IN_TOTO_STATEMENT_BLOB=PASS"
 
       - name: Upload immutable binding statement and verification evidence
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
