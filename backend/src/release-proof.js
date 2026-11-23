@@ -857,6 +857,7 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
     postgresHttpAcceptance.status === 'PASS' &&
     acceptanceVerified &&
     isolationCertified &&
+    productionEvidenceDeploymentBinding.status === 'PASS' &&
     nativePitr.status === 'PASS' &&
     apiRouteAcceptance.status === 'PASS_PRODUCTION_FUNCTIONAL_SCOPE'
   );
@@ -993,6 +994,7 @@ function hasVerifiedProductionRelease(env = process.env, identityPath, productio
     proof.gates.productionRecoveryBundle === 'PASS_PRODUCTION_FULL_DATA_RECOVERY_SCOPE' &&
     proof.gates.signedTenantSessionRouteCoverage === 'PASS_PRODUCTION_ROUTE_SCOPE' &&
     proof.gates.productionIsolationCertification === 'CERTIFIED' &&
+    proof.gates.productionEvidenceDeploymentBinding === 'PASS' &&
     proof.gates.tenantRouteSecurityCoverage === 'PASS_TEST_SCOPE' &&
     proof.gates.functionalApiRouteAcceptance === 'PASS_PRODUCTION_FUNCTIONAL_SCOPE' &&
     proof.gates.neonPointInTimeRecovery === 'PASS_PRODUCTION_FULL_DATA_PITR_SCOPE';
