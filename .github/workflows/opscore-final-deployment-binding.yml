@@ -152,8 +152,8 @@ jobs:
           echo "ROUTE_EVIDENCE_PATH=$route" >> "$GITHUB_ENV"
           signed_tenant="$(find "$RUNNER_TEMP/signed-tenant-artifact" -type f -name 'SIGNED_TENANT_CONTEXT_CI_ROUTE_COVERAGE.json' -print -quit)"
           test -s "$signed_tenant" || { echo "SIGNED_TENANT_CI_EVIDENCE_MISSING" >&2; exit 1; }
-          cp "$signed_tenant" "$RUNNER_TEMP/SIGNED_TENANT_CONTEXT_CI_ROUTE_COVERAGE.json"
-          echo "SIGNED_TENANT_EVIDENCE_PATH=$RUNNER_TEMP/SIGNED_TENANT_CONTEXT_CI_ROUTE_COVERAGE.json" >> "$GITHUB_ENV"
+          cp "$signed_tenant" "$GITHUB_WORKSPACE/SIGNED_TENANT_CONTEXT_CI_ROUTE_COVERAGE.json"
+          echo "SIGNED_TENANT_EVIDENCE_PATH=$GITHUB_WORKSPACE/SIGNED_TENANT_CONTEXT_CI_ROUTE_COVERAGE.json" >> "$GITHUB_ENV"
 
       - name: Verify archive digest, source pin, and original Sigstore signature
         id: verify_archive
@@ -588,6 +588,6 @@ jobs:
             FINAL_DEPLOYMENT_BINDING.statement.sha256
             FINAL_DEPLOYMENT_BINDING.statement.sigstore.json
             FINAL_PUBLIC_HTTP_SMOKE.json
-            ${{ env.SIGNED_TENANT_EVIDENCE_PATH }}
+            SIGNED_TENANT_CONTEXT_CI_ROUTE_COVERAGE.json
           if-no-files-found: error
           retention-days: 90
