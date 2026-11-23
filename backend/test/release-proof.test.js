@@ -868,6 +868,7 @@ test('functionalApiRouteAcceptance flips to PASS_CONTRACT_SCOPE only with commit
     assert.equal(candidateProof.productionEvidenceDeploymentBinding.configuredProbeDeploymentId, 'dpl_123456');
     assert.equal(candidateProof.gates.productionIsolationCertification, 'NOT_CERTIFIED',
       'a CERTIFIED environment string cannot override a deployment-ID mismatch');
+    assert.equal(candidateProof.productionIsolationCertificationScope, 'BEHAVIORAL_PRODUCTION_DEPLOYMENT_EVIDENCE_BOUND_TO_RUNTIME_DEPLOYMENT_ID');
     assert.equal(candidateProof.productionEvidenceDeploymentBinding.configuredProbeMatchesCurrent, false);
     assert.equal(productionProof.gates.commercialClosure, 'UNVERIFIED',
       'route-scope evidence alone must not certify the complete release');
