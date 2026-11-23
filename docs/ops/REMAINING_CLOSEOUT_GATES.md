@@ -139,28 +139,22 @@ No buyer signature is required to record the engineering state of the project. H
 This is the honest, buyer-safe state. It must not be described as Production-ready, commercially closed, or fully certified.
 ---
 
-## 9. Superseding code-only sale scope — 2026-11-23
+## 9. Superseding full-site closeout scope — 2026-11-23
 
-This section supersedes Sections 1, 4, 5, 6 and 8 above where they classify seller Vercel/Neon production operations as mandatory commercial release gates. The earlier sections are retained as historical evidence and must not be read as the current code-sale scope.
+This section supersedes Sections 1, 4, 5, 6 and 8 above wherever they classify the seller Vercel website, the seller Production deployment or the seller Neon database as out of scope. Those sections remain as historical evidence and are not the current acceptance scope.
 
-**Product being sold:** source code and its exact release/evidence package. Seller-hosted Vercel website, seller production deployment, seller Neon project/database, seller operational data, and seller hosting accounts are excluded.
+**Product being closed:** the complete hosted product — source and release package, the seller website on Vercel, the seller Production deployment, the Neon production database with periodic backup and a full restore test, and the commercial/legal pages — each proven on the same commit and the same deployment id.
 
-**Current source and package evidence:**
-- Main: `fbc4a3082325dff98e2ed41fffe42c3d76863254`.
-- Secure Release run: `45122272270`, completed/success.
-- Archive SHA-256: `7783d6614c033ecf85ee181db394fbd499dccd8f19a0b0509b97d0495e69c6ac`, recomputed from downloaded inner ZIP and matching the release statement.
-- SBOM: CycloneDX 1.6, 491 components, 245 dependency edges.
-- Sigstore verification: CI reported `Verified OK`; tampered archive and wrong signer were rejected.
-- The workflow's conditional tag/version step was skipped because `releaseTag=null`; it is not a passed check. In addition, backend regression is `PASS_WITH_SKIPS`: 990 total, 987 passed, 0 failed, 3 skipped. Skips: `firewall-rate-limit-postgres.test.js` (OPSC_PG_ACCEPTANCE_URL missing), `postgres-commercial-acceptance-http.test.js` (dedicated isolated PostgreSQL URL missing), and `tenant-isolation-matrix.test.js` (dedicated PostgreSQL URL missing). These three database-backed tests remain mandatory for code-sale closure and must be run against disposable isolated PostgreSQL; seller Neon is not required.
+**Measured state (2026-11-23):** `main` = `fbc4a3082325dff98e2ed41fffe42c3d76863254`; live `/api/verify/release` reports `sourceCommit: 88df9046ea5d57b392530565bc8cf6a10627ac4a` and deployment `dpl_FVXwPoqefvkNsxA3BqVrxYnxRQka`, so the deployed commit is **not** `main`; `/api/verify/database-security` reports `productionIsolationCertification: NOT_CERTIFIED` on a catalog-only scope while `/api/verify/release` reports `CERTIFIED`; `/terms`, `/privacy`, `/refund`, `/pricing`, `/legal` and `/security` return **HTTP 404** on the live domain.
 
-**Neon exception — no paid upgrade:** Neon Free plan, missing scheduled snapshot and seller Primary/restore data differences are excluded from code-sale acceptance because the seller's hosted database and data are not deliverables. No plan upgrade is required or authorized. Preserve seller Primary, branches and snapshots. This does not waive PostgreSQL migrations, schema parity, RLS, tenant isolation, FK, integration, and recovery-code tests on disposable isolated databases.
+**Open gates:**
+- Three red checks on PR #401 (`verify`, `vercel-contract-verify`, `vercel-source-verify`).
+- Production identity divergence between `main` and the deployed commit; a new deployment must go through the gated release workflow, never a direct publish.
+- Reconciliation of the `CERTIFIED` / `NOT_CERTIFIED` proof disagreement at the source, both bound to the same deployment id.
+- Six missing commercial/legal pages, blocked on owner-supplied legal entity, jurisdiction, contact, refund, price and licence data.
+- No periodic external backup, no automated digest/freshness check and no scheduled restore drill; Neon Free history window is 6 hours, not zero-loss.
+- Vercel firewall posture is log-only and is not evidenced as enforcement.
 
-**Vercel exception:** deploying the current source to the seller's public website and proving seller Production acceptance are excluded from the code-only package. The website is not being sold. Do not imply that the buyer's production environment has been deployed or accepted. A buyer may deploy the delivered source in infrastructure it controls.
+**No paid upgrade is authorized by this document.** Preserve Neon branches, snapshots and Production data.
 
-**Mandatory remaining seller-side gates:** exact-source full test accounting; all applicable backend/mobile/security/performance/contract tests; disposable PostgreSQL migration/schema/RLS/tenant/FK tests; dependency and secret audits; deterministic SBOM/provenance; archive hash and signature verification; tamper/wrong-signer rejection; clean-room install/reproducibility evidence; current trust links and documentation all bound to the same source and archive.
-
-**105-language baseline:** current catalog is exactly 105 locales, not 114. The separate historical qualification matrix may still have 114 rows. Current catalog composition is 1 English source, 100 machine-assisted drafts, and 4 English fallbacks; native-speaker reviewed 0 and production-qualified 0. Do not claim native translation approval.
-
-**Certificates:** internal CI/test/security attestations and cryptographic supply-chain evidence can be generated and linked when verified. ISO 27001, SOC 2, PCI DSS or other independent certifications cannot be self-issued by CI. No such external certification may be claimed without an authentic, current, scope-matched assessor report.
-
-See [Seller Code-Only Closeout Plan](../commercial/SELLER_CODE_ONLY_CLOSEOUT_2026-11-23.md). Current closeout remains OPEN until all applicable seller-side code-sale gates and trust-pack consistency checks pass. Buyer-specific deployment, provider accounts, store releases, native-speaker review and license execution remain separate buyer/contract residuals.
+See [Full-site closeout scope](../commercial/SELLER_CODE_ONLY_CLOSEOUT_2026-11-23.md). Closeout remains **OPEN**.

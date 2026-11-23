@@ -71,7 +71,7 @@ See the full [Client Trust Pack](CLIENT_TRUST_PACK.md), [Current closeout ledger
 
 The deliverable is source code plus the exact release/evidence package. Seller Vercel website, seller Production deployment, seller Neon database and seller operational data are excluded. No paid Neon/Vercel plan upgrade is required or authorized. Seller infrastructure health and backup schedules are not buyer-code acceptance gates.
 
-Exact release evidence is documented in [Seller Code-Only Closeout Plan](SELLER_CODE_ONLY_CLOSEOUT_2026-11-23.md): main `fbc4a3082325dff98e2ed41fffe42c3d76863254`, Secure Release run `45122272270`, archive SHA-256 `7783d6614c033ecf85ee181db394fbd499dccd8f19a0b0509b97d0495e69c6ac`, CycloneDX 1.6 SBOM, Sigstore verification, tamper rejection and wrong-signer rejection. One conditional release-tag check was skipped because no tag was supplied; it is not reported as a pass.
+Exact release evidence and the current full-site closeout scope are documented in [Full-site Closeout Scope](SELLER_CODE_ONLY_CLOSEOUT_2026-11-23.md): main `fbc4a3082325dff98e2ed41fffe42c3d76863254`, Secure Release run `45122272270`, archive SHA-256 `7783d6614c033ecf85ee181db394fbd499dccd8f19a0b0509b97d0495e69c6ac`, CycloneDX 1.6 SBOM, Sigstore verification, tamper rejection and wrong-signer rejection. One conditional release-tag check was skipped because no tag was supplied; it is not reported as a pass.
 
 Current locale catalog: exactly 105 (1 English source, 100 machine-assisted drafts, 4 English fallbacks); 0 native-speaker reviewed and 0 production-qualified. The historical 114-row qualification matrix is not the current catalog.
 
