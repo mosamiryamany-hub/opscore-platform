@@ -48,6 +48,7 @@ test('database catalog proof cannot certify production isolation from an environ
   }, fixedTime, { OPSC_PRODUCTION_ISOLATION_CERTIFICATION: 'CERTIFIED' });
   assert.equal(proof.status, 'IDENTITY_PLANE_RLS_ENFORCED');
   assert.equal(proof.catalogIsolationScope, 'CATALOG_ONLY_NOT_BEHAVIORAL_CERTIFICATION');
+  assert.equal(proof.productionIsolationCertificationScope, 'CATALOG_ONLY_NOT_BEHAVIORAL_CERTIFICATION');
   assert.match(proof.note, /independent release-proof gate/);
 });
 

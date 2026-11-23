@@ -791,6 +791,12 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
     proofEnv.OPSC_RELEASE_PACKAGE_COMMIT = identity.packageCommit;
   }
   const deployment = createDeploymentProof(proofEnv, now);
+  const configuredProbeDeploymentId = String(proofEnv.OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID || '').trim();
+  const currentDeploymentId = String(deployment.deployment.id || '').trim();
+  // Never let a prior held-probe deployment certify a different staged deployment.
+  // Every production evidence reader below is pinned to this exact running deployment.
+  if (currentDeploymentId) proofEnv.OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID = currentDeploymentId;
+  else delete proofEnv.OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID;
   const releaseTag = null;
   const sourceCommit = deployment.source.commitSha;
   const ciCommit = normalizedSha(proofEnv.OPSC_RELEASE_CI_COMMIT);
@@ -818,12 +824,28 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
     proofEnv
   );
   const nativePitr = readProductionNativePitrEvidence(undefined, proofEnv);
+  const productionEvidenceDeploymentBinding = {
+    status: currentDeploymentId
+      && sessionIsolation.status === 'PASS'
+      && recoveryPoint.status === 'PASS'
+      && nativePitr.status === 'PASS'
+      && signedTenantRouteCoverage.status === 'PASS'
+      && apiRouteAcceptance.status === 'PASS_PRODUCTION_FUNCTIONAL_SCOPE'
+      ? 'PASS'
+      : 'NOT_VERIFIED',
+    currentDeploymentId: currentDeploymentId || null,
+    configuredProbeDeploymentId: configuredProbeDeploymentId || null,
+    configuredProbeMatchesCurrent: Boolean(currentDeploymentId && configuredProbeDeploymentId === currentDeploymentId),
+    evidenceBindingSource: 'VERCEL_DEPLOYMENT_ID'
+  };
+  // OPSC_PRODUCTION_ISOLATION_CERTIFICATION is intentionally not consumed:
+  // a project-level text flag cannot certify the deployment serving this request.
   const isolationCertified = sessionIsolation.status === 'PASS'
     && recoveryPoint.status === 'PASS'
     && nativePitr.status === 'PASS'
     && signedTenantRouteCoverage.status === 'PASS'
     && acceptanceVerified
-    && String(proofEnv.OPSC_PRODUCTION_ISOLATION_CERTIFICATION || '').trim().toUpperCase() === 'CERTIFIED';
+    && productionEvidenceDeploymentBinding.status === 'PASS';
   const releaseVerified = Boolean(
     identity && identity.deploymentSource === 'github-actions-cli' && identity.packageSha256 &&
     identity.packageCommit === sourceCommit &&
@@ -835,6 +857,7 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
     postgresHttpAcceptance.status === 'PASS' &&
     acceptanceVerified &&
     isolationCertified &&
+    productionEvidenceDeploymentBinding.status === 'PASS' &&
     nativePitr.status === 'PASS' &&
     apiRouteAcceptance.status === 'PASS_PRODUCTION_FUNCTIONAL_SCOPE'
   );
@@ -863,10 +886,15 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
   } else {
     noteParts.push('Production native Neon PITR full-data verification is NOT_VERIFIED; historical schema/catalog-only probe evidence is insufficient.');
   }
-  if (isolationCertified) {
-    noteParts.push('productionIsolationCertification is CERTIFIED only when the v2 live probes, v2 recovery-point evidence, all 67 signed-session route results, same-commit/same-pipeline identity, acceptance proof, and the explicit certification flag all pass together.');
+  if (productionEvidenceDeploymentBinding.status === 'PASS') {
+    noteParts.push('All production behavioral, recovery, signed-session route, and HTTP route evidence is bound to the exact VERCEL_DEPLOYMENT_ID serving this request.');
   } else {
-    noteParts.push('productionIsolationCertification remains NOT_CERTIFIED until all 67 signed-session routes are verified in Production, in addition to the v2 live probes, exact-database recovery-point evidence, commit-bound acceptance, and certification flag.');
+    noteParts.push('Production evidence is NOT_VERIFIED for the running VERCEL_DEPLOYMENT_ID. Evidence bound only to a different held probe deployment is rejected; the legacy OPSC_PRODUCTION_ISOLATION_CERTIFICATION text flag is ignored.');
+  }
+  if (isolationCertified) {
+    noteParts.push('productionIsolationCertification is CERTIFIED only when the v2 live probes, v2 recovery-point evidence, all 67 signed-session route results, full Production HTTP route acceptance, same-commit/same-pipeline identity, and exact running deployment ID all pass together.');
+  } else {
+    noteParts.push('productionIsolationCertification remains NOT_CERTIFIED until all required behavioral and recovery evidence is verified against the exact running Vercel deployment ID.');
   }
   noteParts.push(signedTenantRouteCoverage.status === 'PASS' ? 'All 67 signed-session tenant routes passed the independent production route matrix on this exact commit and pipeline.' : 'Signed tenant-session coverage across all 67 required routes remains NOT_VERIFIED; this blocks production isolation certification and release verification.');
   if (apiRouteAcceptance.status === 'PASS_PRODUCTION_FUNCTIONAL_SCOPE') {
@@ -913,8 +941,11 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
       functionalApiRouteAcceptance: apiRouteAcceptance.status,
       neonPointInTimeRecovery: pitrGate,
       productionIsolationCertification: isolationCertified ? 'CERTIFIED' : 'NOT_CERTIFIED',
+      productionEvidenceDeploymentBinding: productionEvidenceDeploymentBinding.status,
       postgresHttpAcceptance: postgresHttpAcceptance.status
     },
+    productionEvidenceDeploymentBinding,
+    productionIsolationCertificationScope: 'BEHAVIORAL_PRODUCTION_DEPLOYMENT_EVIDENCE_BOUND_TO_RUNTIME_DEPLOYMENT_ID',
     productionAcceptance: {
       status: acceptanceVerified ? 'PASS' : 'NOT_VERIFIED',
       commitSha: acceptanceVerified ? productionAcceptance.sourceCommit : null,
@@ -964,6 +995,7 @@ function hasVerifiedProductionRelease(env = process.env, identityPath, productio
     proof.gates.productionRecoveryBundle === 'PASS_PRODUCTION_FULL_DATA_RECOVERY_SCOPE' &&
     proof.gates.signedTenantSessionRouteCoverage === 'PASS_PRODUCTION_ROUTE_SCOPE' &&
     proof.gates.productionIsolationCertification === 'CERTIFIED' &&
+    proof.gates.productionEvidenceDeploymentBinding === 'PASS' &&
     proof.gates.tenantRouteSecurityCoverage === 'PASS_TEST_SCOPE' &&
     proof.gates.functionalApiRouteAcceptance === 'PASS_PRODUCTION_FUNCTIONAL_SCOPE' &&
     proof.gates.neonPointInTimeRecovery === 'PASS_PRODUCTION_FULL_DATA_PITR_SCOPE';

@@ -294,6 +294,7 @@ function buildDatabaseSecurityProof(row = {}, now = () => new Date(), env = proc
     status,
     // Catalog proof never certifies behavioral production isolation; release-proof owns CERTIFIED.
     productionIsolationCertification: 'NOT_CERTIFIED',
+    productionIsolationCertificationScope: 'CATALOG_ONLY_NOT_BEHAVIORAL_CERTIFICATION',
     catalogIsolationScope: 'CATALOG_ONLY_NOT_BEHAVIORAL_CERTIFICATION',
     evidenceScope: 'Live PostgreSQL catalog metadata queried as the running application database role',
     publicSchema: {

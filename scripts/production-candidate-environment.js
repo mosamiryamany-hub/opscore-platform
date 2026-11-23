@@ -159,19 +159,18 @@ function createBaselineSnapshot(parsed, envs) {
 function validateInitialState(snapshot) {
   const value = key => snapshot.entries[key] && snapshot.entries[key].present
     ? snapshot.entries[key].value : undefined;
-  // A previously-certified baseline is a valid re-entry point: the live
-  // environment already reports RELEASE_VERIFIED=true with CERTIFIED, and the
-  // full snapshot is restored verbatim by restore(), so no evidence is lost.
-  // Anything less than a fully coherent certified state still fails closed.
-  if (value('OPSC_PRODUCTION_ISOLATION_CERTIFICATION') === 'CERTIFIED') {
+  // Re-entry is based on coherent hold/release state, never the legacy
+  // OPSC_PRODUCTION_ISOLATION_CERTIFICATION text value. Public certification
+  // is derived from evidence bound to the current VERCEL_DEPLOYMENT_ID.
+  if (value('OPSC_RELEASE_VERIFIED') === 'true' || value('OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE') === 'true') {
     const coherent = value('OPSC_PRODUCTION_HOLD') === 'false'
-      && value('OPSC_RELEASE_VERIFIED') === 'true';
+      && value('OPSC_RELEASE_VERIFIED') === 'true'
+      && value('OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE') === 'true';
     if (!coherent) throw new Error('PRODUCTION_CERTIFIED_BASELINE_INCOHERENT');
     return;
   }
   if (value('OPSC_PRODUCTION_HOLD') !== 'false') throw new Error('PRODUCTION_HOLD_BASELINE_NOT_FALSE');
   if (value('OPSC_RELEASE_VERIFIED') !== 'false') throw new Error('PRODUCTION_RELEASE_BASELINE_NOT_FALSE');
-  if (value('OPSC_PRODUCTION_ISOLATION_CERTIFICATION') !== 'NOT_CERTIFIED') throw new Error('PRODUCTION_CERTIFICATION_BASELINE_NOT_NOT_CERTIFIED');
   if (value('OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE') !== 'false') throw new Error('PRODUCTION_BEHAVIORAL_BASELINE_NOT_FALSE');
   for (const key of ['OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED', 'OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED']) {
     if (value(key) === 'true') throw new Error('PRODUCTION_SIGNED_CONTEXT_FEATURE_ALREADY_ENABLED:' + key);
@@ -233,7 +232,6 @@ async function publish(options = {}) {
   }
   const values = {
     OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256: env.OPSC_EVIDENCE_SHA256,
-    OPSC_PRODUCTION_ISOLATION_CERTIFICATION: 'CERTIFIED',
     OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE: 'true',
     OPSC_PRODUCTION_NEON_BRANCH_ID: env.OPSC_PRODUCTION_NEON_BRANCH_ID,
     OPSC_RELEASE_VERIFIED: 'true',

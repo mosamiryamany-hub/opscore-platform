@@ -766,7 +766,7 @@ test('functionalApiRouteAcceptance flips to PASS_CONTRACT_SCOPE only with commit
       ...env,
       OPSC_PRODUCTION_DATABASE_NAME: 'opscore_acceptance',
       OPSC_PRODUCTION_NEON_BRANCH_ID: 'br-proud-salad-bcshhdap',
-      OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID: 'dpl_123456',
+      OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID: 'dpl_final654321',
       VERCEL_DEPLOYMENT_ID: 'dpl_final654321'
     };
     const apiInventoryBytes = fs.readFileSync(path.join(__dirname, '..', 'docs', 'API_INVENTORY.json'));
@@ -804,7 +804,7 @@ test('functionalApiRouteAcceptance flips to PASS_CONTRACT_SCOPE only with commit
       status: 'PASS',
       commitSha: SHA,
       pipelineId,
-      deploymentId: 'dpl_123456',
+      deploymentId: 'dpl_final654321',
       databaseName: 'opscore_acceptance',
       databaseBranchId: 'br-proud-salad-bcshhdap',
       testedAt: routeTestedAt,
@@ -846,6 +846,30 @@ test('functionalApiRouteAcceptance flips to PASS_CONTRACT_SCOPE only with commit
       productionEnv, fixedNow, identityPath, acceptance.path, postgresHttp.path, productionRoute.path
     );
     assert.equal(productionProof.gates.functionalApiRouteAcceptance, 'PASS_PRODUCTION_FUNCTIONAL_SCOPE');
+    assert.equal(productionProof.gates.productionEvidenceDeploymentBinding, 'NOT_VERIFIED',
+      'the full production binding remains closed when session/recovery/PITR evidence is absent');
+
+    const candidateRoute = writeJsonEvidence(dir, 'candidate-route-acceptance.json', {
+      ...JSON.parse(fs.readFileSync(productionRoute.path, 'utf8')),
+      deploymentId: 'dpl_123456'
+    });
+    const candidateEnv = {
+      ...productionEnv,
+      OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID: 'dpl_123456',
+      OPSC_PRODUCTION_ISOLATION_CERTIFICATION: 'CERTIFIED'
+    };
+    const candidateProof = createPublicReleaseProof(
+      candidateEnv, fixedNow, identityPath, acceptance.path, postgresHttp.path, candidateRoute.path
+    );
+    assert.equal(candidateProof.gates.functionalApiRouteAcceptance, 'NOT_VERIFIED',
+      'candidate evidence cannot certify a different final runtime deployment');
+    assert.equal(candidateProof.gates.productionEvidenceDeploymentBinding, 'NOT_VERIFIED');
+    assert.equal(candidateProof.productionEvidenceDeploymentBinding.currentDeploymentId, 'dpl_final654321');
+    assert.equal(candidateProof.productionEvidenceDeploymentBinding.configuredProbeDeploymentId, 'dpl_123456');
+    assert.equal(candidateProof.gates.productionIsolationCertification, 'NOT_CERTIFIED',
+      'a CERTIFIED environment string cannot override a deployment-ID mismatch');
+    assert.equal(candidateProof.productionIsolationCertificationScope, 'BEHAVIORAL_PRODUCTION_DEPLOYMENT_EVIDENCE_BOUND_TO_RUNTIME_DEPLOYMENT_ID');
+    assert.equal(candidateProof.productionEvidenceDeploymentBinding.configuredProbeMatchesCurrent, false);
     assert.equal(productionProof.gates.commercialClosure, 'UNVERIFIED',
       'route-scope evidence alone must not certify the complete release');
 
@@ -993,7 +1017,7 @@ test('Production signed-session route validator rejects structurally consistent 
 });
 
 
-test('Production session and recovery evidence bind to the explicit probe deployment rather than rebinding to the final deployment', () => {
+test('low-level Production session and recovery readers validate their explicit expected deployment ID', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-probe-deployment-evidence-'));
   const probeDeploymentId = 'dpl_CandidateProbe123';
   const finalDeploymentId = 'dpl_FinalRelease456';
