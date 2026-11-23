@@ -69,3 +69,16 @@ Published seller asking floors remain L1 USD 45,000 (use), L2 USD 85,000 (use, m
 **OPEN FOR MARKETING** does not mean delivery authorization. The repository remains `UNLICENSED`; no buyer license is granted until the rights holder and the named buyer execute a transaction-specific License Schedule pinning the exact released artifact and rights.
 
 `backend/docs/verification/COMMERCIAL_CLOSURE_GATE_RESULT.json` dated 2026-11-02 is historical evidence only; it is not the current release verdict.
+
+
+## Latest reconciliation — 2026-11-23 final deployment binding
+
+The final deployment-binding workflow succeeded on run [45236113208](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45236113208). Binding artifact ID: `14850520927`; in-toto statement SHA-256: `97208c28f918223a36a101c9cb1e19f1affa6f3c472295682425eb8330c0ff22`. It associates release archive SHA-256 `47a1afb9718437c5f4c9f67c449525efed0646a98b70bdc424efe7cc54c340e0` (source `8011bc5550372a318dbf47bf89e6837059987f58`) with final Vercel deployment `dpl_6r4ZCJiuVHonja32AXhsjwMSDoig` and the verified public alias. Six public HTTPS smoke checks, source-pinned GitHub attestation, SLSA verification, original Cosign archive signature and final binding statement signature passed.
+
+This result supersedes the older statement that no final deployment binding existed. It does **not** supersede the following boundaries: 358 API routes remain candidate-only; 67 signed-tenant routes remain disposable PostgreSQL 18 CI-only; six public HTTP checks are smoke checks, not complete route/business-flow acceptance; the archive and Vercel deployment are separately built outputs, not byte-identical; and internal evidence is not external accreditation.
+
+The release archive remains version 0.11.62 and is pinned to source commit `8011bc...`. The later main commit `8e00b72995876910d3f21506c09f821462e24aec` contains the binding-workflow/docs correction, not a regenerated application release. A new secure release package is still required from the intended current application-source commit before calling it the latest commercial deliverable.
+
+Commercial rights remain unchanged: `licenseGrant=NONE_PENDING_RIGHTS_HOLDER_DECISION`, `distributionAuthorized=false`. No buyer license, resale or distribution permission is created by CI, signatures or deployment evidence. The I18N audit reports 105 selectable locales (1 English source, 100 machine-assisted drafts, 4 English fallbacks), 0 native-speaker reviewed and 0 production-qualified. Mobile signed binaries/device acceptance, licensed maps, legal-page owner content, full production business-flow acceptance, production tenant behavioral proof, protected scheduled backup/restore/RPO/RTO, WAF enforcement, and external accreditation remain open or buyer-owned as detailed in [issue #418](https://github.com/mosamiryamany-hub/opscore-platform/issues/418).
+
+**Updated decision: final deployment binding PASS; commercial closure remains HOLD / OPEN.**
