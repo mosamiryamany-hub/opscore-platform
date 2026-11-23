@@ -202,6 +202,7 @@ async function run() {
       : row.jsonValid === true
   );
   const exactDeploymentBinding = deployment?.deploymentIdentity?.matches === true;
+  const semanticMismatch = observations.some(row => /MISMATCH$/.test(String(row.semanticCheck || '')));
   const report = {
     schemaVersion: 'opscore.production-public-route-diagnostic.v1',
     testedAt: new Date().toISOString(),
@@ -212,7 +213,7 @@ async function run() {
       deploymentId: EXPECTED_PRODUCTION_DEPLOYMENT
     },
     observedProductionIdentity: deployment?.deploymentIdentity || null,
-    diagnosticStatus: allHttp200 && allExpectedBodies && exactDeploymentBinding && health?.semanticCheck === 'HEALTH_CONTRACT_MATCH'
+    diagnosticStatus: allHttp200 && allExpectedBodies && exactDeploymentBinding && !semanticMismatch && health?.semanticCheck === 'HEALTH_CONTRACT_MATCH'
       ? 'OBSERVED'
       : 'INCOMPLETE',
     checks: {
