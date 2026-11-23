@@ -23,6 +23,10 @@ on:
         description: Artifact ID containing API_ROUTE_ACCEPTANCE_RESULT.json from deploy_run_id
         required: true
         type: string
+      signed_tenant_artifact_id:
+        description: Artifact ID containing the separate 67-route disposable PostgreSQL CI evidence
+        required: true
+        type: string
       final_deployment_id:
         description: Exact Vercel deployment ID currently assigned to opscore-platform.vercel.app
         required: true
@@ -58,10 +62,11 @@ jobs:
           DEPLOY_RUN_ID: ${{ inputs.deploy_run_id }}
           ARCHIVE_ARTIFACT_ID: ${{ inputs.archive_artifact_id }}
           ROUTE_ARTIFACT_ID: ${{ inputs.candidate_route_artifact_id }}
+          SIGNED_TENANT_ARTIFACT_ID: ${{ inputs.signed_tenant_artifact_id }}
           REPOSITORY: ${{ github.repository }}
         run: |
           set -euo pipefail
-          for value in "$RELEASE_RUN_ID" "$DEPLOY_RUN_ID" "$ARCHIVE_ARTIFACT_ID" "$ROUTE_ARTIFACT_ID"; do
+          for value in "$RELEASE_RUN_ID" "$DEPLOY_RUN_ID" "$ARCHIVE_ARTIFACT_ID" "$ROUTE_ARTIFACT_ID" "$SIGNED_TENANT_ARTIFACT_ID"; do
             [[ "$value" =~ ^[1-9][0-9]{0,14}$ ]] || { echo "INVALID_GITHUB_RUN_OR_ARTIFACT_ID" >&2; exit 1; }
           done
           release="$(curl --fail --silent --show-error -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$REPOSITORY/actions/runs/$RELEASE_RUN_ID")"
@@ -105,27 +110,34 @@ jobs:
           REPOSITORY: ${{ github.repository }}
           ARCHIVE_ARTIFACT_ID: ${{ inputs.archive_artifact_id }}
           ROUTE_ARTIFACT_ID: ${{ inputs.candidate_route_artifact_id }}
+          SIGNED_TENANT_ARTIFACT_ID: ${{ inputs.signed_tenant_artifact_id }}
           RELEASE_RUN_ID: ${{ inputs.release_run_id }}
           DEPLOY_RUN_ID: ${{ inputs.deploy_run_id }}
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/archive-artifact" "$RUNNER_TEMP/route-artifact"
+          mkdir -p "$RUNNER_TEMP/archive-artifact" "$RUNNER_TEMP/route-artifact" "$RUNNER_TEMP/signed-tenant-artifact"
           curl --fail --location --silent --show-error -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/$REPOSITORY/actions/artifacts/$ARCHIVE_ARTIFACT_ID/zip" \
             -o "$RUNNER_TEMP/archive-artifact.zip"
           curl --fail --location --silent --show-error -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/$REPOSITORY/actions/artifacts/$ROUTE_ARTIFACT_ID/zip" \
             -o "$RUNNER_TEMP/route-artifact.zip"
+          curl --fail --location --silent --show-error -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$REPOSITORY/actions/artifacts/$SIGNED_TENANT_ARTIFACT_ID/zip" \
+            -o "$RUNNER_TEMP/signed-tenant-artifact.zip"
           archive_meta="$(curl --fail --silent --show-error -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$REPOSITORY/actions/artifacts/$ARCHIVE_ARTIFACT_ID")"
           route_meta="$(curl --fail --silent --show-error -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$REPOSITORY/actions/artifacts/$ROUTE_ARTIFACT_ID")"
-          node - "$archive_meta" "$route_meta" "$RELEASE_RUN_ID" "$DEPLOY_RUN_ID" <<'NODE'
-          const [aRaw, rRaw, releaseRun, deployRun] = process.argv.slice(2);
-          const a = JSON.parse(aRaw), r = JSON.parse(rRaw);
+          signed_tenant_meta="$(curl --fail --silent --show-error -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$REPOSITORY/actions/artifacts/$SIGNED_TENANT_ARTIFACT_ID")"
+          node - "$archive_meta" "$route_meta" "$signed_tenant_meta" "$RELEASE_RUN_ID" "$DEPLOY_RUN_ID" <<'NODE'
+          const [aRaw, rRaw, sRaw, releaseRun, deployRun] = process.argv.slice(2);
+          const a = JSON.parse(aRaw), r = JSON.parse(rRaw), s = JSON.parse(sRaw);
           if (String(a.workflow_run?.id) !== releaseRun || a.expired || a.name !== 'opscore-release-' + releaseRun) throw new Error('ARCHIVE_ARTIFACT_NOT_FROM_SELECTED_RELEASE_RUN');
           if (String(r.workflow_run?.id) !== deployRun || r.expired || r.name !== 'production-api-route-acceptance-' + deployRun) throw new Error('ROUTE_ARTIFACT_NOT_FROM_SELECTED_DEPLOY_RUN');
+          if (String(s.workflow_run?.id) !== deployRun || s.expired || s.name !== 'signed-tenant-postgres-18-ci-coverage-' + deployRun) throw new Error('SIGNED_TENANT_CI_ARTIFACT_NOT_FROM_SELECTED_DEPLOY_RUN');
           NODE
           unzip -q "$RUNNER_TEMP/archive-artifact.zip" -d "$RUNNER_TEMP/archive-artifact"
           unzip -q "$RUNNER_TEMP/route-artifact.zip" -d "$RUNNER_TEMP/route-artifact"
+          unzip -q "$RUNNER_TEMP/signed-tenant-artifact.zip" -d "$RUNNER_TEMP/signed-tenant-artifact"
           archive="$(find "$RUNNER_TEMP/archive-artifact" -type f -name 'OpsCore-release.zip' -print -quit)"
           statement="$(find "$RUNNER_TEMP/archive-artifact" -type f -name 'COMMERCIAL_RELEASE_STATEMENT.json' -print -quit)"
           bundle="$(find "$RUNNER_TEMP/archive-artifact" -type f -name 'OpsCore-release.zip.sigstore.json' -print -quit)"
@@ -138,6 +150,10 @@ jobs:
           route="$(find "$RUNNER_TEMP/route-artifact" -type f -name 'API_ROUTE_ACCEPTANCE_RESULT.json' -print -quit)"
           test -s "$route" || { echo "CANDIDATE_ROUTE_EVIDENCE_MISSING" >&2; exit 1; }
           echo "ROUTE_EVIDENCE_PATH=$route" >> "$GITHUB_ENV"
+          signed_tenant="$(find "$RUNNER_TEMP/signed-tenant-artifact" -type f -name 'SIGNED_TENANT_CONTEXT_CI_ROUTE_COVERAGE.json' -print -quit)"
+          test -s "$signed_tenant" || { echo "SIGNED_TENANT_CI_EVIDENCE_MISSING" >&2; exit 1; }
+          cp "$signed_tenant" "$RUNNER_TEMP/SIGNED_TENANT_CONTEXT_CI_ROUTE_COVERAGE.json"
+          echo "SIGNED_TENANT_EVIDENCE_PATH=$RUNNER_TEMP/SIGNED_TENANT_CONTEXT_CI_ROUTE_COVERAGE.json" >> "$GITHUB_ENV"
 
       - name: Verify archive digest, source pin, and original Sigstore signature
         id: verify_archive
@@ -210,6 +226,51 @@ jobs:
           console.log('CANDIDATE_ROUTE_EVIDENCE=PASS tested=' + e.testedRoutes + ' deployment=' + e.deploymentId);
           NODE
 
+      - name: Verify the separate 67-route signed-tenant evidence is CI-only
+        env:
+          EXPECTED_COMMIT: ${{ steps.validate_runs.outputs.source_commit }}
+          EXPECTED_PIPELINE: ${{ inputs.deploy_run_id }}
+        run: |
+          set -euo pipefail
+          node - "$SIGNED_TENANT_EVIDENCE_PATH" <<'NODE'
+          const fs = require('node:fs');
+          const e = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          const routes = Array.isArray(e.routes) ? e.routes : [];
+          const allRoutesProven = routes.length === 67 && routes.every(route => {
+            const common = route.status === 'PASS' &&
+              route.signedContextBound === true &&
+              route.sessionBound === true &&
+              route.transactionBound === true &&
+              route.rawGucTamperDenied === true &&
+              Array.isArray(route.unresolvedReasons) &&
+              route.unresolvedReasons.length === 0;
+            if (route.operation === 'read') {
+              return common && route.tenantARead === true &&
+                route.tenantBRead === true && route.crossTenantReadDenied === true;
+            }
+            if (route.operation === 'write') {
+              return common && route.tenantAWrite === true &&
+                route.tenantBWrite === true && route.crossTenantWriteDenied === true;
+            }
+            return false;
+          });
+          if (e.schemaVersion !== 'opscore.signed-tenant-context-ci-route-coverage.v1' ||
+              e.evidenceClass !== 'DISPOSABLE_POSTGRESQL_18_CI_ROUTE_PROBES' ||
+              e.environment !== 'ci' || e.status !== 'PASS' ||
+              Number(e.expectedRouteCount) !== 67 ||
+              Number(e.coveredRouteCount) !== 67 ||
+              Number(e.failedRouteCount) !== 0 ||
+              String(e.pipelineId || '') !== process.env.EXPECTED_PIPELINE ||
+              String(e.sourceCommitHint || '').toLowerCase() !== process.env.EXPECTED_COMMIT.toLowerCase() ||
+              e.deploymentId !== null || e.productionCertification !== false ||
+              e.manifestComplete !== true || !allRoutesProven ||
+              !/^[a-f0-9]{64}$/.test(String(e.routeManifestSha256 || '')) ||
+              !/^[a-f0-9]{64}$/.test(String(e.routeInventorySha256 || ''))) {
+            throw new Error('SIGNED_TENANT_67_CI_EVIDENCE_SCOPE_OR_COUNTS_INVALID');
+          }
+          console.log('SIGNED_TENANT_CI_EVIDENCE=PASS expected=67 covered=67 failed=0 deploymentId=null environment=ci');
+          NODE
+
       - name: Verify final Vercel deployment and public alias identity
         id: final_deployment
         env:
@@ -245,9 +306,11 @@ jobs:
               throw new Error('PUBLIC_ALIAS_NOT_BOUND_TO_FINAL_DEPLOYMENT');
             }
             const out = process.env.GITHUB_OUTPUT;
+            const aliasVerifiedAt = new Date().toISOString();
             require('node:fs').appendFileSync(out, 'deployment_url=https://' + d.url + '\n');
             require('node:fs').appendFileSync(out, 'deployment_id=' + d.id + '\n');
             require('node:fs').appendFileSync(out, 'deployment_created_at=' + new Date(d.createdAt).toISOString() + '\n');
+            require('node:fs').appendFileSync(out, 'alias_verified_at=' + aliasVerifiedAt + '\n');
             console.log('FINAL_DEPLOYMENT_AND_ALIAS_BINDING=PASS');
           })().catch(e => { console.error(e.message || e); process.exitCode = 1; });
           NODE
@@ -257,6 +320,9 @@ jobs:
         env:
           FINAL_DEPLOYMENT_ID: ${{ steps.final_deployment.outputs.deployment_id }}
           EXPECTED_DEPLOYMENT_URL: ${{ steps.final_deployment.outputs.deployment_url }}
+          INITIAL_ALIAS_VERIFIED_AT: ${{ steps.final_deployment.outputs.alias_verified_at }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           PUBLIC_BASE_URL: https://opscore-platform.vercel.app
         run: |
           set -euo pipefail
@@ -319,12 +385,29 @@ jobs:
                 ' status=' + response.status + ' bytes=' + body.length);
             }
 
+            const aliasUrl = new URL('https://api.vercel.com/v4/aliases/opscore-platform.vercel.app');
+            aliasUrl.searchParams.set('teamId', process.env.VERCEL_ORG_ID);
+            const aliasResponse = await fetch(aliasUrl, {
+              headers: {
+                Authorization: 'Bearer ' + process.env.VERCEL_TOKEN,
+                Accept: 'application/json'
+              }
+            });
+            const alias = await aliasResponse.json();
+            if (!aliasResponse.ok || alias.alias !== base.hostname ||
+                alias.deploymentId !== deploymentId) {
+              throw new Error('PUBLIC_ALIAS_CHANGED_DURING_HTTP_SMOKE');
+            }
+            const aliasVerifiedAfterAt = new Date().toISOString();
+
             const evidence = {
               schemaVersion: 'opscore.final-public-http-smoke.v1',
               status: 'PASS',
               baseUrl: base.toString().replace(/\/$/, ''),
               deploymentId,
-              expectedDeploymentUrl: expectedDeployment.toString(),
+              expectedDeploymentUrl: process.env.EXPECTED_DEPLOYMENT_URL,
+              aliasVerifiedBeforeAt: process.env.INITIAL_ALIAS_VERIFIED_AT,
+              aliasVerifiedAfterAt,
               checkedAt,
               checks
             };
@@ -355,12 +438,14 @@ jobs:
           ARCHIVE_SHA256: ${{ steps.verify_archive.outputs.archive_sha256 }}
           ROUTE_EVIDENCE_PATH: ${{ env.ROUTE_EVIDENCE_PATH }}
           PUBLIC_HTTP_SMOKE_PATH: ${{ steps.public_smoke.outputs.results_path }}
+          SIGNED_TENANT_EVIDENCE_PATH: ${{ env.SIGNED_TENANT_EVIDENCE_PATH }}
         run: |
           set -euo pipefail
           node <<'NODE'
           const fs = require('node:fs');
           const crypto = require('node:crypto');
           const route = JSON.parse(fs.readFileSync(process.env.ROUTE_EVIDENCE_PATH, 'utf8'));
+          const signedTenant = JSON.parse(fs.readFileSync(process.env.SIGNED_TENANT_EVIDENCE_PATH, 'utf8'));
           const smoke = JSON.parse(fs.readFileSync(process.env.PUBLIC_HTTP_SMOKE_PATH, 'utf8'));
           const requiredSmokePaths = [
             '/', '/api/health', '/api/verify/deployment', '/api/verify/database',
@@ -375,6 +460,8 @@ jobs:
               smoke.baseUrl !== 'https://opscore-platform.vercel.app' ||
               smoke.expectedDeploymentUrl !== process.env.FINAL_DEPLOYMENT_URL ||
               smoke.deploymentId !== process.env.FINAL_DEPLOYMENT_ID ||
+              !Number.isFinite(Date.parse(smoke.aliasVerifiedBeforeAt)) ||
+              !Number.isFinite(Date.parse(smoke.aliasVerifiedAfterAt)) ||
               !Array.isArray(smoke.checks) ||
               smoke.checks.length !== requiredSmokePaths.length ||
               new Set(smoke.checks.map(check => check.path)).size !== requiredSmokePaths.length ||
@@ -438,8 +525,19 @@ jobs:
                   classification: 'CANDIDATE_DEPLOYMENT_ONLY_NOT_FINAL_DEPLOYMENT_ACCEPTANCE'
                 },
                 signedTenantContext67Routes: {
-                  classification: 'CANDIDATE_DEPLOYMENT_ONLY_NOT_REPLAYED_ON_FINAL_DEPLOYMENT',
-                  status: 'NOT_REVERIFIED_BY_THIS_BINDING_RUN'
+                  status: signedTenant.status,
+                  expectedRoutes: Number(signedTenant.expectedRouteCount),
+                  coveredRoutes: Number(signedTenant.coveredRouteCount),
+                  failedRoutes: Number(signedTenant.failedRouteCount),
+                  evidenceClass: signedTenant.evidenceClass,
+                  environment: signedTenant.environment,
+                  pipelineId: String(signedTenant.pipelineId),
+                  sourceCommitHint: signedTenant.sourceCommitHint,
+                  deploymentId: signedTenant.deploymentId,
+                  productionCertification: signedTenant.productionCertification,
+                  routeManifestSha256: signedTenant.routeManifestSha256,
+                  routeInventorySha256: signedTenant.routeInventorySha256,
+                  classification: 'DISPOSABLE_POSTGRESQL_18_CI_ONLY_NOT_BOUND_TO_ANY_VERCEL_DEPLOYMENT'
                 },
                 finalDeploymentSmoke: {
                   status: smoke.status,
@@ -490,5 +588,6 @@ jobs:
             FINAL_DEPLOYMENT_BINDING.statement.sha256
             FINAL_DEPLOYMENT_BINDING.statement.sigstore.json
             FINAL_PUBLIC_HTTP_SMOKE.json
+            ${{ env.SIGNED_TENANT_EVIDENCE_PATH }}
           if-no-files-found: error
           retention-days: 90
