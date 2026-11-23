@@ -232,3 +232,48 @@ Post-merge CI evidence on main `3f7d9110f2f092e0f146b36d007345fe1977107d`: OpsCo
 
 
 The active public deployment predates the fail-closed proof correction. Its historical `/api/verify/release = PASS` response is not accepted as final-deployment certification because the proof was bound to the held candidate deployment ID rather than the deployment serving the public domain.
+
+
+## 11. Final deployment-binding evidence and remaining closeout — 2026-11-23
+
+This section is the latest evidence cut and supersedes older deployment-binding classifications above where they conflict. Historical observations remain preserved as historical; they are not silently re-dated.
+
+### Verified final binding
+
+- Current `main` at this cut: `8e00b72995876910d3f21506c09f821462e24aec` (PR #417 merged; binding workflow SAN parsing and content-type validation corrected).
+- Final binding workflow: [run 45236113208](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45236113208) — SUCCESS.
+- Binding artifact ID: `14850520927`.
+- in-toto statement SHA-256: `97208c28f918223a36a101c9cb1e19f1affa6f3c472295682425eb8330c0ff22`.
+- Archive SHA-256: `47a1afb9718437c5f4c9f67c449525efed0646a98b70bdc424efe7cc54c340e0` (2,651,915 bytes; release source commit `8011bc5550372a318dbf47bf89e6837059987f58`).
+- Final Vercel deployment: `dpl_6r4ZCJiuVHonja32AXhsjwMSDoig`; public alias `opscore-platform.vercel.app` verified before and after the six-request smoke sequence.
+- Six public HTTPS checks passed: `/`, `/api/health`, `/api/verify/deployment`, `/api/verify/database`, `/api/verify/database-security`, `/api/verify/release` (all HTTP 200; JSON content validated for API routes).
+- Source-pinned GitHub attestation, SLSA verification, original archive Cosign signature, final binding statement signature, and Vercel alias binding passed in that run.
+
+### Evidence scope — do not overstate
+
+- The 358-route acceptance artifact is classified as candidate-deployment-only; it is not full route acceptance for the final production deployment.
+- The 67-route signed tenant artifact is disposable PostgreSQL 18 CI-only, has `deploymentId=null`, and is not Production certification.
+- The binding statement associates the exact ZIP digest with the exact Vercel deployment and source commit. It explicitly does not claim that the ZIP bytes are the Vercel deployment output.
+- The six HTTP checks are smoke checks, not complete route/business-flow acceptance.
+- Internal isolation qualification is not ISO 27001, SOC 2, PCI DSS, or independent third-party accreditation.
+
+### Remaining commercial/technical gates
+
+1. Produce a new secure release archive, SBOM, dependency audits and provenance from the exact intended current application-source commit. The current archive is from source `8011bc...`; the later `8e00b72...` main commit corrected the binding workflow/docs and does not turn that earlier archive into a build of a later application-source revision.
+2. Complete full final-deployment Production route and business-flow acceptance with route inventory, source commit, pipeline, deployment ID, database identity and zero unresolved failures.
+3. Re-run Production tenant-boundary behavioral probes on the exact live deployment and Primary database, including raw-GUC tampering, runtime-role denials, identity-table grants, privileged helpers, AI/search pools and non-PostgreSQL workers. CI-only 67-route evidence is insufficient.
+4. Establish protected scheduled backups, retention, restore rehearsal and measured RPO/RTO. No Neon/Vercel paid upgrade is authorized by this record.
+5. Rehearse WAF blocking/challenge policy on Preview, inspect false positives, then capture approved production enforcement and a real block test. Log-only rules are not enforcement.
+6. Publish Terms, Privacy, Refund, Pricing, Legal and Security pages only after rights-holder-approved legal entity, jurisdiction, contact, privacy/data practices, refund, pricing/tax and licensing content is supplied.
+7. Execute a rights-holder and named-buyer License Schedule pinning exact artifact SHA and selected rights. Until then `licenseGrant=NONE` and `distributionAuthorized=false` remain controlling.
+
+### Buyer-owned and third-party qualification boundaries
+
+- I18N forensic audit: 105 selectable locales = 1 English source, 100 machine-assisted drafts, 4 English fallbacks; 0 native-speaker-reviewed and 0 production-qualified. Structural integrity PASS is not linguistic quality approval.
+- Mobile source and dependency audit are included; signed Android/iOS binaries, physical-device QA, store credentials and publication are not evidenced in this package.
+- Licensed maps/road routing, provider accounts, API credentials, attribution, quotas and live acceptance require buyer/provider arrangements.
+- External accreditation remains absent.
+
+Tracking issue: [#418 — remaining seller and buyer commercial gates](https://github.com/mosamiryamany-hub/opscore-platform/issues/418).
+
+**Decision: final archive-to-deployment binding PASS; full seller commercial closeout remains OPEN/HOLD.** Preserve Neon Primary, all branches/snapshots, production settings and the current Vercel alias. Do not mark any skipped or out-of-scope check as passed.
