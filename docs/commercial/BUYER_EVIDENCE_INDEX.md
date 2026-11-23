@@ -66,3 +66,13 @@ The latest completed current-main push runs on `d672dce8...` passed: OpsCore sou
 The repository package is `UNLICENSED`. No use, modification, resale, or distribution rights are granted by the repository, website, or this evidence index. Current-main archive SHA-256, SBOM/provenance, and a rights-holder-authorized License Schedule must exist before a buyer-specific grant is made. This does not make a buyer signature a prerequisite for describing the engineering state of the project.
 
 See the full [Client Trust Pack](CLIENT_TRUST_PACK.md), [Current closeout ledger](../ops/REMAINING_CLOSEOUT_GATES.md), [License Schedule template](LICENSE_SCHEDULE_TEMPLATE.md), and [No License Grant notice](../../NO_LICENSE_GRANT_NOTICE.txt).
+
+## Superseding code-only sale scope — 2026-11-23
+
+The deliverable is source code plus the exact release/evidence package. Seller Vercel website, seller Production deployment, seller Neon database and seller operational data are excluded. No paid Neon/Vercel plan upgrade is required or authorized. Seller infrastructure health and backup schedules are not buyer-code acceptance gates.
+
+Exact release evidence is documented in [Seller Code-Only Closeout Plan](SELLER_CODE_ONLY_CLOSEOUT_2026-11-23.md): main `fbc4a3082325dff98e2ed41fffe42c3d76863254`, Secure Release run `45122272270`, archive SHA-256 `7783d6614c033ecf85ee181db394fbd499dccd8f19a0b0509b97d0495e69c6ac`, CycloneDX 1.6 SBOM, Sigstore verification, tamper rejection and wrong-signer rejection. One conditional release-tag check was skipped because no tag was supplied; it is not reported as a pass.
+
+Current locale catalog: exactly 105 (1 English source, 100 machine-assisted drafts, 4 English fallbacks); 0 native-speaker reviewed and 0 production-qualified. The historical 114-row qualification matrix is not the current catalog.
+
+Seller-side code gates remain: complete applicable test accounting on exact source, isolated PostgreSQL migration/schema/RLS/tenant/FK tests, dependency/security audits, deterministic SBOM/provenance, archive/signature verification, clean-room reproducibility, and exact-source trust-link reconciliation. External ISO/SOC2/PCI certificates are not evidenced and cannot be self-issued by CI. Buyer environment acceptance and license grant remain separate.
