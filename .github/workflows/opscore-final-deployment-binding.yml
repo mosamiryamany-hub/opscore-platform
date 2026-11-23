@@ -459,17 +459,31 @@ jobs:
               const body = Buffer.from(await response.arrayBuffer());
               const finalUrl = new URL(response.url);
               const allowedHosts = new Set([base.hostname, expectedDeployment.hostname]);
+              const contentType = response.headers.get('content-type') || '';
               if (!response.ok || finalUrl.protocol !== 'https:' ||
-                  !allowedHosts.has(finalUrl.hostname) || body.length === 0) {
+                  !allowedHosts.has(finalUrl.hostname) || finalUrl.pathname !== path ||
+                  body.length === 0) {
                 throw new Error('PUBLIC_HTTP_CHECK_FAILED:' + path +
                   ':status=' + response.status + ':finalUrl=' + response.url +
                   ':bodyBytes=' + body.length);
+              }
+              if (path.startsWith('/api/')) {
+                if (!/application\\/(?:[a-z0-9.+-]+\\+)?json(?:;|$)/i.test(contentType)) {
+                  throw new Error('PUBLIC_API_CONTENT_TYPE_INVALID:' + path + ':' + contentType);
+                }
+                let parsed;
+                try { parsed = JSON.parse(body.toString('utf8')); } catch {
+                  throw new Error('PUBLIC_API_RESPONSE_NOT_VALID_JSON:' + path);
+                }
+                if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+                  throw new Error('PUBLIC_API_RESPONSE_NOT_OBJECT:' + path);
+                }
               }
               const result = {
                 path,
                 statusCode: response.status,
                 finalUrl: response.url,
-                contentType: response.headers.get('content-type'),
+                contentType,
                 responseBytes: body.length,
                 responseSha256: crypto.createHash('sha256').update(body).digest('hex'),
                 checkedAt: new Date().toISOString()
