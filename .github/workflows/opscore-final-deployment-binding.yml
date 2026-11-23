@@ -258,9 +258,11 @@ jobs:
             '/actions/runs/' + process.env.EXPECTED_RELEASE_RUN_ID +
             '/attempts/' + process.env.EXPECTED_RELEASE_RUN_ATTEMPT;
           const expectedIssuer = 'https://token.actions.githubusercontent.com';
+          // gh attestation verify emits subjectAlternativeName as a plain URI string.
+          // The raw X.509 certificate contains a GeneralName URI, but the CLI's
+          // normalized verification JSON does not preserve it as { type, value }.
           const certificateMatches = cert =>
-            cert?.subjectAlternativeName?.type === 'URI' &&
-            cert.subjectAlternativeName.value === expectedIdentity &&
+            cert?.subjectAlternativeName === expectedIdentity &&
             cert.issuer === expectedIssuer &&
             cert.buildSignerURI === expectedIdentity &&
             cert.buildSignerDigest === process.env.EXPECTED_RELEASE_WORKFLOW_COMMIT &&
@@ -597,7 +599,7 @@ jobs:
                 const checkedMs = Date.parse(item?.checkedAt || '');
                 const contentType = String(item?.contentType || '');
                 const apiContentValid = !path.startsWith('/api/') ||
-                  (/application\\/(?:[a-z0-9.+-]+\\+)?json(?:;|$)/i.test(contentType));
+                  (/application\/(?:[a-z0-9.+-]+\+)?json(?:;|$)/i.test(contentType));
                 return !item || !Number.isInteger(item.statusCode) ||
                   item.statusCode < 200 || item.statusCode >= 300 ||
                   finalUrl.protocol !== 'https:' || !allowedHosts.has(finalUrl.hostname) ||
