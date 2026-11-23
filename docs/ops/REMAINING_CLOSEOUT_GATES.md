@@ -137,3 +137,30 @@ No buyer signature is required to record the engineering state of the project. H
 **Commercial/legal delivery:** open; current-main release archive/provenance and license grant not established.
 
 This is the honest, buyer-safe state. It must not be described as Production-ready, commercially closed, or fully certified.
+---
+
+## 9. Superseding code-only sale scope — 2026-11-23
+
+This section supersedes Sections 1, 4, 5, 6 and 8 above where they classify seller Vercel/Neon production operations as mandatory commercial release gates. The earlier sections are retained as historical evidence and must not be read as the current code-sale scope.
+
+**Product being sold:** source code and its exact release/evidence package. Seller-hosted Vercel website, seller production deployment, seller Neon project/database, seller operational data, and seller hosting accounts are excluded.
+
+**Current source and package evidence:**
+- Main: `fbc4a3082325dff98e2ed41fffe42c3d76863254`.
+- Secure Release run: `45122272270`, completed/success.
+- Archive SHA-256: `7783d6614c033ecf85ee181db394fbd499dccd8f19a0b0509b97d0495e69c6ac`, recomputed from downloaded inner ZIP and matching the release statement.
+- SBOM: CycloneDX 1.6, 491 components, 245 dependency edges.
+- Sigstore verification: CI reported `Verified OK`; tampered archive and wrong signer were rejected.
+- One conditional step was skipped: release-tag/package-version check, because `releaseTag=null`. It is not a passed check and must remain disclosed.
+
+**Neon exception — no paid upgrade:** Neon Free plan, missing scheduled snapshot and seller Primary/restore data differences are excluded from code-sale acceptance because the seller's hosted database and data are not deliverables. No plan upgrade is required or authorized. Preserve seller Primary, branches and snapshots. This does not waive PostgreSQL migrations, schema parity, RLS, tenant isolation, FK, integration, and recovery-code tests on disposable isolated databases.
+
+**Vercel exception:** deploying the current source to the seller's public website and proving seller Production acceptance are excluded from the code-only package. The website is not being sold. Do not imply that the buyer's production environment has been deployed or accepted. A buyer may deploy the delivered source in infrastructure it controls.
+
+**Mandatory remaining seller-side gates:** exact-source full test accounting; all applicable backend/mobile/security/performance/contract tests; disposable PostgreSQL migration/schema/RLS/tenant/FK tests; dependency and secret audits; deterministic SBOM/provenance; archive hash and signature verification; tamper/wrong-signer rejection; clean-room install/reproducibility evidence; current trust links and documentation all bound to the same source and archive.
+
+**105-language baseline:** current catalog is exactly 105 locales, not 114. The separate historical qualification matrix may still have 114 rows. Current catalog composition is 1 English source, 100 machine-assisted drafts, and 4 English fallbacks; native-speaker reviewed 0 and production-qualified 0. Do not claim native translation approval.
+
+**Certificates:** internal CI/test/security attestations and cryptographic supply-chain evidence can be generated and linked when verified. ISO 27001, SOC 2, PCI DSS or other independent certifications cannot be self-issued by CI. No such external certification may be claimed without an authentic, current, scope-matched assessor report.
+
+See [Seller Code-Only Closeout Plan](../commercial/SELLER_CODE_ONLY_CLOSEOUT_2026-11-23.md). Current closeout remains OPEN until all applicable seller-side code-sale gates and trust-pack consistency checks pass. Buyer-specific deployment, provider accounts, store releases, native-speaker review and license execution remain separate buyer/contract residuals.
