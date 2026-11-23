@@ -1338,7 +1338,9 @@ jobs:
           const evidenceFiles = {
             signedTenantRoutes: 'backend/docs/verification/SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE.json',
             sessionIsolation: 'backend/docs/verification/PRODUCTION_SESSION_ISOLATION.json',
-            recoveryPoint: 'backend/docs/verification/PRODUCTION_RECOVERY_POINT.json'
+            recoveryPoint: 'backend/docs/verification/PRODUCTION_RECOVERY_POINT.json',
+            nativePitr: 'backend/docs/verification/PRODUCTION_NATIVE_PITR_EVIDENCE.json',
+            apiRouteProbeAcceptance: 'backend/docs/verification/API_ROUTE_ACCEPTANCE_RESULT.json'
           };
           const hashes = {};
           const read = name => JSON.parse(fs.readFileSync(evidenceFiles[name], 'utf8'));
@@ -1352,6 +1354,8 @@ jobs:
           const routes = read('signedTenantRoutes');
           const session = read('sessionIsolation');
           const recovery = read('recoveryPoint');
+          const nativePitr = read('nativePitr');
+          const apiRoutes = read('apiRouteProbeAcceptance');
           if (routes.schemaVersion !== 'opscore.signed-tenant-context-production-coverage.v1' ||
               routes.status !== 'PASS' || routes.environment !== 'production' ||
               Number(routes.expectedRouteCount) !== 67 || Number(routes.coveredRouteCount) !== 67 ||
@@ -1377,6 +1381,84 @@ jobs:
               recovery.cleanup?.recoveryBranchDeleted !== true || !exact(recovery)) {
             throw new Error('CANDIDATE_RECOVERY_POINT_EVIDENCE_INVALID');
           }
+
+          // Reuse the production release-proof validator for the full-data PITR v2
+          // record. Candidate evidence is accepted only when the exact commit,
+          // pipeline, deployment, root branch, database, content hashes, RLS
+          // inventory, restore timing, and deletion of both temporary branches
+          // are independently verified. The legacy v1 catalog-only probe is not
+          // eligible for this manifest.
+          const { readProductionNativePitrEvidence } = require('./backend/src/release-proof');
+          const nativePitrValidation = readProductionNativePitrEvidence(evidenceFiles.nativePitr, {
+            OPSC_RELEASE_CI_COMMIT: expected.commit,
+            OPSC_RELEASE_CI_PIPELINE_ID: expected.pipelineId,
+            OPSC_PRODUCTION_NEON_BRANCH_ID: expected.parentBranchId,
+            OPSC_PRODUCTION_DATABASE_NAME: expected.databaseName,
+            OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID: expected.deploymentId
+          });
+          if (nativePitrValidation.status !== 'PASS') {
+            throw new Error('CANDIDATE_NATIVE_PITR_EVIDENCE_NOT_EXACT_OR_NOT_VERIFIED');
+          }
+          const nativePitrBytes = fs.readFileSync(evidenceFiles.nativePitr);
+          const nativePitrSidecar = fs.readFileSync(evidenceFiles.nativePitr + '.sha256', 'utf8');
+          const nativePitrSidecarExpected = crypto.createHash('sha256').update(nativePitrBytes).digest('hex')
+            + '  PRODUCTION_NATIVE_PITR_EVIDENCE.json\n';
+          if (nativePitrSidecar !== nativePitrSidecarExpected) {
+            throw new Error('CANDIDATE_NATIVE_PITR_SIDECAR_DIGEST_MISMATCH');
+          }
+
+          // Keep the 358-route HTTP probe distinct from functional acceptance.
+          // The evidence is useful for route inventory and boundary checks, but
+          // anonymous-denial probes do not prove authenticated behavior for every
+          // route. The 3 independently exercised business flows remain explicit.
+          const apiRouteRows = Array.isArray(apiRoutes.routes) ? apiRoutes.routes : [];
+          const apiRouteKeys = apiRouteRows.map(row =>
+            String(row && row.method || '').toUpperCase() + ' ' + String(row && row.route || '')
+          );
+          const apiRouteKeySet = new Set(apiRouteKeys);
+          const businessFlows = apiRoutes.businessFlowCoverage || {};
+          const businessFlowRows = Array.isArray(businessFlows.flows) ? businessFlows.flows : [];
+          const residue = apiRoutes.cleanup && apiRoutes.cleanup.candidateResidue || {};
+          const residueIsZero = Object.keys(residue).length > 0
+            && Object.values(residue).every(value => Number.isFinite(Number(value)) && Number(value) === 0);
+          if (apiRoutes.schemaVersion !== 'opscore.api-route-acceptance.v2' ||
+              apiRoutes.engine !== 'postgres' ||
+              apiRoutes.environment !== 'production' ||
+              apiRoutes.verificationScope !== 'PRODUCTION_POSTGRESQL_HTTP_FULL_ROUTE_AND_BUSINESS_FLOW_INVENTORY' ||
+              apiRoutes.status !== 'PASS' ||
+              String(apiRoutes.commitSha || '').toLowerCase() !== expected.commit ||
+              String(apiRoutes.pipelineId || '') !== expected.pipelineId ||
+              String(apiRoutes.deploymentId || '') !== expected.deploymentId ||
+              apiRoutes.databaseName !== expected.databaseName ||
+              apiRoutes.databaseBranchId !== expected.parentBranchId ||
+              !Number.isSafeInteger(Number(apiRoutes.inventoryRouteCount)) ||
+              Number(apiRoutes.inventoryRouteCount) < 1 ||
+              Number(apiRoutes.testedRoutes) !== Number(apiRoutes.inventoryRouteCount) ||
+              Number(apiRoutes.passed) !== Number(apiRoutes.testedRoutes) ||
+              Number(apiRoutes.failed) !== 0 ||
+              apiRouteRows.length !== Number(apiRoutes.inventoryRouteCount) ||
+              apiRouteKeySet.size !== apiRouteRows.length ||
+              apiRouteRows.some(row => !row ||
+                !/^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)$/.test(String(row.method || '').toUpperCase()) ||
+                !String(row.route || '').startsWith('/api/') && String(row.route || '') !== '/metrics' ||
+                row.verdict !== 'PASS' || !String(row.probeContract || '')) ||
+              businessFlows.status !== 'PASS' ||
+              Number(businessFlows.testedFlows) !== Number(businessFlows.inventoryFlowCount) ||
+              Number(businessFlows.passed) !== Number(businessFlows.inventoryFlowCount) ||
+              Number(businessFlows.failed) !== 0 ||
+              businessFlowRows.length !== Number(businessFlows.inventoryFlowCount) ||
+              businessFlowRows.some(flow => !flow || flow.status !== 'PASS' ||
+                flow.tenantAStatus !== 'PASS' || flow.tenantBStatus !== 'PASS' ||
+                flow.crossTenantDenialStatus !== 'PASS' || flow.cleanupStatus !== 'PASS') ||
+              apiRoutes.cleanup?.status !== 'PASS' ||
+              apiRoutes.cleanup?.candidateFixtureCleanup !== 'PASS' ||
+              apiRoutes.cleanup?.productionSessionCleanup !== 'PASS' ||
+              apiRoutes.cleanup?.mutableSessionResidueZero !== true ||
+              apiRoutes.cleanup?.mutableAssetResidueZero !== true ||
+              !residueIsZero) {
+            throw new Error('CANDIDATE_API_ROUTE_PROBE_EVIDENCE_INVALID');
+          }
+
           for (const [name, file] of Object.entries(evidenceFiles)) {
             const bytes = fs.readFileSync(file);
             hashes[name] = crypto.createHash('sha256').update(bytes).digest('hex');
@@ -1391,6 +1473,25 @@ jobs:
             generatedAt: new Date().toISOString(),
             ...expected,
             routeCoverage: { expected: 67, covered: 67, failed: 0 },
+            apiRouteProbeCoverage: {
+              status: 'PASS',
+              scope: 'inventory-aligned HTTP probes and business-flow checks; not full authenticated functional acceptance for every route',
+              expected: Number(apiRoutes.inventoryRouteCount),
+              probed: Number(apiRoutes.testedRoutes),
+              passed: Number(apiRoutes.passed),
+              failed: Number(apiRoutes.failed),
+              businessFlowsPassed: Number(businessFlows.passed),
+              functionalRouteAcceptance: 'NOT_VERIFIED'
+            },
+            nativePitr: {
+              status: nativePitrValidation.status,
+              verificationScope: nativePitrValidation.verificationScope,
+              tableCountCompared: nativePitrValidation.contentIntegrity.tableCountCompared,
+              rowsCompared: nativePitrValidation.contentIntegrity.rowsCompared,
+              restoreDurationMs: nativePitrValidation.restoreDurationMs,
+              targetPointAgeAtCompletionMs: nativePitrValidation.targetPointAgeAtCompletionMs,
+              cleanupVerified: nativePitrValidation.cleanupVerified
+            },
             evidenceSha256: hashes
           };
           const output = 'backend/docs/verification/PRODUCTION_CANDIDATE_EVIDENCE_ONLY_RESULT.json';
@@ -1412,6 +1513,9 @@ jobs:
             backend/docs/verification/SIGNED_TENANT_CONTEXT_PRODUCTION_COVERAGE.json
             backend/docs/verification/PRODUCTION_SESSION_ISOLATION.json
             backend/docs/verification/PRODUCTION_RECOVERY_POINT.json
+            backend/docs/verification/PRODUCTION_NATIVE_PITR_EVIDENCE.json
+            backend/docs/verification/PRODUCTION_NATIVE_PITR_EVIDENCE.json.sha256
+            backend/docs/verification/API_ROUTE_ACCEPTANCE_RESULT.json
             backend/docs/verification/PRODUCTION_ACCEPTANCE_RESULT.json
             backend/docs/verification/POSTGRES_HTTP_ACCEPTANCE_RESULT.json
           if-no-files-found: error
