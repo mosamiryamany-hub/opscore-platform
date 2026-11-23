@@ -1,3 +1,7 @@
+> **HISTORICAL SNAPSHOT — SUPERSEDED 2026-11-23.** The source commit, deployment, test totals and Production release evidence in this 2026-11-22 record are no longer the current state. Use [Commercial closeout status — 2026-11-23](COMMERCIAL_CLOSEOUT_STATUS_2026-11-23.md) and [Remaining closeout gates](../ops/REMAINING_CLOSEOUT_GATES.md) for the current verified position. This file is retained only for historical audit context.
+
+---
+
 # OpsCore — Commercial handoff status (2026-11-22)
 
 **Disposition: PASS_WITH_RESIDUALS.** Production deployment and the exact-run engineering evidence below passed. The project is **not fully commercially closed**: the current-head signed buyer archive has not been generated, no license is granted, automated Neon backups/branch protection are not configured, Vercel CRS/bot rules remain log-only, and buyer-specific mobile, language, map and provider requirements remain open.
