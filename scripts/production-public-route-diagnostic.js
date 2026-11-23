@@ -79,7 +79,7 @@ async function requestTarget(target) {
     }
     const body = bytes.toString('utf8');
     const contentType = response.headers.get('content-type') || '';
-    const ownerDataRequiredMarkerFound = target.kind === 'legal-page' && /OWNER\\s+DATA\\s+REQUIRED/i.test(body);
+    const ownerDataRequiredMarkerFound = target.kind === 'legal-page' && /OWNER\s+DATA\s+REQUIRED/i.test(body);
     const result = {
       path: target.path,
       kind: target.kind,
