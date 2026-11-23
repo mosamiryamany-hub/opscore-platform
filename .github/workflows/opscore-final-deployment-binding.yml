@@ -51,6 +51,7 @@ jobs:
           persist-credentials: false
 
       - name: Validate identifiers and successful source runs
+        id: validate_runs
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_RUN_ID: ${{ inputs.release_run_id }}
@@ -100,6 +101,14 @@ jobs:
           curl --fail --location --silent --show-error -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/$REPOSITORY/actions/artifacts/$ROUTE_ARTIFACT_ID/zip" \
             -o "$RUNNER_TEMP/route-artifact.zip"
+          archive_meta="$(curl --fail --silent --show-error -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$REPOSITORY/actions/artifacts/$ARCHIVE_ARTIFACT_ID")"
+          route_meta="$(curl --fail --silent --show-error -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$REPOSITORY/actions/artifacts/$ROUTE_ARTIFACT_ID")"
+          node - "$archive_meta" "$route_meta" "$RELEASE_RUN_ID" "$DEPLOY_RUN_ID" <<'NODE'
+          const [aRaw, rRaw, releaseRun, deployRun] = process.argv.slice(2);
+          const a = JSON.parse(aRaw), r = JSON.parse(rRaw);
+          if (String(a.workflow_run?.id) !== releaseRun || a.expired) throw new Error('ARCHIVE_ARTIFACT_NOT_FROM_SELECTED_RELEASE_RUN');
+          if (String(r.workflow_run?.id) !== deployRun || r.expired) throw new Error('ROUTE_ARTIFACT_NOT_FROM_SELECTED_DEPLOY_RUN');
+          NODE
           unzip -q "$RUNNER_TEMP/archive-artifact.zip" -d "$RUNNER_TEMP/archive-artifact"
           unzip -q "$RUNNER_TEMP/route-artifact.zip" -d "$RUNNER_TEMP/route-artifact"
           archive="$(find "$RUNNER_TEMP/archive-artifact" -type f -name 'OpsCore-release.zip' -print -quit)"
@@ -116,8 +125,9 @@ jobs:
           echo "ROUTE_EVIDENCE_PATH=$route" >> "$GITHUB_ENV"
 
       - name: Verify archive digest, source pin, and original Sigstore signature
+        id: verify_archive
         env:
-          SOURCE_COMMIT: ${{ steps.validate-identifiers-and-successful-source-runs.outputs.source_commit }}
+          SOURCE_COMMIT: ${{ steps.validate_runs.outputs.source_commit }}
           EXPECTED_RELEASE_RUN_ID: ${{ inputs.release_run_id }}
         run: |
           set -euo pipefail
@@ -154,7 +164,7 @@ jobs:
 
       - name: Verify original Sigstore signature on the exact archive bytes
         env:
-          EXPECTED_SIGNER: ${{ steps.verify-archive-digest-source-pin-and-original-sigstore-signature.outputs.archive_signer_identity }}
+          EXPECTED_SIGNER: ${{ steps.verify_archive.outputs.archive_signer_identity }}
         run: |
           set -euo pipefail
           cosign verify-blob "$ARCHIVE_PATH" --bundle "$BUNDLE_PATH" \
@@ -164,7 +174,7 @@ jobs:
 
       - name: Verify candidate route artifact remains candidate-only and exact
         env:
-          EXPECTED_COMMIT: ${{ steps.validate-identifiers-and-successful-source-runs.outputs.source_commit }}
+          EXPECTED_COMMIT: ${{ steps.validate_runs.outputs.source_commit }}
           EXPECTED_PIPELINE: ${{ inputs.deploy_run_id }}
           EXPECTED_CANDIDATE_ID: ${{ inputs.candidate_deployment_id }}
         run: |
@@ -191,7 +201,7 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           FINAL_DEPLOYMENT_ID: ${{ inputs.final_deployment_id }}
-          EXPECTED_COMMIT: ${{ steps.validate-identifiers-and-successful-source-runs.outputs.source_commit }}
+          EXPECTED_COMMIT: ${{ steps.validate_runs.outputs.source_commit }}
         run: |
           set -euo pipefail
           node <<'NODE'
@@ -232,8 +242,9 @@ jobs:
         run: node scripts/request-vercel-trusted-oidc.js
 
       - name: Re-run six public production HTTP checks against the exact final alias
-        run: node scripts/production-deployment-smoke.js "https://opscore-platform.vercel.app" "$GITHUB_SHA"
+        run: node scripts/production-deployment-smoke.js "https://opscore-platform.vercel.app" "$EXPECTED_COMMIT"
         env:
+          EXPECTED_COMMIT: ${{ steps.validate_runs.outputs.source_commit }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_SCOPE: mosamiryamany-1692
@@ -243,14 +254,14 @@ jobs:
       - name: Create signed in-toto archive-to-final-deployment association
         id: binding
         env:
-          SOURCE_COMMIT: ${{ steps.validate-identifiers-and-successful-source-runs.outputs.source_commit }}
+          SOURCE_COMMIT: ${{ steps.validate_runs.outputs.source_commit }}
           RELEASE_RUN_ID: ${{ inputs.release_run_id }}
           DEPLOY_RUN_ID: ${{ inputs.deploy_run_id }}
-          DEPLOY_RUN_ATTEMPT: ${{ steps.validate-identifiers-and-successful-source-runs.outputs.deploy_run_attempt }}
+          DEPLOY_RUN_ATTEMPT: ${{ steps.validate_runs.outputs.deploy_run_attempt }}
           CANDIDATE_DEPLOYMENT_ID: ${{ inputs.candidate_deployment_id }}
           FINAL_DEPLOYMENT_ID: ${{ steps.final_deployment.outputs.deployment_id }}
           FINAL_DEPLOYMENT_URL: ${{ steps.final_deployment.outputs.deployment_url }}
-          ARCHIVE_SHA256: ${{ steps.verify-archive-digest-source-pin-and-original-sigstore-signature.outputs.archive_sha256 }}
+          ARCHIVE_SHA256: ${{ steps.verify_archive.outputs.archive_sha256 }}
           ROUTE_EVIDENCE_PATH: ${{ env.ROUTE_EVIDENCE_PATH }}
         run: |
           set -euo pipefail
