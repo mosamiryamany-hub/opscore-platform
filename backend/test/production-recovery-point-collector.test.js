@@ -133,14 +133,14 @@ test('recovery collector parses as a Node.js program', () => {
 });
 
 test('candidate-only manifest validates and uploads exact full-data PITR plus explicitly scoped API route probes', () => {
-  assert.match(deployWorkflow, /nativePitr: 'backend\\/docs\\/verification\\/PRODUCTION_NATIVE_PITR_EVIDENCE\\.json'/);
-  assert.match(deployWorkflow, /apiRouteProbeAcceptance: 'backend\\/docs\\/verification\\/API_ROUTE_ACCEPTANCE_RESULT\\.json'/);
-  assert.match(deployWorkflow, /readProductionNativePitrEvidence\\(evidenceFiles\\.nativePitr/);
-  assert.match(deployWorkflow, /CANDIDATE_NATIVE_PITR_EVIDENCE_NOT_EXACT_OR_NOT_VERIFIED/);
-  assert.match(deployWorkflow, /CANDIDATE_NATIVE_PITR_SIDECAR_DIGEST_MISMATCH/);
-  assert.match(deployWorkflow, /CANDIDATE_API_ROUTE_PROBE_EVIDENCE_INVALID/);
-  assert.match(deployWorkflow, /functionalRouteAcceptance: 'NOT_VERIFIED'/);
-  assert.match(deployWorkflow, /PRODUCTION_NATIVE_PITR_EVIDENCE\\.json\\.sha256/);
-  assert.match(deployWorkflow, /API_ROUTE_ACCEPTANCE_RESULT\\.json/);
-  assert.match(deployWorkflow, /productionCertification: false/);
+  assert.ok(deployWorkflow.includes("nativePitr: 'backend/docs/verification/PRODUCTION_NATIVE_PITR_EVIDENCE.json'"));
+  assert.ok(deployWorkflow.includes("apiRouteProbeAcceptance: 'backend/docs/verification/API_ROUTE_ACCEPTANCE_RESULT.json'"));
+  assert.ok(deployWorkflow.includes("readProductionNativePitrEvidence(evidenceFiles.nativePitr"));
+  assert.ok(deployWorkflow.includes("CANDIDATE_NATIVE_PITR_EVIDENCE_NOT_EXACT_OR_NOT_VERIFIED"));
+  assert.ok(deployWorkflow.includes("CANDIDATE_NATIVE_PITR_SIDECAR_DIGEST_MISMATCH"));
+  assert.ok(deployWorkflow.includes("CANDIDATE_API_ROUTE_PROBE_EVIDENCE_INVALID"));
+  assert.ok(deployWorkflow.includes("functionalRouteAcceptance: 'NOT_VERIFIED'"));
+  assert.ok(deployWorkflow.includes("PRODUCTION_NATIVE_PITR_EVIDENCE.json.sha256"));
+  assert.ok(deployWorkflow.includes("API_ROUTE_ACCEPTANCE_RESULT.json"));
+  assert.ok(deployWorkflow.includes("productionCertification: false"));
 });
