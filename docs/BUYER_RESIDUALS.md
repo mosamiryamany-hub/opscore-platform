@@ -197,5 +197,5 @@ PR #403 also adds explicit `productionIsolationCertificationScope` values: catal
 After PR #403 was squash-merged, current main is `3f7d9110f2f092e0f146b36d007345fe1977107d`.
 - OpsCore CI run `45132141296`: SUCCESS.
 - Vercel workflow run `45132141500`: SUCCESS. Source verification, contract verification, both isolated PostgreSQL 18 RLS/HTTP acceptance jobs passed. Neon Preview migration and Production PITR historical probe were skipped; Production deploy was skipped.
-- Push-on-main CodeQL run `45132141084`: Actions and Python passed; JavaScript/TypeScript analysis was still in progress at this evidence cut.
+- Push-on-main CodeQL run `45132141084`: Actions, JavaScript/TypeScript and Python all passed.
 - No Production deployment was created by these runs.
