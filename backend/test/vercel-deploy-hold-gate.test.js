@@ -47,26 +47,40 @@ test('deploy workflow does not attempt to expose Vercel Sensitive environment va
   assert.doesNotMatch(deploy, /Resolve production database identity \(read-only\)/);
 });
 
-test('staged deployment is immutable to the live domain until Runtime identity and release proof pass', () => {
+test('runtime DB identity is proven on the held candidate before release publication; final staged deploy still requires full smoke', () => {
   const packageStep = step('Compute package fingerprint for this commit');
   const identityStep = step('Embed current GitHub Actions release identity');
+  const heldCandidateStep = step('Create held staged Production candidate without changing the live domain');
+  const oidcPreflightStep = step('Request fresh scoped OIDC identity for held-candidate runtime identity preflight');
+  const runtimePreflightStep = step('Verify exact held-candidate runtime identity before publishing release flags');
+  const publishStep = step('Publish exact certified release evidence and enable signed tenant context');
   const buildStep = step('Build Vercel output');
   const bindStep = step('Verify Vercel output contains the current release identity');
   const evidenceStep = step('Verify deploy-workspace acceptance evidence matches release identity');
   const stageStep = step('Create staged production deployment without changing the live domain');
-  const runtimeStep = step('Verify staged production runtime identity and all release gates');
+  const smokeStep = step('Verify staged production HTTP, database, security and release proofs');
 
   assert.match(packageStep, /git archive --format=zip/);
   assert.match(identityStep, /write-vercel-release-identity\.js/);
+  assert.match(heldCandidateStep, /vercel deploy --prebuilt --prod --skip-domain/);
+  assert.match(oidcPreflightStep, /request-vercel-trusted-oidc\.js/);
+  assert.match(runtimePreflightStep, /--identity-preflight-only/);
+  assert.match(runtimePreflightStep, /production-runtime-diagnostic\.js/);
+  assert.match(runtimePreflightStep, /steps\.candidate_deployment\.outputs\.id/);
+  assert.match(runtimePreflightStep, /steps\.prepare_candidate_env\.outputs\.probe_token/);
+  assert.match(publishStep, /production-candidate-environment\.js publish/);
   assert.match(buildStep, /vercel build --prod/);
   assert.match(bindStep, /VERCEL_RELEASE_IDENTITY_VERIFY=PASS/);
   assert.match(evidenceStep, /DEPLOY_WORKSPACE_ACCEPTANCE_BIND=PASS/);
   assert.match(stageStep, /vercel deploy --prebuilt --prod --skip-domain/);
-  assert.match(runtimeStep, /id: production_runtime/);
-  assert.match(runtimeStep, /production-runtime-diagnostic\.js/);
-  assert.ok(deploy.indexOf(packageStep) < deploy.indexOf(stageStep));
+  assert.match(smokeStep, /steps\.production_runtime\.outputs\.allowed == 'true'/);
+  assert.ok(deploy.indexOf(heldCandidateStep) < deploy.indexOf(runtimePreflightStep));
+  assert.ok(deploy.indexOf(oidcPreflightStep) < deploy.indexOf(runtimePreflightStep));
+  assert.ok(deploy.indexOf(runtimePreflightStep) < deploy.indexOf(publishStep));
+  assert.ok(deploy.indexOf(publishStep) < deploy.indexOf(buildStep));
   assert.ok(deploy.indexOf(evidenceStep) < deploy.indexOf(stageStep));
-  assert.ok(deploy.indexOf(stageStep) < deploy.indexOf(runtimeStep));
+  assert.ok(deploy.indexOf(stageStep) < deploy.indexOf(smokeStep));
+  assert.doesNotMatch(deploy, /Verify staged production runtime identity and all release gates/);
 });
 
 test('staged production promotion remains fail-closed even after explicit manual dispatch authorization', () => {
@@ -204,9 +218,10 @@ test('candidate evidence-only mode is separated from Production certification an
     'Build Vercel output',
     'Verify Vercel output contains the current release identity',
     'Verify deploy-workspace acceptance evidence matches release identity',
+    'Request fresh scoped OIDC identity for held-candidate runtime identity preflight',
+    'Verify exact held-candidate runtime identity before publishing release flags',
     'Create staged production deployment without changing the live domain',
-    'Request scoped GitHub Actions OIDC identity for Vercel Trusted Sources',
-    'Verify staged production runtime identity and all release gates'
+    'Request scoped GitHub Actions OIDC identity for Vercel Trusted Sources'
   ];
   for (const name of releaseOnly) {
     assert.match(step(name), /run_mode == 'AUTHORIZE_PRODUCTION_RELEASE'/, name + ' must be release-only');
