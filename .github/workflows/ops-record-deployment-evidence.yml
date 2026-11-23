@@ -1,0 +1,53 @@
+name: ops-record-promoted-deployment-evidence
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type exactly: RECORD_PROMOTED_DEPLOYMENT_RELEASE_EVIDENCE'
+        required: true
+      promoted_deployment_id:
+        description: 'The exact dpl_ id that the public domain now serves'
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ops-record-promoted-deployment-evidence
+  cancel-in-progress: false
+
+jobs:
+  record:
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      github.event.inputs.confirm == 'RECORD_PROMOTED_DEPLOYMENT_RELEASE_EVIDENCE'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout pinned
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22.23.4
+      - name: Install backend dependencies
+        run: npm ci --ignore-scripts
+        working-directory: backend
+      - name: Derive owner connection URI from Neon API and record evidence
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          OPSC_PROMOTED_DEPLOYMENT_ID: ${{ github.event.inputs.promoted_deployment_id }}
+          GITHUB_SHA: ${{ github.sha }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          OWNER_URI=$(curl -sS -H "accept: application/json" \
+            -H "authorization: Bearer ${NEON_API_KEY}" \
+            "https://console.neon.tech/api/v2/projects/summer-leaf-18448271/branches/br-proud-salad-bcshhdap/connection_uri?database_name=opscore_acceptance&role_name=neondb_owner" \
+            | node -e 'let d="";process.stdin.on("data",c=>d+=c).on("end",()=>{const j=JSON.parse(d);const u=j.uri||j.connection_uri;if(!u)process.exit(3);process.stdout.write(u)})')
+          export OPSC_EVIDENCE_OWNER_URL="$OWNER_URI"
+          node backend/scripts/record-deployment-release-evidence.js RECORD_PROMOTED_DEPLOYMENT_RELEASE_EVIDENCE
