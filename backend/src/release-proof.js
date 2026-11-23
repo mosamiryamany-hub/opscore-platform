@@ -793,17 +793,19 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
   const deployment = createDeploymentProof(proofEnv, now);
   const configuredProbeDeploymentId = String(proofEnv.OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID || '').trim();
   const currentDeploymentId = String(deployment.deployment.id || '').trim();
-  // Never let a prior held-probe deployment certify a different staged deployment.
-  // Every production evidence reader below is pinned to this exact running deployment.
-  if (currentDeploymentId) proofEnv.OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID = currentDeploymentId;
-  else delete proofEnv.OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID;
+  // Behavioral and API acceptance runs against the held probe deployment before
+  // the immutable staged release is assembled. Keep those proofs pinned to that
+  // exact probe; independently validate this request's staged deployment below.
+  const evidenceEnv = { ...proofEnv };
+  if (configuredProbeDeploymentId) evidenceEnv.OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID = configuredProbeDeploymentId;
+  else delete evidenceEnv.OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID;
   const releaseTag = null;
   const sourceCommit = deployment.source.commitSha;
   const ciCommit = normalizedSha(proofEnv.OPSC_RELEASE_CI_COMMIT);
   const pipelineId = String(proofEnv.OPSC_RELEASE_CI_PIPELINE_ID || '').trim();
   const ciVerified = Boolean(sourceCommit && ciCommit === sourceCommit && PIPELINE_RE.test(pipelineId));
   const postgresHttpAcceptance = readCurrentPostgresHttpAcceptance({ ...proofEnv, OPSC_RELEASE_CI_COMMIT: ciCommit, OPSC_RELEASE_CI_PIPELINE_ID: pipelineId }, postgresHttpAcceptancePath);
-  const apiRouteAcceptance = readCurrentApiRouteAcceptance({ ...proofEnv, OPSC_RELEASE_CI_COMMIT: ciCommit, OPSC_RELEASE_CI_PIPELINE_ID: pipelineId }, apiRouteAcceptancePath, now);
+  const apiRouteAcceptance = readCurrentApiRouteAcceptance({ ...evidenceEnv, OPSC_RELEASE_CI_COMMIT: ciCommit, OPSC_RELEASE_CI_PIPELINE_ID: pipelineId }, apiRouteAcceptancePath, now);
 
   const packageCommit = normalizedSha(proofEnv.OPSC_RELEASE_PACKAGE_COMMIT);
   const packageSha = String(proofEnv.OPSC_RELEASE_PACKAGE_SHA256 || '').trim().toLowerCase();
@@ -817,26 +819,27 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
     now
   );
   const acceptanceVerified = ciVerified && productionAcceptance.status === 'PASS';
-  const sessionIsolation = readProductionSessionIsolationEvidence(undefined, proofEnv);
-  const recoveryPoint = readProductionRecoveryPointEvidence(undefined, proofEnv);
+  const sessionIsolation = readProductionSessionIsolationEvidence(undefined, evidenceEnv);
+  const recoveryPoint = readProductionRecoveryPointEvidence(undefined, evidenceEnv);
   const signedTenantRouteCoverage = readProductionSignedTenantRouteCoverageEvidence(
     signedTenantRouteCoveragePath || undefined,
-    proofEnv
+    evidenceEnv
   );
-  const nativePitr = readProductionNativePitrEvidence(undefined, proofEnv);
+  const nativePitr = readProductionNativePitrEvidence(undefined, evidenceEnv);
   const productionEvidenceDeploymentBinding = {
-    status: currentDeploymentId
+    status: currentDeploymentId && configuredProbeDeploymentId
       && sessionIsolation.status === 'PASS'
       && recoveryPoint.status === 'PASS'
       && nativePitr.status === 'PASS'
       && signedTenantRouteCoverage.status === 'PASS'
       && apiRouteAcceptance.status === 'PASS_PRODUCTION_FUNCTIONAL_SCOPE'
       ? 'PASS'
-      : 'NOT_VERIFIED',
+    : 'NOT_VERIFIED',
     currentDeploymentId: currentDeploymentId || null,
     configuredProbeDeploymentId: configuredProbeDeploymentId || null,
+    evidenceDeploymentId: configuredProbeDeploymentId || null,
     configuredProbeMatchesCurrent: Boolean(currentDeploymentId && configuredProbeDeploymentId === currentDeploymentId),
-    evidenceBindingSource: 'VERCEL_DEPLOYMENT_ID'
+    evidenceBindingSource: 'EXACT_HELD_PROBE_DEPLOYMENT_ID_AND_RUNTIME_DEPLOYMENT_ID'
   };
   // OPSC_PRODUCTION_ISOLATION_CERTIFICATION is intentionally not consumed:
   // a project-level text flag cannot certify the deployment serving this request.
@@ -887,14 +890,14 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
     noteParts.push('Production native Neon PITR full-data verification is NOT_VERIFIED; historical schema/catalog-only probe evidence is insufficient.');
   }
   if (productionEvidenceDeploymentBinding.status === 'PASS') {
-    noteParts.push('All production behavioral, recovery, signed-session route, and HTTP route evidence is bound to the exact VERCEL_DEPLOYMENT_ID serving this request.');
+    noteParts.push('All production behavioral, recovery, signed-session route, and HTTP route evidence is bound to the exact held probe deployment for this commit and pipeline; the staged deployment serving this request is independently identified and smoke-verified.');
   } else {
-    noteParts.push('Production evidence is NOT_VERIFIED for the running VERCEL_DEPLOYMENT_ID. Evidence bound only to a different held probe deployment is rejected; the legacy OPSC_PRODUCTION_ISOLATION_CERTIFICATION text flag is ignored.');
+    noteParts.push('Production evidence is NOT_VERIFIED for the exact held probe deployment and current release identity; mismatched, stale, or rebound evidence is rejected, and the legacy OPSC_PRODUCTION_ISOLATION_CERTIFICATION text flag is ignored.');
   }
   if (isolationCertified) {
-    noteParts.push('productionIsolationCertification is CERTIFIED only when the v2 live probes, v2 recovery-point evidence, all 67 signed-session route results, full Production HTTP route acceptance, same-commit/same-pipeline identity, and exact running deployment ID all pass together.');
+    noteParts.push('productionIsolationCertification is CERTIFIED only when the v2 live probes, v2 recovery-point evidence, all 67 signed-session route results, full Production HTTP route acceptance, same-commit/same-pipeline identity, and exact held probe deployment ID all pass together.');
   } else {
-    noteParts.push('productionIsolationCertification remains NOT_CERTIFIED until all required behavioral and recovery evidence is verified against the exact running Vercel deployment ID.');
+    noteParts.push('productionIsolationCertification remains NOT_CERTIFIED until all required behavioral and recovery evidence is verified against the exact held probe deployment ID.');
   }
   noteParts.push(signedTenantRouteCoverage.status === 'PASS' ? 'All 67 signed-session tenant routes passed the independent production route matrix on this exact commit and pipeline.' : 'Signed tenant-session coverage across all 67 required routes remains NOT_VERIFIED; this blocks production isolation certification and release verification.');
   if (apiRouteAcceptance.status === 'PASS_PRODUCTION_FUNCTIONAL_SCOPE') {
@@ -945,7 +948,7 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
       postgresHttpAcceptance: postgresHttpAcceptance.status
     },
     productionEvidenceDeploymentBinding,
-    productionIsolationCertificationScope: 'BEHAVIORAL_PRODUCTION_DEPLOYMENT_EVIDENCE_BOUND_TO_RUNTIME_DEPLOYMENT_ID',
+    productionIsolationCertificationScope: 'BEHAVIORAL_PRODUCTION_DEPLOYMENT_EVIDENCE_BOUND_TO_EXACT_PROBE_DEPLOYMENT_ID',
     productionAcceptance: {
       status: acceptanceVerified ? 'PASS' : 'NOT_VERIFIED',
       commitSha: acceptanceVerified ? productionAcceptance.sourceCommit : null,
@@ -1155,4 +1158,3 @@ function readCurrentApiRouteAcceptance(env = process.env, filePath = embeddedEvi
   };
 }
 module.exports = { createPublicReleaseProof, hasVerifiedProductionRelease, readEmbeddedBuildIdentity, readProductionAcceptanceEvidence, readProductionSessionIsolationEvidence, readProductionRecoveryPointEvidence, readProductionNativePitrEvidence, readReleaseArchiveAttestation, readProductionSignedTenantRouteCoverageEvidence, readCurrentApiRouteAcceptance };
-
