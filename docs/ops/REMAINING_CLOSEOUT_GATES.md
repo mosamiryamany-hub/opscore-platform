@@ -177,7 +177,7 @@ This section supersedes Section 9's stale evidence cut and gate statuses. PR #40
 
 | Gate | State | Evidence / required action |
 |---|---|---|
-| Current `main` deployed to Production | **OPEN** | Vercel Production still `dpl_FVXwPoqefvkNsxA3BqVrxYnxRQka` / commit `88df9046...`; zero Production deployment records for `5e3cb211...` |
+| Current `main` deployed to Production | **OPEN** | Public domain `opscore-platform.vercel.app` resolves to `dpl_FVXwPoqefvkNsxA3BqVrxYnxRQka` / commit `88df9046...`. A separate READY Production-target deployment `dpl_9Xnqs1UrK74N7YpVr6s11S2KJ2Ur` exists for `5e3cb211...` but has `alias=[]`; current main `3f7d9110...` has zero Production deployments. |
 | Production release workflow | **NOT RUN** | Run `45129195834` was a push; its Production deploy job was skipped. Workflow requires `workflow_dispatch` with `run_mode=AUTHORIZE_PRODUCTION_RELEASE` |
 | Same-final-deployment certification | **OPEN** | Evidence is pinned to `OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID`; workflow later builds a separate staged deployment. Redesign required so every behavioral proof is bound to the final promoted deployment ID |
 | Certification flag semantics | **OPEN** | `OPSC_PRODUCTION_ISOLATION_CERTIFICATION=CERTIFIED` is a text environment flag. It cannot independently establish certification; derive status from exact, signed, deployment-bound evidence |
