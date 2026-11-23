@@ -88,69 +88,69 @@ These paths are currently absent on the live domain and are open gates: `/terms`
  
 ## Latest measured full-site closeout update — 2026-11-23 (supersedes earlier status above)
 
-**Evidence cut:** \`main\` = \`5e3cb211b7660002418757612033ff8928f25b69\`. PR #401 is merged (\`5e3cb211...\`, 2026-11-23 07:10:33 UTC). The former statement that PR #401 was open or had failing checks is historical and no longer current.
+**Evidence cut:** `main` = `5e3cb211b7660002418757612033ff8928f25b69`. PR #401 is merged (`5e3cb211...`, 2026-11-23 07:10:33 UTC). The former statement that PR #401 was open or had failing checks is historical and no longer current.
 
 ### CI and database-test accounting
 
 | Run / evidence | Result | Exact interpretation |
 |---|---|---|
-| OpsCore CI \`45129195704\` | SUCCESS | Backend release runner: 990 total, 987 passed, 0 failed, 3 skipped; runner status remains \`PASS_WITH_SKIPS\` |
-| Vercel/source + PostgreSQL workflow \`45129195834\` | SUCCESS | Same commit; isolated PostgreSQL 18 acceptance job passed |
+| OpsCore CI `45129195704` | SUCCESS | Backend release runner: 990 total, 987 passed, 0 failed, 3 skipped; runner status remains `PASS_WITH_SKIPS` |
+| Vercel/source + PostgreSQL workflow `45129195834` | SUCCESS | Same commit; isolated PostgreSQL 18 acceptance job passed |
 | PostgreSQL HTTP commercial acceptance | PASS | 1/1, 0 skipped |
 | PostgreSQL firewall shared rate limiter | PASS | 1/1, 0 skipped |
 | Tenant isolation matrix | PASS | 2/2, 0 skipped; source-derived route matrix: 346 routes |
 | Disposable logical restore drill | PASS | 137 tables; CI-only, not Neon Production PITR |
 
-The three database-gated files skipped by the generic release-test runner (\`firewall-rate-limit-postgres.test.js\`, \`postgres-commercial-acceptance-http.test.js\`, \`tenant-isolation-matrix.test.js\`) were each run separately in the same-commit isolated PostgreSQL 18 workflow and passed with zero skips. This closes the **coverage gap** for those tests in the combined workflow, but it does not change the generic runner's recorded status from \`PASS_WITH_SKIPS\` to \`PASS\`.
+The three database-gated files skipped by the generic release-test runner (`firewall-rate-limit-postgres.test.js`, `postgres-commercial-acceptance-http.test.js`, `tenant-isolation-matrix.test.js`) were each run separately in the same-commit isolated PostgreSQL 18 workflow and passed with zero skips. This closes the **coverage gap** for those tests in the combined workflow, but it does not change the generic runner's recorded status from `PASS_WITH_SKIPS` to `PASS`.
 
 ### Vercel Production identity and proof semantics
 
-- Project: \`opscore-platform\` (\`prj_8jMqBt0l6OALicWSwQ3ECQTn8yPe\`); verified domain: \`opscore-platform.vercel.app\`.
-- Latest Production deployment read: \`dpl_FVXwPoqefvkNsxA3BqVrxYnxRQka\`, source \`cli\`, source commit \`88df9046ea5d57b392530565bc8cf6a10627ac4a\`.
-- A deployment search for current \`main\` SHA \`5e3cb211b7660002418757612033ff8928f25b69\` returned **zero Production deployments**.
-- Workflow run \`45129195834\` was a \`push\` event. Its source and PostgreSQL acceptance jobs passed, but the Production \`deploy\` job was skipped. The release path is explicitly gated behind \`workflow_dispatch\` with \`run_mode=AUTHORIZE_PRODUCTION_RELEASE\`; a successful push workflow is not a deployment.
+- Project: `opscore-platform` (`prj_8jMqBt0l6OALicWSwQ3ECQTn8yPe`); verified domain: `opscore-platform.vercel.app`.
+- Latest Production deployment read: `dpl_FVXwPoqefvkNsxA3BqVrxYnxRQka`, source `cli`, source commit `88df9046ea5d57b392530565bc8cf6a10627ac4a`.
+- A deployment search for current `main` SHA `5e3cb211b7660002418757612033ff8928f25b69` returned **zero Production deployments**.
+- Workflow run `45129195834` was a `push` event. Its source and PostgreSQL acceptance jobs passed, but the Production `deploy` job was skipped. The release path is explicitly gated behind `workflow_dispatch` with `run_mode=AUTHORIZE_PRODUCTION_RELEASE`; a successful push workflow is not a deployment.
 - The Production environment variables are encrypted. The connected read path did not return their plaintext values; no value is inferred or reproduced here.
-- Source review found that \`release-proof.js\` reads the text value \`OPSC_PRODUCTION_ISOLATION_CERTIFICATION=CERTIFIED\`, while the production evidence readers pin to \`OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID\`. The deployment workflow first creates a held probe deployment and collects evidence against that ID, then later builds a separate staged deployment for promotion. The current source path does not prove that the probe evidence is bound to the final promoted deployment ID. This is a real release-proof design gap; it must be corrected before \`CERTIFIED\` or \`releaseVerified\` can be accepted as proof of the final live deployment.
-- \`/api/verify/database-security\` uses a catalog-only scope and correctly reports \`NOT_CERTIFIED\` for behavioral production isolation. \`/api/verify/release\` evaluates a broader behavioral scope. The shared property name \`productionIsolationCertification\` obscures this scope difference and must be made unambiguous; neither endpoint alone establishes same-final-deployment certification.
+- Source review found that `release-proof.js` reads the text value `OPSC_PRODUCTION_ISOLATION_CERTIFICATION=CERTIFIED`, while the production evidence readers pin to `OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID`. The deployment workflow first creates a held probe deployment and collects evidence against that ID, then later builds a separate staged deployment for promotion. The current source path does not prove that the probe evidence is bound to the final promoted deployment ID. This is a real release-proof design gap; it must be corrected before `CERTIFIED` or `releaseVerified` can be accepted as proof of the final live deployment.
+- `/api/verify/database-security` uses a catalog-only scope and correctly reports `NOT_CERTIFIED` for behavioral production isolation. `/api/verify/release` evaluates a broader behavioral scope. The shared property name `productionIsolationCertification` obscures this scope difference and must be made unambiguous; neither endpoint alone establishes same-final-deployment certification.
 - The six legal/commercial paths were reported HTTP 404 in the owner-supplied probe. They were not independently re-probed in this session. No placeholder legal copy is published.
 
 ### Current Vercel firewall and runtime observations
 
 - Firewall enabled.
-- Active managed CRS categories \`gen\`, \`rce\`, \`sqli\`, \`xss\` are configured as \`log\`, not \`deny\`.
-- Bot protection is active in \`log\` mode.
+- Active managed CRS categories `gen`, `rce`, `sqli`, `xss` are configured as `log`, not `deny`.
+- Bot protection is active in `log` mode.
 - IP allow/deny list is empty.
-- The authentication edge rate-limit rule is active: POST \`/api/v1/auth/(login|mobile-login)\`, 60 requests per source IP per fixed 60-second window.
+- The authentication edge rate-limit rule is active: POST `/api/v1/auth/(login|mobile-login)`, 60 requests per source IP per fixed 60-second window.
 - Active attack status returned no anomalies. This is not proof of WAF blocking effectiveness.
-- Last-7-day runtime diagnostics returned 34 PostgreSQL SSL-mode warning events (last seen 2026-11-20) and 12 \`PRODUCTION_HOLD_ACTIVE\` events (last seen 2026-11-16). These are observed log groups, not evidence of current request failure; the SSL-mode warning should be reconciled with the production connection string without exposing credentials.
+- Last-7-day runtime diagnostics returned 34 PostgreSQL SSL-mode warning events (last seen 2026-11-20) and 12 `PRODUCTION_HOLD_ACTIVE` events (last seen 2026-11-16). These are observed log groups, not evidence of current request failure; the SSL-mode warning should be reconciled with the production connection string without exposing credentials.
 
 ### Neon Production and recovery evidence
 
 | Item | Current measured value |
 |---|---|
-| Project / plan | \`summer-leaf-18448271\` / Free (\`free_v3\`) |
+| Project / plan | `summer-leaf-18448271` / Free (`free_v3`) |
 | Engine / history | PostgreSQL 18 / 21,600 seconds (6 hours) |
-| Primary branch | \`br-proud-salad-bcshhdap\`, \`protected=false\` |
-| Manual snapshot | One: \`snap-aged-thunder-bcsxc1a5\` (2026-11-19) |
+| Primary branch | `br-proud-salad-bcshhdap`, `protected=false` |
+| Manual snapshot | One: `snap-aged-thunder-bcsxc1a5` (2026-11-19) |
 | Automatic snapshot schedule | Empty |
-| Primary migration ledger | 70 rows, latest \`071_signed_rls_context_all_access_modes.sql\` |
-| Restored branches | \`br-calm-poetry-bc7l7wik\` and \`br-orange-union-bc90bp8r\`, both from \`snap-aged-thunder\` |
+| Primary migration ledger | 70 rows, latest `071_signed_rls_context_all_access_modes.sql` |
+| Restored branches | `br-calm-poetry-bc7l7wik` and `br-orange-union-bc90bp8r`, both from `snap-aged-thunder` |
 
 A new read-only comparison computed SHA-256 row-content digests for all 136 public base tables on the two independent restore branches: **136/136 matched, zero mismatches**. This verifies repeatable restoration from the same historical snapshot; it does not establish parity with the current Primary.
 
-Primary versus either restore branch differs in seven table row counts: \`schema_migrations\` 70/68, \`organizations\` 100/16, \`users\` 100/16, \`activity_log\` 131/17, \`integration_outbox\` 131/17, \`audit_log\` 173/54, and \`login_throttle\` 3/2. The restore branches' latest relevant \`created_at\` values are 2026-11-19, while Primary contains rows through 2026-11-23. This is consistent with point-in-time divergence and is **not evidence of corruption**; it is also not a current-data parity pass.
+Primary versus either restore branch differs in seven table row counts: `schema_migrations` 70/68, `organizations` 100/16, `users` 100/16, `activity_log` 131/17, `integration_outbox` 131/17, `audit_log` 173/54, and `login_throttle` 3/2. The restore branches' latest relevant `created_at` values are 2026-11-19, while Primary contains rows through 2026-11-23. This is consistent with point-in-time divergence and is **not evidence of corruption**; it is also not a current-data parity pass.
 
 The attempt to protect the Primary branch was rejected by Neon because the current plan has reached its protected-branch limit. No branch was unprotected and no plan was upgraded. Neon Free supports one manual snapshot and does not include scheduled backup schedules; the existing snapshot is preserved. The six-hour history window is not a long-term backup schedule or a zero-loss guarantee. No new snapshot was created because the one-snapshot limit is already occupied.
 
 ### Remaining hard gates
 
-1. **Production release:** current \`main\` is not deployed. The workflow must be manually dispatched with the required owner-selected release mode after the final-deployment evidence-binding design is corrected and validated.
-2. **Certification semantics:** remove reliance on a free-standing \`CERTIFIED\` text flag; make all production evidence refer to the exact final promoted deployment ID, and give catalog-only and behavioral proof fields distinct names/scopes.
+1. **Production release:** current `main` is not deployed. The workflow must be manually dispatched with the required owner-selected release mode after the final-deployment evidence-binding design is corrected and validated.
+2. **Certification semantics:** remove reliance on a free-standing `CERTIFIED` text flag; make all production evidence refer to the exact final promoted deployment ID, and give catalog-only and behavioral proof fields distinct names/scopes.
 3. **Legal pages:** owner-supplied legal entity, jurisdiction, contact, privacy/data practices, processor/subprocessor list, retention, refund/cancellation policy, price, currency, tax treatment, and license/IP limits are required.
 4. **Credential rotation:** historically exposed GitHub PAT, Vercel token, and Neon API key remain unconfirmed as revoked. Available connected actions cannot revoke these account-level credentials. Revoke them in their provider consoles, create replacements, and update only the corresponding GitHub Actions secrets. Never paste token values into chat.
 5. **Backup strategy:** current Free plan has no scheduled snapshots and only one manual snapshot. With paid upgrades excluded, an owner-approved external backup destination and restore procedure are required; no external destination is currently evidenced.
 6. **Firewall enforcement:** managed CRS and Bot Protection remain log-only. Do not claim WAF enforcement until an approved blocking policy and observed blocking test pass.
-7. **Release package:** the prior Secure Release artifact was built on \`fbc4a308...\`, not the current evidence-cut \`5e3cb211...\`; regenerate and verify the package, SBOM, signature and hashes on the exact current main before buyer handoff.
-8. **License and external certification:** repository remains \`UNLICENSED\`; no license grant exists. No independent ISO 27001, SOC 2, PCI DSS or other external certificate is evidenced.
+7. **Release package:** the prior Secure Release artifact was built on `fbc4a308...`, not the current evidence-cut `5e3cb211...`; regenerate and verify the package, SBOM, signature and hashes on the exact current main before buyer handoff.
+8. **License and external certification:** repository remains `UNLICENSED`; no license grant exists. No independent ISO 27001, SOC 2, PCI DSS or other external certificate is evidenced.
 
 **Decision: OPEN — not commercially closed, not production-certified, and not authorized for distribution.**
