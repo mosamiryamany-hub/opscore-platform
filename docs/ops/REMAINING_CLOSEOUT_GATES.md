@@ -151,7 +151,7 @@ This section supersedes Sections 1, 4, 5, 6 and 8 above where they classify sell
 - Archive SHA-256: `7783d6614c033ecf85ee181db394fbd499dccd8f19a0b0509b97d0495e69c6ac`, recomputed from downloaded inner ZIP and matching the release statement.
 - SBOM: CycloneDX 1.6, 491 components, 245 dependency edges.
 - Sigstore verification: CI reported `Verified OK`; tampered archive and wrong signer were rejected.
-- One conditional step was skipped: release-tag/package-version check, because `releaseTag=null`. It is not a passed check and must remain disclosed.
+- The workflow's conditional tag/version step was skipped because `releaseTag=null`; it is not a passed check. In addition, backend regression is `PASS_WITH_SKIPS`: 990 total, 987 passed, 0 failed, 3 skipped. Skips: `firewall-rate-limit-postgres.test.js` (OPSC_PG_ACCEPTANCE_URL missing), `postgres-commercial-acceptance-http.test.js` (dedicated isolated PostgreSQL URL missing), and `tenant-isolation-matrix.test.js` (dedicated PostgreSQL URL missing). These three database-backed tests remain mandatory for code-sale closure and must be run against disposable isolated PostgreSQL; seller Neon is not required.
 
 **Neon exception — no paid upgrade:** Neon Free plan, missing scheduled snapshot and seller Primary/restore data differences are excluded from code-sale acceptance because the seller's hosted database and data are not deliverables. No plan upgrade is required or authorized. Preserve seller Primary, branches and snapshots. This does not waive PostgreSQL migrations, schema parity, RLS, tenant isolation, FK, integration, and recovery-code tests on disposable isolated databases.
 
