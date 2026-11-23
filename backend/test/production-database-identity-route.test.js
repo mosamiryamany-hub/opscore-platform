@@ -447,5 +447,17 @@ test('staged runtime identity diagnostic still rejects a mismatched candidate pr
   const modeResponse = responseSink();
   await handler(request(), modeResponse, disabledMode, disabledMode);
   assert.equal(modeResponse.statusCode, 404);
+
+  const missingOidc = request();
+  delete missingOidc.headers['x-opscore-trusted-oidc-idp-token'];
+  delete missingOidc.headers['x-vercel-trusted-oidc-idp-token'];
+  const missingOidcResponse = responseSink();
+  await handler(missingOidc, missingOidcResponse, stagedEnv, stagedEnv);
+  assert.equal(missingOidcResponse.statusCode, 404);
+
+  const alias = request({ headers: { ...request().headers, host: 'opscore-platform.vercel.app' } });
+  const aliasResponse = responseSink();
+  await handler(alias, aliasResponse, stagedEnv, stagedEnv);
+  assert.equal(aliasResponse.statusCode, 404);
   assert.equal(inspections, 0);
 });
