@@ -57,8 +57,13 @@ async function main() {
     status: proof.status
   };
   // The gates summary is derived from the LIVE proof, never from caller input.
-  const gatesSummary = { allGatesPass: proof.status === 'PASS', releaseStatus: proof.status, gates: proof.gates || {} };
-  const evidenceDigest = sha256(JSON.stringify({ recordedReleaseProof, gatesSummary }));
+  // Migration 072 requires gates_summary to carry BOTH 'allGatesPass' and
+  // 'evidenceDigestSha256' (CHECK constraint, error 23514 in run 45190356382).
+  // The digest is computed over the digest-free summary plus the recorded
+  // release proof, then the summary is published with the digest embedded.
+  const baseSummary = { allGatesPass: proof.status === 'PASS', releaseStatus: proof.status, gates: proof.gates || {} };
+  const evidenceDigest = sha256(JSON.stringify({ recordedReleaseProof, gatesSummary: baseSummary }));
+  const gatesSummary = { ...baseSummary, evidenceDigestSha256: evidenceDigest };
 
   const { Client } = require('pg');
   const client = new Client({
