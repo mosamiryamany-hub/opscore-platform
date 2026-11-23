@@ -170,3 +170,6 @@ PR #403 (`fix(release-proof): bind certification to the running deployment`) is 
 
 
 A read-only Neon schema inspection found no system-level deployment-attestation table. The existing `public.evidence_uploads` / `evidence_upload_chunks` tables are tenant/work-order scoped (organization and work-order foreign keys) and are not a safe substitute for a global signed Production deployment attestation store. A new narrowly scoped attestation store, writer identity, signature verification and RLS/grant design are required; no Production schema change was made.
+
+
+Restore-artifact preservation: branch `br-orange-union-bc90bp8r` had an automatic expiry of 2026-11-29. On 2026-11-23 its expiry was set to `null` and re-read as no expiry, preserving the second independent restore proof branch. No branch or snapshot was deleted.
