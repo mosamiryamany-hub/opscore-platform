@@ -2,6 +2,8 @@ name: OpsCore secure release
 
 on:
   push:
+    branches:
+      - 'release/secure-builder-provenance-8011bc55'
     tags:
       - 'v*.*.*'
   workflow_dispatch:
@@ -9,6 +11,11 @@ on:
 permissions:
   contents: read
   id-token: write
+  attestations: write
+  artifact-metadata: write
+
+env:
+  OPSC_RELEASE_SOURCE_SHA: "8011bc5550372a318dbf47bf89e6837059987f58"
 
 concurrency:
   group: opscore-release-${{ github.ref }}
@@ -18,13 +25,15 @@ jobs:
   verify-and-release:
     if: >-
       (github.ref_type == 'tag' && startsWith(github.ref_name, 'v')) ||
-      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/release/secure-builder-provenance-8011bc55')
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ env.OPSC_RELEASE_SOURCE_SHA }}
           persist-credentials: false
           fetch-depth: 0
 
@@ -61,7 +70,10 @@ jobs:
         run: test "$GITHUB_REF" = "refs/heads/main"
 
       - name: Verify source commit is contained in main
-        run: git merge-base --is-ancestor "$(git rev-parse HEAD)" origin/main
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$OPSC_RELEASE_SOURCE_SHA"
+          git merge-base --is-ancestor "$OPSC_RELEASE_SOURCE_SHA" origin/main
 
       - name: Install backend dependencies from lockfile
         working-directory: backend
@@ -164,7 +176,7 @@ jobs:
       - name: Build buyer release archive
         env:
           CI_COMMIT_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
-          CI_COMMIT_SHA: ${{ github.sha }}
+          CI_COMMIT_SHA: ${{ env.OPSC_RELEASE_SOURCE_SHA }}
           CI_PIPELINE_ID: ${{ github.run_id }}
           CI_PIPELINE_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           CI_PROJECT_URL: ${{ github.server_url }}/${{ github.repository }}
@@ -175,7 +187,7 @@ jobs:
       - name: Write external commercial archive statement
         env:
           CI_COMMIT_TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
-          CI_COMMIT_SHA: ${{ github.sha }}
+          CI_COMMIT_SHA: ${{ env.OPSC_RELEASE_SOURCE_SHA }}
           CI_PIPELINE_ID: ${{ github.run_id }}
           CI_PIPELINE_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           CI_PROJECT_URL: ${{ github.server_url }}/${{ github.repository }}
@@ -183,11 +195,118 @@ jobs:
           CI_JOB_NAME: commercial-closure
         run: node scripts/write-release-attestation.js "$RUNNER_TEMP/OpsCore-release.zip" "$RUNNER_TEMP/COMMERCIAL_RELEASE_STATEMENT.json"
 
-      # GitHub artifact attestations are unavailable for this user-owned private repository
-      # on its current plan. Sign the completed archive directly with Sigstore keyless OIDC.
-      # This creates a verifiable blob signature, not an in-toto/SLSA provenance predicate.
-      # Public Sigstore transparency records expose signer/workflow identity and artifact digest,
-      # but do not publish the private source tree or archive bytes.
+      # The source code is checked out at OPSC_RELEASE_SOURCE_SHA, while this
+      # isolated builder workflow is identified by GITHUB_REF/GITHUB_SHA in its attestation.
+      - name: Create detached SBOM copy and external SHA-256 manifest
+        env:
+          RELEASE_ARCHIVE: "${{ runner.temp }}/OpsCore-release.zip"
+          RELEASE_SBOM_SOURCE: "docs/sbom/opscore-v0.11.62.cyclonedx.json"
+          RELEASE_SBOM: "${{ runner.temp }}/opscore-v0.11.62.cyclonedx.json"
+          RELEASE_CHECKSUMS: "${{ runner.temp }}/RELEASE_SHA256SUMS.txt"
+        run: |
+          set -euo pipefail
+          test -s "$RELEASE_ARCHIVE"
+          test -s "$RELEASE_SBOM_SOURCE"
+          cp "$RELEASE_SBOM_SOURCE" "$RELEASE_SBOM"
+          (
+            cd "$RUNNER_TEMP"
+            sha256sum "OpsCore-release.zip" "opscore-v0.11.62.cyclonedx.json" > "RELEASE_SHA256SUMS.txt"
+            sha256sum -c "RELEASE_SHA256SUMS.txt"
+          )
+
+      - name: Write source-pinned SLSA provenance predicate
+        env:
+          SOURCE_SHA: "${{ env.OPSC_RELEASE_SOURCE_SHA }}"
+          WORKFLOW_SHA: "${{ github.sha }}"
+          WORKFLOW_REF: "${{ github.ref }}"
+          RUN_URL: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          OUTPUT: "${{ runner.temp }}/source-pinned-provenance.json"
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const crypto = require('node:crypto');
+          const sourceSha = process.env.SOURCE_SHA || '';
+          const workflowSha = process.env.WORKFLOW_SHA || '';
+          const repository = process.env.GITHUB_REPOSITORY || '';
+          if (!/^[a-f0-9]{40}$/.test(sourceSha) || !/^[a-f0-9]{40}$/.test(workflowSha) || !repository) {
+            throw new Error('SOURCE_PINNED_PROVENANCE_INPUT_INVALID');
+          }
+          const predicate = {
+            buildDefinition: {
+              buildType: 'https://github.com/' + repository + '/.github/workflows/opscore-secure-release.yml',
+              externalParameters: {
+                sourceRepository: 'https://github.com/' + repository,
+                sourceCommit: sourceSha,
+                workflowRef: process.env.WORKFLOW_REF,
+                workflowCommit: workflowSha
+              },
+              internalParameters: {
+                runnerImage: 'ubuntu-24.04',
+                checkedOutSourceCommit: sourceSha
+              },
+              resolvedDependencies: [
+                {
+                  uri: 'git+https://github.com/' + repository,
+                  digest: { gitCommit: sourceSha }
+                },
+                {
+                  uri: 'git+https://github.com/' + repository + '/.github/workflows/opscore-secure-release.yml',
+                  digest: { gitCommit: workflowSha }
+                }
+              ]
+            },
+            runDetails: {
+              builder: { id: 'https://github.com/actions/runner' },
+              metadata: { invocationId: process.env.RUN_URL }
+            }
+          };
+          fs.writeFileSync(process.env.OUTPUT, JSON.stringify(predicate, null, 2) + '\n');
+          NODE
+
+      - name: Attest release archive with source-pinned SLSA provenance
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: "${{ runner.temp }}/OpsCore-release.zip"
+          predicate-type: "https://slsa.dev/provenance/v1"
+          predicate-path: "${{ runner.temp }}/source-pinned-provenance.json"
+
+      - name: Attest CycloneDX SBOM against release archive
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: "${{ runner.temp }}/OpsCore-release.zip"
+          sbom-path: "${{ runner.temp }}/opscore-v0.11.62.cyclonedx.json"
+
+      - name: Verify provenance and SBOM attestations from GitHub
+        env:
+          GH_TOKEN: "${{ github.token }}"
+          RELEASE_ARCHIVE: "${{ runner.temp }}/OpsCore-release.zip"
+          SOURCE_SHA: "${{ env.OPSC_RELEASE_SOURCE_SHA }}"
+          PROVENANCE_RESULT: "${{ runner.temp }}/provenance-verification.json"
+          SBOM_RESULT: "${{ runner.temp }}/sbom-attestation-verification.json"
+        run: |
+          set -euo pipefail
+          gh attestation verify "$RELEASE_ARCHIVE" -R "$GITHUB_REPOSITORY" \
+            --predicate-type "https://slsa.dev/provenance/v1" --format json > "$PROVENANCE_RESULT"
+          gh attestation verify "$RELEASE_ARCHIVE" -R "$GITHUB_REPOSITORY" \
+            --predicate-type "https://cyclonedx.org/bom" --format json > "$SBOM_RESULT"
+          grep -q "$SOURCE_SHA" "$PROVENANCE_RESULT"
+          test -s "$SBOM_RESULT"
+          echo "GITHUB_SLSA_PROVENANCE_VERIFICATION=PASS"
+          echo "GITHUB_CYCLONEDX_SBOM_ATTESTATION_VERIFICATION=PASS"
+
+      - name: Collect downloadable attestation bundles
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/opscore-attestation-bundles"
+          test -s "$RUNNER_TEMP/created_attestation_paths.txt"
+          while IFS= read -r bundle; do
+            test -s "$bundle"
+            cp "$bundle" "$RUNNER_TEMP/opscore-attestation-bundles/"
+          done < "$RUNNER_TEMP/created_attestation_paths.txt"
+          test "$(find "$RUNNER_TEMP/opscore-attestation-bundles" -type f | wc -l)" -ge 2
+
       - name: Install pinned Cosign
         uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
         with:
@@ -208,7 +327,7 @@ jobs:
         env:
           RELEASE_ARCHIVE: "${{ runner.temp }}/OpsCore-release.zip"
           SIGNATURE_BUNDLE: "${{ runner.temp }}/OpsCore-release.zip.sigstore.json"
-          EXPECTED_IDENTITY: "https://github.com/${{ github.repository }}/.github/workflows/opscore-secure-release.yml@refs/heads/main"
+          EXPECTED_IDENTITY: "https://github.com/${{ github.repository }}/.github/workflows/opscore-secure-release.yml@${{ github.ref }}"
         run: |
           set -euo pipefail
           cosign verify-blob "$RELEASE_ARCHIVE" \
@@ -245,6 +364,12 @@ jobs:
           path: |
             ${{ runner.temp }}/OpsCore-release.zip
             ${{ runner.temp }}/COMMERCIAL_RELEASE_STATEMENT.json
+            ${{ runner.temp }}/RELEASE_SHA256SUMS.txt
+            ${{ runner.temp }}/opscore-v0.11.62.cyclonedx.json
+            ${{ runner.temp }}/source-pinned-provenance.json
+            ${{ runner.temp }}/provenance-verification.json
+            ${{ runner.temp }}/sbom-attestation-verification.json
+            ${{ runner.temp }}/opscore-attestation-bundles/
             ${{ runner.temp }}/OpsCore-release.zip.sigstore.json
             mobile/mobile-dependency-audit.json
             mobile/mobile-audit-gate-result.json
