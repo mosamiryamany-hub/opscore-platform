@@ -468,7 +468,7 @@ jobs:
                   ':bodyBytes=' + body.length);
               }
               if (path.startsWith('/api/')) {
-                if (!/application\\/(?:[a-z0-9.+-]+\\+)?json(?:;|$)/i.test(contentType)) {
+                if (!/application\/(?:[a-z0-9.+-]+\+)?json(?:;|$)/i.test(contentType)) {
                   throw new Error('PUBLIC_API_CONTENT_TYPE_INVALID:' + path + ':' + contentType);
                 }
                 let parsed;
