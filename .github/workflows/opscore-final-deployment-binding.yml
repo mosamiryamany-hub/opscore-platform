@@ -1,0 +1,350 @@
+name: OpsCore final deployment binding
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_run_id:
+        description: Successful secure-release workflow run that produced the signed OpsCore-release.zip
+        required: true
+        type: string
+      archive_artifact_id:
+        description: Exact GitHub artifact ID from release_run_id
+        required: true
+        type: string
+      deploy_run_id:
+        description: Successful vercel-deploy workflow run that promoted the final production deployment
+        required: true
+        type: string
+      candidate_deployment_id:
+        description: Held candidate deployment ID used by candidate-only route probes
+        required: true
+        type: string
+      candidate_route_artifact_id:
+        description: Artifact ID containing API_ROUTE_ACCEPTANCE_RESULT.json from deploy_run_id
+        required: true
+        type: string
+      final_deployment_id:
+        description: Exact Vercel deployment ID currently assigned to opscore-platform.vercel.app
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+  id-token: write
+
+concurrency:
+  group: opscore-final-deployment-binding
+  cancel-in-progress: false
+
+jobs:
+  bind:
+    name: verify-and-sign-final-deployment-binding
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment: production
+    steps:
+      - name: Checkout source pinned to the deployment run commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - name: Validate identifiers and successful source runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_RUN_ID: ${{ inputs.release_run_id }}
+          DEPLOY_RUN_ID: ${{ inputs.deploy_run_id }}
+          ARCHIVE_ARTIFACT_ID: ${{ inputs.archive_artifact_id }}
+          ROUTE_ARTIFACT_ID: ${{ inputs.candidate_route_artifact_id }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          for value in "$RELEASE_RUN_ID" "$DEPLOY_RUN_ID" "$ARCHIVE_ARTIFACT_ID" "$ROUTE_ARTIFACT_ID"; do
+            [[ "$value" =~ ^[1-9][0-9]{0,14}$ ]] || { echo "INVALID_GITHUB_RUN_OR_ARTIFACT_ID" >&2; exit 1; }
+          done
+          release="$(curl --fail --silent --show-error -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$REPOSITORY/actions/runs/$RELEASE_RUN_ID")"
+          deploy="$(curl --fail --silent --show-error -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$REPOSITORY/actions/runs/$DEPLOY_RUN_ID")"
+          node - "$GITHUB_OUTPUT" "$release" "$deploy" <<'NODE'
+          const fs = require('node:fs');
+          const [out, releaseRaw, deployRaw] = process.argv.slice(2);
+          const release = JSON.parse(releaseRaw), deploy = JSON.parse(deployRaw);
+          const repo = process.env.GITHUB_REPOSITORY;
+          if (release.status !== 'completed' || release.conclusion !== 'success' ||
+              release.path !== '.github/workflows/opscore-secure-release.yml' ||
+              release.repository?.full_name !== repo) throw new Error('SECURE_RELEASE_RUN_NOT_SUCCESSFUL_OR_WRONG_WORKFLOW');
+          if (deploy.status !== 'completed' || deploy.conclusion !== 'success' ||
+              deploy.path !== '.github/workflows/vercel-deploy.yml' ||
+              deploy.head_branch !== 'main' || deploy.repository?.full_name !== repo) {
+            throw new Error('PRODUCTION_DEPLOY_RUN_NOT_SUCCESSFUL_OR_WRONG_WORKFLOW');
+          }
+          if (!/^[a-f0-9]{40}$/.test(String(deploy.head_sha || ''))) throw new Error('DEPLOY_COMMIT_INVALID');
+          fs.appendFileSync(out, 'source_commit=' + deploy.head_sha + '\n');
+          fs.appendFileSync(out, 'deploy_run_attempt=' + String(deploy.run_attempt || '') + '\n');
+          fs.appendFileSync(out, 'deploy_head_branch=' + deploy.head_branch + '\n');
+          console.log('SOURCE_RUN_IDENTITIES=PASS');
+          NODE
+
+      - name: Download exact signed-release and candidate-route artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          ARCHIVE_ARTIFACT_ID: ${{ inputs.archive_artifact_id }}
+          ROUTE_ARTIFACT_ID: ${{ inputs.candidate_route_artifact_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/archive-artifact" "$RUNNER_TEMP/route-artifact"
+          curl --fail --location --silent --show-error -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$REPOSITORY/actions/artifacts/$ARCHIVE_ARTIFACT_ID/zip" \
+            -o "$RUNNER_TEMP/archive-artifact.zip"
+          curl --fail --location --silent --show-error -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/$REPOSITORY/actions/artifacts/$ROUTE_ARTIFACT_ID/zip" \
+            -o "$RUNNER_TEMP/route-artifact.zip"
+          unzip -q "$RUNNER_TEMP/archive-artifact.zip" -d "$RUNNER_TEMP/archive-artifact"
+          unzip -q "$RUNNER_TEMP/route-artifact.zip" -d "$RUNNER_TEMP/route-artifact"
+          archive="$(find "$RUNNER_TEMP/archive-artifact" -type f -name 'OpsCore-release.zip' -print -quit)"
+          statement="$(find "$RUNNER_TEMP/archive-artifact" -type f -name 'COMMERCIAL_RELEASE_STATEMENT.json' -print -quit)"
+          bundle="$(find "$RUNNER_TEMP/archive-artifact" -type f -name 'OpsCore-release.zip.sigstore.json' -print -quit)"
+          provenance="$(find "$RUNNER_TEMP/archive-artifact" -type f -name 'source-pinned-provenance.json' -print -quit)"
+          test -s "$archive" && test -s "$statement" && test -s "$bundle" && test -s "$provenance"
+          echo "ARCHIVE_PATH=$archive" >> "$GITHUB_ENV"
+          echo "STATEMENT_PATH=$statement" >> "$GITHUB_ENV"
+          echo "BUNDLE_PATH=$bundle" >> "$GITHUB_ENV"
+          echo "PROVENANCE_PATH=$provenance" >> "$GITHUB_ENV"
+          route="$(find "$RUNNER_TEMP/route-artifact" -type f -name 'API_ROUTE_ACCEPTANCE_RESULT.json' -print -quit)"
+          test -s "$route" || { echo "CANDIDATE_ROUTE_EVIDENCE_MISSING" >&2; exit 1; }
+          echo "ROUTE_EVIDENCE_PATH=$route" >> "$GITHUB_ENV"
+
+      - name: Verify archive digest, source pin, and original Sigstore signature
+        env:
+          SOURCE_COMMIT: ${{ steps.validate-identifiers-and-successful-source-runs.outputs.source_commit }}
+          EXPECTED_RELEASE_RUN_ID: ${{ inputs.release_run_id }}
+        run: |
+          set -euo pipefail
+          archive_sha="$(sha256sum "$ARCHIVE_PATH" | awk '{print $1}')"
+          node - "$STATEMENT_PATH" "$PROVENANCE_PATH" "$archive_sha" "$SOURCE_COMMIT" "$EXPECTED_RELEASE_RUN_ID" <<'NODE'
+          const fs = require('node:fs');
+          const [statementPath, provenancePath, digest, expectedCommit, expectedRun] = process.argv.slice(2);
+          const statement = JSON.parse(fs.readFileSync(statementPath, 'utf8'));
+          const provenance = JSON.parse(fs.readFileSync(provenancePath, 'utf8'));
+          if (statement.schemaVersion !== 'opscore.commercial-release-statement.v2' ||
+              statement.artifact?.filename !== 'OpsCore-release.zip' ||
+              statement.artifact?.sha256?.algorithm !== 'SHA-256' ||
+              statement.artifact?.sha256?.value !== digest ||
+              statement.sourceCommit !== expectedCommit ||
+              String(statement.pipelineId) !== expectedRun) throw new Error('ARCHIVE_STATEMENT_DIGEST_SOURCE_OR_RUN_MISMATCH');
+          if (provenance.schemaVersion !== 'opscore.source-pinned-build.v1' ||
+              provenance.source?.commit !== expectedCommit ||
+              provenance.subject?.digest?.sha256 !== digest ||
+              provenance.builder?.workflow !== 'https://github.com/' + process.env.GITHUB_REPOSITORY + '/.github/workflows/opscore-secure-release.yml' ||
+              !/^refs\/heads\/[A-Za-z0-9._/-]+$/.test(String(provenance.builder?.workflowRef || ''))) {
+            throw new Error('SOURCE_PINNED_PROVENANCE_MISMATCH');
+          }
+          const identity = provenance.builder.workflow + '@' + provenance.builder.workflowRef;
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, 'archive_sha256=' + digest + '\n');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, 'archive_signer_identity=' + identity + '\n');
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, 'archive_source_commit=' + expectedCommit + '\n');
+          console.log('ARCHIVE_DIGEST_AND_SOURCE_PIN=PASS');
+          NODE
+
+      - name: Install pinned Cosign
+        uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+        with:
+          cosign-release: 'v3.1.4'
+
+      - name: Verify original Sigstore signature on the exact archive bytes
+        env:
+          EXPECTED_SIGNER: ${{ steps.verify-archive-digest-source-pin-and-original-sigstore-signature.outputs.archive_signer_identity }}
+        run: |
+          set -euo pipefail
+          cosign verify-blob "$ARCHIVE_PATH" --bundle "$BUNDLE_PATH" \
+            --certificate-identity "$EXPECTED_SIGNER" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+          echo "ORIGINAL_ARCHIVE_SIGSTORE_VERIFICATION=PASS"
+
+      - name: Verify candidate route artifact remains candidate-only and exact
+        env:
+          EXPECTED_COMMIT: ${{ steps.validate-identifiers-and-successful-source-runs.outputs.source_commit }}
+          EXPECTED_PIPELINE: ${{ inputs.deploy_run_id }}
+          EXPECTED_CANDIDATE_ID: ${{ inputs.candidate_deployment_id }}
+        run: |
+          set -euo pipefail
+          node - "$ROUTE_EVIDENCE_PATH" <<'NODE'
+          const fs = require('node:fs');
+          const e = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+          if (e.schemaVersion !== 'opscore.api-route-acceptance.v2' ||
+              e.status !== 'PASS' || e.engine !== 'postgres' || e.environment !== 'production' ||
+              e.verificationScope !== 'PRODUCTION_POSTGRESQL_HTTP_FULL_ROUTE_AND_BUSINESS_FLOW_INVENTORY' ||
+              String(e.commitSha || '').toLowerCase() !== process.env.EXPECTED_COMMIT.toLowerCase() ||
+              String(e.pipelineId || '') !== process.env.EXPECTED_PIPELINE ||
+              String(e.deploymentId || '') !== process.env.EXPECTED_CANDIDATE_ID ||
+              Number(e.testedRoutes) !== Number(e.inventoryRouteCount) ||
+              Number(e.passed) !== Number(e.testedRoutes) || Number(e.failed) !== 0) {
+            throw new Error('CANDIDATE_ROUTE_EVIDENCE_IDENTITY_OR_SCOPE_INVALID');
+          }
+          console.log('CANDIDATE_ROUTE_EVIDENCE=PASS tested=' + e.testedRoutes + ' deployment=' + e.deploymentId);
+          NODE
+
+      - name: Verify final Vercel deployment and public alias identity
+        id: final_deployment
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          FINAL_DEPLOYMENT_ID: ${{ inputs.final_deployment_id }}
+          EXPECTED_COMMIT: ${{ steps.validate-identifiers-and-successful-source-runs.outputs.source_commit }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          (async () => {
+            const token = process.env.VERCEL_TOKEN;
+            const team = process.env.VERCEL_ORG_ID;
+            const id = process.env.FINAL_DEPLOYMENT_ID;
+            const expectedCommit = process.env.EXPECTED_COMMIT;
+            if (!/^dpl_[A-Za-z0-9]+$/.test(id || '') || !token || !team) throw new Error('FINAL_DEPLOYMENT_INPUT_INVALID');
+            const headers = { Authorization: 'Bearer ' + token, Accept: 'application/json' };
+            const deploymentUrl = new URL('https://api.vercel.com/v13/deployments/' + encodeURIComponent(id));
+            deploymentUrl.searchParams.set('teamId', team);
+            const dr = await fetch(deploymentUrl, { headers });
+            const d = await dr.json();
+            if (!dr.ok || d.id !== id || d.readyState !== 'READY' ||
+                String(d.target || '').toLowerCase() !== 'production' ||
+                String(d.meta?.githubCommitSha || '').toLowerCase() !== expectedCommit ||
+                d.meta?.githubRepo !== 'opscore-platform' || d.meta?.githubOrg !== 'mosamiryamany-hub') {
+              throw new Error('FINAL_DEPLOYMENT_NOT_READY_OR_SOURCE_MISMATCH');
+            }
+            const aliasUrl = new URL('https://api.vercel.com/v4/aliases/opscore-platform.vercel.app');
+            aliasUrl.searchParams.set('teamId', team);
+            const ar = await fetch(aliasUrl, { headers });
+            const a = await ar.json();
+            if (!ar.ok || a.deploymentId !== id || a.alias !== 'opscore-platform.vercel.app') {
+              throw new Error('PUBLIC_ALIAS_NOT_BOUND_TO_FINAL_DEPLOYMENT');
+            }
+            const out = process.env.GITHUB_OUTPUT;
+            require('node:fs').appendFileSync(out, 'deployment_url=https://' + d.url + '\n');
+            require('node:fs').appendFileSync(out, 'deployment_id=' + d.id + '\n');
+            require('node:fs').appendFileSync(out, 'deployment_created_at=' + new Date(d.createdAt).toISOString() + '\n');
+            console.log('FINAL_DEPLOYMENT_AND_ALIAS_BINDING=PASS');
+          })().catch(e => { console.error(e.message || e); process.exitCode = 1; });
+          NODE
+
+      - name: Request scoped GitHub Actions OIDC identity for final-domain smoke
+        id: vercel_oidc
+        run: node scripts/request-vercel-trusted-oidc.js
+
+      - name: Re-run six public production HTTP checks against the exact final alias
+        run: node scripts/production-deployment-smoke.js "https://opscore-platform.vercel.app" "$GITHUB_SHA"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_SCOPE: mosamiryamany-1692
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TRUSTED_OIDC_TOKEN: ${{ steps.vercel_oidc.outputs.token }}
+
+      - name: Create signed in-toto archive-to-final-deployment association
+        id: binding
+        env:
+          SOURCE_COMMIT: ${{ steps.validate-identifiers-and-successful-source-runs.outputs.source_commit }}
+          RELEASE_RUN_ID: ${{ inputs.release_run_id }}
+          DEPLOY_RUN_ID: ${{ inputs.deploy_run_id }}
+          DEPLOY_RUN_ATTEMPT: ${{ steps.validate-identifiers-and-successful-source-runs.outputs.deploy_run_attempt }}
+          CANDIDATE_DEPLOYMENT_ID: ${{ inputs.candidate_deployment_id }}
+          FINAL_DEPLOYMENT_ID: ${{ steps.final_deployment.outputs.deployment_id }}
+          FINAL_DEPLOYMENT_URL: ${{ steps.final_deployment.outputs.deployment_url }}
+          ARCHIVE_SHA256: ${{ steps.verify-archive-digest-source-pin-and-original-sigstore-signature.outputs.archive_sha256 }}
+          ROUTE_EVIDENCE_PATH: ${{ env.ROUTE_EVIDENCE_PATH }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const crypto = require('node:crypto');
+          const route = JSON.parse(fs.readFileSync(process.env.ROUTE_EVIDENCE_PATH, 'utf8'));
+          const statement = {
+            _type: 'https://in-toto.io/Statement/v1',
+            subject: [{
+              name: 'OpsCore-release.zip',
+              digest: { sha256: process.env.ARCHIVE_SHA256 }
+            }],
+            predicateType: 'https://opscore.example/attestations/final-deployment-binding/v1',
+            predicate: {
+              relationship: 'signed-association-of-separately-built-release-archive-and-final-production-deployment',
+              source: {
+                repository: process.env.GITHUB_REPOSITORY,
+                commit: process.env.SOURCE_COMMIT,
+                secureReleaseWorkflowRunId: Number(process.env.RELEASE_RUN_ID)
+              },
+              archive: {
+                filename: 'OpsCore-release.zip',
+                sha256: process.env.ARCHIVE_SHA256,
+                originalSigstoreSignatureVerified: true
+              },
+              deployment: {
+                provider: 'Vercel',
+                id: process.env.FINAL_DEPLOYMENT_ID,
+                url: process.env.FINAL_DEPLOYMENT_URL,
+                publicAlias: 'https://opscore-platform.vercel.app',
+                publicAliasVerified: true,
+                productionHttpSmoke: 'PASS',
+                deployWorkflowRunId: Number(process.env.DEPLOY_RUN_ID),
+                deployWorkflowRunAttempt: Number(process.env.DEPLOY_RUN_ATTEMPT),
+                candidateDeploymentId: process.env.CANDIDATE_DEPLOYMENT_ID
+              },
+              evidenceScope: {
+                apiRouteAcceptance: {
+                  status: route.status,
+                  testedRoutes: Number(route.testedRoutes),
+                  failedRoutes: Number(route.failed),
+                  deploymentId: route.deploymentId,
+                  classification: 'CANDIDATE_DEPLOYMENT_ONLY_NOT_FINAL_DEPLOYMENT_ACCEPTANCE'
+                },
+                signedTenantContext67Routes: {
+                  classification: 'CANDIDATE_DEPLOYMENT_ONLY_NOT_REPLAYED_ON_FINAL_DEPLOYMENT',
+                  status: 'NOT_REVERIFIED_BY_THIS_BINDING_RUN'
+                },
+                finalDeploymentSmoke: {
+                  status: 'PASS',
+                  scope: ['/', '/api/health', '/api/verify/deployment', '/api/verify/database', '/api/verify/database-security', '/api/verify/release']
+                }
+              },
+              certification: {
+                isolationEvidenceLabel: 'INTERNAL_PRODUCTION_ISOLATION_TEST_SCOPE',
+                internalResult: 'CERTIFIED',
+                externalAccreditation: false,
+                externalSchemes: [],
+                note: 'This is an internal evidence qualification only; it is not ISO, SOC 2, PCI DSS, or independent third-party certification.'
+              },
+              limitations: {
+                archiveAndVercelDeploymentAreNotByteIdenticalArtifacts: true,
+                claim: 'The signed statement binds the exact signed archive digest to the exact Vercel deployment ID and source commit as a release association. It does not claim the ZIP bytes are the deployed Vercel output.'
+              }
+            }
+          };
+          const body = JSON.stringify(statement, null, 2) + '\n';
+          fs.writeFileSync('FINAL_DEPLOYMENT_BINDING.statement.json', body, { flag: 'wx', mode: 0o600 });
+          fs.writeFileSync('FINAL_DEPLOYMENT_BINDING.statement.sha256',
+            crypto.createHash('sha256').update(body).digest('hex') + '  FINAL_DEPLOYMENT_BINDING.statement.json\n',
+            { flag: 'wx', mode: 0o600 });
+          console.log('FINAL_DEPLOYMENT_BINDING_STATEMENT=PASS');
+          NODE
+
+      - name: Sign and verify deployment-binding statement with Sigstore keyless OIDC
+        env:
+          EXPECTED_BINDER_IDENTITY: https://github.com/${{ github.repository }}/.github/workflows/opscore-final-deployment-binding.yml@refs/heads/${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          cosign sign-blob --yes FINAL_DEPLOYMENT_BINDING.statement.json --bundle FINAL_DEPLOYMENT_BINDING.statement.sigstore.json
+          cosign verify-blob FINAL_DEPLOYMENT_BINDING.statement.json \
+            --bundle FINAL_DEPLOYMENT_BINDING.statement.sigstore.json \
+            --certificate-identity "$EXPECTED_BINDER_IDENTITY" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+          echo "SIGNED_FINAL_DEPLOYMENT_BINDING=PASS"
+
+      - name: Upload immutable binding statement and verification evidence
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: opscore-final-deployment-binding-${{ inputs.deploy_run_id }}-${{ inputs.final_deployment_id }}
+          path: |
+            FINAL_DEPLOYMENT_BINDING.statement.json
+            FINAL_DEPLOYMENT_BINDING.statement.sha256
+            FINAL_DEPLOYMENT_BINDING.statement.sigstore.json
+          if-no-files-found: error
+          retention-days: 90
