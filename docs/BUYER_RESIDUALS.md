@@ -15,7 +15,9 @@
 | Sigstore | PASS | CI positive verification: `Verified OK` |
 | Tamper rejection | PASS | Modified archive rejected |
 | Wrong-signer rejection | PASS | Incorrect signer identity rejected |
-| Conditional skip | 1 skipped | Tag/version check skipped because no release tag was supplied; not a passed check |
+| Conditional workflow skip | 1 skipped | Tag/version check skipped because no release tag was supplied; not a passed check |
+| Backend regression suite | PASS_WITH_SKIPS | 990 total; 987 passed; 0 failed; 3 skipped; 0 unaccounted |
+| Database-backed skips | OPEN | `firewall-rate-limit-postgres.test.js`, `postgres-commercial-acceptance-http.test.js`, `tenant-isolation-matrix.test.js`; rerun on disposable isolated PostgreSQL before closeout |
 | Current 105-locale parity | PASS | PR #400 merged; 105 files/manifest/register/server catalog/loader; forensic 4/4, validation 3/3, focused tests 34/34 |
 | Full seller-side all-tests closure | OPEN | Applicable test matrix still needs complete accounting on exact source, including every skip |
 | Independent external certifications | NOT EVIDENCED | No ISO/SOC2/PCI or other third-party certificate may be claimed without authentic assessor report |
