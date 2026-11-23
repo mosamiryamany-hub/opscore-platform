@@ -140,7 +140,7 @@ A new read-only comparison computed SHA-256 row-content digests for all 136 publ
 
 Primary versus either restore branch differs in seven table row counts: `schema_migrations` 70/68, `organizations` 100/16, `users` 100/16, `activity_log` 131/17, `integration_outbox` 131/17, `audit_log` 173/54, and `login_throttle` 3/2. The restore branches' latest relevant `created_at` values are 2026-11-19, while Primary contains rows through 2026-11-23. This is consistent with point-in-time divergence and is **not evidence of corruption**; it is also not a current-data parity pass.
 
-The attempt to protect the Primary branch was rejected by Neon because the current plan has reached its protected-branch limit. No branch was unprotected and no plan was upgraded. Neon Free supports one manual snapshot and does not include scheduled backup schedules; the existing snapshot is preserved. The six-hour history window is not a long-term backup schedule or a zero-loss guarantee. No new snapshot was created because the one-snapshot limit is already occupied.
+The Neon Free plan does not include protected branches; the Primary protection request was rejected. No other branch was unprotected and no plan was upgraded. Neon Free supports one manual snapshot and does not include scheduled backup schedules; the existing snapshot is preserved. The six-hour history window is not a long-term backup schedule or a zero-loss guarantee. No new snapshot was created because the one-snapshot limit is already occupied.
 
 ### Remaining hard gates
 
