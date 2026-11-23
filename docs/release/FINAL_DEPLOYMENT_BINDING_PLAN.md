@@ -26,7 +26,7 @@ The workflow:
 1. Downloads the exact archive artifact selected by ID from a successful secure-release run.
 2. Recomputes SHA-256 from the downloaded ZIP bytes.
 3. Checks the external commercial statement and source-pinned provenance against the digest, source commit, and release run ID.
-4. Independently verifies the GitHub source-pinned build attestation and SLSA provenance using `gh attestation verify`, enforcing the expected signer workflow, archive digest, source commit, workflow commit/ref, and exact release run ID plus attempt.
+4. Independently verifies the GitHub source-pinned build attestation and SLSA provenance using `gh attestation verify`, enforcing the expected signer workflow, archive digest, source commit, workflow commit/ref, and exact release run ID plus attempt. The policy parses the X.509 SAN as `{ type: URI, value: exact-workflow-identity }` and checks the issuer, build signer/config URIs and digests, and run invocation URI against the exact attempt.
 5. Verifies the original archive Sigstore bundle with Cosign using the signer identity declared by the verified source-pinned builder metadata and GitHub OIDC issuer.
 6. Verifies the successful deployment workflow run, the final Vercel deployment ID, its production/READY state, source commit, and the public alias mapping.
 7. Confirms the original deploy run's staged HTTP smoke, promotion, public-domain verification, and final-gate steps all concluded successfully; independently confirms the public alias still resolves to the exact final deployment ID.
@@ -77,3 +77,8 @@ No production deployment, alias change, Neon mutation, main-branch change, or ce
 | Signed tenant-context route coverage | `14828426545` | 67/67 covered; 0 failed; 36 read + 31 write; disposable PostgreSQL 18 CI | `deploymentId=null`; no Vercel deployment association |
 
 These observations were read from the downloaded artifact contents, not inferred from artifact names. A separate final-deployment 358-route run and a Vercel-deployment-bound 67-route run remain unverified.
+
+
+## Follow-up hardening: Sigstore certificate field parsing
+
+The binding workflow consumes the JSON verification representation produced by `gh attestation verify`. The certificate SAN is treated as a structured URI value (`type` plus `value`), not as a plain string. Both the source-pinned and SLSA certificates must match the exact signer identity, GitHub Actions OIDC issuer, build signer/config URIs and digests, and run invocation ID including attempt. The statement predicate remains separately checked against the source SHA and exact archive SHA-256.

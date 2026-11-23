@@ -254,6 +254,19 @@ jobs:
           const expectedWorkflow = 'https://github.com/' + process.env.GITHUB_REPOSITORY +
             '/.github/workflows/opscore-secure-release.yml';
           const expectedIdentity = expectedWorkflow + '@' + process.env.EXPECTED_RELEASE_WORKFLOW_REF;
+          const expectedInvocation = 'https://github.com/' + process.env.GITHUB_REPOSITORY +
+            '/actions/runs/' + process.env.EXPECTED_RELEASE_RUN_ID +
+            '/attempts/' + process.env.EXPECTED_RELEASE_RUN_ATTEMPT;
+          const expectedIssuer = 'https://token.actions.githubusercontent.com';
+          const certificateMatches = cert =>
+            cert?.subjectAlternativeName?.type === 'URI' &&
+            cert.subjectAlternativeName.value === expectedIdentity &&
+            cert.issuer === expectedIssuer &&
+            cert.buildSignerURI === expectedIdentity &&
+            cert.buildSignerDigest === process.env.EXPECTED_RELEASE_WORKFLOW_COMMIT &&
+            cert.buildConfigURI === expectedIdentity &&
+            cert.buildConfigDigest === process.env.EXPECTED_RELEASE_WORKFLOW_COMMIT &&
+            cert.runInvocationURI === expectedInvocation;
           const expectedSubject = (sourceStatement.subject || []).some(subject =>
             subject.name === 'OpsCore-release.zip' &&
             subject.digest?.sha256 === process.env.ARCHIVE_SHA256);
@@ -266,12 +279,9 @@ jobs:
               source.builder?.workflow !== expectedWorkflow ||
               source.builder?.workflowRef !== process.env.EXPECTED_RELEASE_WORKFLOW_REF ||
               source.builder?.workflowCommit !== process.env.EXPECTED_RELEASE_WORKFLOW_COMMIT ||
-              source.builder?.runUrl !== 'https://github.com/' + process.env.GITHUB_REPOSITORY +
-                '/actions/runs/' + process.env.EXPECTED_RELEASE_RUN_ID ||
-              sourceCert.subjectAlternativeName !== expectedIdentity ||
-              sourceCert.githubWorkflowSHA !== process.env.EXPECTED_RELEASE_WORKFLOW_COMMIT ||
-              slsaCert.subjectAlternativeName !== expectedIdentity ||
-              slsaCert.githubWorkflowSHA !== process.env.EXPECTED_RELEASE_WORKFLOW_COMMIT ||
+              source.builder?.runUrl !== expectedInvocation.replace(/\/attempts\/\d+$/, '') ||
+              !certificateMatches(sourceCert) ||
+              !certificateMatches(slsaCert) ||
               !slsaSubject ||
               slsa.buildDefinition?.buildType !== 'https://actions.github.io/buildtypes/workflow/v1' ||
               slsa.buildDefinition?.externalParameters?.workflow?.path !== '.github/workflows/opscore-secure-release.yml' ||
@@ -280,9 +290,7 @@ jobs:
               !(slsa.buildDefinition?.resolvedDependencies || []).some(dep =>
                 dep.digest?.gitCommit === process.env.EXPECTED_RELEASE_WORKFLOW_COMMIT) ||
               slsa.runDetails?.builder?.id !== expectedIdentity ||
-              slsa.runDetails?.metadata?.invocationId !== 'https://github.com/' + process.env.GITHUB_REPOSITORY +
-                '/actions/runs/' + process.env.EXPECTED_RELEASE_RUN_ID +
-                '/attempts/' + process.env.EXPECTED_RELEASE_RUN_ATTEMPT) {
+              slsa.runDetails?.metadata?.invocationId !== expectedInvocation) {
             throw new Error('GITHUB_SOURCE_PIN_OR_SLSA_ATTESTATION_MISMATCH');
           }
           console.log('GITHUB_SOURCE_PINNED_ATTESTATION=PASS');
