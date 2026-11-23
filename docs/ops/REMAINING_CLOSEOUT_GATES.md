@@ -137,3 +137,24 @@ No buyer signature is required to record the engineering state of the project. H
 **Commercial/legal delivery:** open; current-main release archive/provenance and license grant not established.
 
 This is the honest, buyer-safe state. It must not be described as Production-ready, commercially closed, or fully certified.
+---
+
+## 9. Superseding full-site closeout scope — 2026-11-23
+
+This section supersedes Sections 1, 4, 5, 6 and 8 above wherever they classify the seller Vercel website, the seller Production deployment or the seller Neon database as out of scope. Those sections remain as historical evidence and are not the current acceptance scope.
+
+**Product being closed:** the complete hosted product — source and release package, the seller website on Vercel, the seller Production deployment, the Neon production database with periodic backup and a full restore test, and the commercial/legal pages — each proven on the same commit and the same deployment id.
+
+**Measured state (2026-11-23):** `main` = `fbc4a3082325dff98e2ed41fffe42c3d76863254`; live `/api/verify/release` reports `sourceCommit: 88df9046ea5d57b392530565bc8cf6a10627ac4a` and deployment `dpl_FVXwPoqefvkNsxA3BqVrxYnxRQka`, so the deployed commit is **not** `main`; `/api/verify/database-security` reports `productionIsolationCertification: NOT_CERTIFIED` on a catalog-only scope while `/api/verify/release` reports `CERTIFIED`; `/terms`, `/privacy`, `/refund`, `/pricing`, `/legal` and `/security` return **HTTP 404** on the live domain.
+
+**Open gates:**
+- Three red checks on PR #401 (`verify`, `vercel-contract-verify`, `vercel-source-verify`).
+- Production identity divergence between `main` and the deployed commit; a new deployment must go through the gated release workflow, never a direct publish.
+- Reconciliation of the `CERTIFIED` / `NOT_CERTIFIED` proof disagreement at the source, both bound to the same deployment id.
+- Six missing commercial/legal pages, blocked on owner-supplied legal entity, jurisdiction, contact, refund, price and licence data.
+- No periodic external backup, no automated digest/freshness check and no scheduled restore drill; Neon Free history window is 6 hours, not zero-loss.
+- Vercel firewall posture is log-only and is not evidenced as enforcement.
+
+**No paid upgrade is authorized by this document.** Preserve Neon branches, snapshots and Production data.
+
+See [Full-site closeout scope](../commercial/SELLER_CODE_ONLY_CLOSEOUT_2026-11-23.md). Closeout remains **OPEN**.

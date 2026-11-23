@@ -1,90 +1,86 @@
-# Buyer and seller residuals — reconciled 2026-11-22
+# Buyer and seller residuals — reconciled 2026-11-23
 
-This register separates seller release blockers from buyer-specific deliverables. GitHub, Vercel, Neon and WAF were rechecked on 2026-11-22; public legal routes were not freshly checked and remain unverified. No production migration, role change, branch deletion, backup-plan upgrade, WAF enforcement change, legal publication or license grant is implied.
+**Neon/Production ledger register reconciled 2026-11-22** by a read-only ledger query; every figure carried from that register below is labelled with its read date and was not silently promoted to a 2026-11-23 measurement.
 
-## Current seller release evidence
+## Superseding scope decision (owner, 2026-11-23)
 
-| Item | Measured value | Scope |
+The closeout scope is now the **complete hosted product**: the seller website on Vercel, the seller Production deployment, the Neon production database, periodic backups plus a full restore test, and the commercial/legal pages are **all in scope** and each must be proven on the same commit and the same deployment.
+
+The earlier code-only scope decision (source code and release package only, excluding the seller site, seller Production and seller Neon) is **superseded and no longer governs acceptance**. It is retained only as history. No Neon or Vercel paid-plan upgrade is authorized without explicit owner approval; the current plan stays unless approved otherwise.
+
+## Current source, deploy and proof state (measured 2026-11-23)
+
+| Item | Measured value | Scope of evidence |
 |---|---|---|
-| Main SHA at reconciliation start | `63682774b7f81e123f996f6508fed5a714fea0be` | Verified remote head after PR #382 merge |
-| Application/runtime baseline | `43554492218adbf0cde2d700bd0dedfadce67f5e` | PR #382 changed docs, tests and static audit tooling; no runtime/migration/lockfile changes |
-| GitHub Actions | Run `44993913435` | Post-merge verify PASS: 960 passed, 0 failed, 3 skipped |
-| Vercel workflow | Run `44993913475` | Source verification, isolated PostgreSQL 18, contract verification and isolated RLS/HTTP acceptance PASS; PITR, Neon Preview migration and deploy SKIPPED |
-| Signed-tenant PostgreSQL 18 CI coverage | `PASS 67/67`, 0 failed | Artifact `signed-tenant-postgres-18-ci-coverage-44993913475`; source hint `63682774…`; runtime role `opscore_runtime`; signed/session/transaction binding and raw-GUC tamper denial 67/67; CI-only, no deployment ID or Production promotion/certification |
-| Mobile dependency audit | `PASS`, 0 findings | Full and production audit trees, 497 dependency nodes; exact source hint `63682774…`; artifact `mobile-dependency-audit-44993913475-63682774…` |
-| Production certification / promotion | `NOT_ESTABLISHED` / `NOT_PROVEN` | No exact-head authorized Production run or matching runtime proof |
-| Vercel deployment for current main closeout commit | SHA `63682774b7f81e123f996f6508fed5a714fea0be` | No deployment record found for this SHA |
-| Latest current-source Vercel Production-target deployments | `dpl_G15K6Sg9Q7xJQKrHKFRYJGSNDerN`; `dpl_EC2Ri4BJrZTN7ca53xurrUV9LvmR` | Both `READY` on application/runtime parent SHA `43554492218adbf0cde2d700bd0dedfadce67f5e`, both have empty alias lists |
-| Canonical production domain | `opscore-platform.vercel.app` → `dpl_EacspS7o2jntgw8uS1YMpzf45CFt` | Verified domain record; current alias deployment source SHA `b7f63445c1748ebaec426a9ebe0ea629e4998839`, not current main |
-| Focused local test suite | 89 / 89 PASS | Includes local unmerged red-team regression test; not an official main CI result |
-| Red-team result | Main: `REVIEW`; local adjusted analyzer: `PASS` | Five bounded contracts verified locally; analyzer change is uncommitted and not attributable to main |
-| Dependency audit | 6 audits, zero findings | Full and `--omit=dev` for root/backend/mobile on current SHA lockfiles; not a software security certification |
-| Secure Release package | Not established | No exact-main ZIP, SBOM, signed provenance or release statement found |
+| `main` head | `fbc4a3082325dff98e2ed41fffe42c3d76863254` | GitHub commits API read 2026-11-23 |
+| Pull request #401 | `open`, head `b3648d6c32ecba99f8bc4f114b610d7394b8d473`, 4 files, +223/−77 | GitHub pulls API + files API |
+| PR #401 CI | `verify`, `vercel-contract-verify`, `vercel-source-verify` **failure**; CodeQL and `isolated-postgres-rls-and-http-acceptance` success | Run `45124539604` |
+| Secure Release (on `main`) | Run `45122272270`, completed/success | Exact source `fbc4a308…` |
+| Live `/api/health` | `200` · `{"status":"healthy","version":"0.11.62","engine":"postgres"}` | Live probe 2026-11-23 |
+| Live `/api/verify/release` | `status: PASS`, `sourceCommit: 88df9046ea5d57b392530565bc8cf6a10627ac4a`, deployment `dpl_FVXwPoqefvkNsxA3BqVrxYnxRQka` | Live probe 2026-11-23 |
+| Live `/api/verify/database-security` | `productionIsolationCertification: NOT_CERTIFIED`, `catalogIsolationScope: CATALOG_ONLY_NOT_BEHAVIORAL_CERTIFICATION` | Live probe 2026-11-23 |
+| Identity divergence | Deployed commit `88df9046…` ≠ `main` head `fbc4a308…` | Both probes above; health 200 alone does not establish that `main` is deployed |
+| Commercial/legal pages | `/terms`, `/privacy`, `/refund`, `/pricing`, `/legal`, `/security` all return **HTTP 404** | Live probes 2026-11-23 on `opscore-platform.vercel.app` |
 
-**Release interpretation:** successful post-merge CI is not a completed Production release or commercial technical certification. No Vercel deployment record exists for reconciliation base SHA `63682774b7f81e123f996f6508fed5a714fea0be`. Two READY Production-target records exist on its application/runtime parent SHA `43554492218adbf0cde2d700bd0dedfadce67f5e`, both with empty alias lists. The verified canonical domain record resolves to deployment `dpl_EacspS7o2jntgw8uS1YMpzf45CFt` on SHA `b7f63445c1748ebaec426a9ebe0ea629e4998839`. The public domain is therefore still on the older release; current-main production deployment and promotion remain unproven.
+The two live proof endpoints currently disagree on isolation status: the release proof reports `CERTIFIED` while the database-security proof reports `NOT_CERTIFIED` for a catalog-only scope. Both must be bound to the same deployment id and the same commit, and the disagreement must be explained at the source, before any single certification claim is made. A green CI run or a `200` health response is not a substitute for that reconciliation.
 
-## Production environment binding — read-only Vercel inspection, 2026-11-22
-
-Production environment flags currently read `OPSC_PRODUCTION_HOLD=false`, `OPSC_RELEASE_VERIFIED=true`, and `OPSC_PRODUCTION_ISOLATION_CERTIFICATION=CERTIFIED`. These are internal flags only, not external ISO/SOC/PCI certification. The release package, CI and source commit variables all bind to SHA `b7f63445c1748ebaec426a9ebe0ea629e4998839`, matching the canonical domain alias deployment. The configured production probe deployment is a separate READY deployment on that same older SHA. These settings do not qualify reconciliation base SHA `63682774…`.
-
-Production TLS configuration is `OPSC_PG_SSL_MODE=verify-full` and `OPSC_PG_SSL_REJECT_UNAUTHORIZED=true`. This confirms strict configuration values, not a successful TLS handshake on the actual application worker. No fresh exact-head Production worker TLS proof exists.
-
-## Required public-proof semantics
-
-A technical pass must not imply complete buyer delivery. The three buyer-owned items below must remain `REMAINING_BUYER`. Full seller release proof must also require exact Production PostgreSQL HTTP route and business-flow acceptance. A SQLite contract result (`PASS_CONTRACT_SCOPE`), missing evidence, Preview evidence or a proof from another deployment must not qualify.
-
-The release-proof changes from PR #381 are in current `main`, but no post-merge authorized Production workflow or genuine exact-target runtime evidence was found. Current main therefore remains unqualified for a full release claim.
-
-## Buyer-owned residuals — explicitly open
-
-| Residual | Status | Exact boundary |
-|---|---|---|
-| Android/iOS store artifacts | `REMAINING_BUYER` | Buyer-specific signing, native builds, physical-device QA, store accounts, submission and publication are not included. |
-| Native-speaker translation review | `REMAINING_BUYER` | 114 locale rows; native-speaker review 0/114 and production qualification 0/114. Machine-assisted drafts and English fallbacks must remain disclosed. |
-| Licensed maps and road-routing | `REMAINING_BUYER` | Buyer/provider license, account, credentials, attribution, quotas, billing and buyer-specific live acceptance are not included. |
-
-The 67/67 signed-session matrix is isolated PostgreSQL CI evidence, not buyer-environment qualification. Buyer environments remain independently unverified. These residuals do not invalidate the scope-limited tests above, but they prevent an unqualified claim that a buyer-specific deliverable is complete. They do not grant any right to install, run, copy, modify, distribute, resell, sublicense or commercially exploit the source.
-
-## Neon recovery and backup limits
-
-| Measurement | Current live value |
-|---|---|
-| Neon project | `summer-leaf-18448271` (`opscore-production`) |
-| Production branch | `br-proud-salad-bcshhdap` |
-| PostgreSQL major version | 18 |
-| Plan | Free |
-| History retention | 21,600 seconds (6 hours) |
-| Branch logical-size limit | 1 GiB |
-| Primary branch protected | No (`protected=false`) |
-| Listed snapshots | One listed manual snapshot: `snap-aged-thunder-bcsxc1a5` |
-| Automatic snapshot schedule | None (live schedule query returned an empty schedule) |
-| Main migration ledger | 70 rows; latest `071_signed_rls_context_all_access_modes.sql` (read 2026-11-22) |
-| Recovery branch migration ledger | 68 rows; latest `069_technician_location_trail_tenant_persistence.sql` (read 2026-11-22) |
-| Network restrictions | Allowed IP list empty; public connections not blocked |
-
-A fresh read-only Neon ledger query on 2026-11-22 found 70 rows on Primary, latest `071_signed_rls_context_all_access_modes.sql`, and 68 rows on recovery branch `br-calm-poetry-bc7l7wik`, latest migration 069. The difference reflects the recovery branch's older snapshot lineage; it is not evidence of data corruption. The migration number 071 is not the ledger row count. Do not describe the current setup as scheduled-backup coverage, multi-day PITR, or an RPO/RTO guarantee. The 2026-11-20 native instant-restore probe returned PASS for a disposable historical branch and schema/catalog match; it did not prove all row contents, application-level recovery or recovery objectives. Do not delete the only listed manual snapshot without separate approval.
-
-## Database security boundaries
-
-The last detailed catalog read found 136 public tables, 135 with RLS and FORCE RLS; `spatial_ref_sys` is the non-tenant PostGIS metadata exception. The `opscore_runtime` role then had no superuser or BYPASSRLS attributes. **Historical P0 reproduction, 2026-11-21:** a read-only transaction-local probe under `opscore_runtime`, with no signed context, showed raw `app.tenant_id`, `app.user_id` and `app.access_mode` values flowing through public context accessors; a count-only read observed 2 `activity_log` rows after setting an existing tenant context. No row contents were read; no persistent DB changes were made. Migration 071 now exists in current source and verifies signed context, but no fresh Production catalog read confirms it was applied or that all table grants and policies are correct. A fresh read-only probe on 2026-11-22 as `opscore_runtime` set synthetic raw `app.tenant_id`, `app.user_id` and `app.access_mode` values; `opscore_current_tenant()` and `opscore_current_user()` returned NULL, `opscore_access_mode()` returned an empty value, and `verified_rls_context()` was NULL. This supports rejection of raw-GUC-only identity in this probe, but does not establish complete cross-tenant read/write isolation or every application path. Production isolation remains NOT_CERTIFIED until the full runtime-role denial/regression matrix passes on the exact deployment/database. Catalog coverage is not behavioral isolation certification.
+## Tenant isolation and route acceptance
 
 The 67/67 signed-session route result is isolated PostgreSQL CI evidence, **not buyer-environment qualification**. Buyer environments remain independently unverified.
 
-## Localization qualification boundary
+That result was produced on a disposable isolated PostgreSQL 18 instance inside CI. It does not certify the canonical Production alias, and it is not re-labelled as production acceptance. Production session/tenant isolation, restore and route evidence are separate gates that must each carry their own deployment id and commit.
 
-The Contact Center currently has 105 selectable locales (1 English source, 100 machine-assisted drafts, and 4 English fallbacks); 9 locale codes are withdrawn. The separate qualification matrix retains 114 source rows. Native-speaker review is 0/114 and production qualification is 0/114. No linguistic quality approval is claimed.
+## Neon production database ledger (read-only register read 2026-11-22)
 
-## Vercel firewall enforcement posture — live read 2026-11-22
+| Item | Value |
+|---|---|
+| Project / engine | `summer-leaf-18448271` · PostgreSQL 18 · plan `free_v3` |
+| History window | 21,600 seconds (6 hours) |
+| Production branch | `br-proud-salad-bcshhdap` |
+| Primary branch protected | No (`protected=false`) |
+| Listed snapshots | One listed manual snapshot: `snap-aged-thunder-bcsxc1a5` (recorded 2026-11-19) |
+| Automatic snapshot schedule | None (live schedule query returned an empty schedule) |
+| Main migration ledger | 70 rows; latest `071_signed_rls_context_all_access_modes.sql` (read 2026-11-22) |
+| Recovery branch ledger | 68 rows; latest `069_technician_location_trail_tenant_persistence.sql` on `br-calm-poetry-bc7l7wik` (read 2026-11-22) |
 
-The firewall is enabled. Managed CRS rules for generic attack, RCE, SQLi and XSS, plus Bot Protection, are active in `log` mode. One authentication endpoint rule rate-limits 60 requests per source IP per fixed 60-second window. This is not full enforcement certification; do not switch managed rules to deny/challenge until representative Preview rehearsal and false-positive review are complete. Application account/session-level throttling remains required.
+A fresh read-only Neon ledger query on 2026-11-22 found 70 rows on Primary, latest `071_signed_rls_context_all_access_modes.sql`, and 68 rows on recovery branch `br-calm-poetry-bc7l7wik`, latest migration `069_technician_location_trail_tenant_persistence.sql`. The two-row ledger difference is a stale recovery branch, **not evidence of data corruption**.
 
-## Legal, licensing and distribution boundary
+The Neon control plane was not reachable from this session (`api.neon.tech` did not resolve), so the register above was not re-queried on 2026-11-23; it is carried with its read date rather than presented as a current measurement.
 
-The last recorded live route check (2026-11-20) found `/terms`, `/privacy`, `/refund`, `/pricing`, `/legal` and `/security` returning HTTP 404. This has not been rechecked in the 2026-11-21 reconciliation. Legal content requires rights-holder/legal approval before publication.
+Backups and recovery are not closed: there is no periodic external backup job, no automated digest/size/freshness check, and no scheduled restore drill into an isolated database. A logical `pg_dump` copy taken to owner-controlled external storage is a point-in-time copy, not PITR, and it does not by itself establish an RPO or an RTO. Neon Free provides a 6-hour history window; that is the current recovery floor, not a zero-loss guarantee.
 
-| Item | State | Consequence |
+## Localization qualification
+
+The Contact Center currently exposes 105 selectable locales (1 English source, 100 machine-assisted drafts, 4 English fallbacks); 9 withdrawn locale codes are excluded. The separate qualification matrix retains 114 source rows, all at `planned_not_qualified` / `not_run`; that historical register is not the current catalog, and no native translation-quality approval is claimed.
+
+Native-speaker review: **0/105**. Production-qualified by native review: **0/105**.
+
+## Vercel firewall enforcement posture
+
+The Vercel firewall enforcement posture is **not verified as enforcement**. What was recorded on 2026-11-18: `firewallEnabled=true`; CRS rules active but `log` only; Bot Protection active but `log` only; IP allow/deny rules list empty; 60 requests per source IP per fixed 60-second window; no anomalies for the default last-24-hour window. Log-only rules are not a denial posture and are not presented as an enforcement certification. A WAF claim requires a settings read on the live project plus an observed blocking test.
+
+## Buyer-owned or separately contracted residuals
+
+| Residual | Status | Boundary |
 |---|---|---|
-| Source license | `UNLICENSED`; no repository `LICENSE` file | No default license grant |
-| Buyer rights | `NONE_PENDING_RIGHTS_HOLDER_DECISION` | All rights reserved pending a separate written agreement |
+| Android/iOS native signed builds and store publication | REMAINING_BUYER | Buyer signing keys, store accounts, device QA, submission and publication |
+| Native-speaker translation review | REMAINING_BUYER | 0/105 reviewed and 0/105 production-qualified |
+| Licensed maps and road-routing | REMAINING_BUYER | Provider license, credentials, attribution, quotas, billing |
+| Buyer identity/messaging/telephony/payment integrations | REMAINING_BUYER | Buyer-owned provider contracts, accounts, secrets, live acceptance |
+| Buyer environment provisioning and operations | REMAINING_BUYER | Install, migration, data import, backup/RPO/RTO, monitoring |
 
-A successful build, public repository, signed archive or seller-operated deployment does not itself grant buyer rights.
+## Certification boundary
+
+CI results, test reports, dependency audits, CycloneDX SBOM, archive SHA-256, GitHub source identity, Sigstore signature/verification and isolated PostgreSQL/RLS/tenant reports are internal technical attestations. They are not ISO 27001, SOC 2, PCI DSS or any third-party certification. No external certification is self-issued, implied, or purchasable by assertion.
+
+## Legal and distribution boundary
+
+The package remains `UNLICENSED`. `NO_LICENSE_GRANT_NOTICE.txt` stays controlling: **no license grant** — no use, installation, running, copying, modification, hosting, distribution, resale, sublicensing or commercial exploitation rights exist until the rights holder and a named buyer execute a License Schedule bound to the exact source commit and/or package SHA-256.
+
+## Commercial page boundary
+
+These paths are currently absent on the live domain and are open gates: `/terms`, `/privacy`, `/refund`, `/pricing`, `/legal`, `/security`. Publishing them requires owner-supplied legal entity data, jurisdiction, contact channel, data-handling and processor details, refund policy, price/currency/tax, and licence/IP limits. No text is invented and no generic placeholder page is published in place of an approved one.
+
+## Closeout decision
+
+**OPEN.** The project is not closed. Open gates: three red CI checks on PR #401; PR #401 scope and content alignment; production identity divergence between `main` and the deployed commit; the `CERTIFIED` / `NOT_CERTIFIED` proof disagreement; six missing commercial/legal pages; absence of periodic backup plus a full restore test; unverified WAF posture. Buyer-side items remain separately contracted.
