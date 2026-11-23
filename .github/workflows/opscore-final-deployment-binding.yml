@@ -100,6 +100,7 @@ jobs:
             if (!step || step.conclusion !== 'success') throw new Error('REQUIRED_FINAL_DEPLOY_STEP_NOT_SUCCESSFUL:' + name);
           }
           if (!/^[a-f0-9]{40}$/.test(String(release.head_sha || '')) ||
+              !Number.isInteger(Number(release.run_attempt)) || Number(release.run_attempt) < 1 ||
               !/^refs\/heads\/[A-Za-z0-9._/-]+$/.test('refs/heads/' + String(release.head_branch || ''))) {
             throw new Error('RELEASE_WORKFLOW_REVISION_INVALID');
           }
@@ -108,6 +109,7 @@ jobs:
           fs.appendFileSync(out, 'deploy_head_branch=' + deploy.head_branch + '\n');
           fs.appendFileSync(out, 'release_workflow_commit=' + release.head_sha + '\n');
           fs.appendFileSync(out, 'release_workflow_ref=refs/heads/' + release.head_branch + '\n');
+          fs.appendFileSync(out, 'release_run_attempt=' + String(release.run_attempt) + '\n');
           console.log('SOURCE_RUN_IDENTITIES=PASS');
           NODE
 
@@ -216,6 +218,7 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           EXPECTED_SOURCE_COMMIT: ${{ steps.validate_runs.outputs.source_commit }}
           EXPECTED_RELEASE_RUN_ID: ${{ inputs.release_run_id }}
+          EXPECTED_RELEASE_RUN_ATTEMPT: ${{ steps.validate_runs.outputs.release_run_attempt }}
           EXPECTED_RELEASE_WORKFLOW_COMMIT: ${{ steps.validate_runs.outputs.release_workflow_commit }}
           EXPECTED_RELEASE_WORKFLOW_REF: ${{ steps.validate_runs.outputs.release_workflow_ref }}
           ARCHIVE_SHA256: ${{ steps.verify_archive.outputs.archive_sha256 }}
@@ -277,7 +280,9 @@ jobs:
               !(slsa.buildDefinition?.resolvedDependencies || []).some(dep =>
                 dep.digest?.gitCommit === process.env.EXPECTED_RELEASE_WORKFLOW_COMMIT) ||
               slsa.runDetails?.builder?.id !== expectedIdentity ||
-              !String(slsa.runDetails?.metadata?.invocationId || '').includes('/actions/runs/' + process.env.EXPECTED_RELEASE_RUN_ID + '/attempts/')) {
+              slsa.runDetails?.metadata?.invocationId !== 'https://github.com/' + process.env.GITHUB_REPOSITORY +
+                '/actions/runs/' + process.env.EXPECTED_RELEASE_RUN_ID +
+                '/attempts/' + process.env.EXPECTED_RELEASE_RUN_ATTEMPT) {
             throw new Error('GITHUB_SOURCE_PIN_OR_SLSA_ATTESTATION_MISMATCH');
           }
           console.log('GITHUB_SOURCE_PINNED_ATTESTATION=PASS');
