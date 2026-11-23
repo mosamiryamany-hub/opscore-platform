@@ -154,3 +154,6 @@ The attempt to protect the Primary branch was rejected by Neon because the curre
 8. **License and external certification:** repository remains `UNLICENSED`; no license grant exists. No independent ISO 27001, SOC 2, PCI DSS or other external certificate is evidenced.
 
 **Decision: OPEN — not commercially closed, not production-certified, and not authorized for distribution.**
+
+
+Official Neon plan and backup references: [Neon plans — snapshots and Free limits](https://neon.com/docs/introduction/plans) and [Neon Backup & Restore](https://neon.com/docs/guides/backup-restore). The plan page states one manual snapshot on Free and that automated backup schedules are available on paid plans; the six-hour history window is the Free instant-restore allowance.
