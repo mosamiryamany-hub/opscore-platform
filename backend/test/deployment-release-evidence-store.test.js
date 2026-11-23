@@ -31,9 +31,11 @@ test('migration 072 forces RLS and denies the runtime role every privilege', () 
   assert.match(sql, /FORCE ROW LEVEL SECURITY/);
   assert.match(sql, /REVOKE ALL ON public\.deployment_release_evidence FROM PUBLIC/);
   // Default privileges from migrations 049/059 would pre-grant new tables to
-  // opscore_app/opscore_runtime; 072 must revoke them explicitly.
-  assert.match(sql, /REVOKE ALL ON public\.deployment_release_evidence FROM opscore_app/);
-  assert.match(sql, /REVOKE ALL ON public\.deployment_release_evidence FROM opscore_runtime/);
+  // opscore_app/opscore_runtime; 072 must revoke them, but isolated CI
+  // databases may lack those roles (42704), so the revoke is per-existing-role.
+  assert.match(sql, /FOREACH role_name IN ARRAY ARRAY\['opscore_app', 'opscore_runtime'\]/);
+  assert.match(sql, /IF EXISTS \(SELECT 1 FROM pg_roles WHERE rolname = role_name\) THEN/);
+  assert.match(sql, /REVOKE ALL ON public\.deployment_release_evidence FROM %I/);
   assert.match(sql, /USING \(current_user = 'neondb_owner'\)/);
   const verifyBlock = sql.slice(sql.indexOf('$verify$'), sql.indexOf('END\n$verify$'));
   assert.match(verifyBlock, /relforcerowsecurity/);

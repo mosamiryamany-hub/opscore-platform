@@ -38,8 +38,22 @@ REVOKE ALL ON public.deployment_release_evidence FROM PUBLIC;
 -- contract below would fail. Measured: run 45134208932 job 137556473544
 -- failed with OPSC_DEPLOYMENT_EVIDENCE_STORE_CONTRACT_FAILED for exactly
 -- this reason.
-REVOKE ALL ON public.deployment_release_evidence FROM opscore_app;
-REVOKE ALL ON public.deployment_release_evidence FROM opscore_runtime;
+DO $revoke_default_privs$
+DECLARE role_name text;
+BEGIN
+  -- Migrations 049/059 installed DEFAULT PRIVILEGES for neondb_owner in the
+  -- public schema (to opscore_app and opscore_runtime); without an explicit
+  -- revoke every new table is born pre-granted and the least-privilege
+  -- contract below fails. Isolated CI databases may not define those roles at
+  -- all (SQLSTATE 42704 measured in run 45135627047), so revoke per existing
+  -- role only.
+  FOREACH role_name IN ARRAY ARRAY['opscore_app', 'opscore_runtime'] LOOP
+    IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = role_name) THEN
+      EXECUTE format('REVOKE ALL ON public.deployment_release_evidence FROM %I', role_name);
+    END IF;
+  END LOOP;
+END
+$revoke_default_privs$;
 
 DO $verify$
 DECLARE
