@@ -229,3 +229,6 @@ Scope limitation: the 136-table SHA-256 manifest covers the `public` schema only
 
 
 Post-merge CI evidence on main `3f7d9110f2f092e0f146b36d007345fe1977107d`: OpsCore CI `45132141296` PASS; Vercel workflow `45132141500` PASS with source, contract and isolated PostgreSQL 18 RLS/HTTP jobs PASS. Neon Preview migration, Production PITR probe and Production deploy were skipped. CodeQL run `45132141084`: Actions, JavaScript/TypeScript and Python all PASS. No Production deployment was created.
+
+
+The active public deployment predates the fail-closed proof correction. Its historical `/api/verify/release = PASS` response is not accepted as final-deployment certification because the proof was bound to the held candidate deployment ID rather than the deployment serving the public domain.
