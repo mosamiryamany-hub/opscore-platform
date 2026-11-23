@@ -190,3 +190,12 @@ Scope limitation: the 136-table manifest covers the `public` schema only. The se
 
 
 PR #403 also adds explicit `productionIsolationCertificationScope` values: catalog proof `CATALOG_ONLY_NOT_BEHAVIORAL_CERTIFICATION`; behavioral release proof `BEHAVIORAL_PRODUCTION_DEPLOYMENT_EVIDENCE_BOUND_TO_RUNTIME_DEPLOYMENT_ID`. This additive contract change is on the PR branch only until reviewed and merged.
+
+
+## Post-merge verification of fail-closed proof correction — main 3f7d9110
+
+After PR #403 was squash-merged, current main is `3f7d9110f2f092e0f146b36d007345fe1977107d`.
+- OpsCore CI run `45132141296`: SUCCESS.
+- Vercel workflow run `45132141500`: SUCCESS. Source verification, contract verification, both isolated PostgreSQL 18 RLS/HTTP acceptance jobs passed. Neon Preview migration and Production PITR historical probe were skipped; Production deploy was skipped.
+- Push-on-main CodeQL run `45132141084`: Actions and Python passed; JavaScript/TypeScript analysis was still in progress at this evidence cut.
+- No Production deployment was created by these runs.
