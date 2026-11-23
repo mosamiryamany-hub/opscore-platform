@@ -193,7 +193,6 @@ function createConversation(db, ctx, input, env = process.env) {
   if (input?.consentAccepted !== true) throw error('CONTACT_CENTER_CONSENT_REQUIRED', 422);
   const language = getLanguage(input?.languageCode || 'en');
   if (!language || language.duplicateOf !== null) throw error('CONTACT_CENTER_LANGUAGE_INVALID', 422);
-  if (language.conversationSelectable === false) throw error('CONTACT_CENTER_LANGUAGE_NOT_ENABLED_FOR_CONVERSATIONS', 422);
   const channel = validateChannel(input?.channel);
   const id = makeId('cc');
   const timestamp = now();

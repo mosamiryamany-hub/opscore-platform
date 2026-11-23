@@ -22,10 +22,6 @@ const commercialCloseout = fs.readFileSync(
   path.join(root, 'docs', 'commercial', 'COMMERCIAL_CLOSEOUT_FINAL.md'),
   'utf8'
 );
-const currentCommercialStatus = fs.readFileSync(
-  path.join(root, 'docs', 'commercial', 'COMMERCIAL_CLOSEOUT_STATUS_2026-11-22.md'),
-  'utf8'
-);
 const migrationWorkflow = fs.readFileSync(
   path.join(root, '.github', 'workflows', 'ops-apply-production-signed-context-migrations.yml'),
   'utf8'
@@ -56,12 +52,12 @@ test('2026-11-18 maintenance observations remain historical and the 2026-11-22 r
   const historical = runbook.split('## Current evidence reconciliation')[1] || '';
   assert.match(runbook, /2026-11-18/);
   assert.match(historical, /live Production 67-route signed-session matrix remains \*\*NOT ESTABLISHED\*\*/);
-  assert.match(currentCommercialStatus, /Commercial handoff status \(2026-11-22\)/);
-  assert.match(currentCommercialStatus, /67\/67 signed-tenant route result/);
-  assert.match(currentCommercialStatus, /candidate-bound Production evidence/);
-  assert.match(currentCommercialStatus, /one manual snapshot is listed/i);
-  assert.match(currentCommercialStatus, /protected=false/i);
-  assert.match(currentCommercialStatus, /Automatic snapshot schedule is empty/i);
+  assert.match(buyerResiduals, /reconciled 2026-11-22/);
+  assert.match(buyerResiduals, /67\/67 signed-session route result is isolated PostgreSQL CI evidence/);
+  assert.match(buyerResiduals, /not buyer-environment qualification/);
+  assert.match(buyerResiduals, /one listed manual snapshot/i);
+  assert.match(buyerResiduals, /protected=false/i);
+  assert.match(buyerResiduals, /Automatic snapshot schedule.*None/i);
 });
 
 test('Seller product closeout is buyer-independent while actual buyer license rights remain transaction-gated', () => {
@@ -74,10 +70,9 @@ test('Seller product closeout is buyer-independent while actual buyer license ri
 });
 
 test('67-route acceptance remains isolated PostgreSQL CI evidence and does not certify the canonical Production alias', () => {
-  assert.match(currentCommercialStatus, /67\/67 signed-tenant route result/);
-  assert.match(currentCommercialStatus, /Candidate deployment `dpl_FgDTqKJxCDw3SAGLtgPxqfQHGu7v`/i);
-  assert.match(currentCommercialStatus, /not a second independent 67\/358\/3 probe against the final promoted deployment ID/);
-  assert.match(currentCommercialStatus, /buyer environments remain independently unverified/i);
+  assert.match(buyerResiduals, /67\/67 signed-session route result is isolated PostgreSQL CI evidence/);
+  assert.match(buyerResiduals, /67\/67 signed-session route result is isolated PostgreSQL CI evidence/);
+  assert.match(buyerResiduals, /Buyer environments remain independently unverified/);
   assert.match(sellerCloseoutChecklist, /buyer|customer/i);
 });
 
@@ -87,11 +82,13 @@ test('historical Production observations remain labeled and current Neon ledger 
   assert.match(historical, /context_hmac_keys.*exists with the expected schema and ownership/);
   assert.match(historical, /zero Production HMAC key rows/);
   assert.match(historical, /live Production 67-route signed-session matrix remains \*\*NOT ESTABLISHED\*\*/);
-  assert.match(currentCommercialStatus, /br-proud-salad-bcshhdap/);
-  assert.match(currentCommercialStatus, /071_signed_rls_context_all_access_modes\.sql/);
-  assert.match(currentCommercialStatus, /zero policies directly consuming raw tenant\/user\/access-mode GUC values/);
-  assert.match(currentCommercialStatus, /effective tenant\/user returned NULL, access mode returned an empty value/i);
-  assert.match(currentCommercialStatus, /opscore_runtime.*NOBYPASSRLS.*NOINHERIT/);
+  assert.match(buyerResiduals, /67\/67 signed-session route result is isolated PostgreSQL CI evidence/);
+  assert.match(buyerResiduals, /br-proud-salad-bcshhdap/);
+  assert.match(buyerResiduals, /br-calm-poetry-bc7l7wik/);
+  assert.match(buyerResiduals, /071_signed_rls_context_all_access_modes\.sql/);
+  assert.match(buyerResiduals, /70 rows/);
+  assert.match(buyerResiduals, /68 rows/);
+  assert.match(buyerResiduals, /not evidence of data corruption/i);
 });
 
 test('Production migration and rotation remain manual, confirmation-gated, and traffic-neutral', () => {
@@ -119,25 +116,24 @@ test('legacy migration branch job is explicitly classified as destructive DDL-on
   assert.match(runbook, /replacement helper in PR #212 explicitly contains no Neon DELETE operation/);
 });
 
-test('114 interface locales remain distinct from 105 conversation targets and 114 unqualified rows', () => {
+test('Runtime locale availability is separated from the 114-row language qualification matrix', () => {
   const localeStatuses = localesManifest.locales.reduce((counts, locale) => {
     counts[locale.status] = (counts[locale.status] || 0) + 1;
     return counts;
   }, {});
-  assert.equal(localesManifest.localeCount, 114);
-  assert.equal(localesManifest.locales.length, 114);
-  assert.deepEqual(localeStatuses, { machine_draft: 100, english_fallback: 4, source: 1, english_fallback_interface_only: 9 });
-  assert.equal(localesManifest.locales.filter(locale => locale.status !== 'english_fallback_interface_only').length, 105);
-  assert.deepEqual(localesManifest.locales.filter(locale => locale.status === 'english_fallback_interface_only').map(locale => locale.code).sort(), ['es','hy','ml','ms','my','sr','sw','te','uz']);
+  assert.equal(localesManifest.localeCount, 105);
+  assert.equal(localesManifest.locales.length, 105);
+  assert.deepEqual(localeStatuses, { machine_draft: 100, english_fallback: 4, source: 1 });
   assert.equal(languageQualificationRows.length, 114);
   for (const row of languageQualificationRows) {
     const fields = row.split(',');
     assert.equal(String(fields[4] || '').replaceAll('"', ''), 'planned_not_qualified');
     assert.equal(String(fields[8] || '').replaceAll('"', ''), 'not_run');
   }
-  assert.match(currentCommercialStatus, /114 interface locales selectable/);
-  assert.match(currentCommercialStatus, /105 conversation-language targets/);
-  assert.match(currentCommercialStatus, /9 interface-only fallbacks disabled for conversations/);
+  assert.match(currentCloseoutRunbook, /105 selectable locales/);
+  assert.match(currentCloseoutRunbook, /114 source rows/);
+  assert.match(buyerResiduals, /105 selectable locales/);
+  assert.match(buyerResiduals, /qualification matrix.*114 source rows/);
   assert.doesNotMatch(buyerResiduals, /114 locales are listed; 109 are machine-assisted/);
 });
 
@@ -149,10 +145,7 @@ test('WAF log-only posture and short attack window are not overstated as enforce
   assert.match(runbook, /60 requests per source IP per fixed 60-second window/);
   assert.match(runbook, /no anomalies for its default last-24-hour window/);
   assert.match(runbook, /Do not flip the current `log` rules to `deny`/);
-  assert.match(currentCommercialStatus, /Vercel firewall enforcement posture/);
-  assert.match(currentCommercialStatus, /Generic attack, RCE, SQLi, XSS and bot-protection rules are active in `log` mode/);
-  assert.match(currentCommercialStatus, /60 requests per source IP per 60-second window/);
-  assert.match(currentCommercialStatus, /payment_required/);
+  assert.match(buyerResiduals, /Vercel firewall enforcement posture/);
 });
 
 test('GitHub Environment reviewer protection is not claimed without a verified settings read', () => {

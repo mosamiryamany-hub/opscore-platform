@@ -83,16 +83,12 @@
       setTranslation($('statusBadge'), status.enabled && status.encryptionConfigured ? 'status.configured' : 'status.setupIncomplete', {}, status.enabled && status.encryptionConfigured ? 'Guarded mode configured' : 'Setup incomplete');
       $('statusBadge').className='badge '+(status.enabled && status.encryptionConfigured?'good':'bad');
       setTranslation($('languageWarning'), 'messages.qualificationNotice', {}, 'No language is production-qualified until text, ASR, TTS, accent and escalation tests pass.');
-      const unique=state.languages.filter(x=>x && typeof x.code==='string' && x.duplicateOf===null && x.interfaceSelectable!==false);
+      const unique=state.languages.filter(x=>x && typeof x.code==='string' && x.duplicateOf===null);
       const previousLanguage=$('languageSelect').value;
       $('languageSelect').replaceChildren(...unique.map(x=>{
-        const option=document.createElement('option');
-        option.value=x.code;
-        option.disabled=x.conversationSelectable===false;
-        option.textContent=`${x.name} (${x.code})${option.disabled ? " — English fallback only; conversations disabled" : ""}`;
-        return option;
+        const option=document.createElement('option'); option.value=x.code; option.textContent=`${x.name} (${x.code})`; return option;
       }));
-      $('languageSelect').value=unique.some(x=>x.code===previousLanguage && x.conversationSelectable!==false) ? previousLanguage : (unique.some(x=>x.code==='en' && x.conversationSelectable!==false) ? 'en' : (unique.find(x=>x.conversationSelectable!==false)?.code || ''));
+      $('languageSelect').value=unique.some(x=>x.code===previousLanguage) ? previousLanguage : (unique.some(x=>x.code==='en') ? 'en' : (unique[0]?.code || ''));
       const missing=[];
       if(!status.enabled) missing.push('OPSC_CONTACT_CENTER_ENABLED=true');
       if(!status.encryptionConfigured) missing.push('32-byte OPSC_CONTACT_CENTER_ENCRYPTION_KEY');
