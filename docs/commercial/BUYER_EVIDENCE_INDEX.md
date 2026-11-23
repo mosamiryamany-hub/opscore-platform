@@ -97,3 +97,7 @@ The full measured register is in [Buyer Residuals](../BUYER_RESIDUALS.md) and [F
 
 
 **Buyer-transfer boundary:** This full-site closeout measures the seller's own Vercel/Neon operations and website. It does not transfer seller Vercel or Neon accounts, customer records, live database contents, domains, or hosting to a buyer. The buyer deliverable remains source code and release evidence unless a separate written transfer agreement explicitly adds hosted services or data migration.
+
+
+- Language boundary remains explicit: 105 selectable locales (1 English source, 100 machine-assisted drafts, 4 English fallbacks); 0/105 native-speaker reviewed and 0/105 production-qualified. The 114-row qualification register is historical, not the selectable catalog.
+- Android/iOS signed builds, physical-device QA and app-store publication require buyer signing keys/accounts and remain buyer-side or separately contracted.
