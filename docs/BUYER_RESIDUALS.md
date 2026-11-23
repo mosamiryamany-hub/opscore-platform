@@ -178,3 +178,9 @@ Restore-artifact preservation: branch `br-orange-union-bc90bp8r` had an automati
 ### Language and mobile buyer-readiness boundary
 
 The current selectable language catalog remains 105 locales: 1 English source, 100 machine-assisted drafts, and 4 English fallbacks; 9 withdrawn codes are excluded. The historical qualification register has 114 rows but is not the current selectable catalog. Native-speaker review is 0/105 and production qualification by native review is 0/105. No native-language approval or production-quality claim is made. Android/iOS signed builds, physical-device QA, store signing keys/accounts, submission and publication remain buyer-side or separately contracted work.
+
+
+Reproducible table-content manifest roots (SHA-256 over sorted per-table SHA-256 digests, 136 public base tables):
+- Both restore branches: `6f1af6f95f242e12d66e409d8c0d72b8c57132d99a629dd1085e8e61e57817b2` (exact match).
+- Current Primary: `a4e9293bc9fa1628182c6e9b26fbfe1084c7781d5697c58a1ade6ec0f1266242` (different, as expected for newer data).
+These are read-only diagnostic content manifests, not signed backup attestations or proof that the historical snapshot contains current Primary data.
