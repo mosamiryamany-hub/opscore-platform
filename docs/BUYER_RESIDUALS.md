@@ -187,3 +187,6 @@ These are read-only diagnostic content manifests, not signed backup attestations
 
 
 Scope limitation: the 136-table manifest covers the `public` schema only. The separate `opscore_security.context_hmac_keys` table is outside that manifest and its restore parity is not claimed.
+
+
+PR #403 also adds explicit `productionIsolationCertificationScope` values: catalog proof `CATALOG_ONLY_NOT_BEHAVIORAL_CERTIFICATION`; behavioral release proof `BEHAVIORAL_PRODUCTION_DEPLOYMENT_EVIDENCE_BOUND_TO_RUNTIME_DEPLOYMENT_ID`. This additive contract change is on the PR branch only until reviewed and merged.
