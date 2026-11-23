@@ -173,3 +173,8 @@ A read-only Neon schema inspection found no system-level deployment-attestation 
 
 
 Restore-artifact preservation: branch `br-orange-union-bc90bp8r` had an automatic expiry of 2026-11-29. On 2026-11-23 its expiry was set to `null` and re-read as no expiry, preserving the second independent restore proof branch. No branch or snapshot was deleted.
+
+
+### Language and mobile buyer-readiness boundary
+
+The current selectable language catalog remains 105 locales: 1 English source, 100 machine-assisted drafts, and 4 English fallbacks; 9 withdrawn codes are excluded. The historical qualification register has 114 rows but is not the current selectable catalog. Native-speaker review is 0/105 and production qualification by native review is 0/105. No native-language approval or production-quality claim is made. Android/iOS signed builds, physical-device QA, store signing keys/accounts, submission and publication remain buyer-side or separately contracted work.
