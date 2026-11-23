@@ -231,6 +231,8 @@ function isAuthorizedProductionCandidateDatabaseIdentityRequest(req, env = proce
   // to this GET-only identity route and still requires active HOLD, candidate mode,
   // the per-run probe token, Trusted OIDC, and the exact unaliased deployment host.
   if (String(env.OPSC_PRODUCTION_CANDIDATE_MODE || '').trim().toLowerCase() === 'true'
+      && trustedOidcPresent(req)
+      && exactUnaliasedDeploymentHostMatched(req, env)
       && signedTenantContextPolicy.candidateProbeDenialReason(req, env, readiness, {
         allowConfiguredReleaseFlagsForIdentityRead: true
       }) === null) {
