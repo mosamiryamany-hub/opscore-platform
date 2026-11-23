@@ -17,6 +17,7 @@ const {
 function validPayload() {
   return {
     schemaVersion: 'opscore.production-runtime-database-diagnostic.v1',
+    diagnostic: { status: 'VERIFIED', reasonCode: null },
     deployment: {
       environment: 'production',
       deploymentId: 'dpl_candidateabc123',
