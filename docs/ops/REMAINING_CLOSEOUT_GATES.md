@@ -344,3 +344,13 @@ Read-only inspection of project `prj_8jMqBt0l6OALicWSwQ3ECQTn8yPe` and its activ
 - Last-day active attack query returned no anomalies.
 
 **Conclusion:** the login rate limit is an active enforcement control. The managed attack/bot rules are not blocking controls because their actions are `log`; absence of observed anomalies does not prove WAF effectiveness. Remain OPEN until a controlled Preview rehearsal, false-positive review, approved narrow blocking/challenge configuration, and a real block verification are recorded. No firewall configuration was changed.
+
+
+## 14. Legal/commercial page assets — source and package inspection
+
+The six legal/commercial HTML assets are present in both current source `backend/web/` and the inner `OpsCore-release.zip`:
+`terms.html`, `privacy.html`, `refund.html`, `pricing.html`, `legal.html`, and `security.html`.
+
+They are **not finished or approved legal content**. Each file explicitly labels itself `OWNER DATA REQUIRED`, states that it is a scaffold, and contains 12 bracketed fields: legal entity, jurisdiction, registration number, contact email/address, privacy contact, data-practices summary, refund policy, price, currency, tax treatment, and update date. The homepage `backend/web/index.html` has no matching links to these pages in the inspected source.
+
+**Corrected classification:** the six page files exist in the release package; the remaining gate is owner-approved content, navigation/public route verification on the live deployment, and legal review before the placeholders can be replaced or represented as published terms. Historical observations that extensionless URLs returned 404 remain historical and are not treated as a current re-test. No legal data has been invented and no placeholder has been published as legal terms.
