@@ -4,9 +4,10 @@ on:
   workflow_call:
     inputs:
       branch:
-        description: Exact non-default Neon acceptance branch ID (required for direct manual runs)
-        required: true
+        description: Exact non-default Neon acceptance branch ID; single reusable-workflow default
+        required: false
         type: string
+        default: "br-muddy-pine-bbrexgxx"
       database:
         description: Exact isolated application database
         required: false
@@ -33,7 +34,6 @@ on:
       branch:
         description: Exact Neon Preview branch ID (primary, default, and protected branches are rejected)
         required: true
-        default: "br-muddy-pine-bbrexgxx"
       database:
         description: Application database name (fixed to opscore_acceptance)
         required: true
