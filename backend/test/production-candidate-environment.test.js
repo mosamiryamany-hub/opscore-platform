@@ -87,7 +87,7 @@ test('baseline snapshot validates a known fail-closed Production state', () => {
   assert.equal(snapshot.entries.OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID.present, false);
   assert.doesNotThrow(() => validateInitialState(snapshot));
   const unsafe = { ...snapshot, entries: { ...snapshot.entries, OPSC_RELEASE_VERIFIED: { present: true, value: 'true' } } };
-  assert.throws(() => validateInitialState(unsafe), /PRODUCTION_RELEASE_BASELINE_NOT_FALSE/);
+  assert.throws(() => validateInitialState(unsafe), /PRODUCTION_CERTIFIED_BASELINE_INCOHERENT/);
 });
 
 test('baseline validation uses coherent release state, not the legacy certification text flag', () => {
