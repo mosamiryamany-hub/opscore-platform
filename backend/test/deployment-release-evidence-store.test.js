@@ -30,6 +30,10 @@ test('migration 072 forces RLS and denies the runtime role every privilege', () 
   assert.match(sql, /ENABLE ROW LEVEL SECURITY/);
   assert.match(sql, /FORCE ROW LEVEL SECURITY/);
   assert.match(sql, /REVOKE ALL ON public\.deployment_release_evidence FROM PUBLIC/);
+  // Default privileges from migrations 049/059 would pre-grant new tables to
+  // opscore_app/opscore_runtime; 072 must revoke them explicitly.
+  assert.match(sql, /REVOKE ALL ON public\.deployment_release_evidence FROM opscore_app/);
+  assert.match(sql, /REVOKE ALL ON public\.deployment_release_evidence FROM opscore_runtime/);
   assert.match(sql, /USING \(current_user = 'neondb_owner'\)/);
   const verifyBlock = sql.slice(sql.indexOf('$verify$'), sql.indexOf('END\n$verify$'));
   assert.match(verifyBlock, /relforcerowsecurity/);
@@ -48,6 +52,10 @@ test('the evidence recorder validates identity before recording and fails closed
   assert.equal(/console\.(log|error)\(.*OPSC_EVIDENCE_OWNER_URL/.test(source), false);
   // The gates summary is derived from the live proof, never from caller input.
   assert.equal(source.includes('OPSC_RELEASE_GATES_SUMMARY'), false);
+  // The promoted dpl id may be resolved from the live proof, but a supplied id
+  // must always be cross-checked against it.
+  assert.match(source, /suppliedDeploymentId && deploymentId !== suppliedDeploymentId/);
+  assert.match(source, /RELEASE_PROOF_DEPLOYMENT_MISMATCH/);
   assert.match(source, /allGatesPass: proof\.status === 'PASS'/);
   assert.match(source, /CREATE TABLE IF NOT EXISTS public\.deployment_release_evidence/);
 });
