@@ -232,7 +232,11 @@ test('candidate evidence-only mode is separated from Production certification an
   assert.match(manifest, /productionPromotionPerformed: false/);
   assert.match(manifest, /routes\.manifestComplete !== true/);
   assert.doesNotMatch(manifest, /routeResultsValid/);
-  assert.doesNotMatch(artifact, /API_ROUTE_ACCEPTANCE_RESULT\.json/);
+  assert.match(manifest, /apiRouteProbeCoverage:/);
+  assert.match(manifest, /functionalRouteAcceptance: 'NOT_VERIFIED'/);
+  assert.match(artifact, /API_ROUTE_ACCEPTANCE_RESULT\.json/);
+  assert.match(artifact, /PRODUCTION_NATIVE_PITR_EVIDENCE\.json/);
+  assert.match(artifact, /PRODUCTION_NATIVE_PITR_EVIDENCE\.json\.sha256/);
   assert.match(artifact, /actions\/upload-artifact@/);
   assert.ok(deploy.indexOf(artifact) < deploy.indexOf(step('Discard successful Production environment rollback snapshot')));
 });
