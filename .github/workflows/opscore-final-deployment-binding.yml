@@ -92,6 +92,8 @@ jobs:
           REPOSITORY: ${{ github.repository }}
           ARCHIVE_ARTIFACT_ID: ${{ inputs.archive_artifact_id }}
           ROUTE_ARTIFACT_ID: ${{ inputs.candidate_route_artifact_id }}
+          RELEASE_RUN_ID: ${{ inputs.release_run_id }}
+          DEPLOY_RUN_ID: ${{ inputs.deploy_run_id }}
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/archive-artifact" "$RUNNER_TEMP/route-artifact"
