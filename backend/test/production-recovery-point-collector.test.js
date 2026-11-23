@@ -11,6 +11,7 @@ const collectorPath = path.join(root, 'scripts', 'collect-production-recovery-po
 const collector = fs.readFileSync(collectorPath, 'utf8');
 const releaseProof = fs.readFileSync(path.join(root, 'src', 'release-proof.js'), 'utf8');
 const workflow = fs.readFileSync(path.join(root, '..', '.github', 'workflows', 'collect-production-isolation-evidence.yml'), 'utf8');
+const deployWorkflow = fs.readFileSync(path.join(root, '..', '.github', 'workflows', 'vercel-deploy.yml'), 'utf8');
 
 test('collector binds the exact Production deployment, root branch, database, role, commit and pipeline', () => {
   assert.match(collector, /OPSC_PRODUCTION_DATABASE_NAME/);
@@ -129,4 +130,17 @@ test('recovery collector parses as a Node.js program', () => {
     timeout: 10000
   });
   assert.equal(result.status, 0, result.stderr || result.stdout);
+});
+
+test('candidate-only manifest validates and uploads exact full-data PITR plus explicitly scoped API route probes', () => {
+  assert.match(deployWorkflow, /nativePitr: 'backend\\/docs\\/verification\\/PRODUCTION_NATIVE_PITR_EVIDENCE\\.json'/);
+  assert.match(deployWorkflow, /apiRouteProbeAcceptance: 'backend\\/docs\\/verification\\/API_ROUTE_ACCEPTANCE_RESULT\\.json'/);
+  assert.match(deployWorkflow, /readProductionNativePitrEvidence\\(evidenceFiles\\.nativePitr/);
+  assert.match(deployWorkflow, /CANDIDATE_NATIVE_PITR_EVIDENCE_NOT_EXACT_OR_NOT_VERIFIED/);
+  assert.match(deployWorkflow, /CANDIDATE_NATIVE_PITR_SIDECAR_DIGEST_MISMATCH/);
+  assert.match(deployWorkflow, /CANDIDATE_API_ROUTE_PROBE_EVIDENCE_INVALID/);
+  assert.match(deployWorkflow, /functionalRouteAcceptance: 'NOT_VERIFIED'/);
+  assert.match(deployWorkflow, /PRODUCTION_NATIVE_PITR_EVIDENCE\\.json\\.sha256/);
+  assert.match(deployWorkflow, /API_ROUTE_ACCEPTANCE_RESULT\\.json/);
+  assert.match(deployWorkflow, /productionCertification: false/);
 });
