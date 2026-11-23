@@ -12,7 +12,7 @@ Rules enforced by the new binding workflow:
 
 - The 358-route artifact is checked against the explicit candidate deployment ID and remains labelled `CANDIDATE_DEPLOYMENT_ONLY_NOT_FINAL_DEPLOYMENT_ACCEPTANCE`.
 - The 67-route proof remains explicitly candidate-only and is marked `NOT_REVERIFIED_BY_THIS_BINDING_RUN`; this workflow does not silently promote it to final-deployment evidence.
-- The six public HTTP checks are re-run against `https://opscore-platform.vercel.app` after checking that the alias resolves to the exact supplied final Vercel deployment ID.
+- After the Vercel API confirms that `opscore-platform.vercel.app` maps to the exact final deployment ID, the binding workflow makes fresh HTTPS GET requests to all six public endpoints. It fails on non-2xx responses, empty bodies, timeouts, or redirects outside the verified alias/final deployment host. It stores each path, status code, final URL, content type, response byte count, SHA-256 of the response body, and check timestamp in `FINAL_PUBLIC_HTTP_SMOKE.json`; that file is uploaded with the signed binding artifact.
 - A full 358/67 final-deployment claim requires separate collectors to be executed against the final deployment and their evidence to name that exact final deployment ID. This workflow does not manufacture that claim.
 
 ## 2. Internal isolation qualification is not external accreditation
@@ -29,8 +29,9 @@ The workflow:
 4. Verifies the original archive Sigstore bundle with Cosign using the signer identity declared by the source-pinned builder metadata and GitHub OIDC issuer.
 5. Verifies the successful deployment workflow run, the final Vercel deployment ID, its production/READY state, source commit, and the public alias mapping.
 6. Confirms the original deploy run's staged HTTP smoke, promotion, public-domain verification, and final-gate steps all concluded successfully; independently confirms the public alias still resolves to the exact final deployment ID.
-7. Creates an in-toto Statement JSON whose subject is the exact archive SHA-256 and whose predicate includes the final Vercel deployment ID, deployment URL, source commit, both workflow run IDs, candidate deployment ID, and evidence-scope limitations.
-8. Signs that binding statement with a separate keyless Sigstore signature from this workflow and verifies that signature before uploading the statement, checksum, and Sigstore bundle.
+7. Executes fresh HTTPS GET checks against all six public endpoints after alias verification and records per-endpoint status, response-body digest, byte count, final URL, and timestamp. The signed predicate consumes this generated evidence; it does not hardcode a PASS.
+8. Creates an in-toto Statement JSON whose subject is the exact archive SHA-256 and whose predicate includes the final Vercel deployment ID, deployment URL, source commit, both workflow run IDs, candidate deployment ID, and evidence-scope limitations.
+9. Signs that binding statement with a separate keyless Sigstore signature from this workflow and verifies that signature before uploading the statement, checksum, Sigstore bundle, and live HTTP smoke evidence.
 
 ### Important semantics
 
@@ -55,7 +56,7 @@ These are historical inputs, not a statement that this new workflow has already 
 - [ ] Candidate 358-route evidence identifies the candidate deployment, not the final deployment.
 - [ ] Final deployment is READY/production and its source commit matches.
 - [ ] Public alias resolves to the exact final deployment ID.
-- [ ] Six public HTTP checks pass against the public alias.
+- [ ] Six fresh public HTTP GET checks pass against the alias and are recorded with per-endpoint response digests in the uploaded artifact.
 - [ ] Signed in-toto statement subject digest equals the archive SHA-256.
 - [ ] Signed predicate names the exact final deployment ID and states candidate-only evidence scope.
 - [ ] Internal isolation evidence is not described as external certification.
