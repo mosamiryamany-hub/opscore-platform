@@ -157,3 +157,13 @@ The attempt to protect the Primary branch was rejected by Neon because the curre
 
 
 Official Neon plan and backup references: [Neon plans — snapshots and Free limits](https://neon.com/docs/introduction/plans) and [Neon Backup & Restore](https://neon.com/docs/guides/backup-restore). The plan page states one manual snapshot on Free and that automated backup schedules are available on paid plans; the six-hour history window is the Free instant-restore allowance.
+
+
+### Exact proof-binding reproduction — Production run 45116314003
+
+The successful historical Production run exposes the exact identity split:
+- Held candidate probe: `dpl_7PcZ9ym1nc1vEJqPssYioPLEBJd6`.
+- Final staged deployment promoted to the public domain: `dpl_FVXwPoqefvkNsxA3BqVrxYnxRQka`.
+- The 67-route, 358-route, session-isolation, recovery-point and native PITR evidence was collected against the candidate ID; the final staged deployment has a different ID.
+
+PR #403 (`fix(release-proof): bind certification to the running deployment`) is open and unmerged. It changes the public proof to compare all production evidence with the runtime `VERCEL_DEPLOYMENT_ID`, ignores the legacy text flag, and stops publishing that flag as `CERTIFIED`. This is intentionally fail-closed: the existing two-deployment workflow will not promote until a deployment-ID-keyed signed evidence store or equivalent same-deployment workflow is implemented and tested. PR #403 must pass CI and receive normal review before any merge.
