@@ -1,51 +1,68 @@
-# OpsCore — Buyer evidence index (2026-11-22)
+# OpsCore — Buyer Evidence Index
 
-**Current classification: PASS_WITH_RESIDUALS.** Production deployment and scope-specific engineering evidence pass. This is not full commercial closure, a license grant, buyer-environment qualification or an external certification.
+**Evidence cut:** 2026-11-19  
+**Protected main at evidence cut:** [`d672dce8f18e1d7095aed3126aedb0f995796144`](https://github.com/mosamiryamany-hub/opscore-platform/commit/d672dce8f18e1d7095aed3126aedb0f995796144)  
+**Live Production deployment:** `dpl_AgWqB4kaSRXhdsmKfvXg9qgeQgt9`  
+**Live Production application-code SHA:** `68505535f1c2fabd2a786094f8f64d234d26e123` — Production is still pinned to this earlier application revision; protected main at the evidence cut `d672dce8...` includes PR #292 trust-proof UI changes not yet in Production
 
-## Current identities
-- Application-source baseline (PR #391): `859a7f6f9d7759910602f4c89136c5d0a38d522d`
-- Current Production source: `2a4938a70220d3375497e94499850476b4b505de`
-- Production deployment: `dpl_G7r6CDntYarpafuawie8CKWDLBB7`
-- Public domain: https://opscore-platform.vercel.app
-- Latest protected Production evidence run: [45013074938](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45013074938)
-- Evidence-page update: [PR #390](https://github.com/mosamiryamany-hub/opscore-platform/pull/390), merged to main but not yet Production-deployed.
-- 114-locale catalogue and safe fallback update: [PR #391](https://github.com/mosamiryamany-hub/opscore-platform/pull/391), merged as `859a7f6`. Nine previously withheld locale codes are English-fallback-only interface options, disabled for conversations; native-speaker review and production qualification remain 0/114.
-- Post-merge checks on `859a7f6`: OpsCore CI [45018113019](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45018113019), Vercel source/contract/isolated PostgreSQL [45018113156](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45018113156), CodeQL [45018112500](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45018112500): all PASS. Production deploy, PITR historical probe and Preview migration were intentionally skipped on push; live Production remains source `2a4938a`.
+> This index separates merged source from deployed Production. Provider READY, green CI, and RLS catalog state are not equivalent to Production release certification.
 
-## Verified production evidence
-| Evidence | Status | Bound target |
-|---|---|---|
-| Staged Production runtime, database and release gates | PASS | Candidate for commit `2a4938a`, run `45013074938` |
-| Client socket TLS | PASS, TLS 1.3 | Actual application connection |
-| Signed-tenant route matrix | PASS 67/67 | Candidate `dpl_FgDTqKJxCDw3SAGLtgPxqfQHGu7v` |
-| PostgreSQL HTTP route probes | PASS 358/358 | Same candidate, exact Production branch/database/commit/pipeline |
-| Authenticated tenant E2E workflows | PASS 3/3 | Customer, work-order and asset/event workflows |
-| Recovery-point v4 / native PITR v2 | PASS | 136 public tables, SHA-256 parity, zero content mismatch, RLS/FORCE-RLS parity, cleanup |
-| Production promotion / public domain | PASS | Final `dpl_G7r6CDntYarpafuawie8CKWDLBB7`, exact source SHA verified |
-| Raw-GUC identity forgery probe | PASS | Live Neon Production, `opscore_runtime`; no tenant/user context, empty mode, zero visible rows in two probed tables |
+## Public live checks
 
-**Scope:** 358 route probes are not 358 authenticated happy-path business flows. The explicit authenticated flow count is 3. The 67/358/3 behavioral evidence is candidate-deployment-bound and was not re-executed against the final promoted deployment ID. The final deployment passed staged runtime gates, HTTP smoke and public-domain SHA verification.
+- Health: https://opscore-platform.vercel.app/api/health
+- Login (live 307 redirect to Control Plane): https://opscore-platform.vercel.app/login
+- Release proof: https://opscore-platform.vercel.app/api/verify/release
+- Deployment identity: https://opscore-platform.vercel.app/api/verify/deployment
+- Database security: https://opscore-platform.vercel.app/api/verify/database-security
+- Human-readable release proof: https://opscore-platform.vercel.app/verify/release.html
 
-## Current-main CI after the documentation merge
-- OpsCore CI [45016371911](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45016371911): SUCCESS.
-- Vercel source + disposable PostgreSQL 18 acceptance [45016372092](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45016372092): SUCCESS; Production PITR, Preview migration and deploy jobs were skipped on the push event by design.
-- CodeQL [45016372078](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45016372078): SUCCESS.
+## Main and CI references
 
-## Open handoff items
-1. Production deploy of current main `859a7f6` through the protected manual workflow; do not use a direct deployment bypass.
-2. Exact-current-head secure source release: ZIP, checksum, SBOM, Sigstore signature bundle and external statement.
-3. Neon plan upgrade for protected Production branch and scheduled backups; no automatic schedule is presently configured and the Production branch is unprotected.
-4. Vercel plan capability for OWASP CRS / Bot Protection enforcement; the currently configured generic/RCE/SQLi/XSS/Bot rules are log-only, while a custom login rate-limit rule is active.
-5. No license grant until a rights-holder and named buyer execute the deliverable-bound License Schedule.
-6. Native mobile builds/store signing, provider/map licenses and buyer-environment acceptance.
-7. Language status: 114 interface locales are selectable (1 English source, 100 machine-assisted drafts, 13 English fallbacks); 105 conversation-language targets. Nine historical withdrawal codes are interface-only English fallbacks, disabled for conversations. Native-speaker review and production qualification remain 0/114.
+- Protected main at evidence cut: https://github.com/mosamiryamany-hub/opscore-platform/commit/d672dce8f18e1d7095aed3126aedb0f995796144
+- Deployed application-code commit: https://github.com/mosamiryamany-hub/opscore-platform/commit/68505535f1c2fabd2a786094f8f64d234d26e123
+- PR #290 — live login route: https://github.com/mosamiryamany-hub/opscore-platform/pull/290
+- PR #291 — evidence traceability ledger: https://github.com/mosamiryamany-hub/opscore-platform/pull/291
+- Latest OpsCore CI: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44552772156
+- Latest PostgreSQL 18 isolated acceptance: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44552772494
+- PR #287 — login route and HTTP smoke test: https://github.com/mosamiryamany-hub/opscore-platform/pull/287
+- PR #288 — fail-closed trust-proof correction: https://github.com/mosamiryamany-hub/opscore-platform/pull/288
+- Current-main OpsCore CI: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44552772156
+- Current-main source/PostgreSQL 18/contract workflow: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44552772494
+- Earlier authorized Production workflow attempt: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44529428910
 
-## Explicit non-claims
-- No ISO 27001, SOC 2, PCI DSS or other third-party certificate has been evidenced.
-- No RPO/RTO guarantee or automated backup schedule is established.
-- No assertion that every route has an authenticated end-to-end business-flow test.
-- No 114/114 production language qualification or native review.
-- No mobile store publication, map-provider license or buyer-specific production acceptance.
-- No use, redistribution, resale or sublicense rights are granted by this repository or evidence pack.
+## Current status
 
-See [current commercial status](COMMERCIAL_CLOSEOUT_STATUS_2026-11-22.md), [canonical residual register](../BUYER_RESIDUALS.md), [License Framework](LICENSE_FRAMEWORK.md), and [No License Grant notice](../../NO_LICENSE_GRANT_NOTICE.txt).
+| Evidence | State |
+|---|---|
+| Current main and branch protection | Verified |
+| Current-main source regression CI | PASS |
+| Disposable PostgreSQL 18 and contract acceptance | PASS |
+| Current Production app-code source | NOT CURRENT — Production remains on `68505535...`; main at the evidence cut `d672dce8...` includes PR #292 UI code |
+| Vercel live deployment source | `68505535...`; does not yet include the evidence-cut main revision `d672dce8...` |
+| PR #292 Preview build | READY — `dpl_DCQk2TbxtCoMHLDCEQ8pN4W33ay1`, exact SHA `d672dce8...`; SSO-protected; not Production |
+| Live health | Healthy / PostgreSQL / 0.11.62 |
+| Live `/login` | Redirects to `/control-plane.html` |
+| Live release proof | UNVERIFIED |
+| Live deployment proof | Identified through `vercel-git-metadata`; this is native Git identity, not a GitHub Actions signature |
+| Embedded GitHub Actions identity/package attestation | Not established in live Production |
+| Production acceptance evidence | NOT_VERIFIED |
+| 67-route signed-session Production coverage | NOT_VERIFIED (CI-only route coverage is not Production) |
+| Production session tenant boundary | NOT_VERIFIED |
+| Production recovery / full data parity | NOT_VERIFIED |
+| Production-wide isolation certification | NOT_CERTIFIED |
+| Current-main release archive/SBOM/provenance | Not produced |
+| Buyer-specific license | Not granted |
+
+## Neon restore note
+
+Neon Free, PostgreSQL 18.7. Production database is `opscore_acceptance`; Primary `br-proud-salad-bcshhdap` is ready/default but unprotected; automatic snapshot schedule is empty. Four branches and one manual snapshot are retained. Fresh read-only comparison of Primary vs restore branch `br-calm-poetry-bc7l7wik`: `activity_log` 20/17 rows; `audit_log` 59/54; `firewall_rate_buckets` 1/1 but content digest differs; `integration_outbox` 20/17; `organizations` 18/16; `users` 18/16. No row contents were returned or changed. Exact parity is not proven; preserve Primary and all recovery artefacts.
+
+## Latest CI evidence scope
+
+The latest completed current-main push runs on `d672dce8...` passed: OpsCore source/regression/performance/security/mobile CI (`44552772156`) and source plus disposable PostgreSQL 18 acceptance (`44552772494`). The isolated database job reported a 346-route source-derived CI matrix and a 137-table logical restore drill, with RLS, composite tenant FKs, HTTP runtime acceptance and cleanup checks. Production deploy, Neon Preview migration/HTTP acceptance and Production PITR jobs were skipped. These results are CI/disposable-database evidence only, not Production certificates. Production remains on application SHA `68505535...`; PR #292's trust-proof UI is merged to main and built as an SSO-protected Preview only.
+
+## Commercial boundary
+
+The repository package is `UNLICENSED`. No use, modification, resale, or distribution rights are granted by the repository, website, or this evidence index. Current-main archive SHA-256, SBOM/provenance, and a rights-holder-authorized License Schedule must exist before a buyer-specific grant is made. This does not make a buyer signature a prerequisite for describing the engineering state of the project.
+
+See the full [Client Trust Pack](CLIENT_TRUST_PACK.md), [Current closeout ledger](../ops/REMAINING_CLOSEOUT_GATES.md), [License Schedule template](LICENSE_SCHEDULE_TEMPLATE.md), and [No License Grant notice](../../NO_LICENSE_GRANT_NOTICE.txt).

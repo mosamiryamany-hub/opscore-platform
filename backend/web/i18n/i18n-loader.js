@@ -4,7 +4,7 @@
  */
 'use strict';
 (() => {
-  const SUPPORTED = ['ar','fa','tr','ku','am','om','so','ti','ha','yo','ig','zu','xh','af','ff','wo','bm','mg','rw','rn','st','tn','ss','ts','ve','nr','sn','ny','ln','ktu','sg','tig','din','nus','ber','zh','yue','ja','ko','hi','ur','bn','pa','ta','mr','gu','kn','as','or','sat','ks','ne','si','dv','ps','id','th','vi','km','lo','tl','az','ka','mn','en','fr','ru','de','it','pt','nl','el','sq','hr','bs','mk','bg','ro','hu','cs','sk','pl','uk','be','lt','lv','et','fi','sv','no','da','is','kk','tk','tg','qu','ay','gn','mi','fj','sm','to','bi','pau','ch','ms','sw','hy','uz','my','ml','es','sr','te'];
+  const SUPPORTED = ['ar','fa','tr','ku','am','om','so','ti','ha','yo','ig','zu','xh','af','ff','wo','bm','mg','rw','rn','st','tn','ss','ts','ve','nr','sn','ny','ln','ktu','sg','tig','din','nus','ber','zh','yue','ja','ko','hi','ur','bn','pa','ta','mr','gu','kn','as','or','sat','ks','ne','si','dv','ps','id','th','vi','km','lo','tl','az','ka','mn','en','fr','ru','de','it','pt','nl','el','sq','hr','bs','mk','bg','ro','hu','cs','sk','pl','uk','be','lt','lv','et','fi','sv','no','da','is','kk','tk','tg','qu','ay','gn','mi','fj','sm','to','bi','pau','ch'];
   const RTL = new Set(['ar','fa','ur','ks','dv','ps']);
   // Localized provenance notice. Machine translation must never look hand-approved.
   const MACHINE_NOTICE = {
@@ -114,9 +114,6 @@
     "pau": "Machine translation — not yet reviewed by a native speaker.",
     "ch": "Machine translation — not yet reviewed by a native speaker."
   };
-  const ENGLISH_FALLBACK_CODES = new Set(['din','nus','pau','ch','ms','sw','hy','uz','my','ml','es','sr','te']);
-  const ENGLISH_FALLBACK_NOTICE = 'English fallback only — interface copy is shown in English because no approved translation is available for this locale. Native-speaker review has not been completed.';
-  const SOURCE_LANGUAGE_NOTICE = 'English is the source language. Other locales are machine-assisted drafts or explicit English fallbacks and are not native-speaker reviewed.';
   const scriptUrl = document.currentScript && document.currentScript.src;
   const LOADER_BASE = new URL('.', scriptUrl || location.href);
   let dict = {};
@@ -195,10 +192,7 @@
       manifestPromise = fetchJson('locales/manifest.json').then(data => {
         if (!data || !Array.isArray(data.locales)) throw new Error('I18N_MANIFEST_INVALID');
         const entries = data.locales.filter(item => item && typeof item.code === 'string' && SUPPORTED.includes(item.code) && typeof item.nativeName === 'string' && item.nativeName.trim());
-        const unique = new Map(entries.map(item => [item.code, {
-          nativeName: item.nativeName.trim(),
-          status: String(item.status || 'machine_draft')
-        }]));
+        const unique = new Map(entries.map(item => [item.code, item.nativeName.trim()]));
         if (unique.size !== SUPPORTED.length) throw new Error('I18N_MANIFEST_INCOMPLETE');
         return unique;
       }).catch(() => null);
@@ -212,12 +206,8 @@
     for (const code of SUPPORTED) {
       const option = document.createElement('option');
       option.value = code;
-      const entry = nativeNames && nativeNames.get(code);
-      const name = entry && entry.nativeName;
-      const suffix = entry && entry.status === 'english_fallback_interface_only'
-        ? ' — English fallback only'
-        : entry && entry.status === 'english_fallback' ? ' — English fallback' : '';
-      option.textContent = `${name || code} (${code})${suffix}`;
+      const name = nativeNames && nativeNames.get(code);
+      option.textContent = `${name || code} (${code})`;
       fragment.appendChild(option);
     }
     picker.replaceChildren(fragment);
@@ -264,11 +254,7 @@
     return init(canonical, { emit: true });
   }
 
-  function machineNotice(code) {
-    if (ENGLISH_FALLBACK_CODES.has(code)) return ENGLISH_FALLBACK_NOTICE;
-    if (code === 'en') return SOURCE_LANGUAGE_NOTICE;
-    return MACHINE_NOTICE[code] || MACHINE_NOTICE.en;
-  }
+  function machineNotice(code) { return MACHINE_NOTICE[code] || MACHINE_NOTICE.en; }
   function applyNotice() {
     document.querySelectorAll('[data-i18n-machine-notice]').forEach(element => {
       element.textContent = machineNotice(locale);

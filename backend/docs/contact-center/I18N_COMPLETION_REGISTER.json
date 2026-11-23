@@ -3,10 +3,10 @@
   "baseLocale": "en",
   "keyCount": 89,
   "dataKeyCount": 88,
-  "catalogueLanguages": 114,
-  "translationProvenance": "machine_assisted_with_explicit_english_fallbacks",
+  "catalogueLanguages": 105,
+  "translationProvenance": "machine_assisted_draft",
   "nativeReviewStatus": "not_native_reviewed",
-  "note": "114 selectable interface locales: one English source, 100 machine-assisted drafts and 13 explicit English fallbacks. The nine historically withheld codes are now interface-only English fallbacks with conversationSelectable=false; their defective translated content is not shipped. 105 conversation targets remain; native-speaker review and production qualification remain 0/114.",
+  "note": "Canonical coverage: 1 English source locale, 100 machine-assisted draft translations, 4 explicit English fallback locales. All 105 remaining locales are selectable in Contact Center and show a machine-translation notice. Four structural/integrity rounds are enforced in CI. None is native-speaker reviewed or production-qualified. Nine locales (ms, sw, hy, uz, my, ml, es, sr, te) were withdrawn from the supported runtime scope pending complete linguistic remediation and native-speaker review.",
   "locales": {
     "ar": {
       "englishName": "Arabic",
@@ -17,9 +17,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "fa": {
       "englishName": "Persian",
@@ -30,9 +28,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "tr": {
       "englishName": "Turkish",
@@ -43,9 +39,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "ku": {
       "englishName": "Kurdish (Kurmanji)",
@@ -56,9 +50,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "am": {
       "englishName": "Amharic",
@@ -69,9 +61,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "om": {
       "englishName": "Oromo",
@@ -82,9 +72,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "so": {
       "englishName": "Somali",
@@ -95,9 +83,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "ti": {
       "englishName": "Tigrinya",
@@ -108,9 +94,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "ha": {
       "englishName": "Hausa",
@@ -121,9 +105,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "yo": {
       "englishName": "Yoruba",
@@ -134,9 +116,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "ig": {
       "englishName": "Igbo",
@@ -147,9 +127,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "zu": {
       "englishName": "Zulu",
@@ -160,9 +138,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "xh": {
       "englishName": "Xhosa",
@@ -173,9 +149,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "af": {
       "englishName": "Afrikaans",
@@ -186,9 +160,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "ff": {
       "englishName": "Fula",
@@ -199,9 +171,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "wo": {
       "englishName": "Wolof",
@@ -212,9 +182,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "bm": {
       "englishName": "Bambara",
@@ -225,9 +193,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "mg": {
       "englishName": "Malagasy",
@@ -238,9 +204,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "rw": {
       "englishName": "Kinyarwanda",
@@ -251,9 +215,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "rn": {
       "englishName": "Kirundi",
@@ -264,9 +226,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "st": {
       "englishName": "Sesotho",
@@ -277,9 +237,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "tn": {
       "englishName": "Tswana",
@@ -290,9 +248,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "ss": {
       "englishName": "Swazi",
@@ -303,9 +259,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "ts": {
       "englishName": "Tsonga",
@@ -316,9 +270,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "ve": {
       "englishName": "Venda",
@@ -329,9 +281,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "nr": {
       "englishName": "Ndebele",
@@ -342,9 +292,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "sn": {
       "englishName": "Shona",
@@ -355,9 +303,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "ny": {
       "englishName": "Chichewa",
@@ -368,9 +314,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "ln": {
       "englishName": "Lingala",
@@ -381,9 +325,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "ktu": {
       "englishName": "Kituba",
@@ -394,9 +336,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "sg": {
       "englishName": "Sango",
@@ -407,9 +347,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "tig": {
       "englishName": "Tigre",
@@ -420,15 +358,13 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "din": {
       "englishName": "Dinka",
       "nativeName": "Thuɔŋjäŋ",
       "dir": "ltr",
-      "status": "english_fallback",
+      "status": "english_fallback_pending",
       "englishFallbackKeys": [
         "boundaries.automateBody",
         "boundaries.automateTitle",
@@ -520,17 +456,15 @@
         "status.setupIncomplete"
       ],
       "englishFallbackCount": 88,
-      "translationProvenance": "english_fallback",
+      "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "nus": {
       "englishName": "Nuer",
       "nativeName": "Thok Naath",
       "dir": "ltr",
-      "status": "english_fallback",
+      "status": "english_fallback_pending",
       "englishFallbackKeys": [
         "boundaries.automateBody",
         "boundaries.automateTitle",
@@ -622,11 +556,9 @@
         "status.setupIncomplete"
       ],
       "englishFallbackCount": 88,
-      "translationProvenance": "english_fallback",
+      "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "ber": {
       "englishName": "Tamazight",
@@ -637,9 +569,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "zh": {
       "englishName": "Mandarin Chinese",
@@ -650,9 +580,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "yue": {
       "englishName": "Cantonese",
@@ -663,9 +591,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "ja": {
       "englishName": "Japanese",
@@ -676,9 +602,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "ko": {
       "englishName": "Korean",
@@ -689,9 +613,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "hi": {
       "englishName": "Hindi",
@@ -702,9 +624,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "ur": {
       "englishName": "Urdu",
@@ -715,9 +635,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "bn": {
       "englishName": "Bengali",
@@ -728,9 +646,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "pa": {
       "englishName": "Punjabi",
@@ -741,9 +657,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "ta": {
       "englishName": "Tamil",
@@ -754,9 +668,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "mr": {
       "englishName": "Marathi",
@@ -767,9 +679,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "gu": {
       "englishName": "Gujarati",
@@ -780,9 +690,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "kn": {
       "englishName": "Kannada",
@@ -793,9 +701,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "as": {
       "englishName": "Assamese",
@@ -806,9 +712,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "or": {
       "englishName": "Odia",
@@ -819,9 +723,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "sat": {
       "englishName": "Santali",
@@ -832,9 +734,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "ks": {
       "englishName": "Kashmiri",
@@ -845,9 +745,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "ne": {
       "englishName": "Nepali",
@@ -858,9 +756,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "si": {
       "englishName": "Sinhala",
@@ -871,9 +767,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "dv": {
       "englishName": "Dhivehi",
@@ -884,9 +778,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "ps": {
       "englishName": "Pashto",
@@ -897,9 +789,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "id": {
       "englishName": "Indonesian",
@@ -910,9 +800,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "th": {
       "englishName": "Thai",
@@ -923,9 +811,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "vi": {
       "englishName": "Vietnamese",
@@ -936,9 +822,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "km": {
       "englishName": "Khmer",
@@ -949,9 +833,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "lo": {
       "englishName": "Lao",
@@ -962,9 +844,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "tl": {
       "englishName": "Tagalog",
@@ -975,9 +855,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "az": {
       "englishName": "Azerbaijani",
@@ -988,9 +866,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "ka": {
       "englishName": "Georgian",
@@ -1001,9 +877,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "mn": {
       "englishName": "Mongolian",
@@ -1014,9 +888,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "en": {
       "englishName": "English",
@@ -1026,9 +898,7 @@
       "englishFallbackKeys": [],
       "englishFallbackCount": 0,
       "translationProvenance": "source_english",
-      "nativeReviewStatus": "n/a",
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "nativeReviewStatus": "n/a"
     },
     "fr": {
       "englishName": "French",
@@ -1039,9 +909,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "ru": {
       "englishName": "Russian",
@@ -1052,9 +920,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "de": {
       "englishName": "German",
@@ -1065,9 +931,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "it": {
       "englishName": "Italian",
@@ -1078,9 +942,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "pt": {
       "englishName": "Portuguese",
@@ -1091,9 +953,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "nl": {
       "englishName": "Dutch",
@@ -1104,9 +964,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "el": {
       "englishName": "Greek",
@@ -1117,9 +975,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "sq": {
       "englishName": "Albanian",
@@ -1130,9 +986,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "hr": {
       "englishName": "Croatian",
@@ -1143,9 +997,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "bs": {
       "englishName": "Bosnian",
@@ -1156,9 +1008,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "mk": {
       "englishName": "Macedonian",
@@ -1169,9 +1019,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "bg": {
       "englishName": "Bulgarian",
@@ -1182,9 +1030,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "ro": {
       "englishName": "Romanian",
@@ -1195,9 +1041,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "hu": {
       "englishName": "Hungarian",
@@ -1208,9 +1052,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "cs": {
       "englishName": "Czech",
@@ -1221,9 +1063,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "sk": {
       "englishName": "Slovak",
@@ -1234,9 +1074,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "pl": {
       "englishName": "Polish",
@@ -1247,9 +1085,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "uk": {
       "englishName": "Ukrainian",
@@ -1260,9 +1096,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "be": {
       "englishName": "Belarusian",
@@ -1273,9 +1107,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "lt": {
       "englishName": "Lithuanian",
@@ -1286,9 +1118,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "lv": {
       "englishName": "Latvian",
@@ -1299,9 +1129,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "et": {
       "englishName": "Estonian",
@@ -1312,9 +1140,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "fi": {
       "englishName": "Finnish",
@@ -1325,9 +1151,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "sv": {
       "englishName": "Swedish",
@@ -1338,9 +1162,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "no": {
       "englishName": "Norwegian",
@@ -1351,9 +1173,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "da": {
       "englishName": "Danish",
@@ -1364,9 +1184,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "is": {
       "englishName": "Icelandic",
@@ -1377,9 +1195,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "kk": {
       "englishName": "Kazakh",
@@ -1390,9 +1206,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "tk": {
       "englishName": "Turkmen",
@@ -1403,9 +1217,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "tg": {
       "englishName": "Tajik",
@@ -1416,9 +1228,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "qu": {
       "englishName": "Quechua",
@@ -1429,9 +1239,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "ay": {
       "englishName": "Aymara",
@@ -1442,9 +1250,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "gn": {
       "englishName": "Guarani",
@@ -1455,9 +1261,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "mi": {
       "englishName": "Maori",
@@ -1468,9 +1272,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "fj": {
       "englishName": "Fijian",
@@ -1481,9 +1283,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "sm": {
       "englishName": "Samoan",
@@ -1494,9 +1294,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "to": {
       "englishName": "Tongan",
@@ -1507,9 +1305,7 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "bi": {
       "englishName": "Bislama",
@@ -1520,15 +1316,13 @@
       "englishFallbackCount": 0,
       "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "pau": {
       "englishName": "Palauan",
       "nativeName": "Tekoi er a Belau",
       "dir": "ltr",
-      "status": "english_fallback",
+      "status": "english_fallback_pending",
       "englishFallbackKeys": [
         "boundaries.automateBody",
         "boundaries.automateTitle",
@@ -1620,17 +1414,15 @@
         "status.setupIncomplete"
       ],
       "englishFallbackCount": 88,
-      "translationProvenance": "english_fallback",
+      "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
+      "approvalRequired": true
     },
     "ch": {
       "englishName": "Chamorro",
       "nativeName": "Chamoru",
       "dir": "ltr",
-      "status": "english_fallback",
+      "status": "english_fallback_pending",
       "englishFallbackKeys": [
         "boundaries.automateBody",
         "boundaries.automateTitle",
@@ -1722,929 +1514,9 @@
         "status.setupIncomplete"
       ],
       "englishFallbackCount": 88,
-      "translationProvenance": "english_fallback",
+      "translationProvenance": "machine_assisted_draft",
       "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": true
-    },
-    "ms": {
-      "englishName": "Malay",
-      "nativeName": "Bahasa Melayu",
-      "dir": "ltr",
-      "status": "english_fallback_interface_only",
-      "englishFallbackKeys": [
-        "boundaries.automateBody",
-        "boundaries.automateTitle",
-        "boundaries.humanBody",
-        "boundaries.humanTitle",
-        "boundaries.notEnabledBody",
-        "boundaries.notEnabledTitle",
-        "boundaries.title",
-        "customer.chatEmpty",
-        "customer.consentPill",
-        "customer.consentText",
-        "customer.eyebrow",
-        "customer.messagePlaceholder",
-        "customer.noConversation",
-        "customer.preferredLanguage",
-        "customer.requestHuman",
-        "customer.send",
-        "customer.setupHint",
-        "customer.startChat",
-        "customer.startHint",
-        "customer.startVoice",
-        "customer.stopVoice",
-        "customer.title",
-        "customer.voiceOff",
-        "customer.voiceRequirement",
-        "customer.voiceStreamNote",
-        "errors.BROWSER_REALTIME_VOICE_UNSUPPORTED",
-        "errors.CONTACT_CENTER_CONSENT_REQUIRED",
-        "errors.CONTACT_CENTER_DUPLICATE_MESSAGE",
-        "errors.CONTACT_CENTER_REALTIME_CONNECT_FAILED",
-        "errors.HANDOFF_NOT_CLAIMED",
-        "errors.REQUEST_FAILED",
-        "errors.SERVER_RESPONSE_INVALID",
-        "handoffReasons.customer_requested_human",
-        "handoffReasons.high_risk",
-        "handoffReasons.low_confidence",
-        "handoffReasons.model_requested",
-        "handoffReasons.other",
-        "handoffReasons.policy_refusal",
-        "handoffReasons.repeated_failure",
-        "handoffReasons.unresolved",
-        "handoffReasons.voice_review_required",
-        "messages.actionNotCompleted",
-        "messages.aiResponseFailed",
-        "messages.apiUnavailable",
-        "messages.configNeeded",
-        "messages.configOk",
-        "messages.conversationCreated",
-        "messages.handoffQueued",
-        "messages.handoffQueuedQueueOnly",
-        "messages.qualificationNotice",
-        "messages.queueUnavailable",
-        "messages.suggestedNextStep",
-        "messages.voiceActive",
-        "messages.voiceCredentialActive",
-        "messages.voiceCredentialRequest",
-        "messages.voiceHandoffStopped",
-        "messages.voiceRealtimeError",
-        "nav.interfaceLanguage",
-        "nav.operationsConsole",
-        "nav.subtitle",
-        "nav.title",
-        "queue.agentAssignedTitle",
-        "queue.claimAndReview",
-        "queue.description",
-        "queue.empty",
-        "queue.eyebrow",
-        "queue.loading",
-        "queue.openAssignment",
-        "queue.refresh",
-        "queue.reply",
-        "queue.replyStorageNote",
-        "queue.resolve",
-        "queue.resolveNote",
-        "queue.title",
-        "roles.ai",
-        "roles.customer",
-        "roles.human",
-        "stats.catalogueRows",
-        "stats.catalogueRowsNote",
-        "stats.liveQueue",
-        "stats.liveQueueNote",
-        "stats.providerQualification",
-        "stats.providerQualificationNote",
-        "stats.uniqueCodes",
-        "stats.uniqueCodesNote",
-        "status.apiUnavailable",
-        "status.configured",
-        "status.setupIncomplete"
-      ],
-      "englishFallbackCount": 88,
-      "translationProvenance": "english_fallback",
-      "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": false
-    },
-    "sw": {
-      "englishName": "Swahili",
-      "nativeName": "Kiswahili",
-      "dir": "ltr",
-      "status": "english_fallback_interface_only",
-      "englishFallbackKeys": [
-        "boundaries.automateBody",
-        "boundaries.automateTitle",
-        "boundaries.humanBody",
-        "boundaries.humanTitle",
-        "boundaries.notEnabledBody",
-        "boundaries.notEnabledTitle",
-        "boundaries.title",
-        "customer.chatEmpty",
-        "customer.consentPill",
-        "customer.consentText",
-        "customer.eyebrow",
-        "customer.messagePlaceholder",
-        "customer.noConversation",
-        "customer.preferredLanguage",
-        "customer.requestHuman",
-        "customer.send",
-        "customer.setupHint",
-        "customer.startChat",
-        "customer.startHint",
-        "customer.startVoice",
-        "customer.stopVoice",
-        "customer.title",
-        "customer.voiceOff",
-        "customer.voiceRequirement",
-        "customer.voiceStreamNote",
-        "errors.BROWSER_REALTIME_VOICE_UNSUPPORTED",
-        "errors.CONTACT_CENTER_CONSENT_REQUIRED",
-        "errors.CONTACT_CENTER_DUPLICATE_MESSAGE",
-        "errors.CONTACT_CENTER_REALTIME_CONNECT_FAILED",
-        "errors.HANDOFF_NOT_CLAIMED",
-        "errors.REQUEST_FAILED",
-        "errors.SERVER_RESPONSE_INVALID",
-        "handoffReasons.customer_requested_human",
-        "handoffReasons.high_risk",
-        "handoffReasons.low_confidence",
-        "handoffReasons.model_requested",
-        "handoffReasons.other",
-        "handoffReasons.policy_refusal",
-        "handoffReasons.repeated_failure",
-        "handoffReasons.unresolved",
-        "handoffReasons.voice_review_required",
-        "messages.actionNotCompleted",
-        "messages.aiResponseFailed",
-        "messages.apiUnavailable",
-        "messages.configNeeded",
-        "messages.configOk",
-        "messages.conversationCreated",
-        "messages.handoffQueued",
-        "messages.handoffQueuedQueueOnly",
-        "messages.qualificationNotice",
-        "messages.queueUnavailable",
-        "messages.suggestedNextStep",
-        "messages.voiceActive",
-        "messages.voiceCredentialActive",
-        "messages.voiceCredentialRequest",
-        "messages.voiceHandoffStopped",
-        "messages.voiceRealtimeError",
-        "nav.interfaceLanguage",
-        "nav.operationsConsole",
-        "nav.subtitle",
-        "nav.title",
-        "queue.agentAssignedTitle",
-        "queue.claimAndReview",
-        "queue.description",
-        "queue.empty",
-        "queue.eyebrow",
-        "queue.loading",
-        "queue.openAssignment",
-        "queue.refresh",
-        "queue.reply",
-        "queue.replyStorageNote",
-        "queue.resolve",
-        "queue.resolveNote",
-        "queue.title",
-        "roles.ai",
-        "roles.customer",
-        "roles.human",
-        "stats.catalogueRows",
-        "stats.catalogueRowsNote",
-        "stats.liveQueue",
-        "stats.liveQueueNote",
-        "stats.providerQualification",
-        "stats.providerQualificationNote",
-        "stats.uniqueCodes",
-        "stats.uniqueCodesNote",
-        "status.apiUnavailable",
-        "status.configured",
-        "status.setupIncomplete"
-      ],
-      "englishFallbackCount": 88,
-      "translationProvenance": "english_fallback",
-      "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": false
-    },
-    "hy": {
-      "englishName": "Armenian",
-      "nativeName": "Հայերեն",
-      "dir": "ltr",
-      "status": "english_fallback_interface_only",
-      "englishFallbackKeys": [
-        "boundaries.automateBody",
-        "boundaries.automateTitle",
-        "boundaries.humanBody",
-        "boundaries.humanTitle",
-        "boundaries.notEnabledBody",
-        "boundaries.notEnabledTitle",
-        "boundaries.title",
-        "customer.chatEmpty",
-        "customer.consentPill",
-        "customer.consentText",
-        "customer.eyebrow",
-        "customer.messagePlaceholder",
-        "customer.noConversation",
-        "customer.preferredLanguage",
-        "customer.requestHuman",
-        "customer.send",
-        "customer.setupHint",
-        "customer.startChat",
-        "customer.startHint",
-        "customer.startVoice",
-        "customer.stopVoice",
-        "customer.title",
-        "customer.voiceOff",
-        "customer.voiceRequirement",
-        "customer.voiceStreamNote",
-        "errors.BROWSER_REALTIME_VOICE_UNSUPPORTED",
-        "errors.CONTACT_CENTER_CONSENT_REQUIRED",
-        "errors.CONTACT_CENTER_DUPLICATE_MESSAGE",
-        "errors.CONTACT_CENTER_REALTIME_CONNECT_FAILED",
-        "errors.HANDOFF_NOT_CLAIMED",
-        "errors.REQUEST_FAILED",
-        "errors.SERVER_RESPONSE_INVALID",
-        "handoffReasons.customer_requested_human",
-        "handoffReasons.high_risk",
-        "handoffReasons.low_confidence",
-        "handoffReasons.model_requested",
-        "handoffReasons.other",
-        "handoffReasons.policy_refusal",
-        "handoffReasons.repeated_failure",
-        "handoffReasons.unresolved",
-        "handoffReasons.voice_review_required",
-        "messages.actionNotCompleted",
-        "messages.aiResponseFailed",
-        "messages.apiUnavailable",
-        "messages.configNeeded",
-        "messages.configOk",
-        "messages.conversationCreated",
-        "messages.handoffQueued",
-        "messages.handoffQueuedQueueOnly",
-        "messages.qualificationNotice",
-        "messages.queueUnavailable",
-        "messages.suggestedNextStep",
-        "messages.voiceActive",
-        "messages.voiceCredentialActive",
-        "messages.voiceCredentialRequest",
-        "messages.voiceHandoffStopped",
-        "messages.voiceRealtimeError",
-        "nav.interfaceLanguage",
-        "nav.operationsConsole",
-        "nav.subtitle",
-        "nav.title",
-        "queue.agentAssignedTitle",
-        "queue.claimAndReview",
-        "queue.description",
-        "queue.empty",
-        "queue.eyebrow",
-        "queue.loading",
-        "queue.openAssignment",
-        "queue.refresh",
-        "queue.reply",
-        "queue.replyStorageNote",
-        "queue.resolve",
-        "queue.resolveNote",
-        "queue.title",
-        "roles.ai",
-        "roles.customer",
-        "roles.human",
-        "stats.catalogueRows",
-        "stats.catalogueRowsNote",
-        "stats.liveQueue",
-        "stats.liveQueueNote",
-        "stats.providerQualification",
-        "stats.providerQualificationNote",
-        "stats.uniqueCodes",
-        "stats.uniqueCodesNote",
-        "status.apiUnavailable",
-        "status.configured",
-        "status.setupIncomplete"
-      ],
-      "englishFallbackCount": 88,
-      "translationProvenance": "english_fallback",
-      "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": false
-    },
-    "uz": {
-      "englishName": "Uzbek",
-      "nativeName": "Oʻzbekcha",
-      "dir": "ltr",
-      "status": "english_fallback_interface_only",
-      "englishFallbackKeys": [
-        "boundaries.automateBody",
-        "boundaries.automateTitle",
-        "boundaries.humanBody",
-        "boundaries.humanTitle",
-        "boundaries.notEnabledBody",
-        "boundaries.notEnabledTitle",
-        "boundaries.title",
-        "customer.chatEmpty",
-        "customer.consentPill",
-        "customer.consentText",
-        "customer.eyebrow",
-        "customer.messagePlaceholder",
-        "customer.noConversation",
-        "customer.preferredLanguage",
-        "customer.requestHuman",
-        "customer.send",
-        "customer.setupHint",
-        "customer.startChat",
-        "customer.startHint",
-        "customer.startVoice",
-        "customer.stopVoice",
-        "customer.title",
-        "customer.voiceOff",
-        "customer.voiceRequirement",
-        "customer.voiceStreamNote",
-        "errors.BROWSER_REALTIME_VOICE_UNSUPPORTED",
-        "errors.CONTACT_CENTER_CONSENT_REQUIRED",
-        "errors.CONTACT_CENTER_DUPLICATE_MESSAGE",
-        "errors.CONTACT_CENTER_REALTIME_CONNECT_FAILED",
-        "errors.HANDOFF_NOT_CLAIMED",
-        "errors.REQUEST_FAILED",
-        "errors.SERVER_RESPONSE_INVALID",
-        "handoffReasons.customer_requested_human",
-        "handoffReasons.high_risk",
-        "handoffReasons.low_confidence",
-        "handoffReasons.model_requested",
-        "handoffReasons.other",
-        "handoffReasons.policy_refusal",
-        "handoffReasons.repeated_failure",
-        "handoffReasons.unresolved",
-        "handoffReasons.voice_review_required",
-        "messages.actionNotCompleted",
-        "messages.aiResponseFailed",
-        "messages.apiUnavailable",
-        "messages.configNeeded",
-        "messages.configOk",
-        "messages.conversationCreated",
-        "messages.handoffQueued",
-        "messages.handoffQueuedQueueOnly",
-        "messages.qualificationNotice",
-        "messages.queueUnavailable",
-        "messages.suggestedNextStep",
-        "messages.voiceActive",
-        "messages.voiceCredentialActive",
-        "messages.voiceCredentialRequest",
-        "messages.voiceHandoffStopped",
-        "messages.voiceRealtimeError",
-        "nav.interfaceLanguage",
-        "nav.operationsConsole",
-        "nav.subtitle",
-        "nav.title",
-        "queue.agentAssignedTitle",
-        "queue.claimAndReview",
-        "queue.description",
-        "queue.empty",
-        "queue.eyebrow",
-        "queue.loading",
-        "queue.openAssignment",
-        "queue.refresh",
-        "queue.reply",
-        "queue.replyStorageNote",
-        "queue.resolve",
-        "queue.resolveNote",
-        "queue.title",
-        "roles.ai",
-        "roles.customer",
-        "roles.human",
-        "stats.catalogueRows",
-        "stats.catalogueRowsNote",
-        "stats.liveQueue",
-        "stats.liveQueueNote",
-        "stats.providerQualification",
-        "stats.providerQualificationNote",
-        "stats.uniqueCodes",
-        "stats.uniqueCodesNote",
-        "status.apiUnavailable",
-        "status.configured",
-        "status.setupIncomplete"
-      ],
-      "englishFallbackCount": 88,
-      "translationProvenance": "english_fallback",
-      "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": false
-    },
-    "my": {
-      "englishName": "Burmese",
-      "nativeName": "မြန်မာဘာသာ",
-      "dir": "ltr",
-      "status": "english_fallback_interface_only",
-      "englishFallbackKeys": [
-        "boundaries.automateBody",
-        "boundaries.automateTitle",
-        "boundaries.humanBody",
-        "boundaries.humanTitle",
-        "boundaries.notEnabledBody",
-        "boundaries.notEnabledTitle",
-        "boundaries.title",
-        "customer.chatEmpty",
-        "customer.consentPill",
-        "customer.consentText",
-        "customer.eyebrow",
-        "customer.messagePlaceholder",
-        "customer.noConversation",
-        "customer.preferredLanguage",
-        "customer.requestHuman",
-        "customer.send",
-        "customer.setupHint",
-        "customer.startChat",
-        "customer.startHint",
-        "customer.startVoice",
-        "customer.stopVoice",
-        "customer.title",
-        "customer.voiceOff",
-        "customer.voiceRequirement",
-        "customer.voiceStreamNote",
-        "errors.BROWSER_REALTIME_VOICE_UNSUPPORTED",
-        "errors.CONTACT_CENTER_CONSENT_REQUIRED",
-        "errors.CONTACT_CENTER_DUPLICATE_MESSAGE",
-        "errors.CONTACT_CENTER_REALTIME_CONNECT_FAILED",
-        "errors.HANDOFF_NOT_CLAIMED",
-        "errors.REQUEST_FAILED",
-        "errors.SERVER_RESPONSE_INVALID",
-        "handoffReasons.customer_requested_human",
-        "handoffReasons.high_risk",
-        "handoffReasons.low_confidence",
-        "handoffReasons.model_requested",
-        "handoffReasons.other",
-        "handoffReasons.policy_refusal",
-        "handoffReasons.repeated_failure",
-        "handoffReasons.unresolved",
-        "handoffReasons.voice_review_required",
-        "messages.actionNotCompleted",
-        "messages.aiResponseFailed",
-        "messages.apiUnavailable",
-        "messages.configNeeded",
-        "messages.configOk",
-        "messages.conversationCreated",
-        "messages.handoffQueued",
-        "messages.handoffQueuedQueueOnly",
-        "messages.qualificationNotice",
-        "messages.queueUnavailable",
-        "messages.suggestedNextStep",
-        "messages.voiceActive",
-        "messages.voiceCredentialActive",
-        "messages.voiceCredentialRequest",
-        "messages.voiceHandoffStopped",
-        "messages.voiceRealtimeError",
-        "nav.interfaceLanguage",
-        "nav.operationsConsole",
-        "nav.subtitle",
-        "nav.title",
-        "queue.agentAssignedTitle",
-        "queue.claimAndReview",
-        "queue.description",
-        "queue.empty",
-        "queue.eyebrow",
-        "queue.loading",
-        "queue.openAssignment",
-        "queue.refresh",
-        "queue.reply",
-        "queue.replyStorageNote",
-        "queue.resolve",
-        "queue.resolveNote",
-        "queue.title",
-        "roles.ai",
-        "roles.customer",
-        "roles.human",
-        "stats.catalogueRows",
-        "stats.catalogueRowsNote",
-        "stats.liveQueue",
-        "stats.liveQueueNote",
-        "stats.providerQualification",
-        "stats.providerQualificationNote",
-        "stats.uniqueCodes",
-        "stats.uniqueCodesNote",
-        "status.apiUnavailable",
-        "status.configured",
-        "status.setupIncomplete"
-      ],
-      "englishFallbackCount": 88,
-      "translationProvenance": "english_fallback",
-      "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": false
-    },
-    "ml": {
-      "englishName": "Malayalam",
-      "nativeName": "മലയാളം",
-      "dir": "ltr",
-      "status": "english_fallback_interface_only",
-      "englishFallbackKeys": [
-        "boundaries.automateBody",
-        "boundaries.automateTitle",
-        "boundaries.humanBody",
-        "boundaries.humanTitle",
-        "boundaries.notEnabledBody",
-        "boundaries.notEnabledTitle",
-        "boundaries.title",
-        "customer.chatEmpty",
-        "customer.consentPill",
-        "customer.consentText",
-        "customer.eyebrow",
-        "customer.messagePlaceholder",
-        "customer.noConversation",
-        "customer.preferredLanguage",
-        "customer.requestHuman",
-        "customer.send",
-        "customer.setupHint",
-        "customer.startChat",
-        "customer.startHint",
-        "customer.startVoice",
-        "customer.stopVoice",
-        "customer.title",
-        "customer.voiceOff",
-        "customer.voiceRequirement",
-        "customer.voiceStreamNote",
-        "errors.BROWSER_REALTIME_VOICE_UNSUPPORTED",
-        "errors.CONTACT_CENTER_CONSENT_REQUIRED",
-        "errors.CONTACT_CENTER_DUPLICATE_MESSAGE",
-        "errors.CONTACT_CENTER_REALTIME_CONNECT_FAILED",
-        "errors.HANDOFF_NOT_CLAIMED",
-        "errors.REQUEST_FAILED",
-        "errors.SERVER_RESPONSE_INVALID",
-        "handoffReasons.customer_requested_human",
-        "handoffReasons.high_risk",
-        "handoffReasons.low_confidence",
-        "handoffReasons.model_requested",
-        "handoffReasons.other",
-        "handoffReasons.policy_refusal",
-        "handoffReasons.repeated_failure",
-        "handoffReasons.unresolved",
-        "handoffReasons.voice_review_required",
-        "messages.actionNotCompleted",
-        "messages.aiResponseFailed",
-        "messages.apiUnavailable",
-        "messages.configNeeded",
-        "messages.configOk",
-        "messages.conversationCreated",
-        "messages.handoffQueued",
-        "messages.handoffQueuedQueueOnly",
-        "messages.qualificationNotice",
-        "messages.queueUnavailable",
-        "messages.suggestedNextStep",
-        "messages.voiceActive",
-        "messages.voiceCredentialActive",
-        "messages.voiceCredentialRequest",
-        "messages.voiceHandoffStopped",
-        "messages.voiceRealtimeError",
-        "nav.interfaceLanguage",
-        "nav.operationsConsole",
-        "nav.subtitle",
-        "nav.title",
-        "queue.agentAssignedTitle",
-        "queue.claimAndReview",
-        "queue.description",
-        "queue.empty",
-        "queue.eyebrow",
-        "queue.loading",
-        "queue.openAssignment",
-        "queue.refresh",
-        "queue.reply",
-        "queue.replyStorageNote",
-        "queue.resolve",
-        "queue.resolveNote",
-        "queue.title",
-        "roles.ai",
-        "roles.customer",
-        "roles.human",
-        "stats.catalogueRows",
-        "stats.catalogueRowsNote",
-        "stats.liveQueue",
-        "stats.liveQueueNote",
-        "stats.providerQualification",
-        "stats.providerQualificationNote",
-        "stats.uniqueCodes",
-        "stats.uniqueCodesNote",
-        "status.apiUnavailable",
-        "status.configured",
-        "status.setupIncomplete"
-      ],
-      "englishFallbackCount": 88,
-      "translationProvenance": "english_fallback",
-      "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": false
-    },
-    "es": {
-      "englishName": "Spanish",
-      "nativeName": "Español",
-      "dir": "ltr",
-      "status": "english_fallback_interface_only",
-      "englishFallbackKeys": [
-        "boundaries.automateBody",
-        "boundaries.automateTitle",
-        "boundaries.humanBody",
-        "boundaries.humanTitle",
-        "boundaries.notEnabledBody",
-        "boundaries.notEnabledTitle",
-        "boundaries.title",
-        "customer.chatEmpty",
-        "customer.consentPill",
-        "customer.consentText",
-        "customer.eyebrow",
-        "customer.messagePlaceholder",
-        "customer.noConversation",
-        "customer.preferredLanguage",
-        "customer.requestHuman",
-        "customer.send",
-        "customer.setupHint",
-        "customer.startChat",
-        "customer.startHint",
-        "customer.startVoice",
-        "customer.stopVoice",
-        "customer.title",
-        "customer.voiceOff",
-        "customer.voiceRequirement",
-        "customer.voiceStreamNote",
-        "errors.BROWSER_REALTIME_VOICE_UNSUPPORTED",
-        "errors.CONTACT_CENTER_CONSENT_REQUIRED",
-        "errors.CONTACT_CENTER_DUPLICATE_MESSAGE",
-        "errors.CONTACT_CENTER_REALTIME_CONNECT_FAILED",
-        "errors.HANDOFF_NOT_CLAIMED",
-        "errors.REQUEST_FAILED",
-        "errors.SERVER_RESPONSE_INVALID",
-        "handoffReasons.customer_requested_human",
-        "handoffReasons.high_risk",
-        "handoffReasons.low_confidence",
-        "handoffReasons.model_requested",
-        "handoffReasons.other",
-        "handoffReasons.policy_refusal",
-        "handoffReasons.repeated_failure",
-        "handoffReasons.unresolved",
-        "handoffReasons.voice_review_required",
-        "messages.actionNotCompleted",
-        "messages.aiResponseFailed",
-        "messages.apiUnavailable",
-        "messages.configNeeded",
-        "messages.configOk",
-        "messages.conversationCreated",
-        "messages.handoffQueued",
-        "messages.handoffQueuedQueueOnly",
-        "messages.qualificationNotice",
-        "messages.queueUnavailable",
-        "messages.suggestedNextStep",
-        "messages.voiceActive",
-        "messages.voiceCredentialActive",
-        "messages.voiceCredentialRequest",
-        "messages.voiceHandoffStopped",
-        "messages.voiceRealtimeError",
-        "nav.interfaceLanguage",
-        "nav.operationsConsole",
-        "nav.subtitle",
-        "nav.title",
-        "queue.agentAssignedTitle",
-        "queue.claimAndReview",
-        "queue.description",
-        "queue.empty",
-        "queue.eyebrow",
-        "queue.loading",
-        "queue.openAssignment",
-        "queue.refresh",
-        "queue.reply",
-        "queue.replyStorageNote",
-        "queue.resolve",
-        "queue.resolveNote",
-        "queue.title",
-        "roles.ai",
-        "roles.customer",
-        "roles.human",
-        "stats.catalogueRows",
-        "stats.catalogueRowsNote",
-        "stats.liveQueue",
-        "stats.liveQueueNote",
-        "stats.providerQualification",
-        "stats.providerQualificationNote",
-        "stats.uniqueCodes",
-        "stats.uniqueCodesNote",
-        "status.apiUnavailable",
-        "status.configured",
-        "status.setupIncomplete"
-      ],
-      "englishFallbackCount": 88,
-      "translationProvenance": "english_fallback",
-      "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": false
-    },
-    "sr": {
-      "englishName": "Serbian",
-      "nativeName": "Српски",
-      "dir": "ltr",
-      "status": "english_fallback_interface_only",
-      "englishFallbackKeys": [
-        "boundaries.automateBody",
-        "boundaries.automateTitle",
-        "boundaries.humanBody",
-        "boundaries.humanTitle",
-        "boundaries.notEnabledBody",
-        "boundaries.notEnabledTitle",
-        "boundaries.title",
-        "customer.chatEmpty",
-        "customer.consentPill",
-        "customer.consentText",
-        "customer.eyebrow",
-        "customer.messagePlaceholder",
-        "customer.noConversation",
-        "customer.preferredLanguage",
-        "customer.requestHuman",
-        "customer.send",
-        "customer.setupHint",
-        "customer.startChat",
-        "customer.startHint",
-        "customer.startVoice",
-        "customer.stopVoice",
-        "customer.title",
-        "customer.voiceOff",
-        "customer.voiceRequirement",
-        "customer.voiceStreamNote",
-        "errors.BROWSER_REALTIME_VOICE_UNSUPPORTED",
-        "errors.CONTACT_CENTER_CONSENT_REQUIRED",
-        "errors.CONTACT_CENTER_DUPLICATE_MESSAGE",
-        "errors.CONTACT_CENTER_REALTIME_CONNECT_FAILED",
-        "errors.HANDOFF_NOT_CLAIMED",
-        "errors.REQUEST_FAILED",
-        "errors.SERVER_RESPONSE_INVALID",
-        "handoffReasons.customer_requested_human",
-        "handoffReasons.high_risk",
-        "handoffReasons.low_confidence",
-        "handoffReasons.model_requested",
-        "handoffReasons.other",
-        "handoffReasons.policy_refusal",
-        "handoffReasons.repeated_failure",
-        "handoffReasons.unresolved",
-        "handoffReasons.voice_review_required",
-        "messages.actionNotCompleted",
-        "messages.aiResponseFailed",
-        "messages.apiUnavailable",
-        "messages.configNeeded",
-        "messages.configOk",
-        "messages.conversationCreated",
-        "messages.handoffQueued",
-        "messages.handoffQueuedQueueOnly",
-        "messages.qualificationNotice",
-        "messages.queueUnavailable",
-        "messages.suggestedNextStep",
-        "messages.voiceActive",
-        "messages.voiceCredentialActive",
-        "messages.voiceCredentialRequest",
-        "messages.voiceHandoffStopped",
-        "messages.voiceRealtimeError",
-        "nav.interfaceLanguage",
-        "nav.operationsConsole",
-        "nav.subtitle",
-        "nav.title",
-        "queue.agentAssignedTitle",
-        "queue.claimAndReview",
-        "queue.description",
-        "queue.empty",
-        "queue.eyebrow",
-        "queue.loading",
-        "queue.openAssignment",
-        "queue.refresh",
-        "queue.reply",
-        "queue.replyStorageNote",
-        "queue.resolve",
-        "queue.resolveNote",
-        "queue.title",
-        "roles.ai",
-        "roles.customer",
-        "roles.human",
-        "stats.catalogueRows",
-        "stats.catalogueRowsNote",
-        "stats.liveQueue",
-        "stats.liveQueueNote",
-        "stats.providerQualification",
-        "stats.providerQualificationNote",
-        "stats.uniqueCodes",
-        "stats.uniqueCodesNote",
-        "status.apiUnavailable",
-        "status.configured",
-        "status.setupIncomplete"
-      ],
-      "englishFallbackCount": 88,
-      "translationProvenance": "english_fallback",
-      "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": false
-    },
-    "te": {
-      "englishName": "Telugu",
-      "nativeName": "తెలుగు",
-      "dir": "ltr",
-      "status": "english_fallback_interface_only",
-      "englishFallbackKeys": [
-        "boundaries.automateBody",
-        "boundaries.automateTitle",
-        "boundaries.humanBody",
-        "boundaries.humanTitle",
-        "boundaries.notEnabledBody",
-        "boundaries.notEnabledTitle",
-        "boundaries.title",
-        "customer.chatEmpty",
-        "customer.consentPill",
-        "customer.consentText",
-        "customer.eyebrow",
-        "customer.messagePlaceholder",
-        "customer.noConversation",
-        "customer.preferredLanguage",
-        "customer.requestHuman",
-        "customer.send",
-        "customer.setupHint",
-        "customer.startChat",
-        "customer.startHint",
-        "customer.startVoice",
-        "customer.stopVoice",
-        "customer.title",
-        "customer.voiceOff",
-        "customer.voiceRequirement",
-        "customer.voiceStreamNote",
-        "errors.BROWSER_REALTIME_VOICE_UNSUPPORTED",
-        "errors.CONTACT_CENTER_CONSENT_REQUIRED",
-        "errors.CONTACT_CENTER_DUPLICATE_MESSAGE",
-        "errors.CONTACT_CENTER_REALTIME_CONNECT_FAILED",
-        "errors.HANDOFF_NOT_CLAIMED",
-        "errors.REQUEST_FAILED",
-        "errors.SERVER_RESPONSE_INVALID",
-        "handoffReasons.customer_requested_human",
-        "handoffReasons.high_risk",
-        "handoffReasons.low_confidence",
-        "handoffReasons.model_requested",
-        "handoffReasons.other",
-        "handoffReasons.policy_refusal",
-        "handoffReasons.repeated_failure",
-        "handoffReasons.unresolved",
-        "handoffReasons.voice_review_required",
-        "messages.actionNotCompleted",
-        "messages.aiResponseFailed",
-        "messages.apiUnavailable",
-        "messages.configNeeded",
-        "messages.configOk",
-        "messages.conversationCreated",
-        "messages.handoffQueued",
-        "messages.handoffQueuedQueueOnly",
-        "messages.qualificationNotice",
-        "messages.queueUnavailable",
-        "messages.suggestedNextStep",
-        "messages.voiceActive",
-        "messages.voiceCredentialActive",
-        "messages.voiceCredentialRequest",
-        "messages.voiceHandoffStopped",
-        "messages.voiceRealtimeError",
-        "nav.interfaceLanguage",
-        "nav.operationsConsole",
-        "nav.subtitle",
-        "nav.title",
-        "queue.agentAssignedTitle",
-        "queue.claimAndReview",
-        "queue.description",
-        "queue.empty",
-        "queue.eyebrow",
-        "queue.loading",
-        "queue.openAssignment",
-        "queue.refresh",
-        "queue.reply",
-        "queue.replyStorageNote",
-        "queue.resolve",
-        "queue.resolveNote",
-        "queue.title",
-        "roles.ai",
-        "roles.customer",
-        "roles.human",
-        "stats.catalogueRows",
-        "stats.catalogueRowsNote",
-        "stats.liveQueue",
-        "stats.liveQueueNote",
-        "stats.providerQualification",
-        "stats.providerQualificationNote",
-        "stats.uniqueCodes",
-        "stats.uniqueCodesNote",
-        "status.apiUnavailable",
-        "status.configured",
-        "status.setupIncomplete"
-      ],
-      "englishFallbackCount": 88,
-      "translationProvenance": "english_fallback",
-      "nativeReviewStatus": "not_native_reviewed",
-      "approvalRequired": true,
-      "interfaceSelectable": true,
-      "conversationSelectable": false
+      "approvalRequired": true
     }
   },
   "summary": {
@@ -2656,7 +1528,7 @@
       "ps",
       "ur"
     ],
-    "englishFallbackLocales": 13,
+    "englishFallbackLocales": 4,
     "draftTranslationLocales": 100,
     "draftTranslationLocaleCodes": [
       "af",
@@ -2760,12 +1632,10 @@
       "zh",
       "zu"
     ],
-    "catalogue": 114,
+    "catalogue": 105,
     "machineDrafted": 100,
-    "untranslated": 13,
-    "productionQualified": 0,
-    "interfaceSelectable": 114,
-    "conversationSelectable": 105
+    "untranslated": 4,
+    "productionQualified": 0
   },
   "approvalRequired": true,
   "forensicAudit": {
@@ -2784,70 +1654,60 @@
       "production certification"
     ]
   },
-  "withdrawnLocales": [],
-  "previouslyWithdrawnLocales": [
+  "withdrawnLocales": [
     {
       "code": "ms",
       "englishName": "Malay",
-      "status": "restored_as_english_fallback_interface_only",
-      "finding": "No decisive semantic defect confirmed in the inspected high-risk sample. Withdrawn to enforce the requested 105-locale release scope; native-speaker review remains outstanding.",
-      "resolution": "The historical defective translation is not shipped. This locale is selectable only as an English-fallback interface option; customer conversations remain disabled until remediation and acceptance."
+      "status": "withdrawn_pending_native_review",
+      "finding": "No decisive semantic defect confirmed in the inspected high-risk sample. Withdrawn to enforce the requested 105-locale release scope; native-speaker review remains outstanding."
     },
     {
       "code": "sw",
       "englishName": "Swahili",
-      "status": "restored_as_english_fallback_interface_only",
-      "finding": "Confirmed meaning defects in customer.eyebrow, customer.consentText, customer.setupHint, queue.description, boundaries.automateTitle and boundaries.humanBody; examples include a mistranslated customer-experience label and a queue state rendered as a sliding action.",
-      "resolution": "The historical defective translation is not shipped. This locale is selectable only as an English-fallback interface option; customer conversations remain disabled until remediation and acceptance."
+      "status": "withdrawn_pending_native_review",
+      "finding": "Confirmed meaning defects in customer.eyebrow, customer.consentText, customer.setupHint, queue.description, boundaries.automateTitle and boundaries.humanBody; examples include a mistranslated customer-experience label and a queue state rendered as a sliding action."
     },
     {
       "code": "hy",
       "englishName": "Armenian",
-      "status": "restored_as_english_fallback_interface_only",
-      "finding": "messages.qualificationNotice confuses speech accent/emphasis and escalation with acceleration; complete 89-key native review is still required.",
-      "resolution": "The historical defective translation is not shipped. This locale is selectable only as an English-fallback interface option; customer conversations remain disabled until remediation and acceptance."
+      "status": "withdrawn_pending_native_review",
+      "finding": "messages.qualificationNotice confuses speech accent/emphasis and escalation with acceleration; complete 89-key native review is still required."
     },
     {
       "code": "uz",
       "englishName": "Uzbek",
-      "status": "restored_as_english_fallback_interface_only",
-      "finding": "messages.qualificationNotice uses a strengthening term for escalation; boundaries.humanBody renders critical risk as decisive risk.",
-      "resolution": "The historical defective translation is not shipped. This locale is selectable only as an English-fallback interface option; customer conversations remain disabled until remediation and acceptance."
+      "status": "withdrawn_pending_native_review",
+      "finding": "messages.qualificationNotice uses a strengthening term for escalation; boundaries.humanBody renders critical risk as decisive risk."
     },
     {
       "code": "my",
       "englishName": "Burmese",
-      "status": "restored_as_english_fallback_interface_only",
-      "finding": "messages.qualificationNotice renders speech accent as voice position and escalation as level-up testing; operational meaning is not reliable.",
-      "resolution": "The historical defective translation is not shipped. This locale is selectable only as an English-fallback interface option; customer conversations remain disabled until remediation and acceptance."
+      "status": "withdrawn_pending_native_review",
+      "finding": "messages.qualificationNotice renders speech accent as voice position and escalation as level-up testing; operational meaning is not reliable."
     },
     {
       "code": "ml",
       "englishName": "Malayalam",
-      "status": "restored_as_english_fallback_interface_only",
-      "finding": "messages.qualificationNotice renders accent as pronunciation rather than accent/dialect qualification; full native-speaker review remains outstanding.",
-      "resolution": "The historical defective translation is not shipped. This locale is selectable only as an English-fallback interface option; customer conversations remain disabled until remediation and acceptance."
+      "status": "withdrawn_pending_native_review",
+      "finding": "messages.qualificationNotice renders accent as pronunciation rather than accent/dialect qualification; full native-speaker review remains outstanding."
     },
     {
       "code": "es",
       "englishName": "Spanish",
-      "status": "restored_as_english_fallback_interface_only",
-      "finding": "No decisive semantic defect confirmed in the inspected high-risk sample. Withdrawn to enforce the requested 105-locale release scope; native-speaker review remains outstanding.",
-      "resolution": "The historical defective translation is not shipped. This locale is selectable only as an English-fallback interface option; customer conversations remain disabled until remediation and acceptance."
+      "status": "withdrawn_pending_native_review",
+      "finding": "No decisive semantic defect confirmed in the inspected high-risk sample. Withdrawn to enforce the requested 105-locale release scope; native-speaker review remains outstanding."
     },
     {
       "code": "sr",
       "englishName": "Serbian",
-      "status": "restored_as_english_fallback_interface_only",
-      "finding": "AI provider is translated as an artificial supplier in customer consent/setup text; a spelling error and mixed Latin/Cyrillic text also occur in qualification notice.",
-      "resolution": "The historical defective translation is not shipped. This locale is selectable only as an English-fallback interface option; customer conversations remain disabled until remediation and acceptance."
+      "status": "withdrawn_pending_native_review",
+      "finding": "AI provider is translated as an artificial supplier in customer consent/setup text; a spelling error and mixed Latin/Cyrillic text also occur in qualification notice."
     },
     {
       "code": "te",
       "englishName": "Telugu",
-      "status": "restored_as_english_fallback_interface_only",
-      "finding": "messages.qualificationNotice renders accent as pronunciation; speech-quality meaning needs native-speaker correction and review.",
-      "resolution": "The historical defective translation is not shipped. This locale is selectable only as an English-fallback interface option; customer conversations remain disabled until remediation and acceptance."
+      "status": "withdrawn_pending_native_review",
+      "finding": "messages.qualificationNotice renders accent as pronunciation; speech-quality meaning needs native-speaker correction and review."
     }
   ]
 }

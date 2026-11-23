@@ -1,6 +1,6 @@
 {
   "schemaVersion": "opscore.i18n-forensic-audit.v1",
-  "generatedAt": "2026-11-02T10:43:58.763Z",
+  "generatedAt": "2026-11-23T06:07:58.266Z",
   "release": "0.11.62",
   "auditScope": "locale file integrity, structural completeness, registry alignment, and runtime-safe notice wiring",
   "explicitNonClaims": [
@@ -12,18 +12,18 @@
   "passedRounds": 4,
   "failedRounds": 0,
   "status": "PASS",
-  "localeFiles": 114,
+  "localeFiles": 105,
   "productionQualifiedLocales": 0,
   "rounds": [
     {
       "id": "01_INVENTORY_AND_JSON_INTEGRITY",
-      "title": "114 locale files parse without duplicate keys",
+      "title": "105 locale files parse without duplicate keys",
       "status": "PASS",
       "detail": {
-        "localeFiles": 114,
-        "validJson": 114,
+        "localeFiles": 105,
+        "validJson": 105,
         "duplicateKeyCount": 0,
-        "manifestLocaleCount": 114
+        "manifestLocaleCount": 105
       }
     },
     {
@@ -32,7 +32,7 @@
       "status": "PASS",
       "detail": {
         "keysPerLocale": 89,
-        "localesChecked": 114,
+        "localesChecked": 105,
         "keySetMismatches": 0,
         "emptyOrNonStringValues": 0,
         "placeholderMismatches": 0
@@ -43,10 +43,10 @@
       "title": "Server catalogue, loader, manifest and review register agree",
       "status": "PASS",
       "detail": {
-        "catalogueCodes": 114,
-        "manifestCodes": 114,
+        "catalogueCodes": 105,
+        "manifestCodes": 105,
         "sourceLocales": 1,
-        "machineDrafts": 109,
+        "machineDrafts": 100,
         "englishFallbacks": 4,
         "nativeSpeakerReviewedLocales": 0,
         "productionQualifiedLocales": 0

@@ -3,7 +3,7 @@
 /**
  * OpsCore FIELD contact-centre language catalogue.
  *
- * 114 selectable interface locales (105 conversation targets plus 9 English-fallback-only locales), sector-neutral field operations (utilities, facilities,
+ * 105 selectable language targets, sector-neutral field operations (utilities, facilities,
  * logistics, maintenance, telecom, construction - not one vertical only).
  * Registration in this catalogue is a *rollout target*, NOT provider
  * certification: every locale stays machine-assisted and unverified until text,
@@ -120,21 +120,10 @@ const CATALOGUE = [
   { code: 'to', name: "Tongan", nativeName: "Lea Faka-Tonga", dir: 'ltr' },
   { code: 'bi', name: "Bislama", nativeName: "Bislama", dir: 'ltr' },
   { code: 'pau', name: "Palauan", nativeName: "Tekoi er a Belau", dir: 'ltr' },
-  { code: 'ch', name: "Chamorro", nativeName: "Chamoru", dir: 'ltr' },
-  { code: 'ms', name: "Malay", nativeName: "Bahasa Melayu", dir: 'ltr' },
-  { code: 'sw', name: "Swahili", nativeName: "Kiswahili", dir: 'ltr' },
-  { code: 'hy', name: "Armenian", nativeName: "Հայերեն", dir: 'ltr' },
-  { code: 'uz', name: "Uzbek", nativeName: "Oʻzbekcha", dir: 'ltr' },
-  { code: 'my', name: "Burmese", nativeName: "မြန်မာဘာသာ", dir: 'ltr' },
-  { code: 'ml', name: "Malayalam", nativeName: "മലയാളം", dir: 'ltr' },
-  { code: 'es', name: "Spanish", nativeName: "Español", dir: 'ltr' },
-  { code: 'sr', name: "Serbian", nativeName: "Српски", dir: 'ltr' },
-  { code: 'te', name: "Telugu", nativeName: "తెలుగు", dir: 'ltr' }
+  { code: 'ch', name: "Chamorro", nativeName: "Chamoru", dir: 'ltr' }
 ];
 
 const RTL_CODES = new Set(CATALOGUE.filter(item => item.dir === 'rtl').map(item => item.code));
-const ENGLISH_FALLBACK_CODES = new Set(['din','nus','pau','ch','ms','sw','hy','uz','my','ml','es','sr','te']);
-const INTERFACE_ONLY_CODES = new Set(['ms','sw','hy','uz','my','ml','es','sr','te']);
 const languages = CATALOGUE.map((item, index) => Object.freeze({
   listNumber: index + 1,
   name: item.name,
@@ -142,20 +131,7 @@ const languages = CATALOGUE.map((item, index) => Object.freeze({
   code: item.code,
   dir: item.dir,
   duplicateOf: null,
-  catalogStatus: item.code === 'en'
-    ? 'source_english'
-    : INTERFACE_ONLY_CODES.has(item.code)
-      ? 'english_fallback_interface_only'
-      : ENGLISH_FALLBACK_CODES.has(item.code)
-        ? 'english_fallback'
-        : 'registered_machine_draft',
-  translationProvenance: item.code === 'en'
-    ? 'source_english'
-    : ENGLISH_FALLBACK_CODES.has(item.code)
-      ? 'english_fallback'
-      : 'machine_assisted_draft',
-  interfaceSelectable: true,
-  conversationSelectable: !INTERFACE_ONLY_CODES.has(item.code),
+  catalogStatus: 'registered_machine_draft',
   textQualityVerified: false,
   speechRecognitionVerified: false,
   speechSynthesisVerified: false,
@@ -176,17 +152,12 @@ function summary() {
     schemaVersion: 'opscore.contact-center-language-catalog.v2',
     sourceRows: CATALOGUE.length,
     uniqueLanguageCodes: unique.length,
-    interfaceSelectableLanguageCodes: unique.filter(item => item.interfaceSelectable).length,
-    conversationSelectableLanguageCodes: unique.filter(item => item.conversationSelectable).length,
-    machineDraftedLocales: CATALOGUE.length - ENGLISH_FALLBACK_CODES.size - 1,
-    englishFallbackLocales: ENGLISH_FALLBACK_CODES.size,
-    interfaceOnlyEnglishFallbackLocales: INTERFACE_ONLY_CODES.size,
     duplicateRows: [],
     rtlLanguageCodes: [...RTL_CODES],
     qualifiedForProduction: 0,
-    translationProvenance: 'machine_assisted_with_explicit_english_fallbacks',
+    translationProvenance: 'machine_assisted_draft',
     nativeReviewStatus: 'not_native_reviewed',
-    note: 'All 114 interface locales are selectable. The catalogue contains 100 machine-assisted draft locales and 13 explicit English-fallback locales plus the English source. Nine previously withheld codes are interface-only English fallbacks and are not enabled for customer conversations. Native-speaker review, ASR/TTS acceptance and production language qualification remain incomplete.'
+    note: 'Catalogue registration is not proof of ASR, TTS, dialect, accent or intent-detection quality. Every language is a machine-assisted draft and must pass provider-specific acceptance tests with a native reviewer before being advertised as production-supported.'
   };
 }
 
