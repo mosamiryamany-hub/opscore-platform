@@ -301,6 +301,7 @@ This is fresh, exact-Primary behavioral evidence for the tested forged-context d
 - PostgreSQL reports `18.7 (84da7d8)`.
 - `public.schema_migrations`: 71 rows; latest is `072_deployment_release_evidence_store.sql`, SHA-256 `84c8ad55d4aae5aaa33a7e1edbb1dec5c25cfab773c2238c93956eea67dd2b17`, applied `2026-11-23T08:57:33.905Z`.
 - `071_signed_rls_context_all_access_modes.sql` is present, SHA-256 `46645f6b199e17f55ac46f63518b611c77171980ece6efed8b3ef9be7d4886f6`, applied `2026-11-21T01:28:31.910Z`.
+- Independently recomputed SHA-256 from the exact `main` SQL file bytes matched the ledger for both migrations: `071` = `46645f6b199e17f55ac46f63518b611c77171980ece6efed8b3ef9be7d4886f6` (15,102 bytes) and `072` = `84c8ad55d4aae5aaa33a7e1edbb1dec5c25cfab773c2238c93956eea67dd2b17` (3,761 bytes). Source-to-live-ledger digest parity is therefore 2/2 for these latest security/release migrations.
 
 ### Runtime role, signed context and HMAC key isolation
 
