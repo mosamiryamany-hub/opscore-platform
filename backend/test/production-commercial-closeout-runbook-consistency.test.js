@@ -157,7 +157,7 @@ test('GitHub Environment reviewer protection is not claimed without a verified s
 
 
 test('self-hosted closeout stays blocked and does not recycle Vercel production flags as buyer certification', () => {
-  assert.match(commercialClosureStatus, /Self-hosted production:\\s+`BLOCKED — NOT QUALIFIED`/);
+  assert.match(commercialClosureStatus, /Self-hosted production:\\s+BLOCKED — NOT QUALIFIED/);
   assert.match(commercialClosureStatus, /Vercel Preview\\/Production/);
   assert.match(commercialClosureStatus, /Neon-specific PostgreSQL migration targeting/);
   assert.match(commercialClosureStatus, /NO LICENSE GRANT/);
