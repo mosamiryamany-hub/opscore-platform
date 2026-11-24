@@ -1,7 +1,17 @@
 const crypto=require('node:crypto'); const test=require('node:test'); const assert=require('node:assert/strict'); const fs=require('node:fs'); const os=require('node:os'); const path=require('node:path');
-const {Store}=require('../src/store'); const {hashPassword,id,now,validateWebhookUrl}=require('../src/security');
+const {Store}=require('../src/store'); const {hashPassword,id,now,validateWebhookUrl,hashToken,sha256Hex,hmacSha256}=require('../src/security');
 function fixture(){const p=path.join(os.tmpdir(),`opscore-${crypto.randomUUID()}.db`);const old=process.env.SQLITE_PATH;process.env.SQLITE_PATH=p;delete require.cache[require.resolve('../src/config')];delete require.cache[require.resolve('../src/db')];const d=require('../src/db').openDb();if(old===undefined)delete process.env.SQLITE_PATH;else process.env.SQLITE_PATH=old;return {d,p};}
 function close(f){f.d.close();for(const p of [f.p,`${f.p}-shm`,`${f.p}-wal`]){try{fs.unlinkSync(p)}catch{}}}
+
+test('opaque-token and evidence digest helpers preserve their exact cryptographic purpose',()=>{
+  const token='opaque-random-token-fixture';
+  const evidence='PRODUCTION_FULL_DATA_RECOVERY_FAILED:fixture';
+  const secret=Buffer.from('application-hmac-key-fixture');
+  const payload='signed-tenant-context-fixture';
+  assert.equal(hashToken(token),crypto.createHash('sha256').update(token).digest('hex'));
+  assert.equal(sha256Hex(evidence),crypto.createHash('sha256').update(evidence).digest('hex'));
+  assert.equal(hmacSha256(secret,payload),crypto.createHmac('sha256',secret).update(payload).digest('hex'));
+});
 
 test('tenant isolation, viewer write denial, expanded work order, activity and comment',()=>{const f=fixture(),s=new Store(f.d,{sessionTtlHours:24});const a=s.bootstrap({orgName:'Tenant A',email:'a@example.com',password:'A-strong-pass-2026'}),sa=s.login('a@example.com','A-strong-pass-2026');const bOrg=id('org'),bUser=id('usr'),t=now();f.d.prepare('INSERT INTO organizations VALUES (?,?,?)').run(bOrg,'Tenant B',t);f.d.prepare('INSERT INTO users VALUES (?,?,?,?,?)').run(bUser,'b@example.com',hashPassword('B-strong-pass-2026'),'active',t);f.d.prepare('INSERT INTO memberships VALUES (?,?,?,?)').run(bUser,bOrg,'owner',t);const sb=s.login('b@example.com','B-strong-pass-2026');const c=s.createCustomer(sa,{name:'Customer A'});const site=s.createSite(sa,{name:'Site A',customerId:c.id,latitude:29.9,longitude:31.2});const wo=s.createWorkOrder(sa,{title:'Install service',customerId:c.id,siteId:site.id,priority:'high',teamName:'Team 1'});assert.equal(wo.number,'WO-000001');assert.equal(wo.customer_name,'Customer A');assert.equal(s.listWorkOrders(sa).length,1);assert.equal(s.listWorkOrders(sb).length,0);s.addComment(sa,wo.id,'Field note');assert.equal(s.getWorkOrder(sa,wo.id).comments.length,1);assert.ok(s.listActivity(sa).length>=3);assert.throws(()=>s.createWorkOrder({...sa,role:'viewer'},{title:'blocked'}),/FORBIDDEN/);close(f);});
 
