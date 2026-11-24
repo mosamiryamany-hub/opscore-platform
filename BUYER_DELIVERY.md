@@ -12,7 +12,7 @@ Seller advertising, listings, demonstrations and negotiations may happen before 
 
 The proposed edition is source code for deployment on infrastructure controlled by the buyer. It is not a hosted subscription. Seller Vercel/Neon accounts, domains, production databases, customer records, provider credentials, cloud accounts and operational service are excluded unless a separate signed agreement explicitly includes them.
 
-**The current code is not yet qualified for provider-neutral self-hosted production.** Vercel-specific signed-tenant release gating and Neon-specific PostgreSQL migration identity remain blocking technical items. See [Self-Hosted Buyer Edition](docs/commercial/SELF_HOSTED_BUYER_EDITION_2026-11-24.md).
+**The current code is not yet qualified for provider-neutral self-hosted production.** A separate Ed25519 self-hosted operator-attestation mode is now available on the existing release verification endpoint; signed-tenant context is still Vercel-gated and PostgreSQL migration identity remains Neon-specific. See [Self-Hosted Buyer Edition](docs/commercial/SELF_HOSTED_BUYER_EDITION_2026-11-24.md).
 
 ## Candidate identity
 
