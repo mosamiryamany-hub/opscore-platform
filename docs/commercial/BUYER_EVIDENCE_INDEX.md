@@ -3,7 +3,7 @@
 **Evidence snapshot:** 2026-11-24 10:43 UTC (pre-PR #436)  
 **Repository:** `mosamiryamany-hub/opscore-platform`  
 **Main SHA at snapshot:** `f71b8eee32631c833dda8115af8508ae1ccc1a63`  
-**OpsCore CI:** [45377527984](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083091) · **Vercel/PG acceptance:** [45377522840](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083161) · **CodeQL:** [45377523517](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374082761)
+**OpsCore CI:** [45377527984](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45377527984) · **Vercel/PG acceptance:** [45377522840](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45377522840) · **CodeQL:** [45377523517](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45377523517)
 
 > This index is a dated evidence snapshot for exactly `f71b8eee32631c833dda8115af8508ae1ccc1a63`, immediately before PR #436. It does not qualify the later PR #436 candidate head or any later `main` commit. Its evidence applies only to the named commit and test targets; it is not self-hosted production acceptance or external certification.
 
@@ -12,12 +12,12 @@
 | Check | Result | Scope |
 |---|---|---|
 | Protected main reference | VERIFIED | GitHub branch metadata |
-| `verify` | PASS (21/21) | GitHub Actions run 45374083091 |
-| `vercel-source-verify` | PASS (18/18) | Run 45374083161 |
-| `vercel-contract-verify` | PASS (3/3) | Run 45374083161 |
-| Isolated PostgreSQL RLS/HTTP acceptance | PASS (3/3) | Run 45374083161 |
-| Deploy-bound PostgreSQL 18 acceptance | PASS (30/30) | Run 45374083161 |
-| CodeQL Actions / JS-TS / Python | PASS | Run 45374082761 |
+| `verify` | PASS_WITH_SKIPS — 1,021 passed, 0 failed, 3 skipped | GitHub Actions run 45377527984 |
+| `vercel-source-verify` | PASS (18/18) | Run 45377522840 |
+| `vercel-contract-verify` | PASS (3/3) | Run 45377522840 |
+| Isolated PostgreSQL RLS/HTTP acceptance | PASS (3/3) | Run 45377522840 |
+| Deploy-bound PostgreSQL 18 acceptance | PASS (30/30) | Run 45377522840 |
+| CodeQL Actions / JS-TS / Python | PASS | Run 45377523517 |
 | Vercel Production deploy job | SKIPPED | No production deployment from this run |
 | Neon Preview migration and HTTP acceptance | SKIPPED | No Preview acceptance from this run |
 | Historical Production Neon PITR probe | SKIPPED | No current PITR proof from this run |
