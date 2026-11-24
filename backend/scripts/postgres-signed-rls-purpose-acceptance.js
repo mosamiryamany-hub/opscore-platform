@@ -4,6 +4,7 @@ const crypto = require('node:crypto');
 const assert = require('node:assert/strict');
 const { Client } = require('pg');
 const { openPgDatabaseSync } = require('../src/pg-database-sync');
+const { hashToken } = require('../src/security');
 
 function required(name) {
   const value = String(process.env[name] || '').trim();
@@ -24,7 +25,9 @@ async function main() {
   const tenantB = 'rls-purpose-tenant-b-' + crypto.randomUUID();
   const userA = 'rls-purpose-user-a-' + crypto.randomUUID();
   const sessionA = 'rls-purpose-session-a-' + crypto.randomUUID();
+  const sessionToken = crypto.randomBytes(32).toString('base64url');
   const apiKeyId = 'rls-purpose-key-' + crypto.randomUUID();
+  const apiKeySecret = crypto.randomBytes(64).toString('base64url');
   const created = new Date().toISOString();
   const expiry = new Date(Date.now() + 15 * 60 * 1000).toISOString();
   const owner = new Client({ connectionString: ownerUrl });
@@ -119,11 +122,11 @@ async function main() {
     );
     await owner.query(
       'INSERT INTO public.sessions(id,user_id,organization_id,token_hash,expires_at,created_at) VALUES($1,$2,$3,$4,$5,$6)',
-      [sessionA, userA, tenantA, crypto.createHash('sha256').update(sessionA).digest('hex'), expiry, created]
+      [sessionA, userA, tenantA, hashToken(sessionToken), expiry, created]
     );
     await owner.query(
       'INSERT INTO public.api_keys(id,organization_id,name,key_prefix,key_hash,scopes_json,expires_at,revoked_at,created_by,created_at,last_used_at) VALUES($1,$2,$3,$4,$5,$6,$7,NULL,$8,$9,NULL)',
-      [apiKeyId, tenantA, 'RLS purpose acceptance key', 'rlspurpose', crypto.createHash('sha256').update(apiKeyId).digest('hex'), '["read"]', expiry, userA, created]
+      [apiKeyId, tenantA, 'RLS purpose acceptance key', apiKeySecret.slice(0, 10), hashToken(apiKeySecret), '["read"]', expiry, userA, created]
     );
 
     db = openPgDatabaseSync(runtimeUrl);
