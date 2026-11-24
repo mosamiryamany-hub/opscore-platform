@@ -1,9 +1,41 @@
-# Reviewed Statement — Post-Fix
+# OpsCore — Truth Boundaries
 
-**Release: v0.11.62 / Mobile 0.1.16**
+**Evidence cut:** 2026-11-24  
+**Main SHA:** `6859b5d86f13ba9f481ed8fce5cc95c729d22b55`  
+**Classification:** SOURCE-CODE CANDIDATE / SELF-HOSTED PRODUCTION BLOCKED / NO LICENSE GRANT / NO EXTERNAL CERTIFICATION.
 
-The backend sync contract isolates events and records retryable versus permanent failures; the mobile source has been updated to encrypt offline mutations/cache entries and to route photo evidence through a separate encrypted local outbox with stable upload IDs. Auth responses now expose explicit user and organization identifiers, and cached/sync data is scoped to those identities.
+## Verified on the named CI revision
 
-This is a source-level implementation change, not proof of universal offline reliability. The Expo app has not been built or exercised on a physical device in this verification environment. The secure-store key lifecycle, Web Crypto support, camera capture, sync retry behavior, and authentication-expiry recovery must be exercised on real target devices before being marketed as fully validated.
+GitHub Actions run [45360794536](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45360794536) reports PASS for source validation, contract checks, isolated PostgreSQL RLS/HTTP acceptance and CodeQL Actions, JS/TS and Python analysis.
 
-PostgreSQL 18 isolated RLS/HTTP acceptance passed on the current PR candidate head `807dee55f050bc96a4123091f09be1503c10004d` in run 44158727249; its caller-bound tenant matrix recorded 346 route checks. The evidence explicitly reports `isolationCertification=NOT_CERTIFIED`. This validates the isolated CI database path only; live Production tenant isolation, the 67-route signed-session matrix, Production recovery, TLS/WAF enforcement and provider integrations remain unverified for the current candidate. Do not convert isolated acceptance into a Production certification claim.
+These results prove only the tests and targets run by that workflow. They do not certify a buyer production database, customer network, all business workflows, restore objectives or third-party integrations.
+
+## Not passed / not established
+
+- Vercel production deployment: SKIPPED in the current-main workflow.
+- Neon Preview migration and HTTP acceptance: SKIPPED.
+- Historical Production Neon PITR probe: SKIPPED.
+- Exact-head Secure Release archive: NOT ESTABLISHED.
+- Provider-neutral self-hosted release and migration support: BLOCKED by Vercel/Neon coupling in current code.
+- Buyer-controlled self-hosted installation and acceptance: NOT RUN.
+- External ISO 27001, SOC 2, PCI DSS or other accreditation: NONE CLAIMED.
+- Buyer licence and distribution authorization: NONE until an exact-deliverable License Schedule is executed.
+
+## Product residuals
+
+- Expo source only; native signed binaries and physical-device/store acceptance are not included.
+- Contact Center translations are machine-assisted; native-speaker review remains 0/114 and current selectable runtime qualification 0/105.
+- Licensed maps/road-routing and external providers are not included unless separately licensed, configured and live-tested.
+- Payment processing is disabled until provider onboarding, signed webhook verification and live acceptance.
+
+## Status vocabulary
+
+- PASS — the named test ran and passed on its named target.
+- FAIL — the named test ran and failed.
+- SKIPPED — the test did not run; never count it as PASS.
+- NOT RUN — no execution evidence exists.
+- NOT VERIFIED — evidence is absent, stale, mismatched or insufficient.
+- BLOCKED — a known technical/authority prerequisite prevents qualification.
+- NOT CERTIFIED — no independent or scoped certification has been established.
+
+For the controlling technical and commercial record, see [Self-Hosted Buyer Edition](../commercial/SELF_HOSTED_BUYER_EDITION_2026-11-24.md).

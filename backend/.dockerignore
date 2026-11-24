@@ -1,0 +1,23 @@
+# Keep credentials and developer-local configuration out of Docker build context.
+.env
+.env.*
+!.env.example
+
+# Git metadata and local dependency trees.
+.git
+.gitignore
+node_modules
+**/node_modules
+
+# Runtime databases, uploads and local mutable data.
+data
+**/data
+*.sqlite
+*.sqlite-*
+*.db
+
+# Test/build residue and logs.
+coverage
+**/coverage
+*.log
+npm-debug.log*

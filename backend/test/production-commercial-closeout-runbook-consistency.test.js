@@ -156,13 +156,14 @@ test('GitHub Environment reviewer protection is not claimed without a verified s
 });
 
 
-test('Production release flags remain bound to the older public SHA and do not qualify the current closeout base', () => {
-  assert.match(commercialClosureStatus, /OPSC_PRODUCTION_HOLD=false/);
-  assert.match(commercialClosureStatus, /OPSC_RELEASE_VERIFIED=true/);
-  assert.match(commercialClosureStatus, /OPSC_PRODUCTION_ISOLATION_CERTIFICATION=CERTIFIED/);
-  assert.match(commercialClosureStatus, /b7f63445c1748ebaec426a9ebe0ea629e4998839/);
-  assert.match(commercialClosureStatus, /OPSC_PG_SSL_MODE=verify-full/);
-  assert.match(commercialClosureStatus, /OPSC_PG_SSL_REJECT_UNAUTHORIZED=true/);
-  assert.match(commercialClosureStatus, /63682774/);
-  assert.match(commercialClosureStatus, /NOT_ESTABLISHED/);
-});
+test('self-hosted closeout stays blocked and does not recycle Vercel production flags as buyer certification', () => {
+  assert.match(commercialClosureStatus, /Self-hosted production:.*BLOCKED — NOT QUALIFIED/);
+  assert.match(commercialClosureStatus, /Vercel Preview\/Production/);
+  assert.match(commercialClosureStatus, /Neon-specific PostgreSQL migration targeting/);
+  assert.match(commercialClosureStatus, /NO LICENSE GRANT/);
+  assert.match(commercialClosureStatus, /NOT RUN: buyer-controlled self-hosted production acceptance/);
+  assert.doesNotMatch(commercialClosureStatus, /OPSC_PRODUCTION_HOLD=false/);
+  assert.doesNotMatch(commercialClosureStatus, /OPSC_RELEASE_VERIFIED=true/);
+  assert.doesNotMatch(commercialClosureStatus, /OPSC_PRODUCTION_ISOLATION_CERTIFICATION=CERTIFIED/);
+  assert.doesNotMatch(commercialClosureStatus, /b7f63445c1748ebaec426a9ebe0ea629e4998839/);
+});;

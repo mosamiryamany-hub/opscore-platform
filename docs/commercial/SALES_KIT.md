@@ -1,31 +1,44 @@
-# OpsCore v0.11.62 — Commercial Sales Kit
+# OpsCore — Seller Sales Kit
 
-**Product:** Multi-Sector Operational Source Kit — web console, HTTP API and Expo mobile source.  
-**Sale type:** source-code handoff, not a hosted SaaS subscription. Transaction price is agreed separately in writing.
-**Seller offer status:** May be advertised, presented and negotiated before a buyer is identified. A buyer signature is not a prerequisite to publish or market this offer; the transaction-specific License Schedule is executed only when a sale proceeds.
+**Offer type:** proposed source-code handoff for buyer-controlled infrastructure.  
+**Offer status:** may be advertised, presented and negotiated subject to the root no-license notice.  
+**Delivery status:** HOLD — no buyer licence, no delivery authority, and provider-neutral self-hosted production is not yet qualified.
 
-## What the source contains
+## Product description
 
-- Work-order, scheduling, dispatch, evidence and completion workflows.
-- Multi-tenant backend/security controls, operational UI, audit paths and APIs.
-- Expo mobile source and integration contract; not signed, built or store-published native apps.
-- Contact Center module with 105 selectable runtime locale codes, visible AI/machine-translation disclosure, and a separate 114-row qualification register.
-- Release gates, evidence-generation scripts/templates and buyer handoff documents; the final exact-head ZIP and release statement are not available until the Secure Release workflow succeeds.
+OpsCore is a multi-sector operational software source candidate with a web console, HTTP API, PostgreSQL schema/migration assets, operational workflows and Expo mobile source. Its proposed deployment model is buyer-controlled infrastructure rather than a seller-hosted SaaS subscription.
 
-## Translation disclosure
+The current source has automated CI and isolated PostgreSQL/RLS test evidence on the identified revision. That evidence does not establish a supported self-hosted production install, buyer production acceptance or an independent certification.
 
-The Contact Center runtime currently exposes 105 selectable locale codes: 1 English source, 100 machine-assisted drafts, and 4 explicit English-fallback locales (din, nus, pau, ch); 89 keys per locale. The separate qualification register contains 114 source rows; 9 flagged locales (ms, sw, hy, uz, my, ml, es, sr, te) are currently withdrawn from runtime selection pending remediation and native-speaker review. Structural/integrity checks are not linguistic approval: native-speaker review is 0/114 and production qualification is 0/105 currently selectable locales. Keep the machine-translation notice visible.
+## What the source candidate contains
 
-## Customer responsibilities
+- Customer/site/asset and work-order workflows.
+- Scheduling, dispatch, field execution, evidence, audit and completion paths.
+- Multi-tenant API and authorization controls, PostgreSQL schema/migration assets and test tooling.
+- Contact Center resources and machine-assisted translation material.
+- Expo mobile source and release/dependency tooling.
 
-**External integrations:** buyer owns provider accounts, credentials, licenses, configuration, live acceptance tests and operations (as applicable: identity/OIDC/JWKS, email/SMS/WhatsApp/carrier, external call-center/telephony, payments, webhooks, object storage, KMS/HSM, maps/routing and cloud).
+## Material limitations — disclose before a buyer decision
 
-**Mobile release:** buyer owns EAS project/account setup, Android/iOS signing, native builds, physical-device QA, developer accounts, store submission/distribution and post-handover dependency maintenance. No signed APK/AAB/IPA is included; the delivered item is mobile source plus source-level verification.
+- Provider-neutral self-hosted production qualification is **BLOCKED**: signed-tenant context is Vercel-gated, release identity is Vercel/Neon-specific, and PostgreSQL migration targeting is Neon-specific.
+- The exact-head Secure Release archive for the 2026-11-24 evidence cut is not established. Historical packages, hashes, deployment IDs and pipeline reports are not current delivery evidence.
+- Expo source only; no signed APK/AAB/IPA, native signing, physical-device QA or store publication.
+- Translation catalog includes machine-assisted drafts and fallback locales. Native-speaker review and production language qualification are not established; do not claim native-quality translations.
+- Licensed maps, road routing, attribution, quotas and traffic ETA are not included.
+- External identity, email/SMS/WhatsApp, telephony, payments, webhook, object-storage, KMS/HSM and cloud provider accounts/credentials/live acceptance are buyer-specific.
+- Payment processing is disabled until a provider is selected, credentials are configured, signed webhooks are verified and buyer-environment payment flows pass.
+- No ISO 27001, SOC 2, PCI DSS or other independent certificate is claimed.
 
-**Mobile dependency security — unresolved advisory under a temporary documented-risk gate exception:** Current main is Expo SDK 58.0.26 / React Native 0.88.1 / React 19.3.1. Post-merge main OpsCore CI run [44205567188](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44205567188) passed, but the mobile audit gate does so only because mobile/audit-allowlist.json records GHSA-fc5q-39xc-vjpf with a 2026-12-18 review expiry and picomatch maximum accepted version 4.0.7. This is a time-limited documented exception, **not a security fix, clean audit or formal signed risk acceptance**. The advisory remains unresolved through picomatch 4.0.7; PR #230 is Draft/HOLD and its 4.0.7 override is not accepted as remediation. No authorized seller-side risk-owner signature was found in the reviewed evidence. Review mobile/security/DEPENDENCY_ADVISORY_REVIEW_2026-11-17.md and docs/commercial/COMMERCIAL_CLOSEOUT_FINAL.md before making any security claim. The exact-main Secure Release ZIP and external statement have not yet been produced.
+## Commercial / IP terms
 
-**Production:** the buyer validates production PostgreSQL/RLS, backup/restore, KMS, TLS/WAF, observability, operations and tenant isolation. Production certification is NOT_ESTABLISHED.
+The package metadata is `UNLICENSED`. The root `NO_LICENSE_GRANT_NOTICE.txt` remains controlling.
 
-## Delivery rule
+The seller may advertise and negotiate a prospective offer; advertisement is not a licence grant. A buyer may not install, run, copy, modify, host, distribute or commercially exploit the source before a written License Schedule is executed by the rights holder and named buyer for the exact commit/package digest.
 
-Only use the ZIP and evidence artifacts from the same successful current-head pipeline. Confirm source commit, pipeline ID, byte count, archive SHA-256, JUnit, translation audit, mobile dependency audit and root PostgreSQL runtime dependency audit before handover. Never claim production-ready, all-language-qualified, human-reviewed translation, signed apps, or live provider connections without direct evidence.
+L1 internal use does not grant resale. Third-party hosting, OEM, source redistribution, resale, sublicensing or marketplace distribution require explicit rights in the executed Schedule. The seller's authority to grant the rights must be confirmed for the transaction. The third-party SBOM inventory is not legal clearance.
+
+## Buyer message (safe wording)
+
+> “OpsCore is a multi-sector operational source-code candidate designed for a buyer-controlled deployment model. Automated source and isolated PostgreSQL checks have passed on the stated revision. Provider-neutral self-hosted production qualification, buyer-environment acceptance and external certification are not yet established. Delivery and use are subject to a transaction-specific written licence.”
+
+See [Self-Hosted Buyer Edition](SELF_HOSTED_BUYER_EDITION_2026-11-24.md), [Buyer Evidence Index](BUYER_EVIDENCE_INDEX.md), [Buyer Installation Guide](BUYER_INSTALLATION_GUIDE.md), and [License Schedule Template](LICENSE_SCHEDULE_TEMPLATE.md).

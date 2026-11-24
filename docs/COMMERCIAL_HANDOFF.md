@@ -1,6 +1,7 @@
 # OpsCore v0.11.62 — Commercial Handoff
 
-**Seller offer status: OPEN FOR MARKETING AND NEGOTIATION BEFORE A BUYER IS IDENTIFIED.** No buyer license grant or delivery authorization exists until the transaction-specific Schedule is executed.
+**Seller offer status: OPEN FOR MARKETING AND NEGOTIATION BEFORE A BUYER IS IDENTIFIED.**  
+**NO LICENSE GRANT — ALL RIGHTS RESERVED.** No buyer license grant or delivery authorization exists until the transaction-specific Schedule is executed.
 
 The commercial classification `PASS_WITH_BUYER_RESIDUALS` describes technical evidence only. The source commit, workflow run, artifact ID, archive filename/size/SHA-256, SBOM and provenance attestation must be obtained from one successful exact-head Secure Release run. This document intentionally pins no candidate-specific identifiers.
 
