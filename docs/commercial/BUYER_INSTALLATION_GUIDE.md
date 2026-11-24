@@ -35,13 +35,19 @@ Do **not** treat `backend/docker-compose.postgres.yml` as a complete self-hosted
 
 Do **not** run `scripts/apply-postgres-migrations.js` against a customer-managed PostgreSQL server as if it were provider-neutral. Its current target validation is built around Neon project/branch/endpoint identity and the `neondb_owner` role. A generic customer-managed PostgreSQL migration target has not yet been implemented and qualified.
 
-Likewise, do not set `VERCEL_ENV=preview` or `VERCEL_ENV=production` to simulate a Vercel environment. Signed tenant-context activation and release-proof logic currently depend on Vercel-specific environment and deployment identity.
+Do not set `VERCEL_ENV=preview` or `VERCEL_ENV=production` to simulate a Vercel environment. Signed tenant-context activation remains Vercel-specific. Release verification has a separate Ed25519 self-hosted operator-attestation mode, selected through `OPSC_RELEASE_PROOF_MODE=self-hosted`; it is not a production authorization switch.
 
 The PostgreSQL runtime adapter also requires production TLS verification (`verify-full`, certificate validation enabled) and an explicit least-privilege `OPSC_DATABASE_URL`. This is necessary but by itself is not complete self-hosted qualification.
 
+### Signed self-hosted release identity
+
+After the buyer has generated an Ed25519 key pair and measured the exact release archive, served TLS certificate and PostgreSQL runtime-role facts, configure the buyer runtime with `OPSC_RELEASE_PROOF_MODE=self-hosted`, `OPSC_SELF_HOSTED_ATTESTATION_PUBLIC_KEY`, `OPSC_SELF_HOSTED_ATTESTATION_KEY_ID`, and `OPSC_SELF_HOSTED_IDENTITY_PATH` as applicable. Pin `OPSC_SOURCE_COMMIT_SHA` to the exact delivered source commit. Create the signed identity using [Self-hosted release identity](../../backend/docs/verification/SELF_HOSTED_RELEASE_IDENTITY.md), then run `npm run verify:release:self-hosted` from `backend`.
+
+The existing `GET /api/verify/release` endpoint selects this proof when the mode variable is set; no new route is added. `PASS` confirms the pinned operator signature and policy checks only. The verifier does not independently collect the underlying measurements, open the production traffic hold, enable signed tenant context, or certify the buyer deployment.
+
 ## 4. Required work before a supported self-hosted deployment
 
-- Provider-neutral, fail-closed deployment profile and signed release identity.
+- Provider-neutral, fail-closed deployment profile and independent collection/verification of archive, TLS and live database facts; the current Ed25519 verifier checks operator-signed claims only.
 - Customer-managed PostgreSQL migration targeting with exact host/database binding, dedicated migration authority and negative tests.
 - Signed tenant/session route enablement for the self-hosted profile and behavioral cross-tenant tests as the actual runtime role.
 - Reproducible application stack with persistent upload/object storage, TLS ingress, secret management, monitoring and readiness checks.
