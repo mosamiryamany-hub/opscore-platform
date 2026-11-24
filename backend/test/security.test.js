@@ -4,7 +4,7 @@ function fixture(){const p=path.join(os.tmpdir(),`opscore-${crypto.randomUUID()}
 function close(f){f.d.close();for(const p of [f.p,`${f.p}-shm`,`${f.p}-wal`]){try{fs.unlinkSync(p)}catch{}}}
 
 test('opaque-token and evidence digest helpers preserve their exact cryptographic purpose',()=>{
-  const token='opaque-random-token-fixture';
+  const token=crypto.randomBytes(32).toString('base64url');
   const evidence='PRODUCTION_FULL_DATA_RECOVERY_FAILED:fixture';
   const secret=Buffer.from('application-hmac-key-fixture');
   const payload='signed-tenant-context-fixture';
