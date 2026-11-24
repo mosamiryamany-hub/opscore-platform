@@ -83,7 +83,7 @@ function parsePostgresConnection(raw, env = process.env) {
   if (String(env.OPSC_SELF_HOSTED_DB_DIRECT_CONNECTION_CONFIRMED || '').toLowerCase() !== 'true') {
     throw new Error('SELF_HOSTED_COLLECTOR_DIRECT_CONNECTION_CONFIRMATION_REQUIRED');
   }
-  const caFile = String(env.OPSC_SELF_HOSTED_DB_CA_FILE || '').trim();
+  const caFile = String(env.OPSC_SELF_HOSTED_DB_CA_FILE || parsed.searchParams.get('sslrootcert') || '').trim();
   const ca = caFile ? fs.readFileSync(path.resolve(caFile), 'utf8') : undefined;
   parsed.searchParams.delete('sslmode');
   parsed.searchParams.delete('sslrootcert');
@@ -141,7 +141,11 @@ function measureTlsCertificate(origin) {
 
 function databaseIdentityFromRow(row, hostname) {
   if (!row) throw new Error('SELF_HOSTED_COLLECTOR_DATABASE_ROLE_NOT_FOUND');
-  const boolean = value => value === true || value === 't';
+  const boolean = (value, field) => {
+    if (value === true || value === 't') return true;
+    if (value === false || value === 'f') return false;
+    throw new Error('SELF_HOSTED_COLLECTOR_DATABASE_BOOLEAN_INVALID:' + field);
+  };
   return {
     engine: 'postgres',
     serverVersion: String(row.server_version || '').trim(),
@@ -149,10 +153,10 @@ function databaseIdentityFromRow(row, hostname) {
     runtimeRole: String(row.runtime_role || '').trim(),
     directHost: hostname,
     directConnection: true,
-    bypassRls: boolean(row.bypass_rls),
-    superuser: boolean(row.superuser),
-    createRole: boolean(row.create_role),
-    createDb: boolean(row.create_db)
+    bypassRls: boolean(row.bypass_rls, 'bypass_rls'),
+    superuser: boolean(row.superuser, 'superuser'),
+    createRole: boolean(row.create_role, 'create_role'),
+    createDb: boolean(row.create_db, 'create_db')
   };
 }
 
