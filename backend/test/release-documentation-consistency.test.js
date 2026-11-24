@@ -242,6 +242,12 @@ test('GitHub verification and production pre-deploy jobs validate recorded relea
 
 });
 
+test('secure release signature identity is bound to the exact GitHub ref', () => {
+  const workflow = read('.github/workflows/opscore-secure-release.yml');
+  assert.match(workflow, /EXPECTED_IDENTITY:\s*"https:\/\/github\.com\/\$\{\{\s*github\.repository\s*\}\}\/\.github\/workflows\/opscore-secure-release\.yml@\$\{\{\s*github\.ref\s*\}\}"/);
+  assert.doesNotMatch(workflow, /EXPECTED_IDENTITY:.*@refs\/heads\/main/);
+});
+
 
 test('commercial release grants no license and forbids distribution pending rights decision', () => {
   const notice = read('NO_LICENSE_GRANT_NOTICE.txt');
