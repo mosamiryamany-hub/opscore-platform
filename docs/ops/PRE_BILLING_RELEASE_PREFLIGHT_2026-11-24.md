@@ -11,7 +11,7 @@ This is an operator handoff and a point-in-time evidence register. It is not a r
 - PR #423 is merged. Its squash commit was `e8bf23909c3de2cab4d1ca70a40649275075d45f`.
 - PR #424 was subsequently merged as `60af86adc2cc1923d56be3f0651b43d5e55d8bef`. It routes signed tenant HMAC calls through the existing helper and corrects disposable RLS-purpose test fixtures to hash random opaque tokens with the existing token helper. No Production token, password, key, row, database, environment variable or secret was changed.
 - PR #426 was merged as `0e3571682905628bbadc9f7ad8fef70bad9ee39f`; it updates pinned `actions/upload-artifact` to v7.0.2 and `actions/setup-node` to v7.1.0 in the three intended workflows. Its exact-main CI, including `verify`, PostgreSQL/RLS and CodeQL analysis, passed.
-- Current main CI on `60af86...`: `verify`, `vercel-contract-verify`, `vercel-source-verify`, both disposable PostgreSQL 18/RLS acceptance jobs, and CodeQL Analyze for JavaScript/TypeScript, Actions, and Python passed.
+- Current main CI on `0e3571682905628bbadc9f7ad8fef70bad9ee39f`: `verify`, `vercel-contract-verify`, `vercel-source-verify`, both disposable PostgreSQL 18/RLS acceptance jobs, and CodeQL Analyze for JavaScript/TypeScript, Actions, and Python passed.
 - On that exact main SHA, `deploy`, Production Neon PITR historical probe, and Neon Preview migration/HTTP acceptance were `SKIPPED`. Do not represent these as passes.
 - PR #425 was opened against the prior main SHA `60af86...`, became behind after PR #426 merged, and is superseded by this refreshed documentation PR. Its branch and history remain retained until the refreshed PR passes.
 - PR #426 is merged. It re-applied the action pin updates from stale Dependabot PRs #421/#422 on current main. PR #421/#422 were closed unmerged as superseded.
@@ -21,7 +21,7 @@ This is an operator handoff and a point-in-time evidence register. It is not a r
 - Vercel project: `opscore-platform`; project id `prj_8jMqBt0l6OALicWSwQ3ECQTn8yPe`.
 - Last directly inspected Production deployment: `dpl_66C6JM3okLFrYj1LR5SngN2KALX4`, READY, source SHA `65de6e2dcd51e4cd04140cf8c6b67eb76d9c8402`.
 - Canonical domain: `opscore-platform.vercel.app`; domain record verified and alias previously mapped to the older deployment.
-- Project metadata reported `live=false`. No deployment for current main `60af86...` was verified.
+- Project metadata reported `live=false`. No deployment for current main `0e3571682905628bbadc9f7ad8fef70bad9ee39f` was verified.
 - The owner’s direct measurement reports HTTP 402 `DEPLOYMENT_DISABLED` with Vercel team plan `pro`, subscription `canceled`. The connected Vercel team read in this review did not expose billing status, so the canceled state remains owner-supplied evidence; no billing mutation was performed.
 - Production environment-variable inventory was inspected without decrypting values. One security warning was found on `OPSC_TENANT_CONTEXT_HMAC_KEY`: legacy `type=encrypted` with `securityIssues=[readable-secret]`. I changed only its storage type to `sensitive` (`visibility=secret`), keeping the same variable id, Production target and value (no value was retrieved or rotated). A second read confirmed `type=sensitive`, `visibility=secret`, `securityIssues=[]`. This classification change applies to future deployments; it did not change the already-created deployment.
 - `AUTHORIZE_PRODUCTION_RELEASE` is a GitHub Actions `workflow_dispatch` choice, not a Vercel environment variable. The `vercel-deploy.yml` gate also requires repository variables `OPSC_PRODUCTION_AUTODEPLOY_ENABLED=true` and `OPSC_STAGED_PRODUCTION_PROBE_READY=true`, plus the typed confirmation `I_AUTHORIZE_PRODUCTION_DEPLOYMENT`. The installed GitHub connector cannot inspect repository Actions variables, so their current values remain UNVERIFIED. Do not set the staged-probe readiness variable true until the candidate probe evidence is actually accepted.
@@ -33,8 +33,8 @@ This is an operator handoff and a point-in-time evidence register. It is not a r
 
 1. Verify the subscription is active in Vercel Billing.
 2. Recheck `/api/health`, `/api/version`, `/api/verify/release`, `/api/verify/database`, and `/api/verify/database-security` on the canonical domain. Capture status code, response body, deployment id and served commit SHA.
-3. Verify the current main `60af86...` is the intended candidate and that all required source/CI checks are green. Use the normal release workflow and its explicit production authorization gate; do not perform an ad hoc deployment or bypass a HOLD.
-4. Verify canonical domain alias maps to the exact deployment built from `60af86...` (or a later reviewed main SHA), not merely a READY deployment with an older SHA.
+3. Verify the current main `0e3571682905628bbadc9f7ad8fef70bad9ee39f` is the intended candidate and that all required source/CI checks are green. Use the normal release workflow and its explicit production authorization gate; do not perform an ad hoc deployment or bypass a HOLD.
+4. Verify canonical domain alias maps to the exact deployment built from `0e3571682905628bbadc9f7ad8fef70bad9ee39f` (or a later reviewed main SHA), not merely a READY deployment with an older SHA.
 5. Re-run the independent two-tenant Production HTTP isolation test only after served deployment identity and Neon target identity have been verified before any writes. Require both tenants’ own asset creation, cross-tenant read/write denial, and complete cleanup. Record actual HTTP status/error for any failure.
 6. Recheck Legal routes only after the live service responds. A 402 does not prove 404 or page content. Publish only rights-holder/legal-approved content.
 7. Rebuild the final commercial package only from the exact accepted main SHA and exact deployment evidence. Bind every artifact and checksum to that same release.
@@ -107,4 +107,4 @@ Do not alter or silently remove these residuals.
 
 `NOT CLOSED`.
 
-The main source/CI checks passed on `60af86...`, but Production deployment is skipped/disabled, live health is not verified, WAF is log-only, Neon Free has limited recovery and no scheduled backups, license notices/legal clearance are unfinished, and buyer-owned residuals remain. This document is a pre-billing handoff, not authorization to claim production release or commercial closure.
+The main source/CI checks passed on `0e3571682905628bbadc9f7ad8fef70bad9ee39f`, but Production deployment is skipped/disabled, live health is not verified, WAF is log-only, Neon Free has limited recovery and no scheduled backups, license notices/legal clearance are unfinished, and buyer-owned residuals remain. This document is a pre-billing handoff, not authorization to claim production release or commercial closure.
