@@ -1,8 +1,11 @@
 # OpsCore — Buyer Delivery Boundary
 
-**Delivery decision: HOLD — SOURCE CANDIDATE ONLY — NO LICENSE GRANT — NO SELF-HOSTED PRODUCTION QUALIFICATION.**
+**Delivery status: HOLD — NO BUYER LICENSE GRANT / NO DELIVERY BEFORE EXECUTED SCHEDULE.**  
+**Self-hosted production: BLOCKED — NOT QUALIFIED.**
 
-This repository, any deployment, checksum, SBOM, test report, attestation or generated archive does not grant permission to access, use, install, run, inspect, copy, modify, host, publish, distribute, sell, resell, sublicense, rent, transfer or commercially exploit the software. The root `NO_LICENSE_GRANT_NOTICE.txt` remains controlling. Delivery and buyer use require a written License Schedule executed by the rights holder and the named buyer for the exact deliverable.
+This repository, any deployment, checksum, SBOM, test report, attestation or generated archive does not grant permission to access, use, install, run, inspect, copy, modify, host, publish, distribute, sell, resell, sublicense, rent, transfer or commercially exploit the software. The root `NO_LICENSE_GRANT_NOTICE.txt` remains controlling. Delivery and buyer use require a written License Schedule executed and signed by the rights holder and the named buyer for the exact deliverable.
+
+Seller advertising, listings, demonstrations and negotiations may happen before a buyer is known. These activities do not grant buyer rights or authorize delivery.
 
 ## Intended delivery model
 
