@@ -1,106 +1,61 @@
 # OpsCore — Buyer Evidence Index
 
-**Evidence cut:** 2026-11-19  
-**Protected main at evidence cut:** [`d672dce8f18e1d7095aed3126aedb0f995796144`](https://github.com/mosamiryamany-hub/opscore-platform/commit/d672dce8f18e1d7095aed3126aedb0f995796144)  
-**Live Production deployment:** `dpl_AgWqB4kaSRXhdsmKfvXg9qgeQgt9`  
-**Live Production application-code SHA:** `68505535f1c2fabd2a786094f8f64d234d26e123` — Production is still pinned to this earlier application revision; protected main at the evidence cut `d672dce8...` includes PR #292 trust-proof UI changes not yet in Production
+**Evidence cut:** 2026-11-24  
+**Repository:** `mosamiryamany-hub/opscore-platform`  
+**Main SHA:** `6859b5d86f13ba9f481ed8fce5cc95c729d22b55`  
+**Current-main run:** [45360794536](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45360794536)
 
-> This index separates merged source from deployed Production. Provider READY, green CI, and RLS catalog state are not equivalent to Production release certification.
+> This index supersedes historical deployment, CI, and release identifiers copied into older buyer documents. The evidence below is scoped to the named source revision and test target. It is not a self-hosted production or external certification.
 
-## Public live checks
+## Current source and CI evidence
 
-- Health: https://opscore-platform.vercel.app/api/health
-- Login (live 307 redirect to Control Plane): https://opscore-platform.vercel.app/login
-- Release proof: https://opscore-platform.vercel.app/api/verify/release
-- Deployment identity: https://opscore-platform.vercel.app/api/verify/deployment
-- Database security: https://opscore-platform.vercel.app/api/verify/database-security
-- Human-readable release proof: https://opscore-platform.vercel.app/verify/release.html
+| Check | Result | Scope |
+|---|---|---|
+| Protected main reference | VERIFIED | GitHub branch metadata |
+| `verify` | PASS | GitHub Actions run 45360794536 |
+| `vercel-source-verify` | PASS | Source validation |
+| `vercel-contract-verify` | PASS | Contract validation |
+| Isolated PostgreSQL RLS/HTTP acceptance | PASS | Disposable CI PostgreSQL |
+| CodeQL Actions | PASS | Static analysis |
+| CodeQL JS/TS | PASS | Static analysis |
+| CodeQL Python | PASS | Static analysis |
+| Vercel Production deploy job | SKIPPED | No production deployment from this run |
+| Neon Preview migration and HTTP acceptance | SKIPPED | No Preview acceptance from this run |
+| Historical Production Neon PITR probe | SKIPPED | No current PITR proof from this run |
+| Exact-head Secure Release archive | NOT ESTABLISHED | Must be produced for the eventual deliverable commit |
+| Buyer-controlled self-hosted deployment | NOT RUN | No buyer target evidence |
+| External accreditation | NONE CLAIMED | No independent assessor certificate is evidenced |
 
-## Main and CI references
+Main branch protection was read as enabled. This index does not claim that all branch rules, secrets, or account-level controls have been independently reverified.
 
-- Protected main at evidence cut: https://github.com/mosamiryamany-hub/opscore-platform/commit/d672dce8f18e1d7095aed3126aedb0f995796144
-- Deployed application-code commit: https://github.com/mosamiryamany-hub/opscore-platform/commit/68505535f1c2fabd2a786094f8f64d234d26e123
-- PR #290 — live login route: https://github.com/mosamiryamany-hub/opscore-platform/pull/290
-- PR #291 — evidence traceability ledger: https://github.com/mosamiryamany-hub/opscore-platform/pull/291
-- Latest OpsCore CI: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44552772156
-- Latest PostgreSQL 18 isolated acceptance: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44552772494
-- PR #287 — login route and HTTP smoke test: https://github.com/mosamiryamany-hub/opscore-platform/pull/287
-- PR #288 — fail-closed trust-proof correction: https://github.com/mosamiryamany-hub/opscore-platform/pull/288
-- Current-main OpsCore CI: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44552772156
-- Current-main source/PostgreSQL 18/contract workflow: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44552772494
-- Earlier authorized Production workflow attempt: https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44529428910
+## Self-hosted qualification blockers
 
-## Current status
+1. Signed tenant-context policy is coupled to Vercel Preview/Production environment checks and Vercel release readiness.
+2. Release proof uses Vercel deployment identity and Neon-specific production evidence.
+3. PostgreSQL migration target validation is Neon-specific; a generic customer-managed PostgreSQL target is not implemented/qualified.
+4. The PostgreSQL Compose file is a database service, not a complete application production stack.
+5. Buyer-specific TLS ingress, persistent file storage, secret management, backups, restore, monitoring, upgrades and buyer target acceptance are not evidenced.
 
-| Evidence | State |
-|---|---|
-| Current main and branch protection | Verified |
-| Current-main source regression CI | PASS |
-| Disposable PostgreSQL 18 and contract acceptance | PASS |
-| Current Production app-code source | NOT CURRENT — Production remains on `68505535...`; main at the evidence cut `d672dce8...` includes PR #292 UI code |
-| Vercel live deployment source | `68505535...`; does not yet include the evidence-cut main revision `d672dce8...` |
-| PR #292 Preview build | READY — `dpl_DCQk2TbxtCoMHLDCEQ8pN4W33ay1`, exact SHA `d672dce8...`; SSO-protected; not Production |
-| Live health | Healthy / PostgreSQL / 0.11.62 |
-| Live `/login` | Redirects to `/control-plane.html` |
-| Live release proof | UNVERIFIED |
-| Live deployment proof | Identified through `vercel-git-metadata`; this is native Git identity, not a GitHub Actions signature |
-| Embedded GitHub Actions identity/package attestation | Not established in live Production |
-| Production acceptance evidence | NOT_VERIFIED |
-| 67-route signed-session Production coverage | NOT_VERIFIED (CI-only route coverage is not Production) |
-| Production session tenant boundary | NOT_VERIFIED |
-| Production recovery / full data parity | NOT_VERIFIED |
-| Production-wide isolation certification | NOT_CERTIFIED |
-| Current-main release archive/SBOM/provenance | Not produced |
-| Buyer-specific license | Not granted |
+Details and the required engineering plan are in [Self-Hosted Buyer Edition](SELF_HOSTED_BUYER_EDITION_2026-11-24.md).
 
-## Neon restore note
+## Buyer scope
 
-Neon Free, PostgreSQL 18.7. Production database is `opscore_acceptance`; Primary `br-proud-salad-bcshhdap` is ready/default but unprotected; automatic snapshot schedule is empty. Four branches and one manual snapshot are retained. Fresh read-only comparison of Primary vs restore branch `br-calm-poetry-bc7l7wik`: `activity_log` 20/17 rows; `audit_log` 59/54; `firewall_rate_buckets` 1/1 but content digest differs; `integration_outbox` 20/17; `organizations` 18/16; `users` 18/16. No row contents were returned or changed. Exact parity is not proven; preserve Primary and all recovery artefacts.
+The proposed product is a source-code handoff for buyer-controlled infrastructure, not a subscription to seller hosting. Seller Vercel/Neon accounts, domains, databases, records, credentials and uptime are excluded unless a separate signed transfer agreement says otherwise.
 
-## Latest CI evidence scope
+Expo mobile source is included; signed native binaries, device QA and store publication are not. Machine-assisted translation remains disclosed; native-speaker review is not established. Licensed maps/road-routing and external provider accounts are not included. Payment processing is disabled until provider setup and live acceptance.
 
-The latest completed current-main push runs on `d672dce8...` passed: OpsCore source/regression/performance/security/mobile CI (`44552772156`) and source plus disposable PostgreSQL 18 acceptance (`44552772494`). The isolated database job reported a 346-route source-derived CI matrix and a 137-table logical restore drill, with RLS, composite tenant FKs, HTTP runtime acceptance and cleanup checks. Production deploy, Neon Preview migration/HTTP acceptance and Production PITR jobs were skipped. These results are CI/disposable-database evidence only, not Production certificates. Production remains on application SHA `68505535...`; PR #292's trust-proof UI is merged to main and built as an SSO-protected Preview only.
+## Commercial / legal boundary
 
-## Commercial boundary
+Package metadata is `UNLICENSED`. The root `NO_LICENSE_GRANT_NOTICE.txt` controls. This repository, this index, CI, SBOM, signatures, ZIPs and deployment evidence grant no buyer rights. Use, modification, hosting, redistribution, resale and sublicensing require an executed rights-holder/buyer License Schedule pinning the exact deliverable. The existing tier framework is not itself a grant.
 
-The repository package is `UNLICENSED`. No use, modification, resale, or distribution rights are granted by the repository, website, or this evidence index. Current-main archive SHA-256, SBOM/provenance, and a rights-holder-authorized License Schedule must exist before a buyer-specific grant is made. This does not make a buyer signature a prerequisite for describing the engineering state of the project.
+Third-party licence inventory is not legal clearance. Two SBOM components have no declared licence expression in the 2026-11-24 inventory and require resolution before claiming complete licence clearance.
 
-See the full [Client Trust Pack](CLIENT_TRUST_PACK.md), [Current closeout ledger](../ops/REMAINING_CLOSEOUT_GATES.md), [License Schedule template](LICENSE_SCHEDULE_TEMPLATE.md), and [No License Grant notice](../../NO_LICENSE_GRANT_NOTICE.txt).
+## Required next evidence
 
-## Superseding code-only sale scope — 2026-11-23
+- Fresh Secure Release artifact for the exact delivery commit, with archive SHA-256, SBOM, signature/provenance and same-run tests.
+- Provider-neutral self-hosted release profile, migration target and signed tenant-context gates.
+- Clean-install, migration, upgrade, HTTP/business-flow, tenant-boundary, backup/restore and rollback CI on a reproducible self-hosted PostgreSQL stack.
+- Buyer-controlled target acceptance for the exact artifact and deployment.
+- Executed buyer-specific License Schedule. Resale/redistribution rights must be explicit, not inferred.
 
-The deliverable is source code plus the exact release/evidence package. Seller Vercel website, seller Production deployment, seller Neon database and seller operational data are excluded. No paid Neon/Vercel plan upgrade is required or authorized. Seller infrastructure health and backup schedules are not buyer-code acceptance gates.
-
-Exact release evidence and the current full-site closeout scope are documented in [Full-site Closeout Scope](SELLER_CODE_ONLY_CLOSEOUT_2026-11-23.md): main `fbc4a3082325dff98e2ed41fffe42c3d76863254`, Secure Release run `45122272270`, archive SHA-256 `7783d6614c033ecf85ee181db394fbd499dccd8f19a0b0509b97d0495e69c6ac`, CycloneDX 1.6 SBOM, Sigstore verification, tamper rejection and wrong-signer rejection. One conditional release-tag check was skipped because no tag was supplied; it is not reported as a pass.
-
-Current locale catalog: exactly 105 (1 English source, 100 machine-assisted drafts, 4 English fallbacks); 0 native-speaker reviewed and 0 production-qualified. The historical 114-row qualification matrix is not the current catalog.
-
-Seller-side code gates remain: complete applicable test accounting on exact source, isolated PostgreSQL migration/schema/RLS/tenant/FK tests, dependency/security audits, deterministic SBOM/provenance, archive/signature verification, clean-room reproducibility, and exact-source trust-link reconciliation. External ISO/SOC2/PCI certificates are not evidenced and cannot be self-issued by CI. Buyer environment acceptance and license grant remain separate.
-
-
-## Superseding full-site evidence update — 2026-11-23
-
-This section supersedes the preceding code-only sale paragraph. The current owner-approved scope includes the seller Vercel website, Production deployment, Neon Production database and recovery posture, and six legal/commercial pages.
-
-- Evidence-cut `main`: `5e3cb211b7660002418757612033ff8928f25b69`; PR #401 merged.
-- OpsCore CI run `45129195704`: 990 total / 987 passed / 0 failed / 3 skipped (`PASS_WITH_SKIPS`).
-- PostgreSQL 18 acceptance run `45129195834`: HTTP commercial acceptance 1/1 PASS; PostgreSQL firewall rate-limit 1/1 PASS; tenant matrix 2/2 PASS; 346 source-derived tenant routes PASS; disposable logical restore 137 tables PASS.
-- The three generic-runner skips were separately run and passed in the isolated PostgreSQL job. Do not relabel the generic runner's own result.
-- Production deployment remains `dpl_FVXwPoqefvkNsxA3BqVrxYnxRQka` on `88df9046...`; one READY Production-target deployment `dpl_9Xnqs1UrK74N7YpVr6s11S2KJ2Ur` exists for `5e3cb211...` but has no domain alias; `opscore-platform.vercel.app` resolves to `dpl_FVXwPoqefvkNsxA3BqVrxYnxRQka` on `88df9046...`. Current main `3f7d9110...` has zero Production deployments. The successful push workflow did not run the separately gated Production deploy job.
-- Vercel WAF: active CRS/Bot Protection rules are log-only; auth rate limit is active at 60/IP/60s; active attack query returned no anomalies.
-- Neon Free: 6-hour history, one existing manual snapshot, no scheduled backups, Primary unprotected due plan limit. Two restore branches from the same snapshot matched SHA-256 content digests across 136/136 public tables, while Primary-versus-restore differences remain expected historical point-in-time divergence, not current parity.
-- Production proof binding remains open: the code uses a textual certification flag and evidence pinned to a probe deployment; the workflow subsequently builds a separate staged deployment. Same-final-deployment certification is not established.
-- Six legal/commercial pages were reported 404 by the supplied probe; publishing requires owner-approved legal and commercial facts.
-- Historical GitHub, Vercel and Neon credentials require provider-side revocation and replacement; connected actions cannot revoke those account-level tokens.
-
-The full measured register is in [Buyer Residuals](../BUYER_RESIDUALS.md) and [Full-site Closeout Scope](SELLER_CODE_ONLY_CLOSEOUT_2026-11-23.md). Current decision: **OPEN**. No license grant or independent external certification is evidenced.
-
-
-**Buyer-transfer boundary:** This full-site closeout measures the seller's own Vercel/Neon operations and website. It does not transfer seller Vercel or Neon accounts, customer records, live database contents, domains, or hosting to a buyer. The buyer deliverable remains source code and release evidence unless a separate written transfer agreement explicitly adds hosted services or data migration.
-
-
-- Language boundary remains explicit: 105 selectable locales (1 English source, 100 machine-assisted drafts, 4 English fallbacks); 0/105 native-speaker reviewed and 0/105 production-qualified. The 114-row qualification register is historical, not the selectable catalog.
-- Android/iOS signed builds, physical-device QA and app-store publication require buyer signing keys/accounts and remain buyer-side or separately contracted.
-
-
-PR #403 adds an explicit `productionIsolationCertificationScope` to distinguish catalog-only status from behavioral evidence bound to the running deployment. This contract update remains pending normal review/merge.
+**Classification at evidence cut: SOURCE-CODE CANDIDATE / SELF-HOSTED PRODUCTION BLOCKED / NO LICENSE GRANT / NO EXTERNAL CERTIFICATION.**
