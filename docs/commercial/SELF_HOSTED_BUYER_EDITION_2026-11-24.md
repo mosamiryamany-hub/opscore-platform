@@ -1,12 +1,12 @@
 # OpsCore — Self-Hosted Buyer Edition (Source Candidate)
 
-**Evidence cut:** 2026-11-24  
+**Evidence snapshot:** 2026-11-24 10:43 UTC (pre-PR #436)  
 **Controlling classification:** `SOURCE-CODE CANDIDATE`  
 **Self-hosted production support:** `BLOCKED — NOT YET VERIFIED`  
 **External certification:** `NONE CLAIMED`  
 **Buyer licence / delivery authority:** `NONE — RIGHTS-HOLDER SCHEDULE REQUIRED`
 
-> This document supersedes older sales, deployment, and buyer-evidence statements wherever they conflict with the status below. Historical pipeline IDs, deployment IDs, and package hashes in older documents are not evidence for this candidate.
+> This document is a dated snapshot for main `f71b8eee32631c833dda8115af8508ae1ccc1a63`, immediately before PR #436. It does not certify PR #436 or a later `main` commit. Historical pipeline IDs, deployment IDs, and package hashes in older documents are not evidence for a different source revision.
 
 ## 1. The intended product boundary
 
@@ -25,13 +25,13 @@ The buyer is intended to own and control:
 
 | Item | Observed result | Scope |
 |---|---|---|
-| Protected `main` | `d243a428bb44b4cbd0d1fd768cb907d0e9fcbdb1` | Git reference verified 2026-11-24 |
-| OpsCore `verify` | PASS (21/21) | [Run 45374083091](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083091) |
-| `vercel-source-verify` | PASS (18/18) | [Run 45374083161](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083161) |
-| `vercel-contract-verify` | PASS (3/3) | [Run 45374083161](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083161) |
-| Isolated PostgreSQL RLS/HTTP acceptance | PASS (3/3) | [Run 45374083161](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083161) |
-| Deploy-bound PostgreSQL 18 acceptance | PASS (30/30) | [Run 45374083161](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083161) |
-| CodeQL Actions / JS-TS / Python | PASS | [Run 45374082761](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374082761) |
+| Protected `main` | `f71b8eee32631c833dda8115af8508ae1ccc1a63` | Git reference verified 2026-11-24 |
+| OpsCore `verify` | PASS_WITH_SKIPS — 1,021 passed, 0 failed, 3 skipped | [Run 45377527984](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083091) |
+| `vercel-source-verify` | PASS — all job steps completed | [Run 45377522840](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083161) |
+| `vercel-contract-verify` | PASS | [Run 45374083161](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083161) |
+| Isolated PostgreSQL RLS/HTTP acceptance | PASS | [Run 45374083161](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083161) |
+| Deploy-bound PostgreSQL 18 acceptance | PASS (disposable PostgreSQL 18 target) | [Run 45374083161](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083161) |
+| CodeQL Actions / JS-TS / Python | PASS | [Run 45377523517](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374082761) |
 | Production deployment job | SKIPPED | Not a deployment success |
 | Neon Preview migration and HTTP acceptance | SKIPPED | No Preview acceptance established by this run |
 | Historical Production Neon PITR probe | SKIPPED | No current PITR proof established by this run |
@@ -73,7 +73,7 @@ Do not describe this as:
 | Gate | Current code condition | Status |
 |---|---|---|
 | Signed tenant context | `backend/src/signed-tenant-context-policy.js` enables Preview by `VERCEL_ENV=preview` and Production through Vercel-specific readiness, release flags, and `VERCEL_ENV=production`. A normal self-hosted process does not satisfy that contract. | **BLOCKED** |
-| Release identity/proof | A separate Ed25519 self-hosted identity verifier and explicit selector on the existing `/api/verify/release` route now exist. `OPSC_RELEASE_PROOF_MODE=self-hosted` selects it; the default Vercel proof is unchanged. A buyer-pinned public key is mandatory. The result is only a trusted-operator attestation of signed claims; it does not independently measure the archive, TLS endpoint or database, does not open traffic, and never returns `CERTIFIED`. | **PARTIALLY IMPLEMENTED — NOT END-TO-END QUALIFIED** |
+| Release identity/proof | A separate Ed25519 self-hosted identity verifier and explicit selector on the existing `/api/verify/release` route now exist. `OPSC_RELEASE_PROOF_MODE=self-hosted` selects it; the default Vercel proof is unchanged. A buyer-pinned public key is mandatory. The verifier accepts an operator-signed statement; PR #436 adds a separate collector that measures archive SHA-256, live TLS peer-certificate digest and a limited set of PostgreSQL identity/global role attributes. No buyer measurements have been run. The collector does not prove full effective grants, archive build provenance, absence of all proxies or production readiness; it never returns `CERTIFIED`. | **PARTIALLY IMPLEMENTED — NOT END-TO-END QUALIFIED** |
 | PostgreSQL migration targeting | `backend/scripts/apply-postgres-migrations.js` accepts `preview`, `test`, and `production` target classes, validates Neon endpoint/project/branch identity, and expects the Neon owner role. It does not currently expose a reviewed generic customer-managed PostgreSQL target. | **BLOCKED** |
 | Full self-hosted install topology | `backend/docker-compose.postgres.yml` defines the PostgreSQL service only; it is not a complete app + database + ingress + persistent file-storage production stack. | **NOT PROVIDED** |
 | Docker build context | The backend Dockerfile uses `COPY . .`; there was no backend `.dockerignore` at the evidence cut. The companion change adds one to exclude secrets, local data and build residue from the image context. | **HARDENING CHANGE — REQUIRES CI BUILD CHECK** |
