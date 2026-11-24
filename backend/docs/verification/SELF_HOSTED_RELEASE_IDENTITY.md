@@ -84,7 +84,7 @@ node backend/scripts/collect-self-hosted-release-identity.js \
   --output /secure/path/SELF_HOSTED_RELEASE_IDENTITY.json
 ```
 
-The collector requires PostgreSQL `sslmode=verify-full`; a private CA may be supplied with `OPSC_SELF_HOSTED_DB_CA_FILE` or `sslrootcert`. It refuses any role with an elevated privilege flag. The direct-connection boolean is still an explicit operator confirmation, not something PostgreSQL can universally prove through an arbitrary proxy.
+The collector requires PostgreSQL `sslmode=verify-full`; a private CA may be supplied with `OPSC_SELF_HOSTED_DB_CA_FILE` or `sslrootcert`. It refuses any role with one of the measured global privilege flags (`BYPASSRLS`, superuser, `CREATEROLE`, or `CREATEDB`). This is not a complete effective SQL-permission audit: object-level grants, `PUBLIC` grants, function privileges and role-membership-derived access are outside this collector's present measurement scope. Do not describe the result as proof that every database grant is least-privilege. The direct-connection boolean is still an explicit operator confirmation, not something PostgreSQL can universally prove through an arbitrary proxy. The output file is created exclusively with owner-only permissions (`0600` on POSIX); an existing output path is rejected rather than overwritten.
 
 **Remaining operator responsibility:** confirm that the archive was built from the exact measured commit and that the endpoint is genuinely direct. The script measures the archive, live HTTPS certificate and live database role; it does not establish build provenance or inspect arbitrary network proxies. The signed statement authenticates those measurements to the public key pinned in the buyer runtime.
 
