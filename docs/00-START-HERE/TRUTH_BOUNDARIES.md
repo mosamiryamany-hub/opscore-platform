@@ -16,7 +16,8 @@ These results prove only the tests and targets run by that workflow. They do not
 - Neon Preview migration and HTTP acceptance: SKIPPED.
 - Historical Production Neon PITR probe: SKIPPED.
 - Exact-head Secure Release archive: NOT ESTABLISHED.
-- Provider-neutral self-hosted release and migration support: BLOCKED by Vercel/Neon coupling in current code.
+- Release proof: a distinct Ed25519 self-hosted operator-attestation mode is implemented on the existing endpoint; it verifies signed claims only and does not independently measure archive/TLS/database facts.
+- Self-hosted tenant-context activation and provider-neutral PostgreSQL migrations: BLOCKED by Vercel/Neon-specific coupling in current code.
 - Buyer-controlled self-hosted installation and acceptance: NOT RUN.
 - External ISO 27001, SOC 2, PCI DSS or other accreditation: NONE CLAIMED.
 - Buyer licence and distribution authorization: NONE until an exact-deliverable License Schedule is executed.
