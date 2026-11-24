@@ -3,25 +3,22 @@
 /**
  * Self-hosted release proof.
  *
- * The Vercel release proof (/api/verify/release) reads evidence bound to a Vercel
- * deployment id (dpl_...) and a Neon branch. A buyer-owned host can never satisfy
- * that identity, so a self-hosted install could open traffic (see firewall
- * productionSafetyGate: OPSC_PRODUCTION_HOLD=false) yet still report UNVERIFIED.
+ * This gate verifies a buyer-operator's Ed25519-signed identity statement.
+ * The runtime trusts only a public key explicitly pinned in its environment.
+ * A plain SHA-256 checksum is not an identity or authenticity mechanism.
  *
- * This module supplies the missing, platform-neutral proof. It is intentionally
- * pure and fail-closed:
- *   - nothing here reads process.env implicitly unless the caller asks for it;
- *   - no field defaults to "trusted"; every attested field must be present and exact;
- *   - the database identity must describe a least-privilege runtime role;
- *   - the identity is bound to an archive digest and a TLS certificate digest;
- *   - a detached attestation digest binds all of the above together.
- *
- * It never weakens the Vercel path: that path stays unchanged and remains the only
- * source of CERTIFIED on Vercel. This is an additional, disjoint gate.
+ * IMPORTANT BOUNDARY:
+ * A valid signature proves that the holder of the trusted private key signed
+ * the declared measurements. This module does not itself collect the archive,
+ * TLS certificate, or database facts. Those facts must be measured by the
+ * operator's controlled release procedure before signing. PASS therefore means
+ * "trusted operator attestation verified", not independent infrastructure
+ * certification and never CERTIFIED.
  */
 
 const crypto = require('node:crypto');
 const fs = require('node:fs');
+const path = require('node:path');
 
 const SCHEMA_VERSION = 'opscore.self-hosted-release-identity.v1';
 const GATE_ID = 'selfHostedReleaseProof';
@@ -29,9 +26,10 @@ const MODE = 'SELF_HOSTED';
 const SHA40 = /^[a-f0-9]{40}$/;
 const SHA64 = /^[a-f0-9]{64}$/;
 const HOSTNAME_RE = /^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$/i;
+const KEY_ID_RE = /^[a-zA-Z0-9._-]{1,64}$/;
 const DEFAULT_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
 const FUTURE_TOLERANCE_MS = 5 * 60 * 1000;
-const DEFAULT_IDENTITY_PATH = require('node:path').join(
+const DEFAULT_IDENTITY_PATH = path.join(
   __dirname, '..', 'docs', 'verification', 'SELF_HOSTED_RELEASE_IDENTITY.json'
 );
 
@@ -48,10 +46,6 @@ const ATTESTED_FIELDS = Object.freeze([
 
 const PRIVILEGE_FLAGS = Object.freeze(['bypassRls', 'superuser', 'createRole', 'createDb']);
 
-function sha256Hex(value) {
-  return crypto.createHash('sha256').update(value).digest('hex');
-}
-
 function canonicalJson(value) {
   if (Array.isArray(value)) return '[' + value.map(canonicalJson).join(',') + ']';
   if (value && typeof value === 'object') {
@@ -64,10 +58,11 @@ function canonicalJson(value) {
   return JSON.stringify(value === undefined ? null : value);
 }
 
-function attestationDigest(identity) {
+function attestationPayload(identity, keyId) {
   const payload = {};
   for (const field of ATTESTED_FIELDS) payload[field] = identity ? identity[field] : undefined;
-  return sha256Hex(canonicalJson(payload));
+  payload.keyId = keyId;
+  return Buffer.from(canonicalJson(payload), 'utf8');
 }
 
 function sanitizedDatabase(database) {
@@ -92,10 +87,63 @@ function untrusted(reasons, now) {
   };
 }
 
+function verifyAttestation(identity, options, reasons) {
+  const attestation = identity.attestation;
+  if (!attestation || typeof attestation !== 'object' || Array.isArray(attestation)) {
+    reasons.push('SELF_HOSTED_ATTESTATION_MISSING');
+    return false;
+  }
+  if (String(attestation.algorithm || '').trim().toLowerCase() !== 'ed25519') {
+    reasons.push('SELF_HOSTED_ATTESTATION_ALGORITHM_UNSUPPORTED');
+    return false;
+  }
+  const keyId = String(attestation.keyId || '').trim();
+  if (!KEY_ID_RE.test(keyId)) reasons.push('SELF_HOSTED_ATTESTATION_KEY_ID_INVALID');
+
+  const expectedKeyId = String(options.expectedKeyId || '').trim();
+  if (expectedKeyId && keyId !== expectedKeyId) {
+    reasons.push('SELF_HOSTED_ATTESTATION_KEY_ID_MISMATCH');
+  }
+
+  const publicKeyPem = String(options.trustedPublicKey || '').trim();
+  if (!publicKeyPem) {
+    reasons.push('SELF_HOSTED_ATTESTATION_TRUST_KEY_MISSING');
+    return false;
+  }
+
+  const signatureText = String(attestation.signature || '').trim();
+  let signature;
+  try {
+    signature = Buffer.from(signatureText, 'base64');
+    if (!signatureText || signature.toString('base64') !== signatureText || signature.length !== 64) {
+      reasons.push('SELF_HOSTED_ATTESTATION_SIGNATURE_INVALID');
+      return false;
+    }
+  } catch {
+    reasons.push('SELF_HOSTED_ATTESTATION_SIGNATURE_INVALID');
+    return false;
+  }
+
+  try {
+    const publicKey = crypto.createPublicKey(publicKeyPem);
+    if (publicKey.asymmetricKeyType !== 'ed25519') {
+      reasons.push('SELF_HOSTED_ATTESTATION_TRUST_KEY_TYPE_INVALID');
+      return false;
+    }
+    const valid = crypto.verify(null, attestationPayload(identity, keyId), publicKey, signature);
+    if (!valid) reasons.push('SELF_HOSTED_ATTESTATION_SIGNATURE_MISMATCH');
+    return valid;
+  } catch {
+    reasons.push('SELF_HOSTED_ATTESTATION_TRUST_KEY_INVALID');
+    return false;
+  }
+}
+
 function evaluateSelfHostedReleaseIdentity(identity, options = {}) {
   const now = options.now instanceof Date ? options.now : new Date(options.now === undefined ? Date.now() : options.now);
-  const maxAgeSeconds = Number.isFinite(Number(options.maxAgeSeconds))
-    ? Number(options.maxAgeSeconds)
+  const maxAgeCandidate = Number(options.maxAgeSeconds);
+  const maxAgeSeconds = Number.isFinite(maxAgeCandidate) && maxAgeCandidate > 0
+    ? maxAgeCandidate
     : DEFAULT_MAX_AGE_SECONDS;
 
   if (!identity || typeof identity !== 'object' || Array.isArray(identity)) {
@@ -143,7 +191,7 @@ function evaluateSelfHostedReleaseIdentity(identity, options = {}) {
     if (engine !== 'postgres' && engine !== 'postgresql') {
       reasons.push('SELF_HOSTED_DATABASE_ENGINE_UNSUPPORTED');
     }
-    if (!/^[0-9]+(?:\.[0-9]+){0,2}/.test(String(database.serverVersion || '').trim())) {
+    if (!/^[0-9]+(?:\.[0-9]+){0,2}$/.test(String(database.serverVersion || '').trim())) {
       reasons.push('SELF_HOSTED_DATABASE_VERSION_INVALID');
     }
     if (!String(database.database || '').trim()) reasons.push('SELF_HOSTED_DATABASE_NAME_MISSING');
@@ -171,23 +219,22 @@ function evaluateSelfHostedReleaseIdentity(identity, options = {}) {
 
   if (!String(identity.issuedBy || '').trim()) reasons.push('SELF_HOSTED_IDENTITY_ISSUER_MISSING');
 
-  const attestation = identity.attestation;
-  if (!attestation || typeof attestation !== 'object' || Array.isArray(attestation)) {
-    reasons.push('SELF_HOSTED_ATTESTATION_MISSING');
-  } else if (String(attestation.algorithm || '').trim().toLowerCase() !== 'sha256') {
-    reasons.push('SELF_HOSTED_ATTESTATION_ALGORITHM_UNSUPPORTED');
-  } else if (String(attestation.digest || '').trim().toLowerCase() !== attestationDigest(identity)) {
-    reasons.push('SELF_HOSTED_ATTESTATION_MISMATCH');
-  }
+  verifyAttestation(identity, options, reasons);
 
   if (reasons.length) return untrusted(reasons, now);
 
+  const keyId = String(identity.attestation.keyId).trim();
   return {
     status: 'PASS',
     gate: GATE_ID,
     mode: MODE,
     reasons: [],
     evaluatedAt: now.toISOString(),
+    attestation: {
+      algorithm: 'ed25519',
+      keyId,
+      verified: true
+    },
     identity: {
       schemaVersion: SCHEMA_VERSION,
       sourceCommit,
@@ -197,8 +244,7 @@ function evaluateSelfHostedReleaseIdentity(identity, options = {}) {
       tlsCertificateSha256,
       database: sanitizedDatabase(database),
       generatedAt: new Date(generatedAtMs).toISOString(),
-      issuedBy: String(identity.issuedBy).trim(),
-      attestationDigest: attestationDigest(identity)
+      issuedBy: String(identity.issuedBy).trim()
     }
   };
 }
@@ -230,7 +276,9 @@ function createSelfHostedReleaseProof(env = process.env, options = {}) {
   const result = evaluateSelfHostedReleaseIdentity(identity, {
     expectedCommit: options.expectedCommit || (env && (env.OPSC_SOURCE_COMMIT_SHA || env.OPSC_RELEASE_CI_COMMIT)),
     maxAgeSeconds: options.maxAgeSeconds,
-    now: options.now
+    now: options.now,
+    expectedKeyId: options.expectedKeyId || (env && env.OPSC_SELF_HOSTED_ATTESTATION_KEY_ID),
+    trustedPublicKey: options.trustedPublicKey || (env && env.OPSC_SELF_HOSTED_ATTESTATION_PUBLIC_KEY)
   });
   return {
     ...result,
@@ -248,8 +296,9 @@ module.exports = {
   DEFAULT_MAX_AGE_SECONDS,
   ATTESTED_FIELDS,
   PRIVILEGE_FLAGS,
+  KEY_ID_RE,
   canonicalJson,
-  attestationDigest,
+  attestationPayload,
   evaluateSelfHostedReleaseIdentity,
   readSelfHostedReleaseIdentity,
   createSelfHostedReleaseProof
