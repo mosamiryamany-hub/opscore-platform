@@ -22,7 +22,7 @@ A green CI result does not certify a buyer's server, PostgreSQL, TLS, backup/res
 
 The offer is a proposed source-code handoff for buyer-controlled infrastructure, not a seller-hosted subscription. Seller Vercel/Neon accounts, domains, production database, customer data, provider credentials and hosting service are excluded unless a separate signed transfer agreement explicitly includes them.
 
-The source is not yet qualified for provider-neutral self-hosted production. Vercel-specific signed tenant-context/release gating and Neon-specific PostgreSQL migration targeting remain open.
+The source is not yet qualified for provider-neutral self-hosted production. The release-verification endpoint now supports an explicit Ed25519 self-hosted operator-attestation mode, but Vercel-specific signed tenant-context activation and Neon-specific PostgreSQL migration targeting remain open. The attestation is not an independent measurement or end-to-end buyer deployment acceptance.
 
 ## Source scope
 
