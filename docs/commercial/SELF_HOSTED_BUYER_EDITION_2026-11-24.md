@@ -1,0 +1,126 @@
+# OpsCore — Self-Hosted Buyer Edition (Source Candidate)
+
+**Evidence cut:** 2026-11-24  
+**Controlling classification:** `SOURCE-CODE CANDIDATE`  
+**Self-hosted production support:** `BLOCKED — NOT YET VERIFIED`  
+**External certification:** `NONE CLAIMED`  
+**Buyer licence / delivery authority:** `NONE — RIGHTS-HOLDER SCHEDULE REQUIRED`
+
+> This document supersedes older sales, deployment, and buyer-evidence statements wherever they conflict with the status below. Historical pipeline IDs, deployment IDs, and package hashes in older documents are not evidence for this candidate.
+
+## 1. The intended product boundary
+
+The intended transaction is a **source-code handoff for deployment on infrastructure controlled by the buyer**. It is not a subscription to the seller's hosted website and does not include the seller's Vercel account, Neon account, domain, production database, customer records, provider credentials, or operating service.
+
+The buyer is intended to own and control:
+- compute, operating system/container runtime, network ingress, TLS certificates, DNS and firewall;
+- PostgreSQL hosting, database backups, retention, restore testing and database credentials;
+- secret management, encryption keys, monitoring, alerting, incident response and access administration;
+- third-party accounts, licences, API keys, quotas and service contracts;
+- any mobile signing identities, native build accounts and app-store submissions.
+
+**Important:** This is the target delivery model, not a claim that the current repository already supports a complete provider-neutral self-hosted production installation. The technical blockers in section 4 remain open.
+
+## 2. Exact repository evidence at this cut
+
+| Item | Observed result | Scope |
+|---|---|---|
+| Protected `main` | `6859b5d86f13ba9f481ed8fce5cc95c729d22b55` | Git reference verified 2026-11-24 |
+| Current-main validation run | [45360794536](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45360794536) | CI run for the evidence-cut commit |
+| `verify` | PASS | GitHub Actions result |
+| `vercel-source-verify` | PASS | Source/contract validation |
+| `vercel-contract-verify` | PASS | Contract validation |
+| `isolated-postgres-rls-and-http-acceptance` | PASS | Disposable isolated PostgreSQL acceptance |
+| CodeQL Actions / JS-TS / Python | PASS | Static analysis checks in the associated run |
+| Production deployment job | SKIPPED | Not a deployment success |
+| Neon Preview migration and HTTP acceptance | SKIPPED | No Preview acceptance established by this run |
+| Historical Production Neon PITR probe | SKIPPED | No current PITR proof established by this run |
+| Exact-head buyer release archive | NOT ESTABLISHED | A fresh Secure Release artifact for this exact evidence cut is required |
+
+These are **engineering test records**, not accredited certificates. A green CI run does not certify an independently operated installation, buyer database, buyer network, or every end-to-end workflow.
+
+## 3. What may be said in a sales conversation
+
+Permitted, evidence-bounded description:
+
+> “OpsCore is a multi-sector operational software source-code candidate with a web console, HTTP API, PostgreSQL assets and migrations, and Expo mobile source. The proposed delivery model is buyer-controlled deployment. The source has automated CI, isolated PostgreSQL/RLS acceptance, and static-analysis evidence on the stated source revision. A provider-neutral self-hosted production qualification and buyer-specific deployment acceptance are not yet complete.”
+
+Do not describe this as:
+- an independently certified production platform;
+- a turnkey or currently qualified self-hosted production installation;
+- ISO 27001, SOC 2, PCI DSS, or any other third-party certified product;
+- vulnerability-free, fully secure, or guaranteed compliant;
+- a signed/published Android or iOS application;
+- a live map, road-routing, telephony, WhatsApp, payment, email, or identity-provider integration unless the exact buyer's provider connection has been tested;
+- permission to resell, sublicense, redistribute, or host the source for third parties.
+
+## 4. Self-hosted production blockers — source-level findings
+
+| Gate | Current code condition | Status |
+|---|---|---|
+| Signed tenant context | `backend/src/signed-tenant-context-policy.js` enables Preview by `VERCEL_ENV=preview` and Production through Vercel-specific readiness, release flags, and `VERCEL_ENV=production`. A normal self-hosted process does not satisfy that contract. | **BLOCKED** |
+| Release identity/proof | `backend/src/release-proof.js` uses a Vercel release identity schema, Vercel deployment ID, GitHub Actions build identity and Neon-specific production evidence. It is not a provider-neutral self-hosted deployment attestation. | **BLOCKED** |
+| PostgreSQL migration targeting | `backend/scripts/apply-postgres-migrations.js` accepts `preview`, `test`, and `production` target classes, validates Neon endpoint/project/branch identity, and expects the Neon owner role. It does not currently expose a reviewed generic customer-managed PostgreSQL target. | **BLOCKED** |
+| Full self-hosted install topology | `backend/docker-compose.postgres.yml` defines the PostgreSQL service only; it is not a complete app + database + ingress + persistent file-storage production stack. | **NOT PROVIDED** |
+| Docker build context | The backend Dockerfile uses `COPY . .`; there was no backend `.dockerignore` at the evidence cut. The companion change adds one to exclude secrets, local data and build residue from the image context. | **HARDENING CHANGE — REQUIRES CI BUILD CHECK** |
+| Buyer environment acceptance | No exact buyer-controlled host, PostgreSQL instance, TLS ingress, backups, recovery, secrets or external-provider acceptance evidence exists in this repository evidence cut. | **NOT RUN** |
+
+No Vercel variables are to be spoofed and no Vercel Preview mode is to be used to simulate a self-hosted production environment. No Neon endpoint/project/branch identifiers are to be fabricated.
+
+## 5. Buyer-visible technical scope and exclusions
+
+### Included in the source candidate
+- web console and backend/API source;
+- PostgreSQL schema/migrations and database-adapter code;
+- application tests, validation scripts, release tooling and technical documentation;
+- Expo mobile source and lockfiles (source only).
+
+### Not included or not qualified
+- seller hosting, seller Vercel/Neon accounts, seller domain, seller database and customer data;
+- a provider-neutral self-hosted production deployment and signed self-hosted release qualification;
+- signed APK/AAB/IPA, device-level QA, signing keys or app-store publication;
+- native-speaker language review (latest sales evidence reports 0/114 reviewed; runtime selectable catalogue and qualification register have different denominators);
+- licensed maps, road-routing, provider attribution, API quotas or traffic ETA;
+- configured external OIDC/JWKS, email, SMS, WhatsApp, telephony/contact-center carriers, payment processing, object storage, KMS/HSM or buyer-specific webhook contracts;
+- an accredited external security/compliance certificate.
+
+Payment processing remains disabled unless a provider is selected, credentials are configured, signed webhooks are verified and the relevant flows are accepted in the target environment.
+
+## 6. Dependency and intellectual-property boundary
+
+The package metadata is `UNLICENSED`. The root `NO_LICENSE_GRANT_NOTICE.txt` remains controlling: **no buyer licence or delivery permission is granted by this repository, tests, deployment, evidence, release archive or this document**.
+
+- L1 (internal use only), L2 (use/modify/redistribute) and L3 (exclusive/IP assignment) are framework options, not grants.
+- A transaction requires a written License Schedule executed by the rights holder and the named buyer, referencing the exact source commit and/or package SHA-256.
+- Resale, hosting for third parties, sublicensing, OEM, source redistribution or marketplace distribution must be expressly selected and granted in that Schedule. A general L1/use-only grant does not include them.
+- Third-party package licences remain independent. The 2026-11-24 SBOM inventory is inventory evidence only, not legal clearance; two components in that inventory have no declared licence expression and require resolution before a legal-clearance claim.
+- Rights-holder identity and authority to sign remain a required transaction input; do not infer that authority from repository access.
+
+The seller may advertise, present and negotiate a prospective offer as allowed by the no-license notice. Do not deliver or authorize buyer use before the executed Schedule.
+
+## 7. Qualification work required before calling this a supported self-hosted production edition
+
+1. Implement a distinct, fail-closed self-hosted deployment profile. It must not impersonate Vercel Preview/Production and must not rely on a free-form “certified” environment flag.
+2. Implement provider-neutral PostgreSQL migration target identity and role checks. The generic target must require explicit operator opt-in, exact hostname/database confirmation, a dedicated migration principal, least-privilege runtime-role verification, transaction-safe migration application, and negative tests proving wrong-host/wrong-database refusal.
+3. Implement provider-neutral signed-release/deployment evidence. Verify the exact delivered archive, source commit, SBOM, signature/provenance and deployment identity without Vercel- or Neon-only assumptions.
+4. Gate signed tenant/session context on the validated self-hosted profile and run cross-tenant behavioral tests against the exact self-hosted PostgreSQL runtime role.
+5. Add a reproducible self-hosted app stack, including durable upload/object storage, TLS ingress guidance, health/readiness checks, secret boundaries, backup/restore and upgrade/rollback instructions. Do not ship a compose file that silently uses ephemeral storage as if it were production durable storage.
+6. Add CI for a clean provider-neutral self-hosted stack: first install, migration from empty, migration upgrade, full HTTP/business-flow acceptance, cross-tenant denial, restart, backup/restore, rollback rehearsal and cleanup. All results must bind to the same source commit and artifact.
+7. Run the release workflow again after changes. Publish only its exact artifact, SHA-256, SBOM and provenance. Separately run the customer-controlled acceptance plan on a buyer-owned target before claiming the buyer deployment is qualified.
+
+## 8. Status vocabulary for all buyer-facing reports
+
+Use exactly these meanings:
+- **PASS** — the named test ran and passed on the named target.
+- **FAIL** — the named test ran and failed.
+- **SKIPPED** — the test did not run; never count it as PASS.
+- **NOT RUN** — no execution evidence exists.
+- **NOT VERIFIED** — evidence is absent, stale, mismatched or insufficient.
+- **BLOCKED** — a known technical or authority prerequisite prevents qualification.
+- **NOT CERTIFIED** — no independent certification or scoped certification has been established.
+
+### القرار بالعربية
+
+النسخة الحالية **مرشح تسليم مصدر برمجي** يصلح للعرض والتفاوض وفق إشعار الحقوق، لكنها **ليست الآن نسخة تشغيل ذاتي إنتاجية معتمدة**. يوجد مانعان برمجيان مباشران على الأقل: بوابة سياق المستأجر مرتبطة بـVercel، وأداة ترحيل PostgreSQL مرتبطة بهوية Neon. اختبارات CI الناجحة دليل اختبارات بنطاقها فقط، وليست شهادات اعتماد خارجية. لا توجد حقوق استخدام أو إعادة بيع أو توزيع ممنوحة قبل توقيع جدول ترخيص محدد من صاحب الحقوق والمشتري.
+
+**قرار التسليم الحالي: HOLD — لا تسليم ولا استخدام للمشتري قبل الترخيص، ولا ادعاء اعتماد Self-Hosted Production قبل إغلاق البوابات أعلاه.**
