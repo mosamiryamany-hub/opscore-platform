@@ -20,7 +20,7 @@ This is an operator handoff and a point-in-time evidence register. It is not a r
 
 - Vercel project: `opscore-platform`; project id `prj_8jMqBt0l6OALicWSwQ3ECQTn8yPe`.
 - Last directly inspected Production deployment: `dpl_66C6JM3okLFrYj1LR5SngN2KALX4`, READY, source SHA `65de6e2dcd51e4cd04140cf8c6b67eb76d9c8402`.
-- Canonical domain: `opscore-platform.vercel.app`; domain record verified and alias previously mapped to the older deployment.
+- Canonical domain: `opscore-platform.vercel.app`; a separate domain lookup confirms the record is verified and attached to this project. Project metadata returned an empty `domains` array, and the latest Production deployment has `alias: []`; therefore the canonical domain's current routing to any deployment is NOT VERIFIED.
 - Project metadata reported `live=false`. No deployment for current main `0e3571682905628bbadc9f7ad8fef70bad9ee39f` was verified.
 - The owner’s direct measurement reports HTTP 402 `DEPLOYMENT_DISABLED` with Vercel team plan `pro`, subscription `canceled`. The connected Vercel team read in this review did not expose billing status, so the canceled state remains owner-supplied evidence; no billing mutation was performed.
 - Production environment-variable inventory was inspected without decrypting values. One security warning was found on `OPSC_TENANT_CONTEXT_HMAC_KEY`: legacy `type=encrypted` with `securityIssues=[readable-secret]`. I changed only its storage type to `sensitive` (`visibility=secret`), keeping the same variable id, Production target and value (no value was retrieved or rotated). A second read confirmed `type=sensitive`, `visibility=secret`, `securityIssues=[]`. This classification change applies to future deployments; it did not change the already-created deployment.
