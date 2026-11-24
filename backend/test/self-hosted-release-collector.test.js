@@ -98,3 +98,25 @@ test('archive SHA-256 is calculated from actual file bytes', async () => {
   const digest = await collector.sha256File(file);
   assert.equal(digest, require('node:crypto').createHash('sha256').update('buyer-release-archive').digest('hex'));
 });
+
+
+test('identity output is created exclusively with owner-only permissions and is never overwritten', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-selfhosted-output-'));
+  const file = path.join(dir, 'SELF_HOSTED_RELEASE_IDENTITY.json');
+  const first = { schemaVersion: 'test.v1', archiveSha256: 'a'.repeat(64) };
+
+  assert.equal(collector.writeIdentityFile(file, first), file);
+  assert.deepEqual(JSON.parse(fs.readFileSync(file, 'utf8')), first);
+
+  if (process.platform !== 'win32') {
+    const mode = fs.statSync(file).mode & 0o777;
+    assert.equal(mode & 0o077, 0, 'identity output must not be accessible by group or other users');
+    assert.notEqual(mode & 0o400, 0, 'identity output must remain readable by its owner');
+  }
+
+  assert.throws(
+    () => collector.writeIdentityFile(file, { ...first, changed: true }),
+    /OUTPUT_ALREADY_EXISTS/
+  );
+  assert.deepEqual(JSON.parse(fs.readFileSync(file, 'utf8')), first);
+});
