@@ -1,7 +1,7 @@
 # OpsCore — Client Inspection Package Status
 
 **Marketing:** MAY BE PRESENTED AS A SOURCE-CODE CANDIDATE WITH DISCLOSURES.  
-**Delivery:** HOLD — NO BUYER LICENCE GRANT.  
+**Delivery:** HOLD — **NO LICENSE GRANT — ALL RIGHTS RESERVED.** No buyer use or delivery before the signed Schedule.  
 **Self-hosted production:** BLOCKED — NOT QUALIFIED.  
 **External accreditation:** NONE CLAIMED.
 
