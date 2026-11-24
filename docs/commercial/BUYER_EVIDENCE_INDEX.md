@@ -31,7 +31,7 @@ Main branch protection was read as enabled. This index does not claim that all b
 ## Self-hosted qualification blockers
 
 1. Signed tenant-context policy is coupled to Vercel Preview/Production environment checks and Vercel release readiness.
-2. Release proof uses Vercel deployment identity and Neon-specific production evidence.
+2. A separate Ed25519 self-hosted release-identity verifier and selector on the existing `/api/verify/release` endpoint are implemented. They verify a trusted operator-signed statement only; they do not independently collect the archive/TLS/database facts, open production traffic, or qualify the complete buyer deployment.
 3. PostgreSQL migration target validation is Neon-specific; a generic customer-managed PostgreSQL target is not implemented/qualified.
 4. The PostgreSQL Compose file is a database service, not a complete application production stack.
 5. Buyer-specific TLS ingress, persistent file storage, secret management, backups, restore, monitoring, upgrades and buyer target acceptance are not evidenced.
@@ -53,7 +53,7 @@ Third-party licence inventory is not legal clearance. Two SBOM components have n
 ## Required next evidence
 
 - Fresh Secure Release artifact for the exact delivery commit, with archive SHA-256, SBOM, signature/provenance and same-run tests.
-- Provider-neutral self-hosted release profile, migration target and signed tenant-context gates.
+- Remaining self-hosted release work: independent archive/TLS/database measurement and CI provenance binding; provider-neutral migration target and signed tenant-context gates.
 - Clean-install, migration, upgrade, HTTP/business-flow, tenant-boundary, backup/restore and rollback CI on a reproducible self-hosted PostgreSQL stack.
 - Buyer-controlled target acceptance for the exact artifact and deployment.
 - Executed buyer-specific License Schedule. Resale/redistribution rights must be explicit, not inferred.
