@@ -146,7 +146,7 @@ function databaseIdentityFromRow(row, hostname) {
     if (value === false || value === 'f') return false;
     throw new Error('SELF_HOSTED_COLLECTOR_DATABASE_BOOLEAN_INVALID:' + field);
   };
-  return {
+  const result = {
     engine: 'postgres',
     serverVersion: String(row.server_version || '').trim(),
     database: String(row.database || '').trim(),
@@ -158,6 +158,16 @@ function databaseIdentityFromRow(row, hostname) {
     createRole: boolean(row.create_role, 'create_role'),
     createDb: boolean(row.create_db, 'create_db')
   };
+  if (!/^[0-9]+(?:\\.[0-9]+){0,2}$/.test(result.serverVersion)) {
+    throw new Error('SELF_HOSTED_COLLECTOR_DATABASE_VERSION_INVALID');
+  }
+  if (!result.database || !result.runtimeRole) {
+    throw new Error('SELF_HOSTED_COLLECTOR_DATABASE_IDENTITY_INCOMPLETE');
+  }
+  for (const flag of ['bypassRls', 'superuser', 'createRole', 'createDb']) {
+    if (result[flag] !== false) throw new Error('SELF_HOSTED_COLLECTOR_RUNTIME_ROLE_NOT_LEAST_PRIVILEGE:' + flag);
+  }
+  return result;
 }
 
 async function measureDatabaseIdentity(databaseUrl, env = process.env) {
