@@ -1,51 +1,48 @@
-# OpsCore v0.11.62 — Start Here (Buyer)
+# OpsCore — Start Here (Buyer)
 
-> **IMPORTANT: NO LICENSE GRANT — NO AUTHORIZED USE OR DELIVERY.** This page is technical documentation only. Do not install, run, copy, modify, deploy, distribute, or commercially exploit the source unless and until the rights holder approves and signs a separate written license agreement.
+> **HOLD — SOURCE-CODE CANDIDATE ONLY. NO LICENSE GRANT. SELF-HOSTED PRODUCTION NOT YET QUALIFIED.**
 
-## What this package represents
+This page is technical/commercial orientation only. Do not install, run, copy, modify, deploy, distribute, resell, sublicense or otherwise exploit the source unless the rights holder and named buyer have executed a written License Schedule for the exact deliverable.
 
-OpsCore is a multi-tenant operational source package comprising web/API source, PostgreSQL assets/migrations and Expo mobile source. The exact release identity (commit, run, artifact, archive SHA-256, SBOM and attestation) is available only from a successful exact-head Secure Release run. Static repository documents are not a substitute for same-run artifact evidence.
+## What is being offered
 
-## Commercial and legal boundary
+OpsCore is a multi-sector operations source candidate comprising web console, HTTP API, PostgreSQL schema/migration assets, and Expo mobile source. The proposed commercial model is a source-code handoff for buyer-controlled infrastructure, not a seller-hosted subscription.
 
-- License grant: `NONE_PENDING_RIGHTS_HOLDER_DECISION`.
-- Distribution authorization: `false`.
-- All rights are reserved.
-- No source-use, installation, execution, inspection, copying, modification, hosting, publication, distribution, sale, resale, sublicensing, transfer, or commercial exploitation is authorized.
-- The former use-only license is withdrawn. No `PROPRIETARY_LICENSE.txt` or `backend/LICENSE.txt` is part of the active rights model.
-- A future grant requires a separate written agreement approved and signed by the rights holder.
+This does **not** mean a provider-neutral self-hosted production installation is already supported. Current source-level blockers include Vercel-specific signed-tenant release gating and Neon-specific PostgreSQL migration targeting. The current status and required engineering closure are documented in [Self-Hosted Buyer Edition](docs/commercial/SELF_HOSTED_BUYER_EDITION_2026-11-24.md).
 
-## Technical scope (informational only)
+## Current evidence
 
-The source includes backend/API, web operations interfaces, PostgreSQL schema and migration tooling, auth/session/tenant controls, Contact Center resources, mobile source, tests, release tooling and documentation.
+Evidence cut: main `6859b5d86f13ba9f481ed8fce5cc95c729d22b55`, GitHub Actions run [45360794536](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45360794536).
 
-Translation catalog: 114 locale codes; 1 English source, 109 machine-assisted drafts and 4 English fallbacks. Native-speaker review and production qualification remain 0/114 until independently completed. No linguistic qualification is claimed.
+- Source validation, contract checks, isolated PostgreSQL RLS/HTTP acceptance and CodeQL checks: PASS in the named CI run.
+- Production deployment, Neon Preview migration/HTTP acceptance and historical Production PITR probe: SKIPPED.
+- Exact-head Secure Release package for this evidence cut: NOT ESTABLISHED.
+- Buyer-owned self-hosted production acceptance: NOT RUN.
+- Independent external certification: NONE CLAIMED.
 
-## Seller-reference evidence boundary
+A PASS applies only to the test and target named in its evidence. SKIPPED is not PASS. CI is not a buyer production certificate.
 
-The live production endpoints identify the seller-operated deployment and report health, release and database-security proof. The current seller-reference release proof may report technical `PASS` while `gates.commercialClosure` is `PASS_WITH_BUYER_RESIDUALS`. The three explicit buyer residuals are mobile store artifacts, native-speaker translation review (0/114 production-qualified locales), and licensed maps/road-routing. Seller-reference production isolation evidence applies only to the exact measured seller deployment. It does not certify a buyer environment, all functional business flows, full PITR/RPO/RTO or external provider connections.
+## Legal and commercial boundary
 
+- Package metadata: `UNLICENSED`.
+- Buyer licence: `NONE` until a written Schedule is executed.
+- Distribution/resale/sublicensing: `NOT AUTHORIZED` unless expressly granted in the signed Schedule.
+- Third-party dependency licences are separate; the SBOM inventory is not legal clearance.
+- Rights-holder identity and authority to sign must be established for the transaction.
 
-## Initial release payment boundary
+The seller may advertise, present and negotiate a prospective source-code offer as allowed by the no-license notice. This does not authorize buyer access or use.
 
-- Payment processing is intentionally disabled for the initial sale release; no Stripe account or payment credentials are required.
-- Checkout, payment-intent creation, customer linking, and webhook settlement remain unavailable until a payment provider is selected and both API access and signed-webhook verification are configured.
-- Disabled payment routes return the explicit `PAYMENT_PROVIDER_DISABLED` response. This is not a claim that payment processing is implemented, live-tested, or ready to collect funds.
-- Any later activation requires provider onboarding, live signed-webhook verification, payment-flow acceptance, and a separately authorized release.
+## Source scope and residuals
 
-## Buyer-specific work if a future agreement is executed
+Included source: web/API, database schema and migration assets, tests/release tooling, technical docs and Expo source.
 
-- Buyer-specific Android/iOS signing, native builds, physical-device QA and app-store publication.
-- Native-speaker/domain review before production language-quality claims.
-- Licensed maps/road-routing, attribution, provider keys and quotas.
-- External provider accounts, contracts, licenses and live acceptance for identity, messaging, telephony/call-center, payments, webhooks, object storage, KMS/HSM and cloud.
-- Buyer-environment database isolation, backup/restore, recovery, WAF/TLS, observability and operational acceptance.
+Not included or not qualified: seller-hosted services/accounts/data, buyer-specific infrastructure, signed native mobile artifacts, app-store publication, native-speaker language review, licensed maps/road-routing, external provider contracts/credentials/live integrations, payment processing, and independent certification.
 
-Do not use the technical quickstart or migration instructions while no license has been granted.
+## Before any buyer installation
 
-## Related technical records
+1. The rights holder and buyer execute a License Schedule for the exact source commit/package digest.
+2. The seller produces a fresh exact-head release archive, SHA-256, SBOM, provenance/signature and test evidence.
+3. The self-hosted blockers in the controlling edition document are closed and independently tested, or the buyer receives a clearly limited non-production evaluation scope.
+4. The buyer runs acceptance on buyer-controlled infrastructure and records the exact target, evidence, residuals and responsible operators.
 
-- `BUYER_DELIVERY.md` — no-license delivery boundary.
-- `backend/BUYER_QUICKSTART.md` — technical setup reference; not permission to use.
-- `docs/COMMERCIAL_HANDOFF.md` — handoff requirements.
-- `NO_LICENSE_GRANT_NOTICE.txt` — authoritative no-license notice.
+Start with the [Buyer Delivery Boundary](BUYER_DELIVERY.md), [Self-Hosted Buyer Edition](docs/commercial/SELF_HOSTED_BUYER_EDITION_2026-11-24.md), and [Buyer Installation Guide](docs/commercial/BUYER_INSTALLATION_GUIDE.md).
