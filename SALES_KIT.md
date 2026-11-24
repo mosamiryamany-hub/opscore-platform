@@ -1,7 +1,8 @@
 # OpsCore — Seller Sales Kit
 
 **Proposed sale:** source-code handoff for buyer-controlled infrastructure.  
-**Delivery:** HOLD — no executed buyer licence, no buyer delivery authority, and self-hosted production qualification is not yet complete.
+**Delivery:** HOLD — no executed buyer licence, no buyer delivery authority, and self-hosted production qualification is not yet complete.  
+**NO LICENSE GRANT — ALL RIGHTS RESERVED.**
 
 OpsCore is a multi-sector operational software source candidate comprising a web console, HTTP API, PostgreSQL schema/migration assets, operational workflows and Expo mobile source. The intended buyer model is to control its own compute, database, network, secrets, backup/restore, provider accounts and operating processes. This is not a seller-hosted SaaS subscription.
 
