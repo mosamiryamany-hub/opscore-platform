@@ -23,5 +23,5 @@ test('sessionTokenFromRequest no longer uses a backtracking Bearer regex', () =>
 test('API_INVENTORY template substitution is length-bounded', () => {
   assert.equal(policySrc.includes(".replace(/\\{[^/]+\\}/g, 'signed-route-id')"), false,
     'the unbounded template wildcard must not return');
-  assert.ok(policySrc.includes("{1,64}}"), 'bounded template wildcard must be present');
+  assert.ok(policySrc.includes("{1,64}\\}"), 'bounded template wildcard must be present');
 });
