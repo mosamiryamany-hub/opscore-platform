@@ -1,47 +1,41 @@
-# OpsCore v0.11.62 — Client Inspection Package Status
+# OpsCore — Client Inspection Package Status
 
-**Seller offer: MAY BE MARKETED — NO BUYER LICENSE GRANT OR DISTRIBUTION UNTIL SCHEDULE EXECUTION.**
+**Marketing:** MAY BE PRESENTED AS A SOURCE-CODE CANDIDATE WITH DISCLOSURES.  
+**Delivery:** HOLD — NO BUYER LICENCE GRANT.  
+**Self-hosted production:** BLOCKED — NOT QUALIFIED.  
+**External accreditation:** NONE CLAIMED.
 
-This static record does not identify a current archive. The source commit, Secure Release run, artifact ID, archive byte count/SHA-256, SBOM, attestation and test evidence must be read from one successful exact-head GitHub Actions Secure Release run. Any later source, release-tooling or package change invalidates prior candidate identity.
+This static status page is not a current archive, certificate, deployment acceptance or licence. It is superseded by the controlling [Self-Hosted Buyer Edition](docs/commercial/SELF_HOSTED_BUYER_EDITION_2026-11-24.md) and [Buyer Evidence Index](docs/commercial/BUYER_EVIDENCE_INDEX.md).
 
-## Rights boundary
+## Current evidence cut
 
-The commercial classification `PASS_WITH_BUYER_RESIDUALS` is a technical status only. It is not a license, sale approval, distribution authorization, warranty or buyer acceptance. The former use-only source license is withdrawn. Package metadata must be `UNLICENSED`; the package must contain no first-party `LICENSE` or `LICENCE` grant file. All rights are reserved pending a separate written agreement approved and signed by the rights holder.
+- Main SHA: `6859b5d86f13ba9f481ed8fce5cc95c729d22b55`.
+- Current-main CI: [45360794536](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45360794536).
+- Source validation, contract checks, isolated PostgreSQL RLS/HTTP acceptance and CodeQL checks: PASS in that run.
+- Vercel Production deploy, Neon Preview migration/HTTP acceptance and historical Production PITR: SKIPPED.
+- Exact-head Secure Release archive: NOT ESTABLISHED.
+- Buyer-controlled self-hosted production acceptance: NOT RUN.
 
-## Exact-run release evidence
+A green CI result does not certify a buyer's server, PostgreSQL, TLS, backup/restore, integrations or entire business workflows.
 
-For any future technical candidate, verify that the same exact-head workflow run produced:
-- `OpsCore-release.zip` and the external release statement;
-- archive byte count and SHA-256 independently recalculated from the downloaded ZIP;
-- CycloneDX SBOM and provenance attestation bound to the archive digest;
-- JUnit and workflow step results;
-- complete root/mobile dependency-audit JSON and i18n forensic evidence.
+## Intended transaction
 
-An attestation proves provenance of the exact artifact; it does not grant rights, prove that a commit was signed, or certify production behavior by itself.
+The offer is a proposed source-code handoff for buyer-controlled infrastructure, not a seller-hosted subscription. Seller Vercel/Neon accounts, domains, production database, customer data, provider credentials and hosting service are excluded unless a separate signed transfer agreement explicitly includes them.
 
-## Seller-reference production proof
+The source is not yet qualified for provider-neutral self-hosted production. Vercel-specific signed tenant-context/release gating and Neon-specific PostgreSQL migration targeting remain open.
 
-The Vercel Production deployment is `READY`, but deployment readiness is not tenant-isolation certification. The stored session-isolation and recovery records contain evidence-rebind markers with `probesReexecuted=false`, and the recovery record is bound to a previous Neon branch. Current seller-reference production isolation is therefore `NOT_VERIFIED` until fresh dual-tenant probes and a recovery-point comparison are bound to the exact active application commit and Neon Production branch. Buyer production remains NOT CERTIFIED. A branch-point comparison is not full PITR/RPO/RTO certification; tenant-route coverage and functional API contract acceptance are narrower than complete business-flow acceptance.
+## Source scope
 
+Included: web console, backend/API source, PostgreSQL schema/migration assets, tests/release tooling/documentation and Expo mobile source.
 
-## Initial release payment boundary
+Not included or not qualified: signed APK/AAB/IPA, native signing, physical-device QA, store publication, native-speaker linguistic review, licensed maps/road-routing, live third-party provider integrations, payment processing and buyer infrastructure acceptance.
 
-- Payment processing is intentionally disabled for the initial sale release; no Stripe account or payment credentials are required.
-- Checkout, payment-intent creation, customer linking, and webhook settlement remain unavailable until a payment provider is selected and both API access and signed-webhook verification are configured.
-- Disabled payment routes return the explicit `PAYMENT_PROVIDER_DISABLED` response. This is not a claim that payment processing is implemented, live-tested, or ready to collect funds.
-- Any later activation requires provider onboarding, live signed-webhook verification, payment-flow acceptance, and a separately authorized release.
+## Security and compliance
 
-## Buyer/environment residuals
+Internal automated testing, static analysis, an SBOM or a signed provenance statement is not an external certification. No ISO 27001, SOC 2, PCI DSS or other accredited certificate is claimed. Do not say vulnerability-free or fully secure.
 
-- EAS project/account linkage, native Android/iOS signing, builds, physical-device QA, store accounts and publication.
-- Native-speaker/domain review of translations; current production-qualified count is 0/114.
-- Buyer credentials/licenses/live acceptance for identity, messaging, telephony/call-center, payments, webhooks, object storage, KMS/HSM, licensed maps/road routing and cloud accounts.
-- Buyer-environment database privilege review, behavioral tenant-isolation acceptance, backup/restore, WAF/TLS, observability, recovery and operational acceptance.
+## Rights
 
-## Buyer / seller responsibility boundary
+Package metadata remains `UNLICENSED`; `NO_LICENSE_GRANT_NOTICE.txt` controls. The rights holder and named buyer must execute a transaction-specific License Schedule that identifies the exact source commit/package SHA-256 and expressly states the granted rights. L1 internal use does not include resale. Redistribution, resale, OEM hosting or sublicensing requires explicit permission in the executed Schedule.
 
-The seller remains responsible for fixable defects in delivered source, migrations, authorization, tests, package integrity, release tooling and handoff documentation. Buyer-specific accounts, credentials, third-party licenses, external services, native signing and target-environment acceptance are environment-specific responsibilities.
-
-## Final prohibition
-
-The rights holder may market, list, publish, present and negotiate the offer before a buyer is identified. This does not grant buyer rights or authorize delivery. Before a buyer may use, modify, distribute, resell, sublicense or receive the package, both the rights holder and that buyer must execute a transaction-specific License Schedule pinned to the exact deliverable. Technical tests, Production health, release artifacts, hashes, SBOMs and attestations do not create a license.
+Third-party dependency licences remain separate; the SBOM inventory is not legal clearance. Rights-holder authority to sign must be confirmed for the transaction.
