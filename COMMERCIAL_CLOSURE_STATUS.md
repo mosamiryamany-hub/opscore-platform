@@ -6,7 +6,8 @@
 **Delivery status:** HOLD — NO DELIVERY BEFORE EXECUTED SCHEDULE.  
 **Self-hosted production:** BLOCKED — NOT QUALIFIED.  
 **Buyer environment:** NOT_ESTABLISHED / NOT VERIFIED.  
-**External certification:** NONE CLAIMED.
+**External certification:** NONE CLAIMED.  
+**Rights status:** **NO LICENSE GRANT — ALL RIGHTS RESERVED.** No buyer use or delivery before the signed Schedule.
 
 This file replaces the stale 2026-11-22 deployment and Neon snapshot as the current status summary. Do not use historical deployment IDs, pipeline IDs, hashes, provider statuses or test counts from the earlier report as current evidence.
 
@@ -25,7 +26,7 @@ Current-main GitHub Actions run [45360794536](https://github.com/mosamiryamany-h
 The intended source-code offer is for buyer-controlled infrastructure, with seller-hosted Vercel/Neon services excluded. However, provider-neutral self-hosted production is not yet supported by current code:
 1. Signed tenant-context activation is coupled to Vercel Preview/Production environment and release-readiness conditions.
 2. Release identity/proof is Vercel deployment- and Neon-evidence-specific.
-3. PostgreSQL migration targeting validates Neon endpoint/project/branch identity and expects a Neon owner role.
+3. Neon-specific PostgreSQL migration targeting validates Neon endpoint/project/branch identity and expects a Neon owner role; a generic customer-managed PostgreSQL target is not implemented or qualified.
 4. The current PostgreSQL Compose file is not a complete application production stack with durable storage, ingress, secrets, monitoring and recovery.
 
 The detailed source-level findings and required corrective plan are in [Self-Hosted Buyer Edition](docs/commercial/SELF_HOSTED_BUYER_EDITION_2026-11-24.md).
