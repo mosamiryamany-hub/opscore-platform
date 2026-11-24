@@ -1,81 +1,72 @@
 # OpsCore Field Source Kit v0.11.62 — Zero Illusions + AI Contact Center
 
-**Verified Capabilities Only. Explicit Boundaries. Buyer-Owned Deployment.**
+**Source-code candidate. Buyer-controlled deployment is the intended model; self-hosted production is not yet qualified.**
 
-> Multi-sector operational source kit: Web Console + Expo Mobile source.  
-> Server-owned work orders, dispatch, offline field sync, evidence, audit, and governed completion.  
-> **You own the deployment, the providers, and the store signing.**
+OpsCore is a multi-sector operational source candidate comprising a web console, HTTP API, PostgreSQL schema/migration assets and Expo mobile source. This is not a seller-hosted SaaS subscription. The target buyer model is operation on infrastructure controlled by the buyer; however, current release and migration code still contains Vercel/Neon-specific gates that must be removed through a reviewed, tested engineering change before claiming a supported provider-neutral self-hosted production edition.
 
----
+> **Current classification: SOURCE-CODE CANDIDATE / SELF-HOSTED PRODUCTION BLOCKED / NO LICENSE GRANT / NO EXTERNAL CERTIFICATION.**
 
-## Start Here (Buyer)
+## Start Here
 
 | Document | Purpose |
-|----------|---------|
-| [docs/00-START-HERE/BUYER_QUICKSTART.md](docs/00-START-HERE/BUYER_QUICKSTART.md) | Primary handoff & first run |
-| [docs/00-START-HERE/DEMO_SCRIPT.md](docs/00-START-HERE/DEMO_SCRIPT.md) | Complete operational story demonstration |
-| [docs/00-START-HERE/TRUTH_BOUNDARIES.md](docs/00-START-HERE/TRUTH_BOUNDARIES.md) | What is verified vs what is **not** claimed |
-| [docs/00-START-HERE/VALUE_PROOF.md](docs/00-START-HERE/VALUE_PROOF.md) | Demonstrated buyer value only |
-| [docs/commercial/SALES_KIT.md](docs/commercial/SALES_KIT.md) | Honest commercial positioning |
-| [docs/architecture/DIGITAL_TWIN_SYSTEM_MAP_2026-10-21_AR.md](docs/architecture/DIGITAL_TWIN_SYSTEM_MAP_2026-10-21_AR.md) | Multidomain digital-twin map with implemented vs planned boundaries |
-| [docs/architecture/DIGITAL_TWIN_VERIFICATION_REPORT_2026_10_21_AR.md](docs/architecture/DIGITAL_TWIN_VERIFICATION_REPORT_2026_10_21_AR.md) | Test evidence and unresolved production gates |
+|---|---|
+| [BUYER_FIRST.md](BUYER_FIRST.md) | Buyer entry point and current rights boundary |
+| [BUYER_DELIVERY.md](BUYER_DELIVERY.md) | Delivery scope, exact artifact and exclusions |
+| [Self-Hosted Buyer Edition](docs/commercial/SELF_HOSTED_BUYER_EDITION_2026-11-24.md) | Controlling self-hosted scope, evidence and blockers |
+| [Buyer Installation Guide](docs/commercial/BUYER_INSTALLATION_GUIDE.md) | Local source checks and current installation limitations |
+| [Buyer Evidence Index](docs/commercial/BUYER_EVIDENCE_INDEX.md) | Current source/CI evidence cut |
+| [Sales Kit](docs/commercial/SALES_KIT.md) | Permitted seller positioning |
+| [Truth Boundaries](docs/00-START-HERE/TRUTH_BOUNDARIES.md) | PASS / SKIPPED / NOT VERIFIED / NOT CERTIFIED definitions |
 
-**Evidence Pack:** `evidence-pack/` contains version-bound evidence records. Only the ZIP, release statement, archive SHA-256, SBOM, provenance, tests and dependency audits produced by one successful Secure Release run for the exact source head identify a current handover; historical evidence does not certify a newer commit.
+## Evidence cut — 2026-11-24
 
----
+- Protected main: `6859b5d86f13ba9f481ed8fce5cc95c729d22b55`.
+- GitHub Actions run [45360794536](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45360794536): source validation, contract checks, isolated PostgreSQL RLS/HTTP acceptance and CodeQL checks passed.
+- Production deploy, Neon Preview migration/HTTP acceptance and historical Production PITR jobs were SKIPPED.
+- A Secure Release archive for the exact evidence-cut commit is not established by that run.
+- Buyer-controlled self-hosted production acceptance has not been run.
+- No independent ISO 27001, SOC 2, PCI DSS or other external certification is claimed.
 
-## Version Compatibility
+A PASS applies only to the named test and target. SKIPPED is not PASS. CI is not an external certificate or a buyer-environment qualification.
 
-- Backend: **0.11.62**
-- Mobile: **0.1.16** (Expo)
-- Node engine: `>=22.23.4 <23`
+## Version compatibility
 
-## Zero Illusions Principle
+- Backend: `0.11.62`
+- Mobile: `0.1.16` (Expo source)
+- Node.js: `>=22.23.4 <23`
 
-This package deliberately separates:
+## Zero Illusions
 
-1. **Verified in this source** (tests, gates, red-team, provenance)
-2. **Environment-dependent** (your infrastructure, TLS, production PostgreSQL, store approval)
-3. **Not claimed** (signed binaries, App Store/Google Play approval, legal WORM immutability, external payment gateway success)
+Always separate:
+1. Source code and automated tests that were actually run.
+2. Environment-dependent functions that require buyer infrastructure and credentials.
+3. BLOCKED, SKIPPED, NOT RUN, NOT VERIFIED and NOT CERTIFIED items.
 
-Any serious buyer is expected to run `npm run buyer:preflight` and `npm run buyer:acceptance` themselves. A failed gate is a finding, not something to hide.
+No demo data is to be seeded into a real customer database. The local SQLite demo is for non-production evaluation only. Current PostgreSQL migration and signed-tenant release gates are not yet provider-neutral for self-hosted Production; see the controlling edition document before attempting deployment.
 
-## AI Contact Center (candidate module)
+## Contact Center language boundary
 
-- Open `backend/web/contact-center.html` after signing into the OpsCore console.
-- Deployment/security/language qualification requirements: [docs/contact-center/AI_CONTACT_CENTER_ARCHITECTURE.md](docs/contact-center/AI_CONTACT_CENTER_ARCHITECTURE.md).
-- Contact Center locale status: the runtime manifest currently exposes 105 selectable locale codes (1 English source, 100 machine-assisted drafts, 4 explicit English fallbacks). The separate qualification register contains 114 source rows; 9 flagged locales are withdrawn from runtime selection pending remediation and native-speaker review. Native-speaker review is 0/114 and production qualification is 0/105. Keep the machine-translation notice visible.
-- The Contact Center now has a separate interface-language selector (auto-detected from browser settings and persisted in local storage) independent of the conversation-language selector. Runtime locale changes update translated DOM text safely through `textContent`; Arabic, Persian, Urdu, Hebrew, Pashto, Yiddish and Uyghur are configured for RTL direction.
-- Run `cd backend && npm run contact-center:i18n` to validate the current 105 selectable locale files, registry alignment, key parity, placeholders and wiring. Structural validation is not native-speaker review: 0/114 qualification rows are native-speaker reviewed and 0/105 selectable locales are production-qualified. English-only privacy/voice requirement copy must be translated and reviewed before any claim of complete multilingual consent or production language quality.
-- Browser realtime voice is included behind explicit consent and server-minted short-lived credentials. PSTN/SIP/WhatsApp/email adapters are not connected by this source package.
+The current runtime manifest exposes 105 selectable locale codes: 1 English source, 100 machine-assisted drafts, and 4 explicit English fallbacks. The separate qualification register contains 114 source rows; 9 flagged locales are withdrawn from runtime selection pending remediation and native-speaker review. Native-speaker review is 0/114 and production qualification is 0/105. Keep the machine-translation notice visible. Structural checks are not linguistic approval.
 
-## Directory Layout
+Browser realtime voice is included behind explicit consent and server-minted short-lived credentials. PSTN/SIP/WhatsApp/email adapters are not connected by this source package unless separately configured and live-tested in a buyer environment.
+
+## Repository layout
 
 ```
-├── README.md                 ← you are here
-├── NO_LICENSE_GRANT_NOTICE.txt ← No license grant; all rights reserved
-├── VERSION
-├── backend/                  ← Node backend + web console
-├── mobile/                   ← Expo source (Android/iOS)
-├── sdk/                      ← Client SDK
-├── scripts/                  ← Release gates & packaging
-├── skills/                   ← High-value skill references
-├── docs/
-│   ├── 00-START-HERE/        ← Buyer entry point
-│   ├── security/             ← Hardening, threat model, governance
-│   ├── commercial/           ← Sales, transfer, evaluation
-│   ├── release/              ← Scope, changelog, manifests, checksums
-│   ├── sbom/                 ← Current CycloneDX only
-│   └── archive/              ← Historical reports (not required for operation)
-└── evidence-pack/            ← Ready-to-share proof artifacts
+├── NO_LICENSE_GRANT_NOTICE.txt
+├── BUYER_FIRST.md
+├── BUYER_DELIVERY.md
+├── backend/                  # Node backend + web console + PostgreSQL assets
+├── mobile/                   # Expo source only
+├── sdk/
+├── scripts/                  # Release gates and packaging
+├── docs/commercial/           # Buyer scope, sales and licence framework
+├── docs/ops/                  # Operational evidence and closeout records
+└── evidence-pack/             # Evidence records; verify exact-run identity
 ```
 
-## Quick Commercial Boundaries
+## Commercial and legal boundary
 
-- Commercial offer: source-code handoff, not seller-hosted SaaS. The seller may publish and negotiate before any buyer is identified; a transaction-specific License Schedule is required only before granting the named buyer rights or delivering the licensed package.
-- Support/updates: no default period is included; scope, term and price are negotiated and recorded only in the signed License Schedule.
-- Out of scope: deployment, TLS, store submission/signing, buyer infrastructure, new feature development
+Package metadata remains `UNLICENSED`. The root `NO_LICENSE_GRANT_NOTICE.txt` is controlling. The seller may advertise and negotiate a prospective offer, but no buyer may use or receive the software before the rights holder and named buyer execute a written License Schedule pinning the exact commit and/or package SHA-256. L1 internal use does not include resale. Redistribution, resale, OEM, hosting for third parties and sublicensing require express rights in the signed Schedule.
 
----
-
-**Release packaging hygiene:** Runtime attachment stores and demo credentials are excluded by design. See `scripts/release-artifact-gate.js` and `scripts/package-release.js`.
+Seller Vercel/Neon accounts, domains, databases, records, provider credentials and hosted service are excluded from the proposed source-code handoff unless a separate signed transfer agreement states otherwise.
