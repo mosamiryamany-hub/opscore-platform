@@ -12,7 +12,7 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -27,6 +27,25 @@ jobs:
       - name: Install backend
         working-directory: backend
         run: npm ci --ignore-scripts
+      - name: Verify Docker build context excludes private environment and runtime data
+        shell: bash
+        run: |
+          set -euo pipefail
+          sentinel="backend/.env.selfhosted-context-test"
+          image="opscore-context-test:${GITHUB_RUN_ID}"
+          test ! -e "$sentinel"
+          printf 'DO_NOT_SHIP_THIS_SENTINEL\n' > "$sentinel"
+          cleanup() {
+            rm -f "$sentinel"
+            docker image rm -f "$image" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+          docker build --file backend/docker/Dockerfile --tag "$image" backend
+          docker run --rm --entrypoint sh "$image" -ec '
+            test ! -e /app/.env.selfhosted-context-test
+            test -f /app/.env.example
+            test ! -d /app/data
+          '
       - name: Syntax check
         run: |
           node --check backend/src/config.js
