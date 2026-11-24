@@ -15,13 +15,13 @@ The seller may advertise, publish, present and negotiate the source-code candida
 
 ## Current evidence
 
-Historical pre-PR #436 evidence snapshot for `d243a428bb44b4cbd0d1fd768cb907d0e9fcbdb1`:
-**Historical evidence snapshot (2026-11-24 10:43 UTC; pre-PR #436):** main `d243a428bb44b4cbd0d1fd768cb907d0e9fcbdb1`.
+Historical pre-PR #436 evidence snapshot for `f71b8eee32631c833dda8115af8508ae1ccc1a63`:
+**Historical evidence snapshot (2026-11-24 10:43 UTC; pre-PR #436):** main `f71b8eee32631c833dda8115af8508ae1ccc1a63`.
 - [OpsCore CI](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45377527984): `verify` PASS (1,021 passed / 0 failed / 3 skipped).
 - [Vercel source/contract and PostgreSQL acceptance](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45377522840): `vercel-source-verify` PASS (18/18); `vercel-contract-verify` PASS (3/3); isolated PostgreSQL RLS/HTTP acceptance PASS (3/3); deploy-bound PostgreSQL 18 acceptance PASS (30/30).
 - [CodeQL](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45377523517): Actions, JavaScript/TypeScript and Python PASS.
 - Production deployment, Neon Preview migration/HTTP acceptance and historical Production Neon PITR: SKIPPED. SKIPPED is not PASS.
-- Exact-head Secure Release archive for `d243a428bb44b4cbd0d1fd768cb907d0e9fcbdb1`: NOT ESTABLISHED.
+- Exact-head Secure Release archive for `f71b8eee32631c833dda8115af8508ae1ccc1a63`: NOT ESTABLISHED.
 - Buyer-controlled self-hosted production acceptance: NOT RUN.
 - `backend/docs/API_INVENTORY.json`: unchanged, SHA-256 blob `2ece147beaa36867e56f051d597ffa86d0a979e8`, 60,357 bytes.
 
@@ -30,7 +30,7 @@ Historical pre-PR #436 evidence snapshot for `d243a428bb44b4cbd0d1fd768cb907d0e9
 ## Seller-hosted Vercel availability — measured 2026-11-24
 
 - Vercel project `opscore-platform`: `live=false`.
-- No Production deployment exists for current main `d243a428bb44b4cbd0d1fd768cb907d0e9fcbdb1` (exact-SHA deployment query returned zero records).
+- The Production deploy job for snapshot SHA `f71b8eee...` was `SKIPPED`; this workflow created no Production deployment for that SHA.
 - Public `GET /api/health` and `GET /api/verify/release` both returned HTTP `402 Payment Required` with `x-vercel-error: DEPLOYMENT_DISABLED` at approximately 10:22 UTC on 2026-11-24.
 - A verified project-domain association does not prove that the domain is currently aliased to a live deployment.
 - Team context reports plan `Pro`; the available charges endpoint reports usage attribution only, not invoice, outstanding balance or payment-good-standing status. The specific account suspension/billing cause is therefore NOT VERIFIED.
