@@ -28,7 +28,11 @@ The source is not yet qualified for provider-neutral self-hosted production. Ver
 
 Included: web console, backend/API source, PostgreSQL schema/migration assets, tests/release tooling/documentation and Expo mobile source.
 
-Not included or not qualified: signed APK/AAB/IPA, native signing, physical-device QA, store publication, native-speaker linguistic review, licensed maps/road-routing, live third-party provider integrations, payment processing and buyer infrastructure acceptance.
+Not included or not qualified: signed APK/AAB/IPA, native signing, physical-device QA, store publication, native-speaker language review, licensed maps/road-routing, live third-party provider integrations, payment processing and buyer infrastructure acceptance.
+
+## Translation and locale qualification
+
+The Contact Center runtime currently exposes 105 selectable locale codes: 1 English source, 100 machine-assisted drafts and 4 explicit English fallbacks. The separate qualification register contains 114 source rows. Native-speaker review is 0/114; production qualification is 0/105 selectable locales. Structural checks are not linguistic approval; keep the machine-translation notice visible.
 
 ## Security and compliance
 
