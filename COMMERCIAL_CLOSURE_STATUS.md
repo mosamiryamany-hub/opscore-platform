@@ -1,7 +1,7 @@
 # OpsCore — Technical and Commercial Closure Status
 
 **Reconciled:** 2026-11-24  
-**Evidence-cut main:** `d243a428bb44b4cbd0d1fd768cb907d0e9fcbdb1`  
+**Evidence-cut main:** `f71b8eee32631c833dda8115af8508ae1ccc1a63`  
 **Seller offer:** OPEN FOR MARKETING AND NEGOTIATION — NO BUYER LICENSE GRANT.  
 **Delivery status:** HOLD — NO DELIVERY BEFORE EXECUTED SCHEDULE.  
 **Self-hosted production:** BLOCKED — NOT QUALIFIED.  
@@ -15,11 +15,11 @@ The seller may advertise, publish, present and negotiate the source-code candida
 
 ## Current evidence
 
-Current-main evidence for `d243a428bb44b4cbd0d1fd768cb907d0e9fcbdb1`:
-**Current evidence cut (2026-11-24):** main `d243a428bb44b4cbd0d1fd768cb907d0e9fcbdb1`.
-- [OpsCore CI](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083091): `verify` PASS (21/21).
-- [Vercel source/contract and PostgreSQL acceptance](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083161): `vercel-source-verify` PASS (18/18); `vercel-contract-verify` PASS (3/3); isolated PostgreSQL RLS/HTTP acceptance PASS (3/3); deploy-bound PostgreSQL 18 acceptance PASS (30/30).
-- [CodeQL](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374082761): Actions, JavaScript/TypeScript and Python PASS.
+Historical pre-PR #436 evidence snapshot for `d243a428bb44b4cbd0d1fd768cb907d0e9fcbdb1`:
+**Historical evidence snapshot (2026-11-24 10:43 UTC; pre-PR #436):** main `d243a428bb44b4cbd0d1fd768cb907d0e9fcbdb1`.
+- [OpsCore CI](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45377527984): `verify` PASS (1,021 passed / 0 failed / 3 skipped).
+- [Vercel source/contract and PostgreSQL acceptance](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45377522840): `vercel-source-verify` PASS (18/18); `vercel-contract-verify` PASS (3/3); isolated PostgreSQL RLS/HTTP acceptance PASS (3/3); deploy-bound PostgreSQL 18 acceptance PASS (30/30).
+- [CodeQL](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45377523517): Actions, JavaScript/TypeScript and Python PASS.
 - Production deployment, Neon Preview migration/HTTP acceptance and historical Production Neon PITR: SKIPPED. SKIPPED is not PASS.
 - Exact-head Secure Release archive for `d243a428bb44b4cbd0d1fd768cb907d0e9fcbdb1`: NOT ESTABLISHED.
 - Buyer-controlled self-hosted production acceptance: NOT RUN.
