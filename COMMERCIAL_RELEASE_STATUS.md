@@ -13,7 +13,7 @@
 
 ## Evidence cut
 
-Main `d243a428bb44b4cbd0d1fd768cb907d0e9fcbdb1`. OpsCore CI [45374083091](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083091) passed 21/21; Vercel/PG acceptance [45374083161](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083161) passed source 18/18, contract 3/3, isolated PG 3/3 and deploy-bound PostgreSQL 18 acceptance 30/30; CodeQL [45374082761](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374082761) passed Actions, JS/TS and Python. Production deploy, Neon Preview acceptance and historical PITR were skipped.
+Main `f71b8eee32631c833dda8115af8508ae1ccc1a63`. OpsCore CI [45377527984](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083091) passed 1,021 passed / 0 failed / 3 skipped; Vercel/PG acceptance [45377522840](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083161) passed source verification, contract checks, isolated RLS/HTTP and disposable PostgreSQL 18 acceptance; CodeQL [45377523517](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374082761) passed Actions, JS/TS and Python. Production deploy, Neon Preview acceptance and historical PITR were skipped.
 
 A current release requires a fresh exact-head Secure Release run that produces the package ZIP, external release statement, archive byte count/SHA-256, CycloneDX SBOM, provenance/signature and same-run test/dependency/localization evidence. Any subsequent source change invalidates that artifact identity.
 
