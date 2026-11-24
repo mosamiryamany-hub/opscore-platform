@@ -20,12 +20,28 @@ OpsCore is a multi-sector operational source candidate comprising a web console,
 
 ## Evidence cut — 2026-11-24
 
-- Protected main: `6859b5d86f13ba9f481ed8fce5cc95c729d22b55`.
-- GitHub Actions run [45360794536](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45360794536): source validation, contract checks, isolated PostgreSQL RLS/HTTP acceptance and CodeQL checks passed.
-- Production deploy, Neon Preview migration/HTTP acceptance and historical Production PITR jobs were SKIPPED.
-- A Secure Release archive for the exact evidence-cut commit is not established by that run.
+- Protected main: `d243a428bb44b4cbd0d1fd768cb907d0e9fcbdb1`.
+**Current evidence cut (2026-11-24):** main `d243a428bb44b4cbd0d1fd768cb907d0e9fcbdb1`.
+- - [OpsCore CI](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083091): `verify` PASS (21/21).
+- - [Vercel source/contract and PostgreSQL acceptance](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083161): `vercel-source-verify` PASS (18/18); `vercel-contract-verify` PASS (3/3); isolated PostgreSQL RLS/HTTP acceptance PASS (3/3); deploy-bound PostgreSQL 18 acceptance PASS (30/30).
+- - [CodeQL](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374082761): Actions, JavaScript/TypeScript and Python PASS.
+- - Production deployment, Neon Preview migration/HTTP acceptance and historical Production Neon PITR: SKIPPED. SKIPPED is not PASS.
+- - Exact-head Secure Release archive for `d243a428bb44b4cbd0d1fd768cb907d0e9fcbdb1`: NOT ESTABLISHED.
+- - Buyer-controlled self-hosted production acceptance: NOT RUN.
+- - `backend/docs/API_INVENTORY.json`: unchanged, SHA-256 blob `2ece147beaa36867e56f051d597ffa86d0a979e8`, 60,357 bytes.
+- 
 - Buyer-controlled self-hosted production acceptance has not been run.
 - No independent ISO 27001, SOC 2, PCI DSS or other external certification is claimed.
+
+## Seller-hosted Vercel availability — measured 2026-11-24
+
+- Vercel project `opscore-platform`: `live=false`.
+- No Production deployment exists for current main `d243a428bb44b4cbd0d1fd768cb907d0e9fcbdb1` (exact-SHA deployment query returned zero records).
+- Public `GET /api/health` and `GET /api/verify/release` both returned HTTP `402 Payment Required` with `x-vercel-error: DEPLOYMENT_DISABLED` at approximately 10:22 UTC on 2026-11-24.
+- A verified project-domain association does not prove that the domain is currently aliased to a live deployment.
+- Team context reports plan `Pro`; the available charges endpoint reports usage attribution only, not invoice, outstanding balance or payment-good-standing status. The specific account suspension/billing cause is therefore NOT VERIFIED.
+
+This seller-hosted service outage is separate from CI and from the proposed buyer-owned deployment model. Do not advertise the seller-hosted demo/API as live until Vercel re-enables the project and the current main commit is deployed and measured.
 
 A PASS applies only to the named test and target. SKIPPED is not PASS. CI is not an external certificate or a buyer-environment qualification.
 
