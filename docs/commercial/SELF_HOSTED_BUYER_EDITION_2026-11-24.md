@@ -26,12 +26,12 @@ The buyer is intended to own and control:
 | Item | Observed result | Scope |
 |---|---|---|
 | Protected `main` | `f71b8eee32631c833dda8115af8508ae1ccc1a63` | Git reference verified 2026-11-24 |
-| OpsCore `verify` | PASS_WITH_SKIPS — 1,021 passed, 0 failed, 3 skipped | [Run 45377527984](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083091) |
-| `vercel-source-verify` | PASS — all job steps completed | [Run 45377522840](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083161) |
-| `vercel-contract-verify` | PASS | [Run 45374083161](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083161) |
-| Isolated PostgreSQL RLS/HTTP acceptance | PASS | [Run 45374083161](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083161) |
-| Deploy-bound PostgreSQL 18 acceptance | PASS (disposable PostgreSQL 18 target) | [Run 45374083161](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083161) |
-| CodeQL Actions / JS-TS / Python | PASS | [Run 45377523517](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374082761) |
+| OpsCore `verify` | PASS_WITH_SKIPS — 1,021 passed, 0 failed, 3 skipped | [Run 45377527984](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45377527984) |
+| `vercel-source-verify` | PASS — all job steps completed | [Run 45377522840](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45377522840) |
+| `vercel-contract-verify` | PASS | [Run 45377522840](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45377522840) |
+| Isolated PostgreSQL RLS/HTTP acceptance | PASS | [Run 45377522840](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45377522840) |
+| Deploy-bound PostgreSQL 18 acceptance | PASS (disposable PostgreSQL 18 target) | [Run 45377522840](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45377522840) |
+| CodeQL Actions / JS-TS / Python | PASS | [Run 45377523517](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45377523517) |
 | Production deployment job | SKIPPED | Not a deployment success |
 | Neon Preview migration and HTTP acceptance | SKIPPED | No Preview acceptance established by this run |
 | Historical Production Neon PITR probe | SKIPPED | No current PITR proof established by this run |
@@ -46,7 +46,7 @@ These are **engineering test records**, not accredited certificates. A green CI 
 ## Seller-hosted Vercel availability — measured 2026-11-24
 
 - Vercel project `opscore-platform`: `live=false`.
-- No Production deployment exists for current main `d243a428bb44b4cbd0d1fd768cb907d0e9fcbdb1` (exact-SHA deployment query returned zero records).
+- The Production deploy job for snapshot SHA `f71b8eee...` was `SKIPPED`; this workflow created no Production deployment for that SHA.
 - Public `GET /api/health` and `GET /api/verify/release` both returned HTTP `402 Payment Required` with `x-vercel-error: DEPLOYMENT_DISABLED` at approximately 10:22 UTC on 2026-11-24.
 - A verified project-domain association does not prove that the domain is currently aliased to a live deployment.
 - Team context reports plan `Pro`; the available charges endpoint reports usage attribution only, not invoice, outstanding balance or payment-good-standing status. The specific account suspension/billing cause is therefore NOT VERIFIED.
