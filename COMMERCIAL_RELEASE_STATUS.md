@@ -8,7 +8,8 @@
 **Current exact-head release archive:** `NOT_ESTABLISHED`  
 **Buyer licence:** `NONE_PENDING_EXECUTED_SCHEDULE`  
 **Delivery authorization:** `false`  
-**External certification:** `NONE_CLAIMED`
+**External certification:** `NONE_CLAIMED`  
+**Legal status:** **NO LICENSE GRANT — ALL RIGHTS RESERVED.** Buyer rights require a signed exact-deliverable License Schedule.
 
 ## Evidence cut
 
@@ -28,7 +29,7 @@ CI, a package hash, SBOM or provenance attestation is not an independent certifi
 
 ## Residuals
 
-- Expo source only; native signed builds, physical-device QA and app-store publication are not included.
+- Expo mobile source only; no signed Android/iOS APK/AAB/IPA, native signing/build, physical-device QA or app-store publication is included.
 - Machine-assisted translations require native-speaker review; no linguistic certification is claimed.
 - Licensed maps/road-routing and live external provider integrations are not included.
 - Payment processing is disabled until provider setup, signed webhook verification and buyer-environment acceptance.
