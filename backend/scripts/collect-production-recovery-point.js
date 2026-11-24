@@ -19,7 +19,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { sha256Hex } = require('../src/security');
 const { spawn, execFileSync } = require('node:child_process');
 const { readProductionDeploymentIdentity } = require('./lib/production-deployment-identity');
 
@@ -798,7 +797,7 @@ async function main() {
       databaseName,
       sourceCommit: deploymentIdentity.commitSha,
       pipelineId: String(deploymentIdentity.ciPipelineId),
-      evidenceSha256: sha256Hex(operationFailure),
+      evidenceSha256: crypto.createHash('sha256').update(operationFailure).digest('hex'),
       contentIntegrity: {
         status: 'NOT_VERIFIED',
         algorithm: 'SHA-256',
