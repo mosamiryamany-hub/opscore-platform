@@ -74,13 +74,8 @@ async function verifyPasswordAsync(password, stored) {
 function randomToken() {
   return crypto.randomBytes(32).toString('base64url');
 }
-// SHA-256 here is an unkeyed digest for integrity fingerprints and opaque,
-// high-entropy random tokens. It is not a password-storage primitive.
-function sha256Hex(value) {
-  return crypto.createHash('sha256').update(value).digest('hex');
-}
 function hashToken(token) {
-  return sha256Hex(token);
+  return crypto.createHash('sha256').update(token).digest('hex');
 }
 function hmacSha256(secret, payload) {
   return crypto.createHmac('sha256', secret).update(payload).digest('hex');
@@ -334,7 +329,6 @@ module.exports = {
   passwordHashNeedsUpgrade,
   randomToken,
   hashToken,
-  sha256Hex,
   hmacSha256,
   timingSafeHexEqual,
   encryptSecret,
