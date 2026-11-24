@@ -2,7 +2,7 @@
 
 ## Why this exists
 
-The Vercel release proof remains the default. The existing `GET /api/verify/release` endpoint selects the Vercel proof unless the buyer explicitly sets `OPSC_RELEASE_PROOF_MODE=self-hosted`; this selects the Ed25519-signed self-hosted proof without adding an HTTP route or changing the existing Vercel verifier.
+The Vercel release proof remains platform-specific. This separate gate lets a buyer-owned installation verify a signed release-identity statement without requiring a Vercel deployment ID. It adds no HTTP route and does not change the Vercel certification path.
 
 ## Security meaning of PASS
 
@@ -60,6 +60,34 @@ The script reads the private key locally, signs the canonical payload and writes
 
 Place the identity at `backend/docs/verification/SELF_HOSTED_RELEASE_IDENTITY.json` (default) or configure `OPSC_SELF_HOSTED_IDENTITY_PATH`.
 
+## Preferred: collect measurements from the actual buyer environment
+
+The automated collector reads the exact archive bytes, opens a certificate-verified TLS connection to the configured HTTPS origin, and connects to PostgreSQL using TLS verification to read the live server version, current database, current runtime role and role privilege flags. It refuses pooled endpoints with common pooler host markers and requires an explicit operator confirmation that the configured database endpoint is direct.
+
+Set these variables in a secure shell. The database URL and private-key path are never printed:
+
+```bash
+export OPSC_SELF_HOSTED_HOST='https://buyer.example.com'
+export OPSC_SELF_HOSTED_DATABASE_URL='postgresql://opscore_runtime:...@db.buyer.example:5432/opscore?sslmode=verify-full'
+export OPSC_SELF_HOSTED_DB_DIRECT_CONNECTION_CONFIRMED=true
+export OPSC_SELF_HOSTED_ISSUED_BY='buyer-operator'
+export OPSC_SOURCE_COMMIT_SHA='40-hex-commit-sha'
+```
+
+Then collect and sign the measurements:
+
+```bash
+node backend/scripts/collect-self-hosted-release-identity.js \
+  --archive /secure/path/opscore-release.tar.gz \
+  --private-key /secure/path/opscore-self-hosted-private.pem \
+  --key-id buyer-release-2026 \
+  --output /secure/path/SELF_HOSTED_RELEASE_IDENTITY.json
+```
+
+The collector requires PostgreSQL `sslmode=verify-full`; a private CA may be supplied with `OPSC_SELF_HOSTED_DB_CA_FILE` or `sslrootcert`. It refuses any role with one of the measured global privilege flags (`BYPASSRLS`, superuser, `CREATEROLE`, or `CREATEDB`). This is not a complete effective SQL-permission audit: object-level grants, `PUBLIC` grants, function privileges and role-membership-derived access are outside this collector's present measurement scope. Do not describe the result as proof that every database grant is least-privilege. The direct-connection boolean is still an explicit operator confirmation, not something PostgreSQL can universally prove through an arbitrary proxy. The output file is created exclusively with owner-only permissions (`0600` on POSIX); an existing output path is rejected rather than overwritten.
+
+**Remaining operator responsibility:** confirm that the archive was built from the exact measured commit and that the endpoint is genuinely direct. The script measures the archive, live HTTPS certificate and live database role; it does not establish build provenance or inspect arbitrary network proxies. The signed statement authenticates those measurements to the public key pinned in the buyer runtime.
+
 ## Verify
 
 ```bash
@@ -70,4 +98,4 @@ Missing trust keys, wrong key IDs, malformed signatures, tampering, stale identi
 
 ## Explicit exclusions
 
-This proof selector does not open the production traffic hold, enable signed tenant/session context, change the Neon-specific migration runner, prove Vercel deployment identity, prove Neon PITR, or pass the signed tenant-context 67-route matrix. It does not independently collect archive bytes, perform a live TLS handshake, or query PostgreSQL privileges; those are operator-signed measurements. Buyer app-store signing, native device QA, translation review, licensed maps, complete self-hosted install/restore acceptance and independent compliance certification remain separate items. This proof never returns `CERTIFIED`.
+This does not prove Vercel deployment identity, Neon PITR, the signed tenant-context 67-route matrix, buyer app-store signing, native device QA, translation review, licensed maps, or independent compliance certification. Those remain separate acceptance items.
