@@ -1,23 +1,23 @@
 # OpsCore — Buyer Evidence Index
 
-**Evidence cut:** 2026-11-24  
+**Evidence snapshot:** 2026-11-24 10:43 UTC (pre-PR #436)  
 **Repository:** `mosamiryamany-hub/opscore-platform`  
-**Main SHA:** `d243a428bb44b4cbd0d1fd768cb907d0e9fcbdb1`  
-**OpsCore CI:** [45374083091](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083091) · **Vercel/PG acceptance:** [45374083161](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083161) · **CodeQL:** [45374082761](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374082761)
+**Main SHA at snapshot:** `f71b8eee32631c833dda8115af8508ae1ccc1a63`  
+**OpsCore CI:** [45377527984](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45377527984) · **Vercel/PG acceptance:** [45377522840](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45377522840) · **CodeQL:** [45377523517](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45377523517)
 
-> This index supersedes historical deployment, CI, and release identifiers copied into older buyer documents. The evidence below is scoped to the named source revision and test target. It is not a self-hosted production or external certification.
+> This index is a dated evidence snapshot for exactly `f71b8eee32631c833dda8115af8508ae1ccc1a63`, immediately before PR #436. It does not qualify the later PR #436 candidate head or any later `main` commit. Its evidence applies only to the named commit and test targets; it is not self-hosted production acceptance or external certification.
 
 ## Current source and CI evidence
 
 | Check | Result | Scope |
 |---|---|---|
 | Protected main reference | VERIFIED | GitHub branch metadata |
-| `verify` | PASS (21/21) | GitHub Actions run 45374083091 |
-| `vercel-source-verify` | PASS (18/18) | Run 45374083161 |
-| `vercel-contract-verify` | PASS (3/3) | Run 45374083161 |
-| Isolated PostgreSQL RLS/HTTP acceptance | PASS (3/3) | Run 45374083161 |
-| Deploy-bound PostgreSQL 18 acceptance | PASS (30/30) | Run 45374083161 |
-| CodeQL Actions / JS-TS / Python | PASS | Run 45374082761 |
+| `verify` | PASS_WITH_SKIPS — 1,021 passed, 0 failed, 3 skipped | GitHub Actions run 45377527984 |
+| `vercel-source-verify` | PASS (18/18) | Run 45377522840 |
+| `vercel-contract-verify` | PASS (3/3) | Run 45377522840 |
+| Isolated PostgreSQL RLS/HTTP acceptance | PASS (3/3) | Run 45377522840 |
+| Deploy-bound PostgreSQL 18 acceptance | PASS (30/30) | Run 45377522840 |
+| CodeQL Actions / JS-TS / Python | PASS | Run 45377523517 |
 | Vercel Production deploy job | SKIPPED | No production deployment from this run |
 | Neon Preview migration and HTTP acceptance | SKIPPED | No Preview acceptance from this run |
 | Historical Production Neon PITR probe | SKIPPED | No current PITR proof from this run |
@@ -30,7 +30,7 @@ Main is covered by the active repository ruleset `protect-main` (enforcement `ac
 ## Seller-hosted Vercel availability — measured 2026-11-24
 
 - Vercel project `opscore-platform`: `live=false`.
-- No Production deployment exists for current main `d243a428bb44b4cbd0d1fd768cb907d0e9fcbdb1` (exact-SHA deployment query returned zero records).
+- The Production deploy job for snapshot SHA `f71b8eee...` was `SKIPPED`; this workflow created no Production deployment for that SHA.
 - Public `GET /api/health` and `GET /api/verify/release` both returned HTTP `402 Payment Required` with `x-vercel-error: DEPLOYMENT_DISABLED` at approximately 10:22 UTC on 2026-11-24.
 - A verified project-domain association does not prove that the domain is currently aliased to a live deployment.
 - Team context reports plan `Pro`; the available charges endpoint reports usage attribution only, not invoice, outstanding balance or payment-good-standing status. The specific account suspension/billing cause is therefore NOT VERIFIED.
@@ -40,7 +40,7 @@ This seller-hosted service outage is separate from CI and from the proposed buye
 ## Self-hosted qualification blockers
 
 1. Signed tenant-context policy is coupled to Vercel Preview/Production environment checks and Vercel release readiness.
-2. A separate Ed25519 self-hosted release-identity verifier and selector on the existing `/api/verify/release` endpoint are implemented. They verify a trusted operator-signed statement only; they do not independently collect the archive/TLS/database facts, open production traffic, or qualify the complete buyer deployment.
+2. The `main` snapshot includes an Ed25519 self-hosted release-identity verifier, which verifies trusted operator-signed claims. PR #436 proposes a separate collector for archive/TLS/database measurements, with bounded scope and owner-only output; no buyer-host measurement has yet been executed or accepted. Neither mechanism opens production traffic or qualifies the complete buyer deployment.
 3. PostgreSQL migration target validation is Neon-specific; a generic customer-managed PostgreSQL target is not implemented/qualified.
 4. The PostgreSQL Compose file is a database service, not a complete application production stack.
 5. Buyer-specific TLS ingress, persistent file storage, secret management, backups, restore, monitoring, upgrades and buyer target acceptance are not evidenced.
@@ -57,7 +57,7 @@ Expo mobile source is included; signed native binaries, device QA and store publ
 
 Package metadata is `UNLICENSED`. The root `NO_LICENSE_GRANT_NOTICE.txt` controls. This repository, this index, CI, SBOM, signatures, ZIPs and deployment evidence grant no buyer rights. Use, modification, hosting, redistribution, resale and sublicensing require an executed rights-holder/buyer License Schedule pinning the exact deliverable. The existing tier framework is not itself a grant.
 
-Third-party licence inventory is not legal clearance. Two SBOM components have no declared licence expression in the 2026-11-24 inventory and require resolution before claiming complete licence clearance.
+Third-party licence inventory is not legal clearance. The 496-component SBOM inventory is not exact-head legal clearance; two first-party entries have no declared licence expression, notices/license-text collection is incomplete, and commercial clearance is not established.
 
 ## Required next evidence
 
@@ -67,4 +67,4 @@ Third-party licence inventory is not legal clearance. Two SBOM components have n
 - Buyer-controlled target acceptance for the exact artifact and deployment.
 - Executed buyer-specific License Schedule. Resale/redistribution rights must be explicit, not inferred.
 
-**Classification at evidence cut: SOURCE-CODE CANDIDATE / SELF-HOSTED PRODUCTION BLOCKED / NO LICENSE GRANT / NO EXTERNAL CERTIFICATION.**
+**Classification at this dated evidence cut: SOURCE-CODE CANDIDATE / SELF-HOSTED PRODUCTION BLOCKED / NO LICENSE GRANT / NO EXTERNAL CERTIFICATION. PR #436 remains a separate candidate and must pass its own exact-head checks.**

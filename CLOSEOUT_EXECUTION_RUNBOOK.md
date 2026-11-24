@@ -1,5 +1,7 @@
 # OpsCore v0.11.62 — Commercial Closeout Execution Runbook
 
+> **HISTORICAL RUNBOOK SNAPSHOT — 2026-11-22 — DO NOT USE AS CURRENT STATUS.** The SHA, run IDs, deployment IDs, migration/snapshot observations and environment flags below describe a prior reconciliation and are retained only for audit history. Current dated buyer evidence is maintained in [Buyer Evidence Index](docs/commercial/BUYER_EVIDENCE_INDEX.md) and [Self-Hosted Buyer Edition](docs/commercial/SELF_HOSTED_BUYER_EDITION_2026-11-24.md). The live classification remains HOLD / self-hosted production blocked / no buyer licence / no external accreditation.
+
 **Reconciled:** 2026-11-22
 **Main SHA at reconciliation start:** `63682774b7f81e123f996f6508fed5a714fea0be`  
 **Application/runtime baseline audited:** `43554492218adbf0cde2d700bd0dedfadce67f5e` (the merge added closeout documentation, test and static-audit tooling changes; it did not change application runtime, migrations or lockfiles)
@@ -7,7 +9,7 @@
 **Buyer/product qualification:** `NOT ESTABLISHED`  
 **Buyer environment:** `NOT_VERIFIED` — seller evidence does not transfer to customer infrastructure.
 
-This runbook is a current operational register, not a certificate. Each proof must be tied to the exact source commit, pipeline, deployment and database it measures. A later source change invalidates earlier package/release evidence.
+This archived runbook is not a current operational register or a certificate. Do not use its historical operational values to make current decisions. Each proof must be tied to the exact source commit, pipeline, deployment and database it measures. A later source change invalidates earlier package/release evidence.
 
 ## 1. Current exact candidate
 

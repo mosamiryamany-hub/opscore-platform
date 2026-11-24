@@ -1,5 +1,7 @@
 # OpsCore — Commercial Closeout Status
 
+> **HISTORICAL SNAPSHOT — 2026-11-22 — SUPERSEDED FOR CURRENT STATUS.** This report's SHAs, CI run IDs, Vercel deployments, Neon migration/snapshot observations and release flags are retained only as a dated audit record. Do not use them to describe current main or a buyer deliverable. Current controlling evidence is [Buyer Evidence Index](BUYER_EVIDENCE_INDEX.md), [Self-Hosted Buyer Edition](SELF_HOSTED_BUYER_EDITION_2026-11-24.md), and the root [Buyer Delivery Boundary](../../BUYER_DELIVERY.md). At 2026-11-24, the current disposition remains source-code candidate / delivery HOLD / self-hosted production BLOCKED / no licence grant / no external certification.
+
 **Reconciled:** 2026-11-22
 **Product label:** `0.11.62`
 **Main SHA at reconciliation start:** `63682774b7f81e123f996f6508fed5a714fea0be`  
