@@ -81,6 +81,14 @@ test('database privilege measurements must be actual boolean values, never infer
     () => collector.databaseIdentityFromRow(null, 'db.buyer.example'),
     /DATABASE_ROLE_NOT_FOUND/
   );
+  assert.throws(
+    () => collector.databaseIdentityFromRow({ ...row, bypass_rls: true }, 'db.buyer.example'),
+    /RUNTIME_ROLE_NOT_LEAST_PRIVILEGE:bypassRls/
+  );
+  assert.throws(
+    () => collector.databaseIdentityFromRow({ ...row, server_version: '18.1x' }, 'db.buyer.example'),
+    /DATABASE_VERSION_INVALID/
+  );
 });
 
 test('archive SHA-256 is calculated from actual file bytes', async () => {
