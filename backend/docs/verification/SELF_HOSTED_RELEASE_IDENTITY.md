@@ -60,6 +60,34 @@ The script reads the private key locally, signs the canonical payload and writes
 
 Place the identity at `backend/docs/verification/SELF_HOSTED_RELEASE_IDENTITY.json` (default) or configure `OPSC_SELF_HOSTED_IDENTITY_PATH`.
 
+## Preferred: collect measurements from the actual buyer environment
+
+The automated collector reads the exact archive bytes, opens a certificate-verified TLS connection to the configured HTTPS origin, and connects to PostgreSQL using TLS verification to read the live server version, current database, current runtime role and role privilege flags. It refuses pooled endpoints with common pooler host markers and requires an explicit operator confirmation that the configured database endpoint is direct.
+
+Set these variables in a secure shell. The database URL and private-key path are never printed:
+
+```bash
+export OPSC_SELF_HOSTED_HOST='https://buyer.example.com'
+export OPSC_SELF_HOSTED_DATABASE_URL='postgresql://opscore_runtime:...@db.buyer.example:5432/opscore?sslmode=verify-full'
+export OPSC_SELF_HOSTED_DB_DIRECT_CONNECTION_CONFIRMED=true
+export OPSC_SELF_HOSTED_ISSUED_BY='buyer-operator'
+export OPSC_SOURCE_COMMIT_SHA='40-hex-commit-sha'
+```
+
+Then collect and sign the measurements:
+
+```bash
+node backend/scripts/collect-self-hosted-release-identity.js \
+  --archive /secure/path/opscore-release.tar.gz \
+  --private-key /secure/path/opscore-self-hosted-private.pem \
+  --key-id buyer-release-2026 \
+  --output /secure/path/SELF_HOSTED_RELEASE_IDENTITY.json
+```
+
+The collector requires PostgreSQL `sslmode=verify-full`; a private CA may be supplied with `OPSC_SELF_HOSTED_DB_CA_FILE` or `sslrootcert`. It refuses any role with an elevated privilege flag. The direct-connection boolean is still an explicit operator confirmation, not something PostgreSQL can universally prove through an arbitrary proxy.
+
+**Remaining operator responsibility:** confirm that the archive was built from the exact measured commit and that the endpoint is genuinely direct. The script measures the archive, live HTTPS certificate and live database role; it does not establish build provenance or inspect arbitrary network proxies. The signed statement authenticates those measurements to the public key pinned in the buyer runtime.
+
 ## Verify
 
 ```bash
