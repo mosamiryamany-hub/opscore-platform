@@ -25,7 +25,7 @@ Current-main GitHub Actions run [45360794536](https://github.com/mosamiryamany-h
 
 The intended source-code offer is for buyer-controlled infrastructure, with seller-hosted Vercel/Neon services excluded. However, provider-neutral self-hosted production is not yet supported by current code:
 1. Signed tenant-context activation is coupled to Vercel Preview/Production environment and release-readiness conditions.
-2. Release identity/proof is Vercel deployment- and Neon-evidence-specific.
+2. A separate Ed25519 self-hosted release-attestation verifier is now wired to the existing `/api/verify/release` endpoint through explicit `OPSC_RELEASE_PROOF_MODE=self-hosted`. It verifies trusted operator-signed claims only; it does not independently collect archive/TLS/database measurements, open traffic or qualify end-to-end production.
 3. Neon-specific PostgreSQL migration targeting validates Neon endpoint/project/branch identity and expects a Neon owner role; a generic customer-managed PostgreSQL target is not implemented or qualified.
 4. The current PostgreSQL Compose file is not a complete application production stack with durable storage, ingress, secrets, monitoring and recovery.
 
