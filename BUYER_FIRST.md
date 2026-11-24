@@ -12,13 +12,23 @@ This does **not** mean a provider-neutral self-hosted production installation is
 
 ## Current evidence
 
-Evidence cut: main `6859b5d86f13ba9f481ed8fce5cc95c729d22b55`, GitHub Actions run [45360794536](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45360794536).
+Evidence cut: main `d243a428bb44b4cbd0d1fd768cb907d0e9fcbdb1`. OpsCore CI [45374083091](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083091), Vercel/PG acceptance [45374083161](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083161), CodeQL [45374082761](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374082761).
 
 - Source validation, contract checks, isolated PostgreSQL RLS/HTTP acceptance and CodeQL checks: PASS in the named CI run.
 - Production deployment, Neon Preview migration/HTTP acceptance and historical Production PITR probe: SKIPPED.
 - Exact-head Secure Release package for this evidence cut: NOT ESTABLISHED.
 - Buyer-owned self-hosted production acceptance: NOT RUN.
 - Independent external certification: NONE CLAIMED.
+
+## Seller-hosted Vercel availability — measured 2026-11-24
+
+- Vercel project `opscore-platform`: `live=false`.
+- No Production deployment exists for current main `d243a428bb44b4cbd0d1fd768cb907d0e9fcbdb1` (exact-SHA deployment query returned zero records).
+- Public `GET /api/health` and `GET /api/verify/release` both returned HTTP `402 Payment Required` with `x-vercel-error: DEPLOYMENT_DISABLED` at approximately 10:22 UTC on 2026-11-24.
+- A verified project-domain association does not prove that the domain is currently aliased to a live deployment.
+- Team context reports plan `Pro`; the available charges endpoint reports usage attribution only, not invoice, outstanding balance or payment-good-standing status. The specific account suspension/billing cause is therefore NOT VERIFIED.
+
+This seller-hosted service outage is separate from CI and from the proposed buyer-owned deployment model. Do not advertise the seller-hosted demo/API as live until Vercel re-enables the project and the current main commit is deployed and measured.
 
 A PASS applies only to the test and target named in its evidence. SKIPPED is not PASS. CI is not a buyer production certificate.
 
