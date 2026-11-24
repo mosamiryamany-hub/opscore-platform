@@ -13,9 +13,19 @@
 
 ## Evidence cut
 
-Main `6859b5d86f13ba9f481ed8fce5cc95c729d22b55`; CI run [45360794536](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45360794536). Source validation, contract checks, isolated PostgreSQL RLS/HTTP acceptance and CodeQL checks passed. Vercel Production deploy, Neon Preview acceptance and historical Production Neon PITR were skipped.
+Main `d243a428bb44b4cbd0d1fd768cb907d0e9fcbdb1`. OpsCore CI [45374083091](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083091) passed 21/21; Vercel/PG acceptance [45374083161](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083161) passed source 18/18, contract 3/3, isolated PG 3/3 and deploy-bound PostgreSQL 18 acceptance 30/30; CodeQL [45374082761](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374082761) passed Actions, JS/TS and Python. Production deploy, Neon Preview acceptance and historical PITR were skipped.
 
 A current release requires a fresh exact-head Secure Release run that produces the package ZIP, external release statement, archive byte count/SHA-256, CycloneDX SBOM, provenance/signature and same-run test/dependency/localization evidence. Any subsequent source change invalidates that artifact identity.
+
+## Seller-hosted Vercel availability — measured 2026-11-24
+
+- Vercel project `opscore-platform`: `live=false`.
+- No Production deployment exists for current main `d243a428bb44b4cbd0d1fd768cb907d0e9fcbdb1` (exact-SHA deployment query returned zero records).
+- Public `GET /api/health` and `GET /api/verify/release` both returned HTTP `402 Payment Required` with `x-vercel-error: DEPLOYMENT_DISABLED` at approximately 10:22 UTC on 2026-11-24.
+- A verified project-domain association does not prove that the domain is currently aliased to a live deployment.
+- Team context reports plan `Pro`; the available charges endpoint reports usage attribution only, not invoice, outstanding balance or payment-good-standing status. The specific account suspension/billing cause is therefore NOT VERIFIED.
+
+This seller-hosted service outage is separate from CI and from the proposed buyer-owned deployment model. Do not advertise the seller-hosted demo/API as live until Vercel re-enables the project and the current main commit is deployed and measured.
 
 ## Self-hosted qualification
 
