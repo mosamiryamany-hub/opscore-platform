@@ -7,6 +7,7 @@
 - Node.js `>=22.23.4 <23`, npm, and the exact authorized source package.
 - Use the lockfile and the same source commit identified by the release statement.
 - Keep all secrets outside source control and outside shared support messages.
+- `backend/.env.example` is development-only and defaults to local SQLite; it is not a Production or self-hosted deployment template.
 - The backend's default SQLite path is for local development/evaluation only. It is not a supported multi-instance production database.
 
 ## 2. Local source checks

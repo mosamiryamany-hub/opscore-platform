@@ -19,7 +19,7 @@ The buyer is intended to own and control:
 - third-party accounts, licences, API keys, quotas and service contracts;
 - any mobile signing identities, native build accounts and app-store submissions.
 
-**Important:** This is the target delivery model, not a claim that the current repository already supports a complete provider-neutral self-hosted production installation. The technical blockers in section 4 remain open.
+**Important:** This is the target delivery model, not a claim that the current repository already supports a complete provider-neutral self-hosted production installation. The technical blockers in section 4 remain open. `backend/.env.example` is a local-development-only template; it deliberately supplies no Production release flags or production credentials. Do not use it as a production deployment profile.
 
 ## 2. Exact repository evidence at this cut
 
