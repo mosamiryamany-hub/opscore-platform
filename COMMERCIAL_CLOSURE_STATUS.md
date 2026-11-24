@@ -41,6 +41,6 @@ The detailed source-level findings and required corrective plan are in [Self-Hos
 
 ## Legal disposition
 
-Package metadata remains `UNLICENSED`; `NO_LICENSE_GRANT_NOTICE.txt` controls. No buyer use, installation, modification, hosting, resale, redistribution or sublicense is authorized before the rights holder and named buyer execute a signed Schedule pinning the exact deliverable. L1 internal-use rights do not grant resale. Third-party SBOM inventory is not legal clearance.
+Package metadata remains `UNLICENSED`; `NO_LICENSE_GRANT_NOTICE.txt` controls. No buyer use, installation, modification, hosting, resale, redistribution or sublicense is authorized before the rights holder and named buyer execute a signed Schedule pinning the exact source commit and deliverable. L1 internal-use rights do not grant resale. Third-party SBOM inventory is not legal clearance.
 
 **Final status: OPEN / HOLD.** A marketing conversation may describe the source candidate within these limits. Do not deliver or describe it as a qualified self-hosted production system until technical blockers, exact-artifact evidence, buyer acceptance and legal authority are resolved.
