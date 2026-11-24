@@ -296,7 +296,7 @@ jobs:
             -H "Authorization: Bearer ${VERCEL_TOKEN}" -H "Content-Type: application/json" -d "[{\"key\":\"OPSC_TENANT_CONTEXT_HMAC_KEY\",\"value\":\"${HMAC_KEY}\",\"type\":\"encrypted\",\"target\":[\"production\"]},{\"key\":\"OPSC_TENANT_CONTEXT_KEY_ID\",\"value\":\"${HMAC_KEY_ID}\",\"type\":\"encrypted\",\"target\":[\"production\"]}]" > /tmp/vercel_env.json
           node -e "const d=require('/tmp/vercel_env.json');const ok=(d.created||[]).length===2;if(!ok){console.error(JSON.stringify(d).slice(0,200));process.exit(1)}console.log('VERCEL_HMAC_ENV_SET')"
       - name: Upload migration evidence
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: production-migration-evidence-${{ github.run_id }}
           path: backend/docs/verification/PRODUCTION_MIGRATION_06x_EVIDENCE.json
