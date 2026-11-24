@@ -2,7 +2,7 @@
 
 ## Why this exists
 
-The Vercel release proof remains platform-specific. This separate gate lets a buyer-owned installation verify a signed release-identity statement without requiring a Vercel deployment ID. It adds no HTTP route and does not change the Vercel certification path.
+The Vercel release proof remains the default. The existing `GET /api/verify/release` endpoint selects the Vercel proof unless the buyer explicitly sets `OPSC_RELEASE_PROOF_MODE=self-hosted`; this selects the Ed25519-signed self-hosted proof without adding an HTTP route or changing the existing Vercel verifier.
 
 ## Security meaning of PASS
 
@@ -70,4 +70,4 @@ Missing trust keys, wrong key IDs, malformed signatures, tampering, stale identi
 
 ## Explicit exclusions
 
-This does not prove Vercel deployment identity, Neon PITR, the signed tenant-context 67-route matrix, buyer app-store signing, native device QA, translation review, licensed maps, or independent compliance certification. Those remain separate acceptance items.
+This proof selector does not open the production traffic hold, enable signed tenant/session context, change the Neon-specific migration runner, prove Vercel deployment identity, prove Neon PITR, or pass the signed tenant-context 67-route matrix. It does not independently collect archive bytes, perform a live TLS handshake, or query PostgreSQL privileges; those are operator-signed measurements. Buyer app-store signing, native device QA, translation review, licensed maps, complete self-hosted install/restore acceptance and independent compliance certification remain separate items. This proof never returns `CERTIFIED`.

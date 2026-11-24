@@ -8,7 +8,7 @@ This page is technical/commercial orientation only. Do not install, run, copy, m
 
 OpsCore is a multi-sector operations source candidate comprising web console, HTTP API, PostgreSQL schema/migration assets, and Expo mobile source. The proposed commercial model is a source-code handoff for buyer-controlled infrastructure, not a seller-hosted subscription.
 
-This does **not** mean a provider-neutral self-hosted production installation is already supported. Current source-level blockers include Vercel-specific signed-tenant release gating and Neon-specific PostgreSQL migration targeting. The current status and required engineering closure are documented in [Self-Hosted Buyer Edition](docs/commercial/SELF_HOSTED_BUYER_EDITION_2026-11-24.md).
+This does **not** mean a provider-neutral self-hosted production installation is already supported. The existing release-verification endpoint now supports a distinct Ed25519 self-hosted operator-attestation mode. However, signed tenant-context activation remains Vercel-gated, PostgreSQL migration targeting remains Neon-specific, and the signed operator claims are not independently measured by the verifier. The current status and required engineering closure are documented in [Self-Hosted Buyer Edition](docs/commercial/SELF_HOSTED_BUYER_EDITION_2026-11-24.md).
 
 ## Current evidence
 

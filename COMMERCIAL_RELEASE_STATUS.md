@@ -19,7 +19,7 @@ A current release requires a fresh exact-head Secure Release run that produces t
 
 ## Self-hosted qualification
 
-Current source release/deployment logic is coupled to Vercel identity and Neon migration targeting. A complete provider-neutral self-hosted production stack, signed tenant-context activation, database migration flow, restore/rollback and buyer-environment acceptance are not established. See [Self-Hosted Buyer Edition](docs/commercial/SELF_HOSTED_BUYER_EDITION_2026-11-24.md).
+The existing `/api/verify/release` endpoint supports an explicit Ed25519 self-hosted operator-attestation mode. The verifier checks the signature and signed claims but does not independently collect archive, TLS or database measurements. Signed tenant-context activation remains coupled to Vercel identity, and PostgreSQL migration targeting remains Neon-specific. A complete provider-neutral self-hosted production stack, restore/rollback and buyer-environment acceptance are not established. See [Self-Hosted Buyer Edition](docs/commercial/SELF_HOSTED_BUYER_EDITION_2026-11-24.md).
 
 ## Commercial boundary
 

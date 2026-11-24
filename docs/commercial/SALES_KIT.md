@@ -20,7 +20,7 @@ The current source has automated CI and isolated PostgreSQL/RLS test evidence on
 
 ## Material limitations — disclose before a buyer decision
 
-- Provider-neutral self-hosted production qualification is **BLOCKED**: signed-tenant context is Vercel-gated, release identity is Vercel/Neon-specific, and PostgreSQL migration targeting is Neon-specific.
+- Provider-neutral self-hosted production qualification is **BLOCKED**. The existing release-verification endpoint now has a distinct Ed25519 self-hosted operator-attestation mode, but signed tenant context remains Vercel-gated, PostgreSQL migration targeting remains Neon-specific, and the signed measurements are not independently collected by the verifier.
 - The exact-head Secure Release archive for the 2026-11-24 evidence cut is not established. Historical packages, hashes, deployment IDs and pipeline reports are not current delivery evidence.
 - Expo source only; no signed APK/AAB/IPA, native signing, physical-device QA or store publication.
 - Translation catalog includes machine-assisted drafts and fallback locales. Native-speaker review and production language qualification are not established; do not claim native-quality translations.

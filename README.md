@@ -2,7 +2,7 @@
 
 **Source-code candidate. Buyer-controlled deployment is the intended model; self-hosted production is not yet qualified.**
 
-OpsCore is a multi-sector operational source candidate comprising a web console, HTTP API, PostgreSQL schema/migration assets and Expo mobile source. This is not a seller-hosted SaaS subscription. The target buyer model is operation on infrastructure controlled by the buyer; however, current release and migration code still contains Vercel/Neon-specific gates that must be removed through a reviewed, tested engineering change before claiming a supported provider-neutral self-hosted production edition.
+OpsCore is a multi-sector operational source candidate comprising a web console, HTTP API, PostgreSQL schema/migration assets and Expo mobile source. This is not a seller-hosted SaaS subscription. The target buyer model is operation on infrastructure controlled by the buyer. The existing release-verification endpoint now supports an explicit Ed25519 self-hosted operator-attestation mode, but it does not independently measure the attested archive/TLS/database facts. Signed tenant-context activation remains Vercel-gated and PostgreSQL migration targeting remains Neon-specific; those blockers must be closed before claiming a supported provider-neutral self-hosted production edition.
 
 > **Current classification: SOURCE-CODE CANDIDATE / SELF-HOSTED PRODUCTION BLOCKED / NO LICENSE GRANT / NO EXTERNAL CERTIFICATION.**
 

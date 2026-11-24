@@ -20,7 +20,8 @@ const {
   signedContextRequested: isSignedContextRequested
 } = require('./signed-tenant-context-policy');
 const { createDeploymentProof } = require('./deployment-proof');
-const { createPublicReleaseProof, readEmbeddedBuildIdentity, hasVerifiedProductionRelease } = require('./release-proof');
+const { readEmbeddedBuildIdentity, hasVerifiedProductionRelease } = require('./release-proof');
+const { createPlatformReleaseProof } = require('./platform-release-proof');
 const { readDatabaseSecurityProof } = require('./database-security-proof');
 const { isHttpBootstrapAllowed } = require('./bootstrap-policy');
 
@@ -1479,7 +1480,7 @@ function route(req, res) {
   }
 
   if (req.method === 'GET' && (url.pathname === '/api/verify/release' || url.pathname === '/verify/release.json')) {
-    return json(res, 200, createPublicReleaseProof(process.env));
+    return json(res, 200, createPlatformReleaseProof(process.env));
   }
   if (req.method === 'GET' && url.pathname === '/api/verify/database-security') {
     const checkedAt = new Date().toISOString();

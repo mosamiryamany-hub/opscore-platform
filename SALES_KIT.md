@@ -10,7 +10,7 @@ OpsCore is a multi-sector operational software source candidate comprising a web
 
 The 2026-11-24 evidence cut is main `6859b5d86f13ba9f481ed8fce5cc95c729d22b55`, CI run [45360794536](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45360794536). Source validation, contract checks, isolated PostgreSQL RLS/HTTP acceptance and CodeQL checks passed in that run. Production deploy, Neon Preview acceptance and historical PITR were skipped. The exact-head Secure Release archive is not established by that run.
 
-Provider-neutral self-hosted production remains blocked by Vercel-specific signed-tenant/release gates and Neon-specific migration targeting. A complete application + database + persistent storage + ingress production stack and buyer-target acceptance are not established.
+Provider-neutral self-hosted production remains blocked by Vercel-specific signed-tenant context gates and Neon-specific migration targeting. The existing release-verification endpoint now has an explicit Ed25519 self-hosted operator-attestation mode, but it verifies signed claims only; it does not independently measure the archive, TLS endpoint or database and does not qualify the complete deployment. A full application + database + persistent storage + ingress stack and buyer-target acceptance are not established.
 
 Mobile source only is included; no signed native binaries or store publication. Machine-assisted translations require native-speaker review. Licensed maps/road-routing and live external providers are not included. Payment processing remains disabled until configured and live-tested.
 
