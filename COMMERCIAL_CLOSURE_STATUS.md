@@ -2,12 +2,15 @@
 
 **Reconciled:** 2026-11-24  
 **Evidence-cut main:** `6859b5d86f13ba9f481ed8fce5cc95c729d22b55`  
-**Controlling status:** `HOLD — SOURCE-CODE CANDIDATE ONLY`  
-**Self-hosted production:** `BLOCKED — NOT QUALIFIED`  
-**Buyer licence/delivery:** `NONE — EXECUTED SCHEDULE REQUIRED`  
-**External certification:** `NONE CLAIMED`
+**Seller offer:** OPEN FOR MARKETING AND NEGOTIATION — NO BUYER LICENSE GRANT.  
+**Delivery status:** HOLD — NO DELIVERY BEFORE EXECUTED SCHEDULE.  
+**Self-hosted production:** BLOCKED — NOT QUALIFIED.  
+**Buyer environment:** NOT_ESTABLISHED / NOT VERIFIED.  
+**External certification:** NONE CLAIMED.
 
 This file replaces the stale 2026-11-22 deployment and Neon snapshot as the current status summary. Do not use historical deployment IDs, pipeline IDs, hashes, provider statuses or test counts from the earlier report as current evidence.
+
+The seller may advertise, publish, present and negotiate the source-code candidate before a buyer is known. These activities do not grant buyer access or use. No buyer may use or receive the software until the rights holder and named buyer execute a signed License Schedule for the exact deliverable.
 
 ## Current evidence
 
@@ -29,7 +32,7 @@ The detailed source-level findings and required corrective plan are in [Self-Hos
 
 ## Security, product and buyer residuals
 
-- The backend Docker build context did not previously have a `.dockerignore`; the candidate change adds one to exclude environment files, local databases, uploads/data and build residue. This source change still requires CI image-build verification.
+- The backend Docker build context did not previously have a `.dockerignore`; the candidate change adds one to exclude environment files, local databases, uploads/data and build residue. The PR's Docker image build-context check now passed; the complete protected PR suite is still pending.
 - Expo mobile source only; no signed native binaries, physical-device acceptance or store publication.
 - Machine-assisted translations remain disclosed; native-speaker review is not established.
 - Licensed maps/road-routing and external provider accounts/credentials/live acceptance are not included.
@@ -38,6 +41,6 @@ The detailed source-level findings and required corrective plan are in [Self-Hos
 
 ## Legal disposition
 
-Package metadata remains `UNLICENSED`; `NO_LICENSE_GRANT_NOTICE.txt` controls. No buyer use, installation, modification, hosting, resale, redistribution or sublicense is authorized before the rights holder and named buyer execute a Schedule pinning the exact deliverable. L1 internal-use rights do not grant resale. Third-party SBOM inventory is not legal clearance.
+Package metadata remains `UNLICENSED`; `NO_LICENSE_GRANT_NOTICE.txt` controls. No buyer use, installation, modification, hosting, resale, redistribution or sublicense is authorized before the rights holder and named buyer execute a signed Schedule pinning the exact deliverable. L1 internal-use rights do not grant resale. Third-party SBOM inventory is not legal clearance.
 
 **Final status: OPEN / HOLD.** A marketing conversation may describe the source candidate within these limits. Do not deliver or describe it as a qualified self-hosted production system until technical blockers, exact-artifact evidence, buyer acceptance and legal authority are resolved.
