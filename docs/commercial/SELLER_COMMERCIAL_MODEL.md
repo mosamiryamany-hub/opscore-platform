@@ -16,9 +16,12 @@
 
 ## Pricing policy
 
-- **Published seller minimum asking floors (USD):** L1 **$45,000**, L2 **$85,000**, L3 **$175,000**. These are the public starting floors for marketing and buyer discovery, not an executed transaction quote.
-- Do not offer a tier below its published floor unless the rights holder explicitly revises the seller floor in writing.
-- Final fee, currency, milestones, taxes, exact deliverable, and permitted rights are negotiated and recorded in the buyer-specific executed License Schedule.  
+- **Owner-authorized one-time list prices (USD, 2026-11-24):** L1 Use Only — **$3,000**; L2 Use + Modify + Redistribute — **$6,000**; L3 Exclusive License **or** Assignment of specified rights — **$15,000**.
+- L3's two descriptions are alternatives, not an automatic combined transfer. The buyer-specific Schedule must choose exclusive license or assignment and identify the exact rights and assets.
+- These are seller-selected list prices, not an independent valuation, and do not grant rights. The executed Schedule must pin the exact deliverable and state selected rights, payment, taxes, support, term and governing law/forum.
+- Prices are stated in USD. Do not charge or collect payment until seller jurisdiction/merchant identity, destination-based tax treatment, payment-provider terms and applicable online-sales disclosures have been reviewed and configured. Show the buyer the applicable total before confirmation; block checkout for destinations where compliant tax/payment handling is not configured.
+- Proposed payment default for owner approval: one-time payment in full through an approved processor after the buyer-specific Schedule is signed; source access/delivery only after funds clear and a distribution-authorized exact-hash release is available. No payment processor or live checkout is currently configured.
+- Refund/cancellation copy must preserve mandatory consumer rights in the buyer's jurisdiction. Do not use a blanket “no refunds” rule. If the seller cannot deliver the contracted authorized artifact, refund the payment through the original method promptly, subject to applicable law. Any withdrawal waiver for immediate digital delivery requires separate affirmative consent only where lawful.
 - Seller may withhold delivery until Schedule signature and cleared payment terms as the Schedule states.
 
 ## Independence of gates
@@ -47,12 +50,10 @@ No license grant exists until a named buyer and the rights holder execute a Lice
 
 **NO LICENSE GRANT** by repository presence, candidate evidence, or this document alone.
 
-## Minimum fair floors (USD, seller guide only)
+## Online-sale controls — draft, not an active checkout
 
-| Tier | Floor |
-|---|---|
-| L1 Use Only | **USD 45,000** |
-| L2 Use + Modify + Redistribute | **USD 85,000** |
-| L3 Exclusive / IP Assignment | **USD 175,000** |
+The current external release statement sets `distributionAuthorized` to `false`, and no buyer is named. Therefore an online offer may collect expressions of interest only; it must not accept payment, provide a download, or grant use rights until a fresh exact-hash release is authorized and a buyer-specific Schedule is executed. The currently prepared alternative archive is not the `.20.zip`, and its successful CI evidence does not override this hold.
 
-OPEN FOR MARKETING. **NO LICENSE GRANT** until a named buyer executes a License Schedule that pins the deliverable and states the negotiated fee (at or above the seller’s chosen floor).
+Before enabling checkout, the seller must supply verified legal identity and seller location, select governing law/forum with local counsel, configure payment and tax calculation/invoicing, publish approved terms/privacy/refund disclosures, and test receipt, failure, cancellation and refund paths without charging a real customer. No seller jurisdiction or payment processor is identified in the current information.
+
+**NO LICENSE GRANT** until a named buyer and the rights holder execute a Schedule that pins the deliverable and selected rights. The listed prices do not change `licenseGrant` or `distributionAuthorized` in any existing signed release statement.

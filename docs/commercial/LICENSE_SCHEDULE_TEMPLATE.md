@@ -1,7 +1,7 @@
 # OpsCore — License Schedule (template)
 
-**Instructions:** Complete one Schedule per buyer transaction. Do not commit executed Schedules with signatures or prices to a public repository unless the parties agree.  
-**Prices:** Leave commercial amounts blank in shared templates; fill only in the executed copy held by the parties.
+**Instructions:** Complete one Schedule per buyer transaction. Do not commit executed Schedules with signatures or buyer-specific terms to a public repository unless the parties agree.
+**Owner-authorized list prices (USD, 2026-11-24):** L1 $3,000; L2 $6,000; L3 $15,000. These are list prices only; tax, payment and exact rights must appear in the executed Schedule. L3 must specify exclusive license **or** assignment of identified rights.
 
 ---
 
@@ -21,7 +21,7 @@ Governing law / forum: ____________
 - [ ] **L2 — Use + Modify + Redistribute**
 - [ ] **L3 — Exclusive / IP Assignment**
 
-This Schedule incorporates `docs/commercial/LICENSE_FRAMEWORK.md` version **2026-11-20**.
+This Schedule incorporates `docs/commercial/LICENSE_FRAMEWORK.md` version **2026-11-24**.
 
 ## 3. Deliverable identity
 
@@ -58,11 +58,12 @@ This Schedule incorporates `docs/commercial/LICENSE_FRAMEWORK.md` version **2026
 
 | Field | Value |
 |---|---|
-| License fee | _to be agreed_ |
-| Currency | |
-| Payment schedule | |
-| Taxes | |
-| Refund / acceptance window | |
+| Selected tier list price | L1 USD 3,000 / L2 USD 6,000 / L3 USD 15,000 |
+| Final fee / any negotiated adjustment authorized by seller | |
+| Currency | USD unless the parties expressly agree otherwise |
+| Payment schedule / accepted method | |
+| Applicable taxes and invoicing | |
+| Refund / cancellation / acceptance window | Preserve mandatory buyer rights; specify applicable process |
 
 ## 7. Representations (short form)
 

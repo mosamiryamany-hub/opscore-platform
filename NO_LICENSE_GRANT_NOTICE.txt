@@ -20,7 +20,7 @@ release artifact or unsigned template constitutes a grant or authorizes use.
 
 Commercial tiers (Use / Use+Modify / Use+Modify+Distribute) are described only in
 docs/commercial/LICENSE_FRAMEWORK.md. That framework does not itself grant rights.
-Published seller minimum asking floors (USD): L1 Use Only — $45,000; L2 Use + Modify + Redistribute — $85,000; L3 Exclusive / IP Assignment — $175,000. The final buyer-specific fee and complete rights grant are negotiated and recorded only in the executed License Schedule.
+Owner-authorized list prices (USD, 2026-11-24): L1 Use Only — $3,000; L2 Use + Modify + Redistribute — $6,000; L3 — $15,000 for an exclusive license or assignment of specifically identified rights. L3 does not automatically combine exclusivity and assignment. These are list prices, not a valuation or rights grant; the executed buyer-specific License Schedule must select and define the rights, exact artifact and commercial terms. Existing release statements may separately prohibit distribution; this notice does not override them.
 
 CI success, production health, isolation certification, recovery evidence, package
 fingerprints, SBOM or attestation do not create a license.

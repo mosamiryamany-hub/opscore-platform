@@ -1,7 +1,7 @@
 # OpsCore — Commercial License Framework
 
-**Status:** Framework only. **No license is granted by this document alone.**  
-**Published minimum asking floors (USD):** L1 **$45,000**, L2 **$85,000**, L3 **$175,000**. These public floors support marketing and buyer discovery; the buyer-specific final fee, payment schedule, currency, taxes, exact deliverable and rights are negotiated and recorded in the signed License Schedule.  
+**Status:** Framework only. **No license is granted by this document alone.**
+**Owner-authorized list prices (USD, 2026-11-24):** L1 **$3,000**, L2 **$6,000**, L3 **$15,000**. These prices were supplied by the rights holder; they are not an independent valuation and do not grant rights. The exact deliverable, L3 scope, tax treatment, payment terms and rights must be stated in a signed buyer-specific License Schedule. L3 means an exclusive license **or** assignment of specifically identified rights, not both by default.
 **Authority:** Buyer rights exist only when the rights holder and the named buyer both execute a **License Schedule** that (1) references this framework by version/date, (2) selects exactly one tier below, and (3) identifies the exact deliverable (`sourceCommit` and/or package SHA-256).
 
 ---
@@ -12,13 +12,13 @@
 |---|---|---|---|---|
 | **L1** | **Use Only** | Operate OpsCore for the buyer’s own internal business | Non-exclusive, non-transferable right to install, configure, and operate the licensed deliverable for the buyer’s own operations | No modification of source beyond configuration; no redistribution; no sublicense; no marketplace resale; no transfer of IP |
 | **L2** | **Use + Modify + Redistribute** | Adapt OpsCore and offer it (or derivatives) to third parties under controlled conditions | Non-exclusive right to use, create modifications, and redistribute in the forms expressly listed in the Schedule (e.g. hosted SaaS, OEM binary, or source under stated constraints) | No claim of OpsCore endorsement; must retain rights-holder notices unless Schedule states otherwise; no transfer of underlying IP ownership |
-| **L3** | **Exclusive — Intellectual Property Assignment** | Acquire exclusive commercial control and (where Schedule states) assignment of specified IP | Exclusive license and, if the Schedule expressly says so, assignment of copyright in the named deliverable and related repository materials owned by the seller | Does not automatically include third-party components, trademarks, or cloud accounts unless Schedule lists them; moral rights and non-assignable rights limited as local law allows |
+| **L3** | **Exclusive License or Rights Assignment** | Acquire exclusive commercial control or assignment of specifically identified IP | The Schedule must choose an exclusive license or assignment of identified rights owned by the seller; neither form is implied by the other | Does not automatically include third-party components, trademarks, or cloud accounts unless Schedule lists them; non-assignable rights limited as local law allows |
 
 Any right not **expressly** granted in the signed Schedule is **reserved** to the rights holder.
 
 ---
 
-## L1 — Use Only (world-class baseline terms)
+## L1 — Use Only (draft baseline terms)
 
 ### Grant
 - Non-exclusive, non-transferable, non-sublicensable license.
@@ -59,11 +59,11 @@ Any right not **expressly** granted in the signed Schedule is **reserved** to th
 
 ---
 
-## L3 — Exclusive Intellectual Property Assignment
+## L3 — Exclusive License or Assignment of Identified Rights
 
 ### Grant (only as the Schedule writes it)
-- **Exclusive license** in the field and territory defined in the Schedule; and/or
-- **Assignment** of copyright in the specifically identified deliverable (repository snapshot / package SHA) owned by the seller.
+- Select exactly one: an **exclusive license** in the field and territory defined in the Schedule; or an **assignment** of copyright/right(s) in the specifically identified deliverable (repository snapshot / package SHA) owned and assignable by the seller.
+- A $15,000 list price does not automatically include both an exclusive license and assignment. The signed Schedule must define precisely what transfers and what remains with the seller.
 
 ### Conditions (mandatory quality bar)
 1. **Deliverable schedule** — exact commit SHA, package SHA-256, and file inventory reference.
@@ -90,7 +90,7 @@ Any right not **expressly** granted in the signed Schedule is **reserved** to th
 6. For L2: allowed distribution forms; for L3: exclusive vs assignment language  
 7. Confidentiality and compliance audit rights  
 8. Support / updates (if any) — scope only, not fitness warranty  
-9. **Price and payment — negotiated; left blank in repository templates**  
+9. **Price and payment — use the owner-authorized tier list price unless a seller-approved buyer-specific adjustment is recorded in the signed Schedule**
 10. Term, termination, survival, governing law, dispute forum  
 11. Signatures / authority of signatories  
 
@@ -105,21 +105,19 @@ Template: `docs/commercial/LICENSE_SCHEDULE_TEMPLATE.md`
 - Hosted Production certification and source-package readiness are **independent** gates; one does not imply the other.
 
 
-## Seller guide — minimum fair floors (USD, November 2026)
+## Owner-authorized list prices (USD, 2026-11-24)
 
-These are the **published seller minimum asking floors** used for marketing and buyer discovery. They are seller-side price floors, not a buyer-specific executed quote, and do **not** grant a license. The final fee and complete transaction terms are written only in a signed License Schedule.
+| Tier | Rights summary | List price (USD) |
+|---|---|---:|
+| **L1** | Use only (non-exclusive) | **$3,000** |
+| **L2** | Use + modify + redistribute (non-exclusive; distribution forms must be named in the Schedule) | **$6,000** |
+| **L3** | Exclusive license **or** assignment of specifically identified rights; the Schedule must choose and define the transaction | **$15,000** |
 
-| Tier | Rights | Minimum fair floor (USD) | Market anchors (indicative) |
-|---|---|---|---|
-| **L1** | Use only (non-exclusive) | **45,000** | Below growth multi-tenant rebuild bands (~$120k–$300k); above simple marketplace script sales; use-only code transfers |
-| **L2** | Use + modify + redistribute (non-exclusive) | **85,000** | Premium for commercial redistribution / OEM / hosted-resale rights over L1 |
-| **L3** | Exclusive license and/or IP assignment | **175,000** | Lower band of pre-revenue multi-tenant platform IP acquisitions; exclusive assignment premium over L2 |
+These are the prices selected by the rights holder, not an independent market appraisal, guarantee of value, or executed buyer quote. A signed Schedule must pin the exact package and state selected rights, payment, applicable taxes, support, term, and governing-law/dispute terms. Open-source and third-party components remain governed by their own licenses. The current release statement still says distribution is unauthorized; these prices do not change that release status.
 
-**Exclusions from these floors:** mobile store accounts and signing, native human translation QA, licensed street maps, buyer payment-processor production keys, Neon/Vercel plan upgrades, and any hosted production tenancy not listed in the Schedule.
-
-**Sources consulted (2025–2026 market):** multi-tenant SaaS build cost tiers; pre-revenue PropTech SaaS/IP acquisition asks; source-code marketplace vs full-codebase acquisition patterns; exclusive vs non-exclusive licensing spreads. Floors are conservative and may be negotiated upward for territory, support, or transition assistance.
+**Not included unless expressly listed in the Schedule:** hosting, third-party accounts or fees, production data/secrets, mobile-store signing, native-speaker QA, licensed maps, and buyer-specific deployment or transition services.
 
 ## Version
 
-Framework version: **2026-11-20**  
+Framework version: **2026-11-24**
 Supersedes prior tier letters A/B/C in older drafts; map A→L1, B→subset of L2 without redistribute, C→L2/L3 as Schedule states.

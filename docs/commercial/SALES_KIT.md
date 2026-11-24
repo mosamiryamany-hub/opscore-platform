@@ -1,8 +1,8 @@
 # OpsCore — Seller Sales Kit
 
 **Offer type:** proposed source-code handoff for buyer-controlled infrastructure.  
-**Offer status:** may be advertised, presented and negotiated subject to the root no-license notice.  
-**Delivery status:** HOLD — no buyer licence, no delivery authority, and provider-neutral self-hosted production is not yet qualified.
+**Offer status:** pricing and buyer discovery may be prepared; any public listing must state that delivery is conditional.
+**Delivery status:** HOLD — no buyer licence, no distribution authorization in the current release statement, and provider-neutral self-hosted production is not yet qualified. No checkout or source download is authorized.
 
 ## Product description
 
@@ -32,6 +32,16 @@ The current source has automated CI and isolated PostgreSQL/RLS test evidence on
 ## Commercial / IP terms
 
 The package metadata is `UNLICENSED`. The root `NO_LICENSE_GRANT_NOTICE.txt` remains controlling.
+
+### Owner-authorized list prices (USD, 2026-11-24)
+
+| Tier | Scope headline | List price |
+|---|---|---:|
+| L1 | Use only | $3,000 |
+| L2 | Use + modify + redistribute in Schedule-approved forms | $6,000 |
+| L3 | Exclusive license **or** assignment of specifically identified rights | $15,000 |
+
+These are seller-selected list prices, not an independent valuation, a named-buyer quote or a license grant. L3 does not automatically combine an exclusive license with an assignment of ownership. All exact rights, assets, price, taxes, payment, term and dispute terms must appear in the signed Schedule. The online checkout is not configured; do not charge a buyer while legal identity/location, tax handling, processor, consumer disclosures and an authorized exact-hash deliverable remain unresolved.
 
 The seller may advertise and negotiate a prospective offer; advertisement is not a licence grant. A buyer may not install, run, copy, modify, host, distribute or commercially exploit the source before a written License Schedule is executed by the rights holder and named buyer for the exact commit/package digest.
 
