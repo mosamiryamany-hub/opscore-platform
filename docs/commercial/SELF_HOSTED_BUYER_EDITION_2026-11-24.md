@@ -25,19 +25,33 @@ The buyer is intended to own and control:
 
 | Item | Observed result | Scope |
 |---|---|---|
-| Protected `main` | `6859b5d86f13ba9f481ed8fce5cc95c729d22b55` | Git reference verified 2026-11-24 |
-| Current-main validation run | [45360794536](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45360794536) | CI run for the evidence-cut commit |
-| `verify` | PASS | GitHub Actions result |
-| `vercel-source-verify` | PASS | Source/contract validation |
-| `vercel-contract-verify` | PASS | Contract validation |
-| `isolated-postgres-rls-and-http-acceptance` | PASS | Disposable isolated PostgreSQL acceptance |
-| CodeQL Actions / JS-TS / Python | PASS | Static analysis checks in the associated run |
+| Protected `main` | `d243a428bb44b4cbd0d1fd768cb907d0e9fcbdb1` | Git reference verified 2026-11-24 |
+| OpsCore `verify` | PASS (21/21) | [Run 45374083091](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083091) |
+| `vercel-source-verify` | PASS (18/18) | [Run 45374083161](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083161) |
+| `vercel-contract-verify` | PASS (3/3) | [Run 45374083161](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083161) |
+| Isolated PostgreSQL RLS/HTTP acceptance | PASS (3/3) | [Run 45374083161](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083161) |
+| Deploy-bound PostgreSQL 18 acceptance | PASS (30/30) | [Run 45374083161](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083161) |
+| CodeQL Actions / JS-TS / Python | PASS | [Run 45374082761](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374082761) |
 | Production deployment job | SKIPPED | Not a deployment success |
 | Neon Preview migration and HTTP acceptance | SKIPPED | No Preview acceptance established by this run |
 | Historical Production Neon PITR probe | SKIPPED | No current PITR proof established by this run |
 | Exact-head buyer release archive | NOT ESTABLISHED | A fresh Secure Release artifact for this exact evidence cut is required |
+| Seller Vercel project live state | `false` | Read-only Vercel project query |
+| Public health and release endpoints | HTTP 402 `DEPLOYMENT_DISABLED` | Measured 2026-11-24 around 10:22 UTC |
+| Exact-SHA production deployment count | 0 | Query for current main SHA |
+| API inventory | unchanged | `2ece147beaa36867e56f051d597ffa86d0a979e8`, 60,357 bytes |
 
 These are **engineering test records**, not accredited certificates. A green CI run does not certify an independently operated installation, buyer database, buyer network, or every end-to-end workflow.
+
+## Seller-hosted Vercel availability — measured 2026-11-24
+
+- Vercel project `opscore-platform`: `live=false`.
+- No Production deployment exists for current main `d243a428bb44b4cbd0d1fd768cb907d0e9fcbdb1` (exact-SHA deployment query returned zero records).
+- Public `GET /api/health` and `GET /api/verify/release` both returned HTTP `402 Payment Required` with `x-vercel-error: DEPLOYMENT_DISABLED` at approximately 10:22 UTC on 2026-11-24.
+- A verified project-domain association does not prove that the domain is currently aliased to a live deployment.
+- Team context reports plan `Pro`; the available charges endpoint reports usage attribution only, not invoice, outstanding balance or payment-good-standing status. The specific account suspension/billing cause is therefore NOT VERIFIED.
+
+This seller-hosted service outage is separate from CI and from the proposed buyer-owned deployment model. Do not advertise the seller-hosted demo/API as live until Vercel re-enables the project and the current main commit is deployed and measured.
 
 ## 3. What may be said in a sales conversation
 

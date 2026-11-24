@@ -22,7 +22,17 @@ Do not reuse historical commit hashes, pipeline IDs, deployment IDs, package dig
 - SBOM and provenance/signature evidence;
 - exact-run test and dependency-audit evidence.
 
-The 2026-11-24 evidence cut is main `6859b5d86f13ba9f481ed8fce5cc95c729d22b55`. Its CI and isolated PostgreSQL checks passed, but the production deploy, Neon Preview acceptance and historical PITR jobs were skipped. No exact-head buyer release archive is established by that run. Any additional source change invalidates that evidence identity and requires a fresh release run.
+The 2026-11-24 evidence cut is main `d243a428bb44b4cbd0d1fd768cb907d0e9fcbdb1`. OpsCore CI passed 21/21, source/contract and isolated PostgreSQL acceptance passed, deploy-bound PostgreSQL 18 acceptance passed 30/30, and CodeQL passed for Actions/JS-TS/Python. Production deploy, Neon Preview acceptance and historical PITR were skipped. No exact-head buyer release archive is established for this commit. Any additional source change invalidates this evidence identity and requires a fresh release run.
+
+## Seller-hosted Vercel availability — measured 2026-11-24
+
+- Vercel project `opscore-platform`: `live=false`.
+- No Production deployment exists for current main `d243a428bb44b4cbd0d1fd768cb907d0e9fcbdb1` (exact-SHA deployment query returned zero records).
+- Public `GET /api/health` and `GET /api/verify/release` both returned HTTP `402 Payment Required` with `x-vercel-error: DEPLOYMENT_DISABLED` at approximately 10:22 UTC on 2026-11-24.
+- A verified project-domain association does not prove that the domain is currently aliased to a live deployment.
+- Team context reports plan `Pro`; the available charges endpoint reports usage attribution only, not invoice, outstanding balance or payment-good-standing status. The specific account suspension/billing cause is therefore NOT VERIFIED.
+
+This seller-hosted service outage is separate from CI and from the proposed buyer-owned deployment model. Do not advertise the seller-hosted demo/API as live until Vercel re-enables the project and the current main commit is deployed and measured.
 
 ## Included source candidate
 
