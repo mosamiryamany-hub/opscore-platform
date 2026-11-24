@@ -1,7 +1,7 @@
 # OpsCore — License Schedule (template)
 
 **Instructions:** Complete one Schedule per buyer transaction. Do not commit executed Schedules with signatures or buyer-specific terms to a public repository unless the parties agree.
-**Owner-authorized list prices (USD, 2026-11-24):** L1 $3,000; L2 $6,000; L3 $15,000. These are list prices only; tax, payment and exact rights must appear in the executed Schedule. L3 must specify exclusive license **or** assignment of identified rights.
+**Owner-authorized list prices (2026-11-24):** L1 USD $3,000; L2 USD $6,000; L3 15,000 (USD assumed, confirmation pending). The seller supplied L3 without a currency; do not quote or execute that price until confirmed. These are list prices only; tax, payment and exact rights must appear in the executed Schedule. L3 must specify exclusive license **or** assignment of identified rights.
 
 ---
 
@@ -58,9 +58,9 @@ This Schedule incorporates `docs/commercial/LICENSE_FRAMEWORK.md` version **2026
 
 | Field | Value |
 |---|---|
-| Selected tier list price | L1 USD 3,000 / L2 USD 6,000 / L3 USD 15,000 |
+| Selected tier list price | L1 USD 3,000 / L2 USD 6,000 / L3 15,000 (currency to be explicitly confirmed) |
 | Final fee / any negotiated adjustment authorized by seller | |
-| Currency | USD unless the parties expressly agree otherwise |
+| Currency | Must be explicitly completed and consistent with the seller-confirmed selected tier price |
 | Payment schedule / accepted method | |
 | Applicable taxes and invoicing | |
 | Refund / cancellation / acceptance window | Preserve mandatory buyer rights; specify applicable process |

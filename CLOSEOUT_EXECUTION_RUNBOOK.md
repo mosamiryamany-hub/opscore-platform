@@ -72,7 +72,7 @@ Buyer-owned items remain separate: Android/iOS signing, native builds, physical-
 
 ## 6. Commercial rights boundary
 
-The seller may advertise and negotiate before a buyer is identified, subject to the current delivery hold. Owner-authorized list prices (2026-11-24) are L1 USD 3,000 (use only), L2 USD 6,000 (use/modify/redistribute under expressly selected forms), and L3 USD 15,000 (exclusive license **or** assignment of specified rights, as the signed Schedule selects). These prices are seller-selected, not independent valuations or executed offers.
+The seller may advertise and negotiate before a buyer is identified, subject to the current delivery hold. Owner-authorized list prices (2026-11-24) are L1 USD 3,000 (use only), L2 USD 6,000 (use/modify/redistribute under expressly selected forms), and L3 15,000 (USD assumed pending explicit currency confirmation; exclusive license **or** assignment of specified rights, as the signed Schedule selects). Do not quote or execute the L3 price until its currency is confirmed. These prices are seller-selected, not independent valuations or executed offers.
 
 The repository is `UNLICENSED`. **NO LICENSE GRANT** is made by repository access, an offer, a technical report, a release artifact or a deployment. Before granting licensed use or delivery rights, the rights holder and the named buyer must sign a License Schedule that pins the exact source commit/package digest and specific rights.
 

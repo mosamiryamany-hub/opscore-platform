@@ -1,7 +1,7 @@
 # OpsCore — Commercial License Framework
 
 **Status:** Framework only. **No license is granted by this document alone.**
-**Owner-authorized list prices (USD, 2026-11-24):** L1 **$3,000**, L2 **$6,000**, L3 **$15,000**. These prices were supplied by the rights holder; they are not an independent valuation and do not grant rights. The exact deliverable, L3 scope, tax treatment, payment terms and rights must be stated in a signed buyer-specific License Schedule. L3 means an exclusive license **or** assignment of specifically identified rights, not both by default.
+**Owner-authorized list prices (2026-11-24):** L1 **USD $3,000**, L2 **USD $6,000**, L3 **15,000 (USD assumed; currency confirmation pending)**. The seller supplied L3 without an explicit currency, so the USD denomination is an assumption based on L1/L2 and must be confirmed before quoting or signing. These prices are not an independent valuation and do not grant rights. The exact deliverable, L3 scope, tax treatment, payment terms and rights must be stated in a signed buyer-specific License Schedule. L3 means an exclusive license **or** assignment of specifically identified rights, not both by default.
 **Authority:** Buyer rights exist only when the rights holder and the named buyer both execute a **License Schedule** that (1) references this framework by version/date, (2) selects exactly one tier below, and (3) identifies the exact deliverable (`sourceCommit` and/or package SHA-256).
 
 ---
@@ -63,7 +63,7 @@ Any right not **expressly** granted in the signed Schedule is **reserved** to th
 
 ### Grant (only as the Schedule writes it)
 - Select exactly one: an **exclusive license** in the field and territory defined in the Schedule; or an **assignment** of copyright/right(s) in the specifically identified deliverable (repository snapshot / package SHA) owned and assignable by the seller.
-- A $15,000 list price does not automatically include both an exclusive license and assignment. The signed Schedule must define precisely what transfers and what remains with the seller.
+- The L3 list price of 15,000 (USD assumed, pending currency confirmation) does not automatically include both an exclusive license and assignment. The signed Schedule must define precisely what transfers and what remains with the seller.
 
 ### Conditions (mandatory quality bar)
 1. **Deliverable schedule** — exact commit SHA, package SHA-256, and file inventory reference.
@@ -105,15 +105,15 @@ Template: `docs/commercial/LICENSE_SCHEDULE_TEMPLATE.md`
 - Hosted Production certification and source-package readiness are **independent** gates; one does not imply the other.
 
 
-## Owner-authorized list prices (USD, 2026-11-24)
+## Owner-authorized list prices (2026-11-24; L3 currency pending confirmation)
 
-| Tier | Rights summary | List price (USD) |
+| Tier | Rights summary | List price |
 |---|---|---:|
 | **L1** | Use only (non-exclusive) | **$3,000** |
 | **L2** | Use + modify + redistribute (non-exclusive; distribution forms must be named in the Schedule) | **$6,000** |
-| **L3** | Exclusive license **or** assignment of specifically identified rights; the Schedule must choose and define the transaction | **$15,000** |
+| **L3** | Exclusive license **or** assignment of specifically identified rights; the Schedule must choose and define the transaction | **15,000 (USD assumed*)** |
 
-These are the prices selected by the rights holder, not an independent market appraisal, guarantee of value, or executed buyer quote. A signed Schedule must pin the exact package and state selected rights, payment, applicable taxes, support, term, and governing-law/dispute terms. Open-source and third-party components remain governed by their own licenses. The current release statement still says distribution is unauthorized; these prices do not change that release status.
+These are the prices selected by the rights holder, not an independent market appraisal, guarantee of value, or executed buyer quote. *For L3, USD is an unconfirmed assumption because the seller supplied 15,000 without a currency.* A signed Schedule must pin the exact package and state selected rights, payment, applicable taxes, support, term, and governing-law/dispute terms. Open-source and third-party components remain governed by their own licenses. The current release statement still says distribution is unauthorized; these prices do not change that release status.
 
 **Not included unless expressly listed in the Schedule:** hosting, third-party accounts or fees, production data/secrets, mobile-store signing, native-speaker QA, licensed maps, and buyer-specific deployment or transition services.
 

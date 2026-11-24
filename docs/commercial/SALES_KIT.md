@@ -33,15 +33,17 @@ The current source has automated CI and isolated PostgreSQL/RLS test evidence on
 
 The package metadata is `UNLICENSED`. The root `NO_LICENSE_GRANT_NOTICE.txt` remains controlling.
 
-### Owner-authorized list prices (USD, 2026-11-24)
+### Owner-authorized list prices (2026-11-24; L3 currency pending confirmation)
 
 | Tier | Scope headline | List price |
 |---|---|---:|
 | L1 | Use only | $3,000 |
 | L2 | Use + modify + redistribute in Schedule-approved forms | $6,000 |
-| L3 | Exclusive license **or** assignment of specifically identified rights | $15,000 |
+| L3 | Exclusive license **or** assignment of specifically identified rights | 15,000 (USD assumed*) |
 
-These are seller-selected list prices, not an independent valuation, a named-buyer quote or a license grant. L3 does not automatically combine an exclusive license with an assignment of ownership. All exact rights, assets, price, taxes, payment, term and dispute terms must appear in the signed Schedule. The online checkout is not configured; do not charge a buyer while legal identity/location, tax handling, processor, consumer disclosures and an authorized exact-hash deliverable remain unresolved.
+These are seller-selected list prices, not an independent valuation, a named-buyer quote or a license grant. L3 does not automatically combine an exclusive license with an assignment of ownership. The seller supplied L3 as 15,000 without a currency; USD is an assumption based on L1/L2 and must be explicitly confirmed before quoting or signing. All exact rights, assets, price, taxes, payment, term and dispute terms must appear in the signed Schedule. The online checkout is not configured; do not charge a buyer while legal identity/location, tax handling, processor, consumer disclosures and an authorized exact-hash deliverable remain unresolved.
+
+The seller identifies as an individual and states that he is the person behind the creation of OpsCore, not a product founded by another person. This statement is seller-provided and has not been independently verified as chain-of-title for every contribution or dependency. It does not replace review of contributor history, prior assignments, the SBOM, third-party/open-source licenses, or rights that cannot be transferred under applicable law. The seller-approved support default is 30 calendar days from secure delivery, by email, with an initial acknowledgement target of two business days; scope is documented installation, reproducible defects in the delivered version, and corrective/security fixes made available during the period. This default is not a signed Schedule, legal SLA, or guarantee of repair within two business days.
 
 The seller may advertise and negotiate a prospective offer; advertisement is not a licence grant. A buyer may not install, run, copy, modify, host, distribute or commercially exploit the source before a written License Schedule is executed by the rights holder and named buyer for the exact commit/package digest.
 
