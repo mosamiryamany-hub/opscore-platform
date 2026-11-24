@@ -89,7 +89,7 @@ test('external release attestation only carries production acceptance when it ma
 });
 
 
-test('private repository release workflow uses pinned Cosign keyless signing and fail-closed verification', () => {
+test('private repository release workflow uses pinned Cosign keyless signing and exact-ref fail-closed verification', () => {
   const workflowPath = path.resolve(__dirname, '../../.github/workflows/opscore-secure-release.yml');
   const workflow = fs.readFileSync(workflowPath, 'utf8');
   assert.ok(workflow.includes('id-token: write'));
@@ -99,6 +99,8 @@ test('private repository release workflow uses pinned Cosign keyless signing and
   assert.ok(workflow.includes('cosign sign-blob --yes'));
   assert.ok(workflow.includes('cosign verify-blob "$RELEASE_ARCHIVE"'));
   assert.ok(workflow.includes('--certificate-identity "$EXPECTED_IDENTITY"'));
+  assert.ok(workflow.includes('EXPECTED_IDENTITY: "https://github.com/${{ github.repository }}/.github/workflows/opscore-secure-release.yml@${{ github.ref }}"'));
+  assert.ok(!workflow.includes('EXPECTED_IDENTITY: "https://github.com/${{ github.repository }}/.github/workflows/opscore-secure-release.yml@refs/heads/main"'));
   assert.ok(workflow.includes('--certificate-oidc-issuer "https://token.actions.githubusercontent.com"'));
   assert.ok(workflow.includes('TAMPERED_ARCHIVE_ACCEPTED'));
   assert.ok(workflow.includes('UNTRUSTED_SIGNER_ACCEPTED'));

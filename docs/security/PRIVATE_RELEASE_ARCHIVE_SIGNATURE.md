@@ -9,8 +9,9 @@ The repository remains private. The secure-release workflow signs the completed 
 The release workflow must:
 
 1. Sign the exact completed `OpsCore-release.zip` bytes with `cosign sign-blob`.
-2. Verify the bundle against the exact workflow identity:
-   `https://github.com/mosamiryamany-hub/opscore-platform/.github/workflows/opscore-secure-release.yml@refs/heads/main`.
+2. Verify the bundle against the exact workflow identity for the run's validated ref. The workflow binds the expected identity to `${{ github.ref }}`: manual dispatch is restricted to `refs/heads/main`, while a tag run is restricted to a version-matching `v*` tag whose commit is contained in `main`. Examples:
+   - `https://github.com/mosamiryamany-hub/opscore-platform/.github/workflows/opscore-secure-release.yml@refs/heads/main`
+   - `https://github.com/mosamiryamany-hub/opscore-platform/.github/workflows/opscore-secure-release.yml@refs/tags/v0.11.62.20-commercial-licensed`.
 3. Require the GitHub Actions OIDC issuer `https://token.actions.githubusercontent.com`.
 4. Reject a modified archive and reject a different certificate identity.
 5. Upload the archive, detached Sigstore bundle, and external commercial statement together in the same workflow run.
