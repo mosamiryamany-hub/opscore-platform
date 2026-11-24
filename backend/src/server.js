@@ -971,8 +971,8 @@ function sessionTokenFromRequest(req) {
   // prefix followed by at least one whitespace character yields the rest.
   const header = typeof req?.headers?.authorization === 'string' ? req.headers.authorization : '';
   if (header.length > 7
-      && header.slice(0, 7).toLowerCase() === 'bearer'
-      && /^[ \t\r\n]/.test(header.slice(7))) {
+      && header.slice(0, 6).toLowerCase() === 'bearer'
+      && /^[ \t\r\n]$/.test(header.slice(6, 7))) {
     const token = header.slice(7).trim();
     if (token) return token;
   }
