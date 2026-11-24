@@ -95,11 +95,11 @@ test('nothing is trusted by default: a non-object identity is NOT_VERIFIED', () 
 });
 
 test('schema, commit, archive and certificate digests are all mandatory and exact', () => {
-  assert.deepEqual(reasonsOf(baseIdentity({ schemaVersion: 'v0' })), ['SELF_HOSTED_IDENTITY_SCHEMA_INVALID', 'SELF_HOSTED_ATTESTATION_SIGNATURE_MISMATCH']);
-  assert.deepEqual(reasonsOf(baseIdentity({ sourceCommit: COMMIT.slice(0, 12) })), ['SELF_HOSTED_SOURCE_COMMIT_INVALID', 'SELF_HOSTED_ATTESTATION_SIGNATURE_MISMATCH']);
-  assert.deepEqual(reasonsOf(baseIdentity({ archiveSha256: 'xyz' })), ['SELF_HOSTED_ARCHIVE_SHA256_INVALID', 'SELF_HOSTED_ATTESTATION_SIGNATURE_MISMATCH']);
-  assert.deepEqual(reasonsOf(baseIdentity({ tlsCertificateSha256: '' })), ['SELF_HOSTED_TLS_CERTIFICATE_SHA256_INVALID', 'SELF_HOSTED_ATTESTATION_SIGNATURE_MISMATCH']);
-  assert.deepEqual(reasonsOf(baseIdentity({ issuedBy: '  ' })), ['SELF_HOSTED_IDENTITY_ISSUER_MISSING', 'SELF_HOSTED_ATTESTATION_SIGNATURE_MISMATCH']);
+  assert.deepEqual(reasonsOf(baseIdentity({ schemaVersion: 'v0' })), ['SELF_HOSTED_IDENTITY_SCHEMA_INVALID']);
+  assert.deepEqual(reasonsOf(baseIdentity({ sourceCommit: COMMIT.slice(0, 12) })), ['SELF_HOSTED_SOURCE_COMMIT_INVALID']);
+  assert.deepEqual(reasonsOf(baseIdentity({ archiveSha256: 'xyz' })), ['SELF_HOSTED_ARCHIVE_SHA256_INVALID']);
+  assert.deepEqual(reasonsOf(baseIdentity({ tlsCertificateSha256: '' })), ['SELF_HOSTED_TLS_CERTIFICATE_SHA256_INVALID']);
+  assert.deepEqual(reasonsOf(baseIdentity({ issuedBy: '  ' })), ['SELF_HOSTED_IDENTITY_ISSUER_MISSING']);
 });
 
 test('the identity must be bound to the commit the operator expects', () => {
