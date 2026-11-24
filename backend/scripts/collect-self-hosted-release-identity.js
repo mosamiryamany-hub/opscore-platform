@@ -158,7 +158,7 @@ function databaseIdentityFromRow(row, hostname) {
     createRole: boolean(row.create_role, 'create_role'),
     createDb: boolean(row.create_db, 'create_db')
   };
-  if (!/^[0-9]+(?:\\.[0-9]+){0,2}$/.test(result.serverVersion)) {
+  if (!/^[0-9]+(?:\.[0-9]+){0,2}$/.test(result.serverVersion)) {
     throw new Error('SELF_HOSTED_COLLECTOR_DATABASE_VERSION_INVALID');
   }
   if (!result.database || !result.runtimeRole) {
