@@ -2,8 +2,8 @@
 
 **Evidence cut:** 2026-11-24  
 **Repository:** `mosamiryamany-hub/opscore-platform`  
-**Main SHA:** `6859b5d86f13ba9f481ed8fce5cc95c729d22b55`  
-**Current-main run:** [45360794536](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45360794536)
+**Main SHA:** `d243a428bb44b4cbd0d1fd768cb907d0e9fcbdb1`  
+**OpsCore CI:** [45374083091](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083091) · **Vercel/PG acceptance:** [45374083161](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374083161) · **CodeQL:** [45374082761](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45374082761)
 
 > This index supersedes historical deployment, CI, and release identifiers copied into older buyer documents. The evidence below is scoped to the named source revision and test target. It is not a self-hosted production or external certification.
 
@@ -12,13 +12,12 @@
 | Check | Result | Scope |
 |---|---|---|
 | Protected main reference | VERIFIED | GitHub branch metadata |
-| `verify` | PASS | GitHub Actions run 45360794536 |
-| `vercel-source-verify` | PASS | Source validation |
-| `vercel-contract-verify` | PASS | Contract validation |
-| Isolated PostgreSQL RLS/HTTP acceptance | PASS | Disposable CI PostgreSQL |
-| CodeQL Actions | PASS | Static analysis |
-| CodeQL JS/TS | PASS | Static analysis |
-| CodeQL Python | PASS | Static analysis |
+| `verify` | PASS (21/21) | GitHub Actions run 45374083091 |
+| `vercel-source-verify` | PASS (18/18) | Run 45374083161 |
+| `vercel-contract-verify` | PASS (3/3) | Run 45374083161 |
+| Isolated PostgreSQL RLS/HTTP acceptance | PASS (3/3) | Run 45374083161 |
+| Deploy-bound PostgreSQL 18 acceptance | PASS (30/30) | Run 45374083161 |
+| CodeQL Actions / JS-TS / Python | PASS | Run 45374082761 |
 | Vercel Production deploy job | SKIPPED | No production deployment from this run |
 | Neon Preview migration and HTTP acceptance | SKIPPED | No Preview acceptance from this run |
 | Historical Production Neon PITR probe | SKIPPED | No current PITR proof from this run |
@@ -26,7 +25,17 @@
 | Buyer-controlled self-hosted deployment | NOT RUN | No buyer target evidence |
 | External accreditation | NONE CLAIMED | No independent assessor certificate is evidenced |
 
-Main branch protection was read as enabled. This index does not claim that all branch rules, secrets, or account-level controls have been independently reverified.
+Main is covered by the active repository ruleset `protect-main` (enforcement `active`, strict required checks `verify`, `vercel-contract-verify`, `isolated-postgres-rls-and-http-acceptance`, no bypass actors). The separate legacy branch-protection API reports disabled, so this index specifically relies on the active ruleset.
+
+## Seller-hosted Vercel availability — measured 2026-11-24
+
+- Vercel project `opscore-platform`: `live=false`.
+- No Production deployment exists for current main `d243a428bb44b4cbd0d1fd768cb907d0e9fcbdb1` (exact-SHA deployment query returned zero records).
+- Public `GET /api/health` and `GET /api/verify/release` both returned HTTP `402 Payment Required` with `x-vercel-error: DEPLOYMENT_DISABLED` at approximately 10:22 UTC on 2026-11-24.
+- A verified project-domain association does not prove that the domain is currently aliased to a live deployment.
+- Team context reports plan `Pro`; the available charges endpoint reports usage attribution only, not invoice, outstanding balance or payment-good-standing status. The specific account suspension/billing cause is therefore NOT VERIFIED.
+
+This seller-hosted service outage is separate from CI and from the proposed buyer-owned deployment model. Do not advertise the seller-hosted demo/API as live until Vercel re-enables the project and the current main commit is deployed and measured.
 
 ## Self-hosted qualification blockers
 
