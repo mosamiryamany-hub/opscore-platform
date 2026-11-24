@@ -2,40 +2,124 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://opscore.local/schemas/self-hosted-release-identity.v1.json",
   "title": "OpsCore self-hosted release identity",
-  "description": "Operator-measured facts that allow a buyer-owned (non-Vercel) deployment to publish a release proof. Verified by backend/src/self-hosted-release-proof.js. No secret material belongs in this file.",
+  "description": "Operator-measured facts authenticated by an Ed25519 signature. The verifier must pin the corresponding public key. The verifier validates the signature and claims but does not independently collect the underlying infrastructure measurements. No secret material belongs in this file.",
   "type": "object",
-  "additionalProperties": true,
-  "required": ["schemaVersion", "sourceCommit", "archiveSha256", "host", "tlsCertificateSha256", "databaseIdentity", "generatedAt", "issuedBy", "attestation"],
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "sourceCommit",
+    "archiveSha256",
+    "host",
+    "tlsCertificateSha256",
+    "databaseIdentity",
+    "generatedAt",
+    "issuedBy",
+    "attestation"
+  ],
   "properties": {
-    "schemaVersion": { "const": "opscore.self-hosted-release-identity.v1" },
-    "sourceCommit": { "type": "string", "pattern": "^[a-f0-9]{40}$" },
-    "archiveSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
-    "host": { "type": "string", "pattern": "^https://[^/@]+$" },
-    "tlsCertificateSha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
-    "generatedAt": { "type": "string", "format": "date-time" },
-    "issuedBy": { "type": "string", "minLength": 1 },
+    "schemaVersion": {
+      "const": "opscore.self-hosted-release-identity.v1"
+    },
+    "sourceCommit": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "archiveSha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "host": {
+      "type": "string",
+      "pattern": "^https://[^/@]+$"
+    },
+    "tlsCertificateSha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "issuedBy": {
+      "type": "string",
+      "minLength": 1
+    },
     "databaseIdentity": {
       "type": "object",
-      "required": ["engine", "serverVersion", "database", "runtimeRole", "directHost", "directConnection", "bypassRls", "superuser", "createRole", "createDb"],
+      "required": [
+        "engine",
+        "serverVersion",
+        "database",
+        "runtimeRole",
+        "directHost",
+        "directConnection",
+        "bypassRls",
+        "superuser",
+        "createRole",
+        "createDb"
+      ],
       "properties": {
-        "engine": { "enum": ["postgres", "postgresql"] },
-        "serverVersion": { "type": "string", "pattern": "^[0-9]+(\\.[0-9]+){0,2}" },
-        "database": { "type": "string", "minLength": 1 },
-        "runtimeRole": { "type": "string", "minLength": 1 },
-        "directHost": { "type": "string", "minLength": 1 },
-        "directConnection": { "const": true },
-        "bypassRls": { "const": false },
-        "superuser": { "const": false },
-        "createRole": { "const": false },
-        "createDb": { "const": false }
-      }
+        "engine": {
+          "enum": [
+            "postgres",
+            "postgresql"
+          ]
+        },
+        "serverVersion": {
+          "type": "string",
+          "pattern": "^[0-9]+(\\\\.[0-9]+){0,2}$"
+        },
+        "database": {
+          "type": "string",
+          "minLength": 1
+        },
+        "runtimeRole": {
+          "type": "string",
+          "minLength": 1
+        },
+        "directHost": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[a-zA-Z0-9](?:[a-zA-Z0-9.-]{0,251}[a-zA-Z0-9])?$"
+        },
+        "directConnection": {
+          "const": true
+        },
+        "bypassRls": {
+          "const": false
+        },
+        "superuser": {
+          "const": false
+        },
+        "createRole": {
+          "const": false
+        },
+        "createDb": {
+          "const": false
+        }
+      },
+      "additionalProperties": false
     },
     "attestation": {
       "type": "object",
-      "required": ["algorithm", "digest"],
+      "additionalProperties": false,
+      "required": [
+        "algorithm",
+        "keyId",
+        "signature"
+      ],
       "properties": {
-        "algorithm": { "const": "sha256" },
-        "digest": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+        "algorithm": {
+          "const": "ed25519"
+        },
+        "keyId": {
+          "type": "string",
+          "pattern": "^[a-zA-Z0-9._-]{1,64}$"
+        },
+        "signature": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9+/]{86}==$"
+        }
       }
     }
   }
