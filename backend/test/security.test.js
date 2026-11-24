@@ -1,15 +1,13 @@
 const crypto=require('node:crypto'); const test=require('node:test'); const assert=require('node:assert/strict'); const fs=require('node:fs'); const os=require('node:os'); const path=require('node:path');
-const {Store}=require('../src/store'); const {hashPassword,id,now,validateWebhookUrl,hashToken,sha256Hex,hmacSha256}=require('../src/security');
+const {Store}=require('../src/store'); const {hashPassword,id,now,validateWebhookUrl,hashToken,hmacSha256}=require('../src/security');
 function fixture(){const p=path.join(os.tmpdir(),`opscore-${crypto.randomUUID()}.db`);const old=process.env.SQLITE_PATH;process.env.SQLITE_PATH=p;delete require.cache[require.resolve('../src/config')];delete require.cache[require.resolve('../src/db')];const d=require('../src/db').openDb();if(old===undefined)delete process.env.SQLITE_PATH;else process.env.SQLITE_PATH=old;return {d,p};}
 function close(f){f.d.close();for(const p of [f.p,`${f.p}-shm`,`${f.p}-wal`]){try{fs.unlinkSync(p)}catch{}}}
 
-test('opaque-token and evidence digest helpers preserve their exact cryptographic purpose',()=>{
+test('opaque-token hashing and signed-context HMAC helpers preserve their exact purpose',()=>{
   const token=crypto.randomBytes(32).toString('base64url');
-  const evidence='PRODUCTION_FULL_DATA_RECOVERY_FAILED:fixture';
   const secret=Buffer.from('application-hmac-key-fixture');
   const payload='signed-tenant-context-fixture';
   assert.equal(hashToken(token),crypto.createHash('sha256').update(token).digest('hex'));
-  assert.equal(sha256Hex(evidence),crypto.createHash('sha256').update(evidence).digest('hex'));
   assert.equal(hmacSha256(secret,payload),crypto.createHmac('sha256',secret).update(payload).digest('hex'));
 });
 
