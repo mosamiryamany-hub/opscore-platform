@@ -2,57 +2,72 @@
 
 ## Why this exists
 
-`/api/verify/release` (`backend/src/release-proof.js`) proves a **Vercel** release: it requires a
-`dpl_...` deployment id, a matching Git pipeline id, Neon recovery-point evidence and a signed
-tenant-context matrix bound to that deployment. A buyer hosting OpsCore on their own infrastructure
-can never satisfy that identity — and that is by design: the Vercel path stays untouched and remains
-the only source of `CERTIFIED` on Vercel.
+The Vercel release proof remains platform-specific. This separate gate lets a buyer-owned installation verify a signed release-identity statement without requiring a Vercel deployment ID. It adds no HTTP route and does not change the Vercel certification path.
 
-Without a platform-neutral proof, a self-hosted install hits a dead end: `firewall.js`
-`productionSafetyGate` refuses traffic unless `OPSC_PRODUCTION_HOLD=false`, but once traffic is open
-the operator still sees `UNVERIFIED` on `/api/verify/release`.
+## Security meaning of PASS
 
-`backend/src/self-hosted-release-proof.js` supplies a **disjoint** gate for that case. It adds no HTTP
-route (a new route would change `docs/API_INVENTORY.json` and break the 358-route production
-acceptance contract), so it is consumed by operators, scripts and startup verification instead.
+A `PASS` means **the runtime verified an Ed25519 signature made by a private key whose matching public key is pinned in the buyer's runtime configuration**, and that the signed fields meet the schema, commit, freshness, TLS-origin and database-role policy checks.
 
-## What it proves — and what it does not
+A plain SHA-256 digest is not an authenticity mechanism: anyone can calculate one. SHA-only identity files are rejected.
 
-Proved (all fields mandatory, all exact):
+**Important boundary:** the verifier checks the signed claims; it does not independently collect the archive bytes, make a TLS handshake, or connect to PostgreSQL to measure the declared facts. The signing operator is responsible for measuring those facts through the buyer's approved procedure before signing. Therefore this gate is a trusted-operator attestation, not independent infrastructure certification, not an end-to-end tenant acceptance test, and never reports `CERTIFIED`.
+
+## Required signed facts
 
 | Fact | Rule |
 | --- | --- |
-| Source commit | 40-hex SHA, optionally pinned to the expected commit via `OPSC_SOURCE_COMMIT_SHA` |
-| Archive digest | SHA-256 of the delivered release archive |
-| Transport | `https:` origin, no embedded credentials, no path/query/fragment |
-| TLS certificate | SHA-256 of the served certificate |
-| Database | `postgres`/`postgresql`, explicit server version, database name, runtime role, direct (non-pooled) host |
-| Runtime role privileges | `bypassRls`, `superuser`, `createRole`, `createDb` must each be exactly `false` |
-| Freshness | `generatedAt` within `OPSC_SELF_HOSTED_IDENTITY_MAX_AGE` (default 7 days), never >5 min in the future |
-| Binding | Detached `sha256` attestation over the canonical JSON of all attested fields |
+| Source commit | 40-hex SHA, optionally pinned via `OPSC_SOURCE_COMMIT_SHA` |
+| Archive digest | SHA-256 of the exact delivered archive |
+| Transport | HTTPS origin only, no embedded credentials, path, query or fragment |
+| TLS certificate | SHA-256 of the certificate actually served by the buyer's host |
+| Database | PostgreSQL, exact server version, database name, runtime role and direct non-pooled host |
+| Runtime role | `bypassRls`, `superuser`, `createRole`, `createDb` must each be exactly `false` |
+| Freshness | Within the configured maximum age (default 7 days), never more than 5 minutes in the future |
+| Authenticity | Ed25519 signature over canonical JSON, verified against a pinned public key and key ID |
 
-Not proved: the Vercel-specific evidence bundle (Neon PITR, Vercel deployment id, signed
-tenant-context 67-route matrix). Those remain buyer/operator responsibilities, and this gate never
-reports `CERTIFIED` — it reports `PASS` or `NOT_VERIFIED` only.
+## Create an operator signing key
 
-## Producing the identity
+Generate a dedicated Ed25519 key pair on a trusted operator workstation. Keep the private key offline or in an approved secrets manager; never commit or upload it.
+
+```bash
+openssl genpkey -algorithm ED25519 -out opscore-self-hosted-private.pem
+openssl pkey -in opscore-self-hosted-private.pem -pubout -out opscore-self-hosted-public.pem
+chmod 600 opscore-self-hosted-private.pem
+```
+
+Pin the public PEM in the buyer runtime:
+
+- `OPSC_SELF_HOSTED_ATTESTATION_PUBLIC_KEY` — trusted public key PEM
+- `OPSC_SELF_HOSTED_ATTESTATION_KEY_ID` — expected key identifier
+- `OPSC_SELF_HOSTED_IDENTITY_PATH` — optional identity file path
+- `OPSC_SOURCE_COMMIT_SHA` — optional expected source commit
+
+The private key must never be configured as an application runtime variable.
+
+## Produce the signed identity
 
 ```bash
 node backend/scripts/self-hosted-release-identity.js --print-partial > partial.json
-# fill measured values, then:
-node backend/scripts/self-hosted-release-identity.js --input partial.json --output SELF_HOSTED_RELEASE_IDENTITY.json
+# Fill every value using measurements from the actual buyer-owned release.
+node backend/scripts/self-hosted-release-identity.js \
+  --input partial.json \
+  --output SELF_HOSTED_RELEASE_IDENTITY.json \
+  --private-key opscore-self-hosted-private.pem \
+  --key-id buyer-release-2026
 ```
 
-Place the result at `backend/docs/verification/SELF_HOSTED_RELEASE_IDENTITY.json` (default) or point
-`OPSC_SELF_HOSTED_IDENTITY_PATH` at it. No password, key or connection string is ever written to the
-file — only measured digests and boolean capability flags.
+The script reads the private key locally, signs the canonical payload and writes the identity file with restrictive file permissions. It does not print or copy the private key. The signing operator remains responsible for measuring each value accurately.
 
-## Verifying
+Place the identity at `backend/docs/verification/SELF_HOSTED_RELEASE_IDENTITY.json` (default) or configure `OPSC_SELF_HOSTED_IDENTITY_PATH`.
+
+## Verify
 
 ```bash
-node -e "console.log(JSON.stringify(require('./backend/src/self-hosted-release-proof')
-  .createSelfHostedReleaseProof(process.env), null, 2))"
+node -e "console.log(JSON.stringify(require('./backend/src/self-hosted-release-proof').createSelfHostedReleaseProof(process.env), null, 2))"
 ```
 
-`status: "PASS"` requires every rule above. Anything missing, stale, drifted or elevated yields
-`status: "NOT_VERIFIED"` with an explicit `reasons[]` array — never a silent pass.
+Missing trust keys, wrong key IDs, malformed signatures, tampering, stale identities, mismatched commits or elevated database-role flags return `NOT_VERIFIED` with explicit `reasons[]`.
+
+## Explicit exclusions
+
+This does not prove Vercel deployment identity, Neon PITR, the signed tenant-context 67-route matrix, buyer app-store signing, native device QA, translation review, licensed maps, or independent compliance certification. Those remain separate acceptance items.
