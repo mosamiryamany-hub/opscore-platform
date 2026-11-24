@@ -248,12 +248,47 @@ async function collectIdentity(args, env = process.env) {
   return identityScript.buildIdentity(partial, privateKeyPem, args.keyId);
 }
 
+function writeIdentityFile(outputPath, identity) {
+  const output = path.resolve(outputPath);
+  const contents = JSON.stringify(identity, null, 2) + '\n';
+  fs.mkdirSync(path.dirname(output), { recursive: true, mode: 0o700 });
+
+  let fileDescriptor;
+  try {
+    // O_EXCL prevents replacing an existing file or following an existing symlink.
+    // The mode is applied at creation time; mode on writeFileSync alone does not
+    // tighten permissions when the destination already exists.
+    fileDescriptor = fs.openSync(
+      output,
+      fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL,
+      0o600
+    );
+    fs.writeFileSync(fileDescriptor, contents, { encoding: 'utf8' });
+    fs.fsyncSync(fileDescriptor);
+  } catch (error) {
+    if (fileDescriptor !== undefined) {
+      try { fs.closeSync(fileDescriptor); } catch {}
+      try { fs.unlinkSync(output); } catch {}
+    }
+    if (error && error.code === 'EEXIST') {
+      throw new Error('SELF_HOSTED_COLLECTOR_OUTPUT_ALREADY_EXISTS');
+    }
+    throw new Error('SELF_HOSTED_COLLECTOR_OUTPUT_WRITE_FAILED:' + String(error && error.code || 'UNKNOWN'));
+  }
+
+  fs.closeSync(fileDescriptor);
+  const mode = fs.statSync(output).mode & 0o777;
+  if (process.platform !== 'win32' && ((mode & 0o077) !== 0 || (mode & 0o400) === 0)) {
+    try { fs.unlinkSync(output); } catch {}
+    throw new Error('SELF_HOSTED_COLLECTOR_OUTPUT_PERMISSIONS_INVALID');
+  }
+  return output;
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   const identity = await collectIdentity(args);
-  const output = path.resolve(args.output);
-  fs.mkdirSync(path.dirname(output), { recursive: true, mode: 0o700 });
-  fs.writeFileSync(output, JSON.stringify(identity, null, 2) + '\n', { mode: 0o600 });
+  const output = writeIdentityFile(args.output, identity);
   process.stdout.write('SELF_HOSTED_IDENTITY_COLLECTED_AND_SIGNED ' + output + '\n');
   process.stdout.write('SOURCE_COMMIT ' + identity.sourceCommit + '\n');
   process.stdout.write('ARCHIVE_SHA256 ' + identity.archiveSha256 + '\n');
@@ -279,5 +314,6 @@ module.exports = {
   measureTlsCertificate,
   measureDatabaseIdentity,
   sourceCommit,
-  collectIdentity
+  collectIdentity,
+  writeIdentityFile
 };
