@@ -296,6 +296,7 @@ module.exports = {
   DEFAULT_MAX_AGE_SECONDS,
   ATTESTED_FIELDS,
   PRIVILEGE_FLAGS,
+  KEY_ID_RE,
   canonicalJson,
   attestationPayload,
   evaluateSelfHostedReleaseIdentity,
