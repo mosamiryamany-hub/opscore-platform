@@ -963,8 +963,20 @@ function parseCookies(req) {
   return out;
 }
 function sessionTokenFromRequest(req) {
-  const m = /^Bearer\s+(.+)$/i.exec(req.headers.authorization || '');
-  return m?.[1] || parseCookies(req)['__Host-opscore_session'] || null;
+  // Linear, bounded parse of the Authorization header. The previous
+  // /^Bearer\s+(.+)$/i expression was reported as js/polynomial-redos: an
+  // unbounded \s+ followed by an unbounded group can backtrack on long
+  // attacker-controlled header values. Behaviour is preserved for every
+  // header that carried a token: an optional case-insensitive "Bearer"
+  // prefix followed by at least one whitespace character yields the rest.
+  const header = typeof req?.headers?.authorization === 'string' ? req.headers.authorization : '';
+  if (header.length > 7
+      && header.slice(0, 7).toLowerCase() === 'bearer'
+      && /^[ \t\r\n]/.test(header.slice(7))) {
+    const token = header.slice(7).trim();
+    if (token) return token;
+  }
+  return parseCookies(req)['__Host-opscore_session'] || null;
 }
 function ctx(req) {
   authProviderGate();

@@ -53,11 +53,14 @@ test('legacy evidence is migrated before v2 is dropped',()=>{
 
 
 test('OIDC verifier rejects undersized RSA signing keys', async () => {
-  const {publicKey} = crypto.generateKeyPairSync('rsa',{modulusLength:1024});
-  const jwk=publicKey.export({format:'jwk'}); jwk.kid='weak-kid'; jwk.use='sig'; jwk.alg='RS256';
+  // A 1024-bit (128-byte) modulus JWK is built directly instead of generating a
+  // weak RSA key pair. The fixture still proves that the verifier refuses an
+  // undersized signing key (js/insufficient-key-size), while the suite no
+  // longer creates 1024-bit key material anywhere.
+  const jwk={kty:'RSA',n:crypto.randomBytes(128).toString('base64url'),e:'AQAB',kid:'weak-kid',use:'sig',alg:'RS256'};
   const server=await new Promise(resolve=>{const srv=http.createServer((req,res)=>{res.setHeader('content-type','application/json'); if(req.url==='/issuer/.well-known/openid-configuration') return res.end(JSON.stringify({issuer:'http://127.0.0.1:'+srv.address().port+'/issuer',jwks_uri:'http://127.0.0.1:'+srv.address().port+'/issuer/jwks'})); if(req.url==='/issuer/jwks') return res.end(JSON.stringify({keys:[jwk]})); res.statusCode=404;res.end('{}');}); srv.listen(0,'127.0.0.1',()=>resolve(srv));});
   const old={iss:process.env.OIDC_ISSUER,aud:process.env.OIDC_AUDIENCE,node:process.env.NODE_ENV}; process.env.OIDC_ISSUER='http://127.0.0.1:'+server.address().port+'/issuer'; process.env.OIDC_AUDIENCE='opscore-test'; process.env.NODE_ENV='test';
-  try { const now=Math.floor(Date.now()/1000); const header=b64(JSON.stringify({alg:'RS256',kid:'weak-kid',typ:'JWT'})); const payload=b64(JSON.stringify({iss:process.env.OIDC_ISSUER,sub:'weak',aud:'opscore-test',exp:now+120,iat:now,email:'unknown@example.test',email_verified:true})); const input=header+'.'+payload; const {privateKey}=crypto.generateKeyPairSync('rsa',{modulusLength:1024}); const sig=crypto.sign('RSA-SHA256',Buffer.from(input),privateKey).toString('base64url'); await assert.rejects(()=>verifyOidcIdToken(input+'.'+sig),/OIDC_SIGNING_KEY_NOT_FOUND|OIDC_RSA_KEY_TOO_WEAK/); }
+  try { const now=Math.floor(Date.now()/1000); const header=b64(JSON.stringify({alg:'RS256',kid:'weak-kid',typ:'JWT'})); const payload=b64(JSON.stringify({iss:process.env.OIDC_ISSUER,sub:'weak',aud:'opscore-test',exp:now+120,iat:now,email:'unknown@example.test',email_verified:true})); const input=header+'.'+payload; const {privateKey}=crypto.generateKeyPairSync('rsa',{modulusLength:2048}); const sig=crypto.sign('RSA-SHA256',Buffer.from(input),privateKey).toString('base64url'); await assert.rejects(()=>verifyOidcIdToken(input+'.'+sig),/OIDC_SIGNING_KEY_NOT_FOUND|OIDC_RSA_KEY_TOO_WEAK/); }
   finally {server.close(); for(const [k,v] of Object.entries(old)){if(v===undefined)delete process.env[k];else process.env[k]=v;}}
 });
 
