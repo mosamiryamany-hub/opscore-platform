@@ -1,6 +1,7 @@
 'use strict';
 
 const crypto = require('node:crypto');
+const { hmacSha256 } = require('./security');
 
 const MAX_ASSERTION_TTL_SECONDS = 45;
 const MAX_CLAIM_LENGTH = 128;
@@ -127,7 +128,7 @@ function createSignedRlsSessionContext({
   };
   const payload = JSON.stringify(claims);
   if (Buffer.byteLength(payload, 'utf8') > 4096) throw fail('TENANT_CONTEXT_PAYLOAD_TOO_LARGE');
-  const signature = crypto.createHmac('sha256', key).update(payload, 'utf8').digest('hex');
+  const signature = hmacSha256(key, payload);
   return Object.freeze({
     payload, signature, expiresAt: claims.exp, backendPid: pid,
     transactionId: xid, accessMode: mode, purpose: claims.purpose, requestId: request
@@ -204,7 +205,7 @@ function createSignedTenantContext({ principal, backendPid, transactionId, env =
   if (Buffer.byteLength(payload, 'utf8') > 4096) {
     throw fail('TENANT_CONTEXT_PAYLOAD_TOO_LARGE');
   }
-  const signature = crypto.createHmac('sha256', key).update(payload, 'utf8').digest('hex');
+  const signature = hmacSha256(key, payload);
   return Object.freeze({
     payload,
     signature,
