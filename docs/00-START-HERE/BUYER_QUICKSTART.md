@@ -1,56 +1,37 @@
-# OpsCore Integrated Buyer Quickstart v0.11.62
+# OpsCore Buyer Quickstart — v0.11.62
 
-Release: 0.11.62.
-Product: Multi-sector operational source kit — Web Console + API + Expo Mobile Source.
+**Status: SOURCE-CODE CANDIDATE ONLY. NO LICENSE GRANT. SELF-HOSTED PRODUCTION BLOCKED.**
 
-Use only the exact ZIP and release statement from its successful current-head pipeline. This is not a hosted SaaS. No signed native mobile binaries are included.
+This guide is not permission to use the source. Obtain an executed License Schedule first. Use only the exact authorized package and the release statement from its own successful Secure Release run. Do not reuse historical ZIPs, hashes, pipeline IDs or deployment IDs.
 
-## Local evaluation
+## 1. Local evaluation
 
-1. Install backend dependencies from the lockfile.
-2. Run verify:installation and buyer:preflight.
-3. Run Contact Center translation checks: contact-center:i18n, contact-center:i18n:forensic and the two translation node:test suites.
-4. Start the backend and create a local owner using the documented bootstrap process.
-5. Open the web console, create a work order, assign an appointment and inspect audit/completion output.
-6. For mobile source, configure the buyer-owned API URL and test user; validate check-in, GPS, camera/evidence, offline queue and recovery on physical Android/iOS devices before any release.
+1. Use Node.js `>=22.23.4 <23` and install backend dependencies with `npm ci`.
+2. Run `npm run buyer:preflight` and `npm run verify:installation`.
+3. Run `npm run contact-center:i18n` and `npm run contact-center:i18n:forensic`.
+4. Run `npm test` and `npm run verify`.
+5. If authorized for local evaluation, follow [backend/BUYER_QUICKSTART.md](../../backend/BUYER_QUICKSTART.md) for the SQLite-only, non-production demo path.
 
-## Database activation modes
+Record Node/npm versions, exact source commit, archive SHA-256, command outputs, exit codes and all skipped/failed tests. A local PASS proves only that named local check.
 
-The demo seed is local SQLite-only and must not be run with PostgreSQL environment variables. For a real PostgreSQL database, run migrations through the owner-only migration URL, then create the first real organization and owner using `npm run bootstrap` with the restricted runtime role and `OPSC_BOOTSTRAP_ORG_NAME`, `OPSC_BOOTSTRAP_CEO_EMAIL`, and `OPSC_BOOTSTRAP_CEO_PASSWORD`.
+## 2. PostgreSQL and self-hosted production
 
-## Translation truth
+Do not run the current migration tool against arbitrary customer-managed PostgreSQL and do not set Vercel environment variables to simulate Vercel. The current PostgreSQL migration flow validates Neon project/branch/endpoint identity and expects the Neon owner role. The signed-tenant-context and release-proof logic also depends on Vercel-specific environment/readiness.
 
-The Contact Center runtime currently exposes 105 selectable locale codes: 1 English source, 100 machine-assisted drafts and 4 explicit English fallback locales; 89 keys per locale. A separate qualification register contains 114 source rows; 9 flagged locales are withdrawn from runtime selection pending remediation and native-speaker review. Structural/forensic checks do not establish linguistic approval. Native-speaker review is 0/114; production qualification is 0/105 selectable locales. Keep the machine-translation notice visible.
+The current Compose file supplies a PostgreSQL service only; it is not a complete app/database/ingress/persistent-storage production stack. Provider-neutral self-hosted production remains BLOCKED until the work in [Self-Hosted Buyer Edition](../commercial/SELF_HOSTED_BUYER_EDITION_2026-11-24.md) is implemented and independently tested.
 
-## Buyer-owned services
+## 3. Translation truth
 
-The buyer provisions and live-tests external provider credentials, licenses, webhooks, OIDC/JWKS, email/SMS/WhatsApp/carrier and external call-center/telephony, payment, object storage, KMS, licensed maps/road routing and cloud accounts.
+The runtime currently exposes 105 selectable locale codes: 1 English source, 100 machine-assisted drafts and 4 English fallbacks. The qualification register has 114 source rows. Native-speaker reviewed: 0/114. Production-qualified: 0/105 selectable locales. Structural/forensic tests are not linguistic approval. Keep machine-translation disclosure visible.
 
-## Mobile release boundary
+## 4. Buyer-owned services and mobile
 
-The package includes Expo source only. Buyer owns EAS project/account linkage, Android/iOS signing credentials, native builds, physical-device QA, Apple/Google developer accounts, store submission/distribution and post-handover dependency maintenance. No signed APK/AAB/IPA is included. Seller remains responsible for defects in delivered source and pre-delivery High/Critical remediation.
+Buyer-controlled provider accounts, licences, credentials and live acceptance are required as applicable for OIDC/JWKS, email/SMS/WhatsApp, telephony/contact-center, payments, webhooks, object storage, KMS/HSM, maps/road-routing and cloud. No adapter or config entry proves a provider connection.
 
-Use only audit, test, SBOM and release evidence produced by the same exact-head Secure Release workflow that creates the package.
+The package includes Expo source only. There are no signed APK/AAB/IPA artifacts, native signing identities, physical-device QA or app-store publication in this source handoff.
 
-Current source baseline on main (2026-11-18):
-- Current repository main commit: 88f0f7377244d89f063de7c07714f9c2849fbc57.
-- Last application-code baseline: 27d41476a115d81ddd3ad1b4f03025142a7e5be6 (PR #235 changed commercial/ops documentation and the matching consistency test, not product runtime source).
-- Expo SDK 58.0.26, React 19.3.1, React Native 0.88.1.
-- Post-merge main OpsCore CI [44205567188](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44205567188) passed on commit 88f0f737… .
-- Post-merge Vercel contract [44205566999](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/44205566999) passed its contract and isolated PostgreSQL acceptance; deployment was skipped. Production has not been deployed by this run.
+## 5. Current evidence cut
 
-Mobile dependency security remains explicitly unresolved: the current main audit gate allows GHSA-fc5q-39xc-vjpf only through the documented, time-limited allowlist entry reviewed by 2026-12-18. The installed picomatch 4.0.7 override is not an upstream fix. A gate PASS under this entry is not a clean audit or signed risk acceptance. PR #230 remains Draft/HOLD. Review the advisory note before making any security claim.
+Main `6859b5d86f13ba9f481ed8fce5cc95c729d22b55`; current-main run [45360794536](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45360794536). Source, contract, isolated PostgreSQL RLS/HTTP and CodeQL checks passed. Production deploy, Neon Preview acceptance and historical Production PITR jobs were skipped. No exact-head Secure Release archive or buyer self-hosted acceptance is established by that run.
 
-### Exact release package identity
-
-No successful Secure Release run has yet produced a ZIP and external release statement for current repository main commit 88f0f7377244d89f063de7c07714f9c2849fbc57. Do not use older ZIPs, artifact IDs or digests as current handoff evidence. A manual dispatch was attempted but did not start because the browser automation wallet balance was -$0.12; no GitHub Actions run was created. This is an execution-tool limitation, not a product CI failure.
-
-The seller-side source release remains HOLD until one successful exact-main Secure Release run produces the ZIP, external statement, archive SHA-256, SBOM, provenance, test reports, mobile audit and i18n forensic evidence, followed by archive review. This is seller-owned work and does not depend on identifying a buyer or obtaining a buyer signature.
-
-### Production and infrastructure truth
-
-The operational Neon database inspected is opscore_acceptance; neondb on the primary branch is empty. In opscore_acceptance the migration ledger has 68 rows and migrations 063–067/069 are present. The prior migration workflow failed in a post-apply check because its runner mishandled the deliberately absent opscore_app role; PR #234 fixed that source-level check, but a post-fix Production verification run has not yet been recorded. Do not reapply the migrations already in the ledger.
-
-The only listed manual Neon snapshot predates those migrations. Its restore branch has valid provenance for that snapshot but is not schema-identical to the current Primary after later migration writes. The project is Free, allows one snapshot, and automatic snapshot schedule is empty. Do not delete the retained snapshot without a deliberate replacement/retention decision. Current Production restore parity proof, RPO/RTO and 67-route signed-session certification remain unestablished. The HMAC key table has zero keys, so signed Production routes are not activated.
-
-Vercel currently reports live=false, no custom domains and latest deployment target=null. No Production deployment was made by the current-main contract run. This source-code package is not seller-hosted SaaS; the buyer provisions its own hosting, providers and domain.
+See [Buyer Evidence Index](../commercial/BUYER_EVIDENCE_INDEX.md) for the complete evidence boundary.
