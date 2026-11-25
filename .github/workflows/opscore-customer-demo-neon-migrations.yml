@@ -88,29 +88,36 @@ jobs:
           host=str(endpoint.get('host') or (endpoint.get('hosts') or {}).get('read_write_host') or '').lower()
           if host != os.environ['EXPECTED_HOST']:
               raise SystemExit('DEMO_ENDPOINT_HOST_MISMATCH')
-          query=urllib.parse.urlencode({
-              'branch_id':branch_id,
-              'database_name':os.environ['DATABASE_NAME'],
-              'role_name':'neondb_owner',
-              'pooled':'false'
-          })
-          connection=get(f'{api}/projects/{project}/connection_uri?{query}').get('uri') or ''
-          parsed=urllib.parse.urlsplit(connection)
-          params=urllib.parse.parse_qs(parsed.query)
-          if parsed.scheme not in ('postgres','postgresql') or parsed.username!='neondb_owner':
-              raise SystemExit('DEMO_MIGRATION_ROLE_MISMATCH')
-          if parsed.hostname!=host or parsed.path.lstrip('/')!=os.environ['DATABASE_NAME']:
-              raise SystemExit('DEMO_CONNECTION_IDENTITY_MISMATCH')
-          if params.get('sslmode') not in (['require'],['verify-full']) or params.get('channel_binding')!=['require']:
-              raise SystemExit('DEMO_CONNECTION_TLS_POLICY_MISMATCH')
-          print('::add-mask::'+connection)
+          def connection_for(role_name):
+              query=urllib.parse.urlencode({
+                  'branch_id':branch_id,
+                  'database_name':os.environ['DATABASE_NAME'],
+                  'role_name':role_name,
+                  'pooled':'false'
+              })
+              uri=get(f'{api}/projects/{project}/connection_uri?{query}').get('uri') or ''
+              parsed=urllib.parse.urlsplit(uri)
+              params=urllib.parse.parse_qs(parsed.query)
+              if parsed.scheme not in ('postgres','postgresql') or parsed.username!=role_name:
+                  raise SystemExit('DEMO_CONNECTION_ROLE_MISMATCH:'+role_name)
+              if parsed.hostname!=host or parsed.path.lstrip('/')!=os.environ['DATABASE_NAME']:
+                  raise SystemExit('DEMO_CONNECTION_IDENTITY_MISMATCH:'+role_name)
+              if params.get('sslmode') not in (['require'],['verify-full']) or params.get('channel_binding')!=['require']:
+                  raise SystemExit('DEMO_CONNECTION_TLS_POLICY_MISMATCH:'+role_name)
+              params['sslmode']=['verify-full']
+              return urllib.parse.urlunsplit(parsed._replace(query=urllib.parse.urlencode(params,doseq=True)))
+          owner_connection=connection_for('neondb_owner')
+          runtime_connection=connection_for('opscore_runtime')
+          print('::add-mask::'+owner_connection)
+          print('::add-mask::'+runtime_connection)
           with open(os.environ['GITHUB_ENV'],'a') as f:
-              f.write('OPSC_MIGRATION_DATABASE_URL='+connection+'\n')
-              f.write('OPSC_MIGRATION_EXPECTED_HOST='+host+'\n')
-              f.write('OPSC_MIGRATION_EXPECTED_PROJECT_ID='+project+'\n')
-              f.write('OPSC_MIGRATION_EXPECTED_BRANCH_ID='+branch_id+'\n')
-              f.write('OPSC_MIGRATION_EXPECTED_DATABASE='+os.environ['DATABASE_NAME']+'\n')
-          print('DEMO_NEON_TARGET=PASS project='+project+' branch='+branch_id+' database='+os.environ['DATABASE_NAME']+' endpoint='+endpoint['id'])
+              f.write('OPSC_MIGRATION_DATABASE_URL='+owner_connection+'\\n')
+              f.write('OPSC_PG_ACCEPTANCE_URL='+runtime_connection+'\\n')
+              f.write('OPSC_MIGRATION_EXPECTED_HOST='+host+'\\n')
+              f.write('OPSC_MIGRATION_EXPECTED_PROJECT_ID='+project+'\\n')
+              f.write('OPSC_MIGRATION_EXPECTED_BRANCH_ID='+branch_id+'\\n')
+              f.write('OPSC_MIGRATION_EXPECTED_DATABASE='+os.environ['DATABASE_NAME']+'\\n')
+          print('DEMO_NEON_TARGET=PASS project='+project+' branch='+branch_id+' database='+os.environ['DATABASE_NAME']+' endpoint='+endpoint['id']+' owner=neondb_owner runtime=opscore_runtime')
           PY
 
       - name: Verify migration plan and run dry-run
@@ -167,6 +174,71 @@ jobs:
           print('DEMO_RUNTIME_ROLE_POSTCONDITIONS='+str((result.get('postconditions') or {}).get('runtime_role_exists')))
           PY
 
+      - name: Load active Demo HMAC key without logging secret material
+        working-directory: backend
+        env:
+          OPSC_MIGRATION_DATABASE_URL: ${{ env.OPSC_MIGRATION_DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const { Client } = require('pg');
+          (async () => {
+            const client = new Client({ connectionString: process.env.OPSC_MIGRATION_DATABASE_URL });
+            await client.connect();
+            try {
+              await client.query('SET ROLE opscore_auth_definer');
+              const result = await client.query(
+                "SELECT key_id, encode(secret,'hex') AS secret_hex FROM opscore_security.context_hmac_keys WHERE key_id='demo-20261125-v1' AND enabled=true AND not_before<=now() AND not_after>now()"
+              );
+              if (result.rows.length !== 1 || !/^[a-f0-9]{64}$/.test(result.rows[0].secret_hex)) {
+                throw new Error('DEMO_HMAC_KEY_MISSING_OR_INVALID');
+              }
+              const row = result.rows[0];
+              console.log('::add-mask::' + row.secret_hex);
+              fs.appendFileSync(process.env.GITHUB_ENV,
+                'OPSC_TENANT_CONTEXT_KEY_ID=' + row.key_id + '\\n' +
+                'OPSC_TENANT_CONTEXT_HMAC_KEY=' + row.secret_hex + '\\n');
+              console.log('DEMO_HMAC_KEY_ACTIVE=PASS key_id=' + row.key_id);
+            } finally {
+              try { await client.query('RESET ROLE'); } catch (_) {}
+              await client.end();
+            }
+          })().catch((error) => {
+            process.stderr.write('DEMO_HMAC_KEY_LOAD_FAILED ' + String(error && error.message || error) + '\\n');
+            process.exitCode = 1;
+          });
+          NODE
+
+      - name: Verify signed RLS purposes on the real Neon Demo branch
+        working-directory: backend
+        env:
+          OPSC_TENANT_CONTEXT_OWNER_URL: ${{ env.OPSC_MIGRATION_DATABASE_URL }}
+          OPSC_PG_ACCEPTANCE_URL: ${{ env.OPSC_PG_ACCEPTANCE_URL }}
+          OPSC_TENANT_CONTEXT_KEY_ID: ${{ env.OPSC_TENANT_CONTEXT_KEY_ID }}
+          OPSC_TENANT_CONTEXT_HMAC_KEY: ${{ env.OPSC_TENANT_CONTEXT_HMAC_KEY }}
+          OPSC_PG_SSL_MODE: verify-full
+        run: |
+          set -euo pipefail
+          node scripts/postgres-signed-rls-purpose-acceptance.js | tee "$RUNNER_TEMP/signed-rls-purpose-acceptance.log"
+          python3 - <<'PY'
+          import json, os, re
+          raw=open(os.environ['RUNNER_TEMP']+'/signed-rls-purpose-acceptance.log').read()
+          matches=re.findall(r'SIGNED_RLS_PURPOSE_ACCEPTANCE (\\{.*\\})',raw)
+          if len(matches)!=1:
+              raise SystemExit('DEMO_SIGNED_RLS_EVIDENCE_MISSING')
+          result=json.loads(matches[0])
+          expected=['auth','system','backoffice','api_key','field']
+          if result.get('status')!='PASS' or result.get('cleanup')!='PASS':
+              raise SystemExit('DEMO_SIGNED_RLS_ACCEPTANCE_NOT_PASS')
+          for field in ['rawGucForgery','rawGucWrite','liveFieldSession','immutableSignedIdentity','crossTenantWrite','revokedFieldSession']:
+              if result.get(field)!='PASS':
+                  raise SystemExit('DEMO_SIGNED_RLS_GATE_FAILED:'+field)
+          if not all(value in result.get('validPurposes',[]) for value in expected):
+              raise SystemExit('DEMO_SIGNED_RLS_PURPOSE_SET_INCOMPLETE')
+          print('DEMO_NEON_SIGNED_RLS_PURPOSE_ACCEPTANCE=PASS')
+          PY
+
       - name: Upload exact-run Demo migration evidence
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
@@ -175,6 +247,7 @@ jobs:
             ${{ runner.temp }}/migration-preflight.json
             ${{ runner.temp }}/dry-run.json
             ${{ runner.temp }}/apply.json
+            ${{ runner.temp }}/signed-rls-purpose-acceptance.log
           if-no-files-found: error
           retention-days: 14
           compression-level: 6
