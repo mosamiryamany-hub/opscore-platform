@@ -1,19 +1,28 @@
 # OpsCore — Technical and Commercial Closure Status
 
 **Reconciled:** 2026-11-25  
-**Evidence-cut main:** `c477135a4dda84f9ca3bb158871bae4381d362c6`  
+**Evidence-cut main:** `ad45c4adf7683741b05293d6a7932150ea886231`  
 **Seller offer:** OPEN FOR MARKETING AND NEGOTIATION — NO BUYER LICENSE GRANT.  
-**Delivery status:** HOLD — exact-head release archive and provider-neutral self-hosted Production qualification are not established.  
+**Delivery status:** PASS WITH BUYER RESIDUALS — exact-head source archive and Sigstore signature are established; provider-neutral self-hosted Production qualification remains HOLD.  
 **Self-hosted production:** BLOCKED — NOT QUALIFIED.  
 **Buyer environment:** NOT_ESTABLISHED / NOT VERIFIED.  
 **External certification:** NONE CLAIMED.  
 **Rights status:** **NO LICENSE GRANT BY DEFAULT.** Marketing and buyer acquisition are open without a pre-sale signature or separate Schedule; if a sale proceeds, the accepted buyer-specific offer/order/contract defines the deliverable and permitted rights.
 
-Current source baseline: main commit `c477135a4dda84f9ca3bb158871bae4381d362c6`. The exact source commit and package SHA-256 must be pinned to the buyer-specific transaction record if a sale proceeds. This file replaces the stale 2026-11-22 deployment and Neon snapshot as the current status summary. Do not use historical deployment IDs, pipeline IDs, hashes, provider statuses or test counts from the earlier report as current evidence.
+Current source baseline: main commit `ad45c4adf7683741b05293d6a7932150ea886231`. Secure Release run [45671764767](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45671764767) completed successfully and issued `OpsCore-release.zip` SHA-256 `5ec2a2124efd313c3f4fc2df19a62f504bb3ea5e2f606825d10502e37c1b8cd8` (2,787,323 bytes), with a Cosign keyless Sigstore bundle. The exact source commit and package SHA-256 must be pinned to the buyer-specific transaction record if a sale proceeds. Main CI run 45671764879 succeeded; Vercel source/contract and isolated PostgreSQL acceptance run 45671764855 succeeded. Production deployment and Production Neon PITR remained SKIPPED, so no Production certification is implied.
 
 The seller may advertise, publish, present, demonstrate, quote and negotiate the source-code candidate before a buyer is known. No pre-sale signature or separate License Schedule is required for these activities. If a sale proceeds, the accepted buyer-specific offer/order/contract records the exact deliverable and the selected rights; no rights beyond those terms are implied.
 
 ## Current evidence
+
+### Exact-head release (2026-11-25)
+
+- Source/main: `ad45c4adf7683741b05293d6a7932150ea886231` (GitHub commit verification: valid).
+- Secure Release: [run 45671764767](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45671764767), SUCCESS; artifact `opscore-release-45671764767` (ID `15050735579`).
+- Source package: `OpsCore-release.zip`, SHA-256 `5ec2a2124efd313c3f4fc2df19a62f504bb3ea5e2f606825d10502e37c1b8cd8`, 2,787,323 bytes.
+- Sigstore bundle: `OpsCore-release.zip.sigstore.json`, SHA-256 `f18aa47ca6f4fbe4421b814350e36eaa05964d4683ff8677985897977f5a8f0b`; Cosign v3.1.4 verification passed for the exact `main` workflow identity and GitHub OIDC issuer; altered archive and wrong identity were rejected.
+- Commercial statement: `PASS_WITH_BUYER_RESIDUALS`, `licenseGrant=NONE_PENDING_RIGHTS_HOLDER_DECISION`, `distributionAuthorized=false`, `productionCertification=false`, and `productionAcceptance=NOT_VERIFIED_AT_BUILD`.
+- The release archive is a signed source package; it does not by itself grant a buyer a license or prove Production qualification.
 
 Historical pre-PR #436 evidence snapshot for `f71b8eee32631c833dda8115af8508ae1ccc1a63`:
 **Historical evidence snapshot (2026-11-24 10:43 UTC; pre-PR #436):** main `f71b8eee32631c833dda8115af8508ae1ccc1a63`.
