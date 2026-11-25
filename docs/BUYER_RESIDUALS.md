@@ -75,7 +75,7 @@ CI results, test reports, dependency audits, CycloneDX SBOM, archive SHA-256, Gi
 
 ## Legal and distribution boundary
 
-The package remains `UNLICENSED`. `NO_LICENSE_GRANT_NOTICE.txt` stays controlling: **no license grant** — no use, installation, running, copying, modification, hosting, distribution, resale, sublicensing or commercial exploitation rights exist until the rights holder and a named buyer execute a License Schedule bound to the exact source commit and/or package SHA-256.
+The package remains `UNLICENSED` by default. `NO_LICENSE_GRANT_NOTICE.txt` stays controlling: this page and the package metadata grant no rights by themselves. Marketing, demonstrations, buyer discovery, quotations and negotiations are open without a pre-sale signature or separate License Schedule. If a sale proceeds, the accepted buyer-specific offer/order/contract pins the exact source commit and/or package SHA-256 and states permitted use, modification, hosting, distribution, resale and sublicensing rights.
 
 ## Commercial page boundary
 
