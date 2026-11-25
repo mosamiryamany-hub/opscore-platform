@@ -111,12 +111,12 @@ jobs:
           print('::add-mask::'+owner_connection)
           print('::add-mask::'+runtime_connection)
           with open(os.environ['GITHUB_ENV'],'a') as f:
-              f.write('OPSC_MIGRATION_DATABASE_URL='+owner_connection+'\\n')
-              f.write('OPSC_PG_ACCEPTANCE_URL='+runtime_connection+'\\n')
-              f.write('OPSC_MIGRATION_EXPECTED_HOST='+host+'\\n')
-              f.write('OPSC_MIGRATION_EXPECTED_PROJECT_ID='+project+'\\n')
-              f.write('OPSC_MIGRATION_EXPECTED_BRANCH_ID='+branch_id+'\\n')
-              f.write('OPSC_MIGRATION_EXPECTED_DATABASE='+os.environ['DATABASE_NAME']+'\\n')
+              f.write('OPSC_MIGRATION_DATABASE_URL='+owner_connection+'\n')
+              f.write('OPSC_PG_ACCEPTANCE_URL='+runtime_connection+'\n')
+              f.write('OPSC_MIGRATION_EXPECTED_HOST='+host+'\n')
+              f.write('OPSC_MIGRATION_EXPECTED_PROJECT_ID='+project+'\n')
+              f.write('OPSC_MIGRATION_EXPECTED_BRANCH_ID='+branch_id+'\n')
+              f.write('OPSC_MIGRATION_EXPECTED_DATABASE='+os.environ['DATABASE_NAME']+'\n')
           print('DEMO_NEON_TARGET=PASS project='+project+' branch='+branch_id+' database='+os.environ['DATABASE_NAME']+' endpoint='+endpoint['id']+' owner=neondb_owner runtime=opscore_runtime')
           PY
 
@@ -197,15 +197,15 @@ jobs:
               const row = result.rows[0];
               console.log('::add-mask::' + row.secret_hex);
               fs.appendFileSync(process.env.GITHUB_ENV,
-                'OPSC_TENANT_CONTEXT_KEY_ID=' + row.key_id + '\\n' +
-                'OPSC_TENANT_CONTEXT_HMAC_KEY=' + row.secret_hex + '\\n');
+                'OPSC_TENANT_CONTEXT_KEY_ID=' + row.key_id + '\n' +
+                'OPSC_TENANT_CONTEXT_HMAC_KEY=' + row.secret_hex + '\n');
               console.log('DEMO_HMAC_KEY_ACTIVE=PASS key_id=' + row.key_id);
             } finally {
               try { await client.query('RESET ROLE'); } catch (_) {}
               await client.end();
             }
           })().catch((error) => {
-            process.stderr.write('DEMO_HMAC_KEY_LOAD_FAILED ' + String(error && error.message || error) + '\\n');
+            process.stderr.write('DEMO_HMAC_KEY_LOAD_FAILED ' + String(error && error.message || error) + '\n');
             process.exitCode = 1;
           });
           NODE
@@ -224,7 +224,7 @@ jobs:
           python3 - <<'PY'
           import json, os, re
           raw=open(os.environ['RUNNER_TEMP']+'/signed-rls-purpose-acceptance.log').read()
-          matches=re.findall(r'SIGNED_RLS_PURPOSE_ACCEPTANCE (\\{.*\\})',raw)
+          matches=re.findall(r'SIGNED_RLS_PURPOSE_ACCEPTANCE (\{.*\})',raw)
           if len(matches)!=1:
               raise SystemExit('DEMO_SIGNED_RLS_EVIDENCE_MISSING')
           result=json.loads(matches[0])
