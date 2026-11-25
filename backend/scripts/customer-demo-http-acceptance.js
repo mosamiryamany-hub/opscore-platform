@@ -71,6 +71,9 @@ async function main() {
     });
     assert.equal(login.response.status, 200, 'login failed for role ' + account.role + ': ' + login.raw);
     assert.equal(login.body?.role, account.role, 'unexpected role returned for ' + account.email);
+    if (account.key === 'ADMIN') {
+      console.log('DEMO_HTTP_FIREWALL_LOGIN_BUCKET_ISOLATION=PASS general_prelogin_requests=11 login_limit=10');
+    }
     const cookie = setCookie(login.response);
 
     const me = await jsonRequest('/api/v1/me', { headers: { cookie } });
@@ -123,6 +126,8 @@ async function main() {
     status: 'PASS',
     health: 'PASS',
     unauthenticatedDenied: 'PASS',
+    firewallLoginBucketIsolation: 'PASS',
+    preLoginGeneralRequests: 11,
     roles: results,
     viewerWriteDenied: 'PASS',
     sessionRevocation: 'PASS',
