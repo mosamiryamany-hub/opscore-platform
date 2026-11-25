@@ -235,6 +235,7 @@ async function main() {
         assetType: 'network_node',
         externalRef: 'DEMO-ASSET-001',
         status: 'active',
+        customerId: customer.id,
         siteId: site.id,
         installedAt: now(),
         initialEventType: 'installed',
