@@ -2,7 +2,7 @@
 
 > **HOLD — SOURCE-CODE CANDIDATE ONLY. NO LICENSE GRANT. SELF-HOSTED PRODUCTION NOT YET QUALIFIED.**
 
-This page is technical/commercial orientation only. Do not install, run, copy, modify, deploy, distribute, resell, sublicense or otherwise exploit the source unless the rights holder and named buyer have executed a written License Schedule for the exact deliverable.
+This page is technical/commercial orientation only. Marketing, demonstrations, buyer discovery, quotations and negotiation are open without a pre-sale signature or separate License Schedule. This page does not itself grant buyer rights. If a purchase proceeds, the accepted buyer-specific offer/order/contract records the exact deliverable and permitted rights; no use, installation, modification or redistribution right is implied by this page.
 
 ## What is being offered
 
@@ -35,12 +35,12 @@ A PASS applies only to the test and target named in its evidence. SKIPPED is not
 ## Legal and commercial boundary
 
 - Package metadata: `UNLICENSED`.
-- Buyer licence: `NONE` until a written Schedule is executed.
-- Distribution/resale/sublicensing: `NOT AUTHORIZED` unless expressly granted in the signed Schedule.
+- Buyer licence: `NONE BY DEFAULT`; no separate Schedule is required for marketing or buyer discovery. If a purchase proceeds, the accepted buyer-specific transaction terms state any rights granted.
+- Distribution/resale/sublicensing: not included unless expressly stated in the accepted buyer-specific transaction terms.
 - Third-party dependency licences are separate; the SBOM inventory is not legal clearance.
 - Rights-holder identity and authority to sign must be established for the transaction.
 
-The seller may advertise, present and negotiate a prospective source-code offer as allowed by the no-license notice. This does not authorize buyer access or use.
+The seller may advertise, present, demonstrate, quote and negotiate a prospective source-code offer before a buyer is identified; no pre-sale signature is required. This does not itself authorize buyer access or use.
 
 ## Source scope and residuals
 
@@ -50,7 +50,7 @@ Not included or not qualified: seller-hosted services/accounts/data, buyer-speci
 
 ## Before any buyer installation
 
-1. The rights holder and buyer execute a License Schedule for the exact source commit/package digest.
+1. The accepted buyer-specific offer/order/contract records the exact source commit/package digest and permitted rights; a separate License Schedule is optional.
 2. The seller produces a fresh exact-head release archive, SHA-256, SBOM, provenance/signature and test evidence.
 3. The self-hosted blockers in the controlling edition document are closed and independently tested, or the buyer receives a clearly limited non-production evaluation scope.
 4. The buyer runs acceptance on buyer-controlled infrastructure and records the exact target, evidence, residuals and responsible operators.
