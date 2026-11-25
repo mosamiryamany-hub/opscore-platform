@@ -208,7 +208,7 @@ jobs:
         env:
           RELEASE_ARCHIVE: "${{ runner.temp }}/OpsCore-release.zip"
           SIGNATURE_BUNDLE: "${{ runner.temp }}/OpsCore-release.zip.sigstore.json"
-          EXPECTED_IDENTITY: "https://github.com/${{ github.repository }}/.github/workflows/opscore-secure-release.yml@refs/heads/main"
+          EXPECTED_IDENTITY: "https://github.com/${{ github.repository }}/.github/workflows/opscore-secure-release.yml@${{ github.ref }}"
         run: |
           set -euo pipefail
           cosign verify-blob "$RELEASE_ARCHIVE" \
