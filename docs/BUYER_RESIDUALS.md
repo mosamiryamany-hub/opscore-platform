@@ -49,6 +49,8 @@ The Neon control plane was not reachable from this session (`api.neon.tech` did 
 
 Backups and recovery are not closed: there is no periodic external backup job, no automated digest/size/freshness check, and no scheduled restore drill into an isolated database. A logical `pg_dump` copy taken to owner-controlled external storage is a point-in-time copy, not PITR, and it does not by itself establish an RPO or an RTO. Neon Free provides a 6-hour history window; that is the current recovery floor, not a zero-loss guarantee.
 
+Live recheck on 2026-11-25: Production project `summer-leaf-18448271`, default branch `main` (`br-proud-salad-bcshhdap`, `protected=false`), history retention 21,600 seconds, and automatic snapshot schedule empty. Attempting to set a daily snapshot schedule returned HTTP 404: `backup schedule creation is not enabled for this project`. No paid plan upgrade or external backup destination was configured. Automated backups and measured RPO/RTO therefore remain HOLD.
+
 ## Localization qualification
 
 The Contact Center currently exposes 105 selectable locales (1 English source, 100 machine-assisted drafts, 4 English fallbacks); 9 withdrawn locale codes are excluded. The separate qualification matrix retains 114 source rows, all at `planned_not_qualified` / `not_run`; that historical register is not the current catalog, and no native translation-quality approval is claimed.
