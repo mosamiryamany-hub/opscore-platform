@@ -49,6 +49,8 @@ The Neon control plane was not reachable from this session (`api.neon.tech` did 
 
 Backups and recovery are not closed: there is no periodic external backup job, no automated digest/size/freshness check, and no scheduled restore drill into an isolated database. A logical `pg_dump` copy taken to owner-controlled external storage is a point-in-time copy, not PITR, and it does not by itself establish an RPO or an RTO. Neon Free provides a 6-hour history window; that is the current recovery floor, not a zero-loss guarantee.
 
+Live recheck on 2026-11-25: Production project `summer-leaf-18448271`, default branch `main` (`br-proud-salad-bcshhdap`, `protected=false`), history retention 21,600 seconds, and automatic snapshot schedule empty. Attempting to set a daily snapshot schedule returned HTTP 404: `backup schedule creation is not enabled for this project`. No paid plan upgrade or external backup destination was configured. Automated backups and measured RPO/RTO therefore remain HOLD.
+
 ## Localization qualification
 
 The Contact Center currently exposes 105 selectable locales (1 English source, 100 machine-assisted drafts, 4 English fallbacks); 9 withdrawn locale codes are excluded. The separate qualification matrix retains 114 source rows, all at `planned_not_qualified` / `not_run`; that historical register is not the current catalog, and no native translation-quality approval is claimed.
@@ -57,7 +59,9 @@ Native-speaker review: **0/105**. Production-qualified by native review: **0/105
 
 ## Vercel firewall enforcement posture
 
-The Vercel firewall enforcement posture is **not verified as enforcement**. What was recorded on 2026-11-18: `firewallEnabled=true`; CRS rules active but `log` only; Bot Protection active but `log` only; IP allow/deny rules list empty; 60 requests per source IP per fixed 60-second window; no anomalies for the default last-24-hour window. Log-only rules are not a denial posture and are not presented as an enforcement certification. A WAF claim requires a settings read on the live project plus an observed blocking test.
+The 2026-11-18 log-only observation above is historical and superseded for custom-rule testing by the 2026-11-25 live read. The `opscore-commercial` firewall is enabled (config version 9) with three active custom `deny` rules. Five safe request probes were returned as HTTP 403 with `x-vercel-mitigated: deny`: `/.env`, `/wp-admin`, XSS markers in `q` and `search` query values, and a double-encoded traversal path. A benign `?q=operations` request returned HTTP 200, so the tested rules did not blanket-block that benign query. The rule conditions were corrected to substring matching and separate OR groups.
+
+The managed CRS rules remain `log` rather than `deny`; the managed OWASP ruleset request was rejected by the current Vercel plan (HTTP 402). These observations prove only the tested custom deny cases. They do not certify full OWASP protection, broader WAF efficacy or Production equivalence for an unbound deployment.
 
 ## Buyer-owned or separately contracted residuals
 
@@ -83,7 +87,7 @@ These paths are currently absent on the live domain and are open gates: `/terms`
 
 ## Closeout decision
 
-**OPEN.** The project is not closed. Open gates: three red CI checks on PR #401; PR #401 scope and content alignment; production identity divergence between `main` and the deployed commit; the `CERTIFIED` / `NOT_CERTIFIED` proof disagreement; six missing commercial/legal pages; absence of periodic backup plus a full restore test; unverified WAF posture. Buyer-side items remain separately contracted.
+**OPEN / HOLD for Production qualification.** The old PR #401 failures and 2026-11-23 deployment identity details above are historical, not current. Current main `ad45c4adf7683741b05293d6a7932150ea886231` has a successful Secure Release, OpsCore CI and isolated PostgreSQL/Vercel contract verification. Remaining seller-side gates include a same-source public Production deployment and acceptance, Neon periodic backup and measured restore/RPO/RTO, current public/legal page availability, and full managed-WAF policy. Buyer residuals remain separate: licensed maps/road routing, human review of 0/105 locales, and signed Android/iOS builds, device QA and store release.
 
  
 ## Latest measured full-site closeout update — 2026-11-23 (supersedes earlier status above)
