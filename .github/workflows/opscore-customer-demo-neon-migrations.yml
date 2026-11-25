@@ -9,6 +9,7 @@ on:
       - '.github/workflows/opscore-customer-demo-neon-migrations.yml'
       - 'backend/sql/postgres/**'
       - 'backend/scripts/apply-postgres-migrations.js'
+      - 'backend/scripts/seed-demo-postgres.js'
       - 'backend/src/postgres-migration-plan.js'
       - 'backend/package.json'
       - 'backend/package-lock.json'
@@ -112,6 +113,7 @@ jobs:
           print('::add-mask::'+runtime_connection)
           with open(os.environ['GITHUB_ENV'],'a') as f:
               f.write('OPSC_MIGRATION_DATABASE_URL='+owner_connection+'\n')
+              f.write('OPSC_BOOTSTRAP_DATABASE_URL='+owner_connection+'\n')
               f.write('OPSC_TENANT_CONTEXT_OWNER_URL='+owner_connection+'\n')
               f.write('OPSC_PG_ACCEPTANCE_URL='+runtime_connection+'\n')
               f.write('OPSC_MIGRATION_EXPECTED_HOST='+host+'\n')
@@ -234,6 +236,48 @@ jobs:
           print('DEMO_NEON_SIGNED_RLS_PURPOSE_ACCEPTANCE=PASS')
           PY
 
+      - name: Generate one-time synthetic Demo credentials
+        run: |
+          set -euo pipefail
+          for account in ADMIN DISPATCHER TECHNICIAN VIEWER; do
+            password="$(openssl rand -hex 24)"
+            echo "::add-mask::$password"
+            printf 'OPSC_DEMO_PASSWORD_%s=%s\\n' "$account" "$password" >> "$GITHUB_ENV"
+          done
+          printf 'OPSC_DEMO_SEED_CREDENTIALS_FILE=%s/demo-credentials.json\\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          printf 'OPSC_DEMO_SEED_RESULT_FILE=%s/demo-seed.json\\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+
+      - name: Seed synthetic customer Demo data on the isolated Neon branch
+        id: seed
+        working-directory: backend
+        env:
+          NODE_ENV: development
+          DATABASE_ENGINE: postgres
+          OPSC_PG_SSL_MODE: verify-full
+          OPSC_DEMO_SEED_ALLOW: YES_I_CONFIRM_DEMO_ONLY
+          OPSC_DEMO_SEED_PROJECT_ID: delicate-lake-72003710
+          OPSC_DEMO_SEED_BRANCH_ID: br-divine-pine-bci896ws
+          OPSC_DEMO_SEED_DATABASE: opscore_demo
+          OPSC_DEMO_SEED_EXPECTED_HOST: ep-hidden-fog-bci5emef.c-16.us-east-1.aws.neon.tech
+          OPSC_DEMO_SEED_CONFIRM: opscore-customer-demo:br-divine-pine-bci896ws
+        run: |
+          set -euo pipefail
+          node scripts/seed-demo-postgres.js
+          python3 - <<'PY'
+          import json, os
+          result=json.load(open(os.environ['OPSC_DEMO_SEED_RESULT_FILE']))
+          expected={'organizations':1,'users':4,'memberships':4,'customers':1,'sites':1,'assets':1,'workOrders':1}
+          if result.get('status') not in ('SEEDED_AND_VERIFIED','ALREADY_SEEDED_VERIFIED'):
+              raise SystemExit('DEMO_SEED_STATUS_NOT_VERIFIED')
+          if result.get('counts') != expected:
+              raise SystemExit('DEMO_SEED_COUNTS_MISMATCH')
+          new_seed=result.get('credentialsFileCreated') is True
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:
+              f.write('new_seed='+('true' if new_seed else 'false')+'\\n')
+          print('DEMO_SEED_STATUS='+result['status'])
+          print('DEMO_SEED_COUNTS='+json.dumps(result['counts'],sort_keys=True))
+          PY
+
       - name: Upload exact-run Demo migration evidence
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
@@ -243,6 +287,17 @@ jobs:
             ${{ runner.temp }}/dry-run.json
             ${{ runner.temp }}/apply.json
             ${{ runner.temp }}/signed-rls-purpose-acceptance.log
+            ${{ runner.temp }}/demo-seed.json
           if-no-files-found: error
           retention-days: 14
           compression-level: 6
+      - name: Upload private one-day Demo credentials artifact
+        if: steps.seed.outputs.new_seed == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: opscore-customer-demo-credentials-${{ github.run_id }}
+          path: ${{ runner.temp }}/demo-credentials.json
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 6
+
