@@ -19,7 +19,7 @@ function freePort() {
   return 20000 + Math.floor(Math.random() * 20000);
 }
 
-async function waitForHealth(base, tries = 100) {
+async function waitForHealth(base, tries = 300) {
   for (let i = 0; i < tries; i++) {
     try {
       const r = await fetch(`${base}/api/health`);

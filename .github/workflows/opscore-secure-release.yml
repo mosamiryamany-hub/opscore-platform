@@ -11,6 +11,9 @@ on:
       - 'docs/COMMERCIAL_CERTIFICATION_REGISTER_*.md'
       - 'docs/commercial/**'
       - 'NO_LICENSE_GRANT_NOTICE.txt'
+      - 'backend/web/i18n/**'
+      - 'backend/test/contact_center_i18n.test.js'
+      - 'backend/test/security_scopes.test.js'
   workflow_dispatch:
 
 permissions:
