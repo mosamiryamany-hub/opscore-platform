@@ -112,6 +112,7 @@ jobs:
           print('::add-mask::'+runtime_connection)
           with open(os.environ['GITHUB_ENV'],'a') as f:
               f.write('OPSC_MIGRATION_DATABASE_URL='+owner_connection+'\n')
+              f.write('OPSC_TENANT_CONTEXT_OWNER_URL='+owner_connection+'\n')
               f.write('OPSC_PG_ACCEPTANCE_URL='+runtime_connection+'\n')
               f.write('OPSC_MIGRATION_EXPECTED_HOST='+host+'\n')
               f.write('OPSC_MIGRATION_EXPECTED_PROJECT_ID='+project+'\n')
@@ -176,8 +177,6 @@ jobs:
 
       - name: Load active Demo HMAC key without logging secret material
         working-directory: backend
-        env:
-          OPSC_MIGRATION_DATABASE_URL: ${{ env.OPSC_MIGRATION_DATABASE_URL }}
         run: |
           set -euo pipefail
           node <<'NODE'
@@ -213,10 +212,6 @@ jobs:
       - name: Verify signed RLS purposes on the real Neon Demo branch
         working-directory: backend
         env:
-          OPSC_TENANT_CONTEXT_OWNER_URL: ${{ env.OPSC_MIGRATION_DATABASE_URL }}
-          OPSC_PG_ACCEPTANCE_URL: ${{ env.OPSC_PG_ACCEPTANCE_URL }}
-          OPSC_TENANT_CONTEXT_KEY_ID: ${{ env.OPSC_TENANT_CONTEXT_KEY_ID }}
-          OPSC_TENANT_CONTEXT_HMAC_KEY: ${{ env.OPSC_TENANT_CONTEXT_HMAC_KEY }}
           OPSC_PG_SSL_MODE: verify-full
         run: |
           set -euo pipefail
