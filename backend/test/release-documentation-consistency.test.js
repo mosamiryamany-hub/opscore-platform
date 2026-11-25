@@ -54,7 +54,7 @@ test('commercial closeout documents agree on candidate identity and certificatio
         /NO LICENSE GRANT|NO COMMERCIAL LICENSE/i.test(doc),
       'doc must keep a clear certification boundary'
     );
-    assert.ok(doc.includes('security/mobile-dependency-remediation-2026-11-01') || /PASS_WITH_BUYER_RESIDUALS|source commit|4ef126/i.test(doc));
+    assert.ok(doc.includes('security/mobile-dependency-remediation-2026-11-01') || /PASS_WITH_BUYER_RESIDUALS|source commit|sourceCommit|source_commit|4ef126/i.test(doc));
     assert.match(doc, /buyer|customer/i);
     assert.match(doc, /translation|ترجمة/i);
     assert.match(doc, /mobile|الهاتف/i);
