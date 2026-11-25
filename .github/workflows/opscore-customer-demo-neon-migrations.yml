@@ -269,13 +269,15 @@ jobs:
           import json, os
           result=json.load(open(os.environ['OPSC_DEMO_SEED_RESULT_FILE']))
           expected={'organizations':1,'users':4,'memberships':4,'customers':1,'sites':1,'assets':1,'workOrders':1}
-          if result.get('status') not in ('SEEDED_AND_VERIFIED','ALREADY_SEEDED_VERIFIED'):
+          if result.get('status') not in ('SEEDED_AND_VERIFIED','ALREADY_SEEDED_CREDENTIALS_ROTATED'):
               raise SystemExit('DEMO_SEED_STATUS_NOT_VERIFIED')
           if result.get('counts') != expected:
               raise SystemExit('DEMO_SEED_COUNTS_MISMATCH')
-          new_seed=result.get('credentialsFileCreated') is True
+          credentials_created=result.get('credentialsFileCreated') is True
+          if not credentials_created:
+              raise SystemExit('DEMO_CREDENTIALS_FILE_NOT_CREATED')
           with open(os.environ['GITHUB_OUTPUT'],'a') as f:
-              f.write('new_seed='+('true' if new_seed else 'false')+'\n')
+              f.write('credentials_created=true'+chr(10))
           print('DEMO_SEED_STATUS='+result['status'])
           print('DEMO_SEED_COUNTS='+json.dumps(result['counts'],sort_keys=True))
           PY
@@ -345,7 +347,7 @@ jobs:
           retention-days: 14
           compression-level: 6
       - name: Upload private one-day Demo credentials artifact
-        if: steps.seed.outputs.new_seed == 'true'
+        if: steps.seed.outputs.credentials_created == 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: opscore-customer-demo-credentials-${{ github.run_id }}
