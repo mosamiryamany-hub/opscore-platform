@@ -27,7 +27,7 @@ The current source has automated CI and isolated PostgreSQL/RLS test evidence on
 - Licensed maps, road routing, attribution, quotas and traffic ETA are not included.
 - External identity, email/SMS/WhatsApp, telephony, payments, webhook, object-storage, KMS/HSM and cloud provider accounts/credentials/live acceptance are buyer-specific.
 - Payment processing is disabled until a provider is selected, credentials are configured, signed webhooks are verified and buyer-environment payment flows pass.
-- Neon Production backup retention and Vercel OWASP/WAF blocking require plan capabilities not present on the currently connected plans.
+- Neon Production retention and protected-backup scheduling remain plan-limited. Three scoped Vercel custom deny rules are configured; the managed OWASP ruleset is unavailable on the current plan and live block behavior still requires request-level verification.
 - No ISO 27001, SOC 2, PCI DSS or other independent certificate is claimed.
 
 ## Commercial / buyer terms
