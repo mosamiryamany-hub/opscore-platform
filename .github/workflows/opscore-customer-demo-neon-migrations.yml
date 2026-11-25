@@ -314,7 +314,7 @@ jobs:
           import json, os, re
           health=json.load(open(os.environ['RUNNER_TEMP']+'/demo-http-health.json'))
           raw=open(os.environ['RUNNER_TEMP']+'/demo-http-acceptance.log').read()
-          matches=re.findall(r'DEMO_HTTP_ACCEPTANCE=(\\{.*\\})',raw)
+          matches=re.findall(r'DEMO_HTTP_ACCEPTANCE=(\{.*\})',raw)
           if health.get('ok') is not True or health.get('engine')!='postgres':
               raise SystemExit('DEMO_HTTP_HEALTH_NOT_PASS')
           if len(matches)!=1:
