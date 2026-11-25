@@ -180,14 +180,16 @@ async function main() {
           role: 'owner',
           email: ACCOUNT_SPECS[0].email
         };
-        db.setSession({
-          tenantId: existing.organizationId,
-          userId: adminUser.id,
-          sessionId: null,
-          accessMode: 'backoffice'
-        });
         db.exec('BEGIN');
         try {
+          const privilegedSession = rotator._createSessionForUser(
+            { id: adminUser.id, email: adminUser.email, status: 'active' },
+            existing.organizationId,
+            { provider: 'demo-seed-credential-rotation' }
+          );
+          if (!privilegedSession || !privilegedSession.sessionId || !privilegedSession.token) {
+            throw new Error('DEMO_SEED_PRIVILEGED_SESSION_CREATION_FAILED');
+          }
           for (const spec of ACCOUNT_SPECS) {
             const user = db.prepare('SELECT id FROM users WHERE email=?').get(spec.email);
             if (!user) throw new Error('DEMO_SEED_ACCOUNT_MISSING_FOR_ROTATION:' + spec.email);
@@ -196,6 +198,8 @@ async function main() {
             const result = rotator.resetPassword(reset.resetToken, passwords[spec.key]);
             if (result?.reset !== true) throw new Error('DEMO_SEED_PASSWORD_ROTATION_POSTCONDITION_FAILED:' + spec.key);
           }
+          const revoked = rotator.logout(privilegedSession.token);
+          if (!revoked) throw new Error('DEMO_SEED_PRIVILEGED_SESSION_REVOCATION_FAILED');
           db.exec('COMMIT');
         } catch (error) {
           try { db.exec('ROLLBACK'); } catch (_) {}
