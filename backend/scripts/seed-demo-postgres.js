@@ -117,6 +117,8 @@ async function main() {
   const ownerUrl = required('OPSC_BOOTSTRAP_DATABASE_URL');
   const bootstrapConfig = resolveBootstrapConfig(config, process.env);
   assertTarget(bootstrapConfig);
+  if (!/^[a-f0-9]{64}$/.test(required('OPSC_TENANT_CONTEXT_HMAC_KEY'))) throw new Error('DEMO_SEED_HMAC_KEY_INVALID');
+  if (required('OPSC_TENANT_CONTEXT_KEY_ID') !== 'demo-20261125-v1') throw new Error('DEMO_SEED_HMAC_KEY_ID_MISMATCH');
 
   const credentialsFile = required('OPSC_DEMO_SEED_CREDENTIALS_FILE');
   const resultFile = required('OPSC_DEMO_SEED_RESULT_FILE');
