@@ -29,7 +29,7 @@ OpsCore includes backend/API source, browser operations console, internal workfl
 
 ## 5. Dependencies and localization
 
-Translation catalog: 114 locale codes; 1 English source, 109 machine-assisted drafts, 4 English fallbacks; 89 keys per locale. Native-speaker review and production qualification are 0/114 until independently completed. Keep the visible machine-translation notice. Dependency findings must be taken from the full same-run root/mobile audit JSON; do not use stale summaries or claim zero advisories without evidence.
+Translation catalogue: 105 selectable runtime locales (1 English source, 100 machine-assisted drafts, 4 English fallbacks); 9 flagged codes are withdrawn. The separate qualification register contains 114 source rows. Native-speaker review is 0/114 source rows; production qualification is 0/105 selectable runtime locales. Keep the visible machine-translation notice. Dependency findings must be taken from the full same-run root/mobile audit JSON; do not use stale summaries or claim zero advisories without evidence.
 
 ## 6. Customer-owned responsibilities
 
