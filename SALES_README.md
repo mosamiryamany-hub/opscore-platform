@@ -1,9 +1,9 @@
-<!-- Commercial tiers: docs/commercial/LICENSE_FRAMEWORK.md — no in-repo prices; buyer-specific Schedule required before rights/delivery. -->
+<!-- Commercial tiers: docs/commercial/LICENSE_FRAMEWORK.md — no in-repo prices; no pre-sale License Schedule is required for marketing or buyer discovery. -->
 # OpsCore v0.11.62 — Sales Package
 
-> **SELLER OFFER OPEN FOR MARKETING AND NEGOTIATION — NO BUYER LICENSE GRANT UNTIL A TRANSACTION-SPECIFIC SCHEDULE IS EXECUTED.**
+> **SELLER OFFER OPEN FOR MARKETING, DEMONSTRATION, BUYER DISCOVERY AND NEGOTIATION — NO PRE-SALE SIGNATURE REQUIRED.**
 
-OpsCore is a multi-sector operational source package, not a hosted SaaS subscription. The rights holder may advertise, list, present and negotiate this offer before a buyer is identified. This sales material does not grant any buyer permission to access, use, install, run, inspect, copy, modify, host, publish, distribute, sell, resell, sublicense, rent, transfer, or commercially exploit the source. A named buyer and executed License Schedule are required only when a transaction is ready to grant rights or deliver the pinned package; all rights remain reserved until then.
+OpsCore is a multi-sector operational source package, not a hosted SaaS subscription. The rights holder may advertise, list, present and negotiate this offer before a buyer is identified. This sales material does not itself grant buyer rights. No pre-sale signature or separate License Schedule is required to contact a prospect, demonstrate the product, issue an indicative quote or negotiate. If a purchase proceeds, the accepted buyer-specific offer/order/contract records the pinned package and the permitted rights; no rights beyond those terms are implied.
 
 ## Included
 
@@ -23,4 +23,4 @@ Current seller-reference production isolation is NOT_VERIFIED: the stored sessio
 
 ## Commercial rights boundary
 
-The seller may publish and negotiate this offer before a buyer is known. No License Schedule is needed to advertise or discuss the product. No license or buyer use/distribution right is granted by this sales package. Before the named buyer receives the package or may install, run, modify, host, resell or sublicense it, the rights holder and that buyer must execute a License Schedule that pins the exact deliverable and defines the permitted rights and terms. Technical test results, deployment status, release artifacts, hashes, SBOMs and attestations do not create or imply a license.
+The seller may publish and negotiate this offer before a buyer is known. No License Schedule is needed to advertise or discuss the product. No license or buyer use/distribution right is granted by this sales package. If a purchase proceeds, the accepted buyer-specific offer/order/contract states the exact deliverable and defines the permitted rights and terms. A separate License Schedule is optional, not a customer-acquisition requirement. Technical test results, deployment status, release artifacts, hashes, SBOMs and attestations do not create or imply a license.
