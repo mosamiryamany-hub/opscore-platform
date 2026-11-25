@@ -78,6 +78,9 @@ function existingSeedState(db) {
 
   const organization = db.prepare('SELECT id,name FROM organizations WHERE name=?').get(EXPECTED.organizationName);
   const users = db.prepare('SELECT id,email FROM users WHERE email IN (?,?,?,?) ORDER BY email').all(...ACCOUNT_SPECS.map(x => x.email));
+  const roleRows = organization ? db.prepare('SELECT u.email,m.role FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.organization_id=?').all(organization.id) : [];
+  const roleMap = new Map(roleRows.map(row => [row.email, row.role]));
+  const rolesMatch = ACCOUNT_SPECS.every(spec => roleMap.get(spec.email) === spec.role);
   const customer = db.prepare("SELECT id,external_ref FROM customers WHERE external_ref='DEMO-CUST-001'").get();
   const site = db.prepare("SELECT id,external_ref FROM sites WHERE external_ref='DEMO-SITE-001'").get();
   const asset = db.prepare("SELECT id,external_ref FROM assets WHERE external_ref='DEMO-ASSET-001'").get();
@@ -93,6 +96,8 @@ function existingSeedState(db) {
     counts.workOrders === 1 &&
     Boolean(organization) &&
     users.length === 4 &&
+    roleRows.length === 4 &&
+    rolesMatch &&
     Boolean(customer) &&
     Boolean(site) &&
     Boolean(asset) &&
