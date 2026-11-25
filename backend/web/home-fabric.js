@@ -56,3 +56,24 @@
     trig.setAttribute('aria-keyshortcuts', 'Meta+K Control+K');
   }
 })();
+
+/* OpsCore v4 — deterministic identity chips (fixes raw object interpolation) */
+(function patchIdentityChips(){
+  function paint(){
+    fetch('/api/verify/release', { headers: { accept: 'application/json' } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d) return;
+        var commit = d.sourceCommit || d.commit || d.commitSha || d.gitSha || (d.source && d.source.commit) || '';
+        var depId  = (d.deployment && (d.deployment.id || d.deployment.uid || d.deployment.name)) || (typeof d.deployment === 'string' ? d.deployment : '');
+        var cc = document.getElementById('commitChip');
+        var dc = document.getElementById('deployChip');
+        if (cc) cc.textContent = commit ? String(commit).slice(0, 12) : '—';
+        if (dc) dc.textContent = depId ? String(depId) : '—';
+      })
+      .catch(function () {});
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', paint);
+  else paint();
+  window.setTimeout(paint, 1400);
+})();
