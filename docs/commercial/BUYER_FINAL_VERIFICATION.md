@@ -26,7 +26,7 @@ The buyer configures, licenses, secures and tests any required identity provider
 
 The package includes Expo mobile source only; it does not include signed native binaries or certify app-store readiness. The buyer owns EAS/project accounts, Android/iOS signing, native build, GPS/camera/offline/device testing, environment configuration, app-store accounts/submission, distribution, and ongoing updates.
 
-The current locked Expo SDK 58.0.23 / React Native 0.88.1 / React 19.3.0 baseline in run 43308699094 reports zero findings across all severities. The exact same-run mobile audit JSON is authoritative. This is a point-in-time npm audit, not a guarantee against future advisories.
+The current locked Expo SDK 58.0.23 / React Native 0.88.1 / React 19.3.0 baseline must be evaluated from the exact same-run full-tree and production-tree audit JSON and gate result. The latest exact-main Secure Release run is the authority; do not rely on historical run IDs or unreferenced audit JSON. This is a point-in-time npm audit, not a guarantee against future advisories.
 
 ## Production and operational limits
 
