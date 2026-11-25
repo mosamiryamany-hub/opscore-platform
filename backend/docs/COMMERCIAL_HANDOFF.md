@@ -13,10 +13,10 @@
 The Contact Center locale resources are integrated: 114 locale codes, 1 English source, 109 machine-assisted drafts, 4 explicit English fallbacks and 89 keys per locale. Four structural integrity rounds are enforced in CI. These do not constitute native-speaker review; 0/114 locales are production-qualified and the in-app notice must remain visible.
 
 ## Buyer-owned scope
-External providers and accounts, licenses, credentials, webhooks, maps, KMS, cloud operations, mobile builds/signing/device tests/store distribution and dependency maintenance are buyer-owned unless a separate signed agreement states otherwise. The archive contains mobile source only and no signed binaries.
+External providers and accounts, licenses, credentials, webhooks, maps, KMS, cloud operations, mobile builds/signing/device tests/store distribution and dependency maintenance are buyer-owned unless the accepted buyer-specific transaction terms state otherwise. The archive contains mobile source only and no signed binaries.
 
 ## Certification boundary
 Production PostgreSQL/RLS, full backup/restore, KMS, TLS/WAF, live identity/providers, native app release and production-wide isolation remain environment-specific. `NOT_ESTABLISHED` / `NOT_CERTIFIED` is the production certification state.
 
 ## Licensing
-No bundled license grant is included. NO_LICENSE_GRANT_NOTICE.txt reserves all rights until a separate signed commercial transfer/agreement exists. Third-party rights remain with their owners.
+No bundled license grant is included by default. Marketing, demonstrations, buyer discovery and negotiation are open without a pre-sale signature or separate License Schedule. If a purchase proceeds, the accepted buyer-specific offer/order/contract states the exact deliverable and permitted rights. Third-party rights remain with their owners.
