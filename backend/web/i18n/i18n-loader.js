@@ -166,8 +166,8 @@
   function detect() {
     let forced = null;
     try { forced = localStorage.getItem('opscore.locale'); } catch { /* storage can be blocked */ }
-    const browserCandidates = Array.isArray(navigator.languages) && navigator.languages.length ? navigator.languages : [navigator.language || 'en'];
-    const rawCandidates = forced ? [forced, ...browserCandidates] : browserCandidates;
+    // English is the predictable default; a user's explicit saved choice always wins.
+    const rawCandidates = forced ? [forced] : ['en'];
     for (const candidate of rawCandidates) {
       if (typeof candidate !== 'string') continue;
       const normalized = candidate.trim().toLowerCase();
