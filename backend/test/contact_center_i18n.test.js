@@ -86,17 +86,17 @@ test('locale package validator passes exact catalog, key, placeholder and UI wir
   assert.match(result.stdout,/PASS catalog alignment/);
 });
 
-test('browser locale detection, RTL, translations, placeholder substitution and native-name picker work', async () => {
-  const harness = makeHarness({languages:['ar-EG','en-US']});
+test('English is the default regardless of browser locale; all 105 choices remain available', async () => {
+  const harness = makeHarness({languages:['ar-EG','zh-CN','en-US']});
   await harness.window.OpsCoreI18n.ready;
-  assert.equal(harness.window.OpsCoreI18n.locale,'ar');
-  assert.equal(harness.html.lang,'ar');
-  assert.equal(harness.html.dir,'rtl');
-  assert.equal(harness.staticNode.textContent,'مركز الاتصال بالذكاء الاصطناعي');
+  assert.equal(harness.window.OpsCoreI18n.locale,'en');
+  assert.equal(harness.html.lang,'en');
+  assert.equal(harness.html.dir,'ltr');
+  assert.equal(harness.staticNode.textContent,'AI Contact Center');
   assert.match(harness.dynamicNode.textContent,/MISSING_KEY/);
-  assert.equal(harness.placeholderNode.getAttribute('placeholder'),'اكتب رسالة…');
+  assert.equal(harness.placeholderNode.getAttribute('placeholder'),'Write a message…');
   assert.equal(harness.picker.children.length,105);
-  assert.equal(harness.picker.value,'ar');
+  assert.equal(harness.picker.value,'en');
   assert.ok(harness.picker.children.some(option=>option.value==='ar' && option.textContent.includes('العربية')));
 });
 
@@ -137,19 +137,20 @@ test('malformed translation lookup uses literal fallback and parameter values st
 });
 
 
-test('invalid persisted locale falls through to browser locale instead of forcing English', async () => {
+test('invalid persisted locale falls back to the English default', async () => {
   const harness = makeHarness({languages:['ar-EG','en-US'],storedLocale:'../../invalid'});
   await harness.window.OpsCoreI18n.ready;
-  assert.equal(harness.window.OpsCoreI18n.locale,'ar');
-  assert.equal(harness.html.dir,'rtl');
+  assert.equal(harness.window.OpsCoreI18n.locale,'en');
+  assert.equal(harness.html.dir,'ltr');
 });
 
-test('BCP-47 browser tags map onto package locale codes (zh-CN, zh-TW, fil, nb, yue)', async () => {
-  const expected = { 'zh-CN': 'zh', 'zh-TW': 'zh', 'zh-HK': 'yue', 'yue': 'yue', 'fil-PH': 'tl', 'nb-NO': 'no', 'nn-NO': 'no', 'bi': 'bi' };
-  for (const [tag, code] of Object.entries(expected)) {
-    const harness = makeHarness({ languages: [tag] });
+test('explicit package locale codes can be selected independently of browser locale', async () => {
+  for (const code of ['zh','yue','tl','no','bi']) {
+    const harness = makeHarness({ languages: ['ar-EG'] });
     await harness.window.OpsCoreI18n.ready;
-    assert.equal(harness.window.OpsCoreI18n.locale, code, `${tag} should resolve to ${code}`);
+    assert.equal(harness.window.OpsCoreI18n.locale, 'en');
+    assert.equal(await harness.window.OpsCoreI18n.setLocale(code), code);
+    assert.equal(harness.window.OpsCoreI18n.locale, code);
   }
 });
 
