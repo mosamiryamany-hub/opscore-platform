@@ -10,7 +10,7 @@
 6. Perform production database, backup/restore, TLS/WAF, KMS, observability and isolation acceptance.
 
 ## Translation status
-The Contact Center locale resources are integrated: 114 locale codes, 1 English source, 109 machine-assisted drafts, 4 explicit English fallbacks and 89 keys per locale. Four structural integrity rounds are enforced in CI. These do not constitute native-speaker review; 0/114 locales are production-qualified and the in-app notice must remain visible.
+The Contact Center runtime exposes 105 selectable locales: 1 English source, 100 machine-assisted drafts and 4 explicit English fallbacks; 9 flagged codes are withdrawn. The separate qualification register contains 114 source rows. Four structural integrity rounds are enforced in CI; these do not constitute native-speaker review. Native-speaker review is 0/114 source rows and production qualification is 0/105 selectable runtime locales. The in-app machine-translation notice must remain visible.
 
 ## Buyer-owned scope
 External providers and accounts, licenses, credentials, webhooks, maps, KMS, cloud operations, mobile builds/signing/device tests/store distribution and dependency maintenance are buyer-owned unless the accepted buyer-specific transaction terms state otherwise. The archive contains mobile source only and no signed binaries.

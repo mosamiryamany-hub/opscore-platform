@@ -55,7 +55,7 @@ Live recheck on 2026-11-25: Production project `summer-leaf-18448271`, default b
 
 The Contact Center currently exposes 105 selectable locales (1 English source, 100 machine-assisted drafts, 4 English fallbacks); 9 withdrawn locale codes are excluded. The separate qualification matrix retains 114 source rows, all at `planned_not_qualified` / `not_run`; that historical register is not the current catalog, and no native translation-quality approval is claimed.
 
-Native-speaker review: **0/105**. Production-qualified by native review: **0/105**.
+Native-speaker reviewed: **0/105 selectable locales**; the separate 114-row qualification register has **0/114 source rows reviewed**. Production-qualified: **0/105 selectable locales**.
 
 ## Vercel firewall enforcement posture
 
@@ -68,9 +68,10 @@ The managed CRS rules remain `log` rather than `deny`; the managed OWASP ruleset
 | Residual | Status | Boundary |
 |---|---|---|
 | Android/iOS native signed builds and store publication | REMAINING_BUYER | Buyer signing keys, store accounts, device QA, submission and publication |
-| Native-speaker translation review | REMAINING_BUYER | 0/105 reviewed and 0/105 production-qualified |
+| Native-speaker translation review | REMAINING_BUYER | 0/114 source rows reviewed; 0/105 selectable runtime locales production-qualified |
 | Licensed maps and road-routing | REMAINING_BUYER | Provider license, credentials, attribution, quotas, billing |
-| Buyer identity/messaging/telephony/payment integrations | REMAINING_BUYER | Buyer-owned provider contracts, accounts, secrets, live acceptance |
+| Licensed telephony/call-center provider | REMAINING_BUYER | Provider account/license, API credentials, routing setup and buyer-environment live acceptance |
+| Buyer identity/messaging/payment integrations | REMAINING_BUYER | Buyer-owned provider contracts, accounts, secrets and live acceptance |
 | Buyer environment provisioning and operations | REMAINING_BUYER | Install, migration, data import, backup/RPO/RTO, monitoring |
 
 ## Certification boundary
@@ -87,7 +88,7 @@ These paths are currently absent on the live domain and are open gates: `/terms`
 
 ## Closeout decision
 
-**OPEN / HOLD for Production qualification.** The old PR #401 failures and 2026-11-23 deployment identity details above are historical, not current. Current main `ad45c4adf7683741b05293d6a7932150ea886231` has a successful Secure Release, OpsCore CI and isolated PostgreSQL/Vercel contract verification. Remaining seller-side gates include a same-source public Production deployment and acceptance, Neon periodic backup and measured restore/RPO/RTO, current public/legal page availability, and full managed-WAF policy. Buyer residuals remain separate: licensed maps/road routing, human review of 0/105 locales, and signed Android/iOS builds, device QA and store release.
+**OPEN / HOLD for Production qualification.** Historical PR, commit and deployment references above are not current status evidence. For every release decision, resolve the latest exact main commit and its own Secure Release artifact, OpsCore CI run, Vercel/PostgreSQL acceptance run, and any Production-bound acceptance evidence. A passing source/isolated-PostgreSQL workflow does not establish public Production deployment, Neon PITR/restore/RPO/RTO, public/legal page availability or full managed-WAF policy. Buyer residuals remain separate: licensed maps/road routing, licensed telephony/call-center provider account and license, native-speaker review of 0/114 source rows, production qualification of 0/105 selectable locales, and signed Android/iOS builds, device QA and store release.
 
  
 ## Latest measured full-site closeout update — 2026-11-23 (supersedes earlier status above)
@@ -181,7 +182,7 @@ Restore-artifact preservation: branch `br-orange-union-bc90bp8r` had an automati
 
 ### Language and mobile buyer-readiness boundary
 
-The current selectable language catalog remains 105 locales: 1 English source, 100 machine-assisted drafts, and 4 English fallbacks; 9 withdrawn codes are excluded. The historical qualification register has 114 rows but is not the current selectable catalog. Native-speaker review is 0/105 and production qualification by native review is 0/105. No native-language approval or production-quality claim is made. Android/iOS signed builds, physical-device QA, store signing keys/accounts, submission and publication remain buyer-side or separately contracted work.
+The current selectable language catalog remains 105 locales: 1 English source, 100 machine-assisted drafts, and 4 English fallbacks; 9 withdrawn codes are excluded. The historical qualification register has 114 rows but is not the current selectable catalog. Native-speaker review is 0/105 selectable locales; the separate qualification register has 0/114 source rows reviewed; production qualification is 0/105 selectable locales. No native-language approval or production-quality claim is made. Android/iOS signed builds, physical-device QA, store signing keys/accounts, submission and publication remain buyer-side or separately contracted work.
 
 
 Reproducible table-content manifest roots (SHA-256 over sorted per-table SHA-256 digests, 136 public base tables):

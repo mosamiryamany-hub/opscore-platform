@@ -93,7 +93,7 @@ No Vercel variables are to be spoofed and no Vercel Preview mode is to be used t
 - seller hosting, seller Vercel/Neon accounts, seller domain, seller database and customer data;
 - a provider-neutral self-hosted production deployment and signed self-hosted release qualification;
 - signed APK/AAB/IPA, device-level QA, signing keys or app-store publication;
-- native-speaker language review (latest sales evidence reports 0/114 reviewed; runtime selectable catalogue and qualification register have different denominators);
+- native-speaker language review (0/114 source-language qualification rows reviewed; 0/105 selectable runtime locales production-qualified; 9 withdrawn codes remain excluded from selection);
 - licensed maps, road-routing, provider attribution, API quotas or traffic ETA;
 - configured external OIDC/JWKS, email, SMS, WhatsApp, payment processing, object storage, KMS/HSM or buyer-specific webhook contracts;
 - licensed telephony/contact-center carrier accounts, provider licenses, API credentials and buyer-environment live acceptance;

@@ -23,7 +23,7 @@ const BUYER_RESIDUALS = Object.freeze([
   {
     id: 'nativeTranslationReview',
     status: 'REMAINING_BUYER',
-    scope: 'Native-speaker review and production language qualification remain 0/114 locales.'
+    scope: 'Native-speaker review remains 0/114 source-language qualification rows; production language qualification remains 0/105 selectable runtime locales. Nine withdrawn locale codes are excluded from the selectable runtime catalogue.'
   },
   {
     id: 'licensedStreetMap',

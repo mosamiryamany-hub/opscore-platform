@@ -37,5 +37,5 @@ Marketing, buyer discovery, demonstrations, quotations and negotiations may proc
 ## Buyer-owned residuals — remain disclosed, not seller tasks
 
 - Android/iOS signing, native builds, physical-device QA, store accounts and publication.
-- Native-speaker translation review and language qualification (0/114).
+- Native-speaker review: 0/114 source-language qualification rows; production qualification: 0/105 selectable runtime locales.
 - Licensed maps/road-routing, buyer/provider accounts, credentials, attribution, quotas and buyer-specific live acceptance.
