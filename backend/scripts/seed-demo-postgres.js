@@ -170,6 +170,16 @@ async function main() {
       if (process.env.OPSC_DEMO_SEED_ROTATE_CREDENTIALS === 'YES') {
         const adminUser = db.prepare('SELECT id FROM users WHERE email=?').get(ACCOUNT_SPECS[0].email);
         if (!adminUser) throw new Error('DEMO_SEED_ADMIN_IDENTITY_MISSING_FOR_ROTATION');
+        const rotator = new Store(db, bootstrapConfig);
+        rotator.pg = db;
+        rotator.databaseEngineResolved = opened.engine;
+        rotator.postgresRuntimeWired = opened.postgresRuntimeWired;
+        const rotationContext = {
+          organizationId: existing.organizationId,
+          userId: adminUser.id,
+          role: 'owner',
+          email: ACCOUNT_SPECS[0].email
+        };
         db.setSession({
           tenantId: existing.organizationId,
           userId: adminUser.id,
@@ -181,12 +191,10 @@ async function main() {
           for (const spec of ACCOUNT_SPECS) {
             const user = db.prepare('SELECT id FROM users WHERE email=?').get(spec.email);
             if (!user) throw new Error('DEMO_SEED_ACCOUNT_MISSING_FOR_ROTATION:' + spec.email);
-            const passwordHash = hashPassword(passwords[spec.key]);
-            db.prepare('UPDATE users SET password_hash=? WHERE id=?').run(passwordHash, user.id);
-            const verified = db.prepare('SELECT password_hash FROM users WHERE id=?').get(user.id);
-            if (!verified || verified.password_hash !== passwordHash) {
-              throw new Error('DEMO_SEED_PASSWORD_ROTATION_POSTCONDITION_FAILED:' + spec.key);
-            }
+            const reset = rotator.createPasswordReset(rotationContext, user.id);
+            if (!reset || !reset.resetToken) throw new Error('DEMO_SEED_PASSWORD_RESET_TOKEN_MISSING:' + spec.key);
+            const result = rotator.resetPassword(reset.resetToken, passwords[spec.key]);
+            if (result?.reset !== true) throw new Error('DEMO_SEED_PASSWORD_ROTATION_POSTCONDITION_FAILED:' + spec.key);
           }
           db.exec('COMMIT');
         } catch (error) {
