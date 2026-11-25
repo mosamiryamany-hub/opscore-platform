@@ -32,6 +32,6 @@ The package includes Expo source only. There are no signed APK/AAB/IPA artifacts
 
 ## 5. Current evidence cut
 
-Main `6859b5d86f13ba9f481ed8fce5cc95c729d22b55`; current-main run [45360794536](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45360794536). Source, contract, isolated PostgreSQL RLS/HTTP and CodeQL checks passed. Production deploy, Neon Preview acceptance and historical Production PITR jobs were skipped. No exact-head Secure Release archive or buyer self-hosted acceptance is established by that run.
+Main `dd305c777fc31c826ada626631308c8a8b4f3470`; Secure Release [45718703746](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45718703746), OpsCore CI [45718703779](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45718703779), and isolated PostgreSQL 18/Vercel verification [45718703749](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45718703749) all completed successfully. Production deploy, Neon Preview migration and Production PITR checks were skipped. The signed archive does not grant a license or establish Production acceptance.
 
 See [Buyer Evidence Index](../commercial/BUYER_EVIDENCE_INDEX.md) for the complete evidence boundary.
