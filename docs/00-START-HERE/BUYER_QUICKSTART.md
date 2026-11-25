@@ -32,6 +32,6 @@ The package includes Expo source only. There are no signed APK/AAB/IPA artifacts
 
 ## 5. Current evidence cut
 
-Main `dd305c777fc31c826ada626631308c8a8b4f3470`; Secure Release [45718703746](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45718703746), OpsCore CI [45718703779](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45718703779), and isolated PostgreSQL 18/Vercel verification [45718703749](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45718703749) all completed successfully. Production deploy, Neon Preview migration and Production PITR checks were skipped. The signed archive does not grant a license or establish Production acceptance.
+Use only the latest exact-main Secure Release artifact and its matching OpsCore CI and Vercel/PostgreSQL acceptance runs. Do not reuse historical commit IDs, run IDs, deployment IDs or archive hashes. CI and isolated PostgreSQL acceptance do not establish public Production deployment, Neon Preview migration, Production PITR or buyer self-hosted acceptance. A signed archive does not grant a license or establish Production acceptance.
 
 See [Buyer Evidence Index](../commercial/BUYER_EVIDENCE_INDEX.md) for the complete evidence boundary.
