@@ -1,7 +1,7 @@
 # OpsCore — Technical and Commercial Closure Status
 
-**Reconciled:** 2026-11-24  
-**Evidence-cut main:** `f71b8eee32631c833dda8115af8508ae1ccc1a63`  
+**Reconciled:** 2026-11-25  
+**Evidence-cut main:** `c477135a4dda84f9ca3bb158871bae4381d362c6`  
 **Seller offer:** OPEN FOR MARKETING AND NEGOTIATION — NO BUYER LICENSE GRANT.  
 **Delivery status:** HOLD — exact-head release archive and provider-neutral self-hosted Production qualification are not established.  
 **Self-hosted production:** BLOCKED — NOT QUALIFIED.  
@@ -9,7 +9,7 @@
 **External certification:** NONE CLAIMED.  
 **Rights status:** **NO LICENSE GRANT BY DEFAULT.** Marketing and buyer acquisition are open without a pre-sale signature or separate Schedule; if a sale proceeds, the accepted buyer-specific offer/order/contract defines the deliverable and permitted rights.
 
-This file replaces the stale 2026-11-22 deployment and Neon snapshot as the current status summary. Do not use historical deployment IDs, pipeline IDs, hashes, provider statuses or test counts from the earlier report as current evidence.
+Current source baseline: main commit `c477135a4dda84f9ca3bb158871bae4381d362c6`. The exact source commit and package SHA-256 must be pinned to the buyer-specific transaction record if a sale proceeds. This file replaces the stale 2026-11-22 deployment and Neon snapshot as the current status summary. Do not use historical deployment IDs, pipeline IDs, hashes, provider statuses or test counts from the earlier report as current evidence.
 
 The seller may advertise, publish, present, demonstrate, quote and negotiate the source-code candidate before a buyer is known. No pre-sale signature or separate License Schedule is required for these activities. If a sale proceeds, the accepted buyer-specific offer/order/contract records the exact deliverable and the selected rights; no rights beyond those terms are implied.
 
