@@ -10,6 +10,7 @@ on:
       - 'backend/sql/postgres/**'
       - 'backend/scripts/apply-postgres-migrations.js'
       - 'backend/scripts/seed-demo-postgres.js'
+      - 'backend/scripts/customer-demo-http-acceptance.js'
       - 'backend/src/postgres-migration-plan.js'
       - 'backend/package.json'
       - 'backend/package-lock.json'
@@ -116,6 +117,7 @@ jobs:
               f.write('OPSC_BOOTSTRAP_DATABASE_URL='+owner_connection+'\n')
               f.write('OPSC_TENANT_CONTEXT_OWNER_URL='+owner_connection+'\n')
               f.write('OPSC_PG_ACCEPTANCE_URL='+runtime_connection+'\n')
+              f.write('OPSC_DATABASE_URL='+runtime_connection+'\n')
               f.write('OPSC_MIGRATION_EXPECTED_HOST='+host+'\n')
               f.write('OPSC_MIGRATION_EXPECTED_PROJECT_ID='+project+'\n')
               f.write('OPSC_MIGRATION_EXPECTED_BRANCH_ID='+branch_id+'\n')
@@ -278,7 +280,55 @@ jobs:
           print('DEMO_SEED_COUNTS='+json.dumps(result['counts'],sort_keys=True))
           PY
 
+      - name: Verify authenticated customer journeys against Neon-backed HTTP server
+        working-directory: backend
+        env:
+          NODE_ENV: development
+          DATABASE_ENGINE: postgres
+          HOST: 127.0.0.1
+          PORT: "3000"
+          AUTH_MODE: local
+          FIREWALL_RATE_STATE: database
+          OPSC_EXPECTED_INSTANCES: "2"
+          OPSC_SHARED_STATE_CONFIRMED: "true"
+          OPSC_PG_SSL_MODE: verify-full
+        run: |
+          set -euo pipefail
+          node src/server.js > "$RUNNER_TEMP/demo-server.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true; wait "$server_pid" 2>/dev/null || true' EXIT
+          ready=0
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3000/api/health > "$RUNNER_TEMP/demo-http-health.json"; then
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$ready" -ne 1 ]; then
+            tail -n 120 "$RUNNER_TEMP/demo-server.log" || true
+            exit 1
+          fi
+          node scripts/customer-demo-http-acceptance.js | tee "$RUNNER_TEMP/demo-http-acceptance.log"
+          python3 - <<'PY'
+          import json, os, re
+          health=json.load(open(os.environ['RUNNER_TEMP']+'/demo-http-health.json'))
+          raw=open(os.environ['RUNNER_TEMP']+'/demo-http-acceptance.log').read()
+          matches=re.findall(r'DEMO_HTTP_ACCEPTANCE=(\\{.*\\})',raw)
+          if health.get('ok') is not True or health.get('engine')!='postgres':
+              raise SystemExit('DEMO_HTTP_HEALTH_NOT_PASS')
+          if len(matches)!=1:
+              raise SystemExit('DEMO_HTTP_ACCEPTANCE_EVIDENCE_MISSING')
+          result=json.loads(matches[0])
+          if result.get('status')!='PASS' or len(result.get('roles',[]))!=4:
+              raise SystemExit('DEMO_HTTP_CUSTOMER_JOURNEY_NOT_PASS')
+          if result.get('viewerWriteDenied')!='PASS' or result.get('sessionRevocation')!='PASS':
+              raise SystemExit('DEMO_HTTP_AUTHORIZATION_OR_REVOCATION_NOT_PASS')
+          print('DEMO_NEON_HTTP_CUSTOMER_JOURNEY=PASS')
+          PY
+
       - name: Upload exact-run Demo migration evidence
+        if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: opscore-customer-demo-migrations-${{ github.run_id }}
@@ -288,7 +338,10 @@ jobs:
             ${{ runner.temp }}/apply.json
             ${{ runner.temp }}/signed-rls-purpose-acceptance.log
             ${{ runner.temp }}/demo-seed.json
-          if-no-files-found: error
+            ${{ runner.temp }}/demo-http-health.json
+            ${{ runner.temp }}/demo-http-acceptance.log
+            ${{ runner.temp }}/demo-server.log
+          if-no-files-found: warn
           retention-days: 14
           compression-level: 6
       - name: Upload private one-day Demo credentials artifact
