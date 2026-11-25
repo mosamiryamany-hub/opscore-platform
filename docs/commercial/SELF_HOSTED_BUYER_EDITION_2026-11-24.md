@@ -95,7 +95,8 @@ No Vercel variables are to be spoofed and no Vercel Preview mode is to be used t
 - signed APK/AAB/IPA, device-level QA, signing keys or app-store publication;
 - native-speaker language review (latest sales evidence reports 0/114 reviewed; runtime selectable catalogue and qualification register have different denominators);
 - licensed maps, road-routing, provider attribution, API quotas or traffic ETA;
-- configured external OIDC/JWKS, email, SMS, WhatsApp, telephony/contact-center carriers, payment processing, object storage, KMS/HSM or buyer-specific webhook contracts;
+- configured external OIDC/JWKS, email, SMS, WhatsApp, payment processing, object storage, KMS/HSM or buyer-specific webhook contracts;
+- licensed telephony/contact-center carrier accounts, provider licenses, API credentials and buyer-environment live acceptance;
 - an accredited external security/compliance certificate.
 
 Payment processing remains disabled unless a provider is selected, credentials are configured, signed webhooks are verified and the relevant flows are accepted in the target environment.
