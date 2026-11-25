@@ -29,6 +29,11 @@ const BUYER_RESIDUALS = Object.freeze([
     id: 'licensedStreetMap',
     status: 'REMAINING_BUYER',
     scope: 'Licensed maps, road-routing, provider credentials, attribution, quotas, and buyer-specific acceptance remain buyer-owned.'
+  },
+  {
+    id: 'licensedTelephony',
+    status: 'REMAINING_BUYER',
+    scope: 'External call-center/telephony provider account, license, API credentials, and buyer-environment live acceptance remain buyer-owned.'
   }
 ]);
 function embeddedEvidencePath(fileName) {
@@ -905,7 +910,7 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
   } else {
     noteParts.push('Full Production PostgreSQL HTTP route and business-flow acceptance is NOT_VERIFIED. SQLite route-contract evidence (PASS_CONTRACT_SCOPE), missing evidence, Preview evidence, or evidence for another deployment cannot satisfy this release gate.');
   }
-  noteParts.push('Buyer residuals remain explicitly disclosed: mobile store artifacts, native-speaker translation review, and licensed maps/road-routing are REMAINING_BUYER; these do not invalidate the seller-reference technical release proof and do not authorize buyer use or distribution.');
+  noteParts.push('Buyer residuals remain explicitly disclosed: mobile store artifacts, native-speaker translation review, licensed maps/road-routing, and external telephony/call-center provider setup are REMAINING_BUYER; these do not invalidate the seller-reference technical release proof and do not authorize buyer use or distribution.');
   const releaseNote = noteParts.join(' ');
 
   return {
@@ -936,6 +941,7 @@ function createPublicReleaseProof(env = process.env, now = () => new Date(), ide
       mobileStoreArtifacts: 'REMAINING_BUYER',
       nativeTranslationReview: 'REMAINING_BUYER',
       licensedStreetMap: 'REMAINING_BUYER',
+      licensedTelephony: 'REMAINING_BUYER',
       livePostgresRls: ciVerified ? 'PASS_TEST_SCOPE' : 'UNVERIFIED',
       productionSessionTenantBoundary: sessionGate,
       productionRecoveryBundle: recoveryGate,

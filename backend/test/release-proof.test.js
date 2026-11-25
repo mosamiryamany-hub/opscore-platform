@@ -191,11 +191,12 @@ test('release proof rejects environment-only CI/package claims without embedded 
     assert.equal(proof.gates.mobileStoreArtifacts, 'REMAINING_BUYER');
     assert.equal(proof.gates.nativeTranslationReview, 'REMAINING_BUYER');
     assert.equal(proof.gates.licensedStreetMap, 'REMAINING_BUYER');
+    assert.equal(proof.gates.licensedTelephony, 'REMAINING_BUYER');
     assert.equal(proof.gates.commercialClosure, 'UNVERIFIED');
     assert.equal(proof.buyerResiduals.status, 'DISCLOSED');
-    assert.equal(proof.buyerResiduals.count, 3);
+    assert.equal(proof.buyerResiduals.count, 4);
     assert.deepEqual(proof.buyerResiduals.items.map(item => item.id), [
-      'mobileStoreArtifacts', 'nativeTranslationReview', 'licensedStreetMap'
+      'mobileStoreArtifacts', 'nativeTranslationReview', 'licensedStreetMap', 'licensedTelephony'
     ]);
     assert.match(proof.note, /REMAINING_BUYER/);
     assert.equal(proof.productionAcceptance.evidenceSha256, null);
