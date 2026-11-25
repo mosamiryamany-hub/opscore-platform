@@ -217,17 +217,17 @@ async function main() {
       }
 
       const customer = store.createCustomer(ctx, {
-        name: 'Demo Customer — Cairo',
+        name: 'Demo Customer — Alpha',
         email: 'contact@demo.opscore.invalid',
         phone: '+200000000000',
         externalRef: 'DEMO-CUST-001'
       });
       const site = store.createSite(ctx, {
         customerId: customer.id,
-        name: 'Demo Site — Cairo',
-        address: 'Synthetic demo location — Cairo, Egypt',
-        latitude: 29.9792,
-        longitude: 31.1342,
+        name: 'Demo Site — Alpha',
+        address: 'Synthetic demo location; not a real customer premises',
+        latitude: 0.0001,
+        longitude: 0.0001,
         externalRef: 'DEMO-SITE-001'
       });
       const asset = store.createAsset(ctx, {
