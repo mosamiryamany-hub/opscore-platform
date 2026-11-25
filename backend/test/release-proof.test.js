@@ -198,6 +198,9 @@ test('release proof rejects environment-only CI/package claims without embedded 
     assert.deepEqual(proof.buyerResiduals.items.map(item => item.id), [
       'mobileStoreArtifacts', 'nativeTranslationReview', 'licensedStreetMap', 'licensedTelephony'
     ]);
+    const languageResidual = proof.buyerResiduals.items.find(item => item.id === 'nativeTranslationReview');
+    assert.match(languageResidual.scope, /0\/114 source-language qualification rows/);
+    assert.match(languageResidual.scope, /0\/105 selectable runtime locales/);
     assert.match(proof.note, /REMAINING_BUYER/);
     assert.equal(proof.productionAcceptance.evidenceSha256, null);
 
