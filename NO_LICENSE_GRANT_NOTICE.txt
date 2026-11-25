@@ -2,7 +2,7 @@ NO LICENSE GRANT BY DEFAULT — ALL RIGHTS RESERVED
 
 This notice itself grants no permission or rights. It does not prevent the rights holder from advertising, listing, presenting, demonstrating, discussing, quoting or negotiating the software with prospective buyers. No pre-sale signature or separate License Schedule is required to acquire or qualify a customer.
 
-If a transaction proceeds, the buyer-specific accepted offer, order, contract or equivalent transaction record states the exact deliverable and the rights, restrictions, price, payment, term and support applicable to that transaction. A separate License Schedule is optional, not a prerequisite to marketing or customer acquisition.
+If a transaction proceeds, the accepted buyer-specific offer, order, contract or equivalent transaction record states the exact deliverable and the rights, restrictions, price, payment, term and support applicable to that transaction. A separate License Schedule is optional, not a prerequisite to marketing or customer acquisition.
 
 No rights are implied beyond the rights expressly included in the accepted transaction terms and those the seller is entitled to grant. L1 does not include resale; L2 includes redistribution only in the forms expressly stated in the transaction terms; L3 must identify whether it is an exclusive license or an assignment of specifically identified rights. Third-party and open-source components remain under their own licenses and are not re-licensed by this notice.
 
