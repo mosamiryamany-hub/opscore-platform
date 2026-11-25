@@ -57,7 +57,9 @@ Native-speaker review: **0/105**. Production-qualified by native review: **0/105
 
 ## Vercel firewall enforcement posture
 
-The Vercel firewall enforcement posture is **not verified as enforcement**. What was recorded on 2026-11-18: `firewallEnabled=true`; CRS rules active but `log` only; Bot Protection active but `log` only; IP allow/deny rules list empty; 60 requests per source IP per fixed 60-second window; no anomalies for the default last-24-hour window. Log-only rules are not a denial posture and are not presented as an enforcement certification. A WAF claim requires a settings read on the live project plus an observed blocking test.
+The 2026-11-18 log-only observation above is historical and superseded for custom-rule testing by the 2026-11-25 live read. The `opscore-commercial` firewall is enabled (config version 9) with three active custom `deny` rules. Five safe request probes were returned as HTTP 403 with `x-vercel-mitigated: deny`: `/.env`, `/wp-admin`, XSS markers in `q` and `search` query values, and a double-encoded traversal path. A benign `?q=operations` request returned HTTP 200, so the tested rules did not blanket-block that benign query. The rule conditions were corrected to substring matching and separate OR groups.
+
+The managed CRS rules remain `log` rather than `deny`; the managed OWASP ruleset request was rejected by the current Vercel plan (HTTP 402). These observations prove only the tested custom deny cases. They do not certify full OWASP protection, broader WAF efficacy or Production equivalence for an unbound deployment.
 
 ## Buyer-owned or separately contracted residuals
 
@@ -83,7 +85,7 @@ These paths are currently absent on the live domain and are open gates: `/terms`
 
 ## Closeout decision
 
-**OPEN.** The project is not closed. Open gates: three red CI checks on PR #401; PR #401 scope and content alignment; production identity divergence between `main` and the deployed commit; the `CERTIFIED` / `NOT_CERTIFIED` proof disagreement; six missing commercial/legal pages; absence of periodic backup plus a full restore test; unverified WAF posture. Buyer-side items remain separately contracted.
+**OPEN / HOLD for Production qualification.** The old PR #401 failures and 2026-11-23 deployment identity details above are historical, not current. Current main `ad45c4adf7683741b05293d6a7932150ea886231` has a successful Secure Release, OpsCore CI and isolated PostgreSQL/Vercel contract verification. Remaining seller-side gates include a same-source public Production deployment and acceptance, Neon periodic backup and measured restore/RPO/RTO, current public/legal page availability, and full managed-WAF policy. Buyer residuals remain separate: licensed maps/road routing, human review of 0/105 locales, and signed Android/iOS builds, device QA and store release.
 
  
 ## Latest measured full-site closeout update — 2026-11-23 (supersedes earlier status above)
