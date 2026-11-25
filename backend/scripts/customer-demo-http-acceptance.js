@@ -89,8 +89,15 @@ async function main() {
     const workOrders = await jsonRequest('/api/v1/work-orders', { headers: { cookie } });
     assert.equal(workOrders.response.status, 200, 'work-order read failed for ' + account.role);
     const workOrderRows = records(workOrders.body);
-    assert.equal(workOrderRows.length, 1, 'expected exactly one synthetic demo work order');
-    assert.equal(workOrderRows[0].title, 'Inspect the synthetic demo network node');
+    // Viewer is intentionally scoped to records it created or was assigned.
+    // The synthetic work order belongs to the technician, so a viewer must
+    // not receive it. Do not weaken tenant/role visibility to satisfy demo UI.
+    if (account.role === 'viewer') {
+      assert.equal(workOrderRows.length, 0, 'viewer must not see another user\'s unassigned work order');
+    } else {
+      assert.equal(workOrderRows.length, 1, 'expected exactly one visible synthetic demo work order');
+      assert.equal(workOrderRows[0].title, 'Inspect the synthetic demo network node');
+    }
 
     if (account.role === 'viewer') {
       const denied = await jsonRequest('/api/v1/customers', {
