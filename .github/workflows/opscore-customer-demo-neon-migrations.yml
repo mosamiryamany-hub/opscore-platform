@@ -1,0 +1,179 @@
+name: OpsCore Customer Demo Neon migrations
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/opscore-customer-demo-neon-migrations.yml'
+      - 'backend/sql/postgres/**'
+      - 'backend/scripts/apply-postgres-migrations.js'
+      - 'backend/src/postgres-migration-plan.js'
+      - 'backend/package.json'
+      - 'backend/package-lock.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: opscore-customer-demo-neon-migrations
+  cancel-in-progress: false
+
+jobs:
+  migrate-isolated-demo:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact main source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Setup pinned Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: "22.23.4"
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci --omit=dev
+
+      - name: Validate exact dedicated Neon Demo branch and resolve owner connection
+        id: neon
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "${NEON_API_KEY:-}" || { echo 'NEON_API_KEY_REQUIRED' >&2; exit 1; }
+          export PROJECT_ID='delicate-lake-72003710'
+          export BRANCH_ID='br-divine-pine-bci896ws'
+          export PRIMARY_BRANCH_ID='br-dark-base-bcq85nh7'
+          export DATABASE_NAME='opscore_demo'
+          export EXPECTED_HOST='ep-hidden-fog-bci5emef.c-16.us-east-1.aws.neon.tech'
+          export RUNNER_TEMP
+          python3 - <<'PY'
+          import json, os, subprocess, urllib.parse
+          api='https://console.neon.tech/api/v2'
+          headers=['-H','Authorization: Bearer '+os.environ['NEON_API_KEY'],'-H','Accept: application/json']
+          def get(url):
+              raw=subprocess.check_output(['curl','-fsS',*headers,url],text=True)
+              return json.loads(raw)
+          project=os.environ['PROJECT_ID']
+          branch_id=os.environ['BRANCH_ID']
+          primary_id=os.environ['PRIMARY_BRANCH_ID']
+          branch=get(f'{api}/projects/{project}/branches/{branch_id}').get('branch') or {}
+          primary=get(f'{api}/projects/{project}/branches/{primary_id}').get('branch') or {}
+          if branch.get('id') != branch_id or branch.get('project_id') != project:
+              raise SystemExit('DEMO_BRANCH_IDENTITY_MISMATCH')
+          if branch.get('parent_id') != primary_id:
+              raise SystemExit('DEMO_BRANCH_PARENT_MISMATCH')
+          if branch.get('primary') is True or branch.get('default') is True or branch.get('protected') is True:
+              raise SystemExit('REFUSING_PRIMARY_DEFAULT_OR_PROTECTED_DEMO_BRANCH')
+          if branch.get('current_state') != 'ready':
+              raise SystemExit('DEMO_BRANCH_NOT_READY')
+          if primary.get('id') != primary_id or primary.get('project_id') != project:
+              raise SystemExit('DEMO_PARENT_IDENTITY_MISMATCH')
+          if primary.get('primary') is not True or primary.get('default') is not True:
+              raise SystemExit('DEMO_PARENT_NOT_PRIMARY_DEFAULT')
+          endpoints=get(f'{api}/projects/{project}/endpoints?limit=100').get('endpoints') or []
+          matches=[e for e in endpoints if e.get('branch_id')==branch_id and e.get('type')=='read_write' and e.get('disabled') is not True]
+          if len(matches)!=1:
+              raise SystemExit('DEMO_READ_WRITE_ENDPOINT_NOT_UNIQUE')
+          endpoint=matches[0]
+          host=str(endpoint.get('host') or (endpoint.get('hosts') or {}).get('read_write_host') or '').lower()
+          if host != os.environ['EXPECTED_HOST']:
+              raise SystemExit('DEMO_ENDPOINT_HOST_MISMATCH')
+          query=urllib.parse.urlencode({
+              'branch_id':branch_id,
+              'database_name':os.environ['DATABASE_NAME'],
+              'role_name':'neondb_owner',
+              'pooled':'false'
+          })
+          connection=get(f'{api}/projects/{project}/connection_uri?{query}').get('uri') or ''
+          parsed=urllib.parse.urlsplit(connection)
+          params=urllib.parse.parse_qs(parsed.query)
+          if parsed.scheme not in ('postgres','postgresql') or parsed.username!='neondb_owner':
+              raise SystemExit('DEMO_MIGRATION_ROLE_MISMATCH')
+          if parsed.hostname!=host or parsed.path.lstrip('/')!=os.environ['DATABASE_NAME']:
+              raise SystemExit('DEMO_CONNECTION_IDENTITY_MISMATCH')
+          if params.get('sslmode') not in (['require'],['verify-full']) or params.get('channel_binding')!=['require']:
+              raise SystemExit('DEMO_CONNECTION_TLS_POLICY_MISMATCH')
+          print('::add-mask::'+connection)
+          with open(os.environ['GITHUB_ENV'],'a') as f:
+              f.write('OPSC_MIGRATION_DATABASE_URL='+connection+'\n')
+              f.write('OPSC_MIGRATION_EXPECTED_HOST='+host+'\n')
+              f.write('OPSC_MIGRATION_EXPECTED_PROJECT_ID='+project+'\n')
+              f.write('OPSC_MIGRATION_EXPECTED_BRANCH_ID='+branch_id+'\n')
+              f.write('OPSC_MIGRATION_EXPECTED_DATABASE='+os.environ['DATABASE_NAME']+'\n')
+          print('DEMO_NEON_TARGET=PASS project='+project+' branch='+branch_id+' database='+os.environ['DATABASE_NAME']+' endpoint='+endpoint['id'])
+          PY
+
+      - name: Verify migration plan and run dry-run
+        working-directory: backend
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          OPSC_MIGRATION_TARGET_CLASS: preview
+          OPSC_MIGRATION_EXPECTED_OWNER_ROLE: neondb_owner
+          OPSC_PG_SSL_MODE: verify-full
+        run: |
+          set -euo pipefail
+          npm run db:migrations:preflight > "$RUNNER_TEMP/migration-preflight.json"
+          node scripts/apply-postgres-migrations.js | tee "$RUNNER_TEMP/dry-run.json"
+          python3 - <<'PY'
+          import json, os, sys
+          result=json.load(open(os.environ['RUNNER_TEMP']+'/dry-run.json'))
+          identity=result.get('neonIdentity') or {}
+          if result.get('status')!='DRY_RUN_PASS':
+              raise SystemExit('DEMO_MIGRATION_DRY_RUN_NOT_PASS')
+          if identity.get('verified') is not True:
+              raise SystemExit('DEMO_NEON_IDENTITY_NOT_VERIFIED')
+          if identity.get('projectId')!=os.environ['OPSC_MIGRATION_EXPECTED_PROJECT_ID'] or identity.get('branchId')!=os.environ['OPSC_MIGRATION_EXPECTED_BRANCH_ID'] or identity.get('host')!=os.environ['OPSC_MIGRATION_EXPECTED_HOST']:
+              raise SystemExit('DEMO_DRY_RUN_TARGET_MISMATCH')
+          print('DEMO_MIGRATION_DRY_RUN=PASS pending='+str(len(result.get('pending') or [])))
+          PY
+
+      - name: Apply and verify migrations on the isolated Demo branch only
+        working-directory: backend
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          OPSC_MIGRATION_TARGET_CLASS: preview
+          OPSC_MIGRATION_EXPECTED_OWNER_ROLE: neondb_owner
+          OPSC_MIGRATION_CONFIRM_DATABASE: opscore_demo
+          OPSC_MIGRATION_CONFIRM_HOST: ep-hidden-fog-bci5emef.c-16.us-east-1.aws.neon.tech
+          OPSC_MIGRATION_CONFIRM_PROJECT_ID: delicate-lake-72003710
+          OPSC_MIGRATION_CONFIRM_BRANCH_ID: br-divine-pine-bci896ws
+          OPSC_PG_SSL_MODE: verify-full
+        run: |
+          set -euo pipefail
+          unset OPSC_MIGRATION_ALLOW_PRODUCTION || true
+          node scripts/apply-postgres-migrations.js --apply | tee "$RUNNER_TEMP/apply.json"
+          python3 - <<'PY'
+          import json, os, sys
+          result=json.load(open(os.environ['RUNNER_TEMP']+'/apply.json'))
+          identity=result.get('neonIdentity') or {}
+          if result.get('status')!='APPLIED_AND_VERIFIED':
+              raise SystemExit('DEMO_MIGRATION_APPLY_NOT_VERIFIED')
+          if identity.get('verified') is not True:
+              raise SystemExit('DEMO_NEON_IDENTITY_NOT_VERIFIED_AFTER_APPLY')
+          if identity.get('projectId')!='delicate-lake-72003710' or identity.get('branchId')!='br-divine-pine-bci896ws' or identity.get('host')!='ep-hidden-fog-bci5emef.c-16.us-east-1.aws.neon.tech':
+              raise SystemExit('DEMO_MIGRATION_APPLIED_TO_UNEXPECTED_TARGET')
+          print('DEMO_MIGRATIONS=APPLIED_AND_VERIFIED')
+          print('DEMO_MIGRATION_COUNT='+str(len(result.get('applied') or [])))
+          print('DEMO_RUNTIME_ROLE_POSTCONDITIONS='+str((result.get('postconditions') or {}).get('runtime_role_exists')))
+          PY
+
+      - name: Upload exact-run Demo migration evidence
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: opscore-customer-demo-migrations-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/migration-preflight.json
+            ${{ runner.temp }}/dry-run.json
+            ${{ runner.temp }}/apply.json
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 6
