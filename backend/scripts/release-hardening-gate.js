@@ -56,12 +56,13 @@ check(
 check(
   'no-license-grant-notice-present',
   noLicenseNotice.includes('NO LICENSE GRANT') &&
-    /do not grant a buyer any rights/i.test(noLicenseNotice) &&
-    /until the rights holder and that named buyer execute a/i.test(noLicenseNotice) &&
-    /pins the exact deliverable/i.test(noLicenseNotice) &&
+    /This notice itself grants no permission or rights/i.test(noLicenseNotice) &&
+    /no pre-sale signature or separate License Schedule is required/i.test(noLicenseNotice) &&
+    /accepted buyer-specific offer, order, contract or equivalent transaction record/i.test(noLicenseNotice) &&
+    /A separate License Schedule is optional/i.test(noLicenseNotice) &&
     pkg.license === 'UNLICENSED' &&
     !fs.existsSync(path.join(repoRoot, 'PROPRIETARY_LICENSE.txt')),
-  'seller marketing is permitted while buyer rights remain ungranted until an exact-deliverable schedule is executed'
+  'seller marketing and buyer acquisition are open; transaction-specific terms define any rights if a sale proceeds'
 );
 
 const config = read('src/config.js');
