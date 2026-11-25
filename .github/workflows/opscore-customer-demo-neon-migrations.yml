@@ -324,6 +324,8 @@ jobs:
           result=json.loads(matches[0])
           if result.get('status')!='PASS' or len(result.get('roles',[]))!=4:
               raise SystemExit('DEMO_HTTP_CUSTOMER_JOURNEY_NOT_PASS')
+          if result.get('firewallLoginBucketIsolation')!='PASS' or result.get('preLoginGeneralRequests')!=11:
+              raise SystemExit('DEMO_HTTP_FIREWALL_LOGIN_BUCKET_ISOLATION_NOT_PASS')
           if result.get('viewerWriteDenied')!='PASS' or result.get('sessionRevocation')!='PASS':
               raise SystemExit('DEMO_HTTP_AUTHORIZATION_OR_REVOCATION_NOT_PASS')
           print('DEMO_NEON_HTTP_CUSTOMER_JOURNEY=PASS')
