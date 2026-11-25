@@ -1,6 +1,6 @@
-# OpsCore — License Schedule (template)
+# OpsCore — Optional Buyer Transaction Terms Worksheet
 
-**Instructions:** Complete one Schedule per buyer transaction. Do not commit executed Schedules with signatures or prices to a public repository unless the parties agree.  
+**Optional worksheet:** This template may help record buyer-specific transaction terms, but it is not required for marketing, demonstrations, buyer discovery, quotations or negotiation. The buyer-specific accepted offer/order/contract may record the transaction terms instead. Do not commit private buyer details, signatures or confidential prices to a public repository.  
 **Prices:** Leave commercial amounts blank in shared templates; fill only in the executed copy held by the parties.
 
 ---
@@ -21,7 +21,7 @@ Governing law / forum: ____________
 - [ ] **L2 — Use + Modify + Redistribute**
 - [ ] **L3 — Exclusive / IP Assignment**
 
-This Schedule incorporates `docs/commercial/LICENSE_FRAMEWORK.md` version **2026-11-20**.
+If used, this worksheet references `docs/commercial/LICENSE_FRAMEWORK.md` version **2026-11-20**.
 
 ## 3. Deliverable identity
 

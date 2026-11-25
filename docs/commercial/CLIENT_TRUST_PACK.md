@@ -2,7 +2,7 @@
 
 **Generated:** 2026-11-20 (synced to live production pin)  
 **Authority:** Live endpoint only — [https://opscore-platform.vercel.app/api/verify/release](https://opscore-platform.vercel.app/api/verify/release)  
-**NO LICENSE GRANT** by this document. Buyer rights require a signed License Schedule (see `LICENSE_FRAMEWORK.md` L1/L2/L3). Prices are not published here.
+**NO LICENSE GRANT BY DEFAULT** by this document. Marketing, demonstrations, buyer discovery, quotations and negotiations are open without a pre-sale signature or separate License Schedule. If a sale proceeds, the accepted buyer-specific offer/order/contract records the exact deliverable and permitted rights (see `LICENSE_FRAMEWORK.md` L1/L2/L3). Prices are not published here.
 
 ## Live release identity
 

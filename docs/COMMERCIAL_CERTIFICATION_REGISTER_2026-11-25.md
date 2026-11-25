@@ -1,60 +1,57 @@
-# Commercial certification and buyer-residual register
+# OpsCore — commercial evidence and buyer-residual register
 
 **Register date:** 2026-11-25  
 **Repository:** `mosamiryamany-hub/opscore-platform`  
-**Evidence baseline:** `main` at `67d49545c8562ef1759cf1c21c1319fb457e6be5` when this register was prepared.  
-**Purpose:** separate internal engineering evidence, production qualification, legal authorization, and buyer-owned integrations. This register does not create an external certification or a license grant.
+**Evidence baseline:** `main` at `c477135a4dda84f9ca3bb158871bae4381d362c6`.  
+**Purpose:** distinguish verified engineering evidence, Production qualification, operational controls and buyer-owned integrations. This register is not an external compliance certificate.
 
 ## Decision rule
 
-A check is marked **PASS — scoped evidence** only for the exact source, environment, deployment and test scope named by its evidence. A CI pass is not silently promoted to Production certification. A missing or mismatched deployment identity remains **HOLD**. Buyer-owned provider setup remains **BUYER ACTION** and does not invalidate unrelated source-level test results.
+A PASS applies only to the exact source, environment, deployment and test scope named by its evidence. CI success is not silently promoted to Production certification. A missing or mismatched deployment identity remains HOLD. Buyer-owned provider setup remains BUYER ACTION and does not invalidate unrelated source-level tests.
 
-## Internal engineering evidence
+## Current source and CI evidence
 
 | Area | Status | Evidence and boundary |
 |---|---|---|
-| PostgreSQL 18 isolated acceptance | PASS — scoped evidence | Same-commit isolated PostgreSQL 18 acceptance jobs recorded in the 2026-11-23 closeout ledger; not proof of current Production runtime configuration. |
-| Tenant/RLS test matrix | PASS — scoped evidence | Historical same-commit tenant matrix 2/2 and 346 source-derived routes; scope is the isolated acceptance environment, not the public Production deployment. |
-| HTTP commercial acceptance | PASS — scoped evidence | Historical isolated PostgreSQL HTTP acceptance 1/1; do not infer current public deployment acceptance. |
-| Shared firewall rate limiter | PASS — scoped evidence | Historical PostgreSQL acceptance 1/1. PR #448 separately addresses namespace separation between login and firewall buckets and remains open as of this register. |
-| Recovery drill | PASS — scoped evidence | Historical disposable CI restore: 137 tables. It is not Neon Production PITR or a periodic backup service. |
-| Secure archive workflow | PASS — workflow change merged | PR #452 merged 2026-11-25 to run the existing signed-release workflow when its workflow definition changes on main. This trigger change alone does not prove a fresh release artifact was generated for this baseline; verify the resulting run and artifact before buyer delivery. |
-| Release proof bound to final Production deployment | HOLD | The prior closeout ledger records a deployment-identity binding gap between probe and promoted deployments. Do not display Production certification until the current deployed deployment ID and all evidence are bound and independently verified. |
-| Production tenant isolation / database role | HOLD | Historical production proof endpoints disagreed in scope and identity; production least-privilege role and behavioral isolation must be proven on the same current deployment. |
-| Neon periodic backups / restore RPO-RTO | HOLD | Historical ledger records Free plan, no scheduled backup schedule, one manual snapshot and a six-hour history window. CI restore evidence does not close this gate. Re-read live Neon state before asserting current status. |
-| WAF blocking enforcement | HOLD | Historical ledger records CRS and Bot Protection in log-only mode. A blocking policy plus observed blocking test is required. |
-| Commercial/legal web pages | HOLD | Historical probes reported missing legal/commercial routes. Re-probe the live domain and publish only owner-approved legal/business data. |
-| External compliance certification | NOT CLAIMED | No independently issued ISO 27001, SOC 2, PCI DSS or equivalent certificate is evidenced by repository test reports. |
+| Main CI | PASS — scoped evidence | Commit `c477135a4dda84f9ca3bb158871bae4381d362c6`; run [45664429611](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45664429611) completed successfully: 187 files, 1,028 passed, 0 failed, 3 skipped; npm audit reported 0 vulnerabilities for the audited dependency scopes. |
+| PostgreSQL 18 tenant/RLS acceptance | PASS — isolated CI only | Run [45664430036](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45664430036): isolated PostgreSQL 18 signed-tenant 67-route checks, real runtime-role RLS denial checks, composite-FK gate, logical dump/restore drill and HTTP commercial acceptance passed. This was disposable CI, not Production. |
+| Vercel contract checks | PASS — contract scope | Same run: source verification and Vercel contract verification passed. Production deploy, Neon Preview migration/HTTP acceptance and historical Production PITR jobs were skipped. |
+| Secure release signing implementation | PASS — workflow implementation | `.github/workflows/opscore-secure-release.yml` uses Cosign keyless Sigstore OIDC, `cosign verify-blob`, exact workflow identity and OIDC issuer checks, plus tamper-rejection and wrong-signer-rejection probes. A fresh run and its artifact are still required for this evidence baseline. |
+| Release proof bound to final Production deployment | HOLD | The latest successful Vercel workflow run skipped its deploy job. The latest READY Production-target deployment inspected for `opscore-commercial` did not expose a source SHA in the returned deployment metadata. No same-deployment release/tenant/recovery proof is established. |
+| Production tenant isolation / database role | HOLD | Isolated PostgreSQL 18 evidence passed, but current Production role/grants and behavioral tenant isolation have not been proven against the exact live deployment and database identity. |
+| Neon Production backups / restore RPO-RTO | HOLD — plan limitation | Live project `summer-leaf-18448271` (`opscore-production`) is on Neon Free, with 21,600-second (6-hour) history retention. A copy-on-write backup branch `br-green-violet-bco122mk` was created from primary `br-proud-salad-bcshhdap` (parent timestamp `2026-11-25T15:54:20Z`); it is READY but unprotected because the current plan rejects branch protection. One older manual snapshot exists from 2026-11-19; a new snapshot was rejected because the snapshot limit is reached. Increasing retention to 30 days was rejected because the plan maximum is 21,600 seconds. No scheduled backup service or measured RPO/RTO is established. |
+| Vercel WAF blocking | PARTIAL — custom deny rules active; full managed ruleset HOLD | The `opscore-commercial` firewall is enabled with three valid, active custom `deny` rules: common admin/secret/scanner paths; literal and encoded parent-directory traversal; and high-confidence XSS markers in selected query keys. The OWASP Core Ruleset remains unavailable on the current plan (HTTP 402). Configuration validity is confirmed; an external request-level 403/block observation is still unverified, so do not claim full OWASP protection. |
+| Commercial/legal web pages | HOLD | Re-probe the current public domain and publish only owner-approved business/legal details. |
+| External compliance certification | NOT CLAIMED | No independently issued ISO 27001, SOC 2, PCI DSS or equivalent certificate is evidenced by repository tests. |
 
-## Buyer-owned / separately contracted residuals
+## Buyer-owned / separately configured residuals
 
 | Residual | Status | Buyer deliverable |
 |---|---|---|
-| Licensed maps and road routing | BUYER ACTION | Provider contract, credentials, attribution, quotas, billing and live route acceptance. |
-| Human translation qualification | BUYER ACTION | Native-speaker review and acceptance. The last recorded catalog ledger reports 105 selectable locales, 0/105 native-reviewed and 0/105 production-qualified; remeasure before publication. |
+| Licensed maps and road routing | BUYER ACTION | Provider selection/contract, credentials, attribution, quotas, billing and live route acceptance. |
+| Human translation qualification | BUYER ACTION | Native-speaker review and acceptance. The last recorded catalogue reports 105 selectable locales, 0/105 native-reviewed and 0/105 production-qualified; remeasure before publication. |
 | Android/iOS store release | BUYER ACTION | Buyer signing keys/accounts, physical-device QA, store submission and publication. |
-| Buyer identity, messaging, telephony and payment providers | BUYER ACTION | Provider accounts, contracts, credentials and live integration acceptance. |
+| Buyer identity, messaging, telephony and payment providers | BUYER ACTION | Provider accounts, credentials and live integration acceptance. |
 
-## Legal distribution gate — separate from buyer integration residuals
+## Commercial customer acquisition
 
-The repository's last recorded legal boundary says the package is **UNLICENSED** and that no use, installation, running, copying, modification, hosting, distribution, resale or sublicensing rights are granted until the rights holder and named buyer execute a License Schedule bound to the exact source commit and/or package SHA-256. This is not a buyer integration residual and must not be marked approved without the executed agreement.
+**OPEN** Marketing, product presentation, demonstrations, buyer discovery, RFP responses, indicative quotations and negotiations may proceed now. A prospect does **not** need to sign a separate License Schedule before being contacted, evaluating the product or negotiating.
+
+The product must be presented honestly as a source-code candidate with the technical limitations above. At the point of a transaction, the accepted buyer-specific offer/order/contract records the selected tier, exact deliverable, permitted use and redistribution scope, price, payment, term and support. A separate License Schedule is optional, not a customer-acquisition gate. Third-party components remain subject to their own licenses; no rights beyond those the seller is entitled to grant are represented.
 
 ## Buyer-facing wording
 
-Use:
+> OpsCore is available for commercial discussion, demonstrations and buyer evaluation. The current source and isolated PostgreSQL checks have passed only within their stated scopes. Production deployment qualification and certain buyer-selected integrations remain separate. The buyer-specific offer states the deliverable, permitted rights, limitations and commercial terms.
 
-> OpsCore's listed internal engineering checks have passed only within their stated test scopes. Production deployment qualification and operational controls are shown separately and remain subject to same-deployment evidence. Buyer-owned integrations are listed as buyer actions. No third-party compliance certification or software license is implied.
+Do not use “all certifications approved”, “fully production certified”, “WAF protected”, “automatic backups active”, or “all languages human-approved”. Do not present the buyer residuals as completed.
 
-Do not use “all certifications approved”, “fully production certified”, “WAF protected”, “automatic backups active”, or “licensed for resale” unless the corresponding independent evidence or signed legal instrument exists.
+## Required technical closure sequence
 
-## Required closure sequence
+1. Generate a fresh secure-release run from the current approved `main`; independently inspect the Cosign bundle, certificate identity, issuer, archive digest, tamper rejection and wrong-signer rejection.
+2. Bind release, database-security, tenant-isolation, route and recovery evidence to the exact final Vercel Production deployment ID and source commit.
+3. Resolve Neon plan limits for protected branches, retention and scheduled backup capability; protect the current backup branch or establish an approved offsite schedule, then perform a measured restore before claiming RPO/RTO.
+4. Resolve Vercel plan eligibility for OWASP Core Ruleset, configure blocking/challenge policy, rehearse false positives and verify observed blocks before claiming WAF enforcement.
+5. Re-probe public commercial/legal routes and confirm Production runtime TLS, database role/grants and tenant isolation.
+6. Keep buyer acquisition open while clearly disclosing source/production qualification status and buyer-owned integration residuals.
 
-1. Re-read current main, open PRs, GitHub checks and latest secure-release artifact.
-2. Resolve PR #448 and run its PostgreSQL-backed regression tests; keep login/firewall rate limits independently enforced.
-3. Bind release, database-security, tenant-isolation, route and recovery evidence to the exact final Vercel Production deployment ID and source commit.
-4. Verify production database role/grants, TLS, restore and backup strategy, and WAF enforcement with live tests.
-5. Re-probe legal routes and use owner-approved legal entity, privacy, refund, pricing and license details only.
-6. Rebuild the buyer package on the exact approved commit; verify SBOM, signature, archive digest and tamper rejection.
-7. Keep software licensing blocked until the License Schedule is signed.
-
-**Current decision: HOLD for blanket Production/commercial certification and distribution.** Internal CI/test evidence may be presented as scoped evidence; buyer residuals remain separately identified. This status must be refreshed after the above gates are re-measured.
+**Current decision:** OPEN for marketing and customer acquisition; HOLD for blanket Production certification and unverified operational controls. Buyer residuals remain separately identified.

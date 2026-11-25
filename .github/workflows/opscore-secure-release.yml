@@ -8,6 +8,9 @@ on:
       - 'v*.*.*'
     paths:
       - '.github/workflows/opscore-secure-release.yml'
+      - 'docs/COMMERCIAL_CERTIFICATION_REGISTER_*.md'
+      - 'docs/commercial/**'
+      - 'NO_LICENSE_GRANT_NOTICE.txt'
   workflow_dispatch:
 
 permissions:

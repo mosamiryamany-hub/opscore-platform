@@ -32,7 +32,7 @@ GHSA-fc5q-39xc-vjpf is now classified WITHDRAWN by its upstream advisory record,
 
 ## Transaction boundary — explicitly outside product closeout
 
-After a prospective buyer is identified and transaction terms are agreed, the rights holder and buyer execute the applicable License Schedule, pinning the exact released commit/package digest and defining permitted use, modification, distribution, territory, term, price and support. That agreement is **required before granting the buyer licensed use or delivery rights**; it is not a product-completion, release, marketing, or buyer-identification gate.
+Marketing, buyer discovery, demonstrations, quotations and negotiations may proceed without a pre-sale signature or separate License Schedule. If a transaction proceeds, the accepted buyer-specific offer/order/contract records the exact released commit/package digest, selected tier, permitted use and redistribution scope, territory, term, price and support. A separate License Schedule is optional and is not a product-completion, release, marketing or buyer-identification gate.
 
 ## Buyer-owned residuals — remain disclosed, not seller tasks
 

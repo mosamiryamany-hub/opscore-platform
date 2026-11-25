@@ -1,17 +1,17 @@
 # OpsCore — Technical and Commercial Closure Status
 
-**Reconciled:** 2026-11-24  
-**Evidence-cut main:** `f71b8eee32631c833dda8115af8508ae1ccc1a63`  
+**Reconciled:** 2026-11-25  
+**Evidence-cut main:** `c477135a4dda84f9ca3bb158871bae4381d362c6`  
 **Seller offer:** OPEN FOR MARKETING AND NEGOTIATION — NO BUYER LICENSE GRANT.  
-**Delivery status:** HOLD — NO DELIVERY BEFORE EXECUTED SCHEDULE.  
+**Delivery status:** HOLD — exact-head release archive and provider-neutral self-hosted Production qualification are not established.  
 **Self-hosted production:** BLOCKED — NOT QUALIFIED.  
 **Buyer environment:** NOT_ESTABLISHED / NOT VERIFIED.  
 **External certification:** NONE CLAIMED.  
-**Rights status:** **NO LICENSE GRANT — ALL RIGHTS RESERVED.** No buyer use or delivery before the signed Schedule.
+**Rights status:** **NO LICENSE GRANT BY DEFAULT.** Marketing and buyer acquisition are open without a pre-sale signature or separate Schedule; if a sale proceeds, the accepted buyer-specific offer/order/contract defines the deliverable and permitted rights.
 
-This file replaces the stale 2026-11-22 deployment and Neon snapshot as the current status summary. Do not use historical deployment IDs, pipeline IDs, hashes, provider statuses or test counts from the earlier report as current evidence.
+Current source baseline: main commit `c477135a4dda84f9ca3bb158871bae4381d362c6`. The exact source commit and package SHA-256 must be pinned to the buyer-specific transaction record if a sale proceeds. This file replaces the stale 2026-11-22 deployment and Neon snapshot as the current status summary. Do not use historical deployment IDs, pipeline IDs, hashes, provider statuses or test counts from the earlier report as current evidence.
 
-The seller may advertise, publish, present and negotiate the source-code candidate before a buyer is known. These activities do not grant buyer access or use. No buyer may use or receive the software until the rights holder and named buyer execute a signed License Schedule for the exact deliverable.
+The seller may advertise, publish, present, demonstrate, quote and negotiate the source-code candidate before a buyer is known. No pre-sale signature or separate License Schedule is required for these activities. If a sale proceeds, the accepted buyer-specific offer/order/contract records the exact deliverable and the selected rights; no rights beyond those terms are implied.
 
 ## Current evidence
 
@@ -58,6 +58,6 @@ The detailed source-level findings and required corrective plan are in [Self-Hos
 
 ## Legal disposition
 
-Package metadata remains `UNLICENSED`; `NO_LICENSE_GRANT_NOTICE.txt` controls. No buyer use, installation, modification, hosting, resale, redistribution or sublicense is authorized before the rights holder and named buyer execute a signed Schedule pinning the exact source commit and deliverable. L1 internal-use rights do not grant resale. Third-party SBOM inventory is not legal clearance.
+Package metadata remains `UNLICENSED`; `NO_LICENSE_GRANT_NOTICE.txt` controls. L1 internal use does not include resale; L2 resale/redistribution applies only in the forms stated in the accepted buyer-specific transaction terms. Third-party components remain under their own licenses and are not re-licensed by this package.
 
 **Final status: OPEN / HOLD.** A marketing conversation may describe the source candidate within these limits. Do not deliver or describe it as a qualified self-hosted production system until technical blockers, exact-artifact evidence, buyer acceptance and legal authority are resolved.

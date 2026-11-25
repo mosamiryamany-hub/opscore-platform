@@ -1,7 +1,7 @@
 # OpsCore — Client Inspection Package Status
 
 **Marketing:** MAY BE PRESENTED AS A SOURCE-CODE CANDIDATE WITH DISCLOSURES.  
-**Delivery:** HOLD — **NO LICENSE GRANT — ALL RIGHTS RESERVED.** No buyer use or delivery before the signed Schedule.  
+**Delivery:** HOLD — exact-head release archive and provider-neutral self-hosted Production qualification are not established. **NO LICENSE GRANT BY DEFAULT.** Marketing, demonstration and negotiation are open without a pre-sale signature or separate Schedule.  
 **Self-hosted production:** BLOCKED — NOT QUALIFIED.  
 **External accreditation:** NONE CLAIMED.
 
@@ -31,7 +31,7 @@ A green CI result does not certify a buyer's server, PostgreSQL, TLS, backup/res
 
 ## Intended transaction
 
-The offer is a proposed source-code handoff for buyer-controlled infrastructure, not a seller-hosted subscription. Seller Vercel/Neon accounts, domains, production database, customer data, provider credentials and hosting service are excluded unless a separate signed transfer agreement explicitly includes them.
+The offer is a proposed source-code handoff for buyer-controlled infrastructure, not a seller-hosted subscription. Seller Vercel/Neon accounts, domains, production database, customer data, provider credentials and hosting service are excluded unless the accepted buyer-specific transaction terms explicitly include them.
 
 The source is not yet qualified for provider-neutral self-hosted production. The release-verification endpoint now supports an explicit Ed25519 self-hosted operator-attestation mode, but Vercel-specific signed tenant-context activation and Neon-specific PostgreSQL migration targeting remain open. The attestation is not an independent measurement or end-to-end buyer deployment acceptance.
 
@@ -51,6 +51,6 @@ Internal automated testing, static analysis, an SBOM or a signed provenance stat
 
 ## Rights
 
-Package metadata remains `UNLICENSED`; `NO_LICENSE_GRANT_NOTICE.txt` controls. The rights holder and named buyer must execute a transaction-specific License Schedule that identifies the exact source commit/package SHA-256 and expressly states the granted rights. L1 internal use does not include resale. Redistribution, resale, OEM hosting or sublicensing requires explicit permission in the executed Schedule.
+Package metadata remains `UNLICENSED`; `NO_LICENSE_GRANT_NOTICE.txt` controls. Marketing and buyer acquisition do not require a pre-sale signature or separate License Schedule. If a sale proceeds, the accepted buyer-specific offer/order/contract identifies the exact source commit/package SHA-256 and expressly states the granted rights. L1 internal use does not include resale. Redistribution, resale, OEM hosting or sublicensing applies only to the extent expressly stated in those accepted transaction terms.
 
 Third-party dependency licences remain separate; the SBOM inventory is not legal clearance. Rights-holder authority to sign must be confirmed for the transaction.
