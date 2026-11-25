@@ -92,7 +92,8 @@ function assertNoLicenseGrantFiles(dir, phase) {
   const notice = fs.readFileSync(noticePath, 'utf8');
   if (!notice.includes('NO LICENSE GRANT') ||
       !/grants no permission or rights/i.test(notice) ||
-      !/No sale, delivery, redistribution, resale, sublicensing/i.test(notice)) {
+      !/No rights are implied beyond the rights expressly included in the accepted transaction terms/i.test(notice) ||
+      !/No pre-sale signature or separate License Schedule is required/i.test(notice)) {
     throw new Error(`NO_LICENSE_GRANT_NOTICE_INVALID:${phase}`);
   }
   const packagePath = path.join(dir, 'backend', 'package.json');
