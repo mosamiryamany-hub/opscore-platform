@@ -162,6 +162,66 @@ async function main() {
 
     const existing = existingSeedState(db);
     if (existing.state === 'ALREADY_SEEDED_VERIFIED') {
+      if (process.env.OPSC_DEMO_SEED_ROTATE_CREDENTIALS === 'YES') {
+        const adminUser = db.prepare('SELECT id FROM users WHERE email=?').get(ACCOUNT_SPECS[0].email);
+        if (!adminUser) throw new Error('DEMO_SEED_ADMIN_IDENTITY_MISSING_FOR_ROTATION');
+        db.setSession({
+          tenantId: existing.organizationId,
+          userId: adminUser.id,
+          sessionId: null,
+          accessMode: 'backoffice'
+        });
+        db.exec('BEGIN');
+        try {
+          for (const spec of ACCOUNT_SPECS) {
+            const user = db.prepare('SELECT id FROM users WHERE email=?').get(spec.email);
+            if (!user) throw new Error('DEMO_SEED_ACCOUNT_MISSING_FOR_ROTATION:' + spec.email);
+            const passwordHash = hashPassword(passwords[spec.key]);
+            db.prepare('UPDATE users SET password_hash=? WHERE id=?').run(passwordHash, user.id);
+            const verified = db.prepare('SELECT password_hash FROM users WHERE id=?').get(user.id);
+            if (!verified || verified.password_hash !== passwordHash) {
+              throw new Error('DEMO_SEED_PASSWORD_ROTATION_POSTCONDITION_FAILED:' + spec.key);
+            }
+          }
+          db.exec('COMMIT');
+        } catch (error) {
+          try { db.exec('ROLLBACK'); } catch (_) {}
+          throw error;
+        }
+
+        writeJson(credentialsFile, {
+          classification: 'SYNTHETIC_DEMO_ONLY',
+          warning: 'These accounts access an isolated non-production customer demo. Never use real customer data or reuse these passwords.',
+          sourceSha: process.env.GITHUB_SHA || null,
+          projectId: EXPECTED.projectId,
+          branchId: EXPECTED.branchId,
+          database: EXPECTED.database,
+          accounts: ACCOUNT_SPECS.map(spec => ({
+            role: spec.role,
+            label: spec.label,
+            email: spec.email,
+            password: passwords[spec.key]
+          }))
+        });
+        writeJson(resultFile, {
+          status: 'ROTATED_AND_VERIFIED',
+          sourceSha: process.env.GITHUB_SHA || null,
+          projectId: EXPECTED.projectId,
+          branchId: EXPECTED.branchId,
+          database: EXPECTED.database,
+          counts: existing.counts,
+          organizationId: existing.organizationId,
+          userIds: existing.userIds,
+          customerId: existing.customerId,
+          siteId: existing.siteId,
+          assetId: existing.assetId,
+          workOrderId: existing.workOrderId,
+          credentialsFileCreated: true
+        });
+        console.log('DEMO_SEED_STATUS=ROTATED_AND_VERIFIED');
+        return;
+      }
+
       writeJson(resultFile, {
         status: existing.state,
         sourceSha: process.env.GITHUB_SHA || null,
