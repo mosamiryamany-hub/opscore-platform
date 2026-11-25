@@ -5,7 +5,7 @@
 **Main SHA at snapshot:** `f71b8eee32631c833dda8115af8508ae1ccc1a63`  
 **OpsCore CI:** [45377527984](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45377527984) · **Vercel/PG acceptance:** [45377522840](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45377522840) · **CodeQL:** [45377523517](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45377523517)
 
-> This index is a dated evidence snapshot for exactly `f71b8eee32631c833dda8115af8508ae1ccc1a63`, immediately before PR #436. It does not qualify the later PR #436 candidate head or any later `main` commit. Its evidence applies only to the named commit and test targets; it is not self-hosted production acceptance or external certification.
+> This index is a dated evidence snapshot for exactly `f71b8eee32631c833dda8115af8508ae1ccc1a63`, immediately before PR #436. It does not qualify the later PR #436 candidate head or any later `main` commit. Its evidence applies only to the named commit and test targets; it is not self-hosted production acceptance or external certification. Its old transaction wording is superseded by the current buyer-acquisition policy in `LICENSE_FRAMEWORK.md` and `SALES_KIT.md`.
 
 ## Current source and CI evidence
 
@@ -49,13 +49,13 @@ Details and the required engineering plan are in [Self-Hosted Buyer Edition](SEL
 
 ## Buyer scope
 
-The proposed product is a source-code handoff for buyer-controlled infrastructure, not a subscription to seller hosting. Seller Vercel/Neon accounts, domains, databases, records, credentials and uptime are excluded unless a separate signed transfer agreement says otherwise.
+The proposed product is a source-code handoff for buyer-controlled infrastructure, not a subscription to seller hosting. Seller Vercel/Neon accounts, domains, databases, records, credentials and uptime are excluded unless the accepted buyer-specific transaction terms say otherwise.
 
 Expo mobile source is included; signed native binaries, device QA and store publication are not. Machine-assisted translation remains disclosed; native-speaker review is not established. Licensed maps/road-routing and external provider accounts are not included. Payment processing is disabled until provider setup and live acceptance.
 
 ## Commercial / legal boundary
 
-Package metadata is `UNLICENSED`. The root `NO_LICENSE_GRANT_NOTICE.txt` controls. This repository, this index, CI, SBOM, signatures, ZIPs and deployment evidence grant no buyer rights. Use, modification, hosting, redistribution, resale and sublicensing require an executed rights-holder/buyer License Schedule pinning the exact deliverable. The existing tier framework is not itself a grant.
+Package metadata is `UNLICENSED`. The root `NO_LICENSE_GRANT_NOTICE.txt` controls. This repository, this index, CI, SBOM, signatures, ZIPs and deployment evidence do not themselves grant buyer rights. Marketing, demonstrations, buyer discovery, quotations and negotiation are open without a pre-sale signature or separate License Schedule. If a sale proceeds, the accepted buyer-specific offer/order/contract pins the exact deliverable and states use, modification, hosting, redistribution, resale and sublicensing rights. The existing tier framework is not itself a grant.
 
 Third-party licence inventory is not legal clearance. The 496-component SBOM inventory is not exact-head legal clearance; two first-party entries have no declared licence expression, notices/license-text collection is incomplete, and commercial clearance is not established.
 
@@ -65,6 +65,6 @@ Third-party licence inventory is not legal clearance. The 496-component SBOM inv
 - Remaining self-hosted release work: independent archive/TLS/database measurement and CI provenance binding; provider-neutral migration target and signed tenant-context gates.
 - Clean-install, migration, upgrade, HTTP/business-flow, tenant-boundary, backup/restore and rollback CI on a reproducible self-hosted PostgreSQL stack.
 - Buyer-controlled target acceptance for the exact artifact and deployment.
-- Executed buyer-specific License Schedule. Resale/redistribution rights must be explicit, not inferred.
+- Accepted buyer-specific offer/order/contract recording the exact deliverable and any permitted resale/redistribution rights. A separate License Schedule is optional.
 
 **Classification at this dated evidence cut: SOURCE-CODE CANDIDATE / SELF-HOSTED PRODUCTION BLOCKED / NO LICENSE GRANT / NO EXTERNAL CERTIFICATION. PR #436 remains a separate candidate and must pass its own exact-head checks.**
