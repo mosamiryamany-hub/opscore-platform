@@ -55,7 +55,7 @@ Live recheck on 2026-11-25: Production project `summer-leaf-18448271`, default b
 
 The Contact Center currently exposes 105 selectable locales (1 English source, 100 machine-assisted drafts, 4 English fallbacks); 9 withdrawn locale codes are excluded. The separate qualification matrix retains 114 source rows, all at `planned_not_qualified` / `not_run`; that historical register is not the current catalog, and no native translation-quality approval is claimed.
 
-Native-speaker review: **0/105**. Production-qualified by native review: **0/105**.
+Native-speaker reviewed: **0/105 selectable locales**; the separate 114-row qualification register has **0/114 source rows reviewed**. Production-qualified: **0/105 selectable locales**.
 
 ## Vercel firewall enforcement posture
 
