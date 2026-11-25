@@ -16,7 +16,7 @@ Do not copy hashes or test counts from earlier pipelines; every source/documenta
 
 ## Translation status
 
-The Contact Center translation resources and runtime are included. Registered counts are 114 locales, 89 source keys per locale, 1 English source, 109 machine-assisted draft locales, and 4 English-fallback locales (din, nus, pau, ch). The visible notice explicitly says AI/machine translation. The automated four-round forensic report checks structural integrity and integration safety; it is not proof of linguistic correctness. Native-speaker reviewed: 0/114. Production-qualified: 0/114. Buyer/operator must arrange native-speaker/domain review before presenting translations as official or relying on them for legal, safety, contractual, or regulated content.
+The Contact Center runtime currently exposes 105 selectable locales: 1 English source, 100 machine-assisted drafts and 4 explicit English fallbacks (din, nus, pau, ch). A separate qualification register contains 114 source rows; 9 flagged locale codes are withdrawn from runtime selection. The visible notice explicitly says AI/machine translation. The automated four-round forensic report checks structural integrity and integration safety; it is not proof of linguistic correctness. Native-speaker review is 0/114 source rows; production-qualified locales are 0/105 selectable runtime locales. Buyer/operator must arrange native-speaker/domain review before presenting translations as official or relying on them for legal, safety, contractual, or regulated content.
 
 ## External integrations — buyer responsibility
 
