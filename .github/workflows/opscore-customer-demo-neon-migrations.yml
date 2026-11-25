@@ -242,10 +242,10 @@ jobs:
           for account in ADMIN DISPATCHER TECHNICIAN VIEWER; do
             password="$(openssl rand -hex 24)"
             echo "::add-mask::$password"
-            printf 'OPSC_DEMO_PASSWORD_%s=%s\\n' "$account" "$password" >> "$GITHUB_ENV"
+            printf 'OPSC_DEMO_PASSWORD_%s=%s\n' "$account" "$password" >> "$GITHUB_ENV"
           done
-          printf 'OPSC_DEMO_SEED_CREDENTIALS_FILE=%s/demo-credentials.json\\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
-          printf 'OPSC_DEMO_SEED_RESULT_FILE=%s/demo-seed.json\\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          printf 'OPSC_DEMO_SEED_CREDENTIALS_FILE=%s/demo-credentials.json\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          printf 'OPSC_DEMO_SEED_RESULT_FILE=%s/demo-seed.json\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
 
       - name: Seed synthetic customer Demo data on the isolated Neon branch
         id: seed
@@ -273,7 +273,7 @@ jobs:
               raise SystemExit('DEMO_SEED_COUNTS_MISMATCH')
           new_seed=result.get('credentialsFileCreated') is True
           with open(os.environ['GITHUB_OUTPUT'],'a') as f:
-              f.write('new_seed='+('true' if new_seed else 'false')+'\\n')
+              f.write('new_seed='+('true' if new_seed else 'false')+'\n')
           print('DEMO_SEED_STATUS='+result['status'])
           print('DEMO_SEED_COUNTS='+json.dumps(result['counts'],sort_keys=True))
           PY
