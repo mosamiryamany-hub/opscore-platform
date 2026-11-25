@@ -35,7 +35,7 @@ A PASS applies only to the exact source, environment, deployment and test scope 
 
 ## Commercial customer acquisition
 
-<badge>OPEN</badge> Marketing, product presentation, demonstrations, buyer discovery, RFP responses, indicative quotations and negotiations may proceed now. A prospect does **not** need to sign a separate License Schedule before being contacted, evaluating the product or negotiating.
+**OPEN** Marketing, product presentation, demonstrations, buyer discovery, RFP responses, indicative quotations and negotiations may proceed now. A prospect does **not** need to sign a separate License Schedule before being contacted, evaluating the product or negotiating.
 
 The product must be presented honestly as a source-code candidate with the technical limitations above. At the point of a transaction, the accepted buyer-specific offer/order/contract records the selected tier, exact deliverable, permitted use and redistribution scope, price, payment, term and support. A separate License Schedule is optional, not a customer-acquisition gate. Third-party components remain subject to their own licenses; no rights beyond those the seller is entitled to grant are represented.
 
