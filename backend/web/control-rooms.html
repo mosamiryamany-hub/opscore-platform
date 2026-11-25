@@ -1,63 +1,194 @@
 <!doctype html>
-<html lang="en" dir="auto">
+<html lang="en" dir="ltr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#050814">
+  <meta name="description" content="OpsCore Control Rooms — dispatch, assurance, inventory, field operations, incident, tenant, billing and release rooms.">
+  <meta name="theme-color" content="#04060f">
+  <meta name="color-scheme" content="dark">
   <title>OpsCore — Control Rooms</title>
+  <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/styles.css">
-  <style>
-    body{margin:0;background:#050814;color:#eaf0ff;font-family:Inter,system-ui,sans-serif;
-      background-image:radial-gradient(900px 500px at 20% -10%,rgba(0,229,255,.12),transparent 50%),radial-gradient(700px 400px at 100% 0%,rgba(139,92,255,.14),transparent 45%)}
-    .wrap{max-width:1100px;margin:0 auto;padding:28px 18px 48px}
-    h1{font-size:1.6rem;margin:0 0 8px}
-    .sub{color:#8b97b3;margin:0 0 22px}
-    .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
-    @media(max-width:720px){.grid{grid-template-columns:1fr}}
-    a.card{display:block;text-decoration:none;color:inherit;border:1px solid rgba(0,229,255,.22);border-radius:16px;padding:20px;background:rgba(10,16,36,.75);backdrop-filter:blur(12px);transition:.15s}
-    a.card:hover{border-color:rgba(0,229,255,.5);transform:translateY(-2px);box-shadow:0 0 30px rgba(0,229,255,.12)}
-    a.card h2{margin:0 0 8px;font-size:1.1rem}
-    a.card p{margin:0;color:#8b97b3;line-height:1.45;font-size:.92rem}
-    .tag{display:inline-block;margin-top:12px;color:#00e5ff;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase}
-    .back{color:#00e5ff;text-decoration:none;font-size:.85rem}
-  
-    :root{color-scheme:dark;--room-cyan:#66f3ff;--room-violet:#9a83ff;--room-muted:#9ca9c5}
-    body{min-height:100vh;background-color:#050711;background-image:radial-gradient(1000px 620px at 8% -12%,rgba(89,76,255,.22),transparent 58%),radial-gradient(780px 520px at 105% 8%,rgba(0,220,255,.13),transparent 52%),linear-gradient(180deg,#070a16 0%,#050711 60%,#080a14 100%)}
-    .wrap{max-width:1440px;padding:clamp(22px,4vw,54px) clamp(16px,3vw,36px) 64px}
-    .wrap>p:first-child{margin-bottom:30px}
-    .back{display:inline-flex;align-items:center;gap:8px;padding:9px 13px;border:1px solid rgba(102,243,255,.18);border-radius:999px;background:rgba(8,18,35,.65);color:var(--room-cyan);transition:transform .2s,border-color .2s}
-    .back:hover{transform:translateX(-2px);border-color:rgba(102,243,255,.5)}
-    h1{font-size:clamp(2rem,5vw,4.2rem);letter-spacing:-.055em;line-height:1.02;max-width:14ch;background:linear-gradient(105deg,#fff 18%,#a8f7ff 55%,#b7a7ff 90%);-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:14px}
-    .sub{font-size:clamp(1rem,1.5vw,1.15rem);line-height:1.7;max-width:64ch;color:#aab5ce;margin-bottom:34px}
-    .grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
-    a.card{position:relative;isolation:isolate;overflow:hidden;min-height:210px;padding:24px;border-color:rgba(125,160,220,.17);border-radius:22px;background:linear-gradient(145deg,rgba(17,25,48,.92),rgba(8,12,25,.82));box-shadow:inset 0 1px rgba(255,255,255,.035),0 16px 44px rgba(0,0,0,.18);transition:transform .24s ease,border-color .24s ease,box-shadow .24s ease}
-    a.card:before{content:"";position:absolute;inset:0;z-index:-1;opacity:0;background:radial-gradient(450px circle at 0% 0%,rgba(0,229,255,.13),transparent 48%),linear-gradient(135deg,rgba(139,92,255,.08),transparent 65%);transition:opacity .24s}
-    a.card:hover{transform:translateY(-5px);border-color:rgba(102,243,255,.45);box-shadow:0 22px 58px rgba(0,0,0,.32),0 0 32px rgba(0,229,255,.07)}
-    a.card:hover:before{opacity:1}
-    a.card h2{font-size:1.12rem;letter-spacing:-.02em;margin:0 0 12px;color:#f1f5ff}
-    a.card p{font-size:.96rem;line-height:1.65;color:var(--room-muted);max-width:42ch}
-    .tag{margin-top:20px;padding:6px 9px;border:1px solid rgba(102,243,255,.17);border-radius:999px;background:rgba(0,229,255,.055);color:#8cefff;font-weight:700;font-size:.65rem;letter-spacing:.13em}
-    @media(max-width:980px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-    @media(max-width:620px){.wrap{padding-top:20px}.grid{grid-template-columns:1fr}a.card{min-height:0;padding:21px}h1{max-width:12ch}}
-    @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
-</style>
   <link rel="stylesheet" href="/command-fabric-v3.css">
 </head>
 <body>
-  <div class="wrap">
-    <p><a class="back" href="/">← Command Fabric home</a></p>
-    <h1>Control Rooms</h1>
-    <p class="sub">Every operational surface from one governed directory.</p>
-    <div class="grid">
-      <a class="card" href="/"><h2>Command Fabric Home</h2><p>Hero operational picture, live metrics, radar, and entry to all rooms.</p><span class="tag">Default</span></a>
-      <a class="card" href="/contact-center.html"><h2>AI Contact Center</h2><p>Multilingual AI text conversations, browser voice, consent controls, and governed human escalation. Provider and database setup required.</p><span class="tag">AI · Setup required</span></a>
-      <a class="card" href="/control-plane.html"><h2>Control Plane</h2><p>Authenticated operational snapshot, governance evidence, Safe Mode, and recovery export.</p><span class="tag">Governance</span></a>
-      <a class="card" href="/portal.html"><h2>Customer Portal</h2><p>Scoped customer access for appointments and service status.</p><span class="tag">Portal</span></a>
-      <a class="card" href="/verify/release.html"><h2>Release Proof</h2><p>Public gate status and package fingerprint — no source exposure.</p><span class="tag">Trust</span></a>
-      <a class="card" href="/verify/database.html"><h2>Database Proof</h2><p>Connectivity proof without host, role, or credential disclosure.</p><span class="tag">Trust</span></a>
-      <a class="card" href="/api/verify/release"><h2>Machine-readable proof</h2><p>JSON release attestation for automated verification.</p><span class="tag">API</span></a>
-      <a class="card" href="/api/verify/database-security"><h2>Database Security Proof</h2><p>Live catalog review for RLS configuration and identity-plane runtime access. Reports NOT CERTIFIED when evidence is incomplete.</p><span class="tag">Security</span></a>
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="field" aria-hidden="true">
+  <div class="field__aura field__aura--a"></div>
+  <div class="field__aura field__aura--b"></div>
+  <div class="field__aura field__aura--c"></div>
+  <div class="field__grid"></div>
+</div>
+
+<div class="shell shell--wide" id="roomsShell">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="mark" aria-hidden="true"></div>
+      <div>OpsCore <small>Control Rooms</small></div>
     </div>
-  </div>
+    <span class="spacer"></span>
+    <span class="pill mono" data-clock>--:--:-- UTC</span>
+    <button class="btn btn--sm btn--ghost" type="button" data-palette aria-keyshortcuts="Meta+K Control+K"><span class="mono tiny muted">⌘K</span> Search</button>
+    <button class="btn btn--sm btn--ghost" type="button" data-dir-toggle>ع</button>
+    <button class="btn btn--sm" type="button" id="wallToggle" aria-pressed="false">Wall mode</button>
+    <a class="btn btn--sm btn--ghost" href="/">Home</a>
+  </header>
+
+  <main id="main">
+    <section class="hero" data-reveal>
+      <div class="rowline">
+        <div>
+          <div class="eyebrow">Operator rooms</div>
+          <h1>Eight rooms. One command fabric.</h1>
+          <p class="lede">Each room is a lens on the same tenant boundary. Open a room to see what it governs, which endpoints back it, and what it explicitly does not cover.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="rooms" id="roomGrid">
+
+      <article class="room" data-room="dispatch" data-load="72" data-risk="low" tabindex="0" role="button"
+        aria-label="Open Dispatch room">
+        <div class="room__top">
+          <div>
+            <div class="room__name">Dispatch</div>
+            <div class="room__code">room-01 · dispatch</div>
+          </div>
+          <div class="ring"><span>72</span></div>
+        </div>
+        <div class="bars" data-bars="72"></div>
+        <p class="surface__d">Job assignment, technician matching, conflict detection and SLA clocks for every open work order.</p>
+        <div class="room__foot">
+          <span class="badge badge--ok">nominal</span>
+          <span class="room__enter">Open</span>
+        </div>
+      </article>
+
+      <article class="room" data-room="assurance" data-load="54" data-risk="low" tabindex="0" role="button" aria-label="Open Assurance room">
+        <div class="room__top">
+          <div>
+            <div class="room__name">Assurance</div>
+            <div class="room__code">room-02 · assurance</div>
+          </div>
+          <div class="ring"><span>54</span></div>
+        </div>
+        <div class="bars" data-bars="54"></div>
+        <p class="surface__d">Evidence capture, acceptance gates and predictive asset health across the installed base.</p>
+        <div class="room__foot"><span class="badge badge--ok">nominal</span><span class="room__enter">Open</span></div>
+      </article>
+
+      <article class="room" data-room="inventory" data-load="41" data-risk="low" tabindex="0" role="button" aria-label="Open Inventory room">
+        <div class="room__top">
+          <div>
+            <div class="room__name">Inventory</div>
+            <div class="room__code">room-03 · inventory</div>
+          </div>
+          <div class="ring"><span>41</span></div>
+        </div>
+        <div class="bars" data-bars="41"></div>
+        <p class="surface__d">Stock levels, reservations and part consumption tied to the work order that moved them.</p>
+        <div class="room__foot"><span class="badge badge--ok">nominal</span><span class="room__enter">Open</span></div>
+      </article>
+
+      <article class="room" data-room="field" data-load="63" data-risk="medium" tabindex="0" role="button" aria-label="Open Field Operations room">
+        <div class="room__top">
+          <div>
+            <div class="room__name">Field Operations</div>
+            <div class="room__code">room-04 · field</div>
+          </div>
+          <div class="ring"><span>63</span></div>
+        </div>
+        <div class="bars" data-bars="63"></div>
+        <p class="surface__d">Field presence, route plans and offline-tolerant job completion.</p>
+        <div class="room__foot"><span class="badge badge--warn">watch</span><span class="room__enter">Open</span></div>
+      </article>
+
+      <article class="room" data-room="incident" data-load="38" data-risk="low" tabindex="0" role="button" aria-label="Open Incident room">
+        <div class="room__top">
+          <div>
+            <div class="room__name">Incident</div>
+            <div class="room__code">room-05 · incident</div>
+          </div>
+          <div class="ring"><span>38</span></div>
+        </div>
+        <div class="bars" data-bars="38"></div>
+        <p class="surface__d">Safe-mode transitions, anomaly triage and the audit chain behind every decision.</p>
+        <div class="room__foot"><span class="badge badge--ok">nominal</span><span class="room__enter">Open</span></div>
+      </article>
+
+      <article class="room" data-room="tenant" data-load="29" data-risk="low" tabindex="0" role="button" aria-label="Open Tenant room">
+        <div class="room__top">
+          <div>
+            <div class="room__name">Tenant Boundary</div>
+            <div class="room__code">room-06 · tenant</div>
+          </div>
+          <div class="ring"><span>29</span></div>
+        </div>
+        <div class="bars" data-bars="29"></div>
+        <p class="surface__d">Row-level-security posture, cross-tenant denial and the runtime role's privilege envelope.</p>
+        <div class="room__foot"><span class="badge badge--ok">nominal</span><span class="room__enter">Open</span></div>
+      </article>
+
+      <article class="room" data-room="billing" data-load="47" data-risk="low" tabindex="0" role="button" aria-label="Open Billing room">
+        <div class="room__top">
+          <div>
+            <div class="room__name">Billing</div>
+            <div class="room__code">room-07 · billing</div>
+          </div>
+          <div class="ring"><span>47</span></div>
+        </div>
+        <div class="bars" data-bars="47"></div>
+        <p class="surface__d">Invoices, plan limits and usage counters reconciled against the job ledger.</p>
+        <div class="room__foot"><span class="badge badge--ok">nominal</span><span class="room__enter">Open</span></div>
+      </article>
+
+      <article class="room" data-room="release" data-load="88" data-risk="medium" tabindex="0" role="button" aria-label="Open Release room">
+        <div class="room__top">
+          <div>
+            <div class="room__name">Release</div>
+            <div class="room__code">room-08 · release</div>
+          </div>
+          <div class="ring"><span>88</span></div>
+        </div>
+        <div class="bars" data-bars="88"></div>
+        <p class="surface__d">Commit-to-deployment identity, gate verdicts and the proof endpoints this deployment serves.</p>
+        <div class="room__foot"><span class="badge badge--warn">watch</span><span class="room__enter">Open</span></div>
+      </article>
+
+    </div>
+
+    <section class="card" data-reveal>
+      <div class="eyebrow">Boundary</div>
+      <h3>What these rooms are not</h3>
+      <p class="muted small">Load and risk indicators on this page are illustrative interface states, not telemetry. Authoritative operational numbers come from the authenticated control plane and the proof endpoints. Nothing here grants access on its own: every room link resolves to a surface that enforces its own session and tenant check.</p>
+      <div class="hero__cta">
+        <a class="btn btn--primary" href="/control-plane.html">Open authenticated Control Plane</a>
+        <a class="btn" href="/verify/release.html">Release proof</a>
+        <a class="btn btn--ghost" href="/verify/database.html">Database proof</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>OpsCore v0.11.62 · control rooms</span>
+    <span class="mono tiny"><a href="/">home</a> · <a href="/api/health">health</a></span>
+  </footer>
+</div>
+
+<aside class="drawer" id="roomDrawer" aria-hidden="true" aria-label="Room detail">
+  <button class="btn btn--sm btn--ghost drawer__x" type="button" id="roomDrawerClose" aria-label="Close">✕</button>
+  <div class="eyebrow">Room detail</div>
+  <h2 id="roomTitle">—</h2>
+  <div class="hash" id="roomCode">—</div>
+  <div class="kv" id="roomMeta"></div>
+  <hr class="hr">
+  <p class="muted small" id="roomBody">—</p>
+  <a class="btn btn--primary" id="roomGo" href="/control-plane.html">Open the enforcing surface</a>
+</aside>
+
+<script src="/fabric-core.js" defer></script>
+<script src="/rooms.js" defer></script>
 </body>
 </html>
