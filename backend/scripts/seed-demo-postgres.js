@@ -231,8 +231,8 @@ async function main() {
         externalRef: 'DEMO-SITE-001'
       });
       const asset = store.createAsset(ctx, {
-        name: 'Demo Network Node 001',
-        assetType: 'network_node',
+        name: 'Demo Site Asset 001',
+        assetType: 'site',
         externalRef: 'DEMO-ASSET-001',
         status: 'active',
         customerId: customer.id,
