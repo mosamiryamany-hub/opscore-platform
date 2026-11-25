@@ -162,8 +162,57 @@ async function main() {
 
     const existing = existingSeedState(db);
     if (existing.state === 'ALREADY_SEEDED_VERIFIED') {
+      // Each workflow run generates fresh one-time passwords. Rotate the
+      // already-seeded synthetic accounts to those exact credentials before
+      // running the Neon-backed HTTP acceptance.
+      db.setSession({
+        tenantId: existing.organizationId,
+        userId: existing.userIds[0],
+        accessMode: 'backoffice'
+      });
+      db.exec('BEGIN');
+      try {
+        for (const spec of ACCOUNT_SPECS) {
+          const user = db.prepare('SELECT id,status FROM users WHERE email=?').get(spec.email);
+          if (!user || user.status !== 'active') {
+            throw new Error('DEMO_EXISTING_ACCOUNT_NOT_ACTIVE:' + spec.key);
+          }
+          const membership = db.prepare(
+            'SELECT role FROM memberships WHERE user_id=? AND organization_id=?'
+          ).get(user.id, existing.organizationId);
+          if (!membership || membership.role !== spec.role) {
+            throw new Error('DEMO_EXISTING_ACCOUNT_ROLE_MISMATCH:' + spec.key);
+          }
+          const updated = db.prepare(
+            'UPDATE users SET password_hash=? WHERE id=? AND email=? AND status=?'
+          ).run(hashPassword(passwords[spec.key]), user.id, spec.email, 'active');
+          if (Number(updated.changes) !== 1) {
+            throw new Error('DEMO_EXISTING_ACCOUNT_PASSWORD_ROTATION_FAILED:' + spec.key);
+          }
+        }
+        db.exec('COMMIT');
+      } catch (error) {
+        try { db.exec('ROLLBACK'); } catch (_) {}
+        throw error;
+      }
+
+      const credentials = {
+        classification: 'SYNTHETIC_DEMO_ONLY',
+        warning: 'These accounts access an isolated non-production customer demo. Never use real customer data or reuse these passwords.',
+        sourceSha: process.env.GITHUB_SHA || null,
+        projectId: EXPECTED.projectId,
+        branchId: EXPECTED.branchId,
+        database: EXPECTED.database,
+        accounts: ACCOUNT_SPECS.map(spec => ({
+          role: spec.role,
+          label: spec.label,
+          email: spec.email,
+          password: passwords[spec.key]
+        }))
+      };
+      writeJson(credentialsFile, credentials);
       writeJson(resultFile, {
-        status: existing.state,
+        status: 'ALREADY_SEEDED_CREDENTIALS_ROTATED',
         sourceSha: process.env.GITHUB_SHA || null,
         projectId: EXPECTED.projectId,
         branchId: EXPECTED.branchId,
@@ -175,9 +224,11 @@ async function main() {
         siteId: existing.siteId,
         assetId: existing.assetId,
         workOrderId: existing.workOrderId,
-        credentialsFileCreated: false
+        credentialsFileCreated: true,
+        credentialsRotated: true
       });
-      console.log('DEMO_SEED_STATUS=ALREADY_SEEDED_VERIFIED');
+      console.log('DEMO_SEED_STATUS=ALREADY_SEEDED_CREDENTIALS_ROTATED');
+      console.log('DEMO_SEED_CREDENTIALS_ROTATED=4');
       return;
     }
 
