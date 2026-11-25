@@ -1,7 +1,7 @@
 <!-- Commercial tiers: docs/commercial/LICENSE_FRAMEWORK.md — no in-repo prices; no pre-sale License Schedule is required for marketing or buyer discovery. -->
 # OpsCore v0.11.62 — Sales Package
 
-> **SELLER OFFER OPEN FOR MARKETING, DEMONSTRATION, BUYER DISCOVERY AND NEGOTIATION — NO PRE-SALE SIGNATURE REQUIRED.**
+> **SELLER OFFER OPEN FOR MARKETING, DEMONSTRATION, BUYER DISCOVERY AND NEGOTIATION — NO PRE-SALE SIGNATURE REQUIRED. NO LICENSE GRANT BY DEFAULT.**
 
 OpsCore is a multi-sector operational source package, not a hosted SaaS subscription. The rights holder may advertise, list, present and negotiate this offer before a buyer is identified. This sales material does not itself grant buyer rights. No pre-sale signature or separate License Schedule is required to contact a prospect, demonstrate the product, issue an indicative quote or negotiate. If a purchase proceeds, the accepted buyer-specific offer/order/contract records the pinned package and the permitted rights; no rights beyond those terms are implied.
 
