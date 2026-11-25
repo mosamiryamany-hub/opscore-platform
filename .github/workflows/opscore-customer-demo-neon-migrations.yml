@@ -61,7 +61,7 @@ jobs:
           api='https://console.neon.tech/api/v2'
           headers=['-H','Authorization: Bearer '+os.environ['NEON_API_KEY'],'-H','Accept: application/json']
           def get(url):
-              raw=subprocess.check_output(['curl','-fsS',*headers,url],text=True)
+              raw=subprocess.check_output(['curl','--connect-timeout','10','--max-time','30','-fsS',*headers,url],text=True)
               return json.loads(raw)
           project=os.environ['PROJECT_ID']
           branch_id=os.environ['BRANCH_ID']
