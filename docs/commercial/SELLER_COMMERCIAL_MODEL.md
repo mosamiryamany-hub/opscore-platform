@@ -2,8 +2,8 @@
 
 ## What is for sale
 
-1. **Licensed source deliverable** (preferred default): a fixed commit / package SHA under one of L1–L3.  
-2. **Optional hosted handoff**: separate technical and commercial track; not implied by source license.  
+1. **Licensed source deliverable:** a fixed commit / package SHA under one of L1–L3, with the buyer's selected rights stated in the accepted transaction terms.
+2. **Optional hosted handoff:** separate technical and commercial track; not implied by source license.
 3. **Not sold by default:** production secrets, customer data, cloud billing accounts, app-store identities, trademarks.
 
 ## Tier choice guide
@@ -16,43 +16,32 @@
 
 ## Pricing policy
 
-- **Published seller minimum asking floors (USD):** L1 **$45,000**, L2 **$85,000**, L3 **$175,000**. These are the public starting floors for marketing and buyer discovery, not an executed transaction quote.
-- Do not offer a tier below its published floor unless the rights holder explicitly revises the seller floor in writing.
-- Final fee, currency, milestones, taxes, exact deliverable, and permitted rights are negotiated and recorded in the buyer-specific executed License Schedule.  
-- Seller may withhold delivery until Schedule signature and cleared payment terms as the Schedule states.
+- Published seller asking prices are seller-side commercial terms, not independent market valuations or an executed quote.
+- The final fee, currency, milestones, taxes, exact deliverable and permitted rights are stated in the buyer-specific accepted offer/order/contract.
+- Seller may condition source delivery on the buyer's acceptance of the transaction terms and cleared payment, as stated in the offer.
 
 ## Independence of gates
 
 | Gate | Meaning |
 |---|---|
-| Source package Secure Release | Engineering readiness of a ZIP + SBOM + attestation path |
+| Source package Secure Release | Engineering evidence for a ZIP + SBOM + signature/attestation path |
 | Candidate isolation evidence | Behavioral proof on a held candidate deployment |
 | Production alias promotion | Explicit second decision; not automatic from candidate PASS |
-| License Schedule | Legal grant to a named buyer |
+| Buyer-specific transaction terms | Record the selected rights, deliverable and commercial terms for an actual transaction |
 
 Success of one gate never silently completes another.
 
 ## Buyer residuals (remain with buyer)
 
-- Mobile store signing and release accounts  
-- Human translation QA beyond machine-assisted UI language switch  
-- Licensed map / street data providers  
-- Buyer’s own Stripe (or other) production payment keys when enabled
+- Mobile store signing and release accounts
+- Human translation QA beyond machine-assisted UI language switch
+- Licensed map / street data providers
+- Buyer's own production identity, messaging, telephony and payment-provider accounts
 
 ## Marketing posture
 
-**OPEN FOR MARKETING.** The rights holder may advertise, publish, market, list, and negotiate the offer before a buyer is identified.
+**OPEN FOR MARKETING AND CUSTOMER ACQUISITION.** The seller may advertise, publish, market, list, demonstrate, respond to RFPs, issue indicative quotes and negotiate before a buyer is identified. No pre-sale signature or separate License Schedule is required for these activities.
 
-No license grant exists until a named buyer and the rights holder execute a License Schedule that pins the exact deliverable. See `LICENSE_FRAMEWORK.md` and `NO_LICENSE_GRANT_NOTICE.txt`.
+A buyer-specific accepted offer/order/contract states the deliverable, selected tier, permitted rights, restrictions, price and payment terms if a transaction proceeds. The separate License Schedule template is optional and may be used when helpful; it is not a customer-acquisition gate.
 
-**NO LICENSE GRANT** by repository presence, candidate evidence, or this document alone.
-
-## Minimum fair floors (USD, seller guide only)
-
-| Tier | Floor |
-|---|---|
-| L1 Use Only | **USD 45,000** |
-| L2 Use + Modify + Redistribute | **USD 85,000** |
-| L3 Exclusive / IP Assignment | **USD 175,000** |
-
-OPEN FOR MARKETING. **NO LICENSE GRANT** until a named buyer executes a License Schedule that pins the deliverable and states the negotiated fee (at or above the seller’s chosen floor).
+No rights are implied beyond the rights expressly included in the accepted transaction terms and those the seller is entitled to grant. Third-party components remain under their own licenses.
