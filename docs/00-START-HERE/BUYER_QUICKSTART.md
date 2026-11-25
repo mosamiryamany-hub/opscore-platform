@@ -22,7 +22,7 @@ The current Compose file supplies a PostgreSQL service only; it is not a complet
 
 ## 3. Translation truth
 
-The runtime currently exposes 105 selectable locale codes: 1 English source, 100 machine-assisted drafts and 4 English fallbacks. The qualification register has 114 source rows. Native-speaker reviewed: 0/114. Production-qualified: 0/105 selectable locales. Structural/forensic tests are not linguistic approval. Keep machine-translation disclosure visible.
+The runtime currently exposes 105 selectable locale codes: 1 English source, 100 machine-assisted drafts and 4 English fallbacks. The qualification register has 114 source rows. Native-speaker reviewed: 0/114 source-language qualification rows. Production-qualified: 0/105 selectable runtime locales. Structural/forensic tests are not linguistic approval. Keep machine-translation disclosure visible.
 
 ## 4. Buyer-owned services and mobile
 
