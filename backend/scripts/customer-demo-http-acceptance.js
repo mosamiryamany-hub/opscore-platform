@@ -50,6 +50,14 @@ async function main() {
   const unauthenticated = await jsonRequest('/api/v1/me');
   assert.equal(unauthenticated.response.status, 401, 'unauthenticated identity request must be denied');
 
+  // Exercise the general request firewall well beyond the login threshold
+  // before any account authenticates. These requests must not consume the
+  // separate login-attempt budget for the same source IP.
+  for (let index = 0; index < 10; index += 1) {
+    const probe = await jsonRequest('/api/v1/me');
+    assert.equal(probe.response.status, 401, 'pre-login firewall probe must remain unauthenticated');
+  }
+
   const results = [];
   for (const account of accounts) {
     const login = await jsonRequest('/api/v1/auth/login', {
