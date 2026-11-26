@@ -119,7 +119,7 @@ jobs:
         run: |
           set -euo pipefail
           test -n "${VERCEL_TOKEN:-}" || { echo 'VERCEL_TOKEN_MISSING'; exit 1; }
-          test "$VERCEL_PROJECT_ID" = 'prj_8jMqBt0l6OALicWSwQ3ECQTn8yPe' || { echo 'UNAPPROVED_VERCEL_PROJECT'; exit 1; }
+          test "$VERCEL_PROJECT_ID" = 'prj_uOWgtujJcukgtkqR4RawQbiyiEKz' || { echo 'UNAPPROVED_VERCEL_PROJECT'; exit 1; }
           python3 - <<'PY'
           import json,os,subprocess
           envs={

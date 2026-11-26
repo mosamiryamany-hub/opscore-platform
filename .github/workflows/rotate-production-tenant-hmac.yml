@@ -46,7 +46,7 @@ jobs:
           test "$GITHUB_REF" = "refs/heads/main"
           test -n "${NEON_API_KEY:-}" || { echo "NEON_API_KEY_MISSING"; exit 1; }
           test -n "${VERCEL_TOKEN:-}" || { echo "VERCEL_TOKEN_MISSING"; exit 1; }
-          test "$VERCEL_PROJECT_ID" = "prj_8jMqBt0l6OALicWSwQ3ECQTn8yPe" || { echo "UNAPPROVED_VERCEL_PROJECT"; exit 1; }
+          test "$VERCEL_PROJECT_ID" = "prj_uOWgtujJcukgtkqR4RawQbiyiEKz" || { echo "UNAPPROVED_VERCEL_PROJECT"; exit 1; }
           python3 - <<'PY'
           import os
           raw = os.environ["KEY_TTL_DAYS"]
