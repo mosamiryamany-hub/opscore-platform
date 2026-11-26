@@ -290,12 +290,14 @@
       okNow ? 'RUNTIME · LIVE' : (ok ? 'RUNTIME · DEGRADED' : 'RUNTIME · UNREACHABLE'));
 
     const map = [
-      ['#mStatus', okNow ? (body && body.status ? String(body.status).toUpperCase() : 'HEALTHY') : (res ? 'HTTP ' + res.status : 'OFFLINE')],
+      ['#mStatus', body && body.status ? String(body.status).toUpperCase() : (okNow ? 'HEALTHY' : (res ? 'HTTP ' + res.status : 'OFFLINE'))],
       ['#mEngine', body && body.engine ? String(body.engine).toUpperCase() : '—'],
       ['#mVer', body && body.version ? String(body.version) : '—'],
       ['#mLat', ms + 'ms']
     ];
     map.forEach(([sel, val]) => { const n = $(sel); if (n) n.textContent = val; });
+    const coreStatus = $('#mStatusCore');
+    if (coreStatus) coreStatus.textContent = body && body.status ? String(body.status).toUpperCase() : (okNow ? 'HEALTHY' : (res ? 'HTTP ' + res.status : 'OFFLINE'));
     const heroStatus = $('#mStatusHero');
     if (heroStatus) heroStatus.textContent = okNow ? String(body.status || 'healthy').toUpperCase() : (body && body.status ? String(body.status).toUpperCase() : (res ? 'HTTP ' + res.status : 'OFFLINE'));
 
@@ -312,7 +314,7 @@
     const rails = $$('[data-probe="health"]');
     rails.forEach(n => { n.className = 'rail__item ' + (okNow ? 'is-ok' : (res ? 'is-warn' : 'is-bad')); });
     const hv = $('[data-probe-val="health"]');
-    if (hv) hv.textContent = okNow ? 'healthy · ' + ms + 'ms' : (res ? 'HTTP ' + res.status : 'no response');
+    if (hv) hv.textContent = body && body.status ? String(body.status).toLowerCase() + ' · ' + ms + 'ms' : (okNow ? 'healthy · ' + ms + 'ms' : (res ? 'HTTP ' + res.status : 'no response'));
   }
 
   async function probeRelease() {
