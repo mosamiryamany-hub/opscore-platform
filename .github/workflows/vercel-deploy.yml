@@ -957,7 +957,7 @@ jobs:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_TEAM_ID: team_rij5nkIOEVdLlpo8xvUMHsKr
-          VERCEL_RELEASE_ATTESTATION_ENV_ID: 1sphg8KoPHgOIBP1
+          VERCEL_RELEASE_ATTESTATION_ENV_ID: VcBpYhxXUbGZS7pX
         run: |
           set -euo pipefail
           node <<'NODE'
