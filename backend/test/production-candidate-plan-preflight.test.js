@@ -15,7 +15,7 @@ function fixture({ vercelPlan = 'pro', neonPlan = 'scale', branches = 4, logical
   const env = {
     VERCEL_TOKEN: 'vercel-test-token',
     VERCEL_ORG_ID: 'team_xysgxd2E3CsVIYklf0nxOKop',
-    VERCEL_PROJECT_ID: 'prj_8jMqBt0l6OALicWSwQ3ECQTn8yPe',
+    VERCEL_PROJECT_ID: 'prj_uOWgtujJcukgtkqR4RawQbiyiEKz',
     NEON_API_KEY: 'neon-test-token',
     NEON_PROJECT_ID: 'summer-leaf-18448271',
     NEON_ORG_ID: 'org-red-bread-35633140',
