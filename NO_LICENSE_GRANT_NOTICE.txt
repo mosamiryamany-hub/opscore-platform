@@ -42,3 +42,6 @@ CI success, Production health, tenant-isolation evidence, recovery evidence, pac
 Package metadata remains UNLICENSED as package metadata. Do not add a public first-party LICENSE file unless the rights holder intentionally publishes a public license text.
 
 This notice grants no permission or rights to any party. No sale, delivery, redistribution, resale, sublicensing, hosting or commercial exploitation is authorized until the rights holder executes a written License Schedule with the named buyer.
+
+
+A separate License Schedule is optional; no pre-sale signature or separate License Schedule is required for internal evaluation, and no accepted buyer-specific offer, order, contract or equivalent transaction record exists by default.
