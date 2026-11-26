@@ -386,7 +386,7 @@ jobs:
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
           NEON_PROJECT_ID: summer-leaf-18448271
-          NEON_ORG_ID: team_rij5nkIOEVdLlpo8xvUMHsKr
+          NEON_ORG_ID: org-red-bread-35633140
           OPSC_PRODUCTION_NEON_BRANCH_ID: br-proud-salad-bcshhdap
           OPSC_NEON_BRANCH_LIMIT: ${{ vars.OPSC_NEON_BRANCH_LIMIT || '10' }}
           # Operator path: allow candidate evidence on Hobby/Free until commercial plan upgrade after first sale.
