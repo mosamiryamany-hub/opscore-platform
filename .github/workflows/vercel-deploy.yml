@@ -531,6 +531,7 @@ jobs:
       - name: Run signed-tenant candidate collector for all 67 routes
         env:
           CI: 'true'
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ENV: production
           CANDIDATE_DEPLOYMENT_ID: ${{ steps.candidate_deployment.outputs.id }}
           OPSC_SIGNED_CONTEXT_CANDIDATE_MODE: 'true'
