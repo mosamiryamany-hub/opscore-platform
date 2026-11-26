@@ -1,5 +1,34 @@
 NO LICENSE GRANT BY DEFAULT — ALL RIGHTS RESERVED
 
+This notice grants no permission or rights to any party. No sale, delivery, redistribution, resale, sublicensing, hosting or commercial exploitation is authorized until the rights holder executes a written License Schedule with the named buyer.
+
+The rights holder may advertise, list, present and demonstrate the software and
+negotiate a potential sale or license before a buyer is identified or signs a
+License Schedule. These seller-side activities do not grant a buyer any rights.
+
+No license is granted to a named buyer to use, install, run, modify, copy,
+distribute, resell, sublicense, host, or commercially exploit this software or
+accompanying materials any grant happens only after the rights holder and the named buyer execute a
+written License Schedule that references docs/commercial/LICENSE_FRAMEWORK.md
+and pins the exact deliverable (source commit and/or package SHA-256).
+
+The executed Schedule controls the rights granted, tier, permitted instances,
+modification/distribution scope, payment terms, support, territory, term and
+other agreed conditions. Deliver only the artifact and rights recorded in that
+Schedule. No offer, listing, demonstration, technical report, public repository,
+release artifact or unsigned template constitutes a grant or authorizes use.
+
+Commercial tiers (Use / Use+Modify / Use+Modify+Distribute) are described only in
+docs/commercial/LICENSE_FRAMEWORK.md. That framework does not itself grant rights.
+Owner-authorized list prices (2026-11-24): L1 Use Only — USD $3,000; L2 Use + Modify + Redistribute — USD $6,000; L3 — 15,000 (USD assumed, currency confirmation pending) for an exclusive license or assignment of specifically identified rights. L3 does not automatically combine exclusivity and assignment. These are list prices, not a valuation or rights grant; do not quote or execute the L3 price until its currency is confirmed. The executed buyer-specific License Schedule must select and define the rights, exact artifact and commercial terms. Existing release statements may separately prohibit distribution; this notice does not override them.
+
+CI success, production health, isolation certification, recovery evidence, package
+fingerprints, SBOM or attestation do not create a license.
+
+Package metadata remains UNLICENSED. Do not add a first-party LICENSE grant file
+unless the rights holder intentionally publishes a public license text.
+NO LICENSE GRANT BY DEFAULT — ALL RIGHTS RESERVED
+
 This notice itself grants no permission or rights. Seller-side activities do not grant a buyer any rights by themselves. The rights holder may advertise, list, present, demonstrate, discuss, quote or negotiate the software before a buyer is identified. No pre-sale signature or separate License Schedule is required to acquire or qualify a customer.
 
 If a transaction proceeds, the accepted buyer-specific offer, order, contract or equivalent transaction record states the exact deliverable and the rights, restrictions, price, payment, term and support applicable to that transaction. A separate License Schedule is optional, not a prerequisite to marketing or customer acquisition.
@@ -11,3 +40,8 @@ Commercial tiers are described in docs/commercial/LICENSE_FRAMEWORK.md. That fra
 CI success, Production health, tenant-isolation evidence, recovery evidence, package fingerprints, SBOM or attestation do not create a license or prove that every third-party right has been cleared.
 
 Package metadata remains UNLICENSED as package metadata. Do not add a public first-party LICENSE file unless the rights holder intentionally publishes a public license text.
+
+This notice grants no permission or rights to any party. No sale, delivery, redistribution, resale, sublicensing, hosting or commercial exploitation is authorized until the rights holder executes a written License Schedule with the named buyer.
+
+
+A separate License Schedule is optional; no pre-sale signature or separate License Schedule is required for internal evaluation, and no accepted buyer-specific offer, order, contract or equivalent transaction record exists by default.

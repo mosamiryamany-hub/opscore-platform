@@ -1,8 +1,9 @@
-# OpsCore — Client Trust Pack
+# OpsCore — Archived Client Trust Snapshot (Not for Current Buyer Distribution)
 
-**Generated:** 2026-11-20 (synced to live production pin)  
-**Authority:** Live endpoint only — [https://opscore-platform.vercel.app/api/verify/release](https://opscore-platform.vercel.app/api/verify/release)  
-**NO LICENSE GRANT BY DEFAULT** by this document. Marketing, demonstrations, buyer discovery, quotations and negotiations are open without a pre-sale signature or separate License Schedule. If a sale proceeds, the accepted buyer-specific offer/order/contract records the exact deliverable and permitted rights (see `LICENSE_FRAMEWORK.md` L1/L2/L3). Prices are not published here.
+**Generated:** 2026-11-20; historical snapshot only.
+**Status:** NOT CURRENT — do not present as current production, security, certification, release or buyer-delivery evidence. Revalidate every claim against a fresh exact-commit/exact-deployment record before use.
+**Authority:** The endpoint sample linked below was read at the date/time recorded in this historical snapshot; it does not prove current state.
+**NO LICENSE GRANT** by this document. Buyer rights require a signed License Schedule (see `LICENSE_FRAMEWORK.md` L1/L2/L3). Current owner-authorized list prices are in `LICENSE_FRAMEWORK.md`; this historical evidence snapshot is not a current offer or checkout page.
 
 ## Live release identity
 
