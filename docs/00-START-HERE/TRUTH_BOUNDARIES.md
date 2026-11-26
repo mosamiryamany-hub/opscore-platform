@@ -35,7 +35,7 @@ This seller-hosted service outage is separate from CI and from the proposed buye
 ## Product residuals
 
 - Expo source only; native signed binaries and physical-device/store acceptance are not included.
-- Contact Center translations are machine-assisted; native-speaker review remains 0/114 and current selectable runtime qualification 0/105.
+- Contact Center translations are machine-assisted; native-speaker review remains 0/114 source-language qualification rows and current selectable runtime qualification 0/105.
 - Licensed maps/road-routing and external providers are not included unless separately licensed, configured and live-tested.
 - Payment processing is disabled until provider onboarding, signed webhook verification and live acceptance.
 

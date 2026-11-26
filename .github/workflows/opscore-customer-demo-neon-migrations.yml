@@ -1,0 +1,360 @@
+name: OpsCore Customer Demo Neon migrations
+run-name: OpsCore Demo migrations (${{ github.ref_name }} @ ${{ github.sha }})
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/opscore-customer-demo-neon-migrations.yml'
+      - 'backend/sql/postgres/**'
+      - 'backend/scripts/apply-postgres-migrations.js'
+      - 'backend/scripts/seed-demo-postgres.js'
+      - 'backend/scripts/customer-demo-http-acceptance.js'
+      - 'backend/src/postgres-migration-plan.js'
+      - 'backend/package.json'
+      - 'backend/package-lock.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: opscore-customer-demo-neon-migrations
+  cancel-in-progress: false
+
+jobs:
+  migrate-isolated-demo:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact main source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Setup pinned Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: "22.23.4"
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci --omit=dev
+
+      - name: Validate exact dedicated Neon Demo branch and resolve owner connection
+        id: neon
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "${NEON_API_KEY:-}" || { echo 'NEON_API_KEY_REQUIRED' >&2; exit 1; }
+          export PROJECT_ID='delicate-lake-72003710'
+          export BRANCH_ID='br-divine-pine-bci896ws'
+          export PRIMARY_BRANCH_ID='br-dark-base-bcq85nh7'
+          export DATABASE_NAME='opscore_demo'
+          export EXPECTED_HOST='ep-hidden-fog-bci5emef.c-16.us-east-1.aws.neon.tech'
+          export RUNNER_TEMP
+          python3 - <<'PY'
+          import json, os, subprocess, urllib.parse
+          api='https://console.neon.tech/api/v2'
+          headers=['-H','Authorization: Bearer '+os.environ['NEON_API_KEY'],'-H','Accept: application/json']
+          def get(url):
+              raw=subprocess.check_output(['curl','--connect-timeout','10','--max-time','30','-fsS',*headers,url],text=True)
+              return json.loads(raw)
+          project=os.environ['PROJECT_ID']
+          branch_id=os.environ['BRANCH_ID']
+          primary_id=os.environ['PRIMARY_BRANCH_ID']
+          branch=get(f'{api}/projects/{project}/branches/{branch_id}').get('branch') or {}
+          primary=get(f'{api}/projects/{project}/branches/{primary_id}').get('branch') or {}
+          if branch.get('id') != branch_id or branch.get('project_id') != project:
+              raise SystemExit('DEMO_BRANCH_IDENTITY_MISMATCH')
+          if branch.get('parent_id') != primary_id:
+              raise SystemExit('DEMO_BRANCH_PARENT_MISMATCH')
+          if branch.get('primary') is True or branch.get('default') is True or branch.get('protected') is True:
+              raise SystemExit('REFUSING_PRIMARY_DEFAULT_OR_PROTECTED_DEMO_BRANCH')
+          if branch.get('current_state') != 'ready':
+              raise SystemExit('DEMO_BRANCH_NOT_READY')
+          if primary.get('id') != primary_id or primary.get('project_id') != project:
+              raise SystemExit('DEMO_PARENT_IDENTITY_MISMATCH')
+          if primary.get('primary') is not True or primary.get('default') is not True:
+              raise SystemExit('DEMO_PARENT_NOT_PRIMARY_DEFAULT')
+          endpoints=get(f'{api}/projects/{project}/endpoints?limit=100').get('endpoints') or []
+          matches=[e for e in endpoints if e.get('branch_id')==branch_id and e.get('type')=='read_write' and e.get('disabled') is not True]
+          if len(matches)!=1:
+              raise SystemExit('DEMO_READ_WRITE_ENDPOINT_NOT_UNIQUE')
+          endpoint=matches[0]
+          host=str(endpoint.get('host') or (endpoint.get('hosts') or {}).get('read_write_host') or '').lower()
+          if host != os.environ['EXPECTED_HOST']:
+              raise SystemExit('DEMO_ENDPOINT_HOST_MISMATCH')
+          def connection_for(role_name):
+              query=urllib.parse.urlencode({
+                  'branch_id':branch_id,
+                  'database_name':os.environ['DATABASE_NAME'],
+                  'role_name':role_name,
+                  'pooled':'false'
+              })
+              uri=get(f'{api}/projects/{project}/connection_uri?{query}').get('uri') or ''
+              parsed=urllib.parse.urlsplit(uri)
+              params=urllib.parse.parse_qs(parsed.query)
+              if parsed.scheme not in ('postgres','postgresql') or parsed.username!=role_name:
+                  raise SystemExit('DEMO_CONNECTION_ROLE_MISMATCH:'+role_name)
+              if parsed.hostname!=host or parsed.path.lstrip('/')!=os.environ['DATABASE_NAME']:
+                  raise SystemExit('DEMO_CONNECTION_IDENTITY_MISMATCH:'+role_name)
+              if params.get('sslmode') not in (['require'],['verify-full']) or params.get('channel_binding')!=['require']:
+                  raise SystemExit('DEMO_CONNECTION_TLS_POLICY_MISMATCH:'+role_name)
+              params['sslmode']=['verify-full']
+              return urllib.parse.urlunsplit(parsed._replace(query=urllib.parse.urlencode(params,doseq=True)))
+          owner_connection=connection_for('neondb_owner')
+          runtime_connection=connection_for('opscore_runtime')
+          print('::add-mask::'+owner_connection)
+          print('::add-mask::'+runtime_connection)
+          with open(os.environ['GITHUB_ENV'],'a') as f:
+              f.write('OPSC_MIGRATION_DATABASE_URL='+owner_connection+'\n')
+              f.write('OPSC_BOOTSTRAP_DATABASE_URL='+owner_connection+'\n')
+              f.write('OPSC_TENANT_CONTEXT_OWNER_URL='+owner_connection+'\n')
+              f.write('OPSC_PG_ACCEPTANCE_URL='+runtime_connection+'\n')
+              f.write('OPSC_DATABASE_URL='+runtime_connection+'\n')
+              f.write('OPSC_MIGRATION_EXPECTED_HOST='+host+'\n')
+              f.write('OPSC_MIGRATION_EXPECTED_PROJECT_ID='+project+'\n')
+              f.write('OPSC_MIGRATION_EXPECTED_BRANCH_ID='+branch_id+'\n')
+              f.write('OPSC_MIGRATION_EXPECTED_DATABASE='+os.environ['DATABASE_NAME']+'\n')
+          print('DEMO_NEON_TARGET=PASS project='+project+' branch='+branch_id+' database='+os.environ['DATABASE_NAME']+' endpoint='+endpoint['id']+' owner=neondb_owner runtime=opscore_runtime')
+          PY
+
+      - name: Verify migration plan and run dry-run
+        working-directory: backend
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          OPSC_MIGRATION_TARGET_CLASS: preview
+          OPSC_MIGRATION_EXPECTED_OWNER_ROLE: neondb_owner
+          OPSC_PG_SSL_MODE: verify-full
+        run: |
+          set -euo pipefail
+          npm run db:migrations:preflight > "$RUNNER_TEMP/migration-preflight.json"
+          node scripts/apply-postgres-migrations.js | tee "$RUNNER_TEMP/dry-run.json"
+          python3 - <<'PY'
+          import json, os, sys
+          result=json.load(open(os.environ['RUNNER_TEMP']+'/dry-run.json'))
+          identity=result.get('neonIdentity') or {}
+          if result.get('status')!='DRY_RUN_PASS':
+              raise SystemExit('DEMO_MIGRATION_DRY_RUN_NOT_PASS')
+          if identity.get('verified') is not True:
+              raise SystemExit('DEMO_NEON_IDENTITY_NOT_VERIFIED')
+          if identity.get('projectId')!=os.environ['OPSC_MIGRATION_EXPECTED_PROJECT_ID'] or identity.get('branchId')!=os.environ['OPSC_MIGRATION_EXPECTED_BRANCH_ID'] or identity.get('host')!=os.environ['OPSC_MIGRATION_EXPECTED_HOST']:
+              raise SystemExit('DEMO_DRY_RUN_TARGET_MISMATCH')
+          print('DEMO_MIGRATION_DRY_RUN=PASS pending='+str(len(result.get('pending') or [])))
+          PY
+
+      - name: Apply and verify migrations on the isolated Demo branch only
+        working-directory: backend
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          OPSC_MIGRATION_TARGET_CLASS: preview
+          OPSC_MIGRATION_EXPECTED_OWNER_ROLE: neondb_owner
+          OPSC_MIGRATION_CONFIRM_DATABASE: opscore_demo
+          OPSC_MIGRATION_CONFIRM_HOST: ep-hidden-fog-bci5emef.c-16.us-east-1.aws.neon.tech
+          OPSC_MIGRATION_CONFIRM_PROJECT_ID: delicate-lake-72003710
+          OPSC_MIGRATION_CONFIRM_BRANCH_ID: br-divine-pine-bci896ws
+          OPSC_PG_SSL_MODE: verify-full
+        run: |
+          set -euo pipefail
+          unset OPSC_MIGRATION_ALLOW_PRODUCTION || true
+          node scripts/apply-postgres-migrations.js --apply | tee "$RUNNER_TEMP/apply.json"
+          python3 - <<'PY'
+          import json, os, sys
+          result=json.load(open(os.environ['RUNNER_TEMP']+'/apply.json'))
+          identity=result.get('neonIdentity') or {}
+          if result.get('status')!='APPLIED_AND_VERIFIED':
+              raise SystemExit('DEMO_MIGRATION_APPLY_NOT_VERIFIED')
+          if identity.get('verified') is not True:
+              raise SystemExit('DEMO_NEON_IDENTITY_NOT_VERIFIED_AFTER_APPLY')
+          if identity.get('projectId')!='delicate-lake-72003710' or identity.get('branchId')!='br-divine-pine-bci896ws' or identity.get('host')!='ep-hidden-fog-bci5emef.c-16.us-east-1.aws.neon.tech':
+              raise SystemExit('DEMO_MIGRATION_APPLIED_TO_UNEXPECTED_TARGET')
+          print('DEMO_MIGRATIONS=APPLIED_AND_VERIFIED')
+          print('DEMO_MIGRATION_COUNT='+str(len(result.get('applied') or [])))
+          print('DEMO_RUNTIME_ROLE_POSTCONDITIONS='+str((result.get('postconditions') or {}).get('runtime_role_exists')))
+          PY
+
+      - name: Load active Demo HMAC key without logging secret material
+        working-directory: backend
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('node:fs');
+          const { Client } = require('pg');
+          (async () => {
+            const client = new Client({ connectionString: process.env.OPSC_MIGRATION_DATABASE_URL });
+            await client.connect();
+            try {
+              await client.query('SET ROLE opscore_auth_definer');
+              const result = await client.query(
+                "SELECT key_id, encode(secret,'hex') AS secret_hex FROM opscore_security.context_hmac_keys WHERE key_id='demo-20261125-v1' AND enabled=true AND not_before<=now() AND not_after>now()"
+              );
+              if (result.rows.length !== 1 || !/^[a-f0-9]{64}$/.test(result.rows[0].secret_hex)) {
+                throw new Error('DEMO_HMAC_KEY_MISSING_OR_INVALID');
+              }
+              const row = result.rows[0];
+              console.log('::add-mask::' + row.secret_hex);
+              fs.appendFileSync(process.env.GITHUB_ENV,
+                'OPSC_TENANT_CONTEXT_KEY_ID=' + row.key_id + '\n' +
+                'OPSC_TENANT_CONTEXT_HMAC_KEY=' + row.secret_hex + '\n');
+              console.log('DEMO_HMAC_KEY_ACTIVE=PASS key_id=' + row.key_id);
+            } finally {
+              try { await client.query('RESET ROLE'); } catch (_) {}
+              await client.end();
+            }
+          })().catch((error) => {
+            process.stderr.write('DEMO_HMAC_KEY_LOAD_FAILED ' + String(error && error.message || error) + '\n');
+            process.exitCode = 1;
+          });
+          NODE
+
+      - name: Verify signed RLS purposes on the real Neon Demo branch
+        working-directory: backend
+        env:
+          OPSC_PG_SSL_MODE: verify-full
+        run: |
+          set -euo pipefail
+          node scripts/postgres-signed-rls-purpose-acceptance.js | tee "$RUNNER_TEMP/signed-rls-purpose-acceptance.log"
+          python3 - <<'PY'
+          import json, os, re
+          raw=open(os.environ['RUNNER_TEMP']+'/signed-rls-purpose-acceptance.log').read()
+          matches=re.findall(r'SIGNED_RLS_PURPOSE_ACCEPTANCE (\{.*\})',raw)
+          if len(matches)!=1:
+              raise SystemExit('DEMO_SIGNED_RLS_EVIDENCE_MISSING')
+          result=json.loads(matches[0])
+          expected=['auth','system','backoffice','api_key','field']
+          if result.get('status')!='PASS' or result.get('cleanup')!='PASS':
+              raise SystemExit('DEMO_SIGNED_RLS_ACCEPTANCE_NOT_PASS')
+          for field in ['rawGucForgery','rawGucWrite','liveFieldSession','immutableSignedIdentity','crossTenantWrite','revokedFieldSession']:
+              if result.get(field)!='PASS':
+                  raise SystemExit('DEMO_SIGNED_RLS_GATE_FAILED:'+field)
+          if not all(value in result.get('validPurposes',[]) for value in expected):
+              raise SystemExit('DEMO_SIGNED_RLS_PURPOSE_SET_INCOMPLETE')
+          print('DEMO_NEON_SIGNED_RLS_PURPOSE_ACCEPTANCE=PASS')
+          PY
+
+      - name: Generate one-time synthetic Demo credentials
+        run: |
+          set -euo pipefail
+          for account in ADMIN DISPATCHER TECHNICIAN VIEWER; do
+            password="$(openssl rand -hex 24)"
+            echo "::add-mask::$password"
+            printf 'OPSC_DEMO_PASSWORD_%s=%s\n' "$account" "$password" >> "$GITHUB_ENV"
+          done
+          printf 'OPSC_DEMO_SEED_CREDENTIALS_FILE=%s/demo-credentials.json\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+          printf 'OPSC_DEMO_SEED_RESULT_FILE=%s/demo-seed.json\n' "$RUNNER_TEMP" >> "$GITHUB_ENV"
+
+      - name: Seed synthetic customer Demo data on the isolated Neon branch
+        id: seed
+        working-directory: backend
+        env:
+          NODE_ENV: development
+          DATABASE_ENGINE: postgres
+          OPSC_PG_SSL_MODE: verify-full
+          OPSC_DEMO_SEED_ALLOW: YES_I_CONFIRM_DEMO_ONLY
+          OPSC_DEMO_SEED_PROJECT_ID: delicate-lake-72003710
+          OPSC_DEMO_SEED_BRANCH_ID: br-divine-pine-bci896ws
+          OPSC_DEMO_SEED_DATABASE: opscore_demo
+          OPSC_DEMO_SEED_EXPECTED_HOST: ep-hidden-fog-bci5emef.c-16.us-east-1.aws.neon.tech
+          OPSC_DEMO_SEED_CONFIRM: opscore-customer-demo:br-divine-pine-bci896ws
+          OPSC_DEMO_SEED_ROTATE_CREDENTIALS: ${{ contains(github.event.head_commit.message || '', 'rotate demo trial credentials') && 'YES' || 'NO' }}
+        run: |
+          set -euo pipefail
+          node scripts/seed-demo-postgres.js
+          python3 - <<'PY'
+          import json, os
+          result=json.load(open(os.environ['OPSC_DEMO_SEED_RESULT_FILE']))
+          expected={'organizations':1,'users':4,'memberships':4,'customers':1,'sites':1,'assets':1,'workOrders':1}
+          if result.get('status') not in ('SEEDED_AND_VERIFIED','ALREADY_SEEDED_VERIFIED','ROTATED_AND_VERIFIED'):
+              raise SystemExit('DEMO_SEED_STATUS_NOT_VERIFIED')
+          if result.get('counts') != expected:
+              raise SystemExit('DEMO_SEED_COUNTS_MISMATCH')
+          new_seed=result.get('credentialsFileCreated') is True
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:
+              f.write('new_seed='+('true' if new_seed else 'false')+'\n')
+          print('DEMO_SEED_STATUS='+result['status'])
+          print('DEMO_SEED_COUNTS='+json.dumps(result['counts'],sort_keys=True))
+          PY
+
+      - name: Verify authenticated customer journeys against Neon-backed HTTP server
+        if: steps.seed.outputs.new_seed == 'true'
+        working-directory: backend
+        env:
+          NODE_ENV: development
+          DATABASE_ENGINE: postgres
+          HOST: 127.0.0.1
+          PORT: "3000"
+          AUTH_MODE: local
+          TRUST_PROXY: "true"
+          TRUSTED_PROXY_CIDRS: "127.0.0.1,::1,::ffff:127.0.0.1"
+          FIREWALL_RATE_STATE: database
+          OPSC_EXPECTED_INSTANCES: "2"
+          OPSC_SHARED_STATE_CONFIRMED: "true"
+          OPSC_PG_SSL_MODE: verify-full
+        run: |
+          set -euo pipefail
+          node src/server.js > "$RUNNER_TEMP/demo-server.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true; wait "$server_pid" 2>/dev/null || true' EXIT
+          ready=0
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:3000/api/health > "$RUNNER_TEMP/demo-http-health.json"; then
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$ready" -ne 1 ]; then
+            tail -n 120 "$RUNNER_TEMP/demo-server.log" || true
+            exit 1
+          fi
+          node scripts/customer-demo-http-acceptance.js | tee "$RUNNER_TEMP/demo-http-acceptance.log"
+          python3 - <<'PY'
+          import json, os, re
+          health=json.load(open(os.environ['RUNNER_TEMP']+'/demo-http-health.json'))
+          raw=open(os.environ['RUNNER_TEMP']+'/demo-http-acceptance.log').read()
+          matches=re.findall(r'DEMO_HTTP_ACCEPTANCE=(\{.*\})',raw)
+          if health.get('ok') is not True or health.get('engine')!='postgres':
+              raise SystemExit('DEMO_HTTP_HEALTH_NOT_PASS')
+          if len(matches)!=1:
+              raise SystemExit('DEMO_HTTP_ACCEPTANCE_EVIDENCE_MISSING')
+          result=json.loads(matches[0])
+          if result.get('status')!='PASS' or len(result.get('roles',[]))!=4:
+              raise SystemExit('DEMO_HTTP_CUSTOMER_JOURNEY_NOT_PASS')
+          if result.get('viewerWriteDenied')!='PASS' or result.get('sessionRevocation')!='PASS':
+              raise SystemExit('DEMO_HTTP_AUTHORIZATION_OR_REVOCATION_NOT_PASS')
+          print('DEMO_NEON_HTTP_CUSTOMER_JOURNEY=PASS')
+          PY
+
+      - name: Upload exact-run Demo migration evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: opscore-customer-demo-migrations-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/migration-preflight.json
+            ${{ runner.temp }}/dry-run.json
+            ${{ runner.temp }}/apply.json
+            ${{ runner.temp }}/signed-rls-purpose-acceptance.log
+            ${{ runner.temp }}/demo-seed.json
+            ${{ runner.temp }}/demo-http-health.json
+            ${{ runner.temp }}/demo-http-acceptance.log
+            ${{ runner.temp }}/demo-server.log
+          if-no-files-found: warn
+          retention-days: 14
+          compression-level: 6
+      - name: Upload private one-day Demo credentials artifact
+        if: steps.seed.outputs.new_seed == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: opscore-customer-demo-credentials-${{ github.run_id }}
+          path: ${{ runner.temp }}/demo-credentials.json
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 6
+

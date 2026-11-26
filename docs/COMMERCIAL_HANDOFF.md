@@ -1,13 +1,13 @@
 # OpsCore v0.11.62 — Commercial Handoff
 
 **Seller offer status: OPEN FOR MARKETING AND NEGOTIATION BEFORE A BUYER IS IDENTIFIED.**  
-**NO LICENSE GRANT — ALL RIGHTS RESERVED.** No buyer license grant or delivery authorization exists until the transaction-specific Schedule is executed.
+**NO LICENSE GRANT BY DEFAULT.** Marketing, demonstrations, buyer discovery and negotiation are open without a pre-sale signature or separate Schedule. If a sale proceeds, accepted buyer-specific transaction terms define the deliverable and permitted rights.
 
 The commercial classification `PASS_WITH_BUYER_RESIDUALS` describes technical evidence only. The source commit, workflow run, artifact ID, archive filename/size/SHA-256, SBOM and provenance attestation must be obtained from one successful exact-head Secure Release run. This document intentionally pins no candidate-specific identifiers.
 
 ## 1. Rights boundary
 
-The rights holder may advertise, list, present and negotiate the offer before a buyer is identified. This does not authorize any buyer to access, use, install, run, inspect, copy, modify, distribute, sell, resell, sublicense, host, rent, transfer or commercially exploit OpsCore source. All rights are reserved until a separate transaction-specific License Schedule is approved and executed by the rights holder and named buyer for the exact pinned deliverable. Package metadata must remain `UNLICENSED`; no first-party `LICENSE` or `LICENCE` grant file may ship while no grant exists.
+The rights holder may advertise, list, present, demonstrate, quote and negotiate the offer before a buyer is identified. No pre-sale signature or separate License Schedule is required. If a sale proceeds, the accepted buyer-specific offer/order/contract states the exact pinned deliverable, selected tier, permitted use and distribution scope, price, term and support. Package metadata remains `UNLICENSED`; this document does not itself grant rights.
 
 ## 2. Release identity and evidence
 
@@ -29,7 +29,7 @@ OpsCore includes backend/API source, browser operations console, internal workfl
 
 ## 5. Dependencies and localization
 
-Translation catalog: 114 locale codes; 1 English source, 109 machine-assisted drafts, 4 English fallbacks; 89 keys per locale. Native-speaker review and production qualification are 0/114 until independently completed. Keep the visible machine-translation notice. Dependency findings must be taken from the full same-run root/mobile audit JSON; do not use stale summaries or claim zero advisories without evidence.
+Translation catalogue: 105 selectable runtime locales (1 English source, 100 machine-assisted drafts, 4 English fallbacks); 9 flagged codes are withdrawn. The separate qualification register contains 114 source rows. Native-speaker review is 0/114 source rows; production qualification is 0/105 selectable runtime locales. Keep the visible machine-translation notice. Dependency findings must be taken from the full same-run root/mobile audit JSON; do not use stale summaries or claim zero advisories without evidence.
 
 ## 6. Customer-owned responsibilities
 
@@ -49,6 +49,6 @@ The seller remains responsible for fixable defects in delivered source, internal
 - Do not claim 114 human-reviewed languages.
 - Do not claim vulnerability-free dependencies.
 - Do not describe seller Production or Preview evidence as buyer-environment certification.
-- Do not distribute or deliver the package to a buyer before the applicable License Schedule is executed.
+- Do not imply that a technical report, package hash, SBOM or deployment grants rights. State the buyer-specific permitted rights and exclusions in the accepted transaction terms.
 
-**Seller-side offer: OPEN. Buyer use/license/delivery: NOT AUTHORIZED until a named-buyer Schedule is executed. Buyer-environment certification: NOT ESTABLISHED.**
+**Seller-side offer: OPEN FOR MARKETING AND CUSTOMER ACQUISITION. Buyer-environment certification: NOT ESTABLISHED. Any rights granted in a sale are defined by the accepted buyer-specific transaction terms.**

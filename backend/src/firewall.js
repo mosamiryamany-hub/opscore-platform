@@ -141,7 +141,7 @@ function createRateLimiter(config, db){
   const buckets=new Map();
   let lastSharedCleanupAt=0;
   return function enforce(req){
-    const key=clientKey(req,config);
+    const key=String(config?.rateLimitBucketPrefix||'')+clientKey(req,config);
     const now=Date.now(), windowMs=config.firewallRateWindowMs, limit=config.firewallRateLimit;
     if(shared){
       const windowStart=Math.floor(now/windowMs)*windowMs;
@@ -221,6 +221,10 @@ function createLoginRateLimiter(config, db){
   return createRateLimiter({
     ...config,
     firewallRateState:state,
+    // Keep authentication attempts in a dedicated bucket namespace. The general
+    // request firewall limiter shares the same PostgreSQL table but must not
+    // consume the login-attempt budget for the same source IP.
+    rateLimitBucketPrefix:'login:',
     firewallRateWindowMs:config?.loginRateWindowMs ?? config?.firewallRateWindowMs,
     firewallRateLimit:config?.loginRateLimit ?? config?.firewallRateLimit
   },db);

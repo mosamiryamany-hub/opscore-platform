@@ -1,29 +1,13 @@
 NO LICENSE GRANT BY DEFAULT — ALL RIGHTS RESERVED
 
-This notice grants no permission or rights to any party. No sale, delivery, redistribution, resale, sublicensing, hosting or commercial exploitation is authorized until the rights holder executes a written License Schedule with the named buyer.
+This notice itself grants no permission or rights. Seller-side activities do not grant a buyer any rights by themselves. The rights holder may advertise, list, present, demonstrate, discuss, quote or negotiate the software before a buyer is identified. No pre-sale signature or separate License Schedule is required to acquire or qualify a customer.
 
-The rights holder may advertise, list, present and demonstrate the software and
-negotiate a potential sale or license before a buyer is identified or signs a
-License Schedule. These seller-side activities do not grant a buyer any rights.
+If a transaction proceeds, the accepted buyer-specific offer, order, contract or equivalent transaction record states the exact deliverable and the rights, restrictions, price, payment, term and support applicable to that transaction. A separate License Schedule is optional, not a prerequisite to marketing or customer acquisition.
 
-No license is granted to a named buyer to use, install, run, modify, copy,
-distribute, resell, sublicense, host, or commercially exploit this software or
-accompanying materials until the rights holder and that named buyer execute a
-written License Schedule that references docs/commercial/LICENSE_FRAMEWORK.md
-and pins the exact deliverable (source commit and/or package SHA-256).
+No rights are implied beyond the rights expressly included in the accepted transaction terms and those the seller is entitled to grant. L1 does not include resale; L2 includes redistribution only in the forms expressly stated in the transaction terms; L3 must identify whether it is an exclusive license or an assignment of specifically identified rights. Third-party and open-source components remain under their own licenses and are not re-licensed by this notice.
 
-The executed Schedule controls the rights granted, tier, permitted instances,
-modification/distribution scope, payment terms, support, territory, term and
-other agreed conditions. Deliver only the artifact and rights recorded in that
-Schedule. No offer, listing, demonstration, technical report, public repository,
-release artifact or unsigned template constitutes a grant or authorizes use.
+Commercial tiers are described in docs/commercial/LICENSE_FRAMEWORK.md. That framework is for buyer discussions and does not itself grant rights. Current technical qualification limitations and buyer-owned integrations are described in docs/commercial/SALES_KIT.md and the commercial evidence register.
 
-Commercial tiers (Use / Use+Modify / Use+Modify+Distribute) are described only in
-docs/commercial/LICENSE_FRAMEWORK.md. That framework does not itself grant rights.
-Published seller minimum asking floors (USD): L1 Use Only — $45,000; L2 Use + Modify + Redistribute — $85,000; L3 Exclusive / IP Assignment — $175,000. The final buyer-specific fee and complete rights grant are negotiated and recorded only in the executed License Schedule.
+CI success, Production health, tenant-isolation evidence, recovery evidence, package fingerprints, SBOM or attestation do not create a license or prove that every third-party right has been cleared.
 
-CI success, production health, isolation certification, recovery evidence, package
-fingerprints, SBOM or attestation do not create a license.
-
-Package metadata remains UNLICENSED. Do not add a first-party LICENSE grant file
-unless the rights holder intentionally publishes a public license text.
+Package metadata remains UNLICENSED as package metadata. Do not add a public first-party LICENSE file unless the rights holder intentionally publishes a public license text.

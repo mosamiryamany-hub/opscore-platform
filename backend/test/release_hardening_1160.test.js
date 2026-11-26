@@ -65,8 +65,8 @@ test('no-license grant is enforced across first-party package files and release 
   assert.match(notice, /NO LICENSE GRANT/);
   assert.match(notice, /seller-side activities do not grant a buyer any rights/i);
   assert.match(notice, /before a buyer is identified/i);
-  assert.match(notice, /until the rights holder and that named buyer execute\s+a\s+written License Schedule/i);
-  assert.match(notice, /pins the exact deliverable/i);
+  assert.match(notice, /no pre-sale signature or separate License Schedule is required/i);
+  assert.match(notice, /accepted buyer-specific offer, order, contract or equivalent transaction record states the exact deliverable/i);
   assert.match(builder, /function assertNoLicenseGrantFiles/);
   assert.match(builder, /assertNoLicenseGrantFiles\(root, 'source tree'\)/);
   assert.match(builder, /assertNoLicenseGrantFiles\(extractedRoot, 'round-trip archive'\)/);

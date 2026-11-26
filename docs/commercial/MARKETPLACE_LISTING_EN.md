@@ -1,6 +1,6 @@
 # Marketplace listing — OpsCore v0.11.62
 
-**Offer publication:** The rights holder may publish, list and negotiate this offer before a buyer is identified. No buyer signature is required to publish the listing. A buyer-specific License Schedule is executed only when a transaction proceeds and before rights or delivery are granted.
+**Offer publication:** The rights holder may publish, list, demonstrate, quote and negotiate this offer before a buyer is identified. No pre-sale signature or separate License Schedule is required to publish the listing or acquire a customer. If a sale proceeds, the accepted buyer-specific offer/order/contract records the exact deliverable and permitted rights; a separate Schedule is optional.
 
 **Title**  
 OpsCore — Multi-Sector Operational Source Kit (Web + API + Expo Mobile Source)

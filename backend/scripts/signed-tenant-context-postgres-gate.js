@@ -315,9 +315,14 @@ function candidateOrigin(value) {
   try { url = new URL(String(value || '').trim()); }
   catch { throw new Error('CANDIDATE_HTTP_ORIGIN_INVALID'); }
   const host = url.hostname.toLowerCase();
+  const allowedSuffixes = [
+    '-mosamiryamany-1692.vercel.app',
+    '-fiber-nexus1.vercel.app'
+  ];
+  const hasAllowedSuffix = allowedSuffixes.some((suffix) => host.endsWith(suffix));
   if (url.protocol !== 'https:'
       || !host.startsWith('opscore-platform-')
-      || !host.endsWith('-mosamiryamany-1692.vercel.app')
+      || !hasAllowedSuffix
       || host === 'opscore-platform.vercel.app'
       || url.username || url.password || url.pathname !== '/' || url.search || url.hash) {
     throw new Error('CANDIDATE_HTTP_ORIGIN_NOT_UNALIASED_VERCEL_DEPLOYMENT');

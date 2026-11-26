@@ -71,6 +71,47 @@ test('database-backed limiter resets the bucket atomically at the next window',(
   }
 });
 
+test('login and general firewall throttles keep independent shared PostgreSQL buckets',()=>{
+  const db=makeDb();
+  const oldExpected=process.env.OPSC_EXPECTED_INSTANCES;
+  const oldVercelEnv=process.env.VERCEL_ENV;
+  const oldNow=Date.now;
+  process.env.OPSC_EXPECTED_INSTANCES='1';
+  delete process.env.VERCEL_ENV;
+  Date.now=()=>120000;
+  try{
+    const req=request();
+    const firewall=createRateLimiter(config({firewallRateLimit:2}),db);
+    const login=createLoginRateLimiter(config({
+      nodeEnv:'test',
+      firewallRateState:'database',
+      loginRateWindowMs:60000,
+      loginRateLimit:2
+    }),db);
+
+    assert.equal(firewall(req).remaining,1);
+    assert.equal(login(req).remaining,1);
+    assert.equal(firewall(req).remaining,0);
+    assert.equal(login(req).remaining,0);
+
+    const rows=db.prepare('SELECT bucket_key,requests FROM firewall_rate_buckets ORDER BY bucket_key').all();
+    assert.deepEqual(rows.map(row=>row.bucket_key),[
+      '198.51.100.10',
+      'login:198.51.100.10'
+    ]);
+    assert.deepEqual(rows.map(row=>Number(row.requests)),[2,2]);
+    assert.throws(()=>firewall(req),/FIREWALL_RATE_LIMITED/);
+    assert.throws(()=>login(req),/FIREWALL_RATE_LIMITED/);
+  }finally{
+    Date.now=oldNow;
+    if(oldExpected===undefined)delete process.env.OPSC_EXPECTED_INSTANCES;
+    else process.env.OPSC_EXPECTED_INSTANCES=oldExpected;
+    if(oldVercelEnv===undefined)delete process.env.VERCEL_ENV;
+    else process.env.VERCEL_ENV=oldVercelEnv;
+    db.close();
+  }
+});
+
 test('Vercel rate-limit identity uses only the canonical edge-observed x-real-ip header',()=>{
   const limiter=createRateLimiter(config({firewallRateState:'memory',firewallRateLimit:1,trustVercelEdge:true}),null);
   const a=request('10.0.0.5',{'x-real-ip':'198.51.100.20','x-forwarded-for':'203.0.113.99'});
@@ -136,7 +177,7 @@ test('production login limiter forces shared database state even when global lim
       loginRateLimit:3
     }),db);
     assert.deepEqual(enforce(request()),{remaining:2,resetAt:180000});
-    const row=db.prepare('SELECT requests FROM firewall_rate_buckets WHERE bucket_key=?').get('198.51.100.10');
+    const row=db.prepare('SELECT requests FROM firewall_rate_buckets WHERE bucket_key=?').get('login:198.51.100.10');
     assert.equal(Number(row.requests),1);
   }finally{
     Date.now=oldNow;
@@ -215,7 +256,7 @@ test('Vercel production uses shared login state even when NODE_ENV is not produc
       loginRateLimit:2
     }),db);
     assert.deepEqual(enforce(request()),{remaining:1,resetAt:180000});
-    const row=db.prepare('SELECT requests FROM firewall_rate_buckets WHERE bucket_key=?').get('198.51.100.10');
+    const row=db.prepare('SELECT requests FROM firewall_rate_buckets WHERE bucket_key=?').get('login:198.51.100.10');
     assert.equal(Number(row.requests),1);
   }finally{
     Date.now=oldNow;

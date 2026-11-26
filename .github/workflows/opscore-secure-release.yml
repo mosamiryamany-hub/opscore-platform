@@ -2,8 +2,18 @@ name: OpsCore secure release
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*.*.*'
+    paths:
+      - '.github/workflows/opscore-secure-release.yml'
+      - 'docs/COMMERCIAL_CERTIFICATION_REGISTER_*.md'
+      - 'docs/commercial/**'
+      - 'NO_LICENSE_GRANT_NOTICE.txt'
+      - 'backend/web/i18n/**'
+      - 'backend/test/contact_center_i18n.test.js'
+      - 'backend/test/security_scopes.test.js'
   workflow_dispatch:
 
 permissions:
@@ -18,7 +28,8 @@ jobs:
   verify-and-release:
     if: >-
       (github.ref_type == 'tag' && startsWith(github.ref_name, 'v')) ||
-      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -208,7 +219,7 @@ jobs:
         env:
           RELEASE_ARCHIVE: "${{ runner.temp }}/OpsCore-release.zip"
           SIGNATURE_BUNDLE: "${{ runner.temp }}/OpsCore-release.zip.sigstore.json"
-          EXPECTED_IDENTITY: "https://github.com/${{ github.repository }}/.github/workflows/opscore-secure-release.yml@refs/heads/main"
+          EXPECTED_IDENTITY: "https://github.com/${{ github.repository }}/.github/workflows/opscore-secure-release.yml@${{ github.ref }}"
         run: |
           set -euo pipefail
           cosign verify-blob "$RELEASE_ARCHIVE" \

@@ -1,6 +1,6 @@
 # OpsCore v0.11.62 — Commercial and IP Transfer Checklist
 
-This operational checklist does not replace legal advice. The rights holder may publish and negotiate the offer before a buyer is identified; this is separate from granting rights. Before buyer use, modification, distribution or delivery, the parties must sign a written transfer/assignment or License Schedule covering source-code rights, modification/distribution rights, repository/history scope, brand/domains if included, third-party dependencies/licenses, excluded assets, support, and responsibility allocation. There is no bundled license grant. NO_LICENSE_GRANT_NOTICE.txt states that all rights are reserved until a separate written agreement is signed by the rights holder and named buyer.
+This operational checklist does not replace legal advice. The rights holder may advertise, publish, present, demonstrate, quote and negotiate the offer before a buyer is identified; no pre-sale signature or separate License Schedule is required for customer acquisition. If a sale proceeds, the accepted buyer-specific offer/order/contract or equivalent transaction record states the source-code rights, modification/distribution scope, repository/history scope, brand/domains if included, third-party dependencies/licenses, excluded assets, support and responsibility allocation. There is no bundled license grant by default. NO_LICENSE_GRANT_NOTICE.txt controls; a separate License Schedule is optional.
 
 ## Repository visibility and source confidentiality
 

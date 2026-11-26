@@ -63,7 +63,9 @@ test('2026-11-18 maintenance observations remain historical and the 2026-11-22 r
 test('Seller product closeout is buyer-independent while actual buyer license rights remain transaction-gated', () => {
   assert.match(sellerCloseoutChecklist, /A named buyer, buyer signature, buyer-specific legal review, payment, or transaction schedule is \*\*not\*\* a prerequisite/);
   assert.match(sellerCloseoutChecklist, /Transaction boundary — explicitly outside product closeout/);
-  assert.match(sellerCloseoutChecklist, /required before granting the buyer licensed use or delivery rights/);
+  assert.match(sellerCloseoutChecklist, /accepted buyer-specific offer\/order\/contract records the exact released commit\/package digest/);
+  assert.match(sellerCloseoutChecklist, /A separate License Schedule is optional/);
+  assert.doesNotMatch(sellerCloseoutChecklist, /required before granting the buyer licensed use or delivery rights/);
   assert.match(commercialCloseout, /A named buyer is not required for seller-side release preparation/);
   assert.match(commercialCloseout, /No license grant/);
   assert.doesNotMatch(sellerCloseoutChecklist, /Buyer-specific work — not a seller launch or marketing gate/);

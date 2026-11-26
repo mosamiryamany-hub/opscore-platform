@@ -22,7 +22,7 @@ The current Compose file supplies a PostgreSQL service only; it is not a complet
 
 ## 3. Translation truth
 
-The runtime currently exposes 105 selectable locale codes: 1 English source, 100 machine-assisted drafts and 4 English fallbacks. The qualification register has 114 source rows. Native-speaker reviewed: 0/114. Production-qualified: 0/105 selectable locales. Structural/forensic tests are not linguistic approval. Keep machine-translation disclosure visible.
+The runtime currently exposes 105 selectable locale codes: 1 English source, 100 machine-assisted drafts and 4 English fallbacks. The qualification register has 114 source rows. Native-speaker reviewed: 0/114 source-language qualification rows. Production-qualified: 0/105 selectable runtime locales. Structural/forensic tests are not linguistic approval. Keep machine-translation disclosure visible.
 
 ## 4. Buyer-owned services and mobile
 
@@ -32,6 +32,6 @@ The package includes Expo source only. There are no signed APK/AAB/IPA artifacts
 
 ## 5. Current evidence cut
 
-Main `6859b5d86f13ba9f481ed8fce5cc95c729d22b55`; current-main run [45360794536](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45360794536). Source, contract, isolated PostgreSQL RLS/HTTP and CodeQL checks passed. Production deploy, Neon Preview acceptance and historical Production PITR jobs were skipped. No exact-head Secure Release archive or buyer self-hosted acceptance is established by that run.
+Use only the latest exact-main Secure Release artifact and its matching OpsCore CI and Vercel/PostgreSQL acceptance runs. Do not reuse historical commit IDs, run IDs, deployment IDs or archive hashes. CI and isolated PostgreSQL acceptance do not establish public Production deployment, Neon Preview migration, Production PITR or buyer self-hosted acceptance. A signed archive does not grant a license or establish Production acceptance.
 
 See [Buyer Evidence Index](../commercial/BUYER_EVIDENCE_INDEX.md) for the complete evidence boundary.

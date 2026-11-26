@@ -47,4 +47,4 @@ The release-proof design still needs correction: the code consumes a textual `CE
 **Commercial closeout remains OPEN.** No buyer license is granted. No external certification is claimed. The exact current-main release package must be regenerated after the release workflow and proof-binding design are corrected.
 
 
-**Buyer-transfer boundary:** Closing the seller's website and infrastructure is an operational acceptance task, not an automatic transfer of the seller's Vercel/Neon accounts, production database, customer data, domain, or hosting to a buyer. Buyer scope remains source code and release evidence unless a separate signed agreement defines a transfer.
+**Buyer-transfer boundary:** Closing the seller's website and infrastructure is an operational acceptance task, not an automatic transfer of the seller's Vercel/Neon accounts, production database, customer data, domain, or hosting to a buyer. Buyer scope remains source code and release evidence unless the accepted buyer-specific offer/order/contract defines a transfer; no pre-sale signature or separate License Schedule is required for marketing or negotiation.
