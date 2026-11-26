@@ -27,3 +27,18 @@ fingerprints, SBOM or attestation do not create a license.
 
 Package metadata remains UNLICENSED. Do not add a first-party LICENSE grant file
 unless the rights holder intentionally publishes a public license text.
+NO LICENSE GRANT BY DEFAULT — ALL RIGHTS RESERVED
+
+This notice itself grants no permission or rights. Seller-side activities do not grant a buyer any rights by themselves. The rights holder may advertise, list, present, demonstrate, discuss, quote or negotiate the software before a buyer is identified. No pre-sale signature or separate License Schedule is required to acquire or qualify a customer.
+
+If a transaction proceeds, the accepted buyer-specific offer, order, contract or equivalent transaction record states the exact deliverable and the rights, restrictions, price, payment, term and support applicable to that transaction. A separate License Schedule is optional, not a prerequisite to marketing or customer acquisition.
+
+No rights are implied beyond the rights expressly included in the accepted transaction terms and those the seller is entitled to grant. L1 does not include resale; L2 includes redistribution only in the forms expressly stated in the transaction terms; L3 must identify whether it is an exclusive license or an assignment of specifically identified rights. Third-party and open-source components remain under their own licenses and are not re-licensed by this notice.
+
+Commercial tiers are described in docs/commercial/LICENSE_FRAMEWORK.md. That framework is for buyer discussions and does not itself grant rights. Current technical qualification limitations and buyer-owned integrations are described in docs/commercial/SALES_KIT.md and the commercial evidence register.
+
+CI success, Production health, tenant-isolation evidence, recovery evidence, package fingerprints, SBOM or attestation do not create a license or prove that every third-party right has been cleared.
+
+Package metadata remains UNLICENSED as package metadata. Do not add a public first-party LICENSE file unless the rights holder intentionally publishes a public license text.
+
+This notice grants no permission or rights to any party. No sale, delivery, redistribution, resale, sublicensing, hosting or commercial exploitation is authorized until the rights holder executes a written License Schedule with the named buyer.
