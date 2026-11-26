@@ -60,6 +60,14 @@ async function main() {
   const unauthenticated = await jsonRequest('/api/v1/me');
   assert.equal(unauthenticated.response.status, 401, 'unauthenticated identity request must be denied');
 
+  // Exercise the general request firewall well beyond the login threshold
+  // before any account authenticates. These requests must not consume the
+  // separate login-attempt budget for the same source IP.
+  for (let index = 0; index < 10; index += 1) {
+    const probe = await jsonRequest('/api/v1/me');
+    assert.equal(probe.response.status, 401, 'pre-login firewall probe must remain unauthenticated');
+  }
+
   const results = [];
   for (const account of accounts) {
     const login = await jsonRequest('/api/v1/auth/login', withClientIp({
@@ -73,6 +81,9 @@ async function main() {
     }, account.ip));
     assert.equal(login.response.status, 200, 'login failed for role ' + account.role + ': ' + login.raw);
     assert.equal(login.body?.role, account.role, 'unexpected role returned for ' + account.email);
+    if (account.key === 'ADMIN') {
+      console.log('DEMO_HTTP_FIREWALL_LOGIN_BUCKET_ISOLATION=PASS general_prelogin_requests=11 login_limit=10');
+    }
     const cookie = setCookie(login.response);
 
     const me = await jsonRequest('/api/v1/me', withClientIp({ headers: { cookie } }, account.ip));
@@ -88,8 +99,15 @@ async function main() {
     const workOrders = await jsonRequest('/api/v1/work-orders', withClientIp({ headers: { cookie } }, account.ip));
     assert.equal(workOrders.response.status, 200, 'work-order read failed for ' + account.role);
     const workOrderRows = records(workOrders.body);
-    assert.equal(workOrderRows.length, 1, 'expected exactly one synthetic demo work order');
-    assert.equal(workOrderRows[0].title, 'Inspect the synthetic demo network node');
+    // Viewer is intentionally scoped to records it created or was assigned.
+    // The synthetic work order belongs to the technician, so a viewer must
+    // not receive it. Do not weaken tenant/role visibility to satisfy demo UI.
+    if (account.role === 'viewer') {
+      assert.equal(workOrderRows.length, 0, 'viewer must not see another user\'s unassigned work order');
+    } else {
+      assert.equal(workOrderRows.length, 1, 'expected exactly one visible synthetic demo work order');
+      assert.equal(workOrderRows[0].title, 'Inspect the synthetic demo network node');
+    }
 
     if (account.role === 'viewer') {
       const denied = await jsonRequest('/api/v1/customers', withClientIp({
@@ -125,6 +143,8 @@ async function main() {
     status: 'PASS',
     health: 'PASS',
     unauthenticatedDenied: 'PASS',
+    firewallLoginBucketIsolation: 'PASS',
+    preLoginGeneralRequests: 11,
     roles: results,
     viewerWriteDenied: 'PASS',
     sessionRevocation: 'PASS',

@@ -34,7 +34,7 @@
   "officialRepo": "mosamiryamany-hub/opscore-platform",
   "generatedAt": null,
   "residuals": [
-    "NO LICENSE GRANT: all rights reserved; sale, resale, redistribution, sublicensing and buyer delivery are prohibited pending a separate written agreement approved and signed by the rights holder.",
+    "NO LICENSE GRANT BY DEFAULT: this statement itself grants no buyer rights. Marketing, demonstrations, buyer discovery, quotations and negotiation are open without a pre-sale signature or separate License Schedule. If a sale proceeds, the accepted buyer-specific offer, order, contract or equivalent transaction record states the exact deliverable and permitted rights; third-party components remain under their own licenses.",
     "The live production isolation proof is scoped to the seller reference and is not transferable to a buyer environment.",
     "A branch-point recovery comparison is not full PITR/RPO/RTO certification.",
     "Tenant route-security coverage and functional API contract acceptance are not complete business-flow certification.",

@@ -16,7 +16,7 @@ Do not copy hashes or test counts from earlier pipelines; every source/documenta
 
 ## Translation status
 
-The Contact Center translation resources and runtime are included. Registered counts are 114 locales, 89 source keys per locale, 1 English source, 109 machine-assisted draft locales, and 4 English-fallback locales (din, nus, pau, ch). The visible notice explicitly says AI/machine translation. The automated four-round forensic report checks structural integrity and integration safety; it is not proof of linguistic correctness. Native-speaker reviewed: 0/114. Production-qualified: 0/114. Buyer/operator must arrange native-speaker/domain review before presenting translations as official or relying on them for legal, safety, contractual, or regulated content.
+The Contact Center runtime currently exposes 105 selectable locales: 1 English source, 100 machine-assisted drafts and 4 explicit English fallbacks (din, nus, pau, ch). A separate qualification register contains 114 source rows; 9 flagged locale codes are withdrawn from runtime selection. The visible notice explicitly says AI/machine translation. The automated four-round forensic report checks structural integrity and integration safety; it is not proof of linguistic correctness. Native-speaker review is 0/114 source rows; production-qualified locales are 0/105 selectable runtime locales. Buyer/operator must arrange native-speaker/domain review before presenting translations as official or relying on them for legal, safety, contractual, or regulated content.
 
 ## External integrations — buyer responsibility
 
@@ -26,7 +26,7 @@ The buyer configures, licenses, secures and tests any required identity provider
 
 The package includes Expo mobile source only; it does not include signed native binaries or certify app-store readiness. The buyer owns EAS/project accounts, Android/iOS signing, native build, GPS/camera/offline/device testing, environment configuration, app-store accounts/submission, distribution, and ongoing updates.
 
-The current locked Expo SDK 58.0.23 / React Native 0.88.1 / React 19.3.0 baseline in run 43308699094 reports zero findings across all severities. The exact same-run mobile audit JSON is authoritative. This is a point-in-time npm audit, not a guarantee against future advisories.
+The current locked Expo SDK 58.0.23 / React Native 0.88.1 / React 19.3.0 baseline must be evaluated from the exact same-run full-tree and production-tree audit JSON and gate result. The latest exact-main Secure Release run is the authority; do not rely on historical run IDs or unreferenced audit JSON. This is a point-in-time npm audit, not a guarantee against future advisories.
 
 ## Production and operational limits
 

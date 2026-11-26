@@ -93,9 +93,10 @@ No Vercel variables are to be spoofed and no Vercel Preview mode is to be used t
 - seller hosting, seller Vercel/Neon accounts, seller domain, seller database and customer data;
 - a provider-neutral self-hosted production deployment and signed self-hosted release qualification;
 - signed APK/AAB/IPA, device-level QA, signing keys or app-store publication;
-- native-speaker language review (latest sales evidence reports 0/114 reviewed; runtime selectable catalogue and qualification register have different denominators);
+- native-speaker language review (0/114 source-language qualification rows reviewed; 0/105 selectable runtime locales production-qualified; 9 withdrawn codes remain excluded from selection);
 - licensed maps, road-routing, provider attribution, API quotas or traffic ETA;
-- configured external OIDC/JWKS, email, SMS, WhatsApp, telephony/contact-center carriers, payment processing, object storage, KMS/HSM or buyer-specific webhook contracts;
+- configured external OIDC/JWKS, email, SMS, WhatsApp, payment processing, object storage, KMS/HSM or buyer-specific webhook contracts;
+- licensed telephony/contact-center carrier accounts, provider licenses, API credentials and buyer-environment live acceptance;
 - an accredited external security/compliance certificate.
 
 Payment processing remains disabled unless a provider is selected, credentials are configured, signed webhooks are verified and the relevant flows are accepted in the target environment.
@@ -105,7 +106,7 @@ Payment processing remains disabled unless a provider is selected, credentials a
 The package metadata is `UNLICENSED`. The root `NO_LICENSE_GRANT_NOTICE.txt` remains controlling: **no buyer licence or delivery permission is granted by this repository, tests, deployment, evidence, release archive or this document**.
 
 - L1 (internal use only), L2 (use/modify/redistribute) and L3 (exclusive/IP assignment) are framework options, not grants.
-- A transaction requires a written License Schedule executed by the rights holder and the named buyer, referencing the exact source commit and/or package SHA-256.
+- Marketing, demonstrations, buyer discovery, quotations and negotiations are open without a pre-sale signature or separate License Schedule. If a transaction proceeds, the accepted buyer-specific offer/order/contract or equivalent transaction record references the exact source commit and/or package SHA-256 and states the selected tier and permitted rights. A separate License Schedule is optional.
 - Resale, hosting for third parties, sublicensing, OEM, source redistribution or marketplace distribution must be expressly selected and granted in that Schedule. A general L1/use-only grant does not include them.
 - Third-party package licences remain independent. The 2026-11-24 SBOM inventory is inventory evidence only, not legal clearance; two components in that inventory have no declared licence expression and require resolution before a legal-clearance claim.
 - Rights-holder identity and authority to sign remain a required transaction input; do not infer that authority from repository access.

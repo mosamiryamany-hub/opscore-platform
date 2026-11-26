@@ -1,6 +1,6 @@
 # OpsCore v0.11.62 — Commercial Sales Kit
 
-**Seller offer:** May be advertised, listed, presented and negotiated before a buyer is identified. A buyer signature is not required to publish or market the offer; buyer rights and delivery remain withheld until a transaction-specific License Schedule is executed.
+**Seller offer:** May be advertised, listed, presented, demonstrated, quoted and negotiated before a buyer is identified. No pre-sale signature or separate License Schedule is required for customer acquisition. If a sale proceeds, the accepted buyer-specific offer/order/contract states the exact deliverable and permitted rights; a separate Schedule is optional.
 
 Delivery: source-code package; archive name OPSCORE.zip.  
 Commercial class: PASS_WITH_BUYER_RESIDUALS.  

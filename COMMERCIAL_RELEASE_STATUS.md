@@ -6,10 +6,10 @@
 **Technical classification:** `SOURCE_CODE_CANDIDATE`  
 **Self-hosted production qualification:** `BLOCKED`  
 **Current exact-head release archive:** `NOT_ESTABLISHED`  
-**Buyer licence:** `NONE_PENDING_EXECUTED_SCHEDULE`  
+**Buyer licence:** `NONE_BY_DEFAULT — buyer-specific rights are stated in accepted transaction terms if a sale proceeds`  
 **Delivery authorization:** `false`  
 **External certification:** `NONE_CLAIMED`  
-**Legal status:** **NO LICENSE GRANT — ALL RIGHTS RESERVED.** Buyer rights require a signed exact-deliverable License Schedule.
+**Legal status:** **NO LICENSE GRANT BY DEFAULT.** Marketing, demonstrations, buyer discovery and negotiation are open without a pre-sale signature or separate License Schedule; buyer-specific transaction terms state any rights granted.
 
 ## Evidence cut
 
@@ -33,7 +33,7 @@ The existing `/api/verify/release` endpoint supports an explicit Ed25519 self-ho
 
 ## Commercial boundary
 
-The rights holder may advertise and negotiate the offer, but no buyer may install, run, modify, copy, host, distribute, resell or sublicense the software until a written License Schedule is executed by the rights holder and named buyer for the exact deliverable. Package metadata remains `UNLICENSED`. No first-party licence grant is created by this status template.
+The rights holder may advertise, demonstrate, quote and negotiate the offer before a buyer is identified; no pre-sale signature or separate License Schedule is required. If a sale proceeds, the accepted buyer-specific offer/order/contract states the exact deliverable and permitted use, modification and redistribution rights. Package metadata remains `UNLICENSED`; this status template does not itself grant rights.
 
 CI, a package hash, SBOM or provenance attestation is not an independent certification and does not grant buyer rights.
 

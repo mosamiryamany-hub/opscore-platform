@@ -24,7 +24,7 @@ These controls are source-level integrity mechanisms. They are not a claim of le
 - Source-code handoff, not a hosted SaaS subscription.
 - Web/API source and Expo mobile source.
 - No signed APK, AAB or IPA is included.
-- No seller-provided production hosting, cloud account, map license, telephony, WhatsApp, email/SMS carrier, payment gateway, KMS/HSM, or identity-provider contract is included unless expressly added to the buyer's signed Schedule.
+- No seller-provided production hosting, cloud account, map license, telephony, WhatsApp, email/SMS carrier, payment gateway, KMS/HSM, or identity-provider contract is included unless expressly included in the accepted buyer-specific offer/order/contract.
 - Buyer owns deployment and validation in its target environment.
 
 ## Current release and security disclosure — important
@@ -48,6 +48,6 @@ Three license tiers are available for negotiation:
 
 The final rights depend only on a transaction-specific License Schedule signed by the rights holder and named buyer. The Schedule must pin the exact source commit and/or package SHA-256 and define scope, instances, territory, term, price/payment, support and other negotiated terms.
 
-No buyer right to access, install, run, copy, modify, distribute, resell, sublicense or host the software is granted by this brief, an unsigned template, a repository listing or a negotiation. Delivery and licensed use remain unauthorized until the named buyer's Schedule is signed and the exact delivery package is release-qualified.
+This brief, an unsigned template, a repository listing or a negotiation does not itself grant buyer rights. Marketing, demonstrations, buyer discovery, quotations and negotiation are open without a pre-sale signature or separate License Schedule. If a sale proceeds, the accepted buyer-specific offer/order/contract states the exact deliverable and permitted access, installation, use, modification, distribution, resale, sublicensing and hosting rights. Delivery also requires an exact release-qualified package.
 
 **Next step:** A buyer may request a scoped technical walkthrough and discuss tier, target operating scope and transaction conditions. Any evaluation access requires a separate written evaluation authorization.

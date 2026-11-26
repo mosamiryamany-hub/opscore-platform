@@ -578,8 +578,17 @@ jobs:
             "endpoints": [{"type":"read_write"}]
           }))
           PY
-          CREATE="$(curl -fsS -X POST "${AUTH[@]}" -H "Content-Type: application/json" \
+          CREATE_HTTP_STATUS="$(curl -sS -o "$RUNNER_TEMP/pitr-create-response.json" -w '%{http_code}' -X POST "${AUTH[@]}" -H "Content-Type: application/json" \
             --data-binary "@$RUNNER_TEMP/pitr-request.json" "${API}/branches")"
+          if [[ "$CREATE_HTTP_STATUS" != "201" ]]; then
+            echo "PITR_BRANCH_CREATE_HTTP_STATUS=$CREATE_HTTP_STATUS" >&2
+            echo "PITR_BRANCH_CREATE_RESPONSE_BEGIN" >&2
+            cat "$RUNNER_TEMP/pitr-create-response.json" >&2
+            echo >&2
+            echo "PITR_BRANCH_CREATE_RESPONSE_END" >&2
+            exit 1
+          fi
+          CREATE="$(cat "$RUNNER_TEMP/pitr-create-response.json")"
           BRANCH_ID="$(printf '%s' "$CREATE" | python3 -c 'import json,sys; print(json.load(sys.stdin)["branch"]["id"])')"
           BRANCH_ENDPOINT_ID="$(printf '%s' "$CREATE" | python3 -c 'import json,sys; print((json.load(sys.stdin).get("endpoints") or [{}])[0].get("id") or "")')"
           test -n "$BRANCH_ENDPOINT_ID" || { echo "PITR_BRANCH_ENDPOINT_MISSING"; exit 1; }
