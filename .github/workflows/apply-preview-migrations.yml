@@ -123,9 +123,9 @@ jobs:
           python3 - <<'PY'
           import json,os,subprocess
           envs={
-            "OPSC_MIGRATION_DATABASE_URL":"lVxOOrkuYLWoFcL8",
-            "OPSC_ACCEPTANCE_RUNTIME_DATABASE_URL":"Tlo1LjAgm1HqYVFg",
-            "OPSC_PREVIEW_BOOTSTRAP_DATABASE_URL":"i8NbSve1e1Blec6R"
+            "OPSC_MIGRATION_DATABASE_URL":"OGqmp8ZLg5y6fR4Q",
+            "OPSC_ACCEPTANCE_RUNTIME_DATABASE_URL":"V501UC8l45CRN2nt",
+            "OPSC_PREVIEW_BOOTSTRAP_DATABASE_URL":"uNkL7AOntxSWTMPC"
           }
           for key,env_id in envs.items():
             url="https://api.vercel.com/v1/projects/"+os.environ["VERCEL_PROJECT_ID"]+"/env/"+env_id+"?teamId="+os.environ["VERCEL_TEAM_ID"]

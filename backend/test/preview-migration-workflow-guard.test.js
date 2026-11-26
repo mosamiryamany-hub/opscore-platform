@@ -78,7 +78,7 @@ test('Preview migrations require one exact pinned non-primary branch and the app
   assert.match(previewApply, /VERCEL_NEON_CONNECTION_IDENTITY_MISMATCH/);
   assert.match(previewApply, /api\.vercel\.com\/v1\/projects/);
   assert.doesNotMatch(previewApply, /api\.vercel\.com\/v10\/projects/);
-  assert.match(previewApply, /Tlo1LjAgm1HqYVFg/);
+  assert.match(previewApply, /V501UC8l45CRN2nt/);
   assert.match(previewApply, /NEON_API_KEY: \$\{\{ secrets\.NEON_API_KEY \}\}/);
   assert.match(previewApply, /Authorization: Bearer \$NEON_API_KEY/);
   assert.doesNotMatch(previewApply, /echo[^\n]*\$NEON_API_KEY|add-mask[^\n]*NEON_API_KEY|reveal_password/);
