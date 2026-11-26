@@ -115,7 +115,7 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          VERCEL_TEAM_ID: team_xysgxd2E3CsVIYklf0nxOKop
+          VERCEL_TEAM_ID: team_rij5nkIOEVdLlpo8xvUMHsKr
         run: |
           set -euo pipefail
           test -n "${VERCEL_TOKEN:-}" || { echo 'VERCEL_TOKEN_MISSING'; exit 1; }
@@ -123,9 +123,9 @@ jobs:
           python3 - <<'PY'
           import json,os,subprocess
           envs={
-            "OPSC_MIGRATION_DATABASE_URL":"NaIbwIDagdogTmWE",
-            "OPSC_ACCEPTANCE_RUNTIME_DATABASE_URL":"2ACxh1Oi5TWMDn5v",
-            "OPSC_PREVIEW_BOOTSTRAP_DATABASE_URL":"mF7e7nmzY2h6uaT0"
+            "OPSC_MIGRATION_DATABASE_URL":"lVxOOrkuYLWoFcL8",
+            "OPSC_ACCEPTANCE_RUNTIME_DATABASE_URL":"Tlo1LjAgm1HqYVFg",
+            "OPSC_PREVIEW_BOOTSTRAP_DATABASE_URL":"i8NbSve1e1Blec6R"
           }
           for key,env_id in envs.items():
             url="https://api.vercel.com/v1/projects/"+os.environ["VERCEL_PROJECT_ID"]+"/env/"+env_id+"?teamId="+os.environ["VERCEL_TEAM_ID"]
