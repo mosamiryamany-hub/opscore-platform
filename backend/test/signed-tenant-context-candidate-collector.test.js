@@ -57,7 +57,7 @@ test('candidate origin accepts only an HTTPS unaliased Vercel deployment for thi
 
 test('candidate probe configuration requires Production plus an active hold and no release/autobind', () => {
   assert.equal(validateCandidateProbeEnvironment(BASE),
-    'https://opscore-platform-candidate123-mosamiryamany-1692.vercel.app');
+    'https://opscore-platform-candidate123-fiber-nexus1.vercel.app');
 
   const blocked = [
     { OPSC_PRODUCTION_HOLD: 'false' },
