@@ -199,3 +199,11 @@
 
 /* ---------------- print ---------------- */
 @media print{.field,.topbar,.palette,.toasts,.drawer{display:none !important} body{background:#fff;color:#000}}
+
+
+/* Truthful operator-room presentation: workspace labels, no synthetic gauges. */
+.room{min-height:228px;padding:clamp(18px,2vw,24px);background:linear-gradient(155deg,rgba(17,28,58,.82),rgba(7,11,26,.94));}
+.room__signal{display:flex;align-items:center;justify-content:center;min-width:126px;min-height:42px;padding:8px 12px;border:1px solid var(--line-2);border-radius:12px;background:linear-gradient(135deg,rgba(77,226,255,.09),rgba(155,123,255,.09));font:700 9px/1.4 var(--f-mono);letter-spacing:.13em;text-align:center;color:var(--cy);}
+.room__foot .badge{color:var(--ink-2);border-color:var(--line-2);background:rgba(255,255,255,.025);}
+.room:focus-visible{outline:2px solid var(--cy);outline-offset:4px;}
+@media(max-width:560px){.room{min-height:200px}.room__signal{min-width:108px;font-size:8px}}
