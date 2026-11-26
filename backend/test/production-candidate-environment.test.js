@@ -24,6 +24,7 @@ function envFile() {
     'OPSC_PRODUCTION_BEHAVIORAL_EVIDENCE=false',
     'OPSC_PRODUCTION_ACCEPTANCE_EVIDENCE_SHA256=',
     'OPSC_PRODUCTION_NEON_BRANCH_ID=br-proud-salad-bcshhdap',
+    'OPSC_PRODUCTION_DATABASE_NAME=opscore_acceptance',
     'OPSC_RELEASE_CI_COMMIT=',
     'OPSC_RELEASE_CI_PIPELINE_ID=',
     'OPSC_RELEASE_CI_REF=',
@@ -84,6 +85,7 @@ test('baseline snapshot validates a known fail-closed Production state', () => {
   const snapshot = createBaselineSnapshot(parsed, envs);
   assert.equal(snapshot.entries.OPSC_PRODUCTION_HOLD.value, 'false');
   assert.equal(snapshot.entries.OPSC_RELEASE_VERIFIED.value, 'false');
+  assert.equal(snapshot.entries.OPSC_PRODUCTION_DATABASE_NAME.value, 'opscore_acceptance');
   assert.equal(snapshot.entries.OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID.present, false);
   assert.doesNotThrow(() => validateInitialState(snapshot));
   const unsafe = { ...snapshot, entries: { ...snapshot.entries, OPSC_RELEASE_VERIFIED: { present: true, value: 'true' } } };
@@ -294,6 +296,7 @@ test('publish refuses unbound evidence and removes candidate credentials only af
     ISOLATION_CERT: 'CERTIFIED',
     BEHAVIORAL: 'true',
     OPSC_PRODUCTION_NEON_BRANCH_ID: 'br-proud-salad-bcshhdap',
+    OPSC_PRODUCTION_DATABASE_NAME: 'opscore_acceptance',
     GITHUB_SHA: 'b'.repeat(40),
     GITHUB_RUN_ID: '1234567',
     OPSC_RELEASE_PACKAGE_SHA256: 'c'.repeat(64),
@@ -301,11 +304,13 @@ test('publish refuses unbound evidence and removes candidate credentials only af
   };
   await assert.rejects(() => publish({ env: { ...env, ISOLATION_CERT: 'NOT_CERTIFIED' }, fetchImpl: store.fetchImpl }), /PRODUCTION_BEHAVIORAL_CERTIFICATION_REQUIRED/);
   await assert.rejects(() => publish({ env: { ...env, OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID: '' }, fetchImpl: store.fetchImpl }), /PRODUCTION_RELEASE_ENV_IDENTITY_INVALID/);
+  await assert.rejects(() => publish({ env: { ...env, OPSC_PRODUCTION_DATABASE_NAME: '' }, fetchImpl: store.fetchImpl }), /PRODUCTION_RELEASE_ENV_IDENTITY_INVALID/);
   await publish({ env, fetchImpl: store.fetchImpl });
   assert.equal(store.items.some(x => x.key === 'OPSC_PRODUCTION_ISOLATION_CERTIFICATION'), false,
     'the legacy text certification flag must not be published');
   assert.equal(store.items.find(x => x.key === 'OPSC_RELEASE_VERIFIED').value, 'true');
   assert.equal(store.items.find(x => x.key === 'OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID').value, 'dpl_Production123');
+  assert.equal(store.items.find(x => x.key === 'OPSC_PRODUCTION_DATABASE_NAME').value, 'opscore_acceptance');
   assert.equal(store.items.find(x => x.key === 'OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED').value, 'true');
   assert.equal(store.items.some(x => x.key === 'OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN'), false);
 });
