@@ -13,7 +13,7 @@ The package contains a web operations console, HTTP API and Expo Android/iOS sou
 
 ## Contact Center and translation
 
-The Contact Center locale runtime includes 114 resources, selector, loader, RTL support, safe rendering, fallbacks and a visible AI/machine-translation notice. Four CI structural/forensic rounds are run. Coverage: 1 English source, 109 machine-assisted drafts, 4 English fallbacks, 89 keys/locale. Native-speaker reviewed = 0/114; production-qualified = 0/114. This is not linguistic certification.
+The Contact Center locale runtime exposes 105 selectable locales with selector, loader, RTL support, safe rendering, fallbacks and a visible AI/machine-translation notice. The separate qualification register contains 114 source rows, including 9 withdrawn locale codes. Runtime coverage: 1 English source, 100 machine-assisted drafts, 4 English fallbacks and 89 keys per locale. Native-speaker reviewed = 0/114 source rows; production-qualified = 0/105 selectable runtime locales. This is not linguistic certification.
 
 ## Buyer responsibility — external providers
 

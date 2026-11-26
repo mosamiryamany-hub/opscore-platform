@@ -54,7 +54,7 @@ test('commercial closeout documents agree on candidate identity and certificatio
         /NO LICENSE GRANT|NO COMMERCIAL LICENSE/i.test(doc),
       'doc must keep a clear certification boundary'
     );
-    assert.ok(doc.includes('security/mobile-dependency-remediation-2026-11-01') || /PASS_WITH_BUYER_RESIDUALS|source commit|4ef126/i.test(doc));
+    assert.ok(doc.includes('security/mobile-dependency-remediation-2026-11-01') || /PASS_WITH_BUYER_RESIDUALS|source commit|sourceCommit|source_commit|4ef126/i.test(doc));
     assert.match(doc, /buyer|customer/i);
     assert.match(doc, /translation|ترجمة/i);
     assert.match(doc, /mobile|الهاتف/i);
@@ -242,19 +242,28 @@ test('GitHub verification and production pre-deploy jobs validate recorded relea
 
 });
 
+test('secure release signature identity is bound to the exact GitHub ref', () => {
+  const workflow = read('.github/workflows/opscore-secure-release.yml');
+  assert.match(workflow, /EXPECTED_IDENTITY:\s*"https:\/\/github\.com\/\$\{\{\s*github\.repository\s*\}\}\/\.github\/workflows\/opscore-secure-release\.yml@\$\{\{\s*github\.ref\s*\}\}"/);
+  assert.doesNotMatch(workflow, /EXPECTED_IDENTITY:.*@refs\/heads\/main/);
+});
 
-test('commercial release grants no license and forbids distribution pending rights decision', () => {
+
+test('commercial release remains unlicensed by default without blocking buyer acquisition', () => {
   const notice = read('NO_LICENSE_GRANT_NOTICE.txt');
   const buyer = read('BUYER_DELIVERY.md');
   const closure = read('COMMERCIAL_CLOSURE_STATUS.md');
   const manifest = read('DELIVERY_MANIFEST.md');
   const packageBuilder = read('scripts/package-release.js');
   assert.equal(fs.existsSync(path.join(root, 'PROPRIETARY_LICENSE.txt')), false);
-  for (const doc of [notice, buyer, closure, manifest]) {
+  assert.match(notice, /NO LICENSE GRANT/i);
+  assert.match(notice, /no pre-sale signature or separate License Schedule is required/i);
+  assert.match(notice, /accepted buyer-specific offer, order, contract or equivalent transaction record/i);
+  assert.match(notice, /A separate License Schedule is optional/i);
+  for (const doc of [buyer, closure, manifest]) {
     assert.match(doc, /NO LICENSE GRANT/i);
-    assert.match(doc, /rights holder/i);
-    assert.match(doc, /signed/i);
   }
+  assert.doesNotMatch(notice, /until the rights holder and that named buyer execute/i);
   assert.match(packageBuilder, /licenseGrant: 'NONE_PENDING_RIGHTS_HOLDER_DECISION'/);
   assert.match(packageBuilder, /distributionAuthorized: false/);
   assert.match(packageBuilder, /NO LICENSE GRANT/);
@@ -309,7 +318,7 @@ test('handover docs do not advertise a bundled proprietary or use-only license f
   }
 });
 
-test('seller offer may be marketed before buyer identification while buyer rights and delivery remain gated', () => {
+test('seller offer is open for acquisition without a pre-sale License Schedule gate', () => {
   const sellerDocs = [
     read('COMMERCIAL_CLOSURE_STATUS.md'),
     read('COMMERCIAL_RELEASE_STATUS.md'),
@@ -320,26 +329,29 @@ test('seller offer may be marketed before buyer identification while buyer right
   ];
   for (const doc of sellerDocs) {
     assert.match(doc, /OPEN FOR MARKETING|may (?:advertise|publish|market)|may be advertised|offer may be prepared/i);
-    assert.match(doc, /License Schedule|NO LICENSE GRANT/i);
+    assert.match(doc, /transaction terms|accepted buyer-specific offer|NO LICENSE GRANT/i);
   }
 
   const notice = read('NO_LICENSE_GRANT_NOTICE.txt');
   assert.match(notice, /before a buyer is identified/i);
-  assert.match(notice, /until the rights holder and that named buyer execute/i);
-  assert.match(notice, /pins the exact deliverable/i);
+  assert.match(notice, /no pre-sale signature or separate License Schedule is required/i);
+  assert.match(notice, /accepted buyer-specific offer, order, contract or equivalent transaction record/i);
+  assert.match(notice, /A separate License Schedule is optional/i);
 
   const buyerDelivery = read('BUYER_DELIVERY.md');
   assert.match(buyerDelivery, /Delivery status: HOLD/);
-  assert.match(buyerDelivery, /NO BUYER LICENSE GRANT \/ NO DELIVERY BEFORE EXECUTED SCHEDULE/);
+  assert.doesNotMatch(buyerDelivery, /NO DELIVERY BEFORE EXECUTED SCHEDULE/);
   assert.match(buyerDelivery, /Seller advertising, listings, demonstrations and negotiations may happen before a buyer is known/i);
+  assert.match(buyerDelivery, /accepted buyer-specific offer\/order\/contract records the exact deliverable/i);
 
   const closeout = read('docs/commercial/REMAINING_CLOSEOUT_CHECKLIST.md');
-  assert.match(closeout, /A named buyer, buyer signature, buyer-specific legal review, payment, or transaction schedule is \*\*not\*\* a prerequisite/i);
+  assert.match(closeout, /without a pre-sale signature or separate License Schedule/i);
   assert.match(closeout, /Transaction boundary — explicitly outside product closeout/);
-  assert.match(closeout, /required before granting the buyer licensed use or delivery rights/);
+  assert.match(closeout, /accepted buyer-specific offer\/order\/contract records the exact released commit/i);
+  assert.doesNotMatch(closeout, /required before granting the buyer licensed use or delivery rights/i);
   assert.doesNotMatch(closeout, /- \[ \] First signed License Schedule with a named buyer/i);
 
   const gate = read('backend/scripts/release-hardening-gate.js');
-  assert.match(gate, /do not grant a buyer any rights/i);
-  assert.match(gate, /pins the exact deliverable/i);
+  assert.match(gate, /no pre-sale signature or separate License Schedule is required/i);
+  assert.match(gate, /accepted buyer-specific offer, order, contract or equivalent transaction record/i);
 });

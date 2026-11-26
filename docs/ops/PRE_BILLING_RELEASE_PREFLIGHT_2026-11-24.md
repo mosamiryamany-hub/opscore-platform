@@ -95,7 +95,7 @@ Refresh the inventory before any cleanup. Delete only after verifying no open PR
 ## 8. Buyer-owned residuals — unchanged
 
 - Android/iOS signing, native builds, physical-device QA and app-store publication.
-- Native-speaker translation review: 0/114 locales.
+- Native-speaker translation review: 0/114 source-language qualification rows; production qualification: 0/105 selectable runtime locales.
 - Licensed maps, road-routing, provider accounts/credentials, attribution, quotas and buyer acceptance.
 - Buyer-specific legal identity, pricing, tax, refunds and legal terms.
 - Rights-holder decision and signed License Schedule for any use/distribution/resale/IP rights.

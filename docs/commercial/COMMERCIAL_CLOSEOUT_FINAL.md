@@ -41,7 +41,7 @@ The available production evidence remains insufficient to establish that this so
 
 No independent ISO/IEC 27001, SOC 2, PCI DSS, penetration-test certificate, or equivalent current certification was found in the reviewed evidence. Do not use certification logos or imply external approval without original, scope-matched documentation.
 
-The owner specified 30 days of support, maintenance, and updates. The start date, response targets, covered defect definition, exclusions, and update boundaries remain unapproved contract terms; do not present them as a binding SLA until recorded in the executed license schedule. Legal entity, jurisdiction, privacy, sales, and refund terms also require owner-approved facts and legal review; do not invent them.
+The owner specified 30 days of support, maintenance, and updates. The start date, response targets, covered defect definition, exclusions, and update boundaries remain unapproved contract terms; do not present them as a binding SLA until included in the accepted buyer-specific offer/order/contract. A separate License Schedule is optional. Legal entity, jurisdiction, privacy, sales, and refund terms also require owner-approved facts and legal review; do not invent them.
 
 ## Required before qualified delivery
 

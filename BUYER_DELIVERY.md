@@ -1,16 +1,16 @@
 # OpsCore — Buyer Delivery Boundary
 
-**Delivery status: HOLD — NO BUYER LICENSE GRANT / NO DELIVERY BEFORE EXECUTED SCHEDULE.**  
+**Delivery status: HOLD — exact-head release archive and provider-neutral self-hosted Production qualification are not established.**  
 **NO LICENSE GRANT — ALL RIGHTS RESERVED.**
 **Self-hosted production: BLOCKED — NOT QUALIFIED.**
 
-This repository, any deployment, checksum, SBOM, test report, attestation or generated archive does not grant permission to access, use, install, run, inspect, copy, modify, host, publish, distribute, sell, resell, sublicense, rent, transfer or commercially exploit the software. The root `NO_LICENSE_GRANT_NOTICE.txt` remains controlling. Delivery and buyer use require a written License Schedule executed and signed by the rights holder and the named buyer for the exact deliverable.
+This repository, any deployment, checksum, SBOM, test report, attestation or generated archive does not itself grant buyer rights. The root `NO_LICENSE_GRANT_NOTICE.txt` remains controlling. Marketing, demonstrations, buyer discovery and negotiation are open without a pre-sale signature or separate License Schedule. If a purchase proceeds, the accepted buyer-specific offer/order/contract records the exact deliverable and the permitted rights, restrictions and commercial terms.
 
-Seller advertising, listings, demonstrations and negotiations may happen before a buyer is known. These activities do not grant buyer rights or authorize delivery.
+Seller advertising, listings, demonstrations and negotiations may happen before a buyer is known. These activities do not require a signed agreement and do not themselves grant buyer rights.
 
 ## Intended delivery model
 
-The proposed edition is source code for deployment on infrastructure controlled by the buyer. It is not a hosted subscription. Seller Vercel/Neon accounts, domains, production databases, customer records, provider credentials, cloud accounts and operational service are excluded unless a separate signed agreement explicitly includes them.
+The proposed edition is source code for deployment on infrastructure controlled by the buyer. It is not a hosted subscription. Seller Vercel/Neon accounts, domains, production databases, customer records, provider credentials, cloud accounts and operational service are excluded unless the accepted buyer-specific transaction terms explicitly include them.
 
 **The current code is not yet qualified for provider-neutral self-hosted production.** A separate Ed25519 self-hosted operator-attestation mode is now available on the existing release verification endpoint; signed-tenant context is still Vercel-gated and PostgreSQL migration identity remains Neon-specific. See [Self-Hosted Buyer Edition](docs/commercial/SELF_HOSTED_BUYER_EDITION_2026-11-24.md).
 
@@ -55,6 +55,6 @@ Seller-reference CI is not buyer-environment acceptance. A buyer deployment requ
 
 ## Rights and resale
 
-Package metadata remains `UNLICENSED`. L1/L2/L3 in `docs/commercial/LICENSE_FRAMEWORK.md` are negotiation options, not grants. Internal-use rights, modification, third-party hosting, OEM, source redistribution, resale and sublicensing are distinct rights. Any redistribution/resale right must be expressly selected in a signed Schedule. No such right is granted by this repository.
+Package metadata remains `UNLICENSED`. L1/L2/L3 in `docs/commercial/LICENSE_FRAMEWORK.md` are negotiation options, not grants. Internal-use rights, modification, third-party hosting, OEM, source redistribution, resale and sublicensing are distinct rights. Any redistribution/resale right must be expressly stated in the accepted buyer-specific transaction terms. No such right is implied by this repository. A separate License Schedule is optional, not a pre-sale requirement.
 
-**NO BUYER DELIVERY OR USE BEFORE EXECUTED LICENSE SCHEDULE.**
+**Buyer evaluation and commercial discussion are open. Any actual buyer rights are defined by the accepted transaction terms; technical qualification remains separately disclosed.**
