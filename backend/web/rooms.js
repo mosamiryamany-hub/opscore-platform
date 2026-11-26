@@ -95,23 +95,8 @@
     drawer.setAttribute('aria-hidden', 'true');
   }
 
-  // load bars (decorative, derived from the declared data-load attribute)
-  Array.prototype.forEach.call(doc.querySelectorAll('[data-bars]'), node => {
-    const pct = Math.max(6, Math.min(100, Number(node.getAttribute('data-bars')) || 40));
-    const bars = 16;
-    for (let i = 0; i < bars; i++) {
-      const b = doc.createElement('i');
-      const h = 22 + ((pct / 100) * 70) * (0.45 + 0.55 * Math.abs(Math.sin((i + 1) * 0.9)));
-      b.style.height = h.toFixed(1) + '%';
-      node.appendChild(b);
-    }
-  });
-
-  // rings
+  // Each card opens a domain brief. No synthetic load/risk values are rendered.
   Array.prototype.forEach.call(doc.querySelectorAll('.room'), card => {
-    const ring = card.querySelector('.ring');
-    const pct = Number(card.getAttribute('data-load')) || 0;
-    if (ring) ring.style.setProperty('--p', String(pct));
     const name = card.querySelector('.room__name');
     const key = card.getAttribute('data-room');
     const fire = () => open(key, name ? name.textContent.trim() : key);
