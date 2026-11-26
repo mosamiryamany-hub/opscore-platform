@@ -101,3 +101,29 @@ Do **not** state “ISO certified”, “SOC 2 compliant/attested”, “PCI DSS
 
 **Register owner:** seller engineering/compliance owner to be assigned.  
 **Next review trigger:** every source release, material infrastructure change, new external provider, security incident, or formal auditor request.
+
+
+## 8. Additional exact-run evidence — PR verification on 2026-11-26
+
+A subsequent verification run completed after this register was drafted:
+
+| Evidence | Result | Exact boundary |
+|---|---|---|
+| PR verification workflow | PASS — scoped | Run [45766400205](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45766400205); source verification, backend regression, provenance checks, dependency audit, per-route contract acceptance, and isolated PostgreSQL 18 acceptance jobs completed successfully. |
+| Signed-tenant route matrix | PASS — disposable PostgreSQL 18 CI only | 67/67 routes passed; 0 failed. Every route in the artifact reports signed context, session and transaction binding, raw-GUC tamper rejection, and the relevant cross-tenant denial. |
+| CI route artifact | PASS — integrity | Artifact ID `15091573314`, name `signed-tenant-postgres-18-ci-coverage-45766400205`; ZIP SHA-256 `cf69681532478694248097816bc1002a6cdff1f9f4bb50d590a414a58fd52b8a`. |
+| Inner route evidence JSON | PASS — integrity | `SIGNED_TENANT_CONTEXT_CI_ROUTE_COVERAGE.json`; SHA-256 `f3ad24d406a82508baeb337f9292f860676683cc2e0df95c012de8eedf284a66`; its included SHA-256 sidecar matched. |
+| Evidence identity and scope | CI ONLY | `environment=ci`, `databaseName=opscore_http_acceptance`, `sourceCommitHint=fee86002bd33bb7cd8cd00fef2bd3bebb073ed79`, `pipelineId=45766400205`; both `parentBranchId` and `deploymentId` are null. `productionCertification=false` and `productionPromotionPerformed=false`. |
+
+**Interpretation:** this adds a current 67/67 signed-tenant route PASS for isolated PostgreSQL 18 CI. It does not upgrade the Production 67-route gate, does not bind the evidence to Vercel deployment `dpl_8d3hLSPA1kTfdLtbLQsT9tHHmkbZ` or to any production deployment, and does not certify Production tenant isolation.
+
+## 9. Live deployment identity checked after the CI run
+
+The Vercel project API was queried again on 2026-11-26:
+
+- The personal Preview deployment `dpl_8d3hLSPA1kTfdLtbLQsT9tHHmkbZ` is `READY`, has `target=null`, and is sourced from Vercel Git metadata for `main` at `54bfa1db445b67f8b2ec947bc7bb5a497276f2a1`.
+- The Preview's reported source method is Git metadata, not an embedded GitHub Actions CLI release identity. The live release-proof endpoint therefore correctly refuses to assert an embedded CI identity for that deployment.
+- The production alias `opscore-platform.vercel.app` resolves separately to deployment `dpl_7WTatJvuSwiBEVoMdZSMHT1skHpS`, whose Vercel target is `production`. It is not the Preview deployment above.
+
+No deployment was promoted, no production alias was changed, and no Neon Production state was mutated during this verification. The Preview proof must remain `NOT_VERIFIED` for Production qualification. The intended final Production binding still requires the protected release/deploy workflow and the final deployment-binding workflow to validate the exact successful release, candidate-route artifact, and final production deployment ID together.
+
