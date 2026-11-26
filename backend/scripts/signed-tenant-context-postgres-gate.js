@@ -495,6 +495,110 @@ async function candidateDatabaseUrl(roleName, config) {
   return connectionString;
 }
 
+async function queryProtectedDeployment(target, method, headers, body, timeoutMs = 15000, options = {}) {
+  if (typeof options.fetchImpl === 'function') {
+    const response = await options.fetchImpl(target, {
+      method,
+      headers,
+      body,
+      redirect: 'manual',
+      signal: AbortSignal.timeout(Number(timeoutMs) > 0 ? Number(timeoutMs) : 15000)
+    });
+    const responseBody = Buffer.from(await response.text(), 'utf8');
+    if (responseBody.length > 1024 * 1024) throw new Error('CANDIDATE_HTTP_RESPONSE_TOO_LARGE');
+    return {
+      status: response.status,
+      headers: Object.fromEntries(response.headers.entries()),
+      body: responseBody
+    };
+  }
+  return new Promise((resolve, reject) => {
+    const timeoutSeconds = Math.max(1, Math.ceil(Number(timeoutMs) / 1000));
+    const args = [
+      'curl',
+      target.toString(),
+      '-sS',
+      '-i',
+      '--max-time',
+      String(timeoutSeconds),
+      '-X',
+      String(method || 'GET').toUpperCase()
+    ];
+    for (const [key, value] of Object.entries(headers || {})) {
+      args.push('-H', String(key) + ': ' + String(value));
+    }
+    if (body !== undefined) args.push('--data-binary', String(body));
+
+    const child = spawn('vercel', args, {
+      cwd: process.cwd(),
+      env: process.env,
+      stdio: ['ignore', 'pipe', 'pipe']
+    });
+    const chunks = [];
+    let totalBytes = 0;
+    let stderr = '';
+    let settled = false;
+    const fail = error => {
+      if (settled) return;
+      settled = true;
+      reject(error);
+    };
+    child.stdout.on('data', chunk => {
+      totalBytes += chunk.length;
+      if (totalBytes > 2 * 1024 * 1024) {
+        child.kill('SIGKILL');
+        fail(new Error('CANDIDATE_HTTP_RESPONSE_TOO_LARGE'));
+        return;
+      }
+      chunks.push(Buffer.from(chunk));
+    });
+    child.stderr.on('data', chunk => {
+      stderr = (stderr + chunk.toString('utf8')).slice(-4000);
+    });
+    child.on('error', error => fail(new Error('VERCEL_PROTECTED_CURL_UNAVAILABLE:' + String(error.code || error.message || error).slice(0, 200))));
+    child.on('close', code => {
+      if (settled) return;
+      if (code !== 0) {
+        fail(new Error('VERCEL_PROTECTED_CURL_FAILED:' + String(code) + ':' + stderr.trim().slice(-500)));
+        return;
+      }
+      const output = Buffer.concat(chunks);
+      const statusStart = output.indexOf(Buffer.from('HTTP/'));
+      if (statusStart < 0) {
+        fail(new Error('VERCEL_PROTECTED_CURL_HTTP_HEADERS_MISSING:' + stderr.trim().slice(-300)));
+        return;
+      }
+      const headerEnd = output.indexOf(Buffer.from('\r\n\r\n'), statusStart);
+      if (headerEnd < 0) {
+        fail(new Error('VERCEL_PROTECTED_CURL_HEADER_TERMINATOR_MISSING'));
+        return;
+      }
+      const headerText = output.subarray(statusStart, headerEnd).toString('utf8');
+      const lines = headerText.split('\r\n');
+      const statusMatch = lines.shift().match(/^HTTP\/\S+\s+(\d{3})/);
+      if (!statusMatch) {
+        fail(new Error('VERCEL_PROTECTED_CURL_STATUS_INVALID'));
+        return;
+      }
+      const responseHeaders = {};
+      for (const line of lines) {
+        const separator = line.indexOf(':');
+        if (separator <= 0) continue;
+        const key = line.slice(0, separator).trim().toLowerCase();
+        const value = line.slice(separator + 1).trim();
+        responseHeaders[key] = responseHeaders[key] ? responseHeaders[key] + ', ' + value : value;
+      }
+      const responseBody = output.subarray(headerEnd + 4);
+      if (responseBody.length > 1024 * 1024) {
+        fail(new Error('CANDIDATE_HTTP_RESPONSE_TOO_LARGE'));
+        return;
+      }
+      settled = true;
+      resolve({ status: Number(statusMatch[1]), headers: responseHeaders, body: responseBody });
+    });
+  });
+}
+
 async function queryHttp(port, route, token, options = {}) {
   const method = String(options.method || 'GET').toUpperCase();
   const hasBody = options.body !== undefined;
@@ -525,18 +629,16 @@ async function queryHttp(port, route, token, options = {}) {
     if (target.origin !== port || !target.pathname.startsWith('/api/')) {
       throw new Error('CANDIDATE_HTTP_ROUTE_ORIGIN_INVALID');
     }
-    const response = await fetch(target, {
+    const response = await queryProtectedDeployment(
+      target,
       method,
       headers,
-      body: hasBody ? requestBody : undefined,
-      redirect: 'manual',
-      signal: AbortSignal.timeout(Number(options.timeoutMs) > 0 ? Number(options.timeoutMs) : 15000)
-    });
-    const responseHeaders = Object.fromEntries(response.headers.entries());
-    const responseBody = await response.text();
-    if (Buffer.byteLength(responseBody, 'utf8') > 1024 * 1024) {
-      throw new Error('CANDIDATE_HTTP_RESPONSE_TOO_LARGE');
-    }
+      hasBody ? requestBody : undefined,
+      Number(options.timeoutMs) > 0 ? Number(options.timeoutMs) : 15000,
+      options
+    );
+    const responseHeaders = response.headers;
+    const responseBody = response.body.toString('utf8');
     let parsed = null;
     try { parsed = responseBody ? JSON.parse(responseBody) : null; } catch (_) {}
     const manifestRoute = findSignedTenantManifestRoute(method, target.pathname);
@@ -596,15 +698,8 @@ async function queryHttpBytes(port, route, token) {
     if (target.origin !== port || !target.pathname.startsWith('/api/')) {
       throw new Error('CANDIDATE_BINARY_HTTP_ROUTE_ORIGIN_INVALID');
     }
-    const response = await fetch(target, {
-      method: 'GET',
-      headers,
-      redirect: 'manual',
-      signal: AbortSignal.timeout(15000)
-    });
-    const bytes = Buffer.from(await response.arrayBuffer());
-    if (bytes.length > 1024 * 1024) throw new Error('CANDIDATE_BINARY_HTTP_RESPONSE_TOO_LARGE');
-    return { status: response.status, headers: Object.fromEntries(response.headers.entries()), body: bytes };
+    const response = await queryProtectedDeployment(target, 'GET', headers, undefined, 15000);
+    return { status: response.status, headers: response.headers, body: response.body };
   }
 
   return new Promise((resolve, reject) => {
