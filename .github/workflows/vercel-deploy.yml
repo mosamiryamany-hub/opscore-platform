@@ -475,7 +475,7 @@ jobs:
           output="$RUNNER_TEMP/vercel-candidate-deployment-url.txt"
           vercel deploy --prebuilt --prod --skip-domain --token=${{ secrets.VERCEL_TOKEN }} > "$output"
           deployment_url="$(cat "$output" | tail -n 1 | tr -d '\r')"
-          [[ "$deployment_url" =~ ^https://opscore-platform-[a-z0-9-]+-mosamiryamany-1692\.vercel\.app$ ]] || {
+          [[ "$deployment_url" =~ ^https://opscore-platform-[a-z0-9-]+-fiber-nexus1\.vercel\.app$ ]] || {
             echo "CANDIDATE_DEPLOYMENT_URL_NOT_UNALIASED" >&2; exit 1;
           }
           echo "url=$deployment_url" >> "$GITHUB_OUTPUT"
@@ -496,7 +496,7 @@ jobs:
           (async () => {
             const url = new URL(process.env.CANDIDATE_URL || '');
             if (url.protocol !== 'https:' ||
-                !/^opscore-platform-[a-z0-9-]+-mosamiryamany-1692\.vercel\.app$/.test(url.hostname)) {
+                !/^opscore-platform-[a-z0-9-]+-fiber-nexus1\.vercel\.app$/.test(url.hostname)) {
               throw new Error('CANDIDATE_DEPLOYMENT_HOST_NOT_APPROVED');
             }
             const teamId = String(process.env.VERCEL_ORG_ID || '').trim();
@@ -921,7 +921,7 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_SCOPE: mosamiryamany-1692
+          VERCEL_SCOPE: fiber-nexus1
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_TRUSTED_OIDC_TOKEN: ${{ steps.vercel_oidc_runtime_preflight.outputs.token }}
           OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN: ${{ steps.prepare_candidate_env.outputs.probe_token }}
@@ -956,7 +956,7 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-          VERCEL_TEAM_ID: team_xysgxd2E3CsVIYklf0nxOKop
+          VERCEL_TEAM_ID: team_rij5nkIOEVdLlpo8xvUMHsKr
           VERCEL_RELEASE_ATTESTATION_ENV_ID: 1sphg8KoPHgOIBP1
         run: |
           set -euo pipefail
@@ -1254,7 +1254,7 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_SCOPE: mosamiryamany-1692
+          VERCEL_SCOPE: fiber-nexus1
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_TRUSTED_OIDC_TOKEN: ${{ steps.vercel_oidc.outputs.token }}
       - name: Promote only the verified staged deployment
@@ -1282,7 +1282,7 @@ jobs:
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-          VERCEL_SCOPE: mosamiryamany-1692
+          VERCEL_SCOPE: fiber-nexus1
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_TRUSTED_OIDC_TOKEN: ${{ steps.vercel_oidc_domain.outputs.token }}
 
