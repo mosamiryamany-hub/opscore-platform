@@ -14,6 +14,7 @@ const {
   registerCandidateSessionToken,
   getCandidateRouteObservations,
   recordCandidateRouteObservation,
+  buildVercelCurlArgs,
   queryHttp
 } = require('../scripts/signed-tenant-context-postgres-gate');
 
@@ -37,6 +38,33 @@ const BASE = {
   OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED: 'false',
   OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED: 'false'
 };
+
+test('Vercel protected curl arguments are separated from Vercel CLI options', () => {
+  const args = buildVercelCurlArgs(
+    new URL('https://opscore-platform-candidate123-fiber-nexus1.vercel.app/api/v1/customers'),
+    'post',
+    { Authorization: 'Bearer test-token', 'Content-Type': 'application/json' },
+    '{"id":1}',
+    15
+  );
+  assert.deepEqual(args, [
+    'curl',
+    'https://opscore-platform-candidate123-fiber-nexus1.vercel.app/api/v1/customers',
+    '--',
+    '-sS',
+    '-i',
+    '--max-time',
+    '15',
+    '-X',
+    'POST',
+    '-H',
+    'Authorization: Bearer test-token',
+    '-H',
+    'Content-Type: application/json',
+    '--data-binary',
+    '{"id":1}'
+  ]);
+});
 
 test('candidate origin accepts only an HTTPS unaliased Vercel deployment for this project/team', () => {
   assert.equal(

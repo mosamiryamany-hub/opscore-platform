@@ -495,6 +495,25 @@ async function candidateDatabaseUrl(roleName, config) {
   return connectionString;
 }
 
+function buildVercelCurlArgs(target, method, headers, body, timeoutSeconds) {
+  const args = [
+    'curl',
+    target.toString(),
+    '--',
+    '-sS',
+    '-i',
+    '--max-time',
+    String(timeoutSeconds),
+    '-X',
+    String(method || 'GET').toUpperCase()
+  ];
+  for (const [key, value] of Object.entries(headers || {})) {
+    args.push('-H', String(key) + ': ' + String(value));
+  }
+  if (body !== undefined) args.push('--data-binary', String(body));
+  return args;
+}
+
 async function queryProtectedDeployment(target, method, headers, body, timeoutMs = 15000, options = {}) {
   if (typeof options.fetchImpl === 'function') {
     const response = await options.fetchImpl(target, {
@@ -514,20 +533,7 @@ async function queryProtectedDeployment(target, method, headers, body, timeoutMs
   }
   return new Promise((resolve, reject) => {
     const timeoutSeconds = Math.max(1, Math.ceil(Number(timeoutMs) / 1000));
-    const args = [
-      'curl',
-      target.toString(),
-      '-sS',
-      '-i',
-      '--max-time',
-      String(timeoutSeconds),
-      '-X',
-      String(method || 'GET').toUpperCase()
-    ];
-    for (const [key, value] of Object.entries(headers || {})) {
-      args.push('-H', String(key) + ': ' + String(value));
-    }
-    if (body !== undefined) args.push('--data-binary', String(body));
+    const args = buildVercelCurlArgs(target, method, headers, body, timeoutSeconds);
 
     const child = spawn('vercel', args, {
       cwd: process.cwd(),
@@ -5476,6 +5482,7 @@ module.exports = {
   recordCandidateRouteObservation,
   validateCandidateProbeEnvironment,
   requireLocalAcceptanceUrl,
+  buildVercelCurlArgs,
   queryHttp,
   candidateDatabaseUrl,
   validateCandidateRuntimeProofs,

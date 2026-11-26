@@ -1,9 +1,9 @@
 {
   "schemaVersion": "opscore.red-team-transaction-audit.v2",
   "scope": "pre-infrastructure-static-independent",
-  "generatedAt": "2026-11-21T22:47:33.908Z",
+  "generatedAt": "2026-11-26T16:15:00.309Z",
   "checks": {
-    "sourceFiles": 75,
+    "sourceFiles": 78,
     "mutationRoutes": 33,
     "unwrappedMutationRoutes": 0,
     "reviewedMutationRouteContracts": 5,
@@ -15,36 +15,36 @@
     {
       "id": "portal_self_schedule_booking",
       "verified": true,
-      "startLine": 1639,
-      "endLine": 1650,
+      "startLine": 1652,
+      "endLine": 1663,
       "missing": []
     },
     {
       "id": "customer_service_line_assignment",
       "verified": true,
-      "startLine": 3332,
-      "endLine": 3342,
+      "startLine": 3345,
+      "endLine": 3355,
       "missing": []
     },
     {
       "id": "geofence_create",
       "verified": true,
-      "startLine": 3356,
-      "endLine": 3364,
+      "startLine": 3369,
+      "endLine": 3377,
       "missing": []
     },
     {
       "id": "geofence_technician_assignment",
       "verified": true,
-      "startLine": 3364,
-      "endLine": 3374,
+      "startLine": 3377,
+      "endLine": 3387,
       "missing": []
     },
     {
       "id": "geofence_dynamic_event",
       "verified": true,
-      "startLine": 3388,
-      "endLine": 3396,
+      "startLine": 3401,
+      "endLine": 3409,
       "missing": []
     }
   ],
