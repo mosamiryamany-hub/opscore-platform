@@ -495,7 +495,23 @@ async function candidateDatabaseUrl(roleName, config) {
   return connectionString;
 }
 
-async function queryProtectedDeployment(target, method, headers, body, timeoutMs = 15000) {
+async function queryProtectedDeployment(target, method, headers, body, timeoutMs = 15000, options = {}) {
+  if (typeof options.fetchImpl === 'function') {
+    const response = await options.fetchImpl(target, {
+      method,
+      headers,
+      body,
+      redirect: 'manual',
+      signal: AbortSignal.timeout(Number(timeoutMs) > 0 ? Number(timeoutMs) : 15000)
+    });
+    const responseBody = Buffer.from(await response.text(), 'utf8');
+    if (responseBody.length > 1024 * 1024) throw new Error('CANDIDATE_HTTP_RESPONSE_TOO_LARGE');
+    return {
+      status: response.status,
+      headers: Object.fromEntries(response.headers.entries()),
+      body: responseBody
+    };
+  }
   return new Promise((resolve, reject) => {
     const timeoutSeconds = Math.max(1, Math.ceil(Number(timeoutMs) / 1000));
     const args = [
@@ -618,7 +634,8 @@ async function queryHttp(port, route, token, options = {}) {
       method,
       headers,
       hasBody ? requestBody : undefined,
-      Number(options.timeoutMs) > 0 ? Number(options.timeoutMs) : 15000
+      Number(options.timeoutMs) > 0 ? Number(options.timeoutMs) : 15000,
+      options
     );
     const responseHeaders = response.headers;
     const responseBody = response.body.toString('utf8');
