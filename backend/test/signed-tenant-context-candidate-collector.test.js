@@ -75,13 +75,12 @@ test('candidate probe configuration requires Production plus an active hold and 
 });
 
 test('remote candidate HTTP requests carry the tenant probe token and Vercel Trusted OIDC token', async () => {
-  const previousFetch = global.fetch;
   const previousToken = process.env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN;
   const previousOidc = process.env.VERCEL_TRUSTED_OIDC_TOKEN;
   let observed = null;
   process.env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN = BASE.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN;
   process.env.VERCEL_TRUSTED_OIDC_TOKEN = BASE.VERCEL_TRUSTED_OIDC_TOKEN;
-  global.fetch = async (url, options) => {
+  const fetchImpl = async (url, options) => {
     observed = { url: String(url), options };
     return {
       status: 200,
@@ -94,7 +93,7 @@ test('remote candidate HTTP requests carry the tenant probe token and Vercel Tru
       'https://opscore-platform-candidate123-mosamiryamany-1692.vercel.app',
       '/api/v1/customers',
       'synthetic-session-token',
-      { method: 'GET' }
+      { method: 'GET', fetchImpl }
     );
     assert.equal(result.status, 200);
     assert.equal(result.body.ok, true);
@@ -105,7 +104,6 @@ test('remote candidate HTTP requests carry the tenant probe token and Vercel Tru
     assert.equal(observed.options.headers['x-vercel-trusted-oidc-idp-token'], BASE.VERCEL_TRUSTED_OIDC_TOKEN);
     assert.equal(observed.options.redirect, 'manual');
   } finally {
-    global.fetch = previousFetch;
     if (previousToken === undefined) delete process.env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN;
     else process.env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN = previousToken;
     if (previousOidc === undefined) delete process.env.VERCEL_TRUSTED_OIDC_TOKEN;
@@ -326,12 +324,11 @@ test('candidate route matcher recognises exact manifest method and parameterized
 });
 
 test('remote candidate manifest route requires explicit confirmation that GUC tampering executed', async () => {
-  const previousFetch = global.fetch;
   const previousToken = process.env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN;
   const previousOidc = process.env.VERCEL_TRUSTED_OIDC_TOKEN;
   process.env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN = BASE.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN;
   process.env.VERCEL_TRUSTED_OIDC_TOKEN = BASE.VERCEL_TRUSTED_OIDC_TOKEN;
-  global.fetch = async () => ({
+  const fetchImpl = async () => ({
     status: 200,
     headers: { entries: () => [['content-type', 'application/json']] },
     text: async () => JSON.stringify([{ id: 'tenant-a-row' }])
@@ -341,12 +338,12 @@ test('remote candidate manifest route requires explicit confirmation that GUC ta
       queryHttp(
         'https://opscore-platform-candidate123-mosamiryamany-1692.vercel.app',
         '/api/v1/customers',
-        'synthetic-session-token'
+        'synthetic-session-token',
+        { fetchImpl }
       ),
       /CANDIDATE_GUC_TAMPER_NOT_CONFIRMED/
     );
   } finally {
-    global.fetch = previousFetch;
     if (previousToken === undefined) delete process.env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN;
     else process.env.OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN = previousToken;
     if (previousOidc === undefined) delete process.env.VERCEL_TRUSTED_OIDC_TOKEN;
