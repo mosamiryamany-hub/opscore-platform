@@ -78,6 +78,9 @@ function existingSeedState(db) {
 
   const organization = db.prepare('SELECT id,name FROM organizations WHERE name=?').get(EXPECTED.organizationName);
   const users = db.prepare('SELECT id,email FROM users WHERE email IN (?,?,?,?) ORDER BY email').all(...ACCOUNT_SPECS.map(x => x.email));
+  const roleRows = organization ? db.prepare('SELECT u.email,m.role FROM users u JOIN memberships m ON m.user_id=u.id WHERE m.organization_id=?').all(organization.id) : [];
+  const roleMap = new Map(roleRows.map(row => [row.email, row.role]));
+  const rolesMatch = ACCOUNT_SPECS.every(spec => roleMap.get(spec.email) === spec.role);
   const customer = db.prepare("SELECT id,external_ref FROM customers WHERE external_ref='DEMO-CUST-001'").get();
   const site = db.prepare("SELECT id,external_ref FROM sites WHERE external_ref='DEMO-SITE-001'").get();
   const asset = db.prepare("SELECT id,external_ref FROM assets WHERE external_ref='DEMO-ASSET-001'").get();
@@ -93,6 +96,8 @@ function existingSeedState(db) {
     counts.workOrders === 1 &&
     Boolean(organization) &&
     users.length === 4 &&
+    roleRows.length === 4 &&
+    rolesMatch &&
     Boolean(customer) &&
     Boolean(site) &&
     Boolean(asset) &&
@@ -162,57 +167,80 @@ async function main() {
 
     const existing = existingSeedState(db);
     if (existing.state === 'ALREADY_SEEDED_VERIFIED') {
-      // Each workflow run generates fresh one-time passwords. Rotate the
-      // already-seeded synthetic accounts to those exact credentials before
-      // running the Neon-backed HTTP acceptance.
-      db.setSession({
-        tenantId: existing.organizationId,
-        userId: existing.userIds[0],
-        accessMode: 'backoffice'
-      });
-      db.exec('BEGIN');
-      try {
-        for (const spec of ACCOUNT_SPECS) {
-          const user = db.prepare('SELECT id,status FROM users WHERE email=?').get(spec.email);
-          if (!user || user.status !== 'active') {
-            throw new Error('DEMO_EXISTING_ACCOUNT_NOT_ACTIVE:' + spec.key);
+      if (process.env.OPSC_DEMO_SEED_ROTATE_CREDENTIALS === 'YES') {
+        const adminUser = db.prepare('SELECT id FROM users WHERE email=?').get(ACCOUNT_SPECS[0].email);
+        if (!adminUser) throw new Error('DEMO_SEED_ADMIN_IDENTITY_MISSING_FOR_ROTATION');
+        const rotator = new Store(db, bootstrapConfig);
+        rotator.pg = db;
+        rotator.databaseEngineResolved = opened.engine;
+        rotator.postgresRuntimeWired = opened.postgresRuntimeWired;
+        const rotationContext = {
+          organizationId: existing.organizationId,
+          userId: adminUser.id,
+          role: 'owner',
+          email: ACCOUNT_SPECS[0].email
+        };
+        db.exec('BEGIN');
+        try {
+          const privilegedSession = rotator._createSessionForUser(
+            { id: adminUser.id, email: adminUser.email, status: 'active' },
+            existing.organizationId,
+            { provider: 'demo-seed-credential-rotation' }
+          );
+          if (!privilegedSession || !privilegedSession.sessionId || !privilegedSession.token) {
+            throw new Error('DEMO_SEED_PRIVILEGED_SESSION_CREATION_FAILED');
           }
-          const membership = db.prepare(
-            'SELECT role FROM memberships WHERE user_id=? AND organization_id=?'
-          ).get(user.id, existing.organizationId);
-          if (!membership || membership.role !== spec.role) {
-            throw new Error('DEMO_EXISTING_ACCOUNT_ROLE_MISMATCH:' + spec.key);
+          for (const spec of ACCOUNT_SPECS) {
+            const user = db.prepare('SELECT id FROM users WHERE email=?').get(spec.email);
+            if (!user) throw new Error('DEMO_SEED_ACCOUNT_MISSING_FOR_ROTATION:' + spec.email);
+            const reset = rotator.createPasswordReset(rotationContext, user.id);
+            if (!reset || !reset.resetToken) throw new Error('DEMO_SEED_PASSWORD_RESET_TOKEN_MISSING:' + spec.key);
+            const result = rotator.resetPassword(reset.resetToken, passwords[spec.key]);
+            if (result?.reset !== true) throw new Error('DEMO_SEED_PASSWORD_ROTATION_POSTCONDITION_FAILED:' + spec.key);
           }
-          const updated = db.prepare(
-            'UPDATE users SET password_hash=? WHERE id=? AND email=? AND status=?'
-          ).run(hashPassword(passwords[spec.key]), user.id, spec.email, 'active');
-          if (Number(updated.changes) !== 1) {
-            throw new Error('DEMO_EXISTING_ACCOUNT_PASSWORD_ROTATION_FAILED:' + spec.key);
-          }
+          const revoked = rotator.logout(privilegedSession.token);
+          if (!revoked) throw new Error('DEMO_SEED_PRIVILEGED_SESSION_REVOCATION_FAILED');
+          db.exec('COMMIT');
+        } catch (error) {
+          try { db.exec('ROLLBACK'); } catch (_) {}
+          throw error;
         }
-        db.exec('COMMIT');
-      } catch (error) {
-        try { db.exec('ROLLBACK'); } catch (_) {}
-        throw error;
+
+        writeJson(credentialsFile, {
+          classification: 'SYNTHETIC_DEMO_ONLY',
+          warning: 'These accounts access an isolated non-production customer demo. Never use real customer data or reuse these passwords.',
+          sourceSha: process.env.GITHUB_SHA || null,
+          projectId: EXPECTED.projectId,
+          branchId: EXPECTED.branchId,
+          database: EXPECTED.database,
+          accounts: ACCOUNT_SPECS.map(spec => ({
+            role: spec.role,
+            label: spec.label,
+            email: spec.email,
+            password: passwords[spec.key]
+          }))
+        });
+        writeJson(resultFile, {
+          status: 'ROTATED_AND_VERIFIED',
+          sourceSha: process.env.GITHUB_SHA || null,
+          projectId: EXPECTED.projectId,
+          branchId: EXPECTED.branchId,
+          database: EXPECTED.database,
+          counts: existing.counts,
+          organizationId: existing.organizationId,
+          userIds: existing.userIds,
+          customerId: existing.customerId,
+          siteId: existing.siteId,
+          assetId: existing.assetId,
+          workOrderId: existing.workOrderId,
+          credentialsFileCreated: true
+        });
+        console.log('DEMO_SEED_STATUS=ROTATED_AND_VERIFIED');
+        return;
       }
 
-      const credentials = {
-        classification: 'SYNTHETIC_DEMO_ONLY',
-        warning: 'These accounts access an isolated non-production customer demo. Never use real customer data or reuse these passwords.',
-        sourceSha: process.env.GITHUB_SHA || null,
-        projectId: EXPECTED.projectId,
-        branchId: EXPECTED.branchId,
-        database: EXPECTED.database,
-        accounts: ACCOUNT_SPECS.map(spec => ({
-          role: spec.role,
-          label: spec.label,
-          email: spec.email,
-          password: passwords[spec.key]
-        }))
-      };
-      writeJson(credentialsFile, credentials);
       writeJson(resultFile, {
-        status: 'ALREADY_SEEDED_CREDENTIALS_ROTATED',
+        status: existing.state,
         sourceSha: process.env.GITHUB_SHA || null,
         projectId: EXPECTED.projectId,
         branchId: EXPECTED.branchId,
@@ -224,11 +252,9 @@ async function main() {
         siteId: existing.siteId,
         assetId: existing.assetId,
         workOrderId: existing.workOrderId,
-        credentialsFileCreated: true,
-        credentialsRotated: true
+        credentialsFileCreated: false
       });
-      console.log('DEMO_SEED_STATUS=ALREADY_SEEDED_CREDENTIALS_ROTATED');
-      console.log('DEMO_SEED_CREDENTIALS_ROTATED=4');
+      console.log('DEMO_SEED_STATUS=ALREADY_SEEDED_VERIFIED');
       return;
     }
 
