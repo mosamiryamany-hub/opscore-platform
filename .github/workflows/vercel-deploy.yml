@@ -947,6 +947,7 @@ jobs:
           GITHUB_RUN_ID: ${{ github.run_id }}
           OPSC_RELEASE_PACKAGE_SHA256: ${{ steps.package_fp.outputs.sha }}
           OPSC_PRODUCTION_NEON_BRANCH_ID: br-proud-salad-bcshhdap
+          OPSC_PRODUCTION_DATABASE_NAME: opscore_acceptance
           OPSC_PRODUCTION_PROBE_DEPLOYMENT_ID: ${{ steps.candidate_deployment.outputs.id }}
           ISOLATION_CERT: ${{ steps.isolation_cert.outputs.certified }}
           BEHAVIORAL: ${{ steps.isolation_cert.outputs.behavioral }}
