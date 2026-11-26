@@ -1,10 +1,10 @@
 # OpsCore — Compliance Readiness & Current Evidence Register
 
-**Reviewed:** 2026-11-26  
+**Register update date:** 2026-11-26  
 **Repository:** `mosamiryamany-hub/opscore-platform`  
-**Reviewed source:** `54bfa1db445b67f8b2ec947bc7bb5a497276f2a1` (main)  
-**Exact release run:** [45721225869](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45721225869)  
-**Artifact:** `opscore-release-45721225869` (GitHub artifact ID `15071558474`)  
+**Current source examined before this register update:** `ac810e8123b78820e62d510c2a19a9d8db39a28c` (main)  
+**Historical signed baseline run:** [45767750368](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45767750368), source `c82d11ec84a986ba01d907b940a6bf8ebb550924`; it is not an attestation for the newer source examined below.  
+**Earlier historical artifact:** `opscore-release-45721225869` (GitHub artifact ID `15071558474`), source `54bfa1db445b67f8b2ec947bc7bb5a497276f2a1`.  
 **Decision:** **ENGINEERING EVIDENCE PASS — COMPLIANCE CERTIFICATION NOT ESTABLISHED — PRODUCTION HOLD**
 
 > This is an evidence and readiness register. It is not an ISO/IEC 27001 certificate, SOC 2 report, PCI DSS attestation, legal opinion, penetration-test report, or production acceptance certificate. Automated checks are not promoted into external certification.
@@ -17,11 +17,11 @@
 - **BUYER ACTION:** a customer must supply its own account, contract, credential, license, acceptance, or device evidence.
 - **CERTIFIED:** may be used only when a valid independent certificate or attestation is in hand, its scope and validity are checked, and the issuing body is identified.
 
-## 2. Exact release evidence reviewed
+## 2. Prior signed release evidence — historical baseline, not current main
 
 | Evidence | Result | Exact evidence and boundary |
 |---|---|---|
-| Source identity | PASS | Current `main` points to `54bfa1db445b67f8b2ec947bc7bb5a497276f2a1`. The Secure Release job confirms that the release source commit is contained in `main`. |
+| Source identity | PASS — historical | At the time of this baseline run, the release source was `54bfa1db445b67f8b2ec947bc7bb5a497276f2a1` and the Secure Release job confirmed it was contained in `main`. This is not the current main head. |
 | Secure Release workflow | PASS — scoped | Run `45721225869`, job `139579760920`, completed successfully. Backend regression, PostgreSQL schema parity, migration preflight, security transaction audit, production-readiness gate, resilience/recovery gates, buyer self-validation, mobile verification, dependency audits, SBOM, archive build and signature steps completed successfully. |
 | Inner release archive | PASS — integrity | `OpsCore-release.zip`, 2,792,411 bytes; SHA-256 `3ba2e8b33461ba9ee4fd57eecd65fdf3a971a38fd2b5451fb9790ffeff338646`. This matches the external `COMMERCIAL_RELEASE_STATEMENT.json`. |
 | Outer GitHub Actions artifact | PASS — integrity | ZIP SHA-256 independently calculated during this review: `1c6671d11352f268572c4d87390ecbf6e461e888f971ffb2e4d471a41561107e`. This is the outer workflow artifact digest, not the inner release-archive digest. |
@@ -127,3 +127,37 @@ The Vercel project API was queried again on 2026-11-26:
 
 No deployment was promoted, no production alias was changed, and no Neon Production state was mutated during this verification. The Preview proof must remain `NOT_VERIFIED` for Production qualification. The intended final Production binding still requires the protected release/deploy workflow and the final deployment-binding workflow to validate the exact successful release, candidate-route artifact, and final production deployment ID together.
 
+
+
+## 10. Current-head verification — 2026-11-26
+
+This section supersedes the older deployment snapshots in sections 8–9 for the current source review. It records the exact source, CI runs, Preview deployment, and live HTTP observations. It does not convert Preview or catalog evidence into Production certification.
+
+| Evidence | Result | Exact boundary |
+|---|---|---|
+| Current main source | PASS — repository identity | Main at review time: `ac810e8123b78820e62d510c2a19a9d8db39a28c`. The GitHub commit object reports a valid GitHub signature. |
+| PR #471 Vercel workflow | PASS — scoped | [Run 45771403401](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45771403401), event `push`, exact head `ac810e8123b78820e62d510c2a19a9d8db39a28c`, conclusion `success`. Source verification, disposable PostgreSQL 18 acceptance, Vercel contract verification and isolated PostgreSQL/RLS HTTP acceptance succeeded. Neon Preview migration and historical Production PITR probe were skipped. The `deploy` job was skipped because this was a push event, not a manually authorized workflow dispatch. |
+| OpsCore CI | PASS — scoped | [Run 45771403171](https://github.com/mosamiryamany-hub/opscore-platform/actions/runs/45771403171), exact head `ac810e8123b78820e62d510c2a19a9d8db39a28c`, conclusion `success`. |
+| Current-head Preview deployment | PASS — deployment identity only | Vercel deployment `dpl_3bi74fMuSQD8QUgRHYgafr1ZHh73`, READY, target `null` (Preview), branch `main`, Vercel Git metadata source commit `ac810e8123b78820e62d510c2a19a9d8db39a28c`. URL: https://opscore-platform-g737j42ob-fiber-nexus1.vercel.app/. |
+| Live app health | PASS — Preview only | `GET /api/health` returned HTTP 200, `ok=true`, service `opscore`, version `0.11.62`, engine `postgres`. This is a health response, not tenant isolation or Production acceptance. |
+| Live database connectivity | PASS — connectivity only | `GET /api/verify/database` returned HTTP 200, engine `postgres`; the response explicitly withholds host, role and database name and states that it proves connectivity only. |
+| Live database security catalog | PASS — catalog scope only | `GET /api/verify/database-security` returned `IDENTITY_PLANE_RLS_ENFORCED`; 136 ordinary public tables, 135 RLS-enabled and FORCE-RLS tables, and one `spatial_ref_sys` metadata catalog exception with zero runtime write privileges. The endpoint explicitly reports `productionIsolationCertification=NOT_CERTIFIED` and `CATALOG_ONLY_NOT_BEHAVIORAL_CERTIFICATION`. |
+| Live deployment identity endpoint | PASS — Vercel Git metadata only | `GET /api/verify/deployment` identifies Preview deployment `dpl_3bi74fMuSQD8QUgRHYgafr1ZHh73` and commit `ac810e8123b78820e62d510c2a19a9d8db39a28c` with `commitIdentitySource=vercel-git-metadata`. It is not the embedded GitHub Actions release identity. |
+| Live release proof | HOLD / UNVERIFIED | `GET /api/verify/release` reports `status=UNVERIFIED`, `sourceCommitIdentitySource=unverified`, CI pipeline ID and commit null, commercial closure UNVERIFIED, Production acceptance NOT_VERIFIED, Production evidence binding NOT_VERIFIED, and isolation NOT_CERTIFIED. Its historical PostgreSQL HTTP evidence is from a different commit and pipeline and is explicitly not a current-candidate match. |
+| Secure Release for current head | NOT YET EVIDENCED AT REVIEW TIME | The last known successful Secure Release run `45767750368` is bound to prior source `c82d11ec84a986ba01d907b940a6bf8ebb550924`, not `ac810e8123b78820e62d510c2a19a9d8db39a28c`. This register update touches the configured Secure Release trigger path; the resulting main-branch run must be inspected before claiming a current-head signed archive. |
+| Production deployment | HOLD | The current-head Preview was not promoted. The existing Production deployment remains separate; no current-head Production deployment or alias change was observed. |
+| Buyer residuals | REMAINING_BUYER | Android/iOS signed store artifacts and physical-device QA; native-speaker translation review; licensed street maps and road routing; and licensed telephony/call-center provider credentials and live acceptance remain outside seller evidence. |
+
+### Exact live proof interpretation
+
+- A successful health probe and a PostgreSQL connectivity probe do not certify the database security boundary.
+- The current Preview's database catalog endpoint shows FORCE RLS coverage for the 135 application tables, with the documented read-only PostGIS metadata exception. It is catalog inspection only; it does not prove cross-tenant behavior under authenticated sessions.
+- The current Preview uses native Vercel Git metadata. Its release proof correctly remains UNVERIFIED because a GitHub Actions pipeline identity and exact-run evidence are not embedded in this deployment.
+- The 67/67 signed-tenant route matrix in disposable PostgreSQL 18 CI is CI evidence only. It is not Production route acceptance and is not bound to the current Preview or Production deployment.
+- The previous signed archive remains tied to its own historical source commit. No signature, archive, or CI result is silently rebound to a different commit.
+
+### Current decision
+
+**Current-head CI: PASS (scoped). Current-head Preview: READY and live HTTP checks observed. Current-head signed release proof: UNVERIFIED. Production acceptance and tenant isolation certification: HOLD. Independent ISO/IEC 27001, SOC 2 and PCI DSS certification: NOT ESTABLISHED. Buyer-owned residuals: REMAINING_BUYER.**
+
+No Production deployment or alias promotion, Neon Production mutation, credential rotation, paid-plan upgrade, or license grant was performed during this verification.
