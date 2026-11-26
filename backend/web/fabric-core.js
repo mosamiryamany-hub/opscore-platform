@@ -296,6 +296,8 @@
       ['#mLat', ms + 'ms']
     ];
     map.forEach(([sel, val]) => { const n = $(sel); if (n) n.textContent = val; });
+    const heroStatus = $('#mStatusHero');
+    if (heroStatus) heroStatus.textContent = okNow ? String(body.status || 'healthy').toUpperCase() : (body && body.status ? String(body.status).toUpperCase() : (res ? 'HTTP ' + res.status : 'OFFLINE'));
 
     const sub = $('#mStatusSub');
     if (sub) sub.textContent = okNow ? 'Live same-origin probe' : 'Probe did not confirm health';
