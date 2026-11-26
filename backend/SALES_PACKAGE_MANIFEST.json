@@ -1,7 +1,7 @@
 {
   "product": "OpsCore Operational SaaS Starter Kit",
   "version": "0.11.62",
-  "generatedAt": "2026-11-25T21:51:47.978Z",
+  "generatedAt": "2026-11-26T16:15:40.965Z",
   "integrityExclusions": [
     "RELEASE_COMPONENT_SHA256SUMS.txt",
     "RELEASE_FILE_SHA256SUMS.txt",
@@ -174,8 +174,8 @@
     },
     {
       "path": "docs/COMMERCIAL_HANDOFF.md",
-      "sha256": "e42e82fd19edde954ead63a4b37eefc08d8339fb8784ec62cd105067a2ce2d40",
-      "bytes": 2114
+      "sha256": "241315c2295f0fad95d42872e02d3e673c183780a0968191deb29c8545a38c5e",
+      "bytes": 2262
     },
     {
       "path": "docs/COMPLETION_ASSURANCE.md",
@@ -554,8 +554,8 @@
     },
     {
       "path": "scripts/collect-production-recovery-point.js",
-      "sha256": "1cf588bc3837cc4cb3b67d5f7de4d373376edcf031942d1527266c231ba62c5c",
-      "bytes": 35683
+      "sha256": "31f437ae7c8e7d76a8152cd4108f4c109915b17a9d9c6669af6c548585aff923",
+      "bytes": 35676
     },
     {
       "path": "scripts/collect-production-session-isolation.js",
@@ -579,8 +579,8 @@
     },
     {
       "path": "scripts/customer-demo-http-acceptance.js",
-      "sha256": "98c3d37dd12fc14ae59d836c952f3a0a3d76918c1be99adeda09d2f1a8e7e9f4",
-      "bytes": 6487
+      "sha256": "93537ea4c04c57375c8eccfaf8bebd35f6588f1817198dd27a409215e93cc6cc",
+      "bytes": 6908
     },
     {
       "path": "scripts/db-check.js",
@@ -649,8 +649,8 @@
     },
     {
       "path": "scripts/lib/production-deployment-identity.js",
-      "sha256": "d307281f78d69a465adc719e52ee44e9f843fe8196bf98e59c36d529d057c935",
-      "bytes": 5110
+      "sha256": "7d5ac526c3a66dd212389fd67a99bce5f9490b6ea778be6da80dd2bb87f56f88",
+      "bytes": 5127
     },
     {
       "path": "scripts/live-production-gate.js",
@@ -824,8 +824,8 @@
     },
     {
       "path": "scripts/seed-demo-postgres.js",
-      "sha256": "50a5c306c614d896bf06afe0cdd25a5b9928d900024929ee0735045f0e3b0c60",
-      "bytes": 15769
+      "sha256": "c14f01aaa72d6742352bd2fb2e9ef37cf1e3ee96e6cf4565e0e41f99ce232337",
+      "bytes": 17289
     },
     {
       "path": "scripts/seed-demo.js",
@@ -839,8 +839,8 @@
     },
     {
       "path": "scripts/signed-tenant-context-postgres-gate.js",
-      "sha256": "4c3dde16aa5d583622987f8ec5477d9c60057b8a9540ac312231305a911bf680",
-      "bytes": 284016
+      "sha256": "440801319b359320c09694c57f4080c1de49eb78b199ce152df5617d1ed708ee",
+      "bytes": 287718
     },
     {
       "path": "scripts/sqlite-restore-core.js",
@@ -1544,8 +1544,8 @@
     },
     {
       "path": "src/production-hold.js",
-      "sha256": "6d36790b353397a57980aff855cbb4aea9cbd3136d2674013a6e44d84512697b",
-      "bytes": 12904
+      "sha256": "10a8c13864f6dfecdf6a6cafac80aeca6158d44f73930854e28622b341e0c6a6",
+      "bytes": 12921
     },
     {
       "path": "src/rbac.js",
@@ -1554,8 +1554,8 @@
     },
     {
       "path": "src/release-proof.js",
-      "sha256": "3199de0d40d4507df5d93f53df47b008f6f07da14d923070053436e573280418",
-      "bytes": 62685
+      "sha256": "ac42080a84b383549af12685723442709887116330a4eb043e812d4f44cb0e28",
+      "bytes": 63137
     },
     {
       "path": "src/route-constraints.js",
@@ -2189,7 +2189,7 @@
     },
     {
       "path": "test/preview-migration-workflow-guard.test.js",
-      "sha256": "dd6ce7ba567c7bf2da8303e988454aac941e7ef85339f46655d8f860ac1b85af",
+      "sha256": "c390833a563dbd2a002e4b529fd1303c97f0d5a8148ea11423a1df2a04627e73",
       "bytes": 11994
     },
     {
@@ -2209,7 +2209,7 @@
     },
     {
       "path": "test/production-candidate-plan-preflight.test.js",
-      "sha256": "dd7e15a05ef5be6bee1e74d198bdecfb220b4bfea2841d10efb907325dc615b3",
+      "sha256": "ec60a02b6aa7529dbccaf6cfa36e07a526ef2ed370cea65438f409bfaf24129e",
       "bytes": 6458
     },
     {
@@ -2339,8 +2339,8 @@
     },
     {
       "path": "test/release-proof.test.js",
-      "sha256": "7247190208ea1f5d23dbc3670f792471901c5c551581f879235409547c4f42a3",
-      "bytes": 53974
+      "sha256": "990f5025041660329ea648bfcaf27ccbb5cc58fc77090395432d2a53f5263074",
+      "bytes": 54338
     },
     {
       "path": "test/release_candidate_contract.test.js",
@@ -2474,8 +2474,8 @@
     },
     {
       "path": "test/signed-tenant-context-candidate-collector.test.js",
-      "sha256": "ec19050f145f7d65b002f8dfd53442e8ca739bf144afa3816f9959451dfe83b4",
-      "bytes": 25432
+      "sha256": "54ee9f53d95c15920d3358a5989f49791a96cac0a72dc925c22e05555eccf1e1",
+      "bytes": 26022
     },
     {
       "path": "test/signed-tenant-context-ci-route-coverage.test.js",
@@ -2599,13 +2599,13 @@
     },
     {
       "path": "web/command-fabric-v3.css",
-      "sha256": "0c631e3f6df0dd501937cb364b505c77e3d1d36eed21d5f3b599242921ee99ee",
-      "bytes": 12410
+      "sha256": "f7006e3e78b5c3d63f46a2fd44acc3a2419b30b194cae25c68df442183cd59b8",
+      "bytes": 13217
     },
     {
       "path": "web/contact-center.css",
-      "sha256": "15b9e80681ee95d0bbbd706eaa7aa16d729eda3f56680ed6ecff15df95e25d52",
-      "bytes": 7123
+      "sha256": "84ad1605d68b159acb522d8668e4bf307adf5a51fa25b533718abb37153bb383",
+      "bytes": 13724
     },
     {
       "path": "web/contact-center.html",
@@ -2629,13 +2629,13 @@
     },
     {
       "path": "web/control-rooms.html",
-      "sha256": "8591e7bac1b9d53b07094f43643d08f8f395d3dd614d58ee3f4fe884b291e683",
-      "bytes": 9260
+      "sha256": "8f2f873e1677096be349c1d0ad65f4b744f436c4bb955f73ed6f975be7c3355a",
+      "bytes": 8751
     },
     {
       "path": "web/fabric-core.js",
-      "sha256": "d284737c49fea4ec4bef75a58f8b1fb526d58928b2b24b9107e7c4b46b335416",
-      "bytes": 15495
+      "sha256": "aa6bc5091877c71c1482e2eb34451f54aec777699e962a4c6b718c0b746ef24a",
+      "bytes": 16031
     },
     {
       "path": "web/geomap.js",
@@ -2644,8 +2644,8 @@
     },
     {
       "path": "web/home-fabric.js",
-      "sha256": "f4a11cff85311a541049f7fe8f996bf6b36beba078198cfd88c384fe1930a363",
-      "bytes": 2012
+      "sha256": "70668a9b981e2fc2d45e54dca7095888659d36fa19c4863e8dac0ba9f94c02a8",
+      "bytes": 3059
     },
     {
       "path": "web/i18n/README.md",
@@ -3189,8 +3189,8 @@
     },
     {
       "path": "web/index.html",
-      "sha256": "c5772f5e38f45bada24a80a15043230e33102be7930d5929d6f8b409e6531051",
-      "bytes": 9450
+      "sha256": "d51e255c58f366192631b6d0ce952582a6ff32ac5b32dc7e949cf715d72633ad",
+      "bytes": 9420
     },
     {
       "path": "web/legal.html",
@@ -3239,8 +3239,8 @@
     },
     {
       "path": "web/rooms.js",
-      "sha256": "b280fa40cb7bc72d2c56fca07ab1b319dc70ca1f857e7220999073094373145b",
-      "bytes": 5994
+      "sha256": "24a816a9b4bfdd8f74bbc29859a244b3c415d6f42cd7246ed09dcae2e34930d8",
+      "bytes": 5382
     },
     {
       "path": "web/security.html",

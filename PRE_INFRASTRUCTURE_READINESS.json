@@ -2,9 +2,9 @@
   "schemaVersion": "opscore.pre-infrastructure-gate.v1",
   "release": "0.11.62",
   "mobileVersion": "0.1.16",
-  "generatedAt": "2026-11-02T10:43:07.177Z",
+  "generatedAt": "2026-11-26T16:14:58.114Z",
   "status": "PASS_WITH_REMAINING",
-  "sourceFileCount": 773,
+  "sourceFileCount": 913,
   "evidenceBoundary": "SOURCE_STATIC_DETERMINISTIC",
   "summary": "Pre-database and pre-infrastructure readiness assessment for generic OpsCore; not a production certification.",
   "checks": [

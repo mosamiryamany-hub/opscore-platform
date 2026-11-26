@@ -3,7 +3,7 @@
   "status": "PASS",
   "sqliteTableCount": 127,
   "postgresCanonicalTableCount": 127,
-  "postgresMigrationTableCount": 128,
+  "postgresMigrationTableCount": 129,
   "missingInPostgresCanonical": [],
   "missingInPostgresMigrations": [],
   "missingCanonicalTablesInMigrations": [],
@@ -13,5 +13,5 @@
     "id"
   ],
   "note": "Table parity is necessary but not sufficient for live PostgreSQL verification; runtime RLS, extensions, policies, privileges and concurrent behavior still require a real PostgreSQL environment.",
-  "generatedAt": "2026-11-02T10:43:05.023Z"
+  "generatedAt": "2026-11-26T16:14:54.989Z"
 }
