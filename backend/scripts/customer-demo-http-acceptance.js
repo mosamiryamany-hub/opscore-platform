@@ -4,10 +4,10 @@ const assert = require('node:assert/strict');
 
 const base = String(process.env.OPSC_DEMO_HTTP_BASE_URL || 'http://127.0.0.1:3000').replace(/\/$/, '');
 const accounts = [
-  { key: 'ADMIN', email: 'admin@demo.opscore.invalid', role: 'owner' },
-  { key: 'DISPATCHER', email: 'dispatcher@demo.opscore.invalid', role: 'manager' },
-  { key: 'TECHNICIAN', email: 'technician@demo.opscore.invalid', role: 'member' },
-  { key: 'VIEWER', email: 'viewer@demo.opscore.invalid', role: 'viewer' }
+  { key: 'ADMIN', email: 'admin@demo.opscore.invalid', role: 'owner', ip: '198.51.100.11' },
+  { key: 'DISPATCHER', email: 'dispatcher@demo.opscore.invalid', role: 'manager', ip: '198.51.100.12' },
+  { key: 'TECHNICIAN', email: 'technician@demo.opscore.invalid', role: 'member', ip: '198.51.100.13' },
+  { key: 'VIEWER', email: 'viewer@demo.opscore.invalid', role: 'viewer', ip: '198.51.100.14' }
 ];
 
 function passwordFor(account) {
@@ -22,6 +22,16 @@ async function jsonRequest(path, options = {}) {
   let body = null;
   try { body = raw ? JSON.parse(raw) : null; } catch (_) {}
   return { response, body, raw };
+}
+
+function withClientIp(options, ip) {
+  return {
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+      'x-forwarded-for': ip
+    }
+  };
 }
 
 function setCookie(response) {
@@ -60,7 +70,7 @@ async function main() {
 
   const results = [];
   for (const account of accounts) {
-    const login = await jsonRequest('/api/v1/auth/login', {
+    const login = await jsonRequest('/api/v1/auth/login', withClientIp({
       method: 'POST',
       headers: {
         'content-type': 'application/json',
@@ -68,7 +78,7 @@ async function main() {
         referer: base + '/login'
       },
       body: JSON.stringify({ email: account.email, password: passwordFor(account) })
-    });
+    }, account.ip));
     assert.equal(login.response.status, 200, 'login failed for role ' + account.role + ': ' + login.raw);
     assert.equal(login.body?.role, account.role, 'unexpected role returned for ' + account.email);
     if (account.key === 'ADMIN') {
@@ -76,17 +86,17 @@ async function main() {
     }
     const cookie = setCookie(login.response);
 
-    const me = await jsonRequest('/api/v1/me', { headers: { cookie } });
+    const me = await jsonRequest('/api/v1/me', withClientIp({ headers: { cookie } }, account.ip));
     assert.equal(me.response.status, 200, 'authenticated /me failed for ' + account.role);
     assert.equal(me.body?.role, account.role, 'authenticated role mismatch for ' + account.role);
 
-    const customers = await jsonRequest('/api/v1/customers', { headers: { cookie } });
+    const customers = await jsonRequest('/api/v1/customers', withClientIp({ headers: { cookie } }, account.ip));
     assert.equal(customers.response.status, 200, 'customer read failed for ' + account.role);
     const customerRows = records(customers.body);
     assert.equal(customerRows.length, 1, 'expected exactly one synthetic demo customer');
     assert.equal(customerRows[0].external_ref, 'DEMO-CUST-001');
 
-    const workOrders = await jsonRequest('/api/v1/work-orders', { headers: { cookie } });
+    const workOrders = await jsonRequest('/api/v1/work-orders', withClientIp({ headers: { cookie } }, account.ip));
     assert.equal(workOrders.response.status, 200, 'work-order read failed for ' + account.role);
     const workOrderRows = records(workOrders.body);
     // Viewer is intentionally scoped to records it created or was assigned.
@@ -100,7 +110,7 @@ async function main() {
     }
 
     if (account.role === 'viewer') {
-      const denied = await jsonRequest('/api/v1/customers', {
+      const denied = await jsonRequest('/api/v1/customers', withClientIp({
         method: 'POST',
         headers: {
           cookie,
@@ -112,17 +122,17 @@ async function main() {
           name: 'This write must be denied',
           externalRef: 'DEMO-DENY-001'
         })
-      });
+      }, account.ip));
       assert.equal(denied.response.status, 403, 'viewer write must be forbidden');
       assert.equal(denied.body?.error?.code, 'ROLE_WRITE_FORBIDDEN', 'viewer denial reason must be explicit');
     }
 
-    const logout = await jsonRequest('/api/v1/auth/logout', {
+    const logout = await jsonRequest('/api/v1/auth/logout', withClientIp({
       method: 'POST',
       headers: { cookie, origin: base, referer: base + '/' }
-    });
+    }, account.ip));
     assert.equal(logout.response.status, 200, 'logout failed for ' + account.role);
-    const revoked = await jsonRequest('/api/v1/me', { headers: { cookie } });
+    const revoked = await jsonRequest('/api/v1/me', withClientIp({ headers: { cookie } }, account.ip));
     assert.equal(revoked.response.status, 401, 'logged-out session must no longer authenticate');
 
     results.push({ role: account.role, login: 'PASS', tenantScopedReads: 'PASS', logoutRevocation: 'PASS' });

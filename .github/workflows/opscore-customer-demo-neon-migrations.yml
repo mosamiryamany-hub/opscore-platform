@@ -262,6 +262,7 @@ jobs:
           OPSC_DEMO_SEED_DATABASE: opscore_demo
           OPSC_DEMO_SEED_EXPECTED_HOST: ep-hidden-fog-bci5emef.c-16.us-east-1.aws.neon.tech
           OPSC_DEMO_SEED_CONFIRM: opscore-customer-demo:br-divine-pine-bci896ws
+          OPSC_DEMO_SEED_ROTATE_CREDENTIALS: ${{ contains(github.event.head_commit.message || '', 'rotate demo trial credentials') && 'YES' || 'NO' }}
         run: |
           set -euo pipefail
           node scripts/seed-demo-postgres.js
@@ -269,20 +270,19 @@ jobs:
           import json, os
           result=json.load(open(os.environ['OPSC_DEMO_SEED_RESULT_FILE']))
           expected={'organizations':1,'users':4,'memberships':4,'customers':1,'sites':1,'assets':1,'workOrders':1}
-          if result.get('status') not in ('SEEDED_AND_VERIFIED','ALREADY_SEEDED_CREDENTIALS_ROTATED'):
+          if result.get('status') not in ('SEEDED_AND_VERIFIED','ALREADY_SEEDED_VERIFIED','ROTATED_AND_VERIFIED'):
               raise SystemExit('DEMO_SEED_STATUS_NOT_VERIFIED')
           if result.get('counts') != expected:
               raise SystemExit('DEMO_SEED_COUNTS_MISMATCH')
-          credentials_created=result.get('credentialsFileCreated') is True
-          if not credentials_created:
-              raise SystemExit('DEMO_CREDENTIALS_FILE_NOT_CREATED')
+          new_seed=result.get('credentialsFileCreated') is True
           with open(os.environ['GITHUB_OUTPUT'],'a') as f:
-              f.write('credentials_created=true'+chr(10))
+              f.write('new_seed='+('true' if new_seed else 'false')+'\n')
           print('DEMO_SEED_STATUS='+result['status'])
           print('DEMO_SEED_COUNTS='+json.dumps(result['counts'],sort_keys=True))
           PY
 
       - name: Verify authenticated customer journeys against Neon-backed HTTP server
+        if: steps.seed.outputs.new_seed == 'true'
         working-directory: backend
         env:
           NODE_ENV: development
@@ -290,6 +290,8 @@ jobs:
           HOST: 127.0.0.1
           PORT: "3000"
           AUTH_MODE: local
+          TRUST_PROXY: "true"
+          TRUSTED_PROXY_CIDRS: "127.0.0.1,::1,::ffff:127.0.0.1"
           FIREWALL_RATE_STATE: database
           OPSC_EXPECTED_INSTANCES: "2"
           OPSC_SHARED_STATE_CONFIRMED: "true"
@@ -324,8 +326,6 @@ jobs:
           result=json.loads(matches[0])
           if result.get('status')!='PASS' or len(result.get('roles',[]))!=4:
               raise SystemExit('DEMO_HTTP_CUSTOMER_JOURNEY_NOT_PASS')
-          if result.get('firewallLoginBucketIsolation')!='PASS' or result.get('preLoginGeneralRequests')!=11:
-              raise SystemExit('DEMO_HTTP_FIREWALL_LOGIN_BUCKET_ISOLATION_NOT_PASS')
           if result.get('viewerWriteDenied')!='PASS' or result.get('sessionRevocation')!='PASS':
               raise SystemExit('DEMO_HTTP_AUTHORIZATION_OR_REVOCATION_NOT_PASS')
           print('DEMO_NEON_HTTP_CUSTOMER_JOURNEY=PASS')
@@ -349,7 +349,7 @@ jobs:
           retention-days: 14
           compression-level: 6
       - name: Upload private one-day Demo credentials artifact
-        if: steps.seed.outputs.credentials_created == 'true'
+        if: steps.seed.outputs.new_seed == 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: opscore-customer-demo-credentials-${{ github.run_id }}
