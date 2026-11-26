@@ -8,7 +8,7 @@ License Schedule. These seller-side activities do not grant a buyer any rights.
 
 No license is granted to a named buyer to use, install, run, modify, copy,
 distribute, resell, sublicense, host, or commercially exploit this software or
-accompanying materials until the rights holder and that named buyer execute a
+accompanying materials any grant happens only after the rights holder and the named buyer execute a
 written License Schedule that references docs/commercial/LICENSE_FRAMEWORK.md
 and pins the exact deliverable (source commit and/or package SHA-256).
 
