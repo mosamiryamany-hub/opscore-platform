@@ -72,6 +72,7 @@ async function request(path, options = {}) {
   return data;
 }
 export const api = {
+  branding: () => request('/api/public/branding'),
   configureServer: value => saveServerOrigin(value),
   login: (email, password, organizationId) => request('/api/v1/auth/mobile-login', {
     method: 'POST',
