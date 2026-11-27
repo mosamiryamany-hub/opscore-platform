@@ -339,6 +339,14 @@ jobs:
       - name: Run tenant composite foreign-key integrity gate
         working-directory: backend
         run: node scripts/postgres-tenant-composite-fk-gate.js
+      - name: Run Digital Twin concurrency and PostGIS spatial index gate
+        working-directory: backend
+        env:
+          OPSC_PG_TEST_URL: postgresql://postgres:postgres@127.0.0.1:5432/opscore_test
+        run: |
+          set -euo pipefail
+          node --check scripts/twin-concurrency-postgis-gate.js
+          node scripts/twin-concurrency-postgis-gate.js
       - name: Run real PostgreSQL HTTP commercial acceptance as opscore_runtime
         working-directory: backend
         env:
