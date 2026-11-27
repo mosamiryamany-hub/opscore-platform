@@ -32,7 +32,7 @@ test('Contact Center customer actions remain consented and require real backend 
   assert.match(script, /status\?\.realtimeBrowserVoiceConfigured/);
   assert.match(script, /items=Array\.isArray\(result\.items\)\?result\.items:\[\]/);
   assert.match(html, /A queue item means requested, not connected/);
-  assert.match(html, /maximum 50 rows|limit=50/);
+  assert.match(script, /handoffs\?status=open&limit=50/);
 });
 
 test('Control Rooms exposes a Contact Center route without inventing operational data', () => {
