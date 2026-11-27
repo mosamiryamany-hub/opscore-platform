@@ -177,6 +177,7 @@ test('supervisor reassignment is atomic, eligible-agent-only and audited', () =>
     assert.ok(event);
     assert.match(event.metadata_json,/user_peer/);
     assert.equal(cc.listEligibleAgents(db,agent).some(x=>x.id==='user_peer'),true);
+    assert.equal(cc.listEligibleAgents(db,agent).find(x=>x.id==='user_peer').email,'peer@example.test');
     assert.equal(cc.listEligibleAgents(db,agent).some(x=>x.id==='user_b'),false);
     const closedConversation=cc.createConversation(db,ctx,{channel:'web_chat',languageCode:'en',consentAccepted:true},env);
     const closedHandoff=cc.createHandoff(db,ctx,closedConversation.id,'high_risk','Closed case reassignment guard test.','policy','urgent');
