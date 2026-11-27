@@ -917,7 +917,7 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
         await cleanupPool.query('ANALYZE public.spatial_features');
 
         const latenciesMs = [];
-        for (let sample = 0; sample < 15; sample++) {
+        for (let sample = 0; sample < 100; sample++) {
           const started = process.hrtime.bigint();
           const result = await request(
             '/api/v1/map/viewport?west=31&south=30&east=31.2&north=30.2&limit=1000',
@@ -942,20 +942,70 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           await clearSignedRlsSessionContext(fixture);
         }
         const plan = explain.rows[0]['QUERY PLAN'][0];
-        // A separate read-only planner diagnostic uses the narrowly scoped
-        // acceptance maintenance identity with an explicit tenant predicate.
-        // HTTP latency measurements above remain under the real runtime role.
-        const gistPlanResult = await cleanupPool.query(
-          `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)
-           SELECT id
-           FROM public.spatial_features
-           WHERE organization_id = $1
-             AND geom && public.ST_MakeEnvelope(31,30,31.2,30.2,4326)
-             AND public.ST_Intersects(geom, public.ST_MakeEnvelope(31,30,31.2,30.2,4326))
-           LIMIT 1000`,
-          [orgAId]
-        );
-        const gistPlannerPlan = gistPlanResult.rows[0]['QUERY PLAN'][0];
+        // Reproduce the function body's indexed predicate under the actual
+        // SECURITY DEFINER owner, on the same backend that verifies the signed
+        // tenant assertion. This is deliberately NOT a runtime-role bypass and
+        // does not infer the tenant from a caller-supplied organization ID.
+        const definerProbe = await cleanupPool.connect();
+        let gistPlannerPlan;
+        let definerFunctionCallPlan;
+        let definerExecutionEvidence;
+        try {
+          await definerProbe.query('BEGIN');
+          await definerProbe.query('SET LOCAL ROLE opscore_auth_definer');
+          await bindSignedRlsSessionContext(definerProbe, {
+            tenantId: orgAId,
+            userId: ownerAId,
+            accessMode: 'backoffice'
+          });
+          const identity = await definerProbe.query(
+            `SELECT current_user AS execution_role,
+                    context->>'tenant_id' AS verified_tenant_id,
+                    context->>'access_mode' AS verified_access_mode,
+                    r.rolcanlogin, r.rolsuper, r.rolbypassrls
+               FROM (SELECT opscore_security.verified_rls_context() AS context) verified
+               JOIN pg_catalog.pg_roles r ON r.rolname = current_user`
+          );
+          assert.equal(identity.rowCount, 1, 'signed context must verify under the spatial function owner');
+          assert.equal(identity.rows[0].execution_role, 'opscore_auth_definer');
+          assert.equal(identity.rows[0].verified_tenant_id, orgAId,
+            'tenant must come from the verified HMAC assertion, not an input parameter');
+          assert.equal(identity.rows[0].verified_access_mode, 'backoffice');
+          assert.equal(identity.rows[0].rolcanlogin, false);
+          assert.equal(identity.rows[0].rolsuper, false);
+          assert.equal(identity.rows[0].rolbypassrls, true);
+          definerExecutionEvidence = {
+            role: identity.rows[0].execution_role,
+            tenantIdSource: 'opscore_security.verified_rls_context() HMAC-verified claims',
+            verifiedTenantId: identity.rows[0].verified_tenant_id,
+            accessMode: identity.rows[0].verified_access_mode,
+            roleCanLogin: identity.rows[0].rolcanlogin,
+            roleIsSuperuser: identity.rows[0].rolsuper,
+            roleBypassesRls: identity.rows[0].rolbypassrls
+          };
+          const innerPredicatePlan = await definerProbe.query(
+            `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)
+             SELECT sf.id
+             FROM public.spatial_features AS sf
+             WHERE sf.organization_id = $1
+               AND sf.geom && public.ST_MakeEnvelope(31,30,31.2,30.2,4326)
+               AND public.ST_Intersects(sf.geom, public.ST_MakeEnvelope(31,30,31.2,30.2,4326))
+             ORDER BY sf.id
+             LIMIT 1000`,
+            [identity.rows[0].verified_tenant_id]
+          );
+          gistPlannerPlan = innerPredicatePlan.rows[0]['QUERY PLAN'][0];
+          // Also execute the real SECURITY DEFINER function on this same signed
+          // backend. EXPLAIN of a PL/pgSQL function exposes Function Scan only;
+          // the adjacent predicate plan is the function-body-equivalent GiST proof.
+          const functionPlan = await definerProbe.query(
+            'EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) SELECT * FROM opscore_security.spatial_features_in_viewport(31,30,31.2,30.2,1000)'
+          );
+          definerFunctionCallPlan = functionPlan.rows[0]['QUERY PLAN'][0];
+        } finally {
+          await definerProbe.query('ROLLBACK').catch(() => {});
+          definerProbe.release();
+        }
         const gistIndexUsed = JSON.stringify(gistPlannerPlan).includes('idx_spatial_features_geom_gist');
         if (stage.target === 1000000) {
           assert.equal(gistIndexUsed, true,
@@ -965,7 +1015,7 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           rows: stage.target,
           insertedThisStage: insertedThisStage,
           verifiedPersistedRows: verifiedRows.rows[0].count,
-          samples: latenciesMs.length,
+          samples: latenciesMs.length,\n          percentileMethod: 'nearest-rank; 100 samples; P99 is the 99th ordered sample',
           latencyMs: {
             min: latenciesMs[0],
             p50: percentile(0.50),
@@ -975,7 +1025,7 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           queryPlan: plan,
           gistPlannerPlan: gistPlannerPlan,
           gistIndexUsed: gistIndexUsed,
-          gistPlannerRole: 'neondb_owner with explicit organization_id predicate; HTTP timings are opscore_runtime'
+          gistPlannerRole: 'opscore_auth_definer under a verified signed backoffice tenant context; HTTP timings are opscore_runtime',\n          definerExecutionEvidence: definerExecutionEvidence,\n          definerFunctionCallPlan: definerFunctionCallPlan
         });
       }
       const scaleArtifactDir = path.resolve(process.env.OPSC_MAP_BROWSER_ARTIFACT_DIR || path.join(dir, 'dispatcher-map-postgres-browser-e2e'));
