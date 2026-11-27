@@ -148,6 +148,7 @@ test('CRM customer linking is explicit, supervisor-only and tenant-bound', () =>
     assert.throws(()=>cc.listCrmCustomers(db,ctx,'verified'),e=>e.message==='FORBIDDEN');
     assert.throws(()=>cc.linkConversationCustomer(db,other,conv.id,'cus_other123'),e=>e.message==='CONTACT_CENTER_CONVERSATION_NOT_FOUND');
     assert.throws(()=>cc.linkConversationCustomer(db,agent,conv.id,'cus_other123'),e=>e.message==='INVALID_CUSTOMER');
+    assert.throws(()=>db.prepare('UPDATE ai_contact_conversations SET customer_id=? WHERE id=?').run('cus_other123',conv.id),/CONTACT_CENTER_CUSTOMER_TENANT_MISMATCH/);
     const linked=cc.linkConversationCustomer(db,agent,conv.id,'cus_test123');
     assert.equal(linked.linked,true);
     assert.equal(cc.getConversationCustomer(db,agent,conv.id).customer.email,'customer@example.test');
