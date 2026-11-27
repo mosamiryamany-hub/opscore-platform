@@ -69,6 +69,47 @@
     if (value !== undefined) node.textContent = String(value);
     return node;
   }
+  function aggregate(field) {
+    const counts = new Map();
+    state.items.forEach(item => {
+      const value = String(item?.[field] || '').trim();
+      if (value) counts.set(value, (counts.get(value) || 0) + 1);
+    });
+    return [...counts.entries()].sort((a,b) => b[1]-a[1] || a[0].localeCompare(b[0])).slice(0,5);
+  }
+  function renderBreakdown(id, entries) {
+    const root = $(id);
+    if (!root) return;
+    root.replaceChildren();
+    if (!entries.length) {
+      root.appendChild(makeNode('div','ccr-bars-empty','No categorized rows returned in this snapshot.'));
+      return;
+    }
+    const max = Math.max(...entries.map(entry => entry[1]),1);
+    entries.forEach(([label,count]) => {
+      const row = makeNode('div','ccr-bar-row');
+      const heading = makeNode('div','ccr-bar-heading');
+      heading.append(makeNode('span','ccr-bar-label',label),makeNode('strong','ccr-bar-count',count));
+      const track = makeNode('div','ccr-bar-track');
+      const fill = makeNode('span','ccr-bar-fill');
+      fill.style.width = Math.max(3,Math.round((count/max)*100)) + '%';
+      track.appendChild(fill);
+      row.append(heading,track);
+      root.appendChild(row);
+    });
+  }
+  function renderAnalytics() {
+    const priorities = ['urgent','high','normal','low']
+      .map(priority => [priority,state.items.filter(item => String(item.priority || '').toLowerCase() === priority).length])
+      .filter(entry => entry[1] > 0);
+    renderBreakdown('ccrPriorityBreakdown',priorities);
+    renderBreakdown('ccrReasonBreakdown',aggregate('reasonCode'));
+    renderBreakdown('ccrChannelBreakdown',aggregate('channel'));
+    renderBreakdown('ccrLanguageBreakdown',aggregate('languageCode'));
+    setText('ccrInsightScope',state.items.length
+      ? 'Derived from ' + state.items.length + ' open handoff row(s) returned by the tenant-scoped API. Maximum request size: 50 rows.'
+      : 'No open rows were returned. No distribution values are inferred.');
+  }
   function renderQueue() {
     const list = $('ccrQueueList');
     if (!list) return;
@@ -157,7 +198,8 @@
       renderService(status);
       state.items = Array.isArray(queue.items) ? queue.items : [];
       metrics(state.items);
-      setText('ccrAuthState','Operator API access confirmed');
+      renderAnalytics();
+      setText('ccrAuthState','Authenticated queue access confirmed');
       $('ccrAuthState').className = 'badge good';
       $('ccrQueueState').textContent = 'Queue response received';
       $('ccrQueueState').className = 'badge good';
@@ -177,6 +219,7 @@
     } catch (error) {
       state.items = [];
       metrics([]);
+      renderAnalytics();
       setText('ccrAuthState',error.status === 401 || error.status === 403 ? 'Operator access not granted' : 'API access unverified');
       $('ccrAuthState').className = 'badge bad';
       $('ccrQueueState').textContent = 'Queue unavailable';
@@ -229,6 +272,7 @@
     const queue = await api('/api/v1/contact-center/handoffs?status=open&limit=50');
     state.items = Array.isArray(queue.items) ? queue.items : [];
     metrics(state.items);
+    renderAnalytics();
     setText('ccrLastRefresh','Updated ' + new Date().toLocaleTimeString());
     renderQueue();
   }
