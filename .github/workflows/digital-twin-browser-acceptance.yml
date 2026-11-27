@@ -1,0 +1,53 @@
+name: Digital Twin Browser RTL and Responsive Acceptance
+
+on:
+  pull_request:
+    paths:
+      - 'backend/web/digital-twin-room.*'
+      - 'backend/scripts/twin-browser-acceptance.js'
+      - '.github/workflows/digital-twin-browser-acceptance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  twin-browser:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22.23.4'
+      - name: Install pinned Chromium browser runner
+        working-directory: backend
+        run: npm install --no-save --package-lock=false playwright@1.65.1
+      - name: Install Chromium
+        working-directory: backend
+        run: npx playwright install --with-deps chromium
+      - name: Start Twin UI static server
+        run: |
+          python3 -m http.server 4173 --directory backend/web > /tmp/opscore-twin-ui.log 2>&1 &
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4173/digital-twin-room.html >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/opscore-twin-ui.log
+          exit 1
+      - name: Run real Chromium RTL and responsive acceptance
+        env:
+          OPSC_UI_BASE_URL: http://127.0.0.1:4173
+          OPSC_UI_ARTIFACT_DIR: ${{ github.workspace }}/twin-browser-artifacts
+        working-directory: backend
+        run: node scripts/twin-browser-acceptance.js
+      - name: Upload Twin browser screenshots and report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: opscore-digital-twin-browser-acceptance
+          path: twin-browser-artifacts/
+          if-no-files-found: warn
+          retention-days: 14
