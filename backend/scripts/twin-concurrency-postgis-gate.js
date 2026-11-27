@@ -48,11 +48,11 @@ async function main() {
       const c = await pool.connect();
       try {
         await c.query('BEGIN');
-        await c.query('INSERT INTO ' + qSchema + '.chain_events(id,organization_id,sequence_no,event_hash) VALUES($1,$2,$3,$4)',
-          [id, 'tenant-concurrency-fixture', 1, crypto.createHash('sha256').update(id).digest('hex')]);
         gate.ready += 1;
         if (gate.ready === 2) gate.release();
         await gate.promise;
+        await c.query('INSERT INTO ' + qSchema + '.chain_events(id,organization_id,sequence_no,event_hash) VALUES($1,$2,$3,$4)',
+          [id, 'tenant-concurrency-fixture', 1, crypto.createHash('sha256').update(id).digest('hex')]);
         await c.query('COMMIT');
         return { id, status: 'COMMITTED' };
       } catch (error) {
