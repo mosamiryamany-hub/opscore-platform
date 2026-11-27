@@ -836,7 +836,9 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           queryPlan: plan
         });
       }
-      fs.writeFileSync(path.join(browserOutputDir, 'gis-scale-benchmark.json'),
+      const scaleArtifactDir = path.resolve(process.env.OPSC_MAP_BROWSER_ARTIFACT_DIR || path.join(dir, 'dispatcher-map-postgres-browser-e2e'));
+      fs.mkdirSync(scaleArtifactDir, { recursive: true });
+      fs.writeFileSync(path.join(scaleArtifactDir, 'gis-scale-benchmark.json'),
         JSON.stringify(scaleEvidence, null, 2) + '\n');
       record('postgis-scale-40k-250k-1m',
         'Progressive 40k, 250k, and 1m tenant-scoped PostGIS datasets were queried 15 times per stage over authenticated HTTP; p50/p95/min/max latency and EXPLAIN ANALYZE BUFFERS evidence saved as gis-scale-benchmark.json.');
