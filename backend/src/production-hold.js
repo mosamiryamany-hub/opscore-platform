@@ -14,7 +14,7 @@ const READ_ONLY_PRODUCTION_VERIFICATION_PATHS = new Set([
 ]);
 
 const PRODUCTION_DATABASE_IDENTITY_PATH = '/api/internal/production-database-identity';
-const CANDIDATE_DEPLOYMENT_HOST = /^opscore-platform-[a-z0-9-]+-(?:mosamiryamany-1692|fiber-nexus1)\.vercel\.app$/;
+const CANDIDATE_DEPLOYMENT_HOST = /^opscore-platform-[a-z0-9-]+-(?:mosamiryamany-1692|fiber-nexus)\.vercel\.app$/;
 
 function requestPath(req) {
   try {

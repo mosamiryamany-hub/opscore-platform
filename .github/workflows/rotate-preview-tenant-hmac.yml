@@ -50,7 +50,7 @@ jobs:
           set -euo pipefail
           test -n "${NEON_API_KEY:-}" || { echo "NEON_API_KEY_MISSING"; exit 1; }
           test -n "${VERCEL_TOKEN:-}" || { echo "VERCEL_TOKEN_MISSING"; exit 1; }
-          test "$VERCEL_PROJECT_ID" = "prj_uOWgtujJcukgtkqR4RawQbiyiEKz" || { echo "UNAPPROVED_VERCEL_PROJECT"; exit 1; }
+          test "$VERCEL_PROJECT_ID" = "prj_55IixPihXfnI6YSlkmTC0Vh0sV3J" || { echo "UNAPPROVED_VERCEL_PROJECT"; exit 1; }
           test "$PROJECT_ID" = "summer-leaf-18448271" || { echo "UNAPPROVED_NEON_PROJECT"; exit 1; }
           test "$DATABASE_NAME" = "opscore_acceptance" || { echo "UNAPPROVED_PREVIEW_DATABASE"; exit 1; }
           test "$ROLE_NAME" = "neondb_owner" || { echo "UNAPPROVED_PREVIEW_ADMIN_ROLE"; exit 1; }
