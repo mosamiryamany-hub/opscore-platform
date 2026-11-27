@@ -39,7 +39,9 @@ if (new URLSearchParams(window.location.search).get('e2e') === '1') {
         loaded: Boolean(state.map?.loaded()),
         styleLoaded: Boolean(state.map?.isStyleLoaded()),
         sourceLoaded: Boolean(state.map?.isSourceLoaded('tenant-spatial-features')),
-        layers: ['tenant-spatial-polygons', 'tenant-spatial-lines', 'tenant-spatial-points'].filter(id => Boolean(state.map?.getLayer(id)))
+        layers: ['tenant-spatial-polygons', 'tenant-spatial-lines', 'tenant-spatial-points'].filter(id => Boolean(state.map?.getLayer(id))),
+        center: state.map?.getCenter()?.toArray() || null,
+        zoom: state.map?.getZoom() ?? null
       };
     },
     triggerViewportBurst() {
