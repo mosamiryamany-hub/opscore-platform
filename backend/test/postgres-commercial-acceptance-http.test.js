@@ -845,6 +845,7 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
         stages: []
       };
       let insertedScaleRows = 0;
+      await bindSignedRlsSessionContext(fixture, { tenantId: orgAId, userId: ownerAId, accessMode: 'system' });
       for (const stage of scaleStages) {
         const inserted = await fixture.query(
           `INSERT INTO spatial_features
@@ -940,6 +941,7 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
         JSON.stringify(scaleEvidence, null, 2) + '\n');
       record('postgis-scale-40k-250k-1m',
         'Progressive 40k, 250k, and 1m tenant-scoped PostGIS datasets were queried 15 times per stage over authenticated HTTP; p50/p95/min/max latency and EXPLAIN ANALYZE BUFFERS evidence saved as gis-scale-benchmark.json.');
+      await clearSignedRlsSessionContext(fixture);
 
       // Exercise the real Digital Twin HTTP surface against migrated PostgreSQL
       // tables while the application runs as opscore_runtime (NO BYPASSRLS).
