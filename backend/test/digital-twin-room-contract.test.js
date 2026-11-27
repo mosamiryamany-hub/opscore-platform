@@ -1,0 +1,4 @@
+'use strict';
+const test=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const path=require('node:path');
+const root=path.join(__dirname,'..','web');
+test('digital twin room binds to authenticated operational twin, snapshot history and integrity APIs',()=>{const html=fs.readFileSync(path.join(root,'digital-twin-room.html'),'utf8');const js=fs.readFileSync(path.join(root,'digital-twin-room.js'),'utf8');for(const route of ['/api/v1/me','/api/v1/platform/twin','/api/v1/platform/twin/snapshots','/api/v1/platform/twin/integrity'])assert.ok(js.includes(route),route);assert.match(js,/credentials:\s*'same-origin'/);assert.match(js,/cache:\s*'no-store'/);assert.match(js,/crypto\.randomUUID\(\)/);assert.match(html,/Evidence boundary/);assert.match(html,/does not claim a physical-world synchronized 3D twin/);assert.doesNotMatch(js,/Math\.random|faker|mock|demo data|sample telemetry/i);});
