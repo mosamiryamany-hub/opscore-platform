@@ -18,8 +18,7 @@ test('Vercel global Permissions-Policy denies camera and microphone but permits 
 
 test('backend default JSON and static response policy stays restrictive', () => {
   assert.equal(serverSource.split('geolocation=(self)').length - 1, 3);
-  assert.ok(serverSource.includes("'permissions-policy': 'camera=(),microphone=(),geolocation=(self)'"));
-  assert.ok(serverSource.includes("'permissions-policy': 'camera=(),microphone=(),geolocation=(self)'"));
+  assert.equal(serverSource.split("'permissions-policy': 'camera=(),microphone=(),geolocation=(self)'").length - 1, 2);
 });
 
 test('global Vercel CSP remains enforcing and same-origin only for connections', () => {
