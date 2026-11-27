@@ -23,17 +23,29 @@ const {
 const { createDeploymentProof } = require('./deployment-proof');
 const { readEmbeddedBuildIdentity, hasVerifiedProductionRelease } = require('./release-proof');
 const { createPlatformReleaseProof } = require('./platform-release-proof');
+const { createSelfHostedReleaseProof } = require('./self-hosted-release-proof');
 const { readDatabaseSecurityProof } = require('./database-security-proof');
 const { isHttpBootstrapAllowed } = require('./bootstrap-policy');
 
 function resolveSignedContextProductionReadiness(env = process.env) {
+  if (String(env.OPSC_DEPLOYMENT_MODE || '').trim().toLowerCase() === 'self-hosted') {
+    try {
+      const proof = createSelfHostedReleaseProof(env);
+      return Object.freeze({
+        productionReleaseVerified: false,
+        selfHostedReleaseVerified: proof.status === 'PASS' && proof.attestation?.verified === true
+      });
+    } catch (_) {
+      return Object.freeze({ productionReleaseVerified: false, selfHostedReleaseVerified: false });
+    }
+  }
   if (String(env.VERCEL_ENV || '').trim().toLowerCase() !== 'production') {
-    return Object.freeze({ productionReleaseVerified: false });
+    return Object.freeze({ productionReleaseVerified: false, selfHostedReleaseVerified: false });
   }
   try {
-    return Object.freeze({ productionReleaseVerified: hasVerifiedProductionRelease(env) === true });
+    return Object.freeze({ productionReleaseVerified: hasVerifiedProductionRelease(env) === true, selfHostedReleaseVerified: false });
   } catch (_) {
-    return Object.freeze({ productionReleaseVerified: false });
+    return Object.freeze({ productionReleaseVerified: false, selfHostedReleaseVerified: false });
   }
 }
 const signedContextProductionReadiness = resolveSignedContextProductionReadiness(process.env);
