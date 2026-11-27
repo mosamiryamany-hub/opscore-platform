@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const $ = (id) => document.getElementById(id);
-  const state = { items: [], selected: null, conversation: null, busy: false };
+  const state = { items: [], selected: null, conversation: null, currentUserId: null, busy: false, queueError: null };
 
   function setText(id, value) {
     const node = $(id);
@@ -50,12 +50,32 @@
     const actions = status?.policy?.executeExternalActions === false;
     setState('ccrActionsState', actions ? 'ready' : 'pending', actions ? 'Disabled by policy' : 'Policy not confirmed');
   }
+  function canOperateSelected() {
+    return Boolean(state.selected && state.currentUserId && state.selected.assignedTo === state.currentUserId);
+  }
+  function updateCaseControls() {
+    const permitted = canOperateSelected();
+    const reply = $('ccrSendReply');
+    const replyText = $('ccrReply');
+    const resolve = $('ccrResolve');
+    const confirm = $('ccrResolveConfirm');
+    if (reply) reply.disabled = state.busy || !permitted;
+    if (replyText) replyText.disabled = state.busy || !permitted;
+    if (resolve) resolve.disabled = state.busy || !permitted;
+    if (confirm) confirm.disabled = state.busy || !permitted;
+    const guard = $('ccrAssignmentGuard');
+    if (guard) {
+      guard.hidden = permitted || !state.selected;
+      guard.textContent = state.selected && !permitted
+        ? 'This handoff is assigned to another operator. You may review the transcript, but reply and resolution actions are disabled.'
+        : '';
+    }
+  }
   function setBusy(busy) {
     state.busy = busy;
-    ['ccrRefresh','ccrSendReply','ccrResolve','ccrResolveConfirm'].forEach(id => {
-      const node = $(id);
-      if (node) node.disabled = busy;
-    });
+    const refresh = $('ccrRefresh');
+    if (refresh) refresh.disabled = busy;
+    updateCaseControls();
   }
   function metrics(items) {
     setText('ccrTotal', items.length);
@@ -196,7 +216,7 @@
         api('/api/v1/contact-center/handoffs?status=open&limit=50')
       ]);
       renderService(status);
-      state.items = Array.isArray(queue.items) ? queue.items : [];
+      state.queueError = null;\n      state.items = Array.isArray(queue.items) ? queue.items : [];
       metrics(state.items);
       renderAnalytics();
       setText('ccrAuthState','Authenticated queue access confirmed');
@@ -240,7 +260,7 @@
     if (!content) return;
     setBusy(true);
     try {
-      const payload = {content,clientMessageId:'human:'+crypto.randomUUID()};
+      if (!canOperateSelected()) throw new Error('CONTACT_CENTER_HUMAN_ASSIGNMENT_REQUIRED');\n      const payload = {content,clientMessageId:'human:'+crypto.randomUUID()};
       await api('/api/v1/contact-center/conversations/' + encodeURIComponent(state.selected.conversationId) + '/human-reply',{method:'POST',body:payload});
       $('ccrReply').value = '';
       const response = await api('/api/v1/contact-center/conversations/' + encodeURIComponent(state.selected.conversationId));
@@ -252,10 +272,10 @@
     } finally { setBusy(false); }
   }
   async function resolveHandoff() {
-    if (!state.selected?.id || state.busy) return;
+    if (!state.selected?.id || state.busy || !canOperateSelected()) return;
     setBusy(true);
     try {
-      await api('/api/v1/contact-center/handoffs/' + encodeURIComponent(state.selected.id) + '/resolve',{method:'POST',body:{note:'Resolved by an assigned human operator in the Contact Center Control Room.'}});
+      const note = $('ccrResolutionNote').value.trim();\n      if (!note) { setText('ccrQueueMessage','Enter a resolution note before closing this handoff.'); return; }\n      await api('/api/v1/contact-center/handoffs/' + encodeURIComponent(state.selected.id) + '/resolve',{method:'POST',body:{note}});\n      $('ccrResolutionNote').value = '';
       $('ccrResolveDialog').close();
       state.selected = null;
       state.conversation = null;
@@ -283,6 +303,6 @@
   $('ccrReplyForm').addEventListener('submit',sendReply);
   $('ccrResolve').addEventListener('click',() => $('ccrResolveDialog').showModal());
   $('ccrResolveCancel').addEventListener('click',() => $('ccrResolveDialog').close());
-  $('ccrResolveConfirm').addEventListener('click',resolveHandoff);
+  $('ccrResolveConfirm').addEventListener('click',resolveHandoff);\n  $('ccrResolutionNote').addEventListener('input',() => { $('ccrResolveConfirm').disabled = state.busy || !canOperateSelected() || !$('ccrResolutionNote').value.trim(); });
   refreshQueue();
 })();
