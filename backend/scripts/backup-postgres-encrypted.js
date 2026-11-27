@@ -92,14 +92,16 @@ async function main() {
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   const finalPath = path.join(outputDir, 'opscore-' + stamp + '.pgdump.aesgcm');
   const tempPath = finalPath + '.tmp';
-  const env = { ...process.env, PGPASSFILE: passFile, PGSSLMODE: process.env.PGSSLMODE || 'require' };
+  const sslMode = String(process.env.PGSSLMODE || (String(process.env.NODE_ENV || '').toLowerCase() === 'production' ? 'verify-full' : 'require')).toLowerCase();
+  if (!['require', 'verify-full'].includes(sslMode) || (String(process.env.NODE_ENV || '').toLowerCase() === 'production' && sslMode !== 'verify-full')) throw new Error('BACKUP_POSTGRES_TLS_VERIFICATION_REQUIRED');
+  const env = { ...process.env, PGPASSFILE: passFile, PGSSLMODE: sslMode };
   delete env.PGPASSWORD;
   try {
     await run('pg_dump', ['--format=custom', '--no-owner', '--no-acl', '--file', dump, '--host', host, '--port', port, '--username', username, '--dbname', database], env);
     await encryptFile(dump, tempPath, key);
     await decryptFile(tempPath, verified, key);
     await run('pg_restore', ['--list', verified], env);
-    const digest = crypto.createHash('sha256').update(await fs.promises.readFile(tempPath)).digest('hex');
+    const digest = await sha256File(tempPath);
     await fs.promises.rename(tempPath, finalPath);
     const now = Date.now();
     for (const name of await fs.promises.readdir(outputDir)) {
