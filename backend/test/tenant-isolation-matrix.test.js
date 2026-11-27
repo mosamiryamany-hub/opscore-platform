@@ -211,6 +211,8 @@ test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cro
       // cannot connect to a loopback PostgreSQL without TLS.
       OPSC_PG_SSL_MODE: /127\.0\.0\.1|localhost/.test(new URL(urlText).host) ? 'disable' : 'require',
       AUTH_MODE: 'local',
+      FIREWALL_RATE_STATE: 'database',
+      OPSC_TEST_INCLUDE_ERROR_DIAGNOSTICS: 'true',
       OPSC_TEST_SCRYPT_N: process.env.OPSC_TEST_SCRYPT_N || '32768',
       // The probe sweeps hundreds of intentionally-rejected requests; the default
       // firewall window (240/min) would turn legitimate denials into 429 noise.

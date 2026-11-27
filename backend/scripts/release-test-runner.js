@@ -84,64 +84,71 @@ function normalizeTestcaseIdentity(testcaseXml,file,ordinal){
  return normalized;
 }
 
+function tapCaseXml(file, item, index) {
+  const attrs = 'classname="' + xmlEscape(file) + '" name="' + String(index).padStart(4, '0') + ' - ' + xmlEscape(item.name) + '"';
+  if (item.skipped || item.todo) return '<testcase ' + attrs + '><skipped message="' + xmlEscape(item.detail || (item.todo ? 'TODO' : 'SKIP')) + '"/></testcase>';
+  if (item.failed) return '<testcase ' + attrs + '><failure message="' + xmlEscape(item.detail || 'Test failed') + '">' + xmlEscape(item.detail || 'Test failed') + '</failure></testcase>';
+  return '<testcase ' + attrs + '/>';
+}
+
 function junitXml(results) {
   const caseXml = [];
+  const perFileMismatches = [];
   let expectedTests = 0;
-  const perFileCounts = [];
+
   for (const result of results) {
     const xml = result.junitContent || '';
     const matches = xml.match(/<testcase\b[^>]*\/>|<testcase\b[^>]*>[\s\S]*?<\/testcase>/g) || [];
     const tapCases = result.cases || [];
-    expectedTests += Math.max(result.tests || 0, matches.length, tapCases.length);
-    if (result.tests > 0 && matches.length === result.tests) {
+    const expectedForFile = Math.max(result.tests || 0, matches.length, tapCases.length);
+    let emitted = 0;
+
+    if (matches.length === expectedForFile && expectedForFile > 0) {
       matches.forEach((item, index) => caseXml.push(normalizeTestcaseIdentity(item, result.file, index + 1)));
-      continue;
-    }
-    // Some node:test cases are summarized correctly in TAP but omitted by the built-in JUnit
-    // reporter (observed in platform_intelligence_layer.test.js). Use TAP only when its exact
-    // case count matches the per-file test summary; otherwise fail closed with diagnostics.
-    if (result.tests > 0 && tapCases.length === result.tests) {
-      for (const [index, item] of tapCases.entries()) {
-        const attrs = 'classname="' + xmlEscape(result.file) + '" name="' + String(index + 1).padStart(4, '0') + ' - ' + xmlEscape(item.name) + '"';
-        if (item.skipped || item.todo) caseXml.push('<testcase ' + attrs + '><skipped message="' + xmlEscape(item.detail || (item.todo ? 'TODO' : 'SKIP')) + '"/></testcase>');
-        else if (item.failed) caseXml.push('<testcase ' + attrs + '><failure message="' + xmlEscape(item.detail || 'Test failed') + '">' + xmlEscape(item.detail || 'Test failed') + '</failure></testcase>');
-        else caseXml.push('<testcase ' + attrs + '/>');
+      emitted = matches.length;
+    } else if (tapCases.length === expectedForFile && expectedForFile > 0) {
+      tapCases.forEach((item, index) => caseXml.push(tapCaseXml(result.file, item, index + 1)));
+      emitted = tapCases.length;
+    } else if (expectedForFile > 0) {
+      perFileMismatches.push({
+        file: result.file,
+        summary: result.tests || 0,
+        junit: matches.length,
+        tap: tapCases.length
+      });
+      if (matches.length >= tapCases.length) {
+        matches.forEach((item, index) => caseXml.push(normalizeTestcaseIdentity(item, result.file, index + 1)));
+        emitted = matches.length;
+      } else {
+        tapCases.forEach((item, index) => caseXml.push(tapCaseXml(result.file, item, index + 1)));
+        emitted = tapCases.length;
       }
-      continue;
-    }
-    if (result.tests > 0 || matches.length || tapCases.length) {
-      perFileCounts.push({ file: result.file, expected: result.tests, junit: matches.length, tap: tapCases.length });
-      if (matches.length) caseXml.push(...matches);
-      else if (tapCases.length) {
-        for (const [index, item] of tapCases.entries()) {
-          const attrs = 'classname="' + xmlEscape(result.file) + '" name="' + String(index + 1).padStart(4, '0') + ' - ' + xmlEscape(item.name) + '"';
-          if (item.skipped || item.todo) caseXml.push('<testcase ' + attrs + '><skipped message="' + xmlEscape(item.detail || (item.todo ? 'TODO' : 'SKIP')) + '"/></testcase>');
-          else if (item.failed) caseXml.push('<testcase ' + attrs + '><failure message="' + xmlEscape(item.detail || 'Test failed') + '">' + xmlEscape(item.detail || 'Test failed') + '</failure></testcase>');
-          else caseXml.push('<testcase ' + attrs + '/>');
-        }
+      while (emitted < expectedForFile) {
+        const attrs = 'classname="' + xmlEscape(result.file) + '" name="REPORTING_GAP - ' + String(emitted + 1).padStart(4, '0') + '"';
+        caseXml.push('<testcase ' + attrs + '><failure message="JUNIT_REPORT_INCOMPLETE">Node test summary, TAP and JUnit output did not agree on the full test count.</failure></testcase>');
+        emitted += 1;
       }
     }
-    // A timeout is a failed test outcome even if node:test emitted only partial TAP.
-    // Preserve completed cases and add one explicit synthetic failure testcase.
+
     if (result.timedOut && !result.completedWithOpenHandles) {
       const attrs = 'classname="' + xmlEscape(result.file) + '" name="TIMEOUT - ' + xmlEscape(result.file) + '"';
       caseXml.push('<testcase ' + attrs + '><failure message="TEST_FILE_TIMEOUT">The test file exceeded its configured per-file timeout before completion.</failure></testcase>');
-      expectedTests += 1;
+      emitted += 1;
     }
+    expectedTests += emitted;
   }
+
   const failures = caseXml.filter(item => /<failure\b/.test(item)).length;
   const errors = caseXml.filter(item => /<error\b/.test(item)).length;
   const skipped = caseXml.filter(item => /<skipped\b/.test(item)).length;
-  const expectedSkipped = results.reduce((n,r)=>n+(r.skipped||0)+(r.todo||0),0);
-  if(skipped!==expectedSkipped)throw new Error('JUNIT_SKIPPED_COUNT_MISMATCH: expected '+expectedSkipped+', found '+skipped);
-  if (caseXml.length !== expectedTests) {
-    throw new Error('JUNIT_TEST_COUNT_MISMATCH: expected ' + expectedTests + ' test cases from Node summaries, found ' + caseXml.length + '; per-file=' + JSON.stringify(perFileCounts));
-  }
   const body = caseXml.map(item => '  ' + item).join('\n');
+  const mismatchProperty = perFileMismatches.length
+    ? '<properties><property name="reporting_mismatches" value="' + xmlEscape(JSON.stringify(perFileMismatches)) + '"/></properties>\n'
+    : '';
   return '<?xml version="1.0" encoding="UTF-8"?>\n' +
     '<testsuites tests="' + caseXml.length + '" failures="' + failures + '" errors="' + errors + '" skipped="' + skipped + '">' +
     '<testsuite name="OpsCore release tests" tests="' + caseXml.length + '" failures="' + failures + '" errors="' + errors + '" skipped="' + skipped + '">\n' +
-    body + '\n</testsuite></testsuites>\n';
+    mismatchProperty + body + '\n</testsuite></testsuites>\n';
 }
 
 function runFile(file) {

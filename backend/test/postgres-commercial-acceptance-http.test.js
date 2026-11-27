@@ -208,6 +208,8 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
       // loopback PostgreSQL without TLS; pick the mode from the target URL.
       OPSC_PG_SSL_MODE: /127\.0\.0\.1|localhost/.test(parsed.host) ? 'disable' : 'require',
       AUTH_MODE: 'local',
+      FIREWALL_RATE_STATE: 'database',
+      OPSC_TEST_INCLUDE_ERROR_DIAGNOSTICS: 'true',
       OPSC_TEST_SCRYPT_N: process.env.OPSC_TEST_SCRYPT_N || '32768'
     },
     stdio: ['ignore', 'pipe', 'pipe']

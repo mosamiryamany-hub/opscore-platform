@@ -23,7 +23,7 @@ function validateSeedTarget(env = process.env) {
   let url;
   try { url = new URL(raw); } catch { throw invalid('CI_SIGNING_KEY_SEED_URL_INVALID'); }
   const host = String(url.hostname || '').toLowerCase();
-  const database = decodeURIComponent(url.pathname.replace(/^\\/+/, '').split('/')[0] || '');
+  const database = decodeURIComponent(url.pathname.replace(/^\/+/, '').split('/')[0] || '');
   const role = decodeURIComponent(url.username || '');
 
   if (!['postgres:', 'postgresql:'].includes(url.protocol)) throw invalid('CI_SIGNING_KEY_SEED_PROTOCOL_INVALID');
