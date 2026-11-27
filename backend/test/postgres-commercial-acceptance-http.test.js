@@ -845,37 +845,55 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
         stages: []
       };
       let insertedScaleRows = 0;
-      await bindSignedRlsSessionContext(fixture, { tenantId: orgAId, userId: ownerAId, accessMode: 'system' });
+      const scaleChunkSize = 5000;
       for (const stage of scaleStages) {
-        await bindSignedRlsSessionContext(fixture, { tenantId: orgAId, userId: ownerAId, accessMode: 'system' });
-        let inserted;
-        try {
-          inserted = await fixture.query(
-          `INSERT INTO spatial_features
-            (id,organization_id,entity_type,entity_id,feature_key,geom,properties,source,created_by,created_at,updated_at)
-           SELECT 'gis-' || $1 || (g + $3)::text,
-                  $2,
-                  'site',
-                  $1 || (g + $3)::text,
-                  'scale',
-                  public.ST_SetSRID(public.ST_MakePoint(
-                    31.0 + ((g + $3) % 1000)::double precision / 1000.0,
-                    30.0 + floor((g + $3)::double precision / 1000.0) / 1000.0
-                  ), 4326),
-                  '{}'::jsonb,
-                  'acceptance-scale-benchmark',
-                  $4,
-                  now(),
-                  now()
-           FROM generate_series(1, $5::integer) AS g`,
-          [created.scalePrefix, orgAId, insertedScaleRows, ownerAId, stage.add]
-          );
-        } finally {
-          await clearSignedRlsSessionContext(fixture);
+        let insertedThisStage = 0;
+        // Signed RLS assertions expire after 45 seconds. Keep each bulk INSERT
+        // comfortably below that trust window and re-sign on the same backend
+        // connection for every chunk; never extend the production assertion TTL.
+        for (let chunkOffset = 0; chunkOffset < stage.add; chunkOffset += scaleChunkSize) {
+          const chunkRows = Math.min(scaleChunkSize, stage.add - chunkOffset);
+          await bindSignedRlsSessionContext(fixture, { tenantId: orgAId, userId: ownerAId, accessMode: 'system' });
+          try {
+            const inserted = await fixture.query(
+              `INSERT INTO spatial_features
+                (id,organization_id,entity_type,entity_id,feature_key,geom,properties,source,created_by,created_at,updated_at)
+               SELECT 'gis-' || $1 || (g + $3)::text,
+                      $2,
+                      'site',
+                      $1 || (g + $3)::text,
+                      'scale',
+                      public.ST_SetSRID(public.ST_MakePoint(
+                        31.0 + ((g + $3) % 1000)::double precision / 1000.0,
+                        30.0 + floor((g + $3)::double precision / 1000.0) / 1000.0
+                      ), 4326),
+                      '{}'::jsonb,
+                      'acceptance-scale-benchmark',
+                      $4,
+                      now(),
+                      now()
+               FROM generate_series(1, $5::integer) AS g`,
+              [created.scalePrefix, orgAId, insertedScaleRows + chunkOffset, ownerAId, chunkRows]
+            );
+            assert.equal(inserted.rowCount, chunkRows, 'each signed-context GIS insert chunk must be complete');
+            insertedThisStage += inserted.rowCount;
+          } finally {
+            await clearSignedRlsSessionContext(fixture);
+          }
         }
-        assert.equal(inserted.rowCount, stage.add);
-        insertedScaleRows += inserted.rowCount;
-
+        assert.equal(insertedThisStage, stage.add);
+        insertedScaleRows += insertedThisStage;
+        const verifiedRows = await cleanupPool.query(
+          `SELECT count(*)::integer AS count
+             FROM spatial_features
+            WHERE organization_id = $1
+              AND source = 'acceptance-scale-benchmark'
+              AND entity_id LIKE $2`,
+          [orgAId, created.scalePrefix + '%']
+        );
+        assert.equal(verifiedRows.rows[0].count, stage.target,
+          'database must contain the exact cumulative tenant-scoped GIS benchmark row count');
+        
         // ANALYZE is a maintenance operation and is performed only against this
         // disposable acceptance database using the already validated cleanup role.
         await cleanupPool.query('ANALYZE public.spatial_features');
@@ -927,7 +945,8 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
         }
         scaleEvidence.stages.push({
           rows: stage.target,
-          insertedThisStage: stage.add,
+          insertedThisStage: insertedThisStage,
+          verifiedPersistedRows: verifiedRows.rows[0].count,
           samples: latenciesMs.length,
           latencyMs: {
             min: latenciesMs[0],
