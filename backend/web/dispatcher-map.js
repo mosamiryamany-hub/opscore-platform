@@ -10,7 +10,7 @@ if (directionToggle) directionToggle.addEventListener('click', () => {
   directionToggle.textContent = rtl ? 'EN' : 'ع';
   directionToggle.setAttribute('aria-label', rtl ? 'Switch to English left-to-right layout' : 'Switch to Arabic right-to-left layout');
 });
-const state = { map: null, mapReady: null, sourceReady: false, spatialSourceReady: false, points: [], spatialFeatures: { type: 'FeatureCollection', features: [] }, viewportTimer: null, viewportSequence: 0 };
+const state = { map: null, sourceReady: false, spatialSourceReady: false, points: [], spatialFeatures: { type: 'FeatureCollection', features: [] }, viewportTimer: null, viewportSequence: 0 };
 const safe = value => String(value ?? '');
 const formatDate = value => value ? new Date(value).toLocaleString() : '—';
 
@@ -107,76 +107,68 @@ function renderList(points) {
 }
 
 async function ensureMap() {
-  if (state.mapReady) return state.mapReady;
+  if (state.map) return;
   if (!maplibregl) maplibregl = await import('https://unpkg.com/maplibre-gl@6.20.0/dist/maplibre-gl.mjs');
   const container = $('dispatcherMap');
-  state.mapReady = new Promise(resolve => {
-    state.map = new maplibregl.Map({
-      container,
-      style: container.dataset.styleUrl,
-      center: [0, 0],
-      zoom: 1.2,
-      attributionControl: true,
-      cooperativeGestures: true
+  state.map = new maplibregl.Map({
+    container,
+    style: container.dataset.styleUrl,
+    center: [0, 0],
+    zoom: 1.2,
+    attributionControl: true,
+    cooperativeGestures: true
+  });
+  state.map.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'top-right');
+  state.map.addControl(new maplibregl.ScaleControl({ maxWidth: 120, unit: 'metric' }), 'bottom-left');
+  state.map.on('load', () => {
+    state.map.addSource('technician-checkins', {
+      type: 'geojson',
+      data: { type: 'FeatureCollection', features: [] }
     });
-    state.map.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'top-right');
-    state.map.addControl(new maplibregl.ScaleControl({ maxWidth: 120, unit: 'metric' }), 'bottom-left');
-    state.map.on('load', () => {
-      state.map.addSource('technician-checkins', {
-        type: 'geojson',
-        data: { type: 'FeatureCollection', features: [] }
-      });
-      state.map.addLayer({
-        id: 'technician-checkins',
-        type: 'circle',
-        source: 'technician-checkins',
-        paint: {
-          'circle-radius': ['interpolate', ['linear'], ['zoom'], 2, 5, 12, 9, 16, 12],
-          'circle-color': '#4de2ff',
-          'circle-stroke-color': '#07111f',
-          'circle-stroke-width': 2,
-          'circle-opacity': 0.92
-        }
-      });
-      state.map.addSource('tenant-spatial-features', {
-        type: 'geojson',
-        data: state.spatialFeatures
-      });
-      state.map.addLayer({
-        id: 'tenant-spatial-polygons',
-        type: 'fill',
-        source: 'tenant-spatial-features',
-        filter: ['==', ['geometry-type'], 'Polygon'],
-        paint: { 'fill-color': '#8b7cff', 'fill-opacity': 0.16 }
-      });
-      state.map.addLayer({
-        id: 'tenant-spatial-lines',
-        type: 'line',
-        source: 'tenant-spatial-features',
-        filter: ['in', ['geometry-type'], 'LineString', 'Polygon'],
-        paint: { 'line-color': '#a99cff', 'line-width': 2, 'line-opacity': 0.9 }
-      });
-      state.map.addLayer({
-        id: 'tenant-spatial-points',
-        type: 'circle',
-        source: 'tenant-spatial-features',
-        filter: ['==', ['geometry-type'], 'Point'],
-        paint: {
-          'circle-radius': ['interpolate', ['linear'], ['zoom'], 2, 4, 12, 7, 16, 10],
-          'circle-color': '#b69cff',
-          'circle-stroke-color': '#17132a',
-          'circle-stroke-width': 2
-        }
-      });
-      state.sourceReady = true;
-      state.spatialSourceReady = true;
-      updateMapPoints();
-      resolve();
+    state.map.addLayer({
+      id: 'technician-checkins',
+      type: 'circle',
+      source: 'technician-checkins',
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 2, 5, 12, 9, 16, 12],
+        'circle-color': '#4de2ff',
+        'circle-stroke-color': '#07111f',
+        'circle-stroke-width': 2,
+        'circle-opacity': 0.92
+      }
     });
-    state.map.on('error', event => {
-      if (event?.error) message('Map style or tile service is unavailable. Recorded data remains protected; retry or switch the configured style provider.', 'warning');
+    state.map.addSource('tenant-spatial-features', {
+      type: 'geojson',
+      data: state.spatialFeatures
     });
-    state.map.on('moveend', scheduleSpatialRefresh);
+    state.map.addLayer({
+      id: 'tenant-spatial-polygons',
+      type: 'fill',
+      source: 'tenant-spatial-features',
+      filter: ['==', ['geometry-type'], 'Polygon'],
+      paint: { 'fill-color': '#8b7cff', 'fill-opacity': 0.16 }
+    });
+    state.map.addLayer({
+      id: 'tenant-spatial-lines',
+      type: 'line',
+      source: 'tenant-spatial-features',
+      filter: ['in', ['geometry-type'], 'LineString', 'Polygon'],
+      paint: { 'line-color': '#a99cff', 'line-width': 2, 'line-opacity': 0.9 }
+    });
+    state.map.addLayer({
+      id: 'tenant-spatial-points',
+      type: 'circle',
+      source: 'tenant-spatial-features',
+      filter: ['==', ['geometry-type'], 'Point'],
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 2, 4, 12, 7, 16, 10],
+        'circle-color': '#b69cff',
+        'circle-stroke-color': '#17132a',
+        'circle-stroke-width': 2
+      }
+    });
+    state.sourceReady = true;
+    state.spatialSourceReady = true;
     state.map.on('click', 'technician-checkins', event => {
       const feature = event.features?.[0];
       if (!feature) return;
@@ -187,8 +179,13 @@ async function ensureMap() {
     });
     state.map.on('mouseenter', 'technician-checkins', () => { state.map.getCanvas().style.cursor = 'pointer'; });
     state.map.on('mouseleave', 'technician-checkins', () => { state.map.getCanvas().style.cursor = ''; });
+    updateMapPoints();
+    refreshSpatialFeatures();
   });
-  return state.mapReady;
+  state.map.on('error', event => {
+    if (event?.error) message('Map style or tile service is unavailable. Recorded data remains protected; retry or switch the configured style provider.', 'warning');
+  });
+  state.map.on('moveend', scheduleSpatialRefresh);
 }
 function updateMapPoints() {
   if (!state.sourceReady || !state.map) return;
