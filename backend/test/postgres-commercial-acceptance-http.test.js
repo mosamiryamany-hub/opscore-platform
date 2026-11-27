@@ -212,7 +212,8 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
       OPSC_TEST_SCRYPT_N: process.env.OPSC_TEST_SCRYPT_N || '32768',
       VERCEL_ENV: 'preview',
       OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_READ_ENABLED: 'true',
-      OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'true'
+      OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'true',
+      OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED: 'true'
     },
     stdio: ['ignore', 'pipe', 'pipe']
   });
@@ -611,7 +612,8 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           OPSC_TEST_SCRYPT_N: process.env.OPSC_TEST_SCRYPT_N || '32768',
           VERCEL_ENV: 'preview',
           OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_READ_ENABLED: 'true',
-          OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'true'
+          OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'true',
+      OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED: 'true'
         },
         stdio: ['ignore', 'pipe', 'pipe']
       });
