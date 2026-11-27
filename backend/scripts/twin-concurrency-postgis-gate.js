@@ -2,6 +2,7 @@
 
 const crypto = require('node:crypto');
 const { Pool } = require('pg');
+const { openPgDatabaseSync, runWithRequest } = require('../src/pg-database-sync');
 
 function requiredUrl() {
   const raw = String(process.env.OPSC_PG_TEST_URL || '').trim();
@@ -68,6 +69,44 @@ async function main() {
     const persisted = await pool.query('SELECT count(*)::int AS count, min(sequence_no)::int AS sequence FROM ' + qSchema + '.chain_events');
     if (persisted.rows[0].count !== 1 || persisted.rows[0].sequence !== 1) throw new Error('TWIN_SEQUENCE_PERSISTENCE_INVARIANT_FAILED');
     evidence.checks.push({ id: 'concurrent-sequence-uniqueness', status: 'PASS', writers: 2, committed, uniqueConflicts: conflicts });
+
+    // Exercise the exact synchronous PostgreSQL adapter used by Store and
+    // platform-intelligence-layer.js. This remains isolated in session-local
+    // TEMP tables on the disposable CI database; no application or customer rows.
+    const appDb = openPgDatabaseSync(requiredUrl(), { max: 1 });
+    try {
+      runWithRequest(() => {
+        appDb.exec('CREATE TEMP TABLE twin_gate_app_snapshots (id text PRIMARY KEY, tenant_id text NOT NULL, state_hash text NOT NULL) ON COMMIT PRESERVE ROWS');
+        appDb.exec('CREATE TEMP TABLE twin_gate_app_events (id text PRIMARY KEY, tenant_id text NOT NULL, sequence_no bigint NOT NULL, snapshot_id text NOT NULL, previous_hash text NOT NULL, event_hash text NOT NULL, UNIQUE (tenant_id, sequence_no), UNIQUE (tenant_id, snapshot_id)) ON COMMIT PRESERVE ROWS');
+        const tenant = 'tenant-app-adapter-fixture';
+        const firstHash = crypto.createHash('sha256').update('snapshot-one').digest('hex');
+        appDb.exec('BEGIN IMMEDIATE');
+        appDb.prepare('INSERT INTO twin_gate_app_snapshots(id,tenant_id,state_hash) VALUES(?,?,?)').run('snapshot-one', tenant, firstHash);
+        appDb.prepare('INSERT INTO twin_gate_app_events(id,tenant_id,sequence_no,snapshot_id,previous_hash,event_hash) VALUES(?,?,?,?,?,?)').run('event-one', tenant, 1, 'snapshot-one', 'GENESIS', firstHash);
+        appDb.exec('COMMIT');
+        const committed = appDb.prepare('SELECT count(*)::int AS count FROM twin_gate_app_snapshots WHERE tenant_id=?').get(tenant);
+        if (Number(committed.count) !== 1) throw new Error('APP_PG_ADAPTER_COMMIT_NOT_VISIBLE');
+        let conflict = false;
+        try {
+          appDb.exec('BEGIN IMMEDIATE');
+          appDb.prepare('INSERT INTO twin_gate_app_snapshots(id,tenant_id,state_hash) VALUES(?,?,?)').run('snapshot-orphan-probe', tenant, firstHash);
+          appDb.prepare('INSERT INTO twin_gate_app_events(id,tenant_id,sequence_no,snapshot_id,previous_hash,event_hash) VALUES(?,?,?,?,?,?)').run('event-conflict-probe', tenant, 1, 'snapshot-orphan-probe', firstHash, firstHash);
+          appDb.exec('COMMIT');
+        } catch (error) {
+          conflict = error.code === '23505';
+          appDb.exec('ROLLBACK');
+          if (!conflict) throw error;
+        }
+        const afterRollback = appDb.prepare('SELECT count(*)::int AS count FROM twin_gate_app_snapshots WHERE id=?').get('snapshot-orphan-probe');
+        const eventCount = appDb.prepare('SELECT count(*)::int AS count FROM twin_gate_app_events WHERE tenant_id=?').get(tenant);
+        if (!conflict || Number(afterRollback.count) !== 0 || Number(eventCount.count) !== 1) {
+          throw new Error('APP_PG_ADAPTER_SNAPSHOT_CHAIN_ATOMICITY_FAILED');
+        }
+        evidence.checks.push({ id: 'application-postgres-sync-adapter-atomicity', status: 'PASS',
+          adapter: 'pg-database-sync', committedSnapshots: Number(committed.count),
+          chainEventsAfterConflict: Number(eventCount.count), conflictingWriteRolledBackSnapshot: Number(afterRollback.count) === 0 });
+      });
+    } finally { appDb.close(); }
 
     // Build deterministic, disposable spatial data and prove the GiST index is
     // usable for a selective bounding-box query. No production rows are touched.
