@@ -881,6 +881,7 @@ function fail(res, err) {
     CONTACT_CENTER_HANDOFF_NOT_FOUND: [404,'CONTACT_CENTER_HANDOFF_NOT_FOUND'],
     CONTACT_CENTER_HANDOFF_ALREADY_CLAIMED: [409,'CONTACT_CENTER_HANDOFF_ALREADY_CLAIMED'],
     CONTACT_CENTER_HANDOFF_NOT_ASSIGNED_TO_ACTOR: [403,'CONTACT_CENTER_HANDOFF_NOT_ASSIGNED_TO_ACTOR'],
+    CONTACT_CENTER_HANDOFF_NOT_REASSIGNABLE: [409,'CONTACT_CENTER_HANDOFF_NOT_REASSIGNABLE'],
     CONTACT_CENTER_HUMAN_ASSIGNMENT_REQUIRED: [403,'CONTACT_CENTER_HUMAN_ASSIGNMENT_REQUIRED']
   };
   const raw = String(err?.message || 'BAD_REQUEST');
@@ -1862,6 +1863,25 @@ function route(req, res) {
       if (c.role === 'viewer') throw Object.assign(new Error('FORBIDDEN'), { code:'FORBIDDEN' });
       return json(res, 200, contactCenter.getConversation(db, c, ccConversation[1], process.env, true));
     } catch (e) { return fail(res, e); }
+  }
+  if (url.pathname === '/api/v1/contact-center/crm/customers' && req.method === 'GET') {
+    try {
+      requireScope(c, 'read');
+      const query = url.searchParams.get('query') || '';
+      return json(res, 200, { schemaVersion:'opscore.contact-center-crm-search.v1', items:contactCenter.listCrmCustomers(db, c, query) });
+    } catch (e) { return fail(res, e); }
+  }
+  const ccCustomerProfile = url.pathname.match(/^\\/api\\/v1\\/contact-center\\/conversations\\/([A-Za-z0-9_-]+)\\/customer-profile$/);
+  if (ccCustomerProfile && req.method === 'GET') {
+    try { requireScope(c, 'read'); return json(res, 200, contactCenter.getConversationCustomer(db, c, ccCustomerProfile[1])); } catch (e) { return fail(res, e); }
+  }
+  const ccCustomerLink = url.pathname.match(/^\\/api\\/v1\\/contact-center\\/conversations\\/([A-Za-z0-9_-]+)\\/customer-link$/);
+  if (ccCustomerLink && req.method === 'POST') {
+    try { requireScope(c, 'write'); return body(req).then(b => json(res, 200, contactCenter.linkConversationCustomer(db, c, ccCustomerLink[1], b.customerId))).catch(e => fail(res, e)); } catch (e) { return fail(res, e); }
+  }
+  const ccReassign = url.pathname.match(/^\\/api\\/v1\\/contact-center\\/handoffs\\/([A-Za-z0-9_-]+)\\/reassign$/);
+  if (ccReassign && req.method === 'POST') {
+    try { requireScope(c, 'write'); return body(req).then(b => json(res, 200, contactCenter.reassignHandoff(db, c, ccReassign[1], b))).catch(e => fail(res, e)); } catch (e) { return fail(res, e); }
   }
   const ccErase = url.pathname.match(/^\/api\/v1\/contact-center\/conversations\/([A-Za-z0-9_-]+)\/erase$/);
   if (ccErase && req.method === 'POST') {
