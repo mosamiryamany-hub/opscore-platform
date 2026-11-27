@@ -43,17 +43,17 @@ BEGIN
   SELECT * INTO migrator_role FROM pg_roles WHERE rolname = 'opscore_migrator';
   SELECT * INTO worker_role FROM pg_roles WHERE rolname = 'opscore_worker';
 
-  IF NOT FOUND OR NOT runtime_role.rolcanlogin OR runtime_role.rolsuper
+  IF runtime_role.rolname IS NULL OR NOT runtime_role.rolcanlogin OR runtime_role.rolsuper
      OR runtime_role.rolbypassrls OR runtime_role.rolcreaterole
      OR runtime_role.rolcreatedb OR runtime_role.rolinherit THEN
     RAISE EXCEPTION 'OPSCORE_RUNTIME_ROLE_CONTRACT_FAILED';
   END IF;
-  IF NOT migrator_role.rolcanlogin OR migrator_role.rolsuper
+  IF migrator_role.rolname IS NULL OR NOT migrator_role.rolcanlogin OR migrator_role.rolsuper
      OR NOT migrator_role.rolbypassrls OR migrator_role.rolcreaterole
      OR migrator_role.rolcreatedb OR migrator_role.rolinherit THEN
     RAISE EXCEPTION 'OPSCORE_MIGRATOR_ROLE_CONTRACT_FAILED';
   END IF;
-  IF NOT worker_role.rolcanlogin OR worker_role.rolsuper
+  IF worker_role.rolname IS NULL OR NOT worker_role.rolcanlogin OR worker_role.rolsuper
      OR worker_role.rolbypassrls OR worker_role.rolcreaterole
      OR worker_role.rolcreatedb OR worker_role.rolinherit THEN
     RAISE EXCEPTION 'OPSCORE_WORKER_ROLE_CONTRACT_FAILED';
@@ -61,7 +61,7 @@ BEGIN
 END
 $verify$;
 
-GRANT CONNECT ON DATABASE :"POSTGRES_DB" TO opscore_runtime, opscore_worker, opscore_migrator;
-GRANT CREATE ON DATABASE :"POSTGRES_DB" TO opscore_migrator;
+SELECT format('GRANT CONNECT ON DATABASE %I TO opscore_runtime, opscore_worker, opscore_migrator', current_database()) \\gexec
+SELECT format('GRANT CREATE ON DATABASE %I TO opscore_migrator', current_database()) \\gexec
 GRANT USAGE, CREATE ON SCHEMA public TO opscore_migrator;
 SQL
