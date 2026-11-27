@@ -61,7 +61,7 @@ BEGIN
 END
 $verify$;
 
-SELECT format('GRANT CONNECT ON DATABASE %I TO opscore_runtime, opscore_worker, opscore_migrator', current_database()) \\gexec
-SELECT format('GRANT CREATE ON DATABASE %I TO opscore_migrator', current_database()) \\gexec
+SELECT format('GRANT CONNECT ON DATABASE %I TO opscore_runtime, opscore_worker, opscore_migrator', current_database()) \gexec
+SELECT format('GRANT CREATE ON DATABASE %I TO opscore_migrator', current_database()) \gexec
 GRANT USAGE, CREATE ON SCHEMA public TO opscore_migrator;
 SQL
