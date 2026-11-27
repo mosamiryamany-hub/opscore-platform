@@ -58,6 +58,12 @@ test('Agent Control Room uses only existing tenant-scoped APIs for queue, transc
   assert.match(roomScript, /\/human-reply/);
   assert.match(roomScript, /\/resolve/);
   assert.match(roomScript, /credentials: 'same-origin'/);
+  assert.match(roomScript, /api\('\/api\/v1\/me'\)/);
+  assert.match(roomScript, /state\.selected\.assignedTo === state\.currentUserId/);
+  assert.match(roomScript, /if \(!canOperateSelected\(\)\) throw new Error/);
+  assert.match(roomScript, /note\}\)/);
+  assert.match(roomHtml, /id="ccrResolutionNote"/);
+  assert.match(roomHtml, /id="ccrAssignmentGuard"/);
   assert.match(roomScript, /items\.filter\(item => item\.status === 'queued'\)/);
   assert.match(roomScript, /aggregate\('reasonCode'\)/);
   assert.match(roomScript, /aggregate\('channel'\)/);
