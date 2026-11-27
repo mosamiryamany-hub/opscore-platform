@@ -146,7 +146,8 @@ test('CRM customer linking is explicit, supervisor-only and tenant-bound', () =>
     db.prepare('INSERT INTO customers VALUES (?,?,?,?,?,?,?,?,?)').run('cus_other123','org_b','Other Tenant Customer','other@example.test',null,'crm-ref-2','active',stamp,stamp);
     assert.deepEqual(cc.listCrmCustomers(db,agent,'verified').map(x=>x.id),['cus_test123']);
     assert.throws(()=>cc.listCrmCustomers(db,ctx,'verified'),e=>e.message==='FORBIDDEN');
-    assert.throws(()=>cc.linkConversationCustomer(db,other,conv.id,'cus_other123'),e=>e.message==='CONTACT_CENTER_CONVERSATION_NOT_FOUND');
+    const otherSupervisor={...other,role:'manager'};
+    assert.throws(()=>cc.linkConversationCustomer(db,otherSupervisor,conv.id,'cus_other123'),e=>e.message==='CONTACT_CENTER_CONVERSATION_NOT_FOUND');
     assert.throws(()=>cc.linkConversationCustomer(db,agent,conv.id,'cus_other123'),e=>e.message==='INVALID_CUSTOMER');
     assert.throws(()=>db.prepare('UPDATE ai_contact_conversations SET customer_id=? WHERE id=?').run('cus_other123',conv.id),/CONTACT_CENTER_CUSTOMER_TENANT_MISMATCH/);
     const linked=cc.linkConversationCustomer(db,agent,conv.id,'cus_test123');
