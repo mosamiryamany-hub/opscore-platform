@@ -10,7 +10,7 @@ if (directionToggle) directionToggle.addEventListener('click', () => {
   directionToggle.textContent = rtl ? 'EN' : 'ع';
   directionToggle.setAttribute('aria-label', rtl ? 'Switch to English left-to-right layout' : 'Switch to Arabic right-to-left layout');
 });
-const state = { map: null, sourceReady: false, spatialSourceReady: false, points: [], spatialFeatures: { type: 'FeatureCollection', features: [] }, viewportTimer: null, viewportSequence: 0 };
+const state = { map: null, sourceReady: false, spatialSourceReady: false, points: [], spatialFeatures: { type: 'FeatureCollection', features: [] }, viewportTimer: null, viewportSequence: 0, viewportRequestCount: 0 };
 const safe = value => String(value ?? '');
 const formatDate = value => value ? new Date(value).toLocaleString() : '—';
 
@@ -26,6 +26,13 @@ if (new URLSearchParams(window.location.search).get('e2e') === '1') {
       }).map(feature => String(feature.id ?? feature.properties?.featureId ?? '')).filter(Boolean).sort();
     },
     viewportSequence() { return state.viewportSequence; },
+    viewportRequestCount() { return state.viewportRequestCount; },
+    triggerViewportBurst() {
+      if (!state.map) throw new Error('MAP_NOT_READY');
+      state.map.jumpTo({ center: [31.20, 30.00], zoom: 8 });
+      state.map.jumpTo({ center: [31.21, 30.01], zoom: 8 });
+      state.map.jumpTo({ center: [31.22, 30.02], zoom: 8 });
+    },
     displayedSpatialFeatureIds() {
       return state.spatialFeatures.features.map(feature => String(feature.id ?? feature.properties?.featureId ?? '')).sort();
     }
@@ -241,6 +248,7 @@ async function refreshSpatialFeatures() {
   }
   const sequence = ++state.viewportSequence;
   try {
+    state.viewportRequestCount += 1;
     const data = await request('/api/v1/map/viewport?' + query.toString());
     if (sequence !== state.viewportSequence) return;
     state.spatialFeatures = toSpatialFeatureCollection(data.spatialFeatures);
