@@ -14,6 +14,24 @@ const state = { map: null, sourceReady: false, spatialSourceReady: false, points
 const safe = value => String(value ?? '');
 const formatDate = value => value ? new Date(value).toLocaleString() : '—';
 
+// Read-only browser acceptance probe. It is inert unless the page is explicitly
+// opened with ?e2e=1; it exposes rendered feature IDs and counters, never tenant
+// credentials or mutable application state.
+if (new URLSearchParams(window.location.search).get('e2e') === '1') {
+  window.__opscoreDispatcherMapE2E = Object.freeze({
+    renderedSpatialFeatureIds() {
+      if (!state.map || !state.spatialSourceReady) return [];
+      return state.map.queryRenderedFeatures(undefined, {
+        layers: ['tenant-spatial-polygons', 'tenant-spatial-lines', 'tenant-spatial-points']
+      }).map(feature => String(feature.id ?? feature.properties?.featureId ?? '')).filter(Boolean).sort();
+    },
+    viewportSequence() { return state.viewportSequence; },
+    displayedSpatialFeatureIds() {
+      return state.spatialFeatures.features.map(feature => String(feature.id ?? feature.properties?.featureId ?? '')).sort();
+    }
+  });
+}
+
 async function request(path) {
   const response = await fetch(path, {
     method: 'GET',
