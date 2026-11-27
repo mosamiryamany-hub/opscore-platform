@@ -606,10 +606,27 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
               && ready.layers.includes('tenant-spatial-points'));
           }, null, { timeout: 30000 });
           await page.evaluate(() => window.__opscoreDispatcherMapE2E.focusTenantFeature(31.2, 30.0));
-          await page.waitForFunction(expected => {
-            const probe = window.__opscoreDispatcherMapE2E;
-            return Boolean(probe && probe.renderedSpatialFeatureIds().includes(expected));
-          }, spatialFeatureAId, { timeout: 30000 });
+          try {
+            await page.waitForFunction(expected => {
+              const probe = window.__opscoreDispatcherMapE2E;
+              return Boolean(probe && probe.renderedSpatialFeatureIds().includes(expected));
+            }, spatialFeatureAId, { timeout: 30000 });
+          } catch (renderError) {
+            const renderDiagnostics = {
+              failure: renderError.message,
+              readiness: await page.evaluate(() => window.__opscoreDispatcherMapE2E?.mapReadiness() || null),
+              displayedFeatureIds: await page.evaluate(() => window.__opscoreDispatcherMapE2E?.displayedSpatialFeatureIds() || []),
+              renderedFeatureIds: await page.evaluate(() => window.__opscoreDispatcherMapE2E?.renderedSpatialFeatureIds() || []),
+              mapCanvas: await page.locator('.maplibregl-canvas').evaluate(node => ({ width: node.width, height: node.height, clientWidth: node.clientWidth, clientHeight: node.clientHeight })).catch(() => null),
+              pageErrors,
+              consoleErrors,
+              networkResponses,
+              apiResponses
+            };
+            fs.writeFileSync(path.join(browserOutputDir, 'rendered-feature-diagnostics.json'), JSON.stringify(renderDiagnostics, null, 2) + '\n');
+            await page.screenshot({ path: path.join(browserOutputDir, 'dispatcher-map-rendered-feature-failure.png'), fullPage: true }).catch(() => {});
+            throw new Error('MAPLIBRE_SPATIAL_FEATURE_NOT_RENDERED: ' + JSON.stringify(renderDiagnostics));
+          }
           assert.ok(apiResponses.some(response => response.status === 200), 'browser must receive a successful authenticated PostGIS viewport response');
           assert.equal(await page.locator('#spatialFeatureCount').textContent(), '1 authorized GIS features');
           const renderedA = await page.evaluate(() => window.__opscoreDispatcherMapE2E.renderedSpatialFeatureIds());
@@ -715,11 +732,24 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
               && ready.layers.includes('tenant-spatial-points'));
           }, null, { timeout: 30000 });
           await pageB.evaluate(() => window.__opscoreDispatcherMapE2E.focusTenantFeature(31.25, 30.05));
-          await pageB.waitForFunction(expected => {
-            const probe = window.__opscoreDispatcherMapE2E;
-            return Boolean(probe && probe.displayedSpatialFeatureIds().includes(expected)
-              && probe.renderedSpatialFeatureIds().includes(expected));
-          }, spatialFeatureBId, { timeout: 30000 });
+          try {
+            await pageB.waitForFunction(expected => {
+              const probe = window.__opscoreDispatcherMapE2E;
+              return Boolean(probe && probe.displayedSpatialFeatureIds().includes(expected)
+                && probe.renderedSpatialFeatureIds().includes(expected));
+            }, spatialFeatureBId, { timeout: 30000 });
+          } catch (renderError) {
+            const renderDiagnostics = {
+              failure: renderError.message,
+              readiness: await pageB.evaluate(() => window.__opscoreDispatcherMapE2E?.mapReadiness() || null),
+              displayedFeatureIds: await pageB.evaluate(() => window.__opscoreDispatcherMapE2E?.displayedSpatialFeatureIds() || []),
+              renderedFeatureIds: await pageB.evaluate(() => window.__opscoreDispatcherMapE2E?.renderedSpatialFeatureIds() || []),
+              pageErrors: pageBErrors
+            };
+            fs.writeFileSync(path.join(browserOutputDir, 'tenant-b-rendered-feature-diagnostics.json'), JSON.stringify(renderDiagnostics, null, 2) + '\n');
+            await pageB.screenshot({ path: path.join(browserOutputDir, 'dispatcher-map-tenant-b-rendered-feature-failure.png'), fullPage: true }).catch(() => {});
+            throw new Error('TENANT_B_MAPLIBRE_SPATIAL_FEATURE_NOT_RENDERED: ' + JSON.stringify(renderDiagnostics));
+          }
           const renderedB = await pageB.evaluate(() => window.__opscoreDispatcherMapE2E.renderedSpatialFeatureIds());
           const displayedB = await pageB.evaluate(() => window.__opscoreDispatcherMapE2E.displayedSpatialFeatureIds());
           assert.deepEqual(displayedB, [spatialFeatureBId]);
