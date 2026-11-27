@@ -17,7 +17,7 @@
 ### Mobile server selection
 - Added a manual server-origin setup field to the Expo login screen.
 - The origin is validated as HTTPS and origin-only (no credentials, path, query or fragment), then stored using device SecureStore.
-- This is **manual URL setup**, not QR provisioning. QR/deep-link enrollment remains unimplemented; no camera permission or QR library was added without its own threat-model and native-build validation.
+- Manual URL entry is available. A signed-format deep-link shape (`opscore://configure?server=https://...`) can prefill the URL for user review; it is not auto-saved. QR generation/scanning is not implemented; no camera permission or QR library was added without its own threat-model and native-build validation.
 - Existing native encrypted offline queue and SecureStore authentication are not replaced by browser storage.
 
 ### Encrypted PostgreSQL backup CLI
