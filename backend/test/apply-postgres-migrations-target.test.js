@@ -587,5 +587,5 @@ test('self-hosted PostgreSQL role initializer reads secrets from environment and
   assert.match(source, /OPSCORE_RUNTIME_ROLE_CONTRACT_FAILED/);
   assert.match(source, /OPSCORE_MIGRATOR_ROLE_CONTRACT_FAILED/);
   assert.match(source, /OPSCORE_WORKER_ROLE_CONTRACT_FAILED/);
-  assert.doesNotMatch(source, /psql[^\\n]*-v\\s+(?:runtime_password|migrator_password|worker_password)/);
+  assert.doesNotMatch(source, /psql[^\n]*-v\s+(?:runtime_password|migrator_password|worker_password)/);
 });
