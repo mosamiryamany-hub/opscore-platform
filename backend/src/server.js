@@ -3338,6 +3338,7 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
       action: url.searchParams.get('action'),
       resourceType: url.searchParams.get('resourceType'),
       actorUserId: url.searchParams.get('actorUserId'),
+      resourceId: url.searchParams.get('resourceId'),
       from: url.searchParams.get('from'),
       to: url.searchParams.get('to')
     }));
