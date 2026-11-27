@@ -70,6 +70,44 @@ async function main() {
     if (persisted.rows[0].count !== 1 || persisted.rows[0].sequence !== 1) throw new Error('TWIN_SEQUENCE_PERSISTENCE_INVARIANT_FAILED');
     evidence.checks.push({ id: 'concurrent-sequence-uniqueness', status: 'PASS', writers: 2, committed, uniqueConflicts: conflicts });
 
+    // Verify the tenant boundary on the migrated application tables using
+    // the least-privilege runtime identity, not the DDL owner connection.
+    const rlsUrl = String(process.env.OPSC_PG_TWIN_RLS_URL || '').trim();
+    if (!rlsUrl) throw new Error('OPSC_PG_TWIN_RLS_URL_REQUIRED');
+    const rlsTarget = new URL(rlsUrl);
+    if (!['127.0.0.1', 'localhost'].includes(rlsTarget.hostname)
+        || decodeURIComponent(rlsTarget.pathname.replace(/^\\//, '')) !== 'opscore_http_acceptance'
+        || decodeURIComponent(rlsTarget.username) !== 'opscore_runtime') {
+      throw new Error('TWIN_RLS_TARGET_NOT_RUNTIME_ACCEPTANCE_DATABASE');
+    }
+    const runtimePool = new Pool({ connectionString: rlsUrl, max: 1, connectionTimeoutMillis: 5000,
+      statement_timeout: 15000, application_name: 'opscore-twin-rls-catalog-gate' });
+    try {
+      const catalog = await runtimePool.query(
+        `SELECT c.relname, c.relrowsecurity, c.relforcerowsecurity,
+                count(p.policyname) FILTER (WHERE p.policyname='opscore_tenant_isolation')::int AS tenant_policy_count,
+                max(p.qual) FILTER (WHERE p.policyname='opscore_tenant_isolation') AS using_expression,
+                max(p.with_check) FILTER (WHERE p.policyname='opscore_tenant_isolation') AS check_expression
+           FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+           LEFT JOIN pg_policies p ON p.schemaname=n.nspname AND p.tablename=c.relname
+          WHERE n.nspname='public' AND c.relname IN ('operational_twin_snapshots','operational_twin_chain_events')
+          GROUP BY c.relname,c.relrowsecurity,c.relforcerowsecurity ORDER BY c.relname`
+      );
+      const byName = new Map(catalog.rows.map(row => [row.relname, row]));
+      for (const table of ['operational_twin_snapshots', 'operational_twin_chain_events']) {
+        const row = byName.get(table);
+        if (!row || row.relrowsecurity !== true || row.relforcerowsecurity !== true
+            || Number(row.tenant_policy_count) !== 1
+            || !String(row.using_expression || '').includes('opscore_current_tenant')
+            || !String(row.check_expression || '').includes('opscore_current_tenant')) {
+          throw new Error('TWIN_TENANT_RLS_POLICY_INVALID:' + table);
+        }
+      }
+      evidence.checks.push({ id: 'digital-twin-snapshot-and-chain-rls-catalog', status: 'PASS',
+        databaseRole: 'opscore_runtime', tables: [...byName.keys()],
+        forcedRls: true, signedTenantAccessorPolicy: true });
+    } finally { await runtimePool.end(); }
+
     // Exercise the exact synchronous PostgreSQL adapter used by Store and
     // platform-intelligence-layer.js. This remains isolated in session-local
     // TEMP tables on the disposable CI database; no application or customer rows.
