@@ -177,15 +177,15 @@ async function main() {
         const verification = store.verifyPlatformTwinSnapshot(ctx, snapshot.snapshotId);
         const chain = store.verifyPlatformTwinChain(ctx);
         if (!snapshot.snapshotId || !verification.valid || !chain.valid
-            || chain.eventCount !== 1 || chain.snapshotCount !== 1
+            || chain.eventCount !== 1 || Number(chain.snapshotCount) !== 1
             || snapshot.signals.overdueWorkOrders !== 1) {
-          throw new Error('STORE_DIGITAL_TWIN_POSTGRES_PATH_INVALID');
+          throw new Error('STORE_DIGITAL_TWIN_POSTGRES_PATH_INVALID:' + JSON.stringify({ snapshotId: snapshot.snapshotId || null, verification, chain, signals: snapshot.signals, openStatusCount: snapshot.openStatusCount }));
         }
         evidence.checks.push({ id: 'store-platform-twin-postgres-end-to-end', status: 'PASS',
           snapshotId: snapshot.snapshotId, chainEvents: chain.eventCount, chainValid: chain.valid,
           snapshotValid: verification.valid, overdueWorkOrderSignal: snapshot.signals.overdueWorkOrders });
 
-        storeDb.exec("CREATE FUNCTION pg_temp.reject_twin_chain_append() RETURNS trigger LANGUAGE plpgsql AS $ BEGIN RAISE EXCEPTION 'CI_TWIN_CHAIN_APPEND_REJECTED' USING ERRCODE='23505'; END $");
+        storeDb.exec("CREATE FUNCTION pg_temp.reject_twin_chain_append() RETURNS trigger LANGUAGE plpgsql AS $func$ BEGIN RAISE EXCEPTION 'CI_TWIN_CHAIN_APPEND_REJECTED' USING ERRCODE='23505'; END $func$");
         storeDb.exec('CREATE TRIGGER reject_twin_chain_append BEFORE INSERT ON operational_twin_chain_events FOR EACH ROW EXECUTE FUNCTION pg_temp.reject_twin_chain_append()');
         let rejected = false;
         try { store.platformTwin(ctx, { persist: true }); }
