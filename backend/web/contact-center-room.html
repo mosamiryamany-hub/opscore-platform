@@ -28,6 +28,7 @@
       <span class="pill mono" data-clock>--:--:-- UTC</span>
       <button class="btn btn--sm btn--ghost" type="button" data-palette aria-keyshortcuts="Meta+K Control+K"><span class="mono tiny muted">⌘K</span> Search</button>
       <button class="btn btn--sm btn--ghost" type="button" data-dir-toggle aria-label="Switch interface direction">ع</button>
+      <a class="btn btn--sm btn--ghost" href="/control-plane.html">Sign in / Control Plane</a>
       <a class="btn btn--sm btn--ghost" href="/contact-center.html">Customer conversations</a>
       <a class="btn btn--sm btn--ghost" href="/control-rooms.html">All control rooms</a>
       <a class="btn btn--sm" href="/">Home</a>
@@ -113,6 +114,17 @@
           </div>
         </section>
       </section>
+      <dialog id="ccrResolveDialog" class="ccr-dialog">
+        <form method="dialog">
+          <div class="eyebrow">Audited operator action</div>
+          <h2>Resolve this handoff?</h2>
+          <p>Resolution closes the open handoff in the tenant-scoped service and records the operator note. This action cannot be undone from this dialog.</p>
+          <div class="ccr-dialog-actions">
+            <button class="btn btn--ghost" id="ccrResolveCancel" type="submit" value="cancel">Cancel</button>
+            <button class="btn btn--danger" id="ccrResolveConfirm" type="button">Confirm resolution</button>
+          </div>
+        </form>
+      </dialog>
 
       <section class="ccr-boundary" data-reveal>
         <div class="ccr-boundary-mark">!</div>
