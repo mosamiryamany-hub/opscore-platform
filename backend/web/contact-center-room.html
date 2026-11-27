@@ -118,7 +118,8 @@
               <textarea id="ccrReply" rows="3" maxlength="4000" placeholder="Write a response to the customer…" required></textarea>
               <div class="ccr-action-row"><span class="muted small">Reply is persisted through the encrypted human-reply service.</span><button class="btn btn--primary" id="ccrSendReply" type="submit">Send reply</button></div>
             </form>
-            <div class="ccr-resolve-row"><p class="muted small">Resolve only after the customer issue has been handled. The server records the resolution note.</p><button class="btn btn--danger" id="ccrResolve" type="button">Resolve handoff</button></div>
+            <div class="ccr-resolve-row"><div class="ccr-resolution-note"><label for="ccrResolutionNote">Resolution note</label><textarea id="ccrResolutionNote" rows="2" maxlength="500" placeholder="Summarize the outcome for the audit trail…" required></textarea><p class="muted small">A resolution note is written to the handoff audit record.</p></div><button class="btn btn--danger" id="ccrResolve" type="button">Resolve handoff</button></div>
+            <p class="ccr-assignment-guard" id="ccrAssignmentGuard" role="status" aria-live="polite" hidden></p>
           </div>
         </section>
       </section>
