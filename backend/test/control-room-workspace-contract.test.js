@@ -94,6 +94,7 @@ test('Contact Center exposes explicit CRM, supervisor reassignment and employee 
   assert.match(moduleSource, /m\.role IN \('member','manager'\)/);
   assert.match(moduleSource, /contact_center_handoff_reassigned/);
   assert.match(server, /chain:activity\.chain/);
+  for (const code of ['INVALID_CUSTOMER','INVALID_ASSIGNEE','INVALID_OPERATIONAL_JOB']) assert.ok(server.includes(code + ': [422,'), code + ' maps to HTTP 422');
   assert.match(moduleSource, /contact_center_crm_customer_linked/);
   for (const id of ['ccrCrmProfile','ccrCrmSearch','ccrCrmResults','ccrAssignAgent','ccrAssignReason','ccrReassign','ccrSupervisorActivity','ccrActivityAgent','ccrSupervisorAuditIntegrity']) {
     assert.ok(html.includes('id="' + id + '"'), 'control exists: ' + id);
