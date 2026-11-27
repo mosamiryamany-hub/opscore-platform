@@ -31,8 +31,8 @@ function readKey(value) {
 }
 function pgPassEscape(value) {
   const input = String(value);
-  if (/[\\r\\n]/.test(input)) throw new Error('BACKUP_PGPASS_VALUE_INVALID');
-  return input.replace(/\\\\/g, '\\\\\\\\').replace(/:/g, '\\\\:');
+  if (/[\r\n]/.test(input)) throw new Error('BACKUP_PGPASS_VALUE_INVALID');
+  return input.replace(/\\/g, '\\\\').replace(/:/g, '\\:');
 }
 async function sha256File(file) {
   const hash = crypto.createHash('sha256');
