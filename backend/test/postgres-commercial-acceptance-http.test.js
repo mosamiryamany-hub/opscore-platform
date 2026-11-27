@@ -436,6 +436,103 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
       assert.notEqual(x.data.organization.id, orgAId);
       record('session-tenant-binding-across-two-tenants', `tenant B session resolved to ${orgBId}, distinct from tenant A ${orgAId}`);
 
+      // Exercise the real Digital Twin HTTP surface against migrated PostgreSQL
+      // tables while the application runs as opscore_runtime (NO BYPASSRLS).
+      x = await request('/api/v1/platform/twin', {}, ownerACookie);
+      assert.equal(x.response.status, 200, JSON.stringify(x.data));
+      assert.equal(x.data.organizationId, orgAId);
+      const twinSnapshotA = await request('/api/v1/platform/twin/snapshots', {
+        method: 'POST',
+        headers: { 'idempotency-key': `twin-snapshot-a-${stamp}` },
+        body: JSON.stringify({})
+      }, ownerACookie);
+      assert.equal(twinSnapshotA.response.status, 201, JSON.stringify(twinSnapshotA.data));
+      const twinSnapshotAId = twinSnapshotA.data.snapshotId;
+      assert.ok(twinSnapshotAId);
+      assert.equal(twinSnapshotA.data.integrity.valid, true);
+      const twinHistoryA = await request('/api/v1/platform/twin/snapshots', {}, ownerACookie);
+      assert.equal(twinHistoryA.response.status, 200);
+      assert.ok(twinHistoryA.data.items.some(row => row.id === twinSnapshotAId && row.integrity === 'valid'));
+      const twinVerifyA = await request(`/api/v1/platform/twin/snapshots/${encodeURIComponent(twinSnapshotAId)}/verify`, {}, ownerACookie);
+      assert.equal(twinVerifyA.response.status, 200, JSON.stringify(twinVerifyA.data));
+      assert.equal(twinVerifyA.data.valid, true);
+      const twinChainA = await request('/api/v1/platform/twin/integrity', {}, ownerACookie);
+      assert.equal(twinChainA.response.status, 200);
+      assert.equal(twinChainA.data.valid, true);
+      assert.equal(twinChainA.data.eventCount, 1);
+      assert.equal(Number(twinChainA.data.snapshotCount), 1);
+      record('digital-twin-http-snapshot-history-and-hash-chain',
+        `tenant A created and verified snapshot ${twinSnapshotAId}; persisted event chain valid over PostgreSQL HTTP`);
+
+      // The database policy itself must hide tenant A's persisted snapshot from
+      // tenant B and reject a cross-tenant insert, independent of route predicates.
+      await bindSignedRlsSessionContext(fixture, { tenantId: orgBId, accessMode: 'system' });
+      const hiddenTwinRows = await fixture.query(
+        'SELECT id FROM operational_twin_snapshots WHERE id=$1', [twinSnapshotAId]
+      );
+      assert.equal(hiddenTwinRows.rowCount, 0);
+      await assert.rejects(
+        () => fixture.query(
+          'INSERT INTO operational_twin_snapshots(id,organization_id,snapshot_kind,state_json,state_sha256,source_counts_json,created_by,created_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8)',
+          [`twin-rls-forgery-${stamp}`, orgAId, 'on_demand', '{}', '0'.repeat(64), '{}', ownerAId, new Date().toISOString()]
+        ),
+        error => error && error.code === '42501'
+      );
+      await clearSignedRlsSessionContext(fixture);
+      record('digital-twin-snapshot-database-rls-cross-tenant-denial',
+        'opscore_runtime under tenant B signed context could not read tenant A snapshot or insert a tenant A snapshot');
+
+      // Race two independent HTTP requests with distinct idempotency keys in the
+      // same tenant. The chain must serialize both writers without duplicate or
+      // skipped sequence numbers and leave every snapshot paired with one event.
+      const concurrentTwinWrites = await Promise.all([1, 2].map(index => request('/api/v1/platform/twin/snapshots', {
+        method: 'POST',
+        headers: { 'idempotency-key': `twin-concurrent-${index}-${stamp}` },
+        body: JSON.stringify({})
+      }, ownerACookie)));
+      for (const result of concurrentTwinWrites) {
+        assert.equal(result.response.status, 201, JSON.stringify(result.data));
+        assert.equal(result.data.integrity.valid, true);
+      }
+      const concurrentSequences = concurrentTwinWrites.map(result => Number(result.data.chain.sequenceNo)).sort((a, b) => a - b);
+      assert.deepEqual(concurrentSequences, [2, 3]);
+      const twinChainAfterRace = await request('/api/v1/platform/twin/integrity', {}, ownerACookie);
+      assert.equal(twinChainAfterRace.response.status, 200);
+      assert.equal(twinChainAfterRace.data.valid, true, JSON.stringify(twinChainAfterRace.data.failures));
+      assert.equal(twinChainAfterRace.data.eventCount, 3);
+      assert.equal(Number(twinChainAfterRace.data.snapshotCount), 3);
+      record('digital-twin-http-concurrent-writers',
+        'two concurrent HTTP snapshot writes committed with chain sequences 2 and 3; no duplicate, gap, or orphan snapshot');
+
+      // Tenant B starts with an empty, independent Twin history; it cannot verify
+      // tenant A identifiers, then can create and verify its own chain.
+      const twinHistoryBBefore = await request('/api/v1/platform/twin/snapshots', {}, ownerBCookie);
+      assert.equal(twinHistoryBBefore.response.status, 200);
+      assert.equal(twinHistoryBBefore.data.items.length, 0);
+      const twinForeignVerifyB = await request(`/api/v1/platform/twin/snapshots/${encodeURIComponent(twinSnapshotAId)}/verify`, {}, ownerBCookie);
+      assert.equal(twinForeignVerifyB.response.status, 404);
+      const twinChainBEmpty = await request('/api/v1/platform/twin/integrity', {}, ownerBCookie);
+      assert.equal(twinChainBEmpty.response.status, 200);
+      assert.equal(twinChainBEmpty.data.valid, true);
+      assert.equal(twinChainBEmpty.data.eventCount, 0);
+      assert.equal(Number(twinChainBEmpty.data.snapshotCount), 0);
+      const twinSnapshotB = await request('/api/v1/platform/twin/snapshots', {
+        method: 'POST',
+        headers: { 'idempotency-key': `twin-snapshot-b-${stamp}` },
+        body: JSON.stringify({})
+      }, ownerBCookie);
+      assert.equal(twinSnapshotB.response.status, 201, JSON.stringify(twinSnapshotB.data));
+      assert.equal(twinSnapshotB.data.organizationId, orgBId);
+      assert.equal(twinSnapshotB.data.integrity.valid, true);
+      const twinChainBAfter = await request('/api/v1/platform/twin/integrity', {}, ownerBCookie);
+      assert.equal(twinChainBAfter.data.valid, true);
+      assert.equal(twinChainBAfter.data.eventCount, 1);
+      const twinChainAAfterB = await request('/api/v1/platform/twin/integrity', {}, ownerACookie);
+      assert.equal(twinChainAAfterB.data.valid, true);
+      assert.equal(twinChainAAfterB.data.eventCount, 3);
+      record('digital-twin-http-two-tenant-isolation',
+        'tenant A and B own separate snapshot histories and valid chains; B cannot read or verify A snapshot identifiers');
+
       // Cross-tenant read denial.
       x = await request(`/api/v1/work-orders/${encodeURIComponent(workOrderAId)}`, {}, ownerBCookie);
       assert.equal(x.response.status, 404);
