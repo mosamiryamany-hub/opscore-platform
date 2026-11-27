@@ -70,20 +70,6 @@
     $('startVoice').disabled=!$('consent').checked || !state.status?.realtimeBrowserVoiceConfigured;
     $('stopVoice').disabled=!state.voicePc;
   }
-  function setReadiness(id, level, text) {
-    const target = $(id);
-    if (!target) return;
-    target.className = 'cc-state ' + (level === 'ready' ? 'is-ready' : level === 'blocked' ? 'is-blocked' : 'is-pending');
-    target.textContent = String(text);
-  }
-  function renderConfigurationReadiness(status) {
-    const textReady = Boolean(status?.enabled && status?.textAssistantConfigured);
-    setReadiness('aiReadiness', textReady ? 'ready' : 'blocked', textReady ? 'Configured' : 'Not configured');
-    setReadiness('encryptionReadiness', status?.encryptionConfigured ? 'ready' : 'blocked', status?.encryptionConfigured ? 'Key configured' : 'Key missing');
-    const voiceReady = Boolean(status?.enabled && status?.realtimeBrowserVoiceConfigured);
-    setReadiness('voiceReadiness', voiceReady ? 'ready' : 'blocked', voiceReady ? 'Model configured' : 'Unavailable');
-  }
-
   async function loadStatus() {
     try {
       if (i18n?.ready) await i18n.ready;
@@ -91,7 +77,6 @@
         api('/api/v1/contact-center/status'), api('/api/v1/contact-center/languages')
       ]);
       state.status=status; state.languages=Array.isArray(languageData.languages) ? languageData.languages : [];
-      renderConfigurationReadiness(status);
       $('languageRows').textContent=String(languageData.sourceRows ?? state.languages.length);
       $('uniqueLanguages').textContent=String(languageData.uniqueLanguageCodes ?? new Set(state.languages.map(x=>x.code)).size);
       $('qualifiedLanguages').textContent=String(languageData.qualifiedForProduction ?? 0);
@@ -225,14 +210,7 @@
     try {
       const result=await api('/api/v1/contact-center/handoffs?status=open&limit=50');
       const items=Array.isArray(result.items)?result.items:[];
-      const queued=items.filter(item=>String(item.status||'').toLowerCase()==='queued').length;
-      const claimed=items.filter(item=>String(item.status||'').toLowerCase()==='claimed').length;
-      const elevated=items.filter(item=>['high','urgent','critical'].includes(String(item.priority||'').toLowerCase())).length;
       $('queueCount').textContent=String(items.length);
-      $('queuedCount').textContent=String(queued);
-      $('claimedCount').textContent=String(claimed);
-      $('priorityCount').textContent=String(elevated);
-      setReadiness('queueReadiness','ready',`Response received · ${items.length} rows loaded`);
       $('handoffQueue').replaceChildren();
       if(!items.length){
         const empty=document.createElement('div');empty.className='empty';
@@ -261,10 +239,6 @@
       });
     } catch(e) {
       $('queueCount').textContent='—';
-      $('queuedCount').textContent='—';
-      $('claimedCount').textContent='—';
-      $('priorityCount').textContent='—';
-      setReadiness('queueReadiness','blocked','Unavailable');
       $('handoffQueue').replaceChildren();
       const el=document.createElement('div');el.className='empty';setTranslation(el,'messages.queueUnavailable',{reason:e.message},`Queue unavailable: ${e.message}`);$('handoffQueue').appendChild(el);
     }
