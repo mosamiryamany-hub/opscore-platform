@@ -46,7 +46,7 @@ const store = new Store(db, config);
 store.pg = opened.engine === 'postgres' ? db : null;
 store.databaseEngineResolved = opened.engine;
 store.postgresRuntimeWired = opened.postgresRuntimeWired;
-const {authProviderGate, verifyOidcIdToken} = require('./security');
+const {authProviderGate, oidcIssuerConfig, verifyOidcIdToken} = require('./security');
 const {inspectRequest,productionSafetyGate,createRateLimiter,createLoginRateLimiter,assertTenantAlignment}=require('./firewall');
 const {evaluateProductionGate,isReadOnlyProductionVerificationRequest,candidateProbeBoundaryDenialReason,isAuthorizedProductionCandidateProbeRequest,isAuthorizedProductionCandidateUnknownRouteProbeRequest,isAuthorizedProductionCandidateRouteAcceptanceProbeRequest,isAuthorizedProductionCandidateDatabaseIdentityRequest}=require('./production-hold');
 const {createProductionDatabaseIdentityHandler}=require('./production-database-identity-route');
@@ -1579,6 +1579,13 @@ function route(req, res) {
       }
     }, req, res, { forceNew: true })).catch(e => fail(res, e));
   }
+  if (req.method === 'GET' && url.pathname === '/api/v1/auth/oidc/config') {
+    try {
+      if (authProviderGate() !== 'oidc') return json(res, 200, { enabled: false }, { 'cache-control': 'no-store' });
+      const { issuer, audience } = oidcIssuerConfig();
+      return json(res, 200, { enabled: true, issuer, clientId: audience, providers: ['google','github','microsoft','apple','facebook'] }, { 'cache-control': 'no-store' });
+    } catch (error) { return fail(res, error); }
+  }
   if (req.method === 'POST' && url.pathname === '/api/v1/auth/oidc/exchange') {
     return body(req).then(async b => {
       if (authProviderGate() !== 'oidc') throw new Error('AUTH_MODE_OIDC_REQUIRED');
@@ -1588,7 +1595,7 @@ function route(req, res) {
       if (store.db && typeof store.db.setSession === 'function') store.db.setSession({ tenantId: '', userId: '', accessMode: 'auth' });
       const out=await store.loginOidc(identity,b.organizationId);
       if (store.db && typeof store.db.setSession === 'function' && out && (out.organizationId || out.organization?.id)) store.db.setSession({ tenantId: out.organizationId || out.organization.id, userId: out.userId || out.user?.id || '', sessionId: out.sessionId || '', accessMode: 'field' });
-      return json(res,200,{user:out.user,organization:out.organization,role:out.role,expiresAt:out.expiresAt,token:out.token},{'cache-control':'no-store','pragma':'no-cache'});
+      return json(res,200,{user:out.user,organization:out.organization,role:out.role,expiresAt:out.expiresAt},{'cache-control':'no-store','pragma':'no-cache','set-cookie':`__Host-opscore_session=${ encodeURIComponent(out.token) }; HttpOnly; Path=/; SameSite=Strict; Secure`});
     }).catch(e=>fail(res,e));
   }
   if (req.method === 'POST' && (url.pathname === '/api/v1/auth/login' || url.pathname === '/api/v1/auth/mobile-login')) {
