@@ -242,6 +242,8 @@
         }
       }
     } catch (error) {
+      state.currentUserId = null;
+      state.queueError = accessMessage(error);
       state.items = [];
       metrics([]);
       renderAnalytics();
