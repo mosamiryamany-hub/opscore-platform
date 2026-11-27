@@ -847,7 +847,10 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
       let insertedScaleRows = 0;
       await bindSignedRlsSessionContext(fixture, { tenantId: orgAId, userId: ownerAId, accessMode: 'system' });
       for (const stage of scaleStages) {
-        const inserted = await fixture.query(
+        await bindSignedRlsSessionContext(fixture, { tenantId: orgAId, userId: ownerAId, accessMode: 'system' });
+        let inserted;
+        try {
+          inserted = await fixture.query(
           `INSERT INTO spatial_features
             (id,organization_id,entity_type,entity_id,feature_key,geom,properties,source,created_by,created_at,updated_at)
            SELECT 'gis-' || $1 || g::text,
@@ -866,7 +869,10 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
                   now()
            FROM generate_series(1, $5::integer) AS g`,
           [created.scalePrefix, orgAId, insertedScaleRows, ownerAId, stage.add]
-        );
+          );
+        } finally {
+          await clearSignedRlsSessionContext(fixture);
+        }
         assert.equal(inserted.rowCount, stage.add);
         insertedScaleRows += inserted.rowCount;
 
