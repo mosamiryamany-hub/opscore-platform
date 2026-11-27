@@ -1871,15 +1871,15 @@ function route(req, res) {
       return json(res, 200, { schemaVersion:'opscore.contact-center-crm-search.v1', items:contactCenter.listCrmCustomers(db, c, query) });
     } catch (e) { return fail(res, e); }
   }
-  const ccCustomerProfile = url.pathname.match(/^\\/api\\/v1\\/contact-center\\/conversations\\/([A-Za-z0-9_-]+)\\/customer-profile$/);
+  const ccCustomerProfile = url.pathname.match(/^\/api\/v1\/contact-center\/conversations\/([A-Za-z0-9_-]+)\/customer-profile$/);
   if (ccCustomerProfile && req.method === 'GET') {
     try { requireScope(c, 'read'); return json(res, 200, contactCenter.getConversationCustomer(db, c, ccCustomerProfile[1])); } catch (e) { return fail(res, e); }
   }
-  const ccCustomerLink = url.pathname.match(/^\\/api\\/v1\\/contact-center\\/conversations\\/([A-Za-z0-9_-]+)\\/customer-link$/);
+  const ccCustomerLink = url.pathname.match(/^\/api\/v1\/contact-center\/conversations\/([A-Za-z0-9_-]+)\/customer-link$/);
   if (ccCustomerLink && req.method === 'POST') {
     try { requireScope(c, 'write'); return body(req).then(b => json(res, 200, contactCenter.linkConversationCustomer(db, c, ccCustomerLink[1], b.customerId))).catch(e => fail(res, e)); } catch (e) { return fail(res, e); }
   }
-  const ccReassign = url.pathname.match(/^\\/api\\/v1\\/contact-center\\/handoffs\\/([A-Za-z0-9_-]+)\\/reassign$/);
+  const ccReassign = url.pathname.match(/^\/api\/v1\/contact-center\/handoffs\/([A-Za-z0-9_-]+)\/reassign$/);
   if (ccReassign && req.method === 'POST') {
     try { requireScope(c, 'write'); return body(req).then(b => json(res, 200, contactCenter.reassignHandoff(db, c, ccReassign[1], b))).catch(e => fail(res, e)); } catch (e) { return fail(res, e); }
   }
