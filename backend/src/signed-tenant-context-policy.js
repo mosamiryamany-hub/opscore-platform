@@ -10,6 +10,10 @@ function isPreview(env = process.env) {
   return String(env.VERCEL_ENV || '') === 'preview';
 }
 
+function isSelfHosted(env = process.env) {
+  return String(env.OPSC_DEPLOYMENT_MODE || '').trim().toLowerCase() === 'self-hosted';
+}
+
 // Production signed tenant context is deliberately a second, independent gate.
 // A Production environment switch is insufficient: the deployment's immutable
 // release proof must already certify the exact 67-route Production evidence,
@@ -41,6 +45,13 @@ function isCandidateProbeAuthorized(req, env = process.env, readiness = {}) {
 
 function isSignedContextEnvironment(env = process.env, readiness = {}, req = null) {
   if (isPreview(env)) return true;
+  if (isSelfHosted(env)) {
+    return enabled(env.OPSC_SIGNED_TENANT_CONTEXT_SELF_HOSTED_ENABLED)
+      && String(env.OPSC_REQUIRE_SIGNED_TENANT_CONTEXT || '').trim().toLowerCase() === 'true'
+      && String(env.OPSC_PRODUCTION_HOLD || '').trim().toLowerCase() === 'false'
+      && !enabled(env.OPSC_SIGNED_TENANT_CONTEXT_SESSION_AUTOBIND_ENABLED)
+      && readiness.selfHostedReleaseVerified === true;
+  }
   if (isCandidateProbeAuthorized(req, env, readiness)) return true;
   return String(env.VERCEL_ENV || '') === 'production'
     && enabled(env.OPSC_SIGNED_TENANT_CONTEXT_PRODUCTION_ENABLED)
@@ -245,6 +256,7 @@ function isSignedTenantContextRouteDefinition(method, route, operation) {
 
 module.exports = {
   isPreview,
+  isSelfHosted,
   isSignedContextEnvironment,
   signedWorkOrdersReadEnabled,
   signedWorkOrdersWriteEnabled,
