@@ -43,5 +43,5 @@ test('AES-256-GCM backup round-trip succeeds and tampering is rejected', async (
 
 test('pgpass values escape delimiters and reject line breaks', () => {
   assert.equal(pgPassEscape('user:part\\name'), 'user\\:part\\\\name');
-  assert.throws(() => pgPassEscape('bad\\nentry'), /BACKUP_PGPASS_VALUE_INVALID/);
+  assert.throws(() => pgPassEscape('bad\nentry'), /BACKUP_PGPASS_VALUE_INVALID/);
 });
