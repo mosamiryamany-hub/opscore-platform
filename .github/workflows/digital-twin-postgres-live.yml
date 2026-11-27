@@ -1,6 +1,11 @@
 name: Digital Twin PostgreSQL 18 Isolated RLS and HTTP Acceptance
 
 on:
+  # Execute this isolated PostgreSQL acceptance workflow on the dedicated GIS test branch.
+  # This trigger never runs the production deployment workflow and never writes to Neon Production.
+  push:
+    branches:
+      - test/dispatcher-map-postgres-browser-e2e-20261127
   # PRs are invoked by vercel-deploy.yml so the existing protected contract
   # check is gated by this reusable PostgreSQL 18 acceptance workflow once.
   workflow_call:
