@@ -200,7 +200,7 @@
     const returnedState = params.get('state');
     if (!code && !params.has('error')) return false;
     let pending;
-    try { pending = JSON.parse(sessionStorage.getItem('opscore_oidc_pending') || 'null'); } catch (_) {}
+    try { pending = JSON.parse(sessionStorage.getItem('opscore_oidc_pending') || 'null'); } catch (_) { pending = null; }
     sessionStorage.removeItem('opscore_oidc_pending');
     const cleanUrl = window.location.pathname + window.location.hash;
     if (params.has('error')) {
