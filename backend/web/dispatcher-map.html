@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#07111f">
-  <meta name="description" content="Authenticated OpsCore dispatcher map showing recorded technician check-ins only.">
+  <meta name="description" content="Authenticated OpsCore dispatcher map showing recorded technician check-ins and tenant-authorized GIS features.">
   <title>OpsCore · Dispatcher Map</title>
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/icons/opscore-mark.svg" type="image/svg+xml">
@@ -23,13 +23,14 @@
     <span class="spacer"></span>
     <a class="btn btn--sm btn--ghost" href="/control-plane.html">Control Plane</a>
     <a class="btn btn--sm btn--ghost" href="/control-rooms.html">Control Rooms</a>
+    <button class="btn btn--sm btn--ghost" type="button" data-dir-toggle aria-label="Switch page language direction">ع</button>
     <button class="btn btn--sm" id="refreshMap" type="button">Refresh recorded check-ins</button>
   </header>
   <main id="main">
     <section class="hero dispatcher-hero">
       <div class="eyebrow">FIELD INTELLIGENCE · AUTHENTICATED</div>
       <h1>Dispatcher map</h1>
-      <p class="lede">The map displays the latest persisted appointment check-in per technician. It is not continuous GPS tracking, a live vehicle feed, or a road-ETA system.</p>
+      <p class="lede">The map separates the latest persisted appointment check-in per technician from tenant-authorized spatial features returned by the signed GIS viewport API. It is not continuous GPS tracking, a live vehicle feed, or a road-ETA system.</p>
       <div class="dispatcher-meta">
         <span class="badge" id="authState">Checking operator access</span>
         <span class="badge" id="dataState">No data loaded</span>
@@ -39,8 +40,8 @@
     <section class="dispatcher-layout" aria-label="Dispatcher map and recorded check-ins">
       <div class="dispatcher-map-panel">
         <div class="dispatcher-map-head">
-          <div><span class="eyebrow">GEOGRAPHIC VIEW</span><h2>Recorded field positions</h2></div>
-          <span class="map-provider">MapLibre · OpenFreeMap</span>
+          <div><span class="eyebrow">GEOGRAPHIC VIEW</span><h2>Recorded positions &amp; GIS features</h2></div>
+          <div class="map-provider-group"><span class="map-provider">MapLibre · OpenFreeMap</span><span class="badge" id="spatialFeatureCount">GIS layer not queried</span></div>
         </div>
         <div id="dispatcherMap" class="dispatcher-map" data-style-url="https://tiles.openfreemap.org/styles/liberty" role="region" aria-label="Map of recorded technician check-ins"></div>
         <p class="map-attribution">© OpenStreetMap contributors · OpenFreeMap</p>
@@ -49,7 +50,7 @@
       <aside class="dispatcher-side">
         <div class="dispatcher-side-head"><div><span class="eyebrow">SOURCE RECORDS</span><h2>Technician check-ins</h2></div><strong id="pointCount">—</strong></div>
         <div id="pointList" class="point-list"><p class="muted">No records loaded.</p></div>
-        <div class="data-boundary"><strong>Data boundary</strong><p>Only coordinates persisted by appointment check-in are shown. Missing coordinates remain absent. The server authorizes this read by tenant and role.</p></div>
+        <div class="data-boundary"><strong>Data boundary</strong><p>Technician markers are persisted appointment check-ins, not live GPS. GIS shapes come only from the signed tenant-scoped spatial API. Missing or unauthorized features remain absent; no sample geometry is generated.</p></div>
       </aside>
     </section>
   </main>

@@ -64,6 +64,46 @@ const { chromium } = require('playwright');
     assert.equal(await page.locator('html').getAttribute('lang'), 'en');
     assert.deepEqual(errors, [], 'browser must not emit uncaught page errors');
     results.push({ rtlToggle: 'PASS', uncaughtPageErrors: errors.length, status: 'PASS' });
+
+    const mapAuthProbe = page.waitForResponse(response => response.url().endsWith('/api/v1/me'));
+    const mapResponse = await page.goto(base + '/dispatcher-map.html', { waitUntil: 'networkidle' });
+    const mapAuthResponse = await mapAuthProbe;
+    assert.equal(mapResponse.status(), 200, 'Dispatcher Map page must load');
+    assert.equal(mapAuthResponse.status(), 404, 'static-only harness must not pretend an authenticated map API exists');
+    await page.locator('h1').getByText('Dispatcher map').waitFor();
+    assert.equal(await page.locator('#dispatcherMap').count(), 1);
+    assert.equal(await page.locator('#pointList').count(), 1);
+    assert.equal(await page.locator('#pointCount').textContent(), '0');
+    for (const viewport of widths) {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await page.waitForTimeout(80);
+      const metrics = await page.evaluate(() => {
+        const map = document.querySelector('#dispatcherMap').getBoundingClientRect();
+        return {
+          width: document.documentElement.clientWidth,
+          scrollWidth: document.documentElement.scrollWidth,
+          bodyScrollWidth: document.body.scrollWidth,
+          mapWidth: Math.round(map.width),
+          mapHeight: Math.round(map.height),
+          mapVisible: map.width > 0 && map.height >= 260 && map.left >= 0 && map.right <= innerWidth + 1
+        };
+      });
+      assert.ok(metrics.scrollWidth <= viewport.width + 1, viewport.name + ' Dispatcher Map overflow: ' + JSON.stringify(metrics));
+      assert.ok(metrics.bodyScrollWidth <= viewport.width + 1, viewport.name + ' Dispatcher Map body overflow: ' + JSON.stringify(metrics));
+      assert.ok(metrics.mapVisible, viewport.name + ' Dispatcher Map frame must remain visible: ' + JSON.stringify(metrics));
+      await page.screenshot({ path: path.join(out, 'dispatcher-map-' + viewport.name + '.png'), fullPage: true });
+      results.push({ viewport: 'dispatcher-' + viewport.name, ...metrics, status: 'PASS' });
+    }
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.locator('[data-dir-toggle]').click();
+    assert.equal(await page.locator('html').getAttribute('dir'), 'rtl');
+    assert.equal(await page.locator('html').getAttribute('lang'), 'ar');
+    await page.screenshot({ path: path.join(out, 'dispatcher-map-mobile-rtl.png'), fullPage: true });
+    await page.locator('[data-dir-toggle]').click();
+    assert.equal(await page.locator('html').getAttribute('dir'), 'ltr');
+    assert.equal(await page.locator('html').getAttribute('lang'), 'en');
+    assert.deepEqual(errors, [], 'Twin and Dispatcher Map pages must not emit uncaught page errors');
+    results.push({ dispatcherMapRtlToggle: 'PASS', uncaughtPageErrors: errors.length, status: 'PASS' });
     fs.writeFileSync(path.join(out, 'twin-browser-report.json'), JSON.stringify({
       schemaVersion: 'opscore.twin-browser-acceptance.v1',
       generatedAt: new Date().toISOString(),

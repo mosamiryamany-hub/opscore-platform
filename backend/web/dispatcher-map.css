@@ -6,7 +6,7 @@
 .dispatcher-map-panel,.dispatcher-side{min-width:0;border:1px solid var(--line-2);border-radius:22px;background:var(--glass-2);box-shadow:var(--sh-1);overflow:hidden}
 .dispatcher-map-head,.dispatcher-side-head{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:18px 20px;border-bottom:1px solid var(--line)}
 .dispatcher-map-head h2,.dispatcher-side-head h2{font-size:19px;margin:4px 0 0}
-.map-provider{font:600 11px var(--f-mono);color:var(--ink-3);white-space:nowrap}
+.map-provider-group{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}.map-provider{font:600 11px var(--f-mono);color:var(--ink-3);white-space:nowrap}
 .dispatcher-map{height:min(68vh,760px);min-height:380px;background:#101c2b}
 .map-attribution{font-size:11px;margin:0;padding:8px 14px;text-align:end}
 .map-message{padding:10px 16px;margin:0;border-top:1px solid var(--line);font-size:13px;min-height:42px}
@@ -21,4 +21,4 @@
 .data-boundary{margin:auto 16px 16px;padding:14px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.025)}
 .data-boundary p{font-size:12px;margin:6px 0 0}
 @media(max-width:900px){.dispatcher-layout{grid-template-columns:1fr}.dispatcher-map{height:55vh;min-height:320px}.point-list{max-height:360px}}
-@media(max-width:520px){.dispatcher-map-head,.dispatcher-side-head{align-items:flex-start;flex-direction:column}.dispatcher-map{height:52vh;min-height:280px}.map-provider{white-space:normal}}
+@media(max-width:520px){.dispatcher-map-head,.dispatcher-side-head{align-items:flex-start;flex-direction:column}.dispatcher-map{height:52vh;min-height:280px}.map-provider{white-space:normal}.map-provider-group{justify-content:flex-start}}
