@@ -59,10 +59,12 @@
     const replyText = $('ccrReply');
     const resolve = $('ccrResolve');
     const confirm = $('ccrResolveConfirm');
+    const resolutionNote = $('ccrResolutionNote');
     if (reply) reply.disabled = state.busy || !permitted;
     if (replyText) replyText.disabled = state.busy || !permitted;
     if (resolve) resolve.disabled = state.busy || !permitted;
-    if (confirm) confirm.disabled = state.busy || !permitted || !$('ccrResolutionNote')?.value.trim();
+    if (resolutionNote) resolutionNote.disabled = state.busy || !permitted;
+    if (confirm) confirm.disabled = state.busy || !permitted || !resolutionNote?.value.trim();
     const guard = $('ccrAssignmentGuard');
     if (guard) {
       guard.hidden = permitted || !state.selected;
