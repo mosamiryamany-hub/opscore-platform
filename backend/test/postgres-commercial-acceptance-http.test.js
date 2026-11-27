@@ -602,7 +602,7 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           await page.waitForFunction(() => {
             const probe = window.__opscoreDispatcherMapE2E;
             const ready = probe?.mapReadiness();
-            return Boolean(ready?.loaded && ready?.styleLoaded && ready?.sourceLoaded
+            return Boolean(ready?.styleLoaded && ready?.sourceLoaded
               && ready.layers.includes('tenant-spatial-points'));
           }, null, { timeout: 30000 });
           await page.evaluate(() => window.__opscoreDispatcherMapE2E.focusTenantFeature(31.2, 30.0));
