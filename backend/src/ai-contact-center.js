@@ -497,21 +497,26 @@ function linkConversationCustomer(db, ctx, conversationId, customerId) {
   assertSupervisor(ctx);
   const id = String(customerId || '').trim();
   if (!/^cus_[A-Za-z0-9]{3,120}$/.test(id)) throw error('INVALID_CUSTOMER', 422);
-  const conversation = findConversation(db, ctx.organizationId, conversationId);
-  if (!conversation) throw error('CONTACT_CENTER_CONVERSATION_NOT_FOUND', 404);
-  if (conversation.status === 'erased') throw error('CONTACT_CENTER_CONVERSATION_CLOSED', 409);
-  const customer = db.prepare(`SELECT id FROM customers WHERE id=? AND organization_id=? AND status='active'
-    AND NOT EXISTS (SELECT 1 FROM deleted_records d WHERE d.organization_id=customers.organization_id AND d.entity_type='customer' AND d.entity_id=customers.id AND d.restored_at IS NULL)`)
-    .get(id, ctx.organizationId);
-  if (!customer) throw error('INVALID_CUSTOMER', 404);
-  const previousCustomerId = conversation.customer_id || null;
-  if (previousCustomerId === id) return { conversationId, customerId:id, linked:true, duplicate:true };
   const timestamp = now();
   db.exec('BEGIN IMMEDIATE');
   try {
-    const changed = db.prepare('UPDATE ai_contact_conversations SET customer_id=?,updated_at=?,version=version+1 WHERE organization_id=? AND id=?')
-      .run(id, timestamp, ctx.organizationId, conversationId).changes;
-    if (!changed) throw error('CONTACT_CENTER_CONVERSATION_NOT_FOUND', 404);
+    const conversation = findConversation(db, ctx.organizationId, conversationId);
+    if (!conversation) throw error('CONTACT_CENTER_CONVERSATION_NOT_FOUND', 404);
+    if (conversation.status === 'erased') throw error('CONTACT_CENTER_CONVERSATION_CLOSED', 409);
+    const customer = db.prepare(`SELECT id FROM customers WHERE id=? AND organization_id=? AND status='active'
+      AND NOT EXISTS (SELECT 1 FROM deleted_records d WHERE d.organization_id=customers.organization_id AND d.entity_type='customer' AND d.entity_id=customers.id AND d.restored_at IS NULL)`)
+      .get(id, ctx.organizationId);
+    if (!customer) throw error('INVALID_CUSTOMER', 422);
+    const previousCustomerId = conversation.customer_id || null;
+    if (previousCustomerId === id) {
+      db.exec('COMMIT');
+      return { conversationId, customerId:id, linked:true, duplicate:true };
+    }
+    const changed = db.prepare(`UPDATE ai_contact_conversations SET customer_id=?,updated_at=?,version=version+1
+      WHERE organization_id=? AND id=? AND status <> 'erased'
+      AND EXISTS (SELECT 1 FROM customers c WHERE c.id=? AND c.organization_id=? AND c.status='active')`)
+      .run(id, timestamp, ctx.organizationId, conversationId, id, ctx.organizationId).changes;
+    if (!changed) throw error('INVALID_CUSTOMER', 422);
     audit(db, { organizationId:ctx.organizationId, actorUserId:ctx.userId, action:'contact_center_crm_customer_linked', resourceType:'ai_contact_conversation', resourceId:conversationId, metadata:{ customerId:id, previousCustomerId } });
     db.exec('COMMIT');
   } catch (e) { rollbackSafely(db, e); throw e; }
@@ -531,12 +536,12 @@ function reassignHandoff(db, ctx, handoffId, input = {}) {
   const targetUserId = String(input.assignedTo || '').trim();
   const reason = redactForModel(String(input.reason || '')).replace(/\s+/g,' ').trim().slice(0,300);
   if (!targetUserId || targetUserId.length > 120 || reason.length < 8) throw error('INVALID_OPERATIONAL_JOB', 422);
-  const target = db.prepare(`SELECT u.id FROM users u JOIN memberships m ON m.user_id=u.id
-    WHERE u.id=? AND m.organization_id=? AND u.status='active' AND m.role IN ('member','manager')`)
-    .get(targetUserId, ctx.organizationId);
-  if (!target) throw error('INVALID_ASSIGNEE', 422);
   db.exec('BEGIN IMMEDIATE');
   try {
+    const target = db.prepare(`SELECT u.id FROM users u JOIN memberships m ON m.user_id=u.id
+      WHERE u.id=? AND m.organization_id=? AND u.status='active' AND m.role IN ('member','manager')`)
+      .get(targetUserId, ctx.organizationId);
+    if (!target) throw error('INVALID_ASSIGNEE', 422);
     const handoff = db.prepare('SELECT * FROM ai_contact_handoffs WHERE organization_id=? AND id=?').get(ctx.organizationId, handoffId);
     if (!handoff) throw error('CONTACT_CENTER_HANDOFF_NOT_FOUND', 404);
     if (!['queued','claimed'].includes(handoff.status)) throw error('CONTACT_CENTER_HANDOFF_NOT_REASSIGNABLE', 409);
