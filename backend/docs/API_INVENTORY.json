@@ -1,5 +1,5 @@
 {
-  "routeCount": 358,
+  "routeCount": 364,
   "routePatternInventory": "source-derived.v3",
   "routes": [
     {
@@ -2617,7 +2617,48 @@
       "auth": "required",
       "scope": null,
       "sourceLine": 1059
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/contact-center/crm/customers",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 1867
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/contact-center/conversations/{id}/customer-profile",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 1874
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/contact-center/conversations/{id}/customer-link",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1878
+    },
+    {
+      "method": "POST",
+      "route": "/api/v1/contact-center/handoffs/{id}/reassign",
+      "auth": "required",
+      "scope": "write",
+      "sourceLine": 1882
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/contact-center/supervisor/agents",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 1886
+    },
+    {
+      "method": "GET",
+      "route": "/api/v1/contact-center/supervisor/activity",
+      "auth": "required",
+      "scope": "read",
+      "sourceLine": 1889
     }
   ]
 }
-
