@@ -313,9 +313,9 @@ function listHandoffs(db, ctx, {status: filterStatus = 'open', limit = 50} = {})
   assertTenant(ctx);
   const n = Math.max(1, Math.min(100, Number(limit) || 50));
   const rows = filterStatus === 'all'
-    ? db.prepare('SELECT h.*, c.channel, c.language_code, c.created_at AS conversation_created_at FROM ai_contact_handoffs h JOIN ai_contact_conversations c ON c.id=h.conversation_id AND c.organization_id=h.organization_id WHERE h.organization_id = ? ORDER BY CASE h.priority WHEN \'urgent\' THEN 0 WHEN \'high\' THEN 1 WHEN \'normal\' THEN 2 ELSE 3 END, h.created_at LIMIT ?').all(ctx.organizationId, n)
+    ? db.prepare('SELECT h.*, c.channel, c.language_code, c.customer_id, c.created_at AS conversation_created_at FROM ai_contact_handoffs h JOIN ai_contact_conversations c ON c.id=h.conversation_id AND c.organization_id=h.organization_id WHERE h.organization_id = ? ORDER BY CASE h.priority WHEN \'urgent\' THEN 0 WHEN \'high\' THEN 1 WHEN \'normal\' THEN 2 ELSE 3 END, h.created_at LIMIT ?').all(ctx.organizationId, n)
     : db.prepare(`SELECT h.*, c.channel, c.language_code, c.created_at AS conversation_created_at FROM ai_contact_handoffs h JOIN ai_contact_conversations c ON c.id=h.conversation_id AND c.organization_id=h.organization_id WHERE h.organization_id = ? AND h.status IN ('queued','claimed') ORDER BY CASE h.priority WHEN 'urgent' THEN 0 WHEN 'high' THEN 1 WHEN 'normal' THEN 2 ELSE 3 END, h.created_at LIMIT ?`).all(ctx.organizationId, n);
-  return rows.map(r => ({ id:r.id, conversationId:r.conversation_id, reasonCode:r.reason_code, reasonDetail:r.reason_detail, priority:r.priority, status:r.status, requestedBy:r.requested_by, assignedTo:r.assigned_to, createdAt:r.created_at, claimedAt:r.claimed_at, channel:r.channel, languageCode:r.language_code }));
+  return rows.map(r => ({ id:r.id, conversationId:r.conversation_id, reasonCode:r.reason_code, reasonDetail:r.reason_detail, priority:r.priority, status:r.status, requestedBy:r.requested_by, assignedTo:r.assigned_to, createdAt:r.created_at, claimedAt:r.claimed_at, channel:r.channel, languageCode:r.language_code, customerId:r.customer_id || null }));
 }
 function policyDecision(message, ai, env = process.env) {
   const reasons = [];
@@ -516,6 +516,14 @@ function linkConversationCustomer(db, ctx, conversationId, customerId) {
   } catch (e) { rollbackSafely(db, e); throw e; }
   return { conversationId, customerId:id, linked:true, duplicate:false };
 }
+function listEligibleAgents(db, ctx) {
+  assertTenant(ctx);
+  assertSupervisor(ctx);
+  return db.prepare(`SELECT u.id,m.role FROM users u JOIN memberships m ON m.user_id=u.id
+    WHERE m.organization_id=? AND u.status='active' AND m.role IN ('member','manager')
+    ORDER BY m.role,u.id LIMIT 200`)
+    .all(ctx.organizationId).map(row => ({ id:row.id, role:row.role }));
+}
 function reassignHandoff(db, ctx, handoffId, input = {}) {
   assertTenant(ctx);
   assertSupervisor(ctx);
@@ -663,7 +671,7 @@ module.exports = {
   languages, getLanguage, languageSummary, status, featureEnabled, createConversation, findConversation, assertConversationAccess,
   processTextMessage, recordVoiceTranscript, getConversation, getMessages, createHandoff, listHandoffs,
   claimHandoff, resolveHandoff, postHumanReply, eraseConversation, createRealtimeClientSecret,
-  listCrmCustomers, getConversationCustomer, linkConversationCustomer, reassignHandoff,
+  listCrmCustomers, getConversationCustomer, linkConversationCustomer, listEligibleAgents, reassignHandoff,
   keyFromEnv, encryptContent, decryptContent, storeMessage, isHumanRequested, policyDecision, redactForModel,
   MAX_MESSAGE_CHARS
 };
