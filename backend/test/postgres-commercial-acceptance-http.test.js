@@ -303,6 +303,7 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
     record('http-health-postgres', `HTTP 200; engine=${x.data.engine}; version=${x.data.version}`);
 
     const stamp = Date.now().toString(36);
+    created.scalePrefix = 'scale-' + stamp + '-';
     const ownerAEmail = `owner-a-${stamp}@acceptance.example.test`;
     const ownerBEmail = `owner-b-${stamp}@acceptance.example.test`;
     const memberAEmail = `member-a-${stamp}@acceptance.example.test`;
@@ -748,6 +749,97 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
       assert.ok(cappedViewport.data.spatialFeatures.length <= 1000);
       record('postgis-viewport-hard-1000-feature-bound',
         '1005 persisted tenant-A PostGIS geometries were inserted under signed context; the real HTTP viewport returned exactly 1000 and never exceeded the contract bound.');
+
+      // Scale the actual tenant-scoped PostGIS table progressively to 40k, 250k,
+      // and 1m rows. Each stage is queried through the authenticated HTTP route;
+      // timings are evidence distributions, not an invented SLA threshold.
+      const percentile = (values, p) => values[Math.ceil(p * values.length) - 1];
+      const scaleStages = [
+        { target: 40000, add: 40000 },
+        { target: 250000, add: 210000 },
+        { target: 1000000, add: 750000 }
+      ];
+      const scaleEvidence = {
+        schemaVersion: 'opscore.postgis-scale-acceptance.v1',
+        commit: process.env.CI_COMMIT_SHA || null,
+        pipelineId: process.env.CI_PIPELINE_ID ? Number(process.env.CI_PIPELINE_ID) : null,
+        databaseEngine: 'PostgreSQL + PostGIS',
+        applicationRole: engine.role,
+        tenant: orgAId,
+        stages: []
+      };
+      let insertedScaleRows = 0;
+      for (const stage of scaleStages) {
+        const inserted = await fixture.query(
+          `INSERT INTO spatial_features
+            (id,organization_id,entity_type,entity_id,feature_key,geom,properties,source,created_by,created_at,updated_at)
+           SELECT 'gis-' || $1 || g::text,
+                  $2,
+                  'site',
+                  $1 || g::text,
+                  'scale',
+                  public.ST_SetSRID(public.ST_MakePoint(
+                    31.0 + ((g + $3) % 1000)::double precision / 1000.0,
+                    30.0 + floor((g + $3)::double precision / 1000.0) / 1000.0
+                  ), 4326),
+                  '{}'::jsonb,
+                  'acceptance-scale-benchmark',
+                  $4,
+                  now(),
+                  now()
+           FROM generate_series(1, $5::integer) AS g`,
+          [created.scalePrefix, orgAId, insertedScaleRows, ownerAId, stage.add]
+        );
+        assert.equal(inserted.rowCount, stage.add);
+        insertedScaleRows += inserted.rowCount;
+
+        // ANALYZE is a maintenance operation and is performed only against this
+        // disposable acceptance database using the already validated cleanup role.
+        await cleanupPool.query('ANALYZE public.spatial_features');
+
+        const latenciesMs = [];
+        for (let sample = 0; sample < 15; sample++) {
+          const started = process.hrtime.bigint();
+          const result = await request(
+            '/api/v1/map/viewport?west=31&south=30&east=31.2&north=30.2&limit=1000',
+            {},
+            ownerACookie
+          );
+          const elapsed = Number(process.hrtime.bigint() - started) / 1e6;
+          assert.equal(result.response.status, 200, JSON.stringify(result.data));
+          assert.equal(result.data.spatialFeatures.length, 1000,
+            `scale stage ${stage.target} must return the bounded 1000-feature page`);
+          latenciesMs.push(Number(elapsed.toFixed(3)));
+        }
+        latenciesMs.sort((a, b) => a - b);
+        const percentile = p => latenciesMs[Math.ceil(p * latenciesMs.length) - 1];
+        await bindSignedRlsSessionContext(fixture, { tenantId: orgAId, userId: ownerAId, accessMode: 'backoffice' });
+        let explain;
+        try {
+          explain = await fixture.query(
+            'EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) SELECT * FROM opscore_security.spatial_features_in_viewport(31,30,31.2,30.2,1000)'
+          );
+        } finally {
+          await clearSignedRlsSessionContext(fixture);
+        }
+        const plan = explain.rows[0]['QUERY PLAN'][0];
+        scaleEvidence.stages.push({
+          rows: stage.target,
+          insertedThisStage: stage.add,
+          samples: latenciesMs.length,
+          latencyMs: {
+            min: latenciesMs[0],
+            p50: percentile(0.50),
+            p95: percentile(0.95),
+            max: latenciesMs[latenciesMs.length - 1]
+          },
+          queryPlan: plan
+        });
+      }
+      fs.writeFileSync(path.join(browserOutputDir, 'gis-scale-benchmark.json'),
+        JSON.stringify(scaleEvidence, null, 2) + '\n');
+      record('postgis-scale-40k-250k-1m',
+        'Progressive 40k, 250k, and 1m tenant-scoped PostGIS datasets were queried 15 times per stage over authenticated HTTP; p50/p95/min/max latency and EXPLAIN ANALYZE BUFFERS evidence saved as gis-scale-benchmark.json.');
 
       // Exercise the real Digital Twin HTTP surface against migrated PostgreSQL
       // tables while the application runs as opscore_runtime (NO BYPASSRLS).
@@ -1258,6 +1350,11 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           'SELECT public.opscore_current_tenant() AS tenant, public.opscore_access_mode() AS mode');
         for (const featureId of created.spatialFeatureIds) {
           await attemptCleanup('delete-synthetic-spatial-feature', 'DELETE FROM spatial_features WHERE id=$1 AND organization_id=$2', [featureId, orgId]);
+        }
+        if (created.scalePrefix) {
+          await attemptCleanup('delete-scale-benchmark-spatial-features',
+            "DELETE FROM spatial_features WHERE organization_id=$1 AND source='acceptance-scale-benchmark' AND entity_id LIKE $2",
+            [orgId, created.scalePrefix + '%']);
         }
         await attemptCleanup('delete-organization-memberships', 'DELETE FROM memberships WHERE organization_id=$1', [orgId]);
         await attemptCleanup('delete-organization-customers', 'DELETE FROM customers WHERE organization_id=$1', [orgId]);
