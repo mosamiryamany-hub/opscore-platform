@@ -39,8 +39,9 @@ test('PostgreSQL acceptance validator requires exact host equality and direct co
     expectedHost: host
   }), /OPSC_PG_ACCEPTANCE_HOST_MISMATCH/);
 
+  const pooledHost = host.replace('.c-15', '-pooler.c-15');
   assert.throws(() => validatePostgresAcceptanceTarget({
-    urlText: `postgresql://opscore_runtime:masked@${host}-pooler/opscore_matrix_test`,
-    expectedHost: `${host}-pooler`
-  }), /OPSC_PG_ACCEPTANCE_HOST_INVALID|OPSC_PG_ACCEPTANCE_HOST_MISMATCH/);
+    urlText: `postgresql://opscore_runtime:masked@${pooledHost}/opscore_matrix_test`,
+    expectedHost: pooledHost
+  }), /OPSC_PG_ACCEPTANCE_POOLER_HOST_FORBIDDEN/);
 });

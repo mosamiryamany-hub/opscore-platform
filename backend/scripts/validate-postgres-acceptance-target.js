@@ -30,6 +30,9 @@ function validatePostgresAcceptanceTarget({
   }
 
   const hostname = parsed.hostname.toLowerCase();
+  if (hostname.includes('-pooler')) {
+    throw targetError('OPSC_PG_ACCEPTANCE_POOLER_HOST_FORBIDDEN');
+  }
   if (PRODUCTION_HOST_MARKERS.some(marker => hostname.includes(marker))) {
     throw targetError('OPSC_PG_ACCEPTANCE_PRODUCTION_HOST_FORBIDDEN');
   }
