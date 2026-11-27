@@ -1580,6 +1580,7 @@ function route(req, res) {
     }, req, res, { forceNew: true })).catch(e => fail(res, e));
   }
   if (req.method === 'GET' && url.pathname === '/api/v1/auth/oidc/start') {
+    return (async () => {
     try {
       if (authProviderGate() !== 'oidc') throw new Error('AUTH_MODE_OIDC_REQUIRED');
       const provider = String(url.searchParams.get('provider') || '').toLowerCase();
@@ -1621,8 +1622,10 @@ function route(req, res) {
       res.writeHead(302, { location: authorizationEndpoint.toString(), 'set-cookie': stateCookie, 'cache-control': 'no-store' });
       return res.end();
     } catch (error) { return fail(res, error); }
+    })();
   }
   if (req.method === 'GET' && url.pathname === '/api/v1/auth/oidc/callback') {
+    return (async () => {
     const clearStateCookie = '__Host-opscore_oidc_state=; HttpOnly; Secure; Path=/; SameSite=Lax; Max-Age=0';
     const failCallback = () => { res.writeHead(303, { location: '/control-plane.html?sso_error=identity_login_failed', 'set-cookie': clearStateCookie, 'cache-control': 'no-store' }); res.end(); };
     try {
@@ -1672,6 +1675,7 @@ function route(req, res) {
     } catch (error) {
       return failCallback();
     }
+    })();
   }
   if (req.method === 'GET' && url.pathname === '/api/v1/auth/oidc/config') {
     try {
