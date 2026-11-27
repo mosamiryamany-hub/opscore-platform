@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import secrets
 import sys
 import time
 import urllib.error
@@ -213,7 +214,15 @@ def setup():
     github_env = os.environ.get("GITHUB_ENV")
     if not github_env:
         raise RuntimeError("GITHUB_ENV_MISSING")
+    # Integration tests need to exercise the signed RLS-session binding path.
+    # Use a fresh one-run key: never copy Production signing material into CI.
+    test_hmac_key = secrets.token_hex(32)
+    test_key_id = f"ci-{run_id}-{attempt}"
+    print(f"::add-mask::{test_hmac_key}")
+
     values = {
+        "OPSC_TENANT_CONTEXT_HMAC_KEY": test_hmac_key,
+        "OPSC_TENANT_CONTEXT_KEY_ID": test_key_id,
         "OPSC_PG_ACCEPTANCE_URL": runtime_uri,
         "OPSC_PG_ACCEPTANCE_HOST": host,
         "OPSC_PG_ACCEPTANCE_CLEANUP_URL": cleanup_uri,
