@@ -127,29 +127,42 @@ function assertTarget(url,database,apply,env=process.env){
  if(!hostname)throw new Error('MIGRATION_ENDPOINT_HOST_REQUIRED');
  if(hostname.includes('-pooler'))throw new Error('MIGRATION_DIRECT_CONNECTION_REQUIRED');
  const target=String(env.OPSC_MIGRATION_TARGET_CLASS||'').trim().toLowerCase();
- if(!['preview','test','production'].includes(target))throw new Error('MIGRATION_TARGET_CLASS_REQUIRED');
+ if(!['preview','test','production','self-hosted'].includes(target))throw new Error('MIGRATION_TARGET_CLASS_REQUIRED');
  const expectedDatabase=String(env.OPSC_MIGRATION_EXPECTED_DATABASE||'').trim();
  if(!expectedDatabase||expectedDatabase!==database)throw new Error('MIGRATION_EXPECTED_DATABASE_MISMATCH');
  if(target==='test'){
   if(!['127.0.0.1','localhost','::1'].includes(hostname))throw new Error('MIGRATION_TEST_TARGET_MUST_BE_LOCAL');
  }else{
   const expectedHost=String(env.OPSC_MIGRATION_EXPECTED_HOST||'').trim().toLowerCase();
-  const projectId=String(env.OPSC_MIGRATION_EXPECTED_PROJECT_ID||'').trim();
-  const branchId=String(env.OPSC_MIGRATION_EXPECTED_BRANCH_ID||'').trim();
   if(!expectedHost||hostname!==expectedHost)throw new Error('MIGRATION_ENDPOINT_HOST_MISMATCH');
-  if(!/^[a-z0-9-]{8,80}$/.test(projectId))throw new Error('MIGRATION_PROJECT_ID_REQUIRED');
-  if(!/^br-[a-z0-9-]{8,80}$/.test(branchId))throw new Error('MIGRATION_BRANCH_ID_REQUIRED');
+  if(target!=='self-hosted'){
+   const projectId=String(env.OPSC_MIGRATION_EXPECTED_PROJECT_ID||'').trim();
+   const branchId=String(env.OPSC_MIGRATION_EXPECTED_BRANCH_ID||'').trim();
+   if(!/^[a-z0-9-]{8,80}$/.test(projectId))throw new Error('MIGRATION_PROJECT_ID_REQUIRED');
+   if(!/^br-[a-z0-9-]{8,80}$/.test(branchId))throw new Error('MIGRATION_BRANCH_ID_REQUIRED');
+  }
  }
  if(target==='production'&&env.OPSC_MIGRATION_ALLOW_PRODUCTION!=='1')throw new Error('MIGRATION_TARGET_NOT_PREVIEW_OR_TEST');
  if(target!=='production'&&env.OPSC_MIGRATION_ALLOW_PRODUCTION==='1')throw new Error('MIGRATION_PRODUCTION_OPT_IN_TARGET_CLASS_MISMATCH');
+ if(target==='self-hosted'){
+  if(env.OPSC_MIGRATION_ALLOW_PRODUCTION==='1')throw new Error('MIGRATION_PRODUCTION_OPT_IN_TARGET_CLASS_MISMATCH');
+  if(String(url.searchParams.get('sslmode')||'').toLowerCase()!=='verify-full')throw new Error('MIGRATION_SELF_HOSTED_TLS_VERIFY_FULL_REQUIRED');
+  if(String(env.OPSC_PG_SSL_MODE||'verify-full').toLowerCase()!=='verify-full')throw new Error('MIGRATION_SELF_HOSTED_TLS_VERIFY_FULL_REQUIRED');
+  if(String(env.NODE_ENV||'').toLowerCase()!=='production')throw new Error('MIGRATION_SELF_HOSTED_NODE_ENV_PRODUCTION_REQUIRED');
+ }
  if(apply){
   if(env.OPSC_MIGRATION_CONFIRM_DATABASE!==database)throw new Error('MIGRATION_DATABASE_CONFIRMATION_REQUIRED');
   if(target!=='test'){
    if(String(env.OPSC_MIGRATION_CONFIRM_HOST||'').trim().toLowerCase()!==hostname)throw new Error('MIGRATION_HOST_CONFIRMATION_REQUIRED');
-   if(String(env.OPSC_MIGRATION_CONFIRM_PROJECT_ID||'').trim()!==String(env.OPSC_MIGRATION_EXPECTED_PROJECT_ID||'').trim())throw new Error('MIGRATION_PROJECT_CONFIRMATION_REQUIRED');
-   if(String(env.OPSC_MIGRATION_CONFIRM_BRANCH_ID||'').trim()!==String(env.OPSC_MIGRATION_EXPECTED_BRANCH_ID||'').trim())throw new Error('MIGRATION_BRANCH_CONFIRMATION_REQUIRED');
+   if(target!=='self-hosted'){
+    if(String(env.OPSC_MIGRATION_CONFIRM_PROJECT_ID||'').trim()!==String(env.OPSC_MIGRATION_EXPECTED_PROJECT_ID||'').trim())throw new Error('MIGRATION_PROJECT_CONFIRMATION_REQUIRED');
+    if(String(env.OPSC_MIGRATION_CONFIRM_BRANCH_ID||'').trim()!==String(env.OPSC_MIGRATION_EXPECTED_BRANCH_ID||'').trim())throw new Error('MIGRATION_BRANCH_CONFIRMATION_REQUIRED');
+   }else{
+    if(env.OPSC_MIGRATION_ALLOW_SELF_HOSTED!=='1')throw new Error('MIGRATION_SELF_HOSTED_APPLY_OPT_IN_REQUIRED');
+   }
   }
  }
+ if(target==='self-hosted')return 'self-hosted-explicit-target';
  return target==='production'?'production-explicit-opt-in':'preview-or-test';
 }
 function extractNeonEndpointId(hostname) {
@@ -161,6 +174,10 @@ function extractNeonEndpointId(hostname) {
 function expectedMigrationOwnerRole(env=process.env) {
  const target=String(env.OPSC_MIGRATION_TARGET_CLASS||'').trim().toLowerCase();
  const configured=String(env.OPSC_MIGRATION_EXPECTED_OWNER_ROLE||'').trim();
+ if(target==='self-hosted'){
+  if(configured&&configured!=='opscore_migrator')throw new Error('MIGRATION_OWNER_ROLE_NOT_ALLOWED');
+  return 'opscore_migrator';
+ }
  if(target==='production'||target==='test'){
   if(configured&&configured!=='neondb_owner')throw new Error('MIGRATION_OWNER_ROLE_NOT_ALLOWED');
   return 'neondb_owner';
@@ -174,6 +191,15 @@ function expectedMigrationOwnerRole(env=process.env) {
 async function verifyNeonEndpointIdentity(url,env=process.env,fetchImpl=globalThis.fetch) {
  const target=String(env.OPSC_MIGRATION_TARGET_CLASS||'').trim().toLowerCase();
  if(target==='test')return {verified:false,skipped:true,reason:'loopback-test-target'};
+ if(target==='self-hosted'){
+  const hostname=String(url.hostname||'').trim().toLowerCase();
+  const expectedHost=String(env.OPSC_MIGRATION_EXPECTED_HOST||'').trim().toLowerCase();
+  const database=String(url.pathname||'').replace(/^\\/+/, '');
+  if(!expectedHost||hostname!==expectedHost)throw new Error('MIGRATION_ENDPOINT_HOST_MISMATCH');
+  if(database!==String(env.OPSC_MIGRATION_EXPECTED_DATABASE||'').trim())throw new Error('MIGRATION_EXPECTED_DATABASE_MISMATCH');
+  if(String(url.searchParams.get('sslmode')||'').toLowerCase()!=='verify-full')throw new Error('MIGRATION_SELF_HOSTED_TLS_VERIFY_FULL_REQUIRED');
+  return {verified:false,skipped:true,reason:'operator-pinned-self-hosted-target',host:hostname,database,verification:'EXPLICIT_HOST_DATABASE_AND_TLS_PIN'};
+ }
  const hostname=String(url.hostname||'').trim().toLowerCase();
  const endpointId=extractNeonEndpointId(hostname);
  const projectId=String(env.OPSC_MIGRATION_EXPECTED_PROJECT_ID||'').trim();
@@ -404,7 +430,7 @@ async function main(){
   if(!ledgerExists){
    // Virgin preview/test DBs: bootstrap ledger only under --apply. Never invent history on production.
    if(!apply){ledger=[];}
-   else if(targetClass!=='preview-or-test'){throw new Error('MIGRATION_LEDGER_MISSING');}
+   else if(!['preview-or-test','self-hosted-explicit-target'].includes(targetClass)){throw new Error('MIGRATION_LEDGER_MISSING');}
    else{
     await client.query("CREATE TABLE public.schema_migrations (filename text PRIMARY KEY, sha256 text NOT NULL, applied_at timestamptz NOT NULL DEFAULT clock_timestamp())");
     ledger=[];
