@@ -28,6 +28,11 @@ jobs:
       - name: Install Chromium
         working-directory: backend
         run: npx playwright install --with-deps chromium
+      - name: Parse-check Twin page scripts before browser execution
+        run: |
+          node --check backend/web/fabric-core.js
+          node --check backend/web/digital-twin-room.js
+          node --check backend/scripts/twin-browser-acceptance.js
       - name: Start Twin UI static server
         run: |
           python3 -m http.server 4173 --directory backend/web > /tmp/opscore-twin-ui.log 2>&1 &
