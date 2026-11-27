@@ -1,5 +1,5 @@
 {
-  "routeCount": 364,
+  "routeCount": 358,
   "routePatternInventory": "source-derived.v3",
   "routes": [
     {
@@ -2617,7 +2617,9 @@
       "auth": "required",
       "scope": null,
       "sourceLine": 1059
-    },
+    }
+  ],
+  "supplementalRoutes": [
     {
       "method": "GET",
       "route": "/api/v1/contact-center/crm/customers",
