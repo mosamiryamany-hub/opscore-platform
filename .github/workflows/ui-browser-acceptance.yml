@@ -41,7 +41,7 @@ jobs:
       - name: Run responsive, keyboard, RTL and axe acceptance
         env:
           OPSC_UI_BASE_URL: http://127.0.0.1:4173
-          OPSC_UI_ARTIFACT_DIR: \${{ github.workspace }}/ui-browser-artifacts
+          OPSC_UI_ARTIFACT_DIR: ${{ github.workspace }}/ui-browser-artifacts
         run: node backend/scripts/ui-browser-audit.js
       - name: Upload browser screenshots and accessibility report
         if: always()
