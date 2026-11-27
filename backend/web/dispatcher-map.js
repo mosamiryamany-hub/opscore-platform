@@ -1,4 +1,4 @@
-import * as maplibregl from 'https://unpkg.com/maplibre-gl@6.20.0/dist/maplibre-gl.mjs';
+let maplibregl = null;
 
 const $ = id => document.getElementById(id);
 const state = { map: null, sourceReady: false, points: [] };
@@ -97,8 +97,9 @@ function renderList(points) {
   }
 }
 
-function ensureMap() {
+async function ensureMap() {
   if (state.map) return;
+  if (!maplibregl) maplibregl = await import('https://unpkg.com/maplibre-gl@6.20.0/dist/maplibre-gl.mjs');
   const container = $('dispatcherMap');
   state.map = new maplibregl.Map({
     container,
@@ -166,12 +167,16 @@ async function refresh() {
     const data = await request('/api/v1/dispatcher-map/v2');
     state.points = (Array.isArray(data.points) ? data.points : []).filter(validPoint);
     renderList(state.points);
-    ensureMap();
-    updateMapPoints();
     $('dataState').textContent = state.points.length + ' recorded positions';
-    message(state.points.length
-      ? 'Showing latest persisted appointment check-in per technician. Positions update only when refreshed.'
-      : 'No stored check-in points. No location pins were fabricated.');
+    try {
+      await ensureMap();
+      updateMapPoints();
+      message(state.points.length
+        ? 'Showing latest persisted appointment check-in per technician. Positions update only when refreshed.'
+        : 'No stored check-in points. No location pins were fabricated.');
+    } catch (_) {
+      message('Map renderer or tile provider is unavailable. The authenticated record list remains available; no substitute map or pins are shown.', 'warning');
+    }
   } catch (error) {
     state.points = [];
     renderList([]);
