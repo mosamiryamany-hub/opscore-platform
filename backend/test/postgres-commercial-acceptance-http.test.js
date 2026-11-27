@@ -616,8 +616,10 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           const pixelAY = Math.max(0, Math.min(canvasShotA.height - 1, Math.round(projectedA.y * canvasShotA.height / projectedA.clientHeight)));
           const pixelAOffset = (pixelAY * canvasShotA.width + pixelAX) * 4;
           const renderedPixelA = { x: pixelAX, y: pixelAY, rgba: Array.from(canvasShotA.data.slice(pixelAOffset, pixelAOffset + 4)) };
-          assert.ok(renderedPixelA.rgba[0] >= 120 && renderedPixelA.rgba[1] >= 100 && renderedPixelA.rgba[2] >= 180,
-            'tenant A PostGIS point must appear in the actual MapLibre canvas screenshot at its projected coordinate: ' + JSON.stringify(renderedPixelA));
+          assert.ok(renderedPixelA.rgba[0] >= 100 && renderedPixelA.rgba[0] <= 220
+            && renderedPixelA.rgba[1] >= 80 && renderedPixelA.rgba[1] <= 200
+            && renderedPixelA.rgba[2] >= 220 && renderedPixelA.rgba[3] === 255,
+            'tenant A PostGIS point must match the rendered lavender feature pixels, not the basemap: ' + JSON.stringify(renderedPixelA));
           const renderedDiagnosticsA = await page.evaluate(() => window.__opscoreDispatcherMapE2E.renderedSpatialFeatureDiagnostics(31.2, 30.0));
           assert.ok(apiResponses.some(response => response.status === 200), 'browser must receive a successful authenticated PostGIS viewport response');
           assert.equal(await page.locator('#spatialFeatureCount').textContent(), '1 authorized GIS features');
@@ -746,8 +748,10 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           const pixelBY = Math.max(0, Math.min(canvasShotB.height - 1, Math.round(projectedB.y * canvasShotB.height / projectedB.clientHeight)));
           const pixelBOffset = (pixelBY * canvasShotB.width + pixelBX) * 4;
           const renderedPixelB = { x: pixelBX, y: pixelBY, rgba: Array.from(canvasShotB.data.slice(pixelBOffset, pixelBOffset + 4)) };
-          assert.ok(renderedPixelB.rgba[0] >= 120 && renderedPixelB.rgba[1] >= 100 && renderedPixelB.rgba[2] >= 180,
-            'tenant B PostGIS point must appear in the actual MapLibre canvas screenshot at its projected coordinate: ' + JSON.stringify(renderedPixelB));
+          assert.ok(renderedPixelB.rgba[0] >= 100 && renderedPixelB.rgba[0] <= 220
+            && renderedPixelB.rgba[1] >= 80 && renderedPixelB.rgba[1] <= 200
+            && renderedPixelB.rgba[2] >= 220 && renderedPixelB.rgba[3] === 255,
+            'tenant B PostGIS point must match the rendered lavender feature pixels, not the basemap: ' + JSON.stringify(renderedPixelB));
           const renderedDiagnosticsB = await pageB.evaluate(() => window.__opscoreDispatcherMapE2E.renderedSpatialFeatureDiagnostics(31.25, 30.05));
           const renderedB = await pageB.evaluate(() => window.__opscoreDispatcherMapE2E.displayedSpatialFeatureIds());
           const displayedB = await pageB.evaluate(() => window.__opscoreDispatcherMapE2E.displayedSpatialFeatureIds());
