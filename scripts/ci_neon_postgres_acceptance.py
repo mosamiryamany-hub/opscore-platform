@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import os
 import secrets
+import subprocess
 import sys
 import time
 import urllib.error
@@ -219,6 +220,34 @@ def setup():
     test_hmac_key = secrets.token_hex(32)
     test_key_id = f"ci-{run_id}-{attempt}"
     print(f"::add-mask::{test_hmac_key}")
+
+    # The acceptance branch inherits the verifier schema but no key material.
+    # Seed only this generated one-run key into its protected key table using
+    # the exact-target neondb_owner connection; runtime remains unable to read it.
+    seed_env = os.environ.copy()
+    seed_env.update({
+        "OPSC_TENANT_CONTEXT_HMAC_KEY": test_hmac_key,
+        "OPSC_TENANT_CONTEXT_KEY_ID": test_key_id,
+        "OPSC_PG_ACCEPTANCE_CLEANUP_URL": cleanup_uri,
+        "OPSC_PG_ACCEPTANCE_CLEANUP_HOST": cleanup_host,
+        "OPSC_PG_ACCEPTANCE_HOST": host,
+    })
+    seed = subprocess.run(
+        ["node", "backend/scripts/ci-seed-tenant-context-key.js"],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=seed_env,
+        timeout=60,
+    )
+    if seed.stdout:
+        print(seed.stdout.rstrip())
+    if seed.returncode != 0:
+        safe_error = "\\n".join(
+            line for line in (seed.stderr or "").splitlines()
+            if "CI_TENANT_CONTEXT_KEY_SEEDED=" in line
+        )
+        raise RuntimeError("CI_SIGNING_KEY_SEED_FAILED:" + (safe_error or "NO_SAFE_DIAGNOSTIC"))
 
     values = {
         "OPSC_TENANT_CONTEXT_HMAC_KEY": test_hmac_key,
