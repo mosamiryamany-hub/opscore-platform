@@ -29,6 +29,18 @@ if (new URLSearchParams(window.location.search).get('e2e') === '1') {
     viewportRequestCount() { return state.viewportRequestCount; },
     lastAppliedViewportSequence() { return state.lastAppliedViewportSequence; },
     refreshViewportNow() { return refreshSpatialFeatures(); },
+    focusTenantFeature(longitude, latitude) {
+      if (!state.map || !state.spatialSourceReady) throw new Error('MAP_SOURCE_NOT_READY');
+      state.map.jumpTo({ center: [Number(longitude), Number(latitude)], zoom: 12 });
+    },
+    mapReadiness() {
+      return {
+        loaded: Boolean(state.map?.loaded()),
+        styleLoaded: Boolean(state.map?.isStyleLoaded()),
+        sourceLoaded: Boolean(state.map?.isSourceLoaded('tenant-spatial-features')),
+        layers: ['tenant-spatial-polygons', 'tenant-spatial-lines', 'tenant-spatial-points'].filter(id => Boolean(state.map?.getLayer(id)))
+      };
+    },
     triggerViewportBurst() {
       if (!state.map) throw new Error('MAP_NOT_READY');
       state.map.jumpTo({ center: [31.20, 30.00], zoom: 8 });
