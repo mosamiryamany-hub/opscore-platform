@@ -485,6 +485,7 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
 
       if (process.env.OPSC_MAP_BROWSER_E2E === 'true') {
         const { chromium } = require('playwright');
+        const { PNG } = require('pngjs');
         const browserOutputDir = path.resolve(process.env.OPSC_MAP_BROWSER_ARTIFACT_DIR || path.join(dir, 'dispatcher-map-postgres-browser-e2e'));
         fs.mkdirSync(browserOutputDir, { recursive: true });
         // __Host- Secure cookies must be installed on HTTPS. Keep the real app
@@ -607,9 +608,14 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           }, null, { timeout: 30000 });
           await page.evaluate(() => window.__opscoreDispatcherMapE2E.focusTenantFeature(31.2, 30.0));
           await page.waitForTimeout(150);
-          const renderedPixelA = await page.evaluate(() => window.__opscoreDispatcherMapE2E.renderedSpatialPixelAt(31.2, 30.0));
-          assert.ok(renderedPixelA && renderedPixelA.rgba[0] >= 120 && renderedPixelA.rgba[1] >= 100 && renderedPixelA.rgba[2] >= 180,
-            'tenant A PostGIS point must be painted at its projected coordinate in the WebGL framebuffer: ' + JSON.stringify(renderedPixelA));
+          const projectedA = await page.evaluate(() => window.__opscoreDispatcherMapE2E.projectedPointAt(31.2, 30.0));
+          const canvasShotA = PNG.sync.read(await page.locator('.maplibregl-canvas').screenshot());
+          const pixelAX = Math.max(0, Math.min(canvasShotA.width - 1, Math.round(projectedA.x * canvasShotA.width / projectedA.clientWidth)));
+          const pixelAY = Math.max(0, Math.min(canvasShotA.height - 1, Math.round(projectedA.y * canvasShotA.height / projectedA.clientHeight)));
+          const pixelAOffset = (pixelAY * canvasShotA.width + pixelAX) * 4;
+          const renderedPixelA = { x: pixelAX, y: pixelAY, rgba: Array.from(canvasShotA.data.slice(pixelAOffset, pixelAOffset + 4)) };
+          assert.ok(renderedPixelA.rgba[0] >= 120 && renderedPixelA.rgba[1] >= 100 && renderedPixelA.rgba[2] >= 180,
+            'tenant A PostGIS point must appear in the actual MapLibre canvas screenshot at its projected coordinate: ' + JSON.stringify(renderedPixelA));
           const renderedDiagnosticsA = await page.evaluate(() => window.__opscoreDispatcherMapE2E.renderedSpatialFeatureDiagnostics(31.2, 30.0));
           assert.ok(apiResponses.some(response => response.status === 200), 'browser must receive a successful authenticated PostGIS viewport response');
           assert.equal(await page.locator('#spatialFeatureCount').textContent(), '1 authorized GIS features');
@@ -721,9 +727,14 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
             return Boolean(probe && probe.displayedSpatialFeatureIds().includes(expected));
           }, spatialFeatureBId, { timeout: 30000 });
           await pageB.waitForTimeout(150);
-          const renderedPixelB = await pageB.evaluate(() => window.__opscoreDispatcherMapE2E.renderedSpatialPixelAt(31.25, 30.05));
-          assert.ok(renderedPixelB && renderedPixelB.rgba[0] >= 120 && renderedPixelB.rgba[1] >= 100 && renderedPixelB.rgba[2] >= 180,
-            'tenant B PostGIS point must be painted at its projected coordinate in the WebGL framebuffer: ' + JSON.stringify(renderedPixelB));
+          const projectedB = await pageB.evaluate(() => window.__opscoreDispatcherMapE2E.projectedPointAt(31.25, 30.05));
+          const canvasShotB = PNG.sync.read(await pageB.locator('.maplibregl-canvas').screenshot());
+          const pixelBX = Math.max(0, Math.min(canvasShotB.width - 1, Math.round(projectedB.x * canvasShotB.width / projectedB.clientWidth)));
+          const pixelBY = Math.max(0, Math.min(canvasShotB.height - 1, Math.round(projectedB.y * canvasShotB.height / projectedB.clientHeight)));
+          const pixelBOffset = (pixelBY * canvasShotB.width + pixelBX) * 4;
+          const renderedPixelB = { x: pixelBX, y: pixelBY, rgba: Array.from(canvasShotB.data.slice(pixelBOffset, pixelBOffset + 4)) };
+          assert.ok(renderedPixelB.rgba[0] >= 120 && renderedPixelB.rgba[1] >= 100 && renderedPixelB.rgba[2] >= 180,
+            'tenant B PostGIS point must appear in the actual MapLibre canvas screenshot at its projected coordinate: ' + JSON.stringify(renderedPixelB));
           const renderedDiagnosticsB = await pageB.evaluate(() => window.__opscoreDispatcherMapE2E.renderedSpatialFeatureDiagnostics(31.25, 30.05));
           const renderedB = await pageB.evaluate(() => window.__opscoreDispatcherMapE2E.displayedSpatialFeatureIds());
           const displayedB = await pageB.evaluate(() => window.__opscoreDispatcherMapE2E.displayedSpatialFeatureIds());
