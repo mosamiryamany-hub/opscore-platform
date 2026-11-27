@@ -320,10 +320,12 @@ jobs:
       - name: Check live gate syntax
         run: |
           node --check backend/scripts/postgres-live-rls-gate.js
+          node --check backend/scripts/signed-tenant-context-postgres-gate.js
           node --check backend/scripts/apply-postgres-migrations.js
           node --check backend/scripts/postgres-tenant-composite-fk-gate.js
           node --check backend/scripts/postgres-logical-restore-drill.js
           node --check backend/src/adapters/postgres.js
+          node --check backend/src/geofencing.js
       - name: Run isolated PostgreSQL 18 tenant-isolation gate
         working-directory: backend
         run: |
