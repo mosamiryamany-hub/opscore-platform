@@ -329,7 +329,7 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
       body: JSON.stringify({ orgName: `Acceptance Tenant A ${stamp}`, email: ownerAEmail, password: 'Initial-A-strong-2026' })
     });
     assert.equal(x.response.status, 201, JSON.stringify(x.data));
-    const ownerAId = x.data.userId || x.data.user?.id || x.data.id;
+    let ownerAId = x.data.user?.id || x.data.userId || x.data.id;
     // Register synthetic records immediately; if a later assertion fails, cleanup must
     // still know exactly which identity was created by this run.
     if (ownerAId) { created.users.push(ownerAId); created.persistedUsers.push(ownerAId); }
@@ -359,6 +359,16 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
     x = await request('/api/v1/me', {}, ownerACookie);
     assert.equal(x.response.status, 200, JSON.stringify(x.data));
     assert.equal(x.data.user.email, ownerAEmail);
+    const authenticatedOwnerAId = x.data.user.id;
+    assert.ok(authenticatedOwnerAId, 'authenticated /api/v1/me identity must include its canonical user ID');
+    if (ownerAId !== authenticatedOwnerAId) {
+      // /me is the authenticated session's canonical identity. Keep both
+      // returned IDs tracked for exact cleanup, but use only the verified ID
+      // for tenant-owned foreign keys such as spatial_features.created_by.
+      created.users.push(authenticatedOwnerAId);
+      created.persistedUsers.push(authenticatedOwnerAId);
+      ownerAId = authenticatedOwnerAId;
+    }
     const orgAId = x.data.organization.id;
     assert.ok(orgAId);
     if (!created.organizations.includes(orgAId)) created.organizations.push(orgAId);
@@ -453,6 +463,12 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
       const spatialFeatureBId = 'gis-b-' + randomUUID();
       created.spatialFeatureIds.push(spatialFeatureAId, spatialFeatureBId);
       await bindSignedRlsSessionContext(fixture, { tenantId: orgAId, userId: ownerAId, accessMode: 'system' });
+      const ownerAMembership = await fixture.query(
+        'SELECT 1 FROM memberships WHERE user_id=$1 AND organization_id=$2 LIMIT 1',
+        [ownerAId, orgAId]
+      );
+      assert.equal(ownerAMembership.rowCount, 1,
+        'the canonical authenticated tenant A user must have a persisted membership before creating GIS fixtures');
       await fixture.query(
         `INSERT INTO spatial_features
           (id,organization_id,entity_type,entity_id,feature_key,geom,properties,source,created_by,created_at,updated_at)
