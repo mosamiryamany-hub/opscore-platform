@@ -55,6 +55,7 @@
 - Signed tenant-context operations in this mode require all of: explicit `OPSC_SIGNED_TENANT_CONTEXT_SELF_HOSTED_ENABLED=true`, `OPSC_REQUIRE_SIGNED_TENANT_CONTEXT=true`, `OPSC_PRODUCTION_HOLD=false`, session autobind disabled, and a valid buyer release attestation.
 - The identity collector measures archive SHA-256, live HTTPS certificate digest and selected PostgreSQL role flags. Its existing documentation explicitly excludes complete object/function grants and build provenance; PASS is an operator attestation, not certification.
 - The migration runner's self-hosted host pin is operator-supplied and is not independent DNS, TLS certificate or database-provider identity proof. TLS is independently enforced by `verify-full`.
+- Added `.github/workflows/self-hosted-postgres18-acceptance.yml`: it provisions an ephemeral PostgreSQL 18 + PostGIS 3.7 container, generates a temporary CA/server certificate, runs the repository's role initializer, applies migrations through the self-hosted target using `verify-full`, and checks the migration ledger, extensions, role flags and forced RLS. This CI workflow is now the required acceptance gate; its result is pending.
 
 ## Requested features — honest state
 
