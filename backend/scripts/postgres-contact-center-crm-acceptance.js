@@ -49,13 +49,13 @@ async function main() {
 
     const fk = await client.query(`
       SELECT c.conname, c.confdeltype, c.convalidated,
-        (SELECT array_agg(a.attname ORDER BY x.ord)
+        (SELECT to_json(array_agg(a.attname ORDER BY x.ord))
            FROM unnest(c.conkey) WITH ORDINALITY x(attnum,ord)
            JOIN pg_attribute a ON a.attrelid=c.conrelid AND a.attnum=x.attnum) AS source_columns,
-        (SELECT array_agg(a.attname ORDER BY x.ord)
+        (SELECT to_json(array_agg(a.attname ORDER BY x.ord))
            FROM unnest(c.confkey) WITH ORDINALITY x(attnum,ord)
            JOIN pg_attribute a ON a.attrelid=c.confrelid AND a.attnum=x.attnum) AS target_columns,
-        (SELECT array_agg(a.attname ORDER BY x.ord)
+        (SELECT to_json(array_agg(a.attname ORDER BY x.ord))
            FROM unnest(c.confdelsetcols) WITH ORDINALITY x(attnum,ord)
            JOIN pg_attribute a ON a.attrelid=c.conrelid AND a.attnum=x.attnum) AS set_null_columns
       FROM pg_constraint c
