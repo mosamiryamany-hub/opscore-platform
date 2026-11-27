@@ -1,7 +1,8 @@
+import { toSpatialFeatureCollection } from './dispatcher-map-geojson.mjs';
 let maplibregl = null;
 
 const $ = id => document.getElementById(id);
-const state = { map: null, sourceReady: false, points: [] };
+const state = { map: null, mapReady: null, sourceReady: false, spatialSourceReady: false, points: [], spatialFeatures: { type: 'FeatureCollection', features: [] }, viewportTimer: null, viewportSequence: 0 };
 const safe = value => String(value ?? '');
 const formatDate = value => value ? new Date(value).toLocaleString() : '—';
 
@@ -98,9 +99,10 @@ function renderList(points) {
 }
 
 async function ensureMap() {
-  if (state.map) return;
+  if (state.mapReady) return state.mapReady;
   if (!maplibregl) maplibregl = await import('https://unpkg.com/maplibre-gl@6.20.0/dist/maplibre-gl.mjs');
   const container = $('dispatcherMap');
+  state.mapReady = new Promise((resolve, reject) => {
   state.map = new maplibregl.Map({
     container,
     style: container.dataset.styleUrl,
@@ -129,8 +131,47 @@ async function ensureMap() {
       }
     });
     state.sourceReady = true;
+    state.map.addSource('tenant-spatial-features', {
+      type: 'geojson',
+      data: state.spatialFeatures
+    });
+    state.map.addLayer({
+      id: 'tenant-spatial-polygons',
+      type: 'fill',
+      source: 'tenant-spatial-features',
+      filter: ['==', ['geometry-type'], 'Polygon'],
+      paint: { 'fill-color': '#8b7cff', 'fill-opacity': 0.16 }
+    });
+    state.map.addLayer({
+      id: 'tenant-spatial-lines',
+      type: 'line',
+      source: 'tenant-spatial-features',
+      filter: ['in', ['geometry-type'], 'LineString', 'Polygon'],
+      paint: { 'line-color': '#a99cff', 'line-width': 2, 'line-opacity': 0.9 }
+    });
+    state.map.addLayer({
+      id: 'tenant-spatial-points',
+      type: 'circle',
+      source: 'tenant-spatial-features',
+      filter: ['==', ['geometry-type'], 'Point'],
+      paint: {
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 2, 4, 12, 7, 16, 10],
+        'circle-color': '#b69cff',
+        'circle-stroke-color': '#17132a',
+        'circle-stroke-width': 2
+      }
+    });
+    state.spatialSourceReady = true;
     updateMapPoints();
+    resolve();
   });
+  state.map.on('error', event => {
+    if (event?.error) message('Map style or tile service is unavailable. Recorded data remains protected; retry or switch the configured style provider.', 'warning');
+  });
+  state.map.on('load', () => {});
+  state.map.on('moveend', scheduleSpatialRefresh);
+  });
+  return state.mapReady;
   state.map.on('click', 'technician-checkins', event => {
     const feature = event.features?.[0];
     if (!feature) return;
@@ -141,9 +182,6 @@ async function ensureMap() {
   });
   state.map.on('mouseenter', 'technician-checkins', () => { state.map.getCanvas().style.cursor = 'pointer'; });
   state.map.on('mouseleave', 'technician-checkins', () => { state.map.getCanvas().style.cursor = ''; });
-  state.map.on('error', event => {
-    if (event?.error) message('Map style or tile service is unavailable. Recorded data remains protected; retry or switch the configured style provider.', 'warning');
-  });
 }
 
 function updateMapPoints() {
@@ -155,6 +193,61 @@ function updateMapPoints() {
     state.points.forEach(point => bounds.extend([Number(point.longitude), Number(point.latitude)]));
     state.map.fitBounds(bounds, { padding: 72, maxZoom: 13, duration: 500 });
   }
+}
+
+
+function currentViewportQuery() {
+  if (!state.map) return null;
+  const bounds = state.map.getBounds();
+  const west = Math.max(-180, bounds.getWest());
+  const south = Math.max(-90, bounds.getSouth());
+  const east = Math.min(180, bounds.getEast());
+  const north = Math.min(90, bounds.getNorth());
+  if (![west, south, east, north].every(Number.isFinite) || west >= east || south >= north) return null;
+  return new URLSearchParams({
+    west: String(west), south: String(south), east: String(east), north: String(north), limit: '1000'
+  });
+}
+
+async function refreshSpatialFeatures() {
+  if (!state.map || !state.spatialSourceReady) return;
+  const query = currentViewportQuery();
+  if (!query) return;
+  const sequence = ++state.viewportSequence;
+  try {
+    const data = await request('/api/v1/map/viewport?' + query.toString());
+    if (sequence !== state.viewportSequence) return;
+    state.spatialFeatures = toSpatialFeatureCollection(data.spatialFeatures);
+    const source = state.map.getSource('tenant-spatial-features');
+    if (source) source.setData(state.spatialFeatures);
+    const count = state.spatialFeatures.features.length;
+    const countNode = $('spatialFeatureCount');
+    if (countNode) countNode.textContent = count + ' authorized GIS features';
+    if (data.spatialFeatures === undefined) {
+      message('Technician check-ins are loaded. The signed GIS feature layer is not enabled for this deployment.', 'neutral');
+    } else {
+      message(count
+        ? 'Showing tenant-authorized spatial features for the visible map area. Technician check-ins remain recorded appointment events.'
+        : 'No tenant-authorized spatial features intersect this map area. No sample geometry is displayed.');
+    }
+  } catch (error) {
+    if (sequence !== state.viewportSequence) return;
+    state.spatialFeatures = { type: 'FeatureCollection', features: [] };
+    const source = state.map.getSource('tenant-spatial-features');
+    if (source) source.setData(state.spatialFeatures);
+    const countNode = $('spatialFeatureCount');
+    if (countNode) countNode.textContent = 'GIS layer unavailable';
+    message(error.status === 401
+      ? 'GIS layer requires an authenticated session.'
+      : error.status === 403
+        ? 'Your role is not authorized to read this GIS viewport.'
+        : 'Technician check-ins remain separate; the signed GIS viewport could not be loaded.', 'warning');
+  }
+}
+
+function scheduleSpatialRefresh() {
+  if (state.viewportTimer) clearTimeout(state.viewportTimer);
+  state.viewportTimer = setTimeout(() => { refreshSpatialFeatures(); }, 250);
 }
 
 async function refresh() {
@@ -171,6 +264,7 @@ async function refresh() {
     try {
       await ensureMap();
       updateMapPoints();
+      await refreshSpatialFeatures();
       message(state.points.length
         ? 'Showing latest persisted appointment check-in per technician. Positions update only when refreshed.'
         : 'No stored check-in points. No location pins were fabricated.');
