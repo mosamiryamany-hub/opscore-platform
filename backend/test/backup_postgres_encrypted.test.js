@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { parseDatabaseUrl, readKey, encryptFile, decryptFile } = require('../scripts/backup-postgres-encrypted');
+const { parseDatabaseUrl, readKey, pgPassEscape, encryptFile, decryptFile } = require('../scripts/backup-postgres-encrypted');
 
 test('PostgreSQL backup URL parser rejects unsupported protocols and missing credentials', () => {
   assert.equal(parseDatabaseUrl('postgresql://backup:secret@db.example.test:5432/opscore').hostname, 'db.example.test');
@@ -39,4 +39,9 @@ test('AES-256-GCM backup round-trip succeeds and tampering is rejected', async (
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test('pgpass values escape delimiters and reject line breaks', () => {
+  assert.equal(pgPassEscape('user:part\\name'), 'user\\:part\\\\name');
+  assert.throws(() => pgPassEscape('bad\\nentry'), /BACKUP_PGPASS_VALUE_INVALID/);
 });
