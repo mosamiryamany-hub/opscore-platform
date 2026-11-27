@@ -5,6 +5,7 @@ const path = require('node:path');
 const {Store} = require('./store');
 const { resolveMapTileOrigin } = require('./map-tile-security');
 const config = require('./config');
+const { loadBranding } = require('./branding-config');
 const {assertRuntimeConfiguration} = require('./runtime-contract');
 const {openDatabase} = require('./db-open');
 const authenticatedRequestContexts = new WeakMap();
@@ -1379,6 +1380,16 @@ function route(req, res) {
   if (String(req.url || '').length > config.maxUrlLength)
     return json(res, 414, { error: { code: 'URI_TOO_LONG' } });
   const url = new URL(req.url, config.publicOrigin);
+  if (url.pathname === '/api/public/branding') {
+    if (req.method !== 'GET' && req.method !== 'HEAD')
+      return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED' } }, { allow: 'GET, HEAD' });
+    try {
+      return json(res, 200, loadBranding(), { 'cache-control': 'public, max-age=60, stale-while-revalidate=300' });
+    } catch (error) {
+      warn('public_branding_config_invalid', { code: error.message });
+      return json(res, 503, { error: { code: 'BRANDING_CONFIGURATION_UNAVAILABLE' } });
+    }
+  }
   // Resolve this one held-candidate negative probe before route-level session guards.
   // The path is commit-bound and requires the exact candidate host, probe token and trusted OIDC.
   if (productionGate.blocked
