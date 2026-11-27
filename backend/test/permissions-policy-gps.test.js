@@ -34,6 +34,19 @@ test('Vercel CSP uses a no-external-provider default and remains enforcing', () 
   assert.doesNotMatch(csp.value, /img-src[^;]*\*/i, 'wildcard image origins are not permitted');
 });
 
+
+test('only the Contact Center page receives browser voice permissions and provider connectivity', () => {
+  const rule = vercelConfig.headers.find((entry) => entry.source === '/contact-center.html');
+  assert.ok(rule, 'Contact Center must have an exact-path header exception');
+  const policy = rule.headers.find((header) => header.key.toLowerCase() === 'permissions-policy');
+  const csp = rule.headers.find((header) => header.key.toLowerCase() === 'content-security-policy');
+  assert.equal(policy.value, 'camera=(), microphone=(self), geolocation=(self)');
+  assert.match(csp.value, /connect-src 'self' https:\\/\\/api\\.openai\\.com/);
+  assert.match(csp.value, /object-src 'none'/);
+  assert.match(csp.value, /frame-ancestors 'none'/);
+  assert.doesNotMatch(csp.value, /connect-src[^;]*\\*/i);
+});
+
 test('dynamic map CSP origin is HTTPS-only and exact-origin validated by a separate helper', () => {
   const source = fs.readFileSync(path.join(repoRoot, 'backend', 'src', 'server.js'), 'utf8');
   assert.match(source, /resolveMapTileOrigin\(process\.env\.OPSCORE_MAP_TILE_ORIGIN/);
