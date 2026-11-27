@@ -69,6 +69,14 @@
       not: 'A queued handoff is not a connected phone call. PSTN/SIP routing and native language qualification are not asserted.',
       path: '/contact-center-room.html'
     }
+,    twin: {
+      code: 'room-10 · digital twin',
+      governs: 'Tenant-scoped operational state, persisted snapshots and integrity verification',
+      endpoints: '/api/v1/platform/twin · /api/v1/platform/twin/snapshots · /api/v1/platform/twin/integrity',
+      holds: 'Operational counts are sourced from authenticated platform records. Snapshot history and chain verification are explicit API operations.',
+      not: 'This workspace does not claim live sensor synchronization, BIM/IFC federation, 3D physical simulation or SCADA control.',
+      path: '/digital-twin-room.html'
+    }
   };
 
   const drawer = doc.getElementById('roomDrawer');
