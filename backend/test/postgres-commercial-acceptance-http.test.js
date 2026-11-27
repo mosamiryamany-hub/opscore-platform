@@ -545,7 +545,7 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
             error: request.failure()?.errorText || 'unknown'
           }));
           page.on('response', response => {
-            if (/(unpkg\\.com|openfreemap|\\/api\\/v1\\/map\\/viewport)/.test(response.url())) {
+            if (response.url().includes('unpkg.com') || response.url().includes('openfreemap') || response.url().includes('/api/v1/map/viewport')) {
               networkResponses.push({ url: response.url(), status: response.status() });
             }
             if (response.url().includes('/api/v1/map/viewport')) apiResponses.push({ status: response.status() });
