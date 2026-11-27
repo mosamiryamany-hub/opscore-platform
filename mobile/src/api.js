@@ -1,20 +1,20 @@
 import { loadAuth } from './auth';
+import { getConfiguredServerOrigin, saveServerOrigin } from './server-config';
 import { clientEventId } from './id';
-const BASE = String(process.env.EXPO_PUBLIC_API_BASE_URL || '').trim();
 export const MOBILE_VERSION = '0.1.16';
-export function apiBase() {
-  if (!BASE) throw new Error('API_BASE_URL_NOT_CONFIGURED');
-  let parsed;
-  try { parsed = new URL(BASE); } catch { throw new Error('API_BASE_URL_INVALID'); }
-  if (parsed.protocol !== 'https:' || parsed.username || parsed.password) throw new Error('API_BASE_URL_MUST_USE_HTTPS');
-  if (parsed.pathname !== '/' || parsed.search || parsed.hash) throw new Error('API_BASE_URL_MUST_BE_ORIGIN_ONLY');
-  return parsed.origin;
+export async function apiBase() {
+  const fallback = String(process.env.EXPO_PUBLIC_API_BASE_URL || '').trim();
+  if (!fallback) {
+    try { return await getConfiguredServerOrigin(''); }
+    catch { throw new Error('API_BASE_URL_NOT_CONFIGURED'); }
+  }
+  return getConfiguredServerOrigin(fallback);
 }
 async function request(path, options = {}) {
   const authSnapshot = options.authSnapshot || null;
   const fetchOptions = { ...options };
   delete fetchOptions.authSnapshot;
-  const base = apiBase();
+  const base = await apiBase();
   const auth = authSnapshot || await loadAuth();
   const headers = {
     'content-type': 'application/json',
@@ -72,6 +72,7 @@ async function request(path, options = {}) {
   return data;
 }
 export const api = {
+  configureServer: value => saveServerOrigin(value),
   login: (email, password, organizationId) => request('/api/v1/auth/mobile-login', {
     method: 'POST',
     body: JSON.stringify({
