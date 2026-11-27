@@ -38,8 +38,27 @@ test('Contact Center readiness and queue counters are derived from server respon
 test('Control Rooms exposes a Contact Center route without inventing operational data', () => {
   assert.match(roomsHtml, /data-room="contact"/);
   assert.match(roomsScript, /contact: \{/);
-  assert.match(roomsScript, /path: '\/contact-center\.html'/);
+  assert.match(roomsScript, /path: '\/contact-center-room\.html'/);
   assert.match(roomsScript, /go\.href = m\.path \|\| '\/control-plane\.html'/);
   assert.match(roomsHtml, /Nine rooms\. One command fabric\./);
   assert.match(roomsHtml, /no invented load, risk, queue or integrity values/);
+});
+
+test('Agent Control Room uses only existing tenant-scoped APIs for queue, transcript and operator actions', () => {
+  const roomHtml = fs.readFileSync(path.join(webRoot, 'contact-center-room.html'), 'utf8');
+  const roomScript = fs.readFileSync(path.join(webRoot, 'contact-center-room.js'), 'utf8');
+  assert.match(roomHtml, /\/styles\.css/);
+  assert.match(roomHtml, /\/command-fabric-v3\.css/);
+  assert.match(roomHtml, /class="shell shell--wide ccr-shell"/);
+  for (const id of ['ccrTotal','ccrQueued','ccrClaimed','ccrPriority','ccrQueueList','ccrTranscript','ccrReplyForm','ccrResolve']) {
+    assert.match(roomHtml, new RegExp('id="' + id + '"'));
+  }
+  assert.match(roomScript, /\/api\/v1\/contact-center\/handoffs\?status=open&limit=50/);
+  assert.match(roomScript, /\/api\/v1\/contact-center\/handoffs\//);
+  assert.match(roomScript, /\/human-reply/);
+  assert.match(roomScript, /\/resolve/);
+  assert.match(roomScript, /credentials: 'same-origin'/);
+  assert.match(roomScript, /items\.filter\(item => item\.status === 'queued'\)/);
+  assert.match(roomHtml, /A queue row is not a connected phone call/);
+  assert.doesNotMatch(roomScript, /Math\.random|setInterval|fake|mock/i);
 });
