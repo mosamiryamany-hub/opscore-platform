@@ -20,14 +20,23 @@ All numbers below were measured from the git tree of the base commit, not estima
 | security/privacy/refund/legal/terms.html | ~1,700 each | 0 linked stylesheets |
 | portal.html | 957 | |
 
-## 2. Data sources — the decisive constraint
-Only **5** endpoints are called anywhere in the front-end:
+## 2. Data sources — corrected after tracing linked scripts
+**Correction:** the first scan counted only a narrow set of direct `fetch()` references and did not follow all page-linked scripts. It was not sufficient evidence to conclude that the operational read models were absent. That conclusion is withdrawn.
 
-`/api/health`, `/api/verify/release`, `/api/verify/deployment`, `/api/verify/database`, `/api/verify/database-security`.
+Verified page-script/API relationships on the base tree:
+- `contact-center.html` loads `contact-center.js`, which calls the tenant-scoped Contact Center status, handoff queue, conversation and message routes.
+- `contact-center-room.html` loads `contact-center-room.js`, which reads `/api/v1/contact-center/status`, `/api/v1/contact-center/handoffs`, `/api/v1/me`, and the protected conversation route; it also calls the assignment-bound claim and resolve routes.
+- `control-plane.html` loads `control-plane.js`, which uses same-origin authenticated requests for identity and control-plane data.
+- `index.html` loads `home-fabric.js` and `fabric-core.js` for public health and release proof.
+- `control-rooms.html` is a room-directory shell; its room cards are navigation, not a live operational data feed.
 
-`control-rooms.html`, `contact-center.html`, `contact-center-room.html`, `control-plane.html`, `index.html`, `portal.html`, `pricing.html`: **0 `fetch()` calls**. They are static shells — no tenant data is rendered.
+Verified server routes already present:
+- Dispatch: `GET /api/v1/dispatch-board`.
+- Dispatcher map: `GET /api/v1/dispatcher-map` and `GET /api/v1/dispatcher-map/v2`; the v2 contract explicitly reports Haversine straight-line distance only and does not claim road ETA.
+- Field operations: `GET /api/v1/field/today` and `GET /api/v1/field/live-snapshot`.
+- Contact Center: `GET /api/v1/contact-center/status`, `GET /api/v1/contact-center/handoffs`, and `GET /api/v1/contact-center/conversations/:id`, with server-side tenant checks and role restrictions; claim/resolve actions are also present.
 
-Therefore Control Room, Call Center (agent view, Customer 360, Supervisor, Escalation) and the enterprise tables cannot be "bound to real data" by front-end work alone: the authenticated read models (work orders, interactions, escalations, audit trail, paginated lists) do not exist in the current API surface. Any implementation now would have to invent data, which the governing rule forbids.
+**Revised conclusion:** real read models exist for dispatch, field operations and Contact Center. The design-token PR does not add those models because they already exist. Remaining work is a page-by-page contract audit to establish which visible panels are wired, which data fields are absent, and whether Customer 360 / supervisor analytics require additional aggregation. Do not invent missing fields or claim that every room is fully data-bound.
 
 ## 3. Zero-illusion scan
 `Math.random`, `mock`, `demo`, `fake`, `placeholder data` in `backend/web/*.js`: **0** occurrences. No fabricated values ship today.
@@ -65,4 +74,4 @@ Five stylesheets carry five private palettes (`--bg/--ink/--cy/--vi/--am` vs lit
 No endpoint, permission, auth path, schema, dependency or markup feature was removed.
 
 ## 8. Not done here, and why
-Data-bound Control Room / Call Center / Customer 360 / Supervisor / Escalation (no read models), table componentisation (same prerequisite), semantic `<main>` landmark on 7 pages (recommended), browser/device/axe matrices and before/after screenshots (no browser runtime in this environment — not claimed), native translation review and telephony (external dependencies).
+Additional page-by-page wiring and contract coverage for every control-room panel; Customer 360 and supervisor analytics completeness remain unverified; table componentisation; semantic `<main>` landmarks on 7 pages; browser/device/axe matrices and before/after screenshots (not completed in this branch at the time of this audit); native translation review and telephony (external dependencies).
