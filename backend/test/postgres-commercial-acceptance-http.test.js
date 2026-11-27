@@ -609,7 +609,9 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           await page.evaluate(() => window.__opscoreDispatcherMapE2E.focusTenantFeature(31.2, 30.0));
           await page.waitForTimeout(150);
           const projectedA = await page.evaluate(() => window.__opscoreDispatcherMapE2E.projectedPointAt(31.2, 30.0));
-          const canvasShotA = PNG.sync.read(await page.locator('.maplibregl-canvas').screenshot());
+          const canvasPngA = await page.locator('.maplibregl-canvas').screenshot();
+          fs.writeFileSync(path.join(browserOutputDir, 'tenant-a-maplibre-canvas.png'), canvasPngA);
+          const canvasShotA = PNG.sync.read(canvasPngA);
           const pixelAX = Math.max(0, Math.min(canvasShotA.width - 1, Math.round(projectedA.x * canvasShotA.width / projectedA.clientWidth)));
           const pixelAY = Math.max(0, Math.min(canvasShotA.height - 1, Math.round(projectedA.y * canvasShotA.height / projectedA.clientHeight)));
           const pixelAOffset = (pixelAY * canvasShotA.width + pixelAX) * 4;
@@ -728,7 +730,9 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           }, spatialFeatureBId, { timeout: 30000 });
           await pageB.waitForTimeout(150);
           const projectedB = await pageB.evaluate(() => window.__opscoreDispatcherMapE2E.projectedPointAt(31.25, 30.05));
-          const canvasShotB = PNG.sync.read(await pageB.locator('.maplibregl-canvas').screenshot());
+          const canvasPngB = await pageB.locator('.maplibregl-canvas').screenshot();
+          fs.writeFileSync(path.join(browserOutputDir, 'tenant-b-maplibre-canvas.png'), canvasPngB);
+          const canvasShotB = PNG.sync.read(canvasPngB);
           const pixelBX = Math.max(0, Math.min(canvasShotB.width - 1, Math.round(projectedB.x * canvasShotB.width / projectedB.clientWidth)));
           const pixelBY = Math.max(0, Math.min(canvasShotB.height - 1, Math.round(projectedB.y * canvasShotB.height / projectedB.clientHeight)));
           const pixelBOffset = (pixelBY * canvasShotB.width + pixelBX) * 4;
