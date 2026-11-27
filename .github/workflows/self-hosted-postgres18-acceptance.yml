@@ -81,7 +81,17 @@ jobs:
             printf 'OPSC_TEST_SUPERUSER_PASSWORD=%s\n' "$SUPERUSER_PASSWORD"
           } >> "$GITHUB_ENV"
 
-      - name: Start PostgreSQL 18 + PostGIS with repository role initializer
+      - name: Build PostgreSQL 18 + PostGIS + pgvector acceptance image
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/Dockerfile.opscore-pg18" <<'EOF'
+          FROM postgis/postgis:18-3.7
+          RUN apt-get update && apt-get install -y --no-install-recommends postgresql-18-pgvector && rm -rf /var/lib/apt/lists/*
+          EOF
+          docker build --pull -t opscore-postgres18-postgis-pgvector -f "$RUNNER_TEMP/Dockerfile.opscore-pg18" "$RUNNER_TEMP"
+
+      - name: Start PostgreSQL 18 + PostGIS + pgvector with repository role initializer
         shell: bash
         run: |
           set -euo pipefail
@@ -90,7 +100,7 @@ jobs:
             --publish 127.0.0.1:5432:5432 \
             --volume "$GITHUB_WORKSPACE/backend/docker/postgres-init:/docker-entrypoint-initdb.d:ro" \
             --volume "$RUNNER_TEMP/opscore-pg-tls:/run/postgres-tls:ro" \
-            postgis/postgis:18-3.7 \
+            opscore-postgres18-postgis-pgvector \
             -c ssl=on \
             -c ssl_cert_file=/run/postgres-tls/server.crt \
             -c ssl_key_file=/run/postgres-tls/server.key \
@@ -141,6 +151,7 @@ jobs:
               SELECT CASE WHEN current_setting('server_version_num')::int >= 180000 THEN 'PG18_PASS' ELSE 'PG18_FAIL' END;
               SELECT CASE WHEN EXISTS (SELECT 1 FROM pg_extension WHERE extname='postgis') THEN 'POSTGIS_PASS' ELSE 'POSTGIS_FAIL' END;
               SELECT CASE WHEN EXISTS (SELECT 1 FROM pg_extension WHERE extname='pgcrypto') THEN 'PGCRYPTO_PASS' ELSE 'PGCRYPTO_FAIL' END;
+              SELECT CASE WHEN EXISTS (SELECT 1 FROM pg_extension WHERE extname='vector') THEN 'PGVECTOR_PASS' ELSE 'PGVECTOR_FAIL' END;
               SELECT CASE WHEN (SELECT count(*) FROM public.schema_migrations) >= 60 THEN 'MIGRATION_LEDGER_PASS' ELSE 'MIGRATION_LEDGER_FAIL' END;
               SELECT CASE WHEN EXISTS (SELECT 1 FROM pg_roles WHERE rolname='opscore_runtime' AND rolcanlogin AND NOT rolsuper AND NOT rolbypassrls AND NOT rolcreaterole AND NOT rolcreatedb AND NOT rolinherit) THEN 'RUNTIME_ROLE_PASS' ELSE 'RUNTIME_ROLE_FAIL' END;
               SELECT CASE WHEN EXISTS (SELECT 1 FROM pg_roles WHERE rolname='opscore_migrator' AND rolcanlogin AND NOT rolsuper AND rolbypassrls AND NOT rolcreaterole AND NOT rolcreatedb AND NOT rolinherit) THEN 'MIGRATOR_ROLE_PASS' ELSE 'MIGRATOR_ROLE_FAIL' END;
@@ -148,7 +159,44 @@ jobs:
             " | tee "$RUNNER_TEMP/opscore-self-hosted-postgres18-acceptance.txt"
           grep -q '^PG18_PASS$' "$RUNNER_TEMP/opscore-self-hosted-postgres18-acceptance.txt"
           grep -q '^POSTGIS_PASS$' "$RUNNER_TEMP/opscore-self-hosted-postgres18-acceptance.txt"
-          grep -q '^PGCRYPTO_PASS$' "$RUNNER_TEMP/opscore-self-hosted-postgres18-acceptance.txt"
+          grep -q '^PGCRYPTO_PASS
+          grep -q '^MIGRATION_LEDGER_PASS$' "$RUNNER_TEMP/opscore-self-hosted-postgres18-acceptance.txt"
+          grep -q '^RUNTIME_ROLE_PASS$' "$RUNNER_TEMP/opscore-self-hosted-postgres18-acceptance.txt"
+          grep -q '^MIGRATOR_ROLE_PASS$' "$RUNNER_TEMP/opscore-self-hosted-postgres18-acceptance.txt"
+          grep -q '^FORCED_RLS_PASS$' "$RUNNER_TEMP/opscore-self-hosted-postgres18-acceptance.txt"
+
+      - name: Upload isolated acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: self-hosted-postgres18-acceptance-${{ github.run_id }}
+          path: ${{ runner.temp }}/opscore-self-hosted-postgres18-acceptance.txt
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Remove ephemeral database container
+        if: always()
+        run: docker rm -f opscore-self-hosted-pg18 || true
+ "$RUNNER_TEMP/opscore-self-hosted-postgres18-acceptance.txt"
+          grep -q '^PGVECTOR_PASS
+          grep -q '^MIGRATION_LEDGER_PASS$' "$RUNNER_TEMP/opscore-self-hosted-postgres18-acceptance.txt"
+          grep -q '^RUNTIME_ROLE_PASS$' "$RUNNER_TEMP/opscore-self-hosted-postgres18-acceptance.txt"
+          grep -q '^MIGRATOR_ROLE_PASS$' "$RUNNER_TEMP/opscore-self-hosted-postgres18-acceptance.txt"
+          grep -q '^FORCED_RLS_PASS$' "$RUNNER_TEMP/opscore-self-hosted-postgres18-acceptance.txt"
+
+      - name: Upload isolated acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: self-hosted-postgres18-acceptance-${{ github.run_id }}
+          path: ${{ runner.temp }}/opscore-self-hosted-postgres18-acceptance.txt
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Remove ephemeral database container
+        if: always()
+        run: docker rm -f opscore-self-hosted-pg18 || true
+ "$RUNNER_TEMP/opscore-self-hosted-postgres18-acceptance.txt"
           grep -q '^MIGRATION_LEDGER_PASS$' "$RUNNER_TEMP/opscore-self-hosted-postgres18-acceptance.txt"
           grep -q '^RUNTIME_ROLE_PASS$' "$RUNNER_TEMP/opscore-self-hosted-postgres18-acceptance.txt"
           grep -q '^MIGRATOR_ROLE_PASS$' "$RUNNER_TEMP/opscore-self-hosted-postgres18-acceptance.txt"
