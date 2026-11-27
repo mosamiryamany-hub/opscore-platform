@@ -477,7 +477,7 @@ function listCrmCustomers(db, ctx, query = '') {
       AND c.status = 'active'
       AND NOT EXISTS (SELECT 1 FROM deleted_records d WHERE d.organization_id=c.organization_id AND d.entity_type='customer' AND d.entity_id=c.id AND d.restored_at IS NULL)
       AND (LOWER(c.name) LIKE ? OR LOWER(COALESCE(c.email,'')) LIKE ? OR LOWER(COALESCE(c.external_ref,'')) LIKE ?)
-    ORDER BY c.name COLLATE NOCASE LIMIT 20`)
+    ORDER BY LOWER(c.name) LIMIT 20`)
     .all(ctx.organizationId, pattern, pattern, pattern)
     .map(row => ({ id:row.id, name:row.name, email:row.email || null, phone:row.phone || null, externalRef:row.external_ref || null }));
 }
