@@ -71,7 +71,7 @@ async function main() {
 
     // Build deterministic, disposable spatial data and prove the GiST index is
     // usable for a selective bounding-box query. No production rows are touched.
-    await pool.query('INSERT INTO ' + qSchema + '.spatial_points(id,organization_id,geom) SELECT n,\'tenant-spatial-fixture\',ST_SetSRID(ST_MakePoint(-179.9 + (n % 2000) * 0.18, -89.9 + ((n / 2000)::int) * 0.18),4326) FROM generate_series(1,40000) AS series(n)');
+    await pool.query('INSERT INTO ' + qSchema + '.spatial_points(id,organization_id,geom) SELECT n,\'tenant-spatial-fixture\',ST_SetSRID(ST_MakePoint(-179.1 + ((n - 1) % 200) * 1.8, -89.55 + (((n - 1) / 200)::int) * 0.9),4326) FROM generate_series(1,40000) AS series(n)');
     await pool.query('CREATE INDEX spatial_points_geom_gix ON ' + qSchema + '.spatial_points USING GIST(geom)');
     await pool.query('CREATE INDEX spatial_points_org_idx ON ' + qSchema + '.spatial_points(organization_id)');
     await pool.query('ANALYZE ' + qSchema + '.spatial_points');
@@ -79,7 +79,6 @@ async function main() {
     let plan;
     let count;
     try {
-      await check.query('SET enable_seqscan=off');
       const explained = await check.query('EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) SELECT id FROM ' + qSchema + '.spatial_points WHERE organization_id=$1 AND geom && ST_MakeEnvelope($2,$3,$4,$5,4326)',
         ['tenant-spatial-fixture', -10, -10, 10, 10]);
       plan = explained.rows[0]['QUERY PLAN'][0].Plan;
@@ -87,8 +86,11 @@ async function main() {
         ['tenant-spatial-fixture', -10, -10, 10, 10]);
       count = counted.rows[0].count;
     } finally { check.release(); }
-    const planText = JSON.stringify(plan);
-    if (!/spatial_points_geom_gix/.test(planText) || count < 1) throw new Error('POSTGIS_GIST_QUERY_PLAN_OR_RESULT_INVALID');
+    const planNodes = [];
+    const visitPlan = node => { if (!node || typeof node !== 'object') return; planNodes.push(node); for (const child of node.Plans || []) visitPlan(child); };
+    visitPlan(plan);
+    const gistUsed = planNodes.some(node => String(node['Index Name'] || '') === 'spatial_points_geom_gix');
+    if (!gistUsed || count < 1) throw new Error('POSTGIS_GIST_QUERY_PLAN_OR_RESULT_INVALID');
     evidence.checks.push({ id: 'postgis-gist-bbox-query', status: 'PASS', fixtureRows: 40000,
       matchedRows: count, index: 'spatial_points_geom_gix', executionTimeMs: plan['Actual Total Time'] });
     evidence.status = 'PASS';
