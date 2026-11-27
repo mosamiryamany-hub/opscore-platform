@@ -1,0 +1,24 @@
+.dispatcher-shell{max-width:1800px}
+.dispatcher-hero{padding:clamp(20px,3vw,42px) 0 22px}
+.dispatcher-hero h1{font-size:clamp(32px,4vw,54px)}
+.dispatcher-meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.dispatcher-layout{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(300px,.8fr);gap:18px;align-items:stretch}
+.dispatcher-map-panel,.dispatcher-side{min-width:0;border:1px solid var(--line-2);border-radius:22px;background:var(--glass-2);box-shadow:var(--sh-1);overflow:hidden}
+.dispatcher-map-head,.dispatcher-side-head{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:18px 20px;border-bottom:1px solid var(--line)}
+.dispatcher-map-head h2,.dispatcher-side-head h2{font-size:19px;margin:4px 0 0}
+.map-provider{font:600 11px var(--f-mono);color:var(--ink-3);white-space:nowrap}
+.dispatcher-map{height:min(68vh,760px);min-height:380px;background:#101c2b}
+.map-attribution{font-size:11px;margin:0;padding:8px 14px;text-align:end}
+.map-message{padding:10px 16px;margin:0;border-top:1px solid var(--line);font-size:13px;min-height:42px}
+.dispatcher-side{display:flex;flex-direction:column}
+.dispatcher-side-head strong{font:700 28px var(--f-mono);color:var(--cy)}
+.point-list{padding:8px 16px;overflow:auto;max-height:min(68vh,760px)}
+.point-row{padding:14px 4px;border-bottom:1px solid var(--line);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px}
+.point-row:last-child{border-bottom:0}
+.point-name{font-weight:700;overflow-wrap:anywhere}
+.point-meta{font-size:12px;color:var(--ink-3);margin-top:4px;overflow-wrap:anywhere}
+.point-open{align-self:center;border:1px solid var(--line-2);border-radius:10px;background:transparent;color:var(--cy);padding:9px 12px;min-height:40px;cursor:pointer}
+.data-boundary{margin:auto 16px 16px;padding:14px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.025)}
+.data-boundary p{font-size:12px;margin:6px 0 0}
+@media(max-width:900px){.dispatcher-layout{grid-template-columns:1fr}.dispatcher-map{height:55vh;min-height:320px}.point-list{max-height:360px}}
+@media(max-width:520px){.dispatcher-map-head,.dispatcher-side-head{align-items:flex-start;flex-direction:column}.dispatcher-map{height:52vh;min-height:280px}.map-provider{white-space:normal}}
