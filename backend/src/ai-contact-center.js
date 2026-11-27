@@ -554,12 +554,13 @@ function reassignHandoff(db, ctx, handoffId, input = {}) {
     }
     const timestamp = now();
     const updated = db.prepare(`UPDATE ai_contact_handoffs SET status='claimed',assigned_to=?,claimed_at=COALESCE(claimed_at,?)
-      WHERE organization_id=? AND id=? AND status IN ('queued','claimed')`)
-      .run(targetUserId, timestamp, ctx.organizationId, handoffId).changes;
+      WHERE organization_id=? AND id=? AND status IN ('queued','claimed') AND COALESCE(assigned_to,'')=COALESCE(?,'')`)
+      .run(targetUserId, timestamp, ctx.organizationId, handoffId, handoff.assigned_to || null).changes;
     if (!updated) throw error('CONTACT_CENTER_HANDOFF_NOT_REASSIGNABLE', 409);
-    db.prepare(`UPDATE ai_contact_conversations SET assigned_to=?,status='waiting_human',updated_at=?,last_activity_at=?,version=version+1
-      WHERE organization_id=? AND id=?`)
-      .run(targetUserId, timestamp, timestamp, ctx.organizationId, handoff.conversation_id);
+    const conversationChanged = db.prepare(`UPDATE ai_contact_conversations SET assigned_to=?,status='waiting_human',updated_at=?,last_activity_at=?,version=version+1
+      WHERE organization_id=? AND id=? AND status IN ('active','waiting_human')`)
+      .run(targetUserId, timestamp, timestamp, ctx.organizationId, handoff.conversation_id).changes;
+    if (!conversationChanged) throw error('CONTACT_CENTER_HANDOFF_NOT_REASSIGNABLE', 409);
     audit(db, { organizationId:ctx.organizationId, actorUserId:ctx.userId, action:'contact_center_handoff_reassigned', resourceType:'ai_contact_handoff', resourceId:handoffId, metadata:{ previousAssignee:handoff.assigned_to || null, assignedTo:targetUserId, reason } });
     db.exec('COMMIT');
     return { id:handoffId, status:'claimed', assignedTo:targetUserId, previousAssignee:handoff.assigned_to || null, duplicate:false, reassignedAt:timestamp };
