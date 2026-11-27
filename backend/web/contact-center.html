@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/command-fabric-v3.css">
   <link rel="stylesheet" href="/contact-center.css">
+  <script defer src="/fabric-core.js"></script>
   <script defer src="/i18n/i18n-loader.js"></script>
   <script defer src="/contact-center.js"></script>
 </head>
@@ -21,6 +22,8 @@
       <select id="interfaceLanguageSelect" class="locale-switch" data-i18n-aria-label="nav.interfaceLanguage" aria-label="Interface language"></select>
       <a href="/" class="secondary" data-i18n="nav.operationsConsole">Operations console</a>
       <a href="/contact-center-room.html" class="secondary" data-i18n="queue.title">Escalation queue</a>
+      <button class="secondary" type="button" data-palette data-i18n-aria-label="nav.operationsConsole" aria-label="Operations console">⌘K</button>
+      <button class="secondary" type="button" data-dir-toggle data-i18n-aria-label="nav.interfaceLanguage" aria-label="Interface language">ع</button>
       <span id="statusBadge" class="badge" data-i18n="status.setupIncomplete">Setup incomplete</span>
     </div>
   </header>
