@@ -115,6 +115,7 @@
         "type": "object",
         "required": [
           "id",
+          "email",
           "role"
         ],
         "properties": {
@@ -127,6 +128,10 @@
               "member",
               "manager"
             ]
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
           }
         }
       },
