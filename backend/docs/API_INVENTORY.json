@@ -2618,49 +2618,6 @@
       "scope": null,
       "sourceLine": 1059
     }
-  ],
-  "supplementalRoutes": [
-    {
-      "method": "GET",
-      "route": "/api/v1/contact-center/crm/customers",
-      "auth": "required",
-      "scope": "read",
-      "sourceLine": 1870
-    },
-    {
-      "method": "GET",
-      "route": "/api/v1/contact-center/conversations/{id}/customer-profile",
-      "auth": "required",
-      "scope": "read",
-      "sourceLine": 1877
-    },
-    {
-      "method": "POST",
-      "route": "/api/v1/contact-center/conversations/{id}/customer-link",
-      "auth": "required",
-      "scope": "write",
-      "sourceLine": 1881
-    },
-    {
-      "method": "POST",
-      "route": "/api/v1/contact-center/handoffs/{id}/reassign",
-      "auth": "required",
-      "scope": "write",
-      "sourceLine": 1885
-    },
-    {
-      "method": "GET",
-      "route": "/api/v1/contact-center/supervisor/agents",
-      "auth": "required",
-      "scope": "read",
-      "sourceLine": 1889
-    },
-    {
-      "method": "GET",
-      "route": "/api/v1/contact-center/supervisor/activity",
-      "auth": "required",
-      "scope": "read",
-      "sourceLine": 1892
-    }
   ]
 }
+
