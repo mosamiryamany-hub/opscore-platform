@@ -21,10 +21,16 @@ if (new URLSearchParams(window.location.search).get('e2e') === '1') {
   window.__opscoreDispatcherMapE2E = Object.freeze({
     renderedSpatialFeatureIds() {
       if (!state.map || !state.spatialSourceReady) return [];
-      const layers = ['tenant-spatial-polygons', 'tenant-spatial-lines', 'tenant-spatial-points'];
-      return state.map.queryRenderedFeatures(undefined, { layers })
-        .filter(feature => feature.source === 'tenant-spatial-features')
-        .map(feature => String(feature.id ?? feature.properties?.featureId ?? '')).filter(Boolean).sort();
+      const layers = new Set(['tenant-spatial-polygons', 'tenant-spatial-lines', 'tenant-spatial-points']);
+      // Query the renderer's visible feature set first, then filter by our
+      // source/layer identity. Passing an undefined geometry plus a layer list
+      // returned an empty set in the pinned MapLibre browser runtime even while
+      // the same rendered source feature was present in queryRenderedFeatures().
+      // Prefer the immutable application featureId property: MapLibre may expose
+      // a generated numeric feature.id for GeoJSON features.
+      return state.map.queryRenderedFeatures()
+        .filter(feature => feature.source === 'tenant-spatial-features' && layers.has(feature.layer?.id))
+        .map(feature => String(feature.properties?.featureId ?? feature.id ?? '')).filter(Boolean).sort();
     },
     projectedPointAt(longitude, latitude) {
       if (!state.map) return null;
@@ -35,25 +41,27 @@ if (new URLSearchParams(window.location.search).get('e2e') === '1') {
     renderedSpatialFeatureDiagnostics(longitude, latitude) {
       if (!state.map || !state.spatialSourceReady) return null;
       const point = state.map.project([Number(longitude), Number(latitude)]);
-      const layers = ['tenant-spatial-polygons', 'tenant-spatial-lines', 'tenant-spatial-points'];
+      const layers = new Set(['tenant-spatial-polygons', 'tenant-spatial-lines', 'tenant-spatial-points']);
       const all = state.map.queryRenderedFeatures();
-      const filtered = state.map.queryRenderedFeatures(undefined, { layers });
-      const atPoint = state.map.queryRenderedFeatures(point, { layers });
+      const filtered = all.filter(feature => feature.source === 'tenant-spatial-features' && layers.has(feature.layer?.id));
+      const atPoint = state.map.queryRenderedFeatures(point)
+        .filter(feature => feature.source === 'tenant-spatial-features' && layers.has(feature.layer?.id));
       const atBox = state.map.queryRenderedFeatures(
-        [[point.x - 16, point.y - 16], [point.x + 16, point.y + 16]],
-        { layers }
-      );
+        [[point.x - 16, point.y - 16], [point.x + 16, point.y + 16]]
+      ).filter(feature => feature.source === 'tenant-spatial-features' && layers.has(feature.layer?.id));
+      const summarize = feature => ({
+        id: feature.properties?.featureId ?? feature.id ?? null,
+        source: feature.source ?? null,
+        layer: feature.layer?.id ?? null,
+        properties: feature.properties ?? null
+      });
       return {
         point: { x: point.x, y: point.y },
         canvas: { width: state.map.getCanvas().width, height: state.map.getCanvas().height },
         allCount: all.length,
-        allSpatial: all.filter(feature => feature.source === 'tenant-spatial-features').map(feature => ({
-          id: feature.id ?? null, source: feature.source ?? null, layer: feature.layer?.id ?? null, properties: feature.properties ?? null
-        })),
+        allSpatial: all.filter(feature => feature.source === 'tenant-spatial-features').map(summarize),
         filteredCount: filtered.length,
-        filteredSpatial: filtered.filter(feature => feature.source === 'tenant-spatial-features').map(feature => ({
-          id: feature.id ?? null, source: feature.source ?? null, layer: feature.layer?.id ?? null, properties: feature.properties ?? null
-        })),
+        filteredSpatial: filtered.map(summarize),
         atPointCount: atPoint.length,
         atBoxCount: atBox.length
       };
@@ -62,9 +70,10 @@ if (new URLSearchParams(window.location.search).get('e2e') === '1') {
       if (!state.map || !state.spatialSourceReady) return [];
       const point = state.map.project([Number(longitude), Number(latitude)]);
       const geometry = [[point.x - 16, point.y - 16], [point.x + 16, point.y + 16]];
-      return state.map.queryRenderedFeatures(geometry, {
-        layers: ['tenant-spatial-polygons', 'tenant-spatial-lines', 'tenant-spatial-points']
-      }).map(feature => String(feature.id ?? feature.properties?.featureId ?? '')).filter(Boolean).sort();
+      const layers = new Set(['tenant-spatial-polygons', 'tenant-spatial-lines', 'tenant-spatial-points']);
+      return state.map.queryRenderedFeatures(geometry)
+        .filter(feature => feature.source === 'tenant-spatial-features' && layers.has(feature.layer?.id))
+        .map(feature => String(feature.properties?.featureId ?? feature.id ?? '')).filter(Boolean).sort();
     },
     viewportSequence() { return state.viewportSequence; },
     viewportRequestCount() { return state.viewportRequestCount; },
