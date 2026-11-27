@@ -59,6 +59,14 @@ test('Agent Control Room uses only existing tenant-scoped APIs for queue, transc
   assert.match(roomScript, /\/resolve/);
   assert.match(roomScript, /credentials: 'same-origin'/);
   assert.match(roomScript, /items\.filter\(item => item\.status === 'queued'\)/);
+  assert.match(roomScript, /aggregate\('reasonCode'\)/);
+  assert.match(roomScript, /aggregate\('channel'\)/);
+  assert.match(roomScript, /aggregate\('languageCode'\)/);
+  assert.match(roomScript, /Maximum request size: 50 rows/);
+  assert.match(roomHtml, /id="ccrPriorityBreakdown"/);
+  assert.match(roomHtml, /id="ccrReasonBreakdown"/);
+  assert.match(roomHtml, /id="ccrChannelBreakdown"/);
+  assert.match(roomHtml, /id="ccrLanguageBreakdown"/);
   assert.match(roomHtml, /A queue row is not a connected phone call/);
   assert.doesNotMatch(roomScript, /Math\.random|setInterval|fake|mock/i);
   const roomIds = new Set([...roomHtml.matchAll(/id="([^"]+)"/g)].map(match => match[1]));
