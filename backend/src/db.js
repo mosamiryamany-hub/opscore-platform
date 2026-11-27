@@ -570,6 +570,12 @@ function migrate28(db, storedVersion) {
   `);
 }
 
+function migrate29(db, storedVersion) {
+  if (storedVersion >= 29) return;
+  addColumn(db, 'ai_contact_conversations', 'customer_id', 'TEXT REFERENCES customers(id) ON DELETE SET NULL');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_ai_contact_conversations_org_customer ON ai_contact_conversations(organization_id, customer_id)');
+}
+
 function openDb(dbPath = config.sqlitePath) {
   if (dbPath !== ':memory:') ensureDir(dbPath);
   const lifecycleLease = dbPath === ':memory:' ? null : require('./sqlite-lifecycle').acquireDatabaseLease(dbPath);
@@ -615,6 +621,7 @@ function openDb(dbPath = config.sqlitePath) {
   migrate26(db, storedVersion);
   migrate27(db, storedVersion);
   migrate28(db, storedVersion);
+  migrate29(db, storedVersion);
   // Existing very old/imported databases may not have reached migration 15 yet.
   // Add the housekeeping index only after the shared limiter table exists.
   const rateBucketsTable = db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='firewall_rate_buckets'").get();
