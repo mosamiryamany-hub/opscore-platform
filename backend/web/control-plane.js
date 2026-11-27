@@ -145,20 +145,9 @@
   const oidcProviders = ['google', 'github', 'microsoft', 'apple', 'facebook'];
   const oidcPanel = $('oidcLogin');
   const oidcMessage = $('oidcMessage');
-  const b64url = (bytes) => {
-    let binary = '';
-    bytes.forEach((value) => { binary += String.fromCharCode(value); });
-    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
-  };
-  const randomB64 = (length = 32) => {
-    const bytes = new Uint8Array(length);
-    crypto.getRandomValues(bytes);
-    return b64url(bytes);
-  };
-  const sha256B64 = async (value) => b64url(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))));
   async function oidcConfig() {
     const response = await request('/api/v1/auth/oidc/config');
-    if (!response.enabled || !response.issuer || !response.clientId) throw new Error('KEYCLOAK_NOT_CONFIGURED');
+    if (!response.enabled) throw new Error('KEYCLOAK_NOT_CONFIGURED');
     return response;
   }
   async function startOidcLogin(provider) {
@@ -167,28 +156,8 @@
     buttons.forEach((button) => { button.disabled = true; });
     setMessage(oidcMessage, 'Connecting to secure identity provider…');
     try {
-      const config = await oidcConfig();
-      const issuer = config.issuer.replace(/\/$/, '');
-      const discoveryResponse = await fetch(issuer + '/.well-known/openid-configuration', { headers: { accept: 'application/json' }, cache: 'no-store', redirect: 'error' });
-      if (!discoveryResponse.ok) throw new Error('KEYCLOAK_DISCOVERY_FAILED');
-      const discovery = await discoveryResponse.json();
-      if (String(discovery.issuer || '').replace(/\/$/, '') !== issuer || !discovery.authorization_endpoint || !discovery.token_endpoint) throw new Error('KEYCLOAK_DISCOVERY_INVALID');
-      const state = randomB64(32), nonce = randomB64(32), verifier = randomB64(48);
-      const redirectUri = window.location.origin + window.location.pathname;
-      sessionStorage.setItem('opscore_oidc_pending', JSON.stringify({ state, nonce, verifier, issuer, redirectUri, provider, createdAt: Date.now() }));
-      const authorize = new URL(discovery.authorization_endpoint);
-      authorize.search = new URLSearchParams({
-        client_id: config.clientId,
-        redirect_uri: redirectUri,
-        response_type: 'code',
-        scope: 'openid profile email',
-        state,
-        nonce,
-        code_challenge: await sha256B64(verifier),
-        code_challenge_method: 'S256',
-        kc_idp_hint: provider
-      }).toString();
-      window.location.assign(authorize.toString());
+      await oidcConfig();
+      window.location.assign('/api/v1/auth/oidc/start?provider=' + encodeURIComponent(provider));
     } catch (error) {
       setMessage(oidcMessage, 'Single sign-on is unavailable: ' + error.message, 'error');
       buttons.forEach((button) => { button.disabled = false; });
@@ -196,36 +165,9 @@
   }
   async function completeOidcCallback() {
     const params = new URLSearchParams(window.location.search);
-    const code = params.get('code');
-    const returnedState = params.get('state');
-    if (!code && !params.has('error')) return false;
-    let pending;
-    try { pending = JSON.parse(sessionStorage.getItem('opscore_oidc_pending') || 'null'); } catch (_) { pending = null; }
-    sessionStorage.removeItem('opscore_oidc_pending');
-    const cleanUrl = window.location.pathname + window.location.hash;
-    if (params.has('error')) {
-      history.replaceState(null, '', cleanUrl);
-      throw new Error('KEYCLOAK_LOGIN_' + String(params.get('error')).slice(0, 60));
-    }
-    if (!pending || !returnedState || returnedState !== pending.state || Date.now() - pending.createdAt > 10 * 60 * 1000) {
-      history.replaceState(null, '', cleanUrl);
-      throw new Error('OIDC_STATE_INVALID_OR_EXPIRED');
-    }
-    history.replaceState(null, '', cleanUrl);
-    const config = await oidcConfig();
-    if (config.issuer.replace(/\/$/, '') !== pending.issuer || config.clientId.length === 0) throw new Error('OIDC_CONFIGURATION_CHANGED');
-    const discoveryResponse = await fetch(pending.issuer + '/.well-known/openid-configuration', { headers: { accept: 'application/json' }, cache: 'no-store', redirect: 'error' });
-    if (!discoveryResponse.ok) throw new Error('KEYCLOAK_DISCOVERY_FAILED');
-    const discovery = await discoveryResponse.json();
-    const tokenResponse = await fetch(discovery.token_endpoint, {
-      method: 'POST',
-      headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' },
-      body: new URLSearchParams({ grant_type: 'authorization_code', client_id: config.clientId, code, redirect_uri: pending.redirectUri, code_verifier: pending.verifier })
-    });
-    const tokens = await tokenResponse.json().catch(() => ({}));
-    if (!tokenResponse.ok || !tokens.id_token) throw new Error('KEYCLOAK_CODE_EXCHANGE_FAILED');
-    await request('/api/v1/auth/oidc/exchange', { method: 'POST', body: JSON.stringify({ idToken: tokens.id_token, nonce: pending.nonce }) });
-    return true;
+    if (!params.has('sso_error')) return false;
+    history.replaceState(null, '', window.location.pathname + window.location.hash);
+    throw new Error('SSO_LOGIN_FAILED');
   }
   document.querySelectorAll('[data-oidc-provider]').forEach((button) => {
     button.addEventListener('click', () => startOidcLogin(button.dataset.oidcProvider));
@@ -247,7 +189,6 @@
       }
     }
   }
-
   $('loginForm').addEventListener('submit', async (event) => {
     event.preventDefault();
     const submit = $('loginSubmit');
