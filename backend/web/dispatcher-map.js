@@ -198,7 +198,11 @@ async function ensureMap() {
     center: [0, 0],
     zoom: 1.2,
     attributionControl: true,
-    cooperativeGestures: true
+    cooperativeGestures: true,
+    // Preserve the WebGL drawing buffer only in the isolated browser acceptance
+    // context so screenshot-backed geometry assertions inspect rendered pixels.
+    // Normal application sessions retain MapLibre's default buffer behavior.
+    preserveDrawingBuffer: new URLSearchParams(window.location.search).get('e2e') === '1'
   });
   state.map.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'top-right');
   state.map.addControl(new maplibregl.ScaleControl({ maxWidth: 120, unit: 'metric' }), 'bottom-left');
