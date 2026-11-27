@@ -3084,7 +3084,8 @@ if (req.method === 'GET' && url.pathname === '/api/v1/operations-health') {
         south: url.searchParams.get('south'),
         east: url.searchParams.get('east'),
         north: url.searchParams.get('north'),
-        limit: url.searchParams.get('limit')
+        limit: url.searchParams.get('limit'),
+        includeSpatialFeatures: signedWorkOrdersReadEnabled(req, process.env, signedContextProductionReadiness)
       }));
     } catch (e) { return fail(res, e); }
   }
