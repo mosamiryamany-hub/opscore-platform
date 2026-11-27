@@ -487,7 +487,7 @@ function getConversationCustomer(db, ctx, conversationId) {
   const row = db.prepare(`SELECT c.id,c.name,c.email,c.phone,c.external_ref,c.status
     FROM ai_contact_conversations v
     JOIN customers c ON c.id=v.customer_id AND c.organization_id=v.organization_id
-    WHERE v.organization_id=? AND v.id=?
+    WHERE v.organization_id=? AND v.id=? AND v.status <> 'erased'
       AND NOT EXISTS (SELECT 1 FROM deleted_records d WHERE d.organization_id=c.organization_id AND d.entity_type='customer' AND d.entity_id=c.id AND d.restored_at IS NULL)`)
     .get(ctx.organizationId, conversationId);
   return { conversationId, linked: Boolean(row), customer: row ? { id:row.id, name:row.name, email:row.email || null, phone:row.phone || null, externalRef:row.external_ref || null, status:row.status } : null };
@@ -499,6 +499,7 @@ function linkConversationCustomer(db, ctx, conversationId, customerId) {
   if (!/^cus_[A-Za-z0-9]{3,120}$/.test(id)) throw error('INVALID_CUSTOMER', 422);
   const conversation = findConversation(db, ctx.organizationId, conversationId);
   if (!conversation) throw error('CONTACT_CENTER_CONVERSATION_NOT_FOUND', 404);
+  if (conversation.status === 'erased') throw error('CONTACT_CENTER_CONVERSATION_CLOSED', 409);
   const customer = db.prepare(`SELECT id FROM customers WHERE id=? AND organization_id=? AND status='active'
     AND NOT EXISTS (SELECT 1 FROM deleted_records d WHERE d.organization_id=customers.organization_id AND d.entity_type='customer' AND d.entity_id=customers.id AND d.restored_at IS NULL)`)
     .get(id, ctx.organizationId);
@@ -539,6 +540,9 @@ function reassignHandoff(db, ctx, handoffId, input = {}) {
     const handoff = db.prepare('SELECT * FROM ai_contact_handoffs WHERE organization_id=? AND id=?').get(ctx.organizationId, handoffId);
     if (!handoff) throw error('CONTACT_CENTER_HANDOFF_NOT_FOUND', 404);
     if (!['queued','claimed'].includes(handoff.status)) throw error('CONTACT_CENTER_HANDOFF_NOT_REASSIGNABLE', 409);
+    const conversation = db.prepare('SELECT status FROM ai_contact_conversations WHERE organization_id=? AND id=?').get(ctx.organizationId, handoff.conversation_id);
+    if (!conversation) throw error('CONTACT_CENTER_CONVERSATION_NOT_FOUND', 404);
+    if (!['active','waiting_human'].includes(conversation.status)) throw error('CONTACT_CENTER_HANDOFF_NOT_REASSIGNABLE', 409);
     if (handoff.assigned_to === targetUserId) {
       db.exec('COMMIT');
       return { id:handoffId, status:handoff.status, assignedTo:targetUserId, duplicate:true };
