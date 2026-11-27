@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const $ = (id) => document.getElementById(id);
-  const state = { items: [], selected: null, conversation: null, currentUserId: null, currentUserRole: null, agents: [], supervisorActivity: [], busy: false, queueError: null, crmSearchTimer: null };
+  const state = { items: [], selected: null, conversation: null, currentUserId: null, currentUserRole: null, agents: [], supervisorActivity: [], supervisorAuditChain: null, busy: false, queueError: null, crmSearchTimer: null };
 
   const ROOM_I18N = {
     en: {
@@ -329,6 +329,7 @@
       ]);
       state.agents=Array.isArray(agents.items)?agents.items:[];
       state.supervisorActivity=Array.isArray(activity.entries)?activity.entries:[];
+      state.supervisorAuditChain=activity.chain||null;
       const select=$('ccrActivityAgent');
       if(select){
         const previous=select.value;
@@ -347,6 +348,8 @@
     const root=$('ccrSupervisorActivity');
     if(!root)return;
     root.replaceChildren();
+    const chain=$('ccrSupervisorAuditIntegrity');
+    if(chain){const proof=state.supervisorAuditChain;chain.textContent=proof?.valid===true?'Verified · '+String(proof.checked||0)+' events':proof?.valid===false?'Integrity failure':'Not verified';chain.dataset.integrity=proof?.valid===true?'valid':proof?.valid===false?'invalid':'unknown';}
     const filter=$('ccrActivityAgent')?.value||'all';
     const entries=state.supervisorActivity.filter(entry=>filter==='all'||String(entry.actor_user_id||entry.actorUserId||'')===filter);
     if(!entries.length){root.appendChild(makeNode('div','empty','No contact-center employee actions were returned for this filter.'));return;}
