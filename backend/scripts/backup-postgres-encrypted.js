@@ -124,7 +124,11 @@ async function main() {
     await fs.promises.rm(tempPath, { force: true });
   }
 }
-main().catch(error => {
-  process.stderr.write(JSON.stringify({ schemaVersion: 'opscore.encrypted-postgres-backup.v1', status: 'FAIL', code: error.message }) + '\n');
-  process.exitCode = 1;
-});
+if (require.main === module) {
+  main().catch(error => {
+    process.stderr.write(JSON.stringify({ schemaVersion: 'opscore.encrypted-postgres-backup.v1', status: 'FAIL', code: error.message }) + '\n');
+    process.exitCode = 1;
+  });
+}
+
+module.exports = { parseDatabaseUrl, readKey, encryptFile, decryptFile, MAGIC };
