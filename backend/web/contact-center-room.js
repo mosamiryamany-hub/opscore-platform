@@ -109,6 +109,7 @@
     const refresh = $('ccrRefresh');
     if (refresh) refresh.disabled = busy;
     updateCaseControls();
+    renderSupervisorActions();
   }
   function metrics(items) {
     setText('ccrTotal', items.length);
