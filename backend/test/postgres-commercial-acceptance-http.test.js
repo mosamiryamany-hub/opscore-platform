@@ -531,10 +531,23 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
             ignoreHTTPSErrors: true
           });
           const pageErrors = [];
+          const consoleErrors = [];
+          const requestFailures = [];
+          const networkResponses = [];
           const apiResponses = [];
           const page = await context.newPage();
           page.on('pageerror', error => pageErrors.push(error.message));
+          page.on('console', entry => {
+            if (entry.type() === 'error') consoleErrors.push(entry.text());
+          });
+          page.on('requestfailed', request => requestFailures.push({
+            url: request.url(),
+            error: request.failure()?.errorText || 'unknown'
+          }));
           page.on('response', response => {
+            if (/unpkg\\.com|openfreemap|/api/v1/map/viewport/.test(response.url())) {
+              networkResponses.push({ url: response.url(), status: response.status() });
+            }
             if (response.url().includes('/api/v1/map/viewport')) apiResponses.push({ status: response.status() });
           });
           await context.addCookies([{
@@ -547,7 +560,32 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           }]);
           const pageResponse = await page.goto(browserBase + '/dispatcher-map.html', { waitUntil: 'domcontentloaded' });
           assert.equal(pageResponse.status(), 200);
-          await page.waitForFunction(() => /1 authorized GIS features/.test(document.querySelector('#spatialFeatureCount')?.textContent || ''), null, { timeout: 30000 });
+          try {
+            await page.waitForFunction(() => /1 authorized GIS features/.test(document.querySelector('#spatialFeatureCount')?.textContent || ''), null, { timeout: 30000 });
+          } catch (waitError) {
+            const diagnostics = {
+              failure: waitError.message,
+              pageUrl: page.url(),
+              title: await page.title().catch(() => ''),
+              authState: await page.locator('#authState').textContent().catch(() => ''),
+              dataState: await page.locator('#dataState').textContent().catch(() => ''),
+              spatialFeatureCount: await page.locator('#spatialFeatureCount').textContent().catch(() => ''),
+              mapMessage: await page.locator('#mapMessage').textContent().catch(() => ''),
+              mapContainer: await page.locator('#dispatcherMap').evaluate(node => ({
+                width: node.clientWidth,
+                height: node.clientHeight,
+                childCount: node.childElementCount
+              })).catch(() => null),
+              pageErrors,
+              consoleErrors,
+              requestFailures,
+              networkResponses,
+              apiResponses
+            };
+            fs.writeFileSync(path.join(browserOutputDir, 'failure-diagnostics.json'), JSON.stringify(diagnostics, null, 2) + '\\n');
+            await page.screenshot({ path: path.join(browserOutputDir, 'dispatcher-map-failure.png'), fullPage: true }).catch(() => {});
+            throw new Error('DISPATCHER_MAP_FEATURE_COUNT_NOT_RENDERED: ' + JSON.stringify(diagnostics));
+          }
           await page.waitForFunction(() => Boolean(document.querySelector('.maplibregl-canvas')), null, { timeout: 30000 });
           assert.ok(apiResponses.some(response => response.status === 200), 'browser must receive a successful authenticated PostGIS viewport response');
           assert.equal(await page.locator('#spatialFeatureCount').textContent(), '1 authorized GIS features');
