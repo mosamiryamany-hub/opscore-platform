@@ -496,8 +496,7 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           await context.addCookies([{
             name: '__Host-opscore_session',
             value: ownerACookie.slice(ownerACookie.indexOf('=') + 1),
-            url: base,
-            path: '/',
+            url: new URL(base).origin + '/',
             secure: true,
             httpOnly: true,
             sameSite: 'Strict'
