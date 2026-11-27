@@ -502,7 +502,7 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           DATABASE_ENGINE: 'postgres',
           DATABASE_URL: urlText,
           OPSC_DATABASE_URL: '',
-          OPSC_PG_SSL_MODE: /127\\.0\\.0\\.1|localhost/.test(parsed.host) ? 'disable' : 'require',
+          OPSC_PG_SSL_MODE: ['127.0.0.1', 'localhost'].includes(parsed.hostname) ? 'disable' : 'require',
           AUTH_MODE: 'local',
           OPSC_TEST_SCRYPT_N: process.env.OPSC_TEST_SCRYPT_N || '32768'
         },
