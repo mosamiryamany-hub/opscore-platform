@@ -61,4 +61,7 @@ test('Agent Control Room uses only existing tenant-scoped APIs for queue, transc
   assert.match(roomScript, /items\.filter\(item => item\.status === 'queued'\)/);
   assert.match(roomHtml, /A queue row is not a connected phone call/);
   assert.doesNotMatch(roomScript, /Math\.random|setInterval|fake|mock/i);
+  const roomIds = new Set([...roomHtml.matchAll(/\\bid=[\"']([^\"']+)[\"']/g)].map(match => match[1]));
+  const roomRefs = new Set([...roomScript.matchAll(/\\$\\(['\"]([^'\"]+)['\"]\\)/g)].map(match => match[1]));
+  assert.deepEqual([...roomRefs].filter(id => !roomIds.has(id)), [], 'all Agent Control Room DOM selectors must resolve');
 });
