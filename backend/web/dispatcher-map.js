@@ -10,7 +10,7 @@ if (directionToggle) directionToggle.addEventListener('click', () => {
   directionToggle.textContent = rtl ? 'EN' : 'ع';
   directionToggle.setAttribute('aria-label', rtl ? 'Switch to English left-to-right layout' : 'Switch to Arabic right-to-left layout');
 });
-const state = { map: null, sourceReady: false, spatialSourceReady: false, points: [], spatialFeatures: { type: 'FeatureCollection', features: [] }, viewportTimer: null, viewportSequence: 0, viewportRequestCount: 0 };
+const state = { map: null, sourceReady: false, spatialSourceReady: false, points: [], spatialFeatures: { type: 'FeatureCollection', features: [] }, viewportTimer: null, viewportSequence: 0, viewportRequestCount: 0, lastAppliedViewportSequence: 0 };
 const safe = value => String(value ?? '');
 const formatDate = value => value ? new Date(value).toLocaleString() : '—';
 
@@ -27,6 +27,8 @@ if (new URLSearchParams(window.location.search).get('e2e') === '1') {
     },
     viewportSequence() { return state.viewportSequence; },
     viewportRequestCount() { return state.viewportRequestCount; },
+    lastAppliedViewportSequence() { return state.lastAppliedViewportSequence; },
+    refreshViewportNow() { return refreshSpatialFeatures(); },
     triggerViewportBurst() {
       if (!state.map) throw new Error('MAP_NOT_READY');
       state.map.jumpTo({ center: [31.20, 30.00], zoom: 8 });
@@ -251,6 +253,7 @@ async function refreshSpatialFeatures() {
     state.viewportRequestCount += 1;
     const data = await request('/api/v1/map/viewport?' + query.toString());
     if (sequence !== state.viewportSequence) return;
+    state.lastAppliedViewportSequence = sequence;
     state.spatialFeatures = toSpatialFeatureCollection(data.spatialFeatures);
     const source = state.map.getSource('tenant-spatial-features');
     if (source) source.setData(state.spatialFeatures);
