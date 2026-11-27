@@ -3,6 +3,20 @@
   'use strict';
   const $ = (id) => document.getElementById(id);
   const state = { items: [], selected: null, conversation: null, currentUserId: null, busy: false, queueError: null };
+  function tx(key, fallback) {
+    try {
+      if (window.OpsCoreI18n && typeof window.OpsCoreI18n.t === 'function') {
+        const value = window.OpsCoreI18n.t(key);
+        if (value && value !== key) return value;
+      }
+    } catch {}
+    return fallback || key;
+  }
+  function applyRoomI18n() {
+    try {
+      if (window.OpsCoreI18n && typeof window.OpsCoreI18n.apply === 'function') window.OpsCoreI18n.apply();
+    } catch {}
+  }
 
   function setText(id, value) {
     const node = $(id);
@@ -34,7 +48,7 @@
     return payload;
   }
   function accessMessage(error) {
-    if (error?.status === 401 || error?.code === 'AUTH_REQUIRED') return 'Sign in through the Control Plane, then return to this room.';
+    if (error?.status === 401 || error?.code === 'AUTH_REQUIRED') return tx('room.authRequired', 'Sign in through the Control Plane, then return to this room.');
     if (error?.status === 403 || error?.code === 'FORBIDDEN') return 'Your current role cannot operate the human escalation queue.';
     return 'The API did not confirm access. No queue data or action is assumed.';
   }
@@ -316,5 +330,11 @@
   $('ccrResolveCancel').addEventListener('click',() => $('ccrResolveDialog').close());
   $('ccrResolveConfirm').addEventListener('click',resolveHandoff);
   $('ccrResolutionNote').addEventListener('input',() => { $('ccrResolveConfirm').disabled = state.busy || !canOperateSelected() || !$('ccrResolutionNote').value.trim(); });
+  if (window.OpsCoreI18n && typeof window.OpsCoreI18n.init === 'function') {
+    window.OpsCoreI18n.init().then(applyRoomI18n).catch(applyRoomI18n);
+  } else {
+    applyRoomI18n();
+  }
+  window.addEventListener('opscore:localechange', applyRoomI18n);
   refreshQueue();
 })();

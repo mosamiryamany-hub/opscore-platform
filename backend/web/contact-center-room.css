@@ -134,3 +134,51 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--cy);outline-offset:
 .ccr-assignment-guard{padding:10px 12px;margin-top:9px;border:1px solid rgba(255,209,102,.22);border-radius:10px;background:rgba(255,209,102,.05);font-size:10px;line-height:1.5;color:#ffe2a0}
 .ccr-resolve-row{align-items:flex-end}
 .ccr-resolve-row .btn{flex:0 0 auto}
+
+/* Agent room polish */
+.ccr-shell { max-width: 1360px; }
+.ccr-workbench {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+@media (max-width: 980px) {
+  .ccr-workbench { grid-template-columns: 1fr; }
+}
+.ccr-queue-list {
+  display: grid;
+  gap: 8px;
+  max-height: min(58vh, 640px);
+  overflow: auto;
+  padding-inline-end: 2px;
+}
+.ccr-queue-item {
+  border: 1px solid rgba(130,160,210,.16);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: rgba(8,14,28,.72);
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease;
+}
+.ccr-queue-item:hover,
+.ccr-queue-item.is-selected {
+  border-color: rgba(77,226,255,.35);
+  background: rgba(77,226,255,.06);
+}
+.ccr-transcript {
+  min-height: 220px;
+  max-height: min(42vh, 420px);
+  overflow: auto;
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(130,160,210,.14);
+  background: rgba(2,7,18,.55);
+}
+[dir="rtl"] .ccr-toolbar,
+[dir="rtl"] .ccr-resolve-row,
+[dir="rtl"] .ccr-reply-row {
+  direction: rtl;
+}
