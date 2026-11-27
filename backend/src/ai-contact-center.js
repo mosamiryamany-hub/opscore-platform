@@ -528,7 +528,7 @@ function reassignHandoff(db, ctx, handoffId, input = {}) {
   assertTenant(ctx);
   assertSupervisor(ctx);
   const targetUserId = String(input.assignedTo || '').trim();
-  const reason = redactForModel(String(input.reason || '')).replace(/[\\r\\n\\u0000-\\u001f]+/g,' ').trim().slice(0,300);
+  const reason = redactForModel(String(input.reason || '')).replace(/\s+/g,' ').trim().slice(0,300);
   if (!targetUserId || targetUserId.length > 120 || reason.length < 8) throw error('INVALID_OPERATIONAL_JOB', 422);
   const target = db.prepare(`SELECT u.id FROM users u JOIN memberships m ON m.user_id=u.id
     WHERE u.id=? AND m.organization_id=? AND u.status='active' AND m.role IN ('member','manager')`)
