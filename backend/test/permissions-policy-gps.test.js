@@ -47,6 +47,14 @@ test('only the Contact Center page receives browser voice permissions and provid
   assert.doesNotMatch(csp.value, /connect-src[^;]*\\*/i);
 });
 
+
+test('self-hosted static server grants browser voice only to the exact Contact Center HTML file', () => {
+  assert.match(serverSource, /if \(path\.basename\(file\) === 'contact-center\.html'\)/);
+  assert.match(serverSource, /headers\['permissions-policy'\] = 'camera=\(\),microphone=\(self\),geolocation=\(self\)'/);
+  assert.match(serverSource, /connect-src 'self' https:\/\/api\.openai\.com/);
+  assert.equal(serverSource.split('geolocation=(self)').length - 1, 3);
+});
+
 test('dynamic map CSP origin is HTTPS-only and exact-origin validated by a separate helper', () => {
   const source = fs.readFileSync(path.join(repoRoot, 'backend', 'src', 'server.js'), 'utf8');
   assert.match(source, /resolveMapTileOrigin\(process\.env\.OPSCORE_MAP_TILE_ORIGIN/);
