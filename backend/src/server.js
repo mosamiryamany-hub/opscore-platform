@@ -1677,6 +1677,9 @@ function route(req, res) {
     try {
       if (authProviderGate() !== 'oidc') return json(res, 200, { enabled: false }, { 'cache-control': 'no-store' });
       const { issuer, audience } = oidcIssuerConfig();
+      const redirectUri = String(process.env.OIDC_REDIRECT_URI || '').trim();
+      const callback = redirectUri ? new URL(redirectUri) : null;
+      if (!process.env.OIDC_CLIENT_SECRET || String(process.env.OIDC_STATE_SECRET || '').length < 32 || !callback || callback.pathname !== '/api/v1/auth/oidc/callback' || callback.search || callback.hash || (config.nodeEnv === 'production' && callback.protocol !== 'https:')) throw new Error('OIDC_SERVER_CONFIGURATION_REQUIRED');
       return json(res, 200, { enabled: true, issuer, clientId: audience, providers: ['google','github','microsoft','apple','facebook'] }, { 'cache-control': 'no-store' });
     } catch (error) { return fail(res, error); }
   }
