@@ -30,7 +30,15 @@ function readKey(value) {
   return key;
 }
 function pgPassEscape(value) {
-  return String(value).replace(/\\/g, '\\\\').replace(/:/g, '\\:').replace(/[\r\n]/g, '');
+  const input = String(value);
+  if (/[\\r\\n]/.test(input)) throw new Error('BACKUP_PGPASS_VALUE_INVALID');
+  return input.replace(/\\\\/g, '\\\\\\\\').replace(/:/g, '\\\\:');
+}
+async function sha256File(file) {
+  const hash = crypto.createHash('sha256');
+  const source = fs.createReadStream(file);
+  for await (const chunk of source) hash.update(chunk);
+  return hash.digest('hex');
 }
 function run(command, args, env) {
   return new Promise((resolve, reject) => {
