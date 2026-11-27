@@ -54,6 +54,8 @@ jobs:
           EOF
           openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt -days 2 -sha256 -extfile server.ext
           chmod 0644 ca.crt server.crt
+          rm -f ca.key server.csr server.ext ca.srl
+          chmod 0755 "$RUNNER_TEMP/opscore-pg-tls"
           sudo chown 999:999 server.key
           sudo chmod 0600 server.key
           RUNTIME_PASSWORD="$(openssl rand -hex 32)"
@@ -93,6 +95,10 @@ jobs:
           for attempt in $(seq 1 60); do
             if docker exec opscore-self-hosted-pg18 pg_isready -h 127.0.0.1 -U postgres -d opscore >/dev/null 2>&1; then
               break
+            fi
+            if [[ "$(docker inspect -f '{{.State.Running}}' opscore-self-hosted-pg18 2>/dev/null || true)" != "true" ]]; then
+              docker logs opscore-self-hosted-pg18 || true
+              exit 1
             fi
             sleep 2
           done
