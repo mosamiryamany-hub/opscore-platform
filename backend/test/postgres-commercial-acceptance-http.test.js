@@ -613,14 +613,14 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           const canvasPngA = await page.locator('.maplibregl-canvas').screenshot();
           fs.writeFileSync(path.join(browserOutputDir, 'tenant-a-maplibre-canvas.png'), canvasPngA);
           const canvasBoxA = await page.locator('.maplibregl-canvas').boundingBox();
-          const pageMetricsA = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight }));
+          const pageMetricsA = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight, scrollX: window.scrollX, scrollY: window.scrollY }));
           const pagePngA = await page.screenshot({ fullPage: true });
           fs.writeFileSync(path.join(browserOutputDir, 'tenant-a-full-page-render.png'), pagePngA);
           const pageShotA = PNG.sync.read(pagePngA);
           const pageScaleAX = pageShotA.width / pageMetricsA.width;
           const pageScaleAY = pageShotA.height / pageMetricsA.height;
-          const pixelAX = Math.max(0, Math.min(pageShotA.width - 1, Math.round((canvasBoxA.x + projectedA.x) * pageScaleAX)));
-          const pixelAY = Math.max(0, Math.min(pageShotA.height - 1, Math.round((canvasBoxA.y + projectedA.y) * pageScaleAY)));
+          const pixelAX = Math.max(0, Math.min(pageShotA.width - 1, Math.round((canvasBoxA.x + pageMetricsA.scrollX + projectedA.x) * pageScaleAX)));
+          const pixelAY = Math.max(0, Math.min(pageShotA.height - 1, Math.round((canvasBoxA.y + pageMetricsA.scrollY + projectedA.y) * pageScaleAY)));
           const pixelAOffset = (pixelAY * pageShotA.width + pixelAX) * 4;
           const renderedPixelA = { x: pixelAX, y: pixelAY, rgba: Array.from(pageShotA.data.slice(pixelAOffset, pixelAOffset + 4)) };
           assert.ok(renderedPixelA.rgba[0] >= 100 && renderedPixelA.rgba[0] <= 220
@@ -751,14 +751,14 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           const canvasPngB = await pageB.locator('.maplibregl-canvas').screenshot();
           fs.writeFileSync(path.join(browserOutputDir, 'tenant-b-maplibre-canvas.png'), canvasPngB);
           const canvasBoxB = await pageB.locator('.maplibregl-canvas').boundingBox();
-          const pageMetricsB = await pageB.evaluate(() => ({ width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight }));
+          const pageMetricsB = await pageB.evaluate(() => ({ width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight, scrollX: window.scrollX, scrollY: window.scrollY }));
           const pagePngB = await pageB.screenshot({ fullPage: true });
           fs.writeFileSync(path.join(browserOutputDir, 'tenant-b-full-page-render.png'), pagePngB);
           const pageShotB = PNG.sync.read(pagePngB);
           const pageScaleBX = pageShotB.width / pageMetricsB.width;
           const pageScaleBY = pageShotB.height / pageMetricsB.height;
-          const pixelBX = Math.max(0, Math.min(pageShotB.width - 1, Math.round((canvasBoxB.x + projectedB.x) * pageScaleBX)));
-          const pixelBY = Math.max(0, Math.min(pageShotB.height - 1, Math.round((canvasBoxB.y + projectedB.y) * pageScaleBY)));
+          const pixelBX = Math.max(0, Math.min(pageShotB.width - 1, Math.round((canvasBoxB.x + pageMetricsB.scrollX + projectedB.x) * pageScaleBX)));
+          const pixelBY = Math.max(0, Math.min(pageShotB.height - 1, Math.round((canvasBoxB.y + pageMetricsB.scrollY + projectedB.y) * pageScaleBY)));
           const pixelBOffset = (pixelBY * pageShotB.width + pixelBX) * 4;
           const renderedPixelB = { x: pixelBX, y: pixelBY, rgba: Array.from(pageShotB.data.slice(pixelBOffset, pixelBOffset + 4)) };
           assert.ok(renderedPixelB.rgba[0] >= 100 && renderedPixelB.rgba[0] <= 220
