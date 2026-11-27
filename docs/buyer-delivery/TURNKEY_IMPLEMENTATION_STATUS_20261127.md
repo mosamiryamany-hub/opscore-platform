@@ -41,19 +41,27 @@
 ## Blocking engineering facts before a real one-command Compose installer
 
 1. Existing source already contains `backend/docker/Dockerfile` and `backend/docker-compose.postgres.yml`. The Dockerfile builds the backend image; the Compose file provisions **PostgreSQL only**. It is not a complete app + database + TLS ingress + migration + backup stack, and it has not been qualified as a buyer installer.
-2. The PostgreSQL migration runner requires a dedicated `OPSC_MIGRATION_DATABASE_URL`, expects `neondb_owner` with `BYPASSRLS`, verifies a Neon endpoint identity for non-test targets, and requires a pre-existing least-privileged `opscore_runtime` login. Its `test` target is restricted to loopback and is not a customer self-hosted production profile. Do not bypass those checks or point the installer at an arbitrary database.
-3. A self-hosted bootstrap must create and verify separate owner/migration and runtime identities, extensions (`pgcrypto`, `postgis`, `vector`), tenant RLS, privileges, and migration ledger in the correct order. That needs a separately tested self-hosted migration profile; it cannot safely be represented by a generic compose file today.
+2. The PostgreSQL migration runner now has an explicit `self-hosted` target. It pins the exact operator-supplied hostname and database, rejects poolers, requires `sslmode=verify-full`, `NODE_ENV=production`, the `opscore_migrator` role with `BYPASSRLS` (but not superuser/CREATEROLE/CREATEDB), an existing least-privileged `opscore_runtime` login, and exact host/database confirmation plus `OPSC_MIGRATION_ALLOW_SELF_HOSTED=1` before apply. This is an operator-pinned identity, not Neon API verification. The bootstrap policy accepts the same dedicated migrator role only when `OPSC_DEPLOYMENT_MODE=self-hosted`.
+3. The PostgreSQL init script now creates and validates separate runtime, migrator and worker roles without putting passwords in psql command-line arguments. The self-hosted migration target and role policy have unit coverage. The database init script and full migration sequence still require a real disposable PostgreSQL 18 + PostGIS execution before they are accepted. No `pgvector` dependency is claimed; checked-in migration source reviewed for this work does not establish a required vector extension.
 4. A container image does not cryptographically hide source code. Anyone controlling the host can inspect image layers and application files. Private registry distribution, signed immutable images, license terms, and an entitlement mechanism can reduce casual exposure but cannot make code extraction impossible.
 5. KOTS/Replicated is not a zero-cost default. Replicated's published pricing includes paid plans (for example a Compatibility Matrix offering) and cluster costs; use only after a commercial cost decision.
 6. Coolify is self-hostable, but the customer still pays for the server, storage, network and operations. It can deploy Compose from Git; it does not create a missing safe Compose architecture for the product.
 7. iOS PWA is not a native iOS binary and does not provide native capability parity. EAS Free has monthly quotas; it is not unlimited or a lifetime zero-cost build factory.
 
+### Self-hosted runtime security gate added on this branch
+
+- `OPSC_DEPLOYMENT_MODE=self-hosted` is a separate runtime mode; it does not spoof `VERCEL_ENV` or reuse Vercel release flags.
+- The server evaluates the existing Ed25519 buyer release identity and exposes `selfHostedReleaseVerified` only when the pinned public key verifies the current identity.
+- Signed tenant-context operations in this mode require all of: explicit `OPSC_SIGNED_TENANT_CONTEXT_SELF_HOSTED_ENABLED=true`, `OPSC_REQUIRE_SIGNED_TENANT_CONTEXT=true`, `OPSC_PRODUCTION_HOLD=false`, session autobind disabled, and a valid buyer release attestation.
+- The identity collector measures archive SHA-256, live HTTPS certificate digest and selected PostgreSQL role flags. Its existing documentation explicitly excludes complete object/function grants and build provenance; PASS is an operator attestation, not certification.
+- The migration runner's self-hosted host pin is operator-supplied and is not independent DNS, TLS certificate or database-provider identity proof. TLS is independently enforced by `verify-full`.
+
 ## Requested features — honest state
 
 | Feature | State | Acceptance still required |
 |---|---|---|
-| Docker Compose self-contained server + PostgreSQL/PostGIS/vector | BLOCKED | Self-hosted migration-owner/runtime role bootstrap, image extension validation, health, volume and restore tests |
-| Linux one-line installer | NOT IMPLEMENTED | Signed/versioned installer, OS/Docker preflight, secret generation, safe upgrade/rollback and idempotency |
+| Docker Compose self-contained server + PostgreSQL/PostGIS | BLOCKED | Full app + DB + TLS ingress + migration sequencing, image extension validation, health, volume and restore tests |
+| Linux one-line installer | NOT IMPLEMENTED | Signed/versioned installer, OS/Docker preflight, secret/certificate generation, safe upgrade/rollback and idempotency |
 | Windows installer | NOT IMPLEMENTED | Supported Windows host model and tested PowerShell/Docker Desktop or server installation contract |
 | Coolify template | NOT IMPLEMENTED | Deployable Compose plus documented domains, environment, persistent volumes and health checks |
 | Replicated KOTS | NOT SELECTED | Commercial pricing, Kubernetes support model, license and air-gap acceptance |
