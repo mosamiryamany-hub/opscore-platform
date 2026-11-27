@@ -11,8 +11,10 @@
   <script defer src="/fabric-core.js"></script>
   <script defer src="/i18n/i18n-loader.js"></script>
   <script defer src="/contact-center.js"></script>
+  <link rel="stylesheet" href="/design-tokens.css">
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
   <div class="field" aria-hidden="true"><div class="field__aura field__aura--a"></div><div class="field__aura field__aura--b"></div><div class="field__aura field__aura--c"></div><div class="field__grid"></div></div>
   <div class="shell shell--wide cc-shell">
   <header class="topbar cc-topbar">
@@ -27,7 +29,7 @@
       <span id="statusBadge" class="badge" data-i18n="status.setupIncomplete">Setup incomplete</span>
     </div>
   </header>
-  <main class="cc-main">
+  <main class="cc-main" id="main">
     <p class="machine-notice" data-i18n-machine-notice role="note"></p>
     <section class="status-grid" aria-label="AI Contact Center" data-i18n-aria-label="nav.title">
       <article class="stat"><span data-i18n="stats.catalogueRows">Catalogue rows</span><strong id="languageRows">—</strong><small data-i18n="stats.catalogueRowsNote">Input list preserved</small></article>
