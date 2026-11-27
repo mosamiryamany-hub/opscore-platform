@@ -575,3 +575,17 @@ test('self-hosted migrations require an operator-pinned host, database, direct T
     OPSC_MIGRATION_EXPECTED_OWNER_ROLE: 'neondb_owner'
   }), /MIGRATION_OWNER_ROLE_NOT_ALLOWED/);
 });
+
+test('self-hosted PostgreSQL role initializer reads secrets from environment and validates all role attributes', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const source = fs.readFileSync(path.join(__dirname, '../docker/postgres-init/10-opscore-roles.sh'), 'utf8');
+  assert.match(source, /\\getenv runtime_password OPSCORE_RUNTIME_PASSWORD/);
+  assert.match(source, /\\getenv migrator_password OPSCORE_MIGRATOR_PASSWORD/);
+  assert.match(source, /\\getenv worker_password OPSCORE_WORKER_PASSWORD/);
+  assert.match(source, /CREATE ROLE opscore_migrator LOGIN NOSUPERUSER BYPASSRLS NOINHERIT/);
+  assert.match(source, /OPSCORE_RUNTIME_ROLE_CONTRACT_FAILED/);
+  assert.match(source, /OPSCORE_MIGRATOR_ROLE_CONTRACT_FAILED/);
+  assert.match(source, /OPSCORE_WORKER_ROLE_CONTRACT_FAILED/);
+  assert.doesNotMatch(source, /psql[^\\n]*-v\\s+(?:runtime_password|migrator_password|worker_password)/);
+});
