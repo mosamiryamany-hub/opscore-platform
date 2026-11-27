@@ -358,6 +358,10 @@ jobs:
       - name: Run real PostgreSQL HTTP and authenticated Dispatcher Map browser acceptance as opscore_runtime
         working-directory: backend
         env:
+          # Isolated disposable CI only: allow the 3 x 100-sample latency benchmark
+          # plus browser/contract requests inside one source-IP window. This does
+          # not alter Preview or Production firewall policy.
+          FIREWALL_RATE_LIMIT: '1000'
           OPSC_PG_ACCEPTANCE_STRICT: 'true'
           OPSC_WRITE_EVIDENCE: '1'
           OPSC_MAP_BROWSER_E2E: 'true'
