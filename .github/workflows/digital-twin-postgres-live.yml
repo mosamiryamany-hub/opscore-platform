@@ -320,6 +320,7 @@ jobs:
       - name: Check live gate syntax
         run: |
           node --check backend/scripts/postgres-live-rls-gate.js
+          node --check backend/scripts/signed-tenant-context-postgres-gate.js
           node --check backend/scripts/apply-postgres-migrations.js
           node --check backend/scripts/postgres-tenant-composite-fk-gate.js
           node --check backend/scripts/postgres-logical-restore-drill.js
