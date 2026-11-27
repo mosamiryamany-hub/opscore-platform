@@ -77,7 +77,7 @@ async function main() {
     `);
     assert.equal(index.rowCount, 1);
     assert.equal(index.rows[0].indisunique, true);
-    assert.match(index.rows[0].definition, /\\(id, organization_id\\)/);
+    assert.match(index.rows[0].definition, /\(id, organization_id\)/);
     checks.push({ id: 'composite-customer-unique-index', status: 'PASS' });
 
     const rls = await client.query(`
