@@ -62,7 +62,7 @@
     if (reply) reply.disabled = state.busy || !permitted;
     if (replyText) replyText.disabled = state.busy || !permitted;
     if (resolve) resolve.disabled = state.busy || !permitted;
-    if (confirm) confirm.disabled = state.busy || !permitted;
+    if (confirm) confirm.disabled = state.busy || !permitted || !$('ccrResolutionNote')?.value.trim();
     const guard = $('ccrAssignmentGuard');
     if (guard) {
       guard.hidden = permitted || !state.selected;
