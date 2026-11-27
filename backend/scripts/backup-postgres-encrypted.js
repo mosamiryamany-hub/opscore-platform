@@ -141,4 +141,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { parseDatabaseUrl, readKey, encryptFile, decryptFile, MAGIC };
+module.exports = { parseDatabaseUrl, readKey, pgPassEscape, encryptFile, decryptFile, MAGIC };
