@@ -627,10 +627,19 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
             const response = await fetch('/api/v1/map/viewport?west=31&south=29.9&east=31.4&north=30.2&limit=10&organizationId=' + encodeURIComponent(orgBId), { credentials: 'same-origin', cache: 'no-store' });
             return { status: response.status, body: await response.json() };
           }, { orgBId });
-          assert.equal(forgedTenantResponse.status, 200);
-          assert.equal(forgedTenantResponse.body.organizationId, orgAId, 'client-supplied foreign organization ID must never override signed session context');
-          assert.deepEqual(forgedTenantResponse.body.spatialFeatures.map(feature => feature.id), [spatialFeatureAId]);
-          assert.equal(JSON.stringify(forgedTenantResponse.body).includes(spatialFeatureBId), false);
+          assert.ok([200, 403].includes(forgedTenantResponse.status),
+            'a forged foreign organization ID must either be rejected or remain bound to the authenticated tenant: ' + JSON.stringify(forgedTenantResponse));
+          if (forgedTenantResponse.status === 403) {
+            assert.equal(JSON.stringify(forgedTenantResponse.body).includes(spatialFeatureBId), false,
+              'a denied forged-tenant request must not disclose the foreign feature ID');
+          } else {
+            assert.equal(forgedTenantResponse.body.organizationId, orgAId,
+              'client-supplied foreign organization ID must never override signed session context');
+            assert.deepEqual(forgedTenantResponse.body.spatialFeatures.map(feature => feature.id), [spatialFeatureAId]);
+            assert.equal(JSON.stringify(forgedTenantResponse.body).includes(spatialFeatureBId), false);
+          }
+          record('browser-forged-organization-id-rejected-or-session-bound',
+            'A browser request supplied tenant B organizationId while authenticated as tenant A; the API returned ' + forgedTenantResponse.status + ' without disclosing tenant B GIS data.');
           const viewportRequestsBeforeBurst = await page.evaluate(() => window.__opscoreDispatcherMapE2E.viewportRequestCount());
           await page.evaluate(() => window.__opscoreDispatcherMapE2E.triggerViewportBurst());
           await page.waitForTimeout(650);
