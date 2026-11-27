@@ -4,11 +4,13 @@ const ALLOWED_GEOMETRIES = new Set([
 
 function validPosition(position) {
   return Array.isArray(position)
-    && position.length >= 2
-    && Number.isFinite(Number(position[0]))
-    && Number.isFinite(Number(position[1]))
-    && Number(position[0]) >= -180 && Number(position[0]) <= 180
-    && Number(position[1]) >= -90 && Number(position[1]) <= 90;
+    && position.length === 2
+    && typeof position[0] === 'number'
+    && typeof position[1] === 'number'
+    && Number.isFinite(position[0])
+    && Number.isFinite(position[1])
+    && position[0] >= -180 && position[0] <= 180
+    && position[1] >= -90 && position[1] <= 90;
 }
 
 function validLine(line) {
