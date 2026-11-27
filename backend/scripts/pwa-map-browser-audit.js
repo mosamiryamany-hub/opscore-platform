@@ -22,6 +22,12 @@ const check = (name, ok, details = null) => {
     const response = await page.goto(baseURL + '/dispatcher-map.html', { waitUntil: 'networkidle' });
     check('dispatcher map route responds', Boolean(response && response.ok()), response && response.status());
     check('manifest link exists', await page.locator('link[rel="manifest"][href="/manifest.webmanifest"]').count() === 1);
+    const manifest = await page.evaluate(async () => {
+      const response = await fetch('/manifest.webmanifest', { cache: 'no-store' });
+      const value = await response.json();
+      return { ok: response.ok, name: value.name, startUrl: value.start_url, iconCount: Array.isArray(value.icons) ? value.icons.length : 0 };
+    });
+    check('manifest is parseable and has an app icon', manifest.ok && manifest.startUrl === '/' && manifest.iconCount > 0, manifest);
     check('MapLibre dependency is exact-version pinned', (await page.locator('link[href*="maplibre-gl@6.20.0"]').count()) === 1);
     check('map page describes last check-in semantics', (await page.locator('body').innerText()).includes('not continuous GPS tracking'));
     check('map list begins without fabricated pins', await page.locator('#pointCount').innerText() === '—' || await page.locator('#pointCount').innerText() === '0');
@@ -35,6 +41,9 @@ const check = (name, ok, details = null) => {
       return { supported: true, registered: Boolean(reg), scope: reg?.scope || null };
     });
     check('PWA service worker is registered for root scope', registration.registered === true && registration.scope === new URL('/', baseURL).toString(), registration);
+    await page.evaluate(async () => {
+      try { await fetch('/api/v1/pwa-cache-boundary-probe', { cache: 'no-store' }); } catch {}
+    });
     const cachedApi = await page.evaluate(async () => {
       const keys = await caches.keys();
       const requests = [];
