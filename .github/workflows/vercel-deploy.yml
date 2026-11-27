@@ -1280,7 +1280,7 @@ jobs:
       - name: Verify production domain resolves to the exact promoted commit
         id: production_domain_verify
         if: ${{ github.event.inputs.run_mode == 'AUTHORIZE_PRODUCTION_RELEASE' && steps.production_promote.outcome == 'success' }}
-        run: node scripts/production-deployment-smoke.js "https://opscore-platform.vercel.app" "$GITHUB_SHA"
+        run: node scripts/production-deployment-smoke.js "https://opscore-platform-fiber-nexus.vercel.app" "$GITHUB_SHA"
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
