@@ -239,7 +239,12 @@
         $('loginTitle').textContent = 'Sign in to OpsCore';
       }
     } catch (error) {
-      if (error.message !== 'KEYCLOAK_NOT_CONFIGURED') setMessage(oidcMessage, 'Identity configuration could not be verified: ' + error.message, 'error');
+      if (error.message !== 'KEYCLOAK_NOT_CONFIGURED') {
+        oidcPanel.hidden = false;
+        $('loginForm').hidden = true;
+        $('loginTitle').textContent = 'Sign-in temporarily unavailable';
+        setMessage(oidcMessage, 'Identity configuration could not be verified: ' + error.message, 'error');
+      }
     }
   }
 
