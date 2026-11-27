@@ -180,6 +180,11 @@ jobs:
       - name: Install backend package
         working-directory: backend
         run: npm ci --ignore-scripts --omit=peer
+      - name: Install Chromium for authenticated Dispatcher Map acceptance
+        working-directory: backend
+        run: |
+          npm install --no-save --package-lock=false playwright@1.65.1
+          npx playwright install --with-deps chromium
       - name: Apply full migrations to disposable acceptance databases
         working-directory: backend
         run: |
@@ -350,11 +355,13 @@ jobs:
           set -euo pipefail
           node --check scripts/twin-concurrency-postgis-gate.js
           node scripts/twin-concurrency-postgis-gate.js
-      - name: Run real PostgreSQL HTTP commercial acceptance as opscore_runtime
+      - name: Run real PostgreSQL HTTP and authenticated Dispatcher Map browser acceptance as opscore_runtime
         working-directory: backend
         env:
           OPSC_PG_ACCEPTANCE_STRICT: 'true'
           OPSC_WRITE_EVIDENCE: '1'
+          OPSC_MAP_BROWSER_E2E: 'true'
+          OPSC_MAP_BROWSER_ARTIFACT_DIR: ${{ runner.temp }}/dispatcher-map-postgres-browser-e2e
           OPSC_PG_ACCEPTANCE_RESULT_FILE: ${{ github.workspace }}/POSTGRES_HTTP_ACCEPTANCE_RESULT.json
           CI_COMMIT_SHA: ${{ github.sha }}
           CI_PIPELINE_ID: ${{ github.run_id }}
@@ -372,6 +379,15 @@ jobs:
           set -euo pipefail
           test -n "${OPSC_PG_ACCEPTANCE_URL:-}" || { echo "OPSC_PG_ACCEPTANCE_URL is required" >&2; exit 1; }
           node --test test/firewall-rate-limit-postgres.test.js
+
+      - name: Upload authenticated Dispatcher Map and PostGIS browser evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: opscore-dispatcher-map-authenticated-postgis-e2e
+          path: ${{ runner.temp }}/dispatcher-map-postgres-browser-e2e/
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Validate and export caller-bound PostgreSQL acceptance evidence
         id: publish_acceptance
