@@ -213,10 +213,12 @@
     setBusy(true);
     setText('ccrQueueMessage','Requesting current open handoffs…');
     try {
-      const [status,queue] = await Promise.all([
+      const [status,queue,me] = await Promise.all([
         api('/api/v1/contact-center/status'),
-        api('/api/v1/contact-center/handoffs?status=open&limit=50')
+        api('/api/v1/contact-center/handoffs?status=open&limit=50'),
+        api('/api/v1/me')
       ]);
+      state.currentUserId = me?.user?.id ? String(me.user.id) : null;
       renderService(status);
       state.queueError = null;
       state.items = Array.isArray(queue.items) ? queue.items : [];
