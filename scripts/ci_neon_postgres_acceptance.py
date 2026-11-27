@@ -209,9 +209,6 @@ def setup():
     if cleanup_host != host:
         raise RuntimeError("CI_CLEANUP_ENDPOINT_HOST_MISMATCH")
 
-    for secret in (runtime_uri, cleanup_uri):
-        print(f"::add-mask::{secret}")
-
     github_env = os.environ.get("GITHUB_ENV")
     if not github_env:
         raise RuntimeError("GITHUB_ENV_MISSING")
@@ -219,7 +216,6 @@ def setup():
     # Use a fresh one-run key: never copy Production signing material into CI.
     test_hmac_key = secrets.token_hex(32)
     test_key_id = f"ci-{run_id}-{attempt}"
-    print(f"::add-mask::{test_hmac_key}")
 
     # The acceptance branch inherits the verifier schema but no key material.
     # Seed only this generated one-run key into its protected key table using

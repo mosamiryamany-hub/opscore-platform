@@ -32,6 +32,25 @@ jobs:
         env:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
         run: python3 scripts/ci_neon_postgres_acceptance.py setup
+      - name: Register disposable Neon credentials with the runner secret masker
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7.1.0
+        env:
+          OPSC_TENANT_CONTEXT_HMAC_KEY: ${{ env.OPSC_TENANT_CONTEXT_HMAC_KEY }}
+          OPSC_PG_ACCEPTANCE_URL: ${{ env.OPSC_PG_ACCEPTANCE_URL }}
+          OPSC_PG_ACCEPTANCE_CLEANUP_URL: ${{ env.OPSC_PG_ACCEPTANCE_CLEANUP_URL }}
+        with:
+          script: |
+            for (const name of [
+              'OPSC_TENANT_CONTEXT_HMAC_KEY',
+              'OPSC_PG_ACCEPTANCE_URL',
+              'OPSC_PG_ACCEPTANCE_CLEANUP_URL'
+            ]) {
+              const value = process.env[name];
+              if (!value) throw new Error(name + '_MISSING');
+              core.setSecret(value);
+            }
+            console.log('DISPOSABLE_NEON_CREDENTIALS_MASKED');
       - name: Verify Docker build context excludes private environment and runtime data
         shell: bash
         run: |
