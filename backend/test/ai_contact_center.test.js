@@ -156,6 +156,9 @@ test('CRM customer linking is explicit, supervisor-only and tenant-bound', () =>
     assert.equal(cc.getConversation(db,agent,conv.id,env).customerId,'cus_test123');
     const audit=db.prepare("SELECT action FROM audit_log WHERE organization_id=? AND resource_id=? ORDER BY created_at DESC").all('org_a',conv.id);
     assert.ok(audit.some(x=>x.action==='contact_center_crm_customer_linked'));
+    cc.eraseConversation(db,ctx,conv.id);
+    assert.equal(cc.getConversationCustomer(db,agent,conv.id).linked,false);
+    assert.throws(()=>cc.linkConversationCustomer(db,agent,conv.id,'cus_test123'),e=>e.message==='CONTACT_CENTER_CONVERSATION_CLOSED');
   } finally { db.close(); }
 });
 test('supervisor reassignment is atomic, eligible-agent-only and audited', () => {
@@ -175,6 +178,10 @@ test('supervisor reassignment is atomic, eligible-agent-only and audited', () =>
     assert.match(event.metadata_json,/user_peer/);
     assert.equal(cc.listEligibleAgents(db,agent).some(x=>x.id==='user_peer'),true);
     assert.equal(cc.listEligibleAgents(db,agent).some(x=>x.id==='user_b'),false);
+    const closedConversation=cc.createConversation(db,ctx,{channel:'web_chat',languageCode:'en',consentAccepted:true},env);
+    const closedHandoff=cc.createHandoff(db,ctx,closedConversation.id,'high_risk','Closed case reassignment guard test.','policy','urgent');
+    db.prepare("UPDATE ai_contact_conversations SET status='resolved' WHERE id=?").run(closedConversation.id);
+    assert.throws(()=>cc.reassignHandoff(db,agent,closedHandoff.id,{assignedTo:'user_peer',reason:'Do not reassign a resolved case'}),e=>e.message==='CONTACT_CENTER_HANDOFF_NOT_REASSIGNABLE');
   } finally { db.close(); }
 });
 test('database schema was upgraded with contact-center persistence tables', () => {
