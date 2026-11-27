@@ -13,7 +13,7 @@ const crypto = require('node:crypto');
 
 const REQUIRED_CONFIRM = 'RECORD_PROMOTED_DEPLOYMENT_RELEASE_EVIDENCE';
 const EXPECTED_SCHEMA = 'opscore.public-release-proof.v2';
-const DEFAULT_DOMAIN = 'opscore-platform.vercel.app';
+const DEFAULT_DOMAIN = 'opscore-platform-fiber-nexus.vercel.app';
 
 function sha256(value) {
   return crypto.createHash('sha256').update(String(value)).digest('hex');
@@ -85,7 +85,7 @@ async function main() {
         source_commit_sha text NOT NULL CHECK (source_commit_sha ~ '^[a-f0-9]{40}$'),
         pipeline_id text NOT NULL CHECK (pipeline_id ~ '^[0-9]{1,15}$'),
         environment text NOT NULL CHECK (environment = 'production'),
-        promoted_domain text NOT NULL CHECK (promoted_domain IN ('opscore-platform.vercel.app')),
+        promoted_domain text NOT NULL CHECK (promoted_domain IN ('opscore-platform.vercel.app', 'opscore-platform-fiber-nexus.vercel.app')),
         gates_summary jsonb NOT NULL CHECK (gates_summary ? 'allGatesPass' AND gates_summary ? 'evidenceDigestSha256'),
         evidence_digest_sha256 text NOT NULL CHECK (evidence_digest_sha256 ~ '^[a-f0-9]{64}$'),
         recorded_at timestamptz NOT NULL DEFAULT now(),
@@ -93,6 +93,30 @@ async function main() {
       );
       ALTER TABLE public.deployment_release_evidence ENABLE ROW LEVEL SECURITY;
       ALTER TABLE public.deployment_release_evidence FORCE ROW LEVEL SECURITY;
+      DO $chk$
+      BEGIN
+        -- Widen allowed promoted domains for the Fiber Nexus production hostname.
+        IF EXISTS (
+          SELECT 1 FROM pg_constraint
+          WHERE conrelid = 'public.deployment_release_evidence'::regclass
+            AND contype = 'c'
+            AND pg_get_constraintdef(oid) LIKE '%promoted_domain%'
+            AND pg_get_constraintdef(oid) NOT LIKE '%fiber-nexus%'
+        ) THEN
+          EXECUTE (
+            SELECT 'ALTER TABLE public.deployment_release_evidence DROP CONSTRAINT ' || quote_ident(conname)
+            FROM pg_constraint
+            WHERE conrelid = 'public.deployment_release_evidence'::regclass
+              AND contype = 'c'
+              AND pg_get_constraintdef(oid) LIKE '%promoted_domain%'
+            LIMIT 1
+          );
+          ALTER TABLE public.deployment_release_evidence
+            ADD CONSTRAINT deployment_release_evidence_promoted_domain_check
+            CHECK (promoted_domain IN ('opscore-platform.vercel.app', 'opscore-platform-fiber-nexus.vercel.app'));
+        END IF;
+      END
+      $chk$;
       DO $pol$
       BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='deployment_release_evidence' AND policyname='deployment_release_evidence_owner_all') THEN
