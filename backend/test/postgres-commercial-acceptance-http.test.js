@@ -558,7 +558,7 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
             httpOnly: true,
             sameSite: 'Strict'
           }]);
-          const pageResponse = await page.goto(browserBase + '/dispatcher-map.html', { waitUntil: 'domcontentloaded' });
+          const pageResponse = await page.goto(browserBase + '/dispatcher-map.html?e2e=1', { waitUntil: 'domcontentloaded' });
           assert.equal(pageResponse.status(), 200);
           try {
             await page.waitForFunction(() => /1 authorized GIS features/.test(document.querySelector('#spatialFeatureCount')?.textContent || ''), null, { timeout: 30000 });
@@ -586,9 +586,23 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
             await page.screenshot({ path: path.join(browserOutputDir, 'dispatcher-map-failure.png'), fullPage: true }).catch(() => {});
             throw new Error('DISPATCHER_MAP_FEATURE_COUNT_NOT_RENDERED: ' + JSON.stringify(diagnostics));
           }
-          await page.waitForFunction(() => Boolean(document.querySelector('.maplibregl-canvas')), null, { timeout: 30000 });
+          await page.waitForFunction(() => Boolean(document.querySelector('.maplibregl-canvas') && window.__opscoreDispatcherMapE2E), null, { timeout: 30000 });
+          await page.waitForFunction(expected => {
+            const probe = window.__opscoreDispatcherMapE2E;
+            return Boolean(probe && probe.renderedSpatialFeatureIds().includes(expected));
+          }, spatialFeatureAId, { timeout: 30000 });
           assert.ok(apiResponses.some(response => response.status === 200), 'browser must receive a successful authenticated PostGIS viewport response');
           assert.equal(await page.locator('#spatialFeatureCount').textContent(), '1 authorized GIS features');
+          const renderedA = await page.evaluate(() => window.__opscoreDispatcherMapE2E.renderedSpatialFeatureIds());
+          assert.deepEqual(renderedA, [spatialFeatureAId], 'MapLibre must actually render tenant A geometry, not merely create a canvas');
+          const forgedTenantResponse = await page.evaluate(async ({ orgBId }) => {
+            const response = await fetch('/api/v1/map/viewport?west=31&south=29.9&east=31.4&north=30.2&limit=10&organizationId=' + encodeURIComponent(orgBId), { credentials: 'same-origin', cache: 'no-store' });
+            return { status: response.status, body: await response.json() };
+          }, { orgBId });
+          assert.equal(forgedTenantResponse.status, 200);
+          assert.equal(forgedTenantResponse.body.organizationId, orgAId, 'client-supplied foreign organization ID must never override signed session context');
+          assert.deepEqual(forgedTenantResponse.body.spatialFeatures.map(feature => feature.id), [spatialFeatureAId]);
+          assert.equal(JSON.stringify(forgedTenantResponse.body).includes(spatialFeatureBId), false);
           await page.screenshot({ path: path.join(browserOutputDir, 'dispatcher-map-postgres-authenticated-375.png'), fullPage: true });
           await page.setViewportSize({ width: 1366, height: 900 });
           const desktopLayout = await page.evaluate(() => ({
@@ -603,6 +617,41 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           await page.locator('[data-dir-toggle]').click();
           assert.equal(await page.locator('html').getAttribute('dir'), 'rtl');
           await page.screenshot({ path: path.join(browserOutputDir, 'dispatcher-map-postgres-authenticated-rtl.png'), fullPage: true });
+
+          // A separate browser context receives only tenant B's independently issued
+          // HttpOnly cookie. No storage or cookies are copied from tenant A.
+          const contextB = await browser.newContext({
+            viewport: { width: 1366, height: 900 },
+            reducedMotion: 'reduce',
+            ignoreHTTPSErrors: true
+          });
+          const pageB = await contextB.newPage();
+          const pageBErrors = [];
+          pageB.on('pageerror', error => pageBErrors.push(error.message));
+          await contextB.addCookies([{
+            name: '__Host-opscore_session',
+            value: ownerBCookie.slice(ownerBCookie.indexOf('=') + 1),
+            url: browserBase + '/',
+            secure: true,
+            httpOnly: true,
+            sameSite: 'Strict'
+          }]);
+          const pageBResponse = await pageB.goto(browserBase + '/dispatcher-map.html?e2e=1', { waitUntil: 'domcontentloaded' });
+          assert.equal(pageBResponse.status(), 200);
+          await pageB.waitForFunction(expected => {
+            const probe = window.__opscoreDispatcherMapE2E;
+            return Boolean(probe && probe.displayedSpatialFeatureIds().includes(expected)
+              && probe.renderedSpatialFeatureIds().includes(expected));
+          }, spatialFeatureBId, { timeout: 30000 });
+          const renderedB = await pageB.evaluate(() => window.__opscoreDispatcherMapE2E.renderedSpatialFeatureIds());
+          const displayedB = await pageB.evaluate(() => window.__opscoreDispatcherMapE2E.displayedSpatialFeatureIds());
+          assert.deepEqual(displayedB, [spatialFeatureBId]);
+          assert.deepEqual(renderedB, [spatialFeatureBId], 'MapLibre must render tenant B geometry only');
+          assert.equal(renderedB.includes(spatialFeatureAId), false);
+          assert.deepEqual(pageBErrors, []);
+          await pageB.screenshot({ path: path.join(browserOutputDir, 'dispatcher-map-postgres-authenticated-tenant-b.png'), fullPage: true });
+          await contextB.close();
+
           assert.deepEqual(pageErrors, []);
           fs.writeFileSync(path.join(browserOutputDir, 'report.json'), JSON.stringify({
             schemaVersion: 'opscore.dispatcher-map-authenticated-postgres-browser-e2e.v1',
@@ -610,13 +659,16 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
             browser: await browser.version(),
             viewports: [{ width: 375, height: 812 }, { width: 1366, height: 900 }],
             tenantFeatureCount: 1,
+            tenantBrowserIsolation: { tenantA: renderedA, tenantB: renderedB, status: 'PASS' },
+            forgedOrganizationId: { status: forgedTenantResponse.status, effectiveOrganizationId: forgedTenantResponse.body.organizationId, statusLabel: 'SIGNED_SESSION_CONTEXT_PREVAILED' },
             signedViewportResponses: apiResponses,
             pageErrors,
+            tenantBPageErrors: pageBErrors,
             rtl: 'PASS',
             productionCertification: false
           }, null, 2) + '\n');
           record('dispatcher-map-authenticated-chromium-postgis-render',
-            'Chromium used a real HttpOnly session cookie; rendered the MapLibre canvas and the one authorized PostGIS feature; viewport API returned HTTP 200; responsive layout and RTL passed with no uncaught page errors.');
+            'Two independent Chromium contexts rendered only their own tenant PostGIS feature IDs; client-supplied foreign organizationId did not override signed session context; responsive layout and RTL passed with no uncaught page errors.');
           await context.close();
         } finally {
           await browser.close();
