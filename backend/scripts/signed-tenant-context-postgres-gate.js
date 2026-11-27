@@ -837,6 +837,7 @@ async function main() {
   let candidateRuntimeIdentity = null;
   let ownerConnected = false;
   let candidateProofReport = null;
+  let spatialSignedRlsProof = { status: 'NOT_RUN' };
   let finalCleanupStatus = 'NOT_VERIFIED';
   let finalCleanupResidue = null;
 
@@ -1036,6 +1037,220 @@ async function main() {
       secondaryPoolProof.rawGucTamperingIgnored = 'PASS';
   
   
+    }
+
+    spatialSignedRlsProof = { status: 'SKIPPED_CANDIDATE_REMOTE', reason: 'direct runtime database probes are intentionally not performed in candidate HTTP mode' };
+    if (!candidateMode) {
+      const spatialFunction = 'opscore_security.spatial_features_in_viewport(double precision,double precision,double precision,double precision,integer)';
+      const spatialCatalog = await owner.query(
+        "SELECT pg_get_userbyid(p.proowner) AS function_owner, p.prosecdef AS security_definer, p.proconfig AS function_config, " +
+        "has_table_privilege('opscore_runtime','public.spatial_features','SELECT') AS runtime_direct_select, " +
+        "has_function_privilege('opscore_runtime',$1,'EXECUTE') AS runtime_execute " +
+        "FROM pg_proc p WHERE p.oid=to_regprocedure($1)",
+        [spatialFunction]
+      );
+      if (spatialCatalog.rowCount !== 1
+          || spatialCatalog.rows[0].function_owner !== 'opscore_auth_definer'
+          || spatialCatalog.rows[0].security_definer !== true
+          || spatialCatalog.rows[0].runtime_direct_select !== false
+          || spatialCatalog.rows[0].runtime_execute !== true
+          || !Array.isArray(spatialCatalog.rows[0].function_config)
+          || !spatialCatalog.rows[0].function_config.includes('search_path=pg_catalog, public, opscore_security, pg_temp')
+          || !spatialCatalog.rows[0].function_config.includes('row_security=off')) {
+        throw new Error('SIGNED_SPATIAL_QUERY_FUNCTION_SECURITY_CONTRACT_FAILED');
+      }
+
+      // Use the same real test tenants, users, memberships and sessions already
+      // created by this gate. Each feature creator is a member of its own tenant.
+      await owner.query(
+        'INSERT INTO public.spatial_features(id,organization_id,entity_type,entity_id,feature_key,geom,properties,source,created_by,created_at,updated_at) ' +
+        "SELECT 'signed_gis_' || t.label || '_' || g::text,t.organization_id,'asset','signed_asset_' || g::text,'primary', " +
+        'ST_SetSRID(ST_MakePoint(-74.1 + (((g-1)%200)*0.001),40.6 + (((g-1)/200)*0.001)),4326), ' +
+        "jsonb_build_object('fixture',true,'sequence',g),'signed-context-ci',m.user_id,now(),now() " +
+        "FROM (VALUES ('a',$1),('b',$2)) AS t(label,organization_id) " +
+        'JOIN public.memberships m ON m.organization_id=t.organization_id CROSS JOIN generate_series(1,40000) AS g',
+        [tenantA, tenantB]
+      );
+      await owner.query('ANALYZE public.spatial_features');
+
+      const viewport = [-74.05, 40.61, -74.04, 40.62, 1000];
+      const tenantResults = {};
+      for (const [label, principal, expectedPrefix, foreignTenant] of [
+        ['tenantA', { sessionId: sessionA, userId: userA, tenantId: tenantA }, 'signed_gis_a_', tenantB],
+        ['tenantB', { sessionId: sessionB, userId: userB, tenantId: tenantB }, 'signed_gis_b_', tenantA]
+      ]) {
+        const rows = await withSignedTenantClient(signedContextPool, principal, async (client) => {
+          await client.query(
+            "SELECT set_config('app.tenant_id',$1,true),set_config('app.user_id','forged-spatial-user',true),set_config('app.access_mode','backoffice',true)",
+            [foreignTenant]
+          );
+          return (await client.query(
+            'SELECT id,entity_type,entity_id,feature_key FROM opscore_security.spatial_features_in_viewport($1,$2,$3,$4,$5)',
+            viewport
+          )).rows;
+        });
+        if (!rows.length || rows.some(row => !String(row.id).startsWith(expectedPrefix))
+            || rows.some(row => String(row.id).startsWith(label === 'tenantA' ? 'signed_gis_b_' : 'signed_gis_a_'))) {
+          throw new Error('SIGNED_SPATIAL_TENANT_BOUNDARY_FAILED:' + label + ':' + JSON.stringify({
+            returnedRows: rows.length,
+            foreignRows: rows.filter(row => !String(row.id).startsWith(expectedPrefix)).length
+          }));
+        }
+        tenantResults[label] = { status: 'PASS', returnedRows: rows.length, rawGucTamperingIgnored: true };
+      }
+
+      const directReadDenied = await withSignedTenantClient(
+        signedContextPool,
+        { sessionId: sessionA, userId: userA, tenantId: tenantA },
+        async (client) => {
+          await client.query('SAVEPOINT spatial_direct_read');
+          let denied = false;
+          try { await client.query('SELECT id FROM public.spatial_features LIMIT 1'); }
+          catch (error) {
+            denied = error && error.code === '42501';
+            await client.query('ROLLBACK TO SAVEPOINT spatial_direct_read');
+          }
+          await client.query('RELEASE SAVEPOINT spatial_direct_read');
+          return denied;
+        }
+      );
+      if (directReadDenied !== true) throw new Error('SIGNED_SPATIAL_DIRECT_RUNTIME_READ_NOT_DENIED');
+
+      const unsignedClient = await signedContextPool.connect();
+      let unsignedDenied = false;
+      try {
+        await unsignedClient.query('BEGIN');
+        await unsignedClient.query('SAVEPOINT spatial_unsigned_read');
+        try {
+          await unsignedClient.query(
+            'SELECT count(*) FROM opscore_security.spatial_features_in_viewport($1,$2,$3,$4,$5)',
+            viewport
+          );
+        } catch (error) {
+          unsignedDenied = error && error.code === '42501';
+          await unsignedClient.query('ROLLBACK TO SAVEPOINT spatial_unsigned_read');
+        }
+        await unsignedClient.query('RELEASE SAVEPOINT spatial_unsigned_read');
+        await unsignedClient.query('COMMIT');
+      } finally {
+        try { await unsignedClient.query('ROLLBACK'); } catch (_) {}
+        unsignedClient.release();
+      }
+      if (!unsignedDenied) throw new Error('SIGNED_SPATIAL_UNSIGNED_CONTEXT_NOT_DENIED');
+
+      const invalidViewportRejected = await withSignedTenantClient(
+        signedContextPool,
+        { sessionId: sessionA, userId: userA, tenantId: tenantA },
+        async (client) => {
+          await client.query('SAVEPOINT spatial_invalid_viewport');
+          let rejected = false;
+          try {
+            await client.query(
+              'SELECT count(*) FROM opscore_security.spatial_features_in_viewport($1,$2,$3,$4,$5)',
+              [-74.05, 40.61, -74.04, 40.62, 1001]
+            );
+          } catch (error) {
+            rejected = error && error.code === '22023';
+            await client.query('ROLLBACK TO SAVEPOINT spatial_invalid_viewport');
+          }
+          await client.query('RELEASE SAVEPOINT spatial_invalid_viewport');
+          return rejected;
+        }
+      );
+      if (!invalidViewportRejected) throw new Error('SIGNED_SPATIAL_LIMIT_BOUND_NOT_ENFORCED');
+
+      const latency = await withSignedTenantClient(
+        signedContextPool,
+        { sessionId: sessionA, userId: userA, tenantId: tenantA },
+        async (client) => {
+          const samplesMs = [];
+          let returnedRows = 0;
+          for (let sample = 0; sample < 10; sample += 1) {
+            const started = process.hrtime.bigint();
+            const result = await client.query(
+              'SELECT count(*)::int AS row_count FROM opscore_security.spatial_features_in_viewport($1,$2,$3,$4,$5)',
+              viewport
+            );
+            samplesMs.push(Number(process.hrtime.bigint() - started) / 1e6);
+            returnedRows = Number(result.rows[0].row_count);
+          }
+          const sorted = [...samplesMs].sort((a, b) => a - b);
+          return {
+            sampleCount: samplesMs.length,
+            returnedRows,
+            p50Ms: Number(sorted[Math.floor((sorted.length - 1) * 0.50)].toFixed(3)),
+            p95Ms: Number(sorted[Math.ceil(sorted.length * 0.95) - 1].toFixed(3)),
+            maxMs: Number(sorted[sorted.length - 1].toFixed(3))
+          };
+        }
+      );
+      if (latency.sampleCount !== 10 || latency.returnedRows < 1) {
+        throw new Error('SIGNED_SPATIAL_REPEATED_LATENCY_PROOF_INVALID');
+      }
+
+      // The plan is measured as the SECURITY DEFINER owner with a genuine
+      // application-generated field_request assertion bound to this backend/xid.
+      await owner.query('BEGIN');
+      let planResult;
+      try {
+        const identity = (await owner.query(
+          'SELECT pg_backend_pid() AS backend_pid,pg_current_xact_id()::text AS transaction_id'
+        )).rows[0];
+        const assertion = createSignedTenantContext({
+          principal: { sessionId: sessionA, userId: userA, tenantId: tenantA },
+          backendPid: Number(identity.backend_pid),
+          transactionId: String(identity.transaction_id),
+          env: { OPSC_TENANT_CONTEXT_HMAC_KEY: keyHex, OPSC_TENANT_CONTEXT_KEY_ID: keyId }
+        });
+        await bindAssertion(owner, assertion);
+        await owner.query('SET LOCAL ROLE opscore_auth_definer');
+        planResult = await owner.query(
+          'EXPLAIN (ANALYZE,BUFFERS,FORMAT JSON) ' +
+          'SELECT sf.id FROM public.spatial_features AS sf ' +
+          'WHERE sf.organization_id=$1 ' +
+          'AND sf.geom && public.ST_MakeEnvelope(-74.05,40.61,-74.04,40.62,4326) ' +
+          'AND public.ST_Intersects(sf.geom,public.ST_MakeEnvelope(-74.05,40.61,-74.04,40.62,4326)) ' +
+          'ORDER BY sf.id LIMIT 1000',
+          [tenantA]
+        );
+        await owner.query('COMMIT');
+      } catch (error) {
+        try { await owner.query('ROLLBACK'); } catch (_) {}
+        throw error;
+      }
+      const planRoot = planResult && planResult.rows[0] && planResult.rows[0]['QUERY PLAN']
+        && planResult.rows[0]['QUERY PLAN'][0] && planResult.rows[0]['QUERY PLAN'][0].Plan;
+      const planIndexes = [];
+      const visitPlan = (node) => {
+        if (!node || typeof node !== 'object') return;
+        if (node['Index Name']) planIndexes.push(node['Index Name']);
+        for (const child of node.Plans || []) visitPlan(child);
+      };
+      visitPlan(planRoot);
+      if (!planIndexes.includes('idx_spatial_features_geom_gist')) {
+        throw new Error('SIGNED_SPATIAL_QUERY_PLAN_DID_NOT_USE_GIST:' + JSON.stringify(planIndexes));
+      }
+      const planMetrics = planResult.rows[0]['QUERY PLAN'][0];
+      spatialSignedRlsProof = {
+        status: 'PASS',
+        runtimeRole: 'opscore_runtime',
+        securityDefinerOwner: 'opscore_auth_definer',
+        runtimeDirectTableRead: 'DENIED',
+        unsignedContext: 'DENIED',
+        invalidLimit: 'REJECTED',
+        tenantResults,
+        rawGucTamperingIgnored: true,
+        plan: {
+          indexNames: planIndexes,
+          gistUsed: true,
+          actualRows: Number(planRoot['Actual Rows']),
+          sharedHitBlocks: Number(planRoot['Shared Hit Blocks'] || 0),
+          sharedReadBlocks: Number(planRoot['Shared Read Blocks'] || 0),
+          executionMs: Number(Number(planMetrics['Execution Time']).toFixed(3))
+        },
+        repeatedLatency: latency,
+        fixtureRowsPerTenant: 40000
+      };
     }
 
     let port;
@@ -4747,6 +4962,7 @@ async function main() {
         tenantBHttpSession: 'PASS',
         signedAuthenticatedSessionRoutes: signedSessionAutobindHttpProof,
         signedSecondaryPoolTenantRoutes: secondaryPoolProof,
+        signedSpatialViewportQuery: spatialSignedRlsProof,
         signedWorkOrdersTenantA: 'PASS',
         signedWorkOrdersTenantB: 'PASS',
         signedWorkOrderDetailTenantA: 'PASS',
@@ -5260,6 +5476,7 @@ async function main() {
         String(cleanupError.code || cleanupError.message || cleanupError).slice(0, 500) + '\\n');
       process.exitCode = 1;
     }
+    try { await owner.query('DELETE FROM public.spatial_features WHERE organization_id = ANY($1::text[])', [synthetic.tenantIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.users WHERE id = ANY($1::text[])', [synthetic.userIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.organizations WHERE id = ANY($1::text[])', [synthetic.tenantIds]); } catch (_) {}
     if (!candidateMode) {
@@ -5313,7 +5530,8 @@ async function main() {
           "(SELECT COUNT(*)::int FROM public.idempotency_records WHERE organization_id = ANY($1::text[]) AND idempotency_key = ANY($18::text[])) AS idempotency_records, " +
           "(SELECT COUNT(*)::int FROM public.operation_envelopes WHERE organization_id = ANY($1::text[]) AND idempotency_key = ANY($18::text[])) AS operation_envelopes, " +
           "(SELECT COUNT(*)::int FROM public.activity_log WHERE organization_id = ANY($1::text[])) AS activity_log, " +
-          "(SELECT COUNT(*)::int FROM public.audit_log WHERE organization_id = ANY($1::text[])) AS audit_log",
+          "(SELECT COUNT(*)::int FROM public.audit_log WHERE organization_id = ANY($1::text[])) AS audit_log, " +
+          "(SELECT COUNT(*)::int FROM public.spatial_features WHERE organization_id = ANY($1::text[])) AS spatial_features",
           [
             synthetic.tenantIds, synthetic.userIds, synthetic.sessionIds, synthetic.workOrderIds,
             synthetic.customerIds, synthetic.siteIds, synthetic.assetIds, synthetic.serviceLineIds,
