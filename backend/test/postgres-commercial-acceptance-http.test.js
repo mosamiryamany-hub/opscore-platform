@@ -608,10 +608,28 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
               && ready.layers.includes('tenant-spatial-points'));
           }, null, { timeout: 30000 });
           await page.evaluate(() => window.__opscoreDispatcherMapE2E.focusTenantFeature(31.2, 30.0));
-          await page.waitForFunction(expected => {
-            const probe = window.__opscoreDispatcherMapE2E;
-            return Boolean(probe && probe.renderedSpatialFeatureIds().includes(expected));
-          }, spatialFeatureAId, { timeout: 10000 });
+          try {
+            await page.waitForFunction(expected => {
+              const probe = window.__opscoreDispatcherMapE2E;
+              return Boolean(probe && probe.renderedSpatialFeatureIds().includes(expected));
+            }, spatialFeatureAId, { timeout: 10000 });
+          } catch (renderError) {
+            const renderDiagnosticsA = await page.evaluate(() => {
+              const probe = window.__opscoreDispatcherMapE2E;
+              return {
+                readiness: probe?.mapReadiness() || null,
+                displayedFeatureIds: probe?.displayedSpatialFeatureIds() || [],
+                renderedFeatureIds: probe?.renderedSpatialFeatureIds() || [],
+                renderedAtPointIds: probe?.renderedSpatialFeatureIdsAt(31.2, 30.0) || [],
+                projectedPoint: probe?.projectedPointAt(31.2, 30.0) || null,
+                renderedDiagnostics: probe?.renderedSpatialFeatureDiagnostics(31.2, 30.0) || null
+              };
+            }).catch(() => null);
+            fs.writeFileSync(path.join(browserOutputDir, 'tenant-a-render-diagnostics.json'),
+              JSON.stringify({ error: renderError.message, diagnostics: renderDiagnosticsA }, null, 2) + '\\n');
+            await page.screenshot({ path: path.join(browserOutputDir, 'tenant-a-render-timeout.png'), fullPage: true }).catch(() => {});
+            throw new Error('TENANT_A_MAPLIBRE_FEATURE_NOT_RENDERED: ' + JSON.stringify(renderDiagnosticsA));
+          }
           const renderedLayerIdsA = await page.evaluate(() => window.__opscoreDispatcherMapE2E.renderedSpatialFeatureIds());
           assert.deepEqual(renderedLayerIdsA, [spatialFeatureAId],
             'tenant A MapLibre queryRenderedFeatures must contain only tenant A PostGIS geometry');
