@@ -18,11 +18,18 @@ test('PostgreSQL acceptance cleanup never performs a table-wide users delete', (
 });
 
 test('bootstrap owner identity is tracked before the test can fail later', () => {
-  const idLine = source.indexOf('const ownerAId =');
+  const idLine = source.indexOf('let ownerAId =');
   const trackLine = source.indexOf('created.users.push(ownerAId)', idLine);
   const assertLine = source.indexOf("assert.ok(ownerAId, 'bootstrap must return the first owner identity')", idLine);
-  assert.ok(idLine >= 0 && trackLine > idLine && assertLine > trackLine,
-    'the owner must be registered for targeted cleanup before the following assertion');
+  const canonicalIdentityLine = source.indexOf('const authenticatedOwnerAId = x.data.user.id', assertLine);
+  const canonicalTrackLine = source.indexOf('created.users.push(authenticatedOwnerAId)', canonicalIdentityLine);
+  const canonicalAssignLine = source.indexOf('ownerAId = authenticatedOwnerAId', canonicalTrackLine);
+  assert.ok(idLine >= 0 && trackLine > idLine && assertLine > trackLine
+      && canonicalIdentityLine > assertLine && canonicalTrackLine > canonicalIdentityLine
+      && canonicalAssignLine > canonicalTrackLine,
+    'bootstrap and authenticated /me identities must both be tracked before canonical identity is used for tenant foreign keys');
+  assert.match(source, /ownerAMembership\.rowCount, 1/,
+    'the canonical owner must have a persisted tenant membership before GIS fixtures are inserted');
 });
 
 test('tenant B fixture IDs are tracked before any fixture write', () => {
