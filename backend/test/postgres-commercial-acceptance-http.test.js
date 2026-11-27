@@ -536,6 +536,17 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           const networkResponses = [];
           const apiResponses = [];
           const page = await context.newPage();
+          let viewportRaceRequestCount = 0;
+          let delayedViewportResponseReleased = false;
+          await page.route('**/api/v1/map/viewport?*', async route => {
+            const requestNumber = ++viewportRaceRequestCount;
+            const response = await route.fetch();
+            if (requestNumber === 2) {
+              await new Promise(resolve => setTimeout(resolve, 1200));
+              delayedViewportResponseReleased = true;
+            }
+            await route.fulfill({ response });
+          });
           page.on('pageerror', error => pageErrors.push(error.message));
           page.on('console', entry => {
             if (entry.type() === 'error') consoleErrors.push(entry.text());
@@ -609,6 +620,22 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           const viewportRequestsAfterBurst = await page.evaluate(() => window.__opscoreDispatcherMapE2E.viewportRequestCount());
           assert.equal(viewportRequestsAfterBurst - viewportRequestsBeforeBurst, 1,
             'three rapid MapLibre moveend events must collapse to one debounced viewport request');
+
+          // Exercise out-of-order completion against the real API: delay only the
+          // first of two real upstream responses. The later response must remain
+          // authoritative after the delayed response finally arrives.
+          await page.evaluate(() => window.__opscoreDispatcherMapE2E.refreshViewportNow());
+          await page.waitForFunction(() => window.__opscoreDispatcherMapE2E.viewportRequestCount() >= 3, null, { timeout: 10000 });
+          await page.evaluate(() => window.__opscoreDispatcherMapE2E.refreshViewportNow());
+          await page.waitForFunction(() => window.__opscoreDispatcherMapE2E.lastAppliedViewportSequence()
+            === window.__opscoreDispatcherMapE2E.viewportSequence(), null, { timeout: 10000 });
+          const latestAppliedBeforeRelease = await page.evaluate(() => window.__opscoreDispatcherMapE2E.lastAppliedViewportSequence());
+          await page.waitForFunction(() => window.__opscoreDispatcherMapE2E.viewportRequestCount() >= 4, null, { timeout: 10000 });
+          await page.waitForTimeout(1400);
+          const latestAppliedAfterRelease = await page.evaluate(() => window.__opscoreDispatcherMapE2E.lastAppliedViewportSequence());
+          assert.equal(delayedViewportResponseReleased, true, 'the delayed real viewport response must be released');
+          assert.equal(latestAppliedAfterRelease, latestAppliedBeforeRelease,
+            'a stale response completing last must not replace the newest applied viewport sequence');
           await page.screenshot({ path: path.join(browserOutputDir, 'dispatcher-map-postgres-authenticated-375.png'), fullPage: true });
           await page.setViewportSize({ width: 1366, height: 900 });
           const desktopLayout = await page.evaluate(() => ({
@@ -667,6 +694,7 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
             tenantFeatureCount: 1,
             tenantBrowserIsolation: { tenantA: renderedA, tenantB: renderedB, status: 'PASS' },
             viewportDebounce: { burstEvents: 3, requests: viewportRequestsAfterBurst - viewportRequestsBeforeBurst, status: 'PASS' },
+            viewportOutOfOrder: { latestAppliedBeforeRelease: latestAppliedBeforeRelease, latestAppliedAfterRelease: latestAppliedAfterRelease, delayedResponseReleased: delayedViewportResponseReleased, status: 'PASS' },
             forgedOrganizationId: { status: forgedTenantResponse.status, effectiveOrganizationId: forgedTenantResponse.body.organizationId, statusLabel: 'SIGNED_SESSION_CONTEXT_PREVAILED' },
             signedViewportResponses: apiResponses,
             pageErrors,
