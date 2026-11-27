@@ -529,3 +529,49 @@ test('legacy app-role migration reconciliation requires complete catalog-equival
   });
   assert.equal(rejected.verified, false);
 });
+
+test('self-hosted migrations require an operator-pinned host, database, direct TLS and dedicated migrator role', async () => {
+  const selfHost = 'db.customer.example';
+  const url = new URL('postgresql://opscore_migrator:never-print-this@' + selfHost + '/' + database + '?sslmode=verify-full');
+  const env = {
+    OPSC_MIGRATION_TARGET_CLASS: 'self-hosted',
+    OPSC_MIGRATION_EXPECTED_DATABASE: database,
+    OPSC_MIGRATION_EXPECTED_HOST: selfHost,
+    OPSC_MIGRATION_EXPECTED_OWNER_ROLE: 'opscore_migrator',
+    NODE_ENV: 'production',
+    OPSC_PG_SSL_MODE: 'verify-full'
+  };
+  assert.equal(expectedMigrationOwnerRole(env), 'opscore_migrator');
+  assert.equal(assertTarget(url, database, false, env), 'self-hosted-explicit-target');
+  assert.deepEqual(await verifyNeonEndpointIdentity(url, env), {
+    verified: false,
+    skipped: true,
+    reason: 'operator-pinned-self-hosted-target',
+    host: selfHost,
+    database,
+    verification: 'EXPLICIT_HOST_DATABASE_AND_TLS_PIN'
+  });
+  const confirmed = {
+    ...env,
+    OPSC_MIGRATION_CONFIRM_DATABASE: database,
+    OPSC_MIGRATION_CONFIRM_HOST: selfHost,
+    OPSC_MIGRATION_ALLOW_SELF_HOSTED: '1'
+  };
+  assert.equal(assertTarget(url, database, true, confirmed), 'self-hosted-explicit-target');
+  assert.throws(() => assertTarget(url, database, true, {
+    ...confirmed,
+    OPSC_MIGRATION_ALLOW_SELF_HOSTED: undefined
+  }), /MIGRATION_SELF_HOSTED_APPLY_OPT_IN_REQUIRED/);
+  assert.throws(() => assertTarget(
+    new URL('postgresql://opscore_migrator:x@db.other.example/' + database + '?sslmode=verify-full'),
+    database, false, env
+  ), /MIGRATION_ENDPOINT_HOST_MISMATCH/);
+  assert.throws(() => assertTarget(
+    new URL('postgresql://opscore_migrator:x@' + selfHost + '/' + database + '?sslmode=require'),
+    database, false, env
+  ), /MIGRATION_SELF_HOSTED_TLS_VERIFY_FULL_REQUIRED/);
+  assert.throws(() => expectedMigrationOwnerRole({
+    ...env,
+    OPSC_MIGRATION_EXPECTED_OWNER_ROLE: 'neondb_owner'
+  }), /MIGRATION_OWNER_ROLE_NOT_ALLOWED/);
+});
