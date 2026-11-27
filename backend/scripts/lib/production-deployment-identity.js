@@ -6,7 +6,7 @@ const DEPLOYMENT_RE = /^dpl_[A-Za-z0-9]+$/;
 const APPROVED_PRODUCTION_ORIGIN = 'https://opscore-platform.vercel.app';
 
 
-const CANDIDATE_HOST_RE = /^opscore-platform-[a-z0-9-]+-(?:mosamiryamany-1692|fiber-nexus1)\.vercel\.app$/;
+const CANDIDATE_HOST_RE = /^opscore-platform-[a-z0-9-]+-(?:mosamiryamany-1692|fiber-nexus)\.vercel\.app$/;
 
 function candidateProbeOrigin(base, env = process.env) {
   let url;

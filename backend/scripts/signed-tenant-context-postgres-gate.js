@@ -317,7 +317,7 @@ function candidateOrigin(value) {
   const host = url.hostname.toLowerCase();
   const allowedSuffixes = [
     '-mosamiryamany-1692.vercel.app',
-    '-fiber-nexus1.vercel.app'
+    '-fiber-nexus.vercel.app'
   ];
   const hasAllowedSuffix = allowedSuffixes.some((suffix) => host.endsWith(suffix));
   if (url.protocol !== 'https:'

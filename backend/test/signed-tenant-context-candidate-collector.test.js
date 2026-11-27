@@ -28,7 +28,7 @@ const signedRouteManifest = JSON.parse(manifestBytes.toString('utf8'));
 const routeInventory = JSON.parse(inventoryBytes.toString('utf8'));
 
 const BASE = {
-  OPSC_SIGNED_CONTEXT_CANDIDATE_HTTP_ORIGIN: 'https://opscore-platform-candidate123-fiber-nexus1.vercel.app',
+  OPSC_SIGNED_CONTEXT_CANDIDATE_HTTP_ORIGIN: 'https://opscore-platform-candidate123-fiber-nexus.vercel.app',
   OPSC_SIGNED_CONTEXT_CANDIDATE_PROBE_TOKEN: 'a'.repeat(64),
   VERCEL_TRUSTED_OIDC_TOKEN: 'header.payload.signature',
   VERCEL_ENV: 'production',
@@ -41,7 +41,7 @@ const BASE = {
 
 test('Vercel protected curl arguments are separated from Vercel CLI options', () => {
   const args = buildVercelCurlArgs(
-    new URL('https://opscore-platform-candidate123-fiber-nexus1.vercel.app/api/v1/customers'),
+    new URL('https://opscore-platform-candidate123-fiber-nexus.vercel.app/api/v1/customers'),
     'post',
     { Authorization: 'Bearer test-token', 'Content-Type': 'application/json' },
     '{"id":1}',
@@ -49,7 +49,7 @@ test('Vercel protected curl arguments are separated from Vercel CLI options', ()
   );
   assert.deepEqual(args, [
     'curl',
-    'https://opscore-platform-candidate123-fiber-nexus1.vercel.app/api/v1/customers',
+    'https://opscore-platform-candidate123-fiber-nexus.vercel.app/api/v1/customers',
     '--',
     '-sS',
     '-i',
@@ -69,7 +69,7 @@ test('Vercel protected curl arguments are separated from Vercel CLI options', ()
 test('candidate origin accepts only an HTTPS unaliased Vercel deployment for this project/team', () => {
   assert.equal(
     candidateOrigin(BASE.OPSC_SIGNED_CONTEXT_CANDIDATE_HTTP_ORIGIN),
-    'https://opscore-platform-candidate123-fiber-nexus1.vercel.app'
+    'https://opscore-platform-candidate123-fiber-nexus.vercel.app'
   );
   for (const value of [
     'https://opscore-platform.vercel.app',
@@ -85,7 +85,7 @@ test('candidate origin accepts only an HTTPS unaliased Vercel deployment for thi
 
 test('candidate probe configuration requires Production plus an active hold and no release/autobind', () => {
   assert.equal(validateCandidateProbeEnvironment(BASE),
-    'https://opscore-platform-candidate123-fiber-nexus1.vercel.app');
+    'https://opscore-platform-candidate123-fiber-nexus.vercel.app');
 
   const blocked = [
     { OPSC_PRODUCTION_HOLD: 'false' },
