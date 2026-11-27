@@ -612,11 +612,17 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           const projectedA = await page.evaluate(() => window.__opscoreDispatcherMapE2E.projectedPointAt(31.2, 30.0));
           const canvasPngA = await page.locator('.maplibregl-canvas').screenshot();
           fs.writeFileSync(path.join(browserOutputDir, 'tenant-a-maplibre-canvas.png'), canvasPngA);
-          const canvasShotA = PNG.sync.read(canvasPngA);
-          const pixelAX = Math.max(0, Math.min(canvasShotA.width - 1, Math.round(projectedA.x * canvasShotA.width / projectedA.clientWidth)));
-          const pixelAY = Math.max(0, Math.min(canvasShotA.height - 1, Math.round(projectedA.y * canvasShotA.height / projectedA.clientHeight)));
-          const pixelAOffset = (pixelAY * canvasShotA.width + pixelAX) * 4;
-          const renderedPixelA = { x: pixelAX, y: pixelAY, rgba: Array.from(canvasShotA.data.slice(pixelAOffset, pixelAOffset + 4)) };
+          const canvasBoxA = await page.locator('.maplibregl-canvas').boundingBox();
+          const pageMetricsA = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight }));
+          const pagePngA = await page.screenshot({ fullPage: true });
+          fs.writeFileSync(path.join(browserOutputDir, 'tenant-a-full-page-render.png'), pagePngA);
+          const pageShotA = PNG.sync.read(pagePngA);
+          const pageScaleAX = pageShotA.width / pageMetricsA.width;
+          const pageScaleAY = pageShotA.height / pageMetricsA.height;
+          const pixelAX = Math.max(0, Math.min(pageShotA.width - 1, Math.round((canvasBoxA.x + projectedA.x) * pageScaleAX)));
+          const pixelAY = Math.max(0, Math.min(pageShotA.height - 1, Math.round((canvasBoxA.y + projectedA.y) * pageScaleAY)));
+          const pixelAOffset = (pixelAY * pageShotA.width + pixelAX) * 4;
+          const renderedPixelA = { x: pixelAX, y: pixelAY, rgba: Array.from(pageShotA.data.slice(pixelAOffset, pixelAOffset + 4)) };
           assert.ok(renderedPixelA.rgba[0] >= 100 && renderedPixelA.rgba[0] <= 220
             && renderedPixelA.rgba[1] >= 80 && renderedPixelA.rgba[1] <= 200
             && renderedPixelA.rgba[2] >= 220 && renderedPixelA.rgba[3] === 255,
@@ -744,11 +750,17 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           const projectedB = await pageB.evaluate(() => window.__opscoreDispatcherMapE2E.projectedPointAt(31.25, 30.05));
           const canvasPngB = await pageB.locator('.maplibregl-canvas').screenshot();
           fs.writeFileSync(path.join(browserOutputDir, 'tenant-b-maplibre-canvas.png'), canvasPngB);
-          const canvasShotB = PNG.sync.read(canvasPngB);
-          const pixelBX = Math.max(0, Math.min(canvasShotB.width - 1, Math.round(projectedB.x * canvasShotB.width / projectedB.clientWidth)));
-          const pixelBY = Math.max(0, Math.min(canvasShotB.height - 1, Math.round(projectedB.y * canvasShotB.height / projectedB.clientHeight)));
-          const pixelBOffset = (pixelBY * canvasShotB.width + pixelBX) * 4;
-          const renderedPixelB = { x: pixelBX, y: pixelBY, rgba: Array.from(canvasShotB.data.slice(pixelBOffset, pixelBOffset + 4)) };
+          const canvasBoxB = await pageB.locator('.maplibregl-canvas').boundingBox();
+          const pageMetricsB = await pageB.evaluate(() => ({ width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight }));
+          const pagePngB = await pageB.screenshot({ fullPage: true });
+          fs.writeFileSync(path.join(browserOutputDir, 'tenant-b-full-page-render.png'), pagePngB);
+          const pageShotB = PNG.sync.read(pagePngB);
+          const pageScaleBX = pageShotB.width / pageMetricsB.width;
+          const pageScaleBY = pageShotB.height / pageMetricsB.height;
+          const pixelBX = Math.max(0, Math.min(pageShotB.width - 1, Math.round((canvasBoxB.x + projectedB.x) * pageScaleBX)));
+          const pixelBY = Math.max(0, Math.min(pageShotB.height - 1, Math.round((canvasBoxB.y + projectedB.y) * pageScaleBY)));
+          const pixelBOffset = (pixelBY * pageShotB.width + pixelBX) * 4;
+          const renderedPixelB = { x: pixelBX, y: pixelBY, rgba: Array.from(pageShotB.data.slice(pixelBOffset, pixelBOffset + 4)) };
           assert.ok(renderedPixelB.rgba[0] >= 100 && renderedPixelB.rgba[0] <= 220
             && renderedPixelB.rgba[1] >= 80 && renderedPixelB.rgba[1] <= 200
             && renderedPixelB.rgba[2] >= 220 && renderedPixelB.rgba[3] === 255,
