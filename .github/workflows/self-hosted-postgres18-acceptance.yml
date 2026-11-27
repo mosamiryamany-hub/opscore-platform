@@ -96,7 +96,7 @@ jobs:
             fi
             sleep 2
           done
-          docker exec opscore-self-hosted-pg18 pg_isready -U postgres -d opscore
+          docker exec opscore-self-hosted-pg18 pg_isready -h 127.0.0.1 -U postgres -d opscore
           docker logs opscore-self-hosted-pg18
 
       - name: Install backend dependencies
