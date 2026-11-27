@@ -86,12 +86,13 @@ function normalizeTestcaseIdentity(testcaseXml,file,ordinal){
 
 function junitXml(results) {
   const caseXml = [];
-  const expectedTests = results.reduce((total, result) => total + (result.tests || 0), 0);
+  let expectedTests = 0;
   const perFileCounts = [];
   for (const result of results) {
     const xml = result.junitContent || '';
     const matches = xml.match(/<testcase\b[^>]*\/>|<testcase\b[^>]*>[\s\S]*?<\/testcase>/g) || [];
     const tapCases = result.cases || [];
+    expectedTests += Math.max(result.tests || 0, matches.length, tapCases.length);
     if (result.tests > 0 && matches.length === result.tests) {
       matches.forEach((item, index) => caseXml.push(normalizeTestcaseIdentity(item, result.file, index + 1)));
       continue;
@@ -119,6 +120,13 @@ function junitXml(results) {
           else caseXml.push('<testcase ' + attrs + '/>');
         }
       }
+    }
+    // A timeout is a failed test outcome even if node:test emitted only partial TAP.
+    // Preserve completed cases and add one explicit synthetic failure testcase.
+    if (result.timedOut && !result.completedWithOpenHandles) {
+      const attrs = 'classname="' + xmlEscape(result.file) + '" name="TIMEOUT - ' + xmlEscape(result.file) + '"';
+      caseXml.push('<testcase ' + attrs + '><failure message="TEST_FILE_TIMEOUT">The test file exceeded its configured per-file timeout before completion.</failure></testcase>');
+      expectedTests += 1;
     }
   }
   const failures = caseXml.filter(item => /<failure\b/.test(item)).length;
