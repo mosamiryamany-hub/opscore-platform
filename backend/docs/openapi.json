@@ -50,14 +50,29 @@
             "type": "boolean"
           },
           "customer": {
-            "oneOf": [
-              {
-                "$ref": "#/components/schemas/ContactCenterCRMCustomer"
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^cus_"
               },
-              {
-                "type": "null"
+              "name": {
+                "type": "string"
+              },
+              "email": {
+                "type": "string",
+                "nullable": true
+              },
+              "phone": {
+                "type": "string",
+                "nullable": true
+              },
+              "externalRef": {
+                "type": "string",
+                "nullable": true
               }
-            ]
+            }
           }
         }
       },
