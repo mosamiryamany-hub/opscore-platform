@@ -169,7 +169,7 @@ async function main() {
   const isCandidateMode = String(process.env.OPSC_PRODUCTION_CANDIDATE_MODE || '').trim().toLowerCase() === 'true';
   if (httpUrl.origin !== httpBase || httpUrl.protocol !== 'https:') throw new Error('PRODUCTION_HTTP_ORIGIN_NOT_APPROVED');
   if (isCandidateMode) candidateProbeOrigin(httpBase, process.env);
-  else if (httpUrl.hostname !== 'opscore-platform.vercel.app') throw new Error('PRODUCTION_HTTP_ORIGIN_NOT_APPROVED');
+  else if (httpUrl.hostname !== 'opscore-platform.vercel.app' && !/^opscore-platform(-[a-z0-9]+)?-fiber-nexus\.vercel\.app$/.test(httpUrl.hostname)) throw new Error('PRODUCTION_HTTP_ORIGIN_NOT_APPROVED');
   const deploymentIdentity = await readProductionDeploymentIdentity(
     httpBase,
     String(process.env.OPSC_EXPECTED_PRODUCTION_COMMIT_SHA || '')
