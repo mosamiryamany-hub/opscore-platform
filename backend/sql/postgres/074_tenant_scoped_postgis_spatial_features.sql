@@ -34,13 +34,14 @@ CREATE TABLE spatial_features (
   revision BIGINT NOT NULL DEFAULT 1 CHECK (revision > 0),
   observed_at TIMESTAMPTZ,
   expires_at TIMESTAMPTZ,
-  created_by TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  created_by TEXT NOT NULL,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   CONSTRAINT spatial_features_geom_valid CHECK (
     NOT ST_IsEmpty(geom) AND ST_IsValid(geom) AND ST_NDims(geom) = 2
   ),
   CONSTRAINT spatial_features_expiry_valid CHECK (expires_at IS NULL OR observed_at IS NULL OR expires_at > observed_at),
+  CONSTRAINT spatial_features_created_by_membership_fkey FOREIGN KEY (created_by, organization_id) REFERENCES memberships(user_id, organization_id) ON DELETE RESTRICT,
   CONSTRAINT spatial_features_entity_key_unique UNIQUE (organization_id, entity_type, entity_id, feature_key)
 );
 
