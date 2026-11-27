@@ -27,7 +27,7 @@ const backendRoot = path.resolve(__dirname, '..');
 const migrationPath = path.join(backendRoot, 'sql', 'postgres', '031_digital_twin_chain_hardening.sql');
 const runtimeGrantMigrationPath = path.join(backendRoot, 'sql', 'postgres', '052_runtime_policy_function_grants.sql');
 const controlPlanePolicyMigrationPath = path.join(backendRoot, 'sql', 'postgres', '053_control_plane_restrictive_tenant_guards.sql');
-const spatialFeatureMigrationPath = path.join(backendRoot, 'sql', 'postgres', '054_tenant_scoped_postgis_spatial_features.sql');
+const spatialFeatureMigrationPath = path.join(backendRoot, 'sql', 'postgres', '074_tenant_scoped_postgis_spatial_features.sql');
 const reportPath = path.join(backendRoot, 'docs', 'verification', 'POSTGRES_LIVE_RLS_RESULT.json');
 
 function emit(status, details = {}, exitCode = 0) {
@@ -590,7 +590,7 @@ async function main() {
     await client.query('RESET ROLE');
     await client.query('ROLLBACK');
     inTransaction = false;
-    emit('PASS', { database: info.database, serverVersion: info.server_version, executedChecks: checks, checkCount: checks.length, note: 'This gate runs on the disposable PostgreSQL 18 service created by GitHub Actions. It tests migrations 031, 052, 053 and 054 (plus the existing 059 metadata-readonly gate) including native PostGIS spatial-feature tenant policies for twin, appointment, work-order, control-plane and system operational tables under the opscore_runtime role without inheriting opscore_app in a rollback-only isolated schema. It does not connect to Neon and does not certify all production data or production isolation.' });
+    emit('PASS', { database: info.database, serverVersion: info.server_version, executedChecks: checks, checkCount: checks.length, note: 'This gate runs on the disposable PostgreSQL 18 service created by GitHub Actions. It tests migrations 031, 052, 053 and 074 (plus the existing 059 metadata-readonly gate) including native PostGIS spatial-feature tenant policies for twin, appointment, work-order, control-plane and system operational tables under the opscore_runtime role without inheriting opscore_app in a rollback-only isolated schema. It does not connect to Neon and does not certify all production data or production isolation.' });
   } catch (error) {
     if (inTransaction) {
       try { await client.query('ROLLBACK'); } catch (rollbackError) {
