@@ -68,6 +68,11 @@ p.platformTwin=function(ctx,opts={}){
  if(opts.persist!==false){
   const snapshotId=id('twin');
   const persist=()=>{
+   // PostgreSQL transactions are READ COMMITTED, so two concurrent snapshot writers
+   // can otherwise read the same chain head before either appends its next event.
+   // A transaction-scoped, tenant-keyed advisory lock serializes only this tenant's
+   // chain append; SQLite already serializes writers through BEGIN IMMEDIATE.
+   if(this.db.engine==='postgres')this.db.prepare("SELECT pg_advisory_xact_lock(hashtextextended('opscore.digital-twin.chain:' || ?,0))").get(ctx.organizationId);
    this.db.prepare('INSERT INTO operational_twin_snapshots(id,organization_id,snapshot_kind,state_json,state_sha256,source_counts_json,created_by,created_at) VALUES(?,?,?,?,?,?,?,?)').run(snapshotId,ctx.organizationId,'on_demand',JSON.stringify(state),stateSha,JSON.stringify(counts),ctx.userId,state.generatedAt);
    const previous=this.db.prepare('SELECT sequence_no,event_hash FROM operational_twin_chain_events WHERE organization_id=? ORDER BY sequence_no DESC LIMIT 1').get(ctx.organizationId);
    const sequenceNo=previous?Number(previous.sequence_no)+1:1;
