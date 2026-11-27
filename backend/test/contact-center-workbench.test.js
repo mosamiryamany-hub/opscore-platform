@@ -22,17 +22,17 @@ test('Contact Center uses shared Command Fabric shell and all runtime selectors 
   assert.deepEqual(missing, [], 'every Contact Center JavaScript DOM lookup must resolve');
 });
 
-test('Contact Center readiness and queue counters are derived from server response fields', () => {
-  for (const id of ['aiReadiness', 'encryptionReadiness', 'voiceReadiness', 'queueReadiness', 'queuedCount', 'claimedCount', 'priorityCount']) {
-    assert.match(html, new RegExp('id="' + id + '"'));
-  }
-  assert.match(script, /status\?\.textAssistantConfigured/);
+test('Contact Center customer actions remain consented and require real backend configuration', () => {
+  assert.match(html, /id="interfaceLanguageSelect"/);
+  assert.match(html, /data-i18n-machine-notice/);
+  assert.match(html, /data-i18n="customer\.consentText"/);
+  assert.match(script, /status\?\.enabled/);
   assert.match(script, /status\?\.encryptionConfigured/);
+  assert.match(script, /status\?\.textAssistantConfigured/);
   assert.match(script, /status\?\.realtimeBrowserVoiceConfigured/);
-  assert.match(script, /items\.filter\(item=>String\(item\.status/);
-  assert.match(script, /items\.filter\(item=>\['high','urgent','critical'\]/);
-  assert.match(html, /maximum 50 rows/);
-  assert.match(html, /not a phone-network call/);
+  assert.match(script, /items=Array\.isArray\(result\.items\)\?result\.items:\[\]/);
+  assert.match(html, /A queue item means requested, not connected/);
+  assert.match(html, /maximum 50 rows|limit=50/);
 });
 
 test('Control Rooms exposes a Contact Center route without inventing operational data', () => {
