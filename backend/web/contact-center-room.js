@@ -3,19 +3,36 @@
   'use strict';
   const $ = (id) => document.getElementById(id);
   const state = { items: [], selected: null, conversation: null, currentUserId: null, busy: false, queueError: null };
-  function tx(key, fallback) {
-    try {
-      if (window.OpsCoreI18n && typeof window.OpsCoreI18n.t === 'function') {
-        const value = window.OpsCoreI18n.t(key);
-        if (value && value !== key) return value;
-      }
-    } catch {}
-    return fallback || key;
+
+  const ROOM_I18N = {
+    en: {
+      authRequired: 'Sign in through the Control Plane, then return to this room.',
+      authReady: 'Operator session active',
+      authChecking: 'Checking operator access',
+      forbidden: 'Your current role cannot operate the human escalation queue.',
+      apiUnconfirmed: 'The API did not confirm access. No queue data or action is assumed.',
+      replyAccepted: 'Human reply accepted and transcript reloaded from the API.',
+      resolveNoteRequired: 'Enter a resolution note before closing this handoff.',
+      resolved: 'Resolution accepted by the server. Queue refreshed.'
+    },
+    ar: {
+      authRequired: 'سجّل الدخول عبر لوحة التحكم ثم ارجع إلى هذه الغرفة.',
+      authReady: 'جلسة الموظف نشطة',
+      authChecking: 'جارٍ التحقق من صلاحية الموظف',
+      forbidden: 'دورك الحالي لا يسمح بتشغيل طابور التصعيد البشري.',
+      apiUnconfirmed: 'لم يؤكد الخادم صلاحية الوصول. لا تُفترض بيانات طابور أو إجراء.',
+      replyAccepted: 'قُبل رد الموظف وأُعيد تحميل المحادثة من الواجهة البرمجية.',
+      resolveNoteRequired: 'أدخل ملاحظة الإغلاق قبل إغلاق هذا التصعيد.',
+      resolved: 'قَبل الخادم الإغلاق. تم تحديث الطابور.'
+    }
+  };
+  function roomLocale() {
+    const lang = String(document.documentElement.lang || 'en').toLowerCase();
+    return lang.startsWith('ar') ? 'ar' : 'en';
   }
-  function applyRoomI18n() {
-    try {
-      if (window.OpsCoreI18n && typeof window.OpsCoreI18n.apply === 'function') window.OpsCoreI18n.apply();
-    } catch {}
+  function tx(key, fallback) {
+    const pack = ROOM_I18N[roomLocale()] || ROOM_I18N.en;
+    return pack[key] || fallback || key;
   }
 
   function setText(id, value) {
@@ -48,9 +65,9 @@
     return payload;
   }
   function accessMessage(error) {
-    if (error?.status === 401 || error?.code === 'AUTH_REQUIRED') return tx('room.authRequired', 'Sign in through the Control Plane, then return to this room.');
-    if (error?.status === 403 || error?.code === 'FORBIDDEN') return 'Your current role cannot operate the human escalation queue.';
-    return 'The API did not confirm access. No queue data or action is assumed.';
+    if (error?.status === 401 || error?.code === 'AUTH_REQUIRED') return tx('authRequired', 'Sign in through the Control Plane, then return to this room.');
+    if (error?.status === 403 || error?.code === 'FORBIDDEN') return tx('forbidden', 'Your current role cannot operate the human escalation queue.');
+    return tx('apiUnconfirmed', 'The API did not confirm access. No queue data or action is assumed.');
   }
   function renderService(status) {
     const enabled = Boolean(status?.enabled);
@@ -330,11 +347,5 @@
   $('ccrResolveCancel').addEventListener('click',() => $('ccrResolveDialog').close());
   $('ccrResolveConfirm').addEventListener('click',resolveHandoff);
   $('ccrResolutionNote').addEventListener('input',() => { $('ccrResolveConfirm').disabled = state.busy || !canOperateSelected() || !$('ccrResolutionNote').value.trim(); });
-  if (window.OpsCoreI18n && typeof window.OpsCoreI18n.init === 'function') {
-    window.OpsCoreI18n.init().then(applyRoomI18n).catch(applyRoomI18n);
-  } else {
-    applyRoomI18n();
-  }
-  window.addEventListener('opscore:localechange', applyRoomI18n);
   refreshQueue();
 })();

@@ -6,13 +6,12 @@
   <meta name="color-scheme" content="dark">
   <meta name="description" content="OpsCore Contact Center Agent Control Room — tenant-scoped escalation queue, agent assignments and audited human response.">
   <meta name="theme-color" content="#04060f">
-  <title data-i18n="room.title">OpsCore — Contact Center Control Room</title>
+  <title>OpsCore — Contact Center Control Room</title>
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/command-fabric-v3.css">
   <link rel="stylesheet" href="/contact-center-room.css">
   <script defer src="/fabric-core.js"></script>
-  <script defer src="/i18n/i18n-loader.js"></script>
   <script defer src="/contact-center-room.js"></script>
 </head>
 <body>
@@ -24,14 +23,14 @@
   </div>
   <div class="shell shell--wide ccr-shell">
     <header class="topbar ccr-topbar">
-      <div class="brand"><div class="mark" aria-hidden="true"></div><div>OpsCore <small data-i18n="room.brandSmall">Contact Center · Agent Room</small></div></div>
+      <div class="brand"><div class="mark" aria-hidden="true"></div><div>OpsCore <small>Contact Center · Agent Room</small></div></div>
       <span class="spacer"></span>
       <span class="pill mono" data-clock>--:--:-- UTC</span>
       <button class="btn btn--sm btn--ghost" type="button" data-palette aria-keyshortcuts="Meta+K Control+K"><span class="mono tiny muted">⌘K</span> Search</button>
       <button class="btn btn--sm btn--ghost" type="button" data-dir-toggle aria-label="Switch interface direction">ع</button>
-      <a class="btn btn--sm btn--ghost" href="/control-plane.html" data-i18n="room.signIn">Sign in / Control Plane</a>
-      <a class="btn btn--sm btn--ghost" href="/contact-center.html" data-i18n="room.customerConversations">Customer conversations</a>
-      <a class="btn btn--sm btn--ghost" href="/control-rooms.html" data-i18n="room.allRooms">All control rooms</a>
+      <a class="btn btn--sm btn--ghost" href="/control-plane.html">Sign in / Control Plane</a>
+      <a class="btn btn--sm btn--ghost" href="/contact-center.html">Customer conversations</a>
+      <a class="btn btn--sm btn--ghost" href="/control-rooms.html">All control rooms</a>
       <a class="btn btn--sm" href="/">Home</a>
     </header>
 
@@ -40,7 +39,7 @@
         <div class="hero__grid">
           <div>
             <div class="eyebrow">Human intervention · protected operations</div>
-            <h1 data-i18n="room.title">Contact Center Control Room</h1>
+            <h1>Contact Center Control Room</h1>
             <p class="lede">A focused operator workspace for tenant-scoped escalations, assignment review, secure transcript access and auditable resolution.</p>
             <div class="hero__meta">
               <span id="ccrAuthState" class="badge bad">Checking operator access</span>
@@ -49,13 +48,13 @@
             </div>
             <div class="hero__cta">
               <button class="btn btn--primary" id="ccrRefresh" type="button">Refresh queue</button>
-              <a class="btn" href="/contact-center.html" data-i18n="room.openCustomer">Open customer experience</a>
+              <a class="btn" href="/contact-center.html">Open customer experience</a>
               <a class="btn btn--ghost" href="/verify/release.html">Release evidence</a>
             </div>
           </div>
           <aside class="card ccr-posture">
             <div class="eyebrow">Service configuration</div>
-            <h3 data-i18n="room.postureTitle">Contact Center posture</h3>
+            <h3>Contact Center posture</h3>
             <p class="muted small">Server-reported configuration only. This panel does not measure provider uptime or call quality.</p>
             <div class="ccr-posture-row"><span>Service feature</span><strong id="ccrFeatureState" class="ccr-state is-pending">Checking</strong></div>
             <div class="ccr-posture-row"><span>Text assistant</span><strong id="ccrTextState" class="ccr-state is-pending">Checking</strong></div>
@@ -67,17 +66,17 @@
       </section>
 
       <section class="ccr-kpis" aria-label="Tenant-scoped handoff summary">
-        <article class="tile ccr-kpi"><div class="tile__top"><span class="tile__k" data-i18n="room.kpiTotal">Open rows loaded</span><span class="badge">API</span></div><div class="tile__v" id="ccrTotal">—</div><div class="tile__s">Maximum 50 rows per refresh</div></article>
-        <article class="tile ccr-kpi"><div class="tile__top"><span class="tile__k" data-i18n="room.kpiQueued">Waiting unclaimed</span><span class="badge">Queue</span></div><div class="tile__v" id="ccrQueued">—</div><div class="tile__s">Returned rows in queued state</div></article>
-        <article class="tile ccr-kpi"><div class="tile__top"><span class="tile__k" data-i18n="room.kpiClaimed">Claimed assignments</span><span class="badge">Agents</span></div><div class="tile__v" id="ccrClaimed">—</div><div class="tile__s">Returned rows in claimed state</div></article>
-        <article class="tile ccr-kpi"><div class="tile__top"><span class="tile__k" data-i18n="room.kpiPriority">High / urgent</span><span class="badge">Priority</span></div><div class="tile__v" id="ccrPriority">—</div><div class="tile__s">High and urgent priority rows loaded</div></article>
+        <article class="tile ccr-kpi"><div class="tile__top"><span class="tile__k">Open rows loaded</span><span class="badge">API</span></div><div class="tile__v" id="ccrTotal">—</div><div class="tile__s">Maximum 50 rows per refresh</div></article>
+        <article class="tile ccr-kpi"><div class="tile__top"><span class="tile__k">Waiting unclaimed</span><span class="badge">Queue</span></div><div class="tile__v" id="ccrQueued">—</div><div class="tile__s">Returned rows in queued state</div></article>
+        <article class="tile ccr-kpi"><div class="tile__top"><span class="tile__k">Claimed assignments</span><span class="badge">Agents</span></div><div class="tile__v" id="ccrClaimed">—</div><div class="tile__s">Returned rows in claimed state</div></article>
+        <article class="tile ccr-kpi"><div class="tile__top"><span class="tile__k">High / urgent</span><span class="badge">Priority</span></div><div class="tile__v" id="ccrPriority">—</div><div class="tile__s">High and urgent priority rows loaded</div></article>
       </section>
 
       <section class="ccr-insights" aria-label="Live queue distribution" data-reveal>
-        <article class="ccr-insight card"><div class="ccr-insight-head"><div><div class="eyebrow">Live snapshot</div><h2 data-i18n="room.insightPriority">Priority mix</h2></div><span class="ccr-insight-tag">Loaded rows</span></div><div id="ccrPriorityBreakdown" class="ccr-bars"><div class="empty">Awaiting queue data.</div></div></article>
-        <article class="ccr-insight card"><div class="ccr-insight-head"><div><div class="eyebrow">Escalation intelligence</div><h2 data-i18n="room.insightReasons">Top reasons</h2></div><span class="ccr-insight-tag">By reason code</span></div><div id="ccrReasonBreakdown" class="ccr-bars"><div class="empty">Awaiting queue data.</div></div></article>
-        <article class="ccr-insight card"><div class="ccr-insight-head"><div><div class="eyebrow">Service channels</div><h2 data-i18n="room.insightChannels">Channel mix</h2></div><span class="ccr-insight-tag">Loaded rows</span></div><div id="ccrChannelBreakdown" class="ccr-bars"><div class="empty">Awaiting queue data.</div></div></article>
-        <article class="ccr-insight card"><div class="ccr-insight-head"><div><div class="eyebrow">Language coverage</div><h2 data-i18n="room.insightLanguages">Language mix</h2></div><span class="ccr-insight-tag">Loaded rows</span></div><div id="ccrLanguageBreakdown" class="ccr-bars"><div class="empty">Awaiting queue data.</div></div></article>
+        <article class="ccr-insight card"><div class="ccr-insight-head"><div><div class="eyebrow">Live snapshot</div><h2>Priority mix</h2></div><span class="ccr-insight-tag">Loaded rows</span></div><div id="ccrPriorityBreakdown" class="ccr-bars"><div class="empty">Awaiting queue data.</div></div></article>
+        <article class="ccr-insight card"><div class="ccr-insight-head"><div><div class="eyebrow">Escalation intelligence</div><h2>Top reasons</h2></div><span class="ccr-insight-tag">By reason code</span></div><div id="ccrReasonBreakdown" class="ccr-bars"><div class="empty">Awaiting queue data.</div></div></article>
+        <article class="ccr-insight card"><div class="ccr-insight-head"><div><div class="eyebrow">Service channels</div><h2>Channel mix</h2></div><span class="ccr-insight-tag">Loaded rows</span></div><div id="ccrChannelBreakdown" class="ccr-bars"><div class="empty">Awaiting queue data.</div></div></article>
+        <article class="ccr-insight card"><div class="ccr-insight-head"><div><div class="eyebrow">Language coverage</div><h2>Language mix</h2></div><span class="ccr-insight-tag">Loaded rows</span></div><div id="ccrLanguageBreakdown" class="ccr-bars"><div class="empty">Awaiting queue data.</div></div></article>
         <p class="ccr-insight-scope" id="ccrInsightScope">Distribution appears only after a successful queue response. The snapshot is limited to the rows returned by the API.</p>
       </section>
 
@@ -142,7 +141,7 @@
         <a href="/contact-center.html">Customer workspace <span aria-hidden="true">↗</span></a>
       </section>
     </main>
-    <footer class="footer ccr-footer"><span><span data-i18n="room.footer">OpsCore · Contact Center Control Room</span></span><span class="mono tiny"><a href="/">home</a> · <a href="/control-plane.html">control plane</a> · <a href="/verify/database.html">database proof</a></span></footer>
+    <footer class="footer ccr-footer"><span><span>OpsCore · Contact Center Control Room</span></span><span class="mono tiny"><a href="/">home</a> · <a href="/control-plane.html">control plane</a> · <a href="/verify/database.html">database proof</a></span></footer>
   </div>
 </body>
 </html>
