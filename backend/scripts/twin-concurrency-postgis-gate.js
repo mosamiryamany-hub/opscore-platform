@@ -71,7 +71,7 @@ async function main() {
 
     // Build deterministic, disposable spatial data and prove the GiST index is
     // usable for a selective bounding-box query. No production rows are touched.
-    await pool.query('INSERT INTO ' + qSchema + '.spatial_points(id,organization_id,geom) SELECT n,\'tenant-spatial-fixture\',ST_SetSRID(ST_MakePoint(-179.9 + (n % 2000) * 0.18, -89.9 + ((n / 2000)::int) * 0.18),4326) FROM generate_series(1,40000) AS n');
+    await pool.query('INSERT INTO ' + qSchema + '.spatial_points(id,organization_id,geom) SELECT n,\'tenant-spatial-fixture\',ST_SetSRID(ST_MakePoint(-179.9 + (n % 2000) * 0.18, -89.9 + ((n / 2000)::int) * 0.18),4326) FROM generate_series(1,40000) AS series(n)');
     await pool.query('CREATE INDEX spatial_points_geom_gix ON ' + qSchema + '.spatial_points USING GIST(geom)');
     await pool.query('CREATE INDEX spatial_points_org_idx ON ' + qSchema + '.spatial_points(organization_id)');
     await pool.query('ANALYZE ' + qSchema + '.spatial_points');
