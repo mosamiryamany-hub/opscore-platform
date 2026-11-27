@@ -609,14 +609,14 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           try {
             await page.waitForFunction(expected => {
               const probe = window.__opscoreDispatcherMapE2E;
-              return Boolean(probe && probe.renderedSpatialFeatureIds().includes(expected));
+              return Boolean(probe && probe.renderedSpatialFeatureIdsAt(31.2, 30.0).includes(expected));
             }, spatialFeatureAId, { timeout: 30000 });
           } catch (renderError) {
             const renderDiagnostics = {
               failure: renderError.message,
               readiness: await page.evaluate(() => window.__opscoreDispatcherMapE2E?.mapReadiness() || null),
               displayedFeatureIds: await page.evaluate(() => window.__opscoreDispatcherMapE2E?.displayedSpatialFeatureIds() || []),
-              renderedFeatureIds: await page.evaluate(() => window.__opscoreDispatcherMapE2E?.renderedSpatialFeatureIds() || []),
+              renderedFeatureIds: await page.evaluate(() => window.__opscoreDispatcherMapE2E?.renderedSpatialFeatureIdsAt(31.2, 30.0) || []),
               mapCanvas: await page.locator('.maplibregl-canvas').evaluate(node => ({ width: node.width, height: node.height, clientWidth: node.clientWidth, clientHeight: node.clientHeight })).catch(() => null),
               pageErrors,
               consoleErrors,
@@ -736,14 +736,14 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
             await pageB.waitForFunction(expected => {
               const probe = window.__opscoreDispatcherMapE2E;
               return Boolean(probe && probe.displayedSpatialFeatureIds().includes(expected)
-                && probe.renderedSpatialFeatureIds().includes(expected));
+                && probe.renderedSpatialFeatureIdsAt(31.25, 30.05).includes(expected));
             }, spatialFeatureBId, { timeout: 30000 });
           } catch (renderError) {
             const renderDiagnostics = {
               failure: renderError.message,
               readiness: await pageB.evaluate(() => window.__opscoreDispatcherMapE2E?.mapReadiness() || null),
               displayedFeatureIds: await pageB.evaluate(() => window.__opscoreDispatcherMapE2E?.displayedSpatialFeatureIds() || []),
-              renderedFeatureIds: await pageB.evaluate(() => window.__opscoreDispatcherMapE2E?.renderedSpatialFeatureIds() || []),
+              renderedFeatureIds: await pageB.evaluate(() => window.__opscoreDispatcherMapE2E?.renderedSpatialFeatureIdsAt(31.25, 30.05) || []),
               pageErrors: pageBErrors
             };
             fs.writeFileSync(path.join(browserOutputDir, 'tenant-b-rendered-feature-diagnostics.json'), JSON.stringify(renderDiagnostics, null, 2) + '\n');
