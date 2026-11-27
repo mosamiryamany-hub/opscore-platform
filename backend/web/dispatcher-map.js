@@ -2,6 +2,14 @@ import { toSpatialFeatureCollection } from './dispatcher-map-geojson.mjs';
 let maplibregl = null;
 
 const $ = id => document.getElementById(id);
+const directionToggle = document.querySelector('[data-dir-toggle]');
+if (directionToggle) directionToggle.addEventListener('click', () => {
+  const rtl = document.documentElement.getAttribute('dir') !== 'rtl';
+  document.documentElement.setAttribute('dir', rtl ? 'rtl' : 'ltr');
+  document.documentElement.setAttribute('lang', rtl ? 'ar' : 'en');
+  directionToggle.textContent = rtl ? 'EN' : 'ع';
+  directionToggle.setAttribute('aria-label', rtl ? 'Switch to English left-to-right layout' : 'Switch to Arabic right-to-left layout');
+});
 const state = { map: null, mapReady: null, sourceReady: false, spatialSourceReady: false, points: [], spatialFeatures: { type: 'FeatureCollection', features: [] }, viewportTimer: null, viewportSequence: 0 };
 const safe = value => String(value ?? '');
 const formatDate = value => value ? new Date(value).toLocaleString() : '—';
