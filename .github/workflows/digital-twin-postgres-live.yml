@@ -165,6 +165,9 @@ jobs:
             echo "OPSC_PG_ACCEPTANCE_CLEANUP_ROLE=neondb_owner"
             echo "OPSC_PG_ACCEPTANCE_HOST=127.0.0.1"
             echo "OPSC_TENANT_MATRIX_DATABASE_URL=postgresql://opscore_runtime:${runtime_password}@127.0.0.1:5432/opscore_matrix_test"
+            echo "OPSC_TENANT_MATRIX_CLEANUP_URL=postgresql://neondb_owner:${owner_password}@127.0.0.1:5432/opscore_matrix_test"
+            echo "OPSC_TENANT_MATRIX_CLEANUP_ROLE=neondb_owner"
+            echo "OPSC_TENANT_MATRIX_CLEANUP_HOST=127.0.0.1"
           } >> "$GITHUB_ENV"
           docker exec -e PGPASSWORD=postgres "${cid}"             psql -U postgres -d opscore_test -Atc             "SELECT rolname||' login='||rolcanlogin||' super='||rolsuper||' bypass='||rolbypassrls||' inherit='||rolinherit FROM pg_roles WHERE rolname IN ('neondb_owner','opscore_app','opscore_runtime') ORDER BY rolname"
       - name: Initialize extension set on both disposable acceptance databases

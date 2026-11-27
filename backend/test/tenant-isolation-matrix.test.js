@@ -160,8 +160,8 @@ function waitForServer(base, child) {
 
 test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cross-tenant fixture isolation across the route inventory', async t => {
   const urlText = String(process.env.OPSC_PG_ACCEPTANCE_URL || process.env.OPSC_PG_TEST_URL || '').trim();
-  const cleanupUrlText = String(process.env.OPSC_PG_ACCEPTANCE_CLEANUP_URL || '').trim();
-  const cleanupRoleName = String(process.env.OPSC_PG_ACCEPTANCE_CLEANUP_ROLE || '').trim();
+  const cleanupUrlText = String(process.env.OPSC_TENANT_MATRIX_CLEANUP_URL || process.env.OPSC_PG_ACCEPTANCE_CLEANUP_URL || '').trim();
+  const cleanupRoleName = String(process.env.OPSC_TENANT_MATRIX_CLEANUP_ROLE || process.env.OPSC_PG_ACCEPTANCE_CLEANUP_ROLE || '').trim();
   if (!urlText) {
     writeResult({
       schemaVersion: 'opscore.tenant-isolation-matrix.v1',
@@ -260,7 +260,7 @@ test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cro
     console.log('TENANT_MATRIX_STAGE=runtime-server-ready');
 
     // The runtime pool is used only to prove the application's role is least-privilege.
-    // A separate exact-target Neon owner connection provisions/removes test fixtures;
+    // A separate exact-target owner connection provisions/removes fixtures in this same DB;
     // every login, route probe and tenant-boundary assertion remains on runtime.
     const { Pool } = require('pg');
     const { hashPassword } = require('../src/security');
@@ -270,7 +270,7 @@ test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cro
     }
     const cleanupTarget = validatePostgresAcceptanceTarget({
       urlText: cleanupUrlText,
-      expectedHost: process.env.OPSC_PG_ACCEPTANCE_CLEANUP_HOST || process.env.OPSC_PG_ACCEPTANCE_HOST
+      expectedHost: process.env.OPSC_TENANT_MATRIX_CLEANUP_HOST || process.env.OPSC_PG_ACCEPTANCE_CLEANUP_HOST || process.env.OPSC_PG_ACCEPTANCE_HOST
     });
     const runtimeTarget = validatePostgresAcceptanceTarget({ urlText });
     if (cleanupTarget.hostname !== runtimeTarget.hostname || cleanupTarget.database !== runtimeTarget.database

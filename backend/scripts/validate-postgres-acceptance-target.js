@@ -1,8 +1,8 @@
 'use strict';
 
-const ACCEPTANCE_DATABASES = new Set(['opscore_http_acceptance', 'opscore_acceptance']);
+const ACCEPTANCE_DATABASES = new Set(['opscore_http_acceptance', 'opscore_acceptance', 'opscore_matrix_test']);
 // Host markers reserved for known production endpoints only. Disposable DBs on a
-// shared Neon project are authorized by exact database-name allowlist + host secret.
+// shared Neon project or local CI service are authorized by exact database-name allowlist + host secret.
 const PRODUCTION_HOST_MARKERS = ['ep-winter-leaf-b4d0bwgk'];
 const HOST_RE = /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)(?:\.(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?))*$/i;
 
