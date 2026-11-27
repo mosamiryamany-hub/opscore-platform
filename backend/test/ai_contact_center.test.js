@@ -137,10 +137,48 @@ test('policy escalates explicit requests, high-risk answers and low-confidence r
   assert.equal(cc.policyDecision('How can I reset my plan?', {confidence:.99,riskLevel:'critical',requiresHuman:false,handoffReason:'none'},env).reasonCode,'high_risk');
   assert.equal(cc.policyDecision('I need help', {confidence:.30,riskLevel:'low',requiresHuman:false,handoffReason:'none'},env).reasonCode,'low_confidence');
 });
+test('CRM customer linking is explicit, supervisor-only and tenant-bound', () => {
+  const {db,ctx,agent,other}=setup();
+  const stamp=new Date().toISOString();
+  try {
+    const conv=cc.createConversation(db,ctx,{channel:'web_chat',languageCode:'en',consentAccepted:true},env);
+    db.prepare('INSERT INTO customers VALUES (?,?,?,?,?,?,?,?,?)').run('cus_test123','org_a','Verified Customer','customer@example.test','+15550001111','crm-ref-1','active',stamp,stamp);
+    db.prepare('INSERT INTO customers VALUES (?,?,?,?,?,?,?,?,?)').run('cus_other123','org_b','Other Tenant Customer','other@example.test',null,'crm-ref-2','active',stamp,stamp);
+    assert.deepEqual(cc.listCrmCustomers(db,agent,'verified').map(x=>x.id),['cus_test123']);
+    assert.throws(()=>cc.listCrmCustomers(db,ctx,'verified'),e=>e.message==='FORBIDDEN');
+    assert.throws(()=>cc.linkConversationCustomer(db,other,conv.id,'cus_other123'),e=>e.message==='CONTACT_CENTER_CONVERSATION_NOT_FOUND');
+    assert.throws(()=>cc.linkConversationCustomer(db,agent,conv.id,'cus_other123'),e=>e.message==='INVALID_CUSTOMER');
+    const linked=cc.linkConversationCustomer(db,agent,conv.id,'cus_test123');
+    assert.equal(linked.linked,true);
+    assert.equal(cc.getConversationCustomer(db,agent,conv.id).customer.email,'customer@example.test');
+    assert.equal(cc.getConversation(db,agent,conv.id,env).customerId,'cus_test123');
+    const audit=db.prepare("SELECT action FROM audit_log WHERE organization_id=? AND resource_id=? ORDER BY created_at DESC").all('org_a',conv.id);
+    assert.ok(audit.some(x=>x.action==='contact_center_crm_customer_linked'));
+  } finally { db.close(); }
+});
+test('supervisor reassignment is atomic, eligible-agent-only and audited', () => {
+  const {db,ctx,agent,peer}=setup();
+  try {
+    const conv=cc.createConversation(db,ctx,{channel:'web_chat',languageCode:'en',consentAccepted:true},env);
+    const handoff=cc.createHandoff(db,ctx,conv.id,'high_risk','High-risk request requires specialist review.','policy','urgent');
+    const reassigned=cc.reassignHandoff(db,agent,handoff.id,{assignedTo:'user_peer',reason:'Transfer to available trained operator'});
+    assert.equal(reassigned.status,'claimed');
+    assert.equal(reassigned.assignedTo,'user_peer');
+    assert.equal(db.prepare('SELECT assigned_to FROM ai_contact_handoffs WHERE id=?').get(handoff.id).assigned_to,'user_peer');
+    assert.equal(db.prepare('SELECT assigned_to FROM ai_contact_conversations WHERE id=?').get(conv.id).assigned_to,'user_peer');
+    assert.throws(()=>cc.reassignHandoff(db,peer,handoff.id,{assignedTo:'user_agent',reason:'Attempt unauthorized reassignment'}),e=>e.message==='FORBIDDEN');
+    assert.throws(()=>cc.reassignHandoff(db,agent,handoff.id,{assignedTo:'user_b',reason:'Cross-tenant assignment test'}),e=>e.message==='INVALID_ASSIGNEE');
+    const event=db.prepare("SELECT action,metadata_json FROM audit_log WHERE organization_id=? AND resource_id=? AND action='contact_center_handoff_reassigned'").get('org_a',handoff.id);
+    assert.ok(event);
+    assert.match(event.metadata_json,/user_peer/);
+    assert.equal(cc.listEligibleAgents(db,agent).some(x=>x.id==='user_peer'),true);
+    assert.equal(cc.listEligibleAgents(db,agent).some(x=>x.id==='user_b'),false);
+  } finally { db.close(); }
+});
 test('database schema was upgraded with contact-center persistence tables', () => {
   const {db}=setup();
   try {
-    assert.equal(CURRENT_SCHEMA_VERSION,28);
+    assert.equal(CURRENT_SCHEMA_VERSION,29);
     const tables=db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'ai_contact_%'").all().map(x=>x.name).sort();
     assert.deepEqual(tables,['ai_contact_conversations','ai_contact_handoffs','ai_contact_messages']);
   } finally { db.close(); }
