@@ -19,6 +19,13 @@ function isSupportedNodeVersion(version) {
 }
 const testDir = path.join(root, 'test');
 const perFileTimeoutMs = Number(process.env.OPSC_RELEASE_TEST_TIMEOUT_MS || 60000);
+const tenantMatrixTimeoutMs = Math.max(
+  perFileTimeoutMs,
+  Number(process.env.OPSC_TENANT_MATRIX_TIMEOUT_MS || 600000)
+);
+function timeoutForFile(file) {
+  return file === 'tenant-isolation-matrix.test.js' ? tenantMatrixTimeoutMs : perFileTimeoutMs;
+}
 const concurrency = Math.max(1, Math.min(16, Number(process.env.OPSC_RELEASE_TEST_CONCURRENCY || 4)));
 const files = fs.readdirSync(testDir).filter(name => name.endsWith('.test.js')).sort((a, b) => a.localeCompare(b));
 // These tests intentionally touch tracked source artifacts. Run them after the isolated pool
@@ -187,7 +194,7 @@ function runFile(file) {
         } catch {}
         finalize(null, 'SIGTERM_TIMEOUT');
       }, 1500).unref();
-    }, perFileTimeoutMs);
+    }, timeoutForFile(file));
     child.on('error', (error) => {
       stderr += `\n${error.stack || error.message || error}`;
       finalize(1, null);
@@ -240,7 +247,7 @@ ${e.stderr?.toString?.() || ''}`.trim() });
   const totals=summarizeResults(results,process.versions.node,String(pkg.engines?.node||''));
   const report={
     schemaVersion:'opscore.release-test-runner.v2',release:pkg.version,files:files.length,...totals,
-    perFileTimeoutMs,concurrency,nodeVersion:process.versions.node,
+    perFileTimeoutMs,tenantMatrixTimeoutMs,concurrency,nodeVersion:process.versions.node,
     declaredNodeEngine:String(pkg.engines?.node||'UNDECLARED'),
     openHandleFiles:results.filter(x=>x.completedWithOpenHandles).map(x=>({file:x.file,tests:x.tests,pass:x.pass,skipped:x.skipped,todo:x.todo})),
     failedCases:results.filter(x=>!x.ok).map(x=>({file:x.file,tail:x.tail}))
