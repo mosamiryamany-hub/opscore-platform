@@ -438,6 +438,22 @@ async function main() {
     if (!spatialIndex || !/USING gist \(geom\)/i.test(spatialIndex.indexdef)) throw new Error('SPATIAL_FEATURE_GIST_INDEX_MISSING');
     checks.push({ id: 'postgis-spatial-feature-write-read-and-gist-catalog', status: 'PASS', srid: 4326, bboxIntersection: true, index: 'idx_spatial_features_geom_gist' });
 
+    await client.query('SAVEPOINT spatial_wrong_creator_membership');
+    let wrongCreatorDenied = false;
+    try {
+      await client.query(
+        `INSERT INTO spatial_features(id,organization_id,entity_type,entity_id,geom,source,created_by)
+         VALUES($1,$2,'site',$3,ST_SetSRID(ST_MakePoint(-73.9,40.7),4326),'acceptance-fixture',$4)`,
+        [`spatial_wrong_creator_${spatialId}`, orgA, `wrong_creator_${spatialId}`, userB]
+      );
+    } catch (error) {
+      wrongCreatorDenied = error.code === '23503';
+      await client.query('ROLLBACK TO SAVEPOINT spatial_wrong_creator_membership');
+    }
+    await client.query('RELEASE SAVEPOINT spatial_wrong_creator_membership');
+    if (!wrongCreatorDenied) throw new Error('SPATIAL_FEATURE_CROSS_TENANT_CREATOR_NOT_DENIED');
+    checks.push({ id: 'postgis-spatial-feature-creator-must-be-tenant-member', status: 'PASS', deniedByCompositeForeignKey: true });
+
     await client.query("SELECT set_config('app.tenant_id',$1,true), set_config('app.user_id',$2,true)", [orgB, userB]);
     const spatialCrossRead = await client.query('SELECT id FROM spatial_features WHERE id=$1', [spatialId]);
     if (spatialCrossRead.rowCount !== 0) throw new Error('SPATIAL_FEATURE_CROSS_TENANT_READ_BREACH');
