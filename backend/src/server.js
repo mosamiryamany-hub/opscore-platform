@@ -1892,7 +1892,7 @@ function route(req, res) {
       if (!['owner','admin','manager'].includes(c.role)) throw Object.assign(new Error('FORBIDDEN'), { code:'FORBIDDEN' });
       const activity = store.auditLog(c, { actorUserId:url.searchParams.get('actorUserId') || null });
       const entries = (activity.entries || []).filter(entry => String(entry.action || '').startsWith('contact_center_')).slice(0,100);
-      return json(res, 200, { schemaVersion:'opscore.contact-center-supervisor-activity.v1', entries });
+      return json(res, 200, { schemaVersion:'opscore.contact-center-supervisor-activity.v1', entries, chain:activity.chain });
     } catch (e) { return fail(res, e); }
   }
   const ccErase = url.pathname.match(/^\/api\/v1\/contact-center\/conversations\/([A-Za-z0-9_-]+)\/erase$/);
