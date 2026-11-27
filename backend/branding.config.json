@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "opscore.branding.v1",
+  "platformName": "OpsCore",
+  "tagline": "Operations, connected.",
+  "logoPath": "/icons/opscore-mark.svg",
+  "primaryColor": "#155EEF",
+  "supportEmail": "",
+  "supportUrl": "",
+  "welcomeText": "Welcome to your operations workspace."
+}
