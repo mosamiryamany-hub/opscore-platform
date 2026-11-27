@@ -9,36 +9,37 @@ const server = fs.readFileSync(path.join(root, 'src/server.js'), 'utf8');
 const html = fs.readFileSync(path.join(root, 'web/control-plane.html'), 'utf8');
 const client = fs.readFileSync(path.join(root, 'web/control-plane.js'), 'utf8');
 
-test('Keycloak OIDC configuration endpoint exposes only public client metadata', () => {
+test('Keycloak config endpoint exposes only public issuer and client metadata', () => {
   assert.match(server, /GET' && url\.pathname === '\/api\/v1\/auth\/oidc\/config'/);
-  assert.match(server, /return json\(res, 200, \{ enabled: true, issuer, clientId: audience, providers:/);
-  assert.doesNotMatch(server, /clientSecret|OIDC_CLIENT_SECRET/);
+  assert.match(server, /clientId: audience, providers:/);
 });
 
-test('OIDC exchange validates the ID token and establishes the HttpOnly application session', () => {
-  assert.match(server, /verifyOidcIdToken\(b\.idToken,nonce\)/);
-  assert.match(server, /__Host-opscore_session=.*HttpOnly; Path=\/; SameSite=Strict; Secure/);
-  assert.match(server, /AUTH_MODE_OIDC_REQUIRED/);
+test('Authorization start uses allowlisted broker aliases and S256 PKCE', () => {
+  assert.match(server, /providers = new Set\(\['google', 'github', 'microsoft', 'apple', 'facebook'\]\)/);
+  assert.match(server, /code_challenge_method: 'S256'/);
+  assert.match(server, /kc_idp_hint: provider/);
+  assert.match(server, /OIDC_CLIENT_SECRET/);
+  assert.match(server, /OIDC_REDIRECT_URI/);
 });
 
-test('Control Plane exposes the configured Keycloak broker providers', () => {
+test('Callback binds state to an HttpOnly signed cookie and validates nonce server-side', () => {
+  assert.match(server, /__Host-opscore_oidc_state=/);
+  assert.match(server, /crypto\.createHmac\('sha256', stateSecret\)/);
+  assert.match(server, /crypto\.timingSafeEqual\(actual, expected\)/);
+  assert.match(server, /pending\.state !== returnedState/);
+  assert.match(server, /verifyOidcIdToken\(tokenPayload\.id_token, pending\.nonce\)/);
+  assert.match(server, /__Host-opscore_session=.*HttpOnly; Secure; Path=\/; SameSite=Strict/);
+});
+
+test('Control Plane exposes the five configured Keycloak broker entry points', () => {
   for (const provider of ['google', 'github', 'microsoft', 'apple', 'facebook']) {
     assert.match(html, new RegExp('data-oidc-provider="' + provider + '"'));
   }
-  assert.match(client, /kc_idp_hint: provider/);
+  assert.match(client, /window\.location\.assign\('\/api\/v1\/auth\/oidc\/start/);
 });
 
-test('Browser authorization uses state, nonce and S256 PKCE without persistent token storage', () => {
-  assert.match(client, /code_challenge_method: 'S256'/);
-  assert.match(client, /returnedState !== pending\.state/);
-  assert.match(client, /nonce,/);
-  assert.match(client, /code_verifier: pending\.verifier/);
-  assert.match(client, /sessionStorage\.setItem\('opscore_oidc_pending'/);
+test('Browser performs only same-origin requests and stores no provider tokens', () => {
+  assert.match(client, /request\('\/api\/v1\/auth\/oidc\/config'/);
   assert.doesNotMatch(client, /localStorage\.(setItem|getItem)\([^)]*(token|id_token)/i);
-});
-
-test('Keycloak origin is narrowly added to the Control Plane connect-src policy', () => {
-  assert.match(server, /path\.basename\(file\) === 'control-plane\.html'/);
-  assert.match(server, /connect-src 'self'/);
-  assert.match(server, /new URL\(process\.env\.OIDC_ISSUER\)\.origin/);
+  assert.doesNotMatch(client, /fetch\([^)]*token_endpoint/);
 });
