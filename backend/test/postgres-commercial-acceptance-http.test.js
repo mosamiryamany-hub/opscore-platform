@@ -907,7 +907,6 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
            WHERE organization_id = $1
              AND geom && public.ST_MakeEnvelope(31,30,31.2,30.2,4326)
              AND public.ST_Intersects(geom, public.ST_MakeEnvelope(31,30,31.2,30.2,4326))
-           ORDER BY id
            LIMIT 1000`,
           [orgAId]
         );
