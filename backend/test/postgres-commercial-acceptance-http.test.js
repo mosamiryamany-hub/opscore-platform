@@ -684,6 +684,43 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
         throw new Error('OPSC_MAP_BROWSER_E2E_REQUIRED_FOR_STRICT_POSTGRES_ACCEPTANCE');
       }
 
+      // Exercise the hard 1000-feature viewport page bound with 1005 persisted
+      // PostGIS fixtures. Inserts use the signed tenant context and the test cleanup
+      // ledger records every returned ID; no static or mocked geometry is involved.
+      await bindSignedRlsSessionContext(fixture, { tenantId: orgAId, userId: ownerAId, accessMode: 'system' });
+      const capFixtures = await fixture.query(
+        `INSERT INTO spatial_features
+          (id,organization_id,entity_type,entity_id,feature_key,geom,properties,source,created_by,created_at,updated_at)
+         SELECT 'gis-cap-' || $1 || '-' || g::text,
+                $2,
+                'site',
+                'cap-' || $1 || '-' || g::text,
+                'cap',
+                public.ST_SetSRID(public.ST_MakePoint(31.1 + (g % 100) * 0.001, 30.0 + (g / 100) * 0.001), 4326),
+                '{}'::jsonb,
+                'acceptance-viewport-cap',
+                $3,
+                now(),
+                now()
+         FROM generate_series(1, 1005) AS g
+         RETURNING id`,
+        [stamp, orgAId, ownerAId]
+      );
+      created.spatialFeatureIds.push(...capFixtures.rows.map(row => row.id));
+      await clearSignedRlsSessionContext(fixture);
+      assert.equal(capFixtures.rowCount, 1005);
+      const cappedViewport = await request(
+        '/api/v1/map/viewport?west=31&south=29.9&east=31.4&north=30.2&limit=1000',
+        {},
+        ownerACookie
+      );
+      assert.equal(cappedViewport.response.status, 200, JSON.stringify(cappedViewport.data));
+      assert.equal(cappedViewport.data.spatialFeatures.length, 1000,
+        'the signed PostGIS viewport must return exactly the requested hard maximum of 1000 from 1005 matching persisted rows');
+      assert.ok(cappedViewport.data.spatialFeatures.length <= 1000);
+      record('postgis-viewport-hard-1000-feature-bound',
+        '1005 persisted tenant-A PostGIS geometries were inserted under signed context; the real HTTP viewport returned exactly 1000 and never exceeded the contract bound.');
+
       // Exercise the real Digital Twin HTTP surface against migrated PostgreSQL
       // tables while the application runs as opscore_runtime (NO BYPASSRLS).
       x = await request('/api/v1/platform/twin', {}, ownerACookie);
