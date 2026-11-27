@@ -134,6 +134,7 @@ async function main() {
     await client.query(`SET LOCAL search_path TO ${quotedSchema}, public`);
     await client.query('CREATE TABLE organizations (id TEXT PRIMARY KEY)');
     await client.query('CREATE TABLE users (id TEXT PRIMARY KEY)');
+    await client.query('CREATE TABLE memberships (user_id TEXT NOT NULL REFERENCES users(id), organization_id TEXT NOT NULL REFERENCES organizations(id), role TEXT NOT NULL, created_at TEXT NOT NULL, PRIMARY KEY (user_id, organization_id))');
     const migration = fs.readFileSync(migrationPath, 'utf8');
     await client.query(migration);
     const spatialFeatureMigration = fs.readFileSync(spatialFeatureMigrationPath, 'utf8');
@@ -156,6 +157,7 @@ async function main() {
     const userB = `user_b_${crypto.randomBytes(4).toString('hex')}`;
     await client.query('INSERT INTO organizations(id) VALUES ($1),($2)', [orgA, orgB]);
     await client.query('INSERT INTO users(id) VALUES ($1),($2)', [userA, userB]);
+    await client.query("INSERT INTO memberships(user_id,organization_id,role,created_at) VALUES ($1,$2,'member',now()::text),($3,$4,'member',now()::text)", [userA, orgA, userB, orgB]);
 
     // Exercise the actual runtime login-role contract separately from opscore_app.
     const runtimeRole = (await client.query("SELECT rolsuper, rolbypassrls FROM pg_roles WHERE rolname='opscore_runtime'")).rows[0];
