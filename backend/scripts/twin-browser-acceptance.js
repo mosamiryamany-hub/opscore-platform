@@ -14,8 +14,11 @@ const { chromium } = require('playwright');
   try {
     const page = await browser.newPage({ reducedMotion: 'reduce' });
     page.on('pageerror', error => errors.push({ message: error.message, stack: error.stack, name: error.name, fileName: error.fileName, lineNumber: error.lineNumber, columnNumber: error.columnNumber }));
-    page.on('console', entry => { if (entry.type() === 'error') errors.push({ console: entry.text(), location: entry.location() }); });
+    page.on('console', entry => { if (entry.type() === 'error') { const location = entry.location(); const expectedStaticApiMiss = location.url === base + '/api/v1/me' && /404/.test(entry.text()); if (!expectedStaticApiMiss) errors.push({ console: entry.text(), location }); } });
+    const apiProbe = page.waitForResponse(response => response.url().endsWith('/api/v1/me'));
     const response = await page.goto(base + '/digital-twin-room.html', { waitUntil: 'networkidle' });
+    const apiProbeResponse = await apiProbe;
+    assert.equal(apiProbeResponse.status(), 404, 'static-only harness must not pretend an authenticated API exists');
     assert.equal(response.status(), 200, 'Twin command room must load');
     await page.locator('h1').getByText('Digital Twin Command Room').waitFor();
     assert.equal(await page.locator('#twinRefresh').count(), 1);
