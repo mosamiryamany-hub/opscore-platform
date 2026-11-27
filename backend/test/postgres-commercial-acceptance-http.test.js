@@ -28,6 +28,7 @@ const path = require('node:path');
 const { spawn } = require('node:child_process');
 const { bindSignedRlsSessionContext, clearSignedRlsSessionContext } = require('../src/signed-tenant-context');
 const { validatePostgresAcceptanceTarget } = require('../scripts/validate-postgres-acceptance-target');
+const { randomUUID } = require('node:crypto');
 
 // Keep generated evidence in the job's temporary workspace while the test suite runs.
 // The CI job promotes it to the release evidence path only after this test and all other tests pass.
@@ -208,12 +209,15 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
       // loopback PostgreSQL without TLS; pick the mode from the target URL.
       OPSC_PG_SSL_MODE: /127\.0\.0\.1|localhost/.test(parsed.host) ? 'disable' : 'require',
       AUTH_MODE: 'local',
-      OPSC_TEST_SCRYPT_N: process.env.OPSC_TEST_SCRYPT_N || '32768'
+      OPSC_TEST_SCRYPT_N: process.env.OPSC_TEST_SCRYPT_N || '32768',
+      VERCEL_ENV: 'preview',
+      OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_READ_ENABLED: 'true',
+      OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'true'
     },
     stdio: ['ignore', 'pipe', 'pipe']
   });
 
-  const created = { organizations: [], users: [], persistedUsers: [], persistedOrganizations: [], loginThrottleKeys: [] };
+  const created = { organizations: [], users: [], persistedUsers: [], persistedOrganizations: [], loginThrottleKeys: [], spatialFeatureIds: [] };
   let base;
   let base2 = null;
   let child2 = null;
@@ -439,6 +443,93 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
       assert.notEqual(x.data.organization.id, orgAId);
       record('session-tenant-binding-across-two-tenants', `tenant B session resolved to ${orgBId}, distinct from tenant A ${orgAId}`);
 
+      const spatialFeatureAId = 'gis-a-' + randomUUID();
+      const spatialFeatureBId = 'gis-b-' + randomUUID();
+      created.spatialFeatureIds.push(spatialFeatureAId, spatialFeatureBId);
+      await bindSignedRlsSessionContext(fixture, { tenantId: orgAId, userId: ownerAId, accessMode: 'system' });
+      await fixture.query(
+        `INSERT INTO spatial_features
+          (id,organization_id,entity_type,entity_id,feature_key,geom,properties,created_by,created_at,updated_at)
+         VALUES ($1,$2,'site',$3,'acceptance-point-a',public.ST_SetSRID(public.ST_GeomFromText('POINT(31.2 30.0)'),4326),'{"source":"isolated-postgres-http-e2e"}'::jsonb,$4,now(),now())`,
+        [spatialFeatureAId, orgAId, 'site-' + stamp, ownerAId]
+      );
+      await bindSignedRlsSessionContext(fixture, { tenantId: orgBId, userId: userBId, accessMode: 'system' });
+      await fixture.query(
+        `INSERT INTO spatial_features
+          (id,organization_id,entity_type,entity_id,feature_key,geom,properties,created_by,created_at,updated_at)
+         VALUES ($1,$2,'site',$3,'acceptance-point-b',public.ST_SetSRID(public.ST_GeomFromText('POINT(31.25 30.05)'),4326),'{"source":"isolated-postgres-http-e2e"}'::jsonb,$4,now(),now())`,
+        [spatialFeatureBId, orgBId, 'site-' + stamp, userBId]
+      );
+      await clearSignedRlsSessionContext(fixture);
+
+      const viewportPath = '/api/v1/map/viewport?west=31&south=29.9&east=31.4&north=30.2&limit=10';
+      const mapA = await request(viewportPath, {}, ownerACookie);
+      assert.equal(mapA.response.status, 200, JSON.stringify(mapA.data));
+      assert.equal(mapA.response.headers.get('x-opscore-signed-tenant-context'), 'verified');
+      assert.equal(mapA.data.organizationId, orgAId);
+      assert.deepEqual(mapA.data.spatialFeatures.map(feature => feature.id), [spatialFeatureAId]);
+      assert.equal(JSON.stringify(mapA.data).includes(spatialFeatureBId), false);
+      const mapB = await request(viewportPath, {}, ownerBCookie);
+      assert.equal(mapB.response.status, 200, JSON.stringify(mapB.data));
+      assert.equal(mapB.response.headers.get('x-opscore-signed-tenant-context'), 'verified');
+      assert.equal(mapB.data.organizationId, orgBId);
+      assert.deepEqual(mapB.data.spatialFeatures.map(feature => feature.id), [spatialFeatureBId]);
+      assert.equal(JSON.stringify(mapB.data).includes(spatialFeatureAId), false);
+      record('signed-postgis-viewport-http-two-tenant-isolation',
+        'Real HTTP requests from two independently authenticated sessions returned exactly one matching tenant feature each; signed-context response header verified.');
+
+      if (process.env.OPSC_MAP_BROWSER_E2E === 'true') {
+        const { chromium } = require('playwright');
+        const browser = await chromium.launch({ headless: true });
+        try {
+          const context = await browser.newContext({ viewport: { width: 375, height: 812 }, reducedMotion: 'reduce' });
+          const pageErrors = [];
+          const apiResponses = [];
+          const page = await context.newPage();
+          page.on('pageerror', error => pageErrors.push(error.message));
+          page.on('response', response => {
+            if (response.url().includes('/api/v1/map/viewport')) apiResponses.push({ status: response.status() });
+          });
+          await context.addCookies([{
+            name: '__Host-opscore_session',
+            value: ownerACookie.slice(ownerACookie.indexOf('=') + 1),
+            url: base,
+            path: '/',
+            secure: true,
+            httpOnly: true,
+            sameSite: 'Strict'
+          }]);
+          const pageResponse = await page.goto(base + '/dispatcher-map.html', { waitUntil: 'domcontentloaded' });
+          assert.equal(pageResponse.status(), 200);
+          await page.waitForFunction(() => /1 authorized GIS features/.test(document.querySelector('#spatialFeatureCount')?.textContent || ''), null, { timeout: 30000 });
+          await page.waitForFunction(() => Boolean(document.querySelector('.maplibregl-canvas')), null, { timeout: 30000 });
+          assert.ok(apiResponses.some(response => response.status === 200), 'browser must receive a successful authenticated PostGIS viewport response');
+          assert.equal(await page.locator('#spatialFeatureCount').textContent(), '1 authorized GIS features');
+          await page.screenshot({ path: path.join(dir, 'dispatcher-map-postgres-authenticated-375.png'), fullPage: true });
+          await page.setViewportSize({ width: 1366, height: 900 });
+          const desktopLayout = await page.evaluate(() => ({
+            viewport: document.documentElement.clientWidth,
+            document: document.documentElement.scrollWidth,
+            body: document.body.scrollWidth,
+            mapCanvas: Boolean(document.querySelector('.maplibregl-canvas'))
+          }));
+          assert.ok(desktopLayout.document <= desktopLayout.viewport + 1, JSON.stringify(desktopLayout));
+          assert.ok(desktopLayout.body <= desktopLayout.viewport + 1, JSON.stringify(desktopLayout));
+          assert.equal(desktopLayout.mapCanvas, true);
+          await page.locator('[data-dir-toggle]').click();
+          assert.equal(await page.locator('html').getAttribute('dir'), 'rtl');
+          await page.screenshot({ path: path.join(dir, 'dispatcher-map-postgres-authenticated-rtl.png'), fullPage: true });
+          assert.deepEqual(pageErrors, []);
+          record('dispatcher-map-authenticated-chromium-postgis-render',
+            'Chromium used a real HttpOnly session cookie; rendered the MapLibre canvas and the one authorized PostGIS feature; viewport API returned HTTP 200; responsive layout and RTL passed with no uncaught page errors.');
+          await context.close();
+        } finally {
+          await browser.close();
+        }
+      } else {
+        throw new Error('OPSC_MAP_BROWSER_E2E_REQUIRED_FOR_STRICT_POSTGRES_ACCEPTANCE');
+      }
+
       // Exercise the real Digital Twin HTTP surface against migrated PostgreSQL
       // tables while the application runs as opscore_runtime (NO BYPASSRLS).
       x = await request('/api/v1/platform/twin', {}, ownerACookie);
@@ -504,7 +595,10 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           OPSC_DATABASE_URL: '',
           OPSC_PG_SSL_MODE: ['127.0.0.1', 'localhost'].includes(parsed.hostname) ? 'disable' : 'require',
           AUTH_MODE: 'local',
-          OPSC_TEST_SCRYPT_N: process.env.OPSC_TEST_SCRYPT_N || '32768'
+          OPSC_TEST_SCRYPT_N: process.env.OPSC_TEST_SCRYPT_N || '32768',
+          VERCEL_ENV: 'preview',
+          OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_READ_ENABLED: 'true',
+          OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'true'
         },
         stdio: ['ignore', 'pipe', 'pipe']
       });
@@ -938,6 +1032,9 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
         await bindCleanupContext({ tenantId: orgId, accessMode: 'system' });
         if (!cleanupUsesPrivilegedRole) await attemptCleanup('set-organization-cleanup-context',
           'SELECT public.opscore_current_tenant() AS tenant, public.opscore_access_mode() AS mode');
+        for (const featureId of created.spatialFeatureIds) {
+          await attemptCleanup('delete-synthetic-spatial-feature', 'DELETE FROM spatial_features WHERE id=$1 AND organization_id=$2', [featureId, orgId]);
+        }
         await attemptCleanup('delete-organization-memberships', 'DELETE FROM memberships WHERE organization_id=$1', [orgId]);
         await attemptCleanup('delete-organization-customers', 'DELETE FROM customers WHERE organization_id=$1', [orgId]);
         await attemptCleanup('delete-organization-work-orders', 'DELETE FROM work_orders WHERE organization_id=$1', [orgId]);
