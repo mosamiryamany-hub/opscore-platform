@@ -83,6 +83,7 @@
     { label: 'Control Plane', hint: 'authenticated state board', href: '/control-plane.html', k: 'P' },
     { label: 'Control Rooms', hint: 'operator rooms', href: '/control-rooms.html', k: 'R' },
     { label: 'Contact Center', hint: 'governed conversations', href: '/contact-center.html', k: 'C' },
+    { label: 'Contact Center Control Room', hint: 'agent queue and assignments', href: '/contact-center-room.html', k: 'A' },
     { label: 'Customer Portal', hint: 'tenant portal', href: '/portal.html', k: 'T' },
     { label: 'Release Proof', hint: 'verify /release', href: '/verify/release.html', k: '1' },
     { label: 'Deployment Proof', hint: 'verify /deployment', href: '/verify/deployment.html', k: '2' },

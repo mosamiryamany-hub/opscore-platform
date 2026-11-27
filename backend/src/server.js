@@ -1318,6 +1318,10 @@ function sendFile(res, file, download) {
     'permissions-policy': 'camera=(),microphone=(),geolocation=(self)',
     'content-security-policy': 'default-src \'self\'; base-uri \'none\'; object-src \'none\'; frame-ancestors \'none\'; form-action \'self\'; script-src \'self\'; style-src \'self\' \'unsafe-inline\'; img-src \'self\'' + mapTileOrigin()
   };
+  if (path.basename(file) === 'contact-center.html') {
+    headers['permissions-policy'] = 'camera=(),microphone=(self),geolocation=(self)';
+    headers['content-security-policy'] = "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:" + mapTileOrigin() + "; media-src 'self' blob:; connect-src 'self' https://api.openai.com";
+  }
   if (config.nodeEnv === 'production')
     headers['strict-transport-security'] = 'max-age=31536000; includeSubDomains';
   if (download)

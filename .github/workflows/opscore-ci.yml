@@ -52,6 +52,8 @@ jobs:
           node --check backend/src/security.js
           node --check backend/src/store.js
           node --check backend/src/server.js
+          node --check backend/web/contact-center.js
+          node --check backend/web/rooms.js
           node --check backend/src/firewall.js
           node --check backend/src/release-proof.js
           node --check backend/src/database-security-proof.js
@@ -64,6 +66,12 @@ jobs:
           node --check scripts/performance-regression-gate.js
       - name: Production deployment smoke contract tests
         run: node --test backend/test/production-deployment-smoke.test.js
+      - name: Commercial pricing and browser voice policy regression tests
+        run: node --test backend/test/commercial-and-browser-policy.test.js
+      - name: Contact Center workbench contract tests
+        run: node --test backend/test/contact-center-workbench.test.js
+      - name: Contact Center agent room syntax and contract tests
+        run: node --check backend/web/contact-center-room.js
       - name: Production environment preflight contract tests
         run: node --test backend/test/production-environment-preflight.test.js
       - name: Production runtime identity and release gate contract tests

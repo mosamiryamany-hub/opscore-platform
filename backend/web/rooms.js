@@ -60,6 +60,14 @@
       endpoints: '/api/verify/release · /api/verify/deployment',
       holds: 'The served commit must equal the committed source for a proof to read PASS.',
       not: 'A green pipeline is not an isolation certificate; the two are reported separately.'
+    },
+    contact: {
+      code: 'room-09 · contact center',
+      governs: 'Customer conversations, consent, browser voice readiness and human handoff',
+      endpoints: '/api/v1/contact-center/status · /api/v1/contact-center/handoffs',
+      holds: 'Queue rows are tenant-scoped. Claim, human reply and resolution remain explicit operator actions.',
+      not: 'A queued handoff is not a connected phone call. PSTN/SIP routing and native language qualification are not asserted.',
+      path: '/contact-center-room.html'
     }
   };
 
@@ -84,7 +92,7 @@
       const dd = doc.createElement('dd'); dd.textContent = v;
       meta.appendChild(dt); meta.appendChild(dd);
     });
-    go.href = '/control-plane.html';
+    go.href = m.path || '/control-plane.html';
     drawer.classList.add('is-open');
     drawer.setAttribute('aria-hidden', 'false');
     if (closeBtn) closeBtn.focus();

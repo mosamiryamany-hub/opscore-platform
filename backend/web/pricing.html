@@ -1,18 +1,65 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>OpsCore — pricing (owner data pending)</title>
-<style>body{font-family:system-ui,sans-serif;max-width:52rem;margin:2rem auto;padding:0 1rem;color:#1a1a2e}h1{font-size:1.4rem}.ph{background:#fff3cd;border:1px solid #e0c36a;padding:.75rem 1rem;border-radius:6px}code{background:#eee;padding:.1rem .3rem;border-radius:3px}</style></head>
-<body><h1>OpsCore — pricing</h1>
-<div class="ph"><strong>OWNER DATA REQUIRED — this page ships as a scaffold.</strong> Every bracketed field below must be supplied by the rights holder before commercial publication. No value has been invented.</div>
-<h2>Required owner-supplied fields</h2>
-<ul>
-<li>Legal entity: <code>[ENTITY_LEGAL_NAME]</code></li>
-<li>Jurisdiction of registration: <code>[JURISDICTION]</code>, registration number: <code>[REGISTRATION_NO]</code></li>
-<li>Contact: <code>[CONTACT_EMAIL]</code> · <code>[CONTACT_ADDRESS]</code></li>
-<li>Privacy/data-processes contact: <code>[PRIVACY_CONTACT]</code>; data practices: <code>[DATA_PRACTICES_SUMMARY]</code></li>
-<li>Refund policy: <code>[REFUND_POLICY_TEXT]</code></li>
-<li>Price / currency / tax treatment: <code>[PRICE]</code> / <code>[CURRENCY]</code> / <code>[TAX_TREATMENT]</code></li>
-<li>License limits: see <code>NO_LICENSE_GRANT_NOTICE.txt</code> — no license is granted until the rights holder executes a written License Schedule referencing <code>docs/commercial/LICENSE_FRAMEWORK.md</code>.</li>
-</ul>
-<p>Last updated: <code>[UPDATE_DATE]</code> — placeholder scaffold, not legal advice, not published commercial terms.</p>
-</body></html>
+<html lang="en" dir="auto">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="index,follow">
+  <title>OpsCore — Commercial Licensing</title>
+  <meta name="description" content="OpsCore commercial modification, use and resale licensing options.">
+  <style>
+    :root{color-scheme:dark light;font-family:Inter,ui-sans-serif,system-ui,sans-serif;background:#0b1020;color:#e8eefc}
+    *{box-sizing:border-box}body{margin:0;padding:clamp(1rem,4vw,3rem);line-height:1.6}
+    main{max-width:960px;margin:auto}.eyebrow{letter-spacing:.14em;text-transform:uppercase;color:#9fb2d0;font-size:.75rem}
+    h1{font-size:clamp(1.8rem,4vw,3rem);line-height:1.12;margin:.4rem 0 1rem}
+    .intro{max-width:70ch;color:#b9c6dc}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin:2rem 0}
+    article{border:1px solid #34445f;border-radius:16px;padding:1.4rem;background:#111b2e}
+    article.featured{border-color:#6b9dff}h2{font-size:1.2rem;margin:.2rem 0}
+    .price{font-size:2.5rem;font-weight:750;margin:.8rem 0}.price small{font-size:.9rem;font-weight:500;color:#b9c6dc}
+    ul{padding-inline-start:1.25rem;color:#d4deed}li{margin:.45rem 0}
+    .notice{border-inline-start:3px solid #e2b65d;padding:.8rem 1rem;background:#202337;color:#e6dfc9;border-radius:6px}
+    .muted{color:#aab8cd;font-size:.9rem}a{color:#8db8ff}
+    @media(max-width:520px){.price{font-size:2.1rem}}
+  </style>
+</head>
+<body>
+<main>
+  <p class="eyebrow">OpsCore · Commercial options</p>
+  <h1>Modification, use and resale licensing</h1>
+  <p class="intro">Two commercial options are available for the OpsCore software. Both are subject to a written agreement identifying the buyer, permitted deployment scope, deliverables and applicable usage terms.</p>
+  <section class="grid" aria-label="Commercial licensing options">
+    <article>
+      <p class="eyebrow">Option 1</p>
+      <h2>Modification &amp; Use</h2>
+      <p class="price">US$2,000 <small>one-time fee</small></p>
+      <ul>
+        <li>Agreed modifications to the OpsCore software.</li>
+        <li>Right to use the modified deliverable within the scope defined in the signed agreement.</li>
+        <li>Delivery identity and included components recorded in the applicable schedule.</li>
+        <li>No resale, sublicensing or redistribution right under this option.</li>
+      </ul>
+    </article>
+    <article class="featured">
+      <p class="eyebrow">Option 2</p>
+      <h2>Modification, Use &amp; Resale Rights</h2>
+      <p class="price">US$6,000 <small>one-time fee</small></p>
+      <ul>
+        <li>Agreed modifications to the OpsCore software.</li>
+        <li>Right to use the modified deliverable within the signed scope.</li>
+        <li>Commercial resale and sublicensing rights, subject to the signed resale schedule and downstream terms.</li>
+        <li>Permitted resale channels, territories, customer limits and support responsibilities must be specified in the agreement.</li>
+      </ul>
+    </article>
+  </section>
+  <div class="notice"><strong>Intellectual property:</strong> Neither option transfers ownership of OpsCore intellectual property or source-code copyright. The US$6,000 option grants only the resale and sublicensing rights expressly defined in the executed agreement. No rights arise from viewing this page, receiving a quote, accessing a deployment or downloading a build.</div>
+  <h2>Commercial terms and exclusions</h2>
+  <ul>
+    <li>Prices are stated in US dollars. Taxes, payment processing, hosting, infrastructure, third-party subscriptions, usage-based provider charges and ongoing support are excluded unless expressly included in the signed agreement.</li>
+    <li>Modification scope, acceptance criteria, delivery dates, usage duration, deployment count, environments, support period and service levels must be written into the order or license schedule. This page does not promise unlimited usage or unlimited modifications.</li>
+    <li>Third-party services, licensed maps, telephony, app-store publication and provider credentials are not included unless separately identified in writing.</li>
+    <li>Resale rights do not permit removal of ownership notices, claiming ownership of the underlying OpsCore intellectual property, or granting rights broader than the buyer received.</li>
+  </ul>
+  <p class="muted">A binding license is effective only when the rights holder and buyer execute a written agreement that identifies the exact release or deliverable fingerprint. This page is a commercial offer summary, not a substitute for the signed agreement or legal advice.</p>
+  <p><a href="/">OpsCore home</a> · <a href="/verify/release.html">Live release evidence</a></p>
+</main>
+</body>
+</html>

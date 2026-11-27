@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="OpsCore Contact Center Agent Control Room — tenant-scoped escalation queue, agent assignments and audited human response.">
+  <meta name="theme-color" content="#04060f">
+  <title>OpsCore — Contact Center Control Room</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/command-fabric-v3.css">
+  <link rel="stylesheet" href="/contact-center-room.css">
+  <script defer src="/fabric-core.js"></script>
+  <script defer src="/contact-center-room.js"></script>
+</head>
+<body>
+  <div class="field" aria-hidden="true">
+    <div class="field__aura field__aura--a"></div>
+    <div class="field__aura field__aura--b"></div>
+    <div class="field__aura field__aura--c"></div>
+    <div class="field__grid"></div>
+  </div>
+  <div class="shell shell--wide ccr-shell">
+    <header class="topbar ccr-topbar">
+      <div class="brand"><div class="mark" aria-hidden="true"></div><div>OpsCore <small>Contact Center · Agent Room</small></div></div>
+      <span class="spacer"></span>
+      <span class="pill mono" data-clock>--:--:-- UTC</span>
+      <button class="btn btn--sm btn--ghost" type="button" data-palette aria-keyshortcuts="Meta+K Control+K"><span class="mono tiny muted">⌘K</span> Search</button>
+      <button class="btn btn--sm btn--ghost" type="button" data-dir-toggle aria-label="Switch interface direction">ع</button>
+      <a class="btn btn--sm btn--ghost" href="/control-plane.html">Sign in / Control Plane</a>
+      <a class="btn btn--sm btn--ghost" href="/contact-center.html">Customer conversations</a>
+      <a class="btn btn--sm btn--ghost" href="/control-rooms.html">All control rooms</a>
+      <a class="btn btn--sm" href="/">Home</a>
+    </header>
+
+    <main id="main">
+      <section class="hero ccr-hero" data-reveal>
+        <div class="hero__grid">
+          <div>
+            <div class="eyebrow">Human intervention · protected operations</div>
+            <h1>Contact Center Control Room</h1>
+            <p class="lede">A focused operator workspace for tenant-scoped escalations, assignment review, secure transcript access and auditable resolution.</p>
+            <div class="hero__meta">
+              <span id="ccrAuthState" class="badge bad">Checking operator access</span>
+              <span id="ccrQueueState" class="badge">Queue not loaded</span>
+              <span class="badge">No synthetic activity</span>
+            </div>
+            <div class="hero__cta">
+              <button class="btn btn--primary" id="ccrRefresh" type="button">Refresh queue</button>
+              <a class="btn" href="/contact-center.html">Open customer experience</a>
+              <a class="btn btn--ghost" href="/verify/release.html">Release evidence</a>
+            </div>
+          </div>
+          <aside class="card ccr-posture">
+            <div class="eyebrow">Service configuration</div>
+            <h3>Contact Center posture</h3>
+            <p class="muted small">Server-reported configuration only. This panel does not measure provider uptime or call quality.</p>
+            <div class="ccr-posture-row"><span>Service feature</span><strong id="ccrFeatureState" class="ccr-state is-pending">Checking</strong></div>
+            <div class="ccr-posture-row"><span>Text assistant</span><strong id="ccrTextState" class="ccr-state is-pending">Checking</strong></div>
+            <div class="ccr-posture-row"><span>Transcript encryption</span><strong id="ccrEncryptionState" class="ccr-state is-pending">Checking</strong></div>
+            <div class="ccr-posture-row"><span>Browser voice</span><strong id="ccrVoiceState" class="ccr-state is-pending">Checking</strong></div>
+            <div class="ccr-posture-row"><span>External actions</span><strong id="ccrActionsState" class="ccr-state is-pending">Checking</strong></div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="ccr-kpis" aria-label="Tenant-scoped handoff summary">
+        <article class="tile ccr-kpi"><div class="tile__top"><span class="tile__k">Open rows loaded</span><span class="badge">API</span></div><div class="tile__v" id="ccrTotal">—</div><div class="tile__s">Maximum 50 rows per refresh</div></article>
+        <article class="tile ccr-kpi"><div class="tile__top"><span class="tile__k">Waiting unclaimed</span><span class="badge">Queue</span></div><div class="tile__v" id="ccrQueued">—</div><div class="tile__s">Returned rows in queued state</div></article>
+        <article class="tile ccr-kpi"><div class="tile__top"><span class="tile__k">Claimed assignments</span><span class="badge">Agents</span></div><div class="tile__v" id="ccrClaimed">—</div><div class="tile__s">Returned rows in claimed state</div></article>
+        <article class="tile ccr-kpi"><div class="tile__top"><span class="tile__k">High / urgent</span><span class="badge">Priority</span></div><div class="tile__v" id="ccrPriority">—</div><div class="tile__s">High and urgent priority rows loaded</div></article>
+      </section>
+
+      <section class="ccr-insights" aria-label="Live queue distribution" data-reveal>
+        <article class="ccr-insight card"><div class="ccr-insight-head"><div><div class="eyebrow">Live snapshot</div><h2>Priority mix</h2></div><span class="ccr-insight-tag">Loaded rows</span></div><div id="ccrPriorityBreakdown" class="ccr-bars"><div class="empty">Awaiting queue data.</div></div></article>
+        <article class="ccr-insight card"><div class="ccr-insight-head"><div><div class="eyebrow">Escalation intelligence</div><h2>Top reasons</h2></div><span class="ccr-insight-tag">By reason code</span></div><div id="ccrReasonBreakdown" class="ccr-bars"><div class="empty">Awaiting queue data.</div></div></article>
+        <article class="ccr-insight card"><div class="ccr-insight-head"><div><div class="eyebrow">Service channels</div><h2>Channel mix</h2></div><span class="ccr-insight-tag">Loaded rows</span></div><div id="ccrChannelBreakdown" class="ccr-bars"><div class="empty">Awaiting queue data.</div></div></article>
+        <article class="ccr-insight card"><div class="ccr-insight-head"><div><div class="eyebrow">Language coverage</div><h2>Language mix</h2></div><span class="ccr-insight-tag">Loaded rows</span></div><div id="ccrLanguageBreakdown" class="ccr-bars"><div class="empty">Awaiting queue data.</div></div></article>
+        <p class="ccr-insight-scope" id="ccrInsightScope">Distribution appears only after a successful queue response. The snapshot is limited to the rows returned by the API.</p>
+      </section>
+
+      <section class="ccr-workspace" data-reveal>
+        <section class="card ccr-queue-panel" aria-labelledby="ccrQueueTitle">
+          <div class="ccr-panel-head">
+            <div><div class="eyebrow">Work distribution</div><h2 id="ccrQueueTitle">Escalation queue</h2><p class="muted small">Only open records returned by the authenticated tenant-scoped endpoint are shown.</p></div>
+            <span class="ccr-refresh-stamp" id="ccrLastRefresh">Not refreshed</span>
+          </div>
+          <div class="ccr-filters">
+            <label class="ccr-search"><span class="sr-only" for="ccrSearch">Search queue rows</span><input id="ccrSearch" type="search" placeholder="Search conversation, reason, channel or language…" autocomplete="off"></label>
+            <label class="ccr-filter"><span class="sr-only" for="ccrFilter">Filter queue status</span><select id="ccrFilter"><option value="all">All open rows</option><option value="queued">Waiting</option><option value="claimed">Claimed</option></select></label>
+          </div>
+          <div id="ccrQueueMessage" class="ccr-message" role="status" aria-live="polite">Queue has not been loaded.</div>
+          <div id="ccrQueueList" class="ccr-queue-list"><div class="empty">Queue records will appear after access is verified.</div></div>
+          <div class="ccr-queue-foot"><span>Tenant boundary enforced by the API</span><span>Priority order supplied by the server</span></div>
+        </section>
+
+        <section class="card ccr-detail-panel" aria-labelledby="ccrDetailTitle">
+          <div class="ccr-panel-head">
+            <div><div class="eyebrow">Assigned case workspace</div><h2 id="ccrDetailTitle">Conversation review</h2><p class="muted small">Claim or open an assignment to load its protected transcript.</p></div>
+            <span class="badge" id="ccrDetailState">No case selected</span>
+          </div>
+          <div id="ccrDetailEmpty" class="ccr-empty-state">
+            <div class="ccr-empty-orbit" aria-hidden="true"><span></span><i></i><b></b></div>
+            <strong>Operator workspace ready</strong>
+            <p>Select a returned queue row. Transcript access and mutations remain subject to backend role and tenant checks.</p>
+          </div>
+          <div id="ccrCase" hidden>
+            <div class="ccr-case-meta">
+              <div><span>Conversation</span><strong class="mono" id="ccrConversationId">—</strong></div>
+              <div><span>Language / channel</span><strong id="ccrLanguageChannel">—</strong></div>
+              <div><span>Escalation reason</span><strong id="ccrReason">—</strong></div>
+            </div>
+            <div class="ccr-transcript-head"><span>Decrypted transcript from protected API</span><span id="ccrMessageCount">0 messages</span></div>
+            <div id="ccrTranscript" class="ccr-transcript" aria-live="polite"></div>
+            <form id="ccrReplyForm" class="ccr-reply-form">
+              <label for="ccrReply">Human agent reply</label>
+              <textarea id="ccrReply" rows="3" maxlength="4000" placeholder="Write a response to the customer…" required></textarea>
+              <div class="ccr-action-row"><span class="muted small">Reply is persisted through the encrypted human-reply service.</span><button class="btn btn--primary" id="ccrSendReply" type="submit">Send reply</button></div>
+            </form>
+            <div class="ccr-resolve-row"><div class="ccr-resolution-note"><label for="ccrResolutionNote">Resolution note</label><textarea id="ccrResolutionNote" rows="2" maxlength="500" placeholder="Summarize the outcome for the audit trail…" required></textarea><p class="muted small">A resolution note is written to the handoff audit record.</p></div><button class="btn btn--danger" id="ccrResolve" type="button">Resolve handoff</button></div>
+            <p class="ccr-assignment-guard" id="ccrAssignmentGuard" role="status" aria-live="polite" hidden></p>
+          </div>
+        </section>
+      </section>
+      <dialog id="ccrResolveDialog" class="ccr-dialog" aria-labelledby="ccrResolveTitle">
+        <form method="dialog">
+          <div class="eyebrow">Audited operator action</div>
+          <h2 id="ccrResolveTitle">Resolve this handoff?</h2>
+          <p>Resolution closes the open handoff in the tenant-scoped service and records the operator note. This action cannot be undone from this dialog.</p>
+          <div class="ccr-dialog-actions">
+            <button class="btn btn--ghost" id="ccrResolveCancel" type="submit" value="cancel">Cancel</button>
+            <button class="btn btn--danger" id="ccrResolveConfirm" type="button">Confirm resolution</button>
+          </div>
+        </form>
+      </dialog>
+
+      <section class="ccr-boundary" data-reveal>
+        <div class="ccr-boundary-mark">!</div>
+        <div><strong>A queue row is not a connected phone call.</strong><p>This room operates the existing browser conversation and human-handoff workflow. PSTN/SIP transfer, WhatsApp/email routing and call recording are not represented as active without their own provider adapters, credentials and verified acceptance evidence.</p></div>
+        <a href="/contact-center.html">Customer workspace <span aria-hidden="true">↗</span></a>
+      </section>
+    </main>
+    <footer class="footer ccr-footer"><span><span>OpsCore · Contact Center Control Room</span></span><span class="mono tiny"><a href="/">home</a> · <a href="/control-plane.html">control plane</a> · <a href="/verify/database.html">database proof</a></span></footer>
+  </div>
+</body>
+</html>

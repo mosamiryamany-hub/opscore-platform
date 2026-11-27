@@ -66,7 +66,7 @@
     $('requestHuman').disabled=!started;
     $('chatInput').disabled=!started || state.channel!=='web_chat';
     $('sendMessage').disabled=!started || state.channel!=='web_chat';
-    $('startChat').disabled=!$('consent').checked || !state.status?.enabled || !state.status?.encryptionConfigured;
+    $('startChat').disabled=!$('consent').checked || !state.status?.enabled || !state.status?.encryptionConfigured || !state.status?.textAssistantConfigured;
     $('startVoice').disabled=!$('consent').checked || !state.status?.realtimeBrowserVoiceConfigured;
     $('stopVoice').disabled=!state.voicePc;
   }
@@ -209,7 +209,8 @@
   async function refreshQueue() {
     try {
       const result=await api('/api/v1/contact-center/handoffs?status=open&limit=50');
-      const items=Array.isArray(result.items)?result.items:[];$('queueCount').textContent=String(items.length);
+      const items=Array.isArray(result.items)?result.items:[];
+      $('queueCount').textContent=String(items.length);
       $('handoffQueue').replaceChildren();
       if(!items.length){
         const empty=document.createElement('div');empty.className='empty';
@@ -237,7 +238,8 @@
         card.append(head,info,actions);$('handoffQueue').appendChild(card);
       });
     } catch(e) {
-      $('queueCount').textContent='—'; $('handoffQueue').replaceChildren();
+      $('queueCount').textContent='—';
+      $('handoffQueue').replaceChildren();
       const el=document.createElement('div');el.className='empty';setTranslation(el,'messages.queueUnavailable',{reason:e.message},`Queue unavailable: ${e.message}`);$('handoffQueue').appendChild(el);
     }
   }
