@@ -3,6 +3,8 @@
 const crypto = require('node:crypto');
 const { Pool } = require('pg');
 const { openPgDatabaseSync, runWithRequest } = require('../src/pg-database-sync');
+const { Store } = require('../src/store');
+const config = require('../src/config');
 
 function requiredUrl() {
   const raw = String(process.env.OPSC_PG_TEST_URL || '').trim();
@@ -145,6 +147,59 @@ async function main() {
           chainEventsAfterConflict: Number(eventCount.count), conflictingWriteRolledBackSnapshot: Number(afterRollback.count) === 0 });
       });
     } finally { appDb.close(); }
+
+    // Exercise Store's installed Digital Twin methods themselves against PostgreSQL,
+    // not a hand-written approximation of their SQL. Every table is TEMP and
+    // confined to this adapter session on the disposable CI database.
+    const storeDb = openPgDatabaseSync(requiredUrl(), { max: 1 });
+    try {
+      runWithRequest(() => {
+        const tables = [
+          'CREATE TEMP TABLE work_orders (id text, organization_id text, status text, priority text, due_at text, assigned_to text) ON COMMIT PRESERVE ROWS',
+          'CREATE TEMP TABLE assets (id text, organization_id text, status text, asset_type text) ON COMMIT PRESERVE ROWS',
+          'CREATE TEMP TABLE appointments (id text, organization_id text, status text, technician_id text, start_at text, end_at text) ON COMMIT PRESERVE ROWS',
+          'CREATE TEMP TABLE operational_jobs (id text, organization_id text, status text) ON COMMIT PRESERVE ROWS',
+          'CREATE TEMP TABLE invoices (id text, organization_id text, status text) ON COMMIT PRESERVE ROWS',
+          'CREATE TEMP TABLE integration_outbox (id text, organization_id text, status text) ON COMMIT PRESERVE ROWS',
+          'CREATE TEMP TABLE maintenance_plans (id text, organization_id text, active integer, next_due_at text) ON COMMIT PRESERVE ROWS',
+          'CREATE TEMP TABLE asset_events (id text, organization_id text, event_type text, occurred_at text) ON COMMIT PRESERVE ROWS',
+          'CREATE TEMP TABLE technician_profiles (id text, organization_id text, active integer) ON COMMIT PRESERVE ROWS',
+          'CREATE TEMP TABLE operational_twin_snapshots (id text PRIMARY KEY, organization_id text NOT NULL, snapshot_kind text NOT NULL, state_json text NOT NULL, state_sha256 text NOT NULL, source_counts_json text NOT NULL, created_by text NOT NULL, created_at timestamptz NOT NULL) ON COMMIT PRESERVE ROWS',
+          'CREATE TEMP TABLE operational_twin_chain_events (id text PRIMARY KEY, organization_id text NOT NULL, sequence_no bigint NOT NULL, event_type text NOT NULL, snapshot_id text NOT NULL, previous_hash text NOT NULL, event_json text NOT NULL, event_hash text NOT NULL, created_by text NOT NULL, created_at timestamptz NOT NULL, UNIQUE(organization_id, sequence_no), UNIQUE(organization_id, snapshot_id)) ON COMMIT PRESERVE ROWS'
+        ];
+        for (const ddl of tables) storeDb.exec(ddl);
+        const tenant = 'tenant-store-method-fixture';
+        storeDb.prepare("INSERT INTO work_orders(id,organization_id,status,priority,due_at,assigned_to) VALUES(?,?,?,?,?,?)")
+          .run('wo-fixture', tenant, 'open', 'urgent', new Date(Date.now() - 60000).toISOString(), null);
+        const store = new Store(storeDb, { ...config, storageProvider: 'local' });
+        const ctx = { organizationId: tenant, userId: 'user-store-fixture', role: 'owner' };
+        const snapshot = store.platformTwin(ctx, { persist: true });
+        const verification = store.verifyPlatformTwinSnapshot(ctx, snapshot.snapshotId);
+        const chain = store.verifyPlatformTwinChain(ctx);
+        if (!snapshot.snapshotId || !verification.valid || !chain.valid
+            || chain.eventCount !== 1 || chain.snapshotCount !== 1
+            || snapshot.signals.overdueWorkOrders !== 1) {
+          throw new Error('STORE_DIGITAL_TWIN_POSTGRES_PATH_INVALID');
+        }
+        evidence.checks.push({ id: 'store-platform-twin-postgres-end-to-end', status: 'PASS',
+          snapshotId: snapshot.snapshotId, chainEvents: chain.eventCount, chainValid: chain.valid,
+          snapshotValid: verification.valid, overdueWorkOrderSignal: snapshot.signals.overdueWorkOrders });
+
+        storeDb.exec("CREATE FUNCTION pg_temp.reject_twin_chain_append() RETURNS trigger LANGUAGE plpgsql AS $ BEGIN RAISE EXCEPTION 'CI_TWIN_CHAIN_APPEND_REJECTED' USING ERRCODE='23505'; END $");
+        storeDb.exec('CREATE TRIGGER reject_twin_chain_append BEFORE INSERT ON operational_twin_chain_events FOR EACH ROW EXECUTE FUNCTION pg_temp.reject_twin_chain_append()');
+        let rejected = false;
+        try { store.platformTwin(ctx, { persist: true }); }
+        catch (error) { rejected = error.code === '23505'; if (!rejected) throw error; }
+        const snapshotsAfterReject = storeDb.prepare('SELECT COUNT(*)::int AS count FROM operational_twin_snapshots WHERE organization_id=?').get(tenant);
+        const eventsAfterReject = storeDb.prepare('SELECT COUNT(*)::int AS count FROM operational_twin_chain_events WHERE organization_id=?').get(tenant);
+        if (!rejected || Number(snapshotsAfterReject.count) !== 1 || Number(eventsAfterReject.count) !== 1) {
+          throw new Error('STORE_DIGITAL_TWIN_POSTGRES_ATOMIC_ROLLBACK_FAILED');
+        }
+        evidence.checks.push({ id: 'store-platform-twin-postgres-atomic-rollback', status: 'PASS',
+          rejectedChainAppend: rejected, snapshotCountAfterRollback: Number(snapshotsAfterReject.count),
+          chainEventCountAfterRollback: Number(eventsAfterReject.count) });
+      });
+    } finally { storeDb.close(); }
 
     // Build deterministic, disposable spatial data and prove the GiST index is
     // usable for a selective bounding-box query. No production rows are touched.
