@@ -1071,6 +1071,17 @@ async function main() {
         'JOIN public.memberships m ON m.organization_id=t.organization_id CROSS JOIN generate_series(1,40000) AS g',
         [tenantA, tenantB]
       );
+      await owner.query(
+        'INSERT INTO public.spatial_features(id,organization_id,entity_type,entity_id,feature_key,geom,properties,source,created_by,created_at,updated_at) ' +
+        "VALUES ($1,$2,'site',$3,'primary',ST_SetSRID(ST_MakePoint(31.235,30.045),4326),$4::jsonb,'signed-context-ci-map',$5,now(),now()), " +
+        "($6,$7,'site',$8,'primary',ST_SetSRID(ST_MakePoint(31.13,29.98),4326),$9::jsonb,'signed-context-ci-map',$10,now(),now())",
+        [
+          'signed_gis_map_a_' + keyId, tenantA, 'signed_map_site_a_' + keyId,
+          JSON.stringify({ fixture: true, tenant: 'A' }), userA,
+          'signed_gis_map_b_' + keyId, tenantB, 'signed_map_site_b_' + keyId,
+          JSON.stringify({ fixture: true, tenant: 'B' }), userB
+        ]
+      );
       await owner.query('ANALYZE public.spatial_features');
 
       const viewport = [-74.05, 40.61, -74.04, 40.62, 1000];
@@ -2833,9 +2844,9 @@ async function main() {
     const viewportQuery = '?west=31.12&south=29.97&east=31.24&north=30.05&limit=20';
     const mapViewportA = await queryHttp(port, '/api/v1/map/viewport' + viewportQuery, tokenA);
     const mapViewportB = await queryHttp(port, '/api/v1/map/viewport' + viewportQuery, tokenB);
-    for (const [label, response, ownSiteId, foreignSiteId, expectedTenant] of [
-      ['tenantA', mapViewportA, createSiteA.body.id, createSiteB.body.id, tenantA],
-      ['tenantB', mapViewportB, createSiteB.body.id, createSiteA.body.id, tenantB]
+    for (const [label, response, ownSiteId, foreignSiteId, expectedTenant, ownSpatialId, foreignSpatialId] of [
+      ['tenantA', mapViewportA, createSiteA.body.id, createSiteB.body.id, tenantA, 'signed_gis_map_a_' + keyId, 'signed_gis_map_b_' + keyId],
+      ['tenantB', mapViewportB, createSiteB.body.id, createSiteA.body.id, tenantB, 'signed_gis_map_b_' + keyId, 'signed_gis_map_a_' + keyId]
     ]) {
       if (response.status !== 200
           || response.headers?.['x-opscore-signed-tenant-context'] !== 'verified'
@@ -2844,7 +2855,13 @@ async function main() {
           || response.body.sites.length !== 1
           || response.body.sites[0].id !== ownSiteId
           || response.body.sites.some(row => row.id === foreignSiteId)
-          || response.body?.counts?.sites !== 1) {
+          || !Array.isArray(response.body?.spatialFeatures)
+          || response.body.spatialFeatures.length !== 1
+          || response.body.spatialFeatures[0].id !== ownSpatialId
+          || response.body.spatialFeatures.some(row => row.id === foreignSpatialId)
+          || response.body.spatialFeatures[0].geometry?.type !== 'Point'
+          || response.body?.counts?.sites !== 1
+          || response.body?.counts?.spatialFeatures !== 1) {
         throw new Error('SIGNED_CONTEXT_MAP_VIEWPORT_TENANT_BOUNDARY_FAILED:' + JSON.stringify({
           label, status: response.status, body: response.body
         }));
