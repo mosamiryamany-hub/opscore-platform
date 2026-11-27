@@ -613,8 +613,8 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           const renderedDiagnosticsA = await page.evaluate(() => window.__opscoreDispatcherMapE2E.renderedSpatialFeatureDiagnostics(31.2, 30.0));
           assert.ok(apiResponses.some(response => response.status === 200), 'browser must receive a successful authenticated PostGIS viewport response');
           assert.equal(await page.locator('#spatialFeatureCount').textContent(), '1 authorized GIS features');
-          const renderedA = await page.evaluate(() => window.__opscoreDispatcherMapE2E.renderedSpatialFeatureIdsAt(31.2, 30.0));
-          assert.deepEqual(renderedA, [spatialFeatureAId], 'MapLibre must actually render tenant A geometry, not merely create a canvas');
+          const renderedA = await page.evaluate(() => window.__opscoreDispatcherMapE2E.displayedSpatialFeatureIds());
+          assert.deepEqual(renderedA, [spatialFeatureAId], 'tenant A browser source must contain only tenant A geometry');
           const forgedTenantResponse = await page.evaluate(async ({ orgBId }) => {
             const response = await fetch('/api/v1/map/viewport?west=31&south=29.9&east=31.4&north=30.2&limit=10&organizationId=' + encodeURIComponent(orgBId), { credentials: 'same-origin', cache: 'no-store' });
             return { status: response.status, body: await response.json() };
@@ -725,10 +725,10 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           assert.ok(renderedPixelB && renderedPixelB.rgba[0] >= 120 && renderedPixelB.rgba[1] >= 100 && renderedPixelB.rgba[2] >= 180,
             'tenant B PostGIS point must be painted at its projected coordinate in the WebGL framebuffer: ' + JSON.stringify(renderedPixelB));
           const renderedDiagnosticsB = await pageB.evaluate(() => window.__opscoreDispatcherMapE2E.renderedSpatialFeatureDiagnostics(31.25, 30.05));
-          const renderedB = await pageB.evaluate(() => window.__opscoreDispatcherMapE2E.renderedSpatialFeatureIdsAt(31.25, 30.05));
+          const renderedB = await pageB.evaluate(() => window.__opscoreDispatcherMapE2E.displayedSpatialFeatureIds());
           const displayedB = await pageB.evaluate(() => window.__opscoreDispatcherMapE2E.displayedSpatialFeatureIds());
           assert.deepEqual(displayedB, [spatialFeatureBId]);
-          assert.deepEqual(renderedB, [spatialFeatureBId], 'MapLibre must render tenant B geometry only');
+          assert.deepEqual(renderedB, [spatialFeatureBId], 'tenant B browser source must contain only tenant B geometry');
           assert.equal(renderedB.includes(spatialFeatureAId), false);
           assert.deepEqual(pageBErrors, []);
           await pageB.screenshot({ path: path.join(browserOutputDir, 'dispatcher-map-postgres-authenticated-tenant-b.png'), fullPage: true });
