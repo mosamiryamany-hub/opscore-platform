@@ -25,7 +25,9 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { spawn } = require('node:child_process');
+const { spawn, execFileSync } = require('node:child_process');
+const http = require('node:http');
+const https = require('node:https');
 const { bindSignedRlsSessionContext, clearSignedRlsSessionContext } = require('../src/signed-tenant-context');
 const { validatePostgresAcceptanceTarget } = require('../scripts/validate-postgres-acceptance-target');
 const { randomUUID } = require('node:crypto');
@@ -220,6 +222,7 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
 
   const created = { organizations: [], users: [], persistedUsers: [], persistedOrganizations: [], loginThrottleKeys: [], spatialFeatureIds: [] };
   let base;
+  let browserProxy = null;
   let base2 = null;
   let child2 = null;
   let cleanupClient = null;
@@ -483,9 +486,50 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
         const { chromium } = require('playwright');
         const browserOutputDir = path.resolve(process.env.OPSC_MAP_BROWSER_ARTIFACT_DIR || path.join(dir, 'dispatcher-map-postgres-browser-e2e'));
         fs.mkdirSync(browserOutputDir, { recursive: true });
+        // __Host- Secure cookies must be installed on HTTPS. Keep the real app
+        // on its existing loopback HTTP listener and add only an ephemeral local
+        // HTTPS reverse proxy for Chromium; never weaken the session cookie.
+        const tlsKeyPath = path.join(dir, 'dispatcher-map-e2e-key.pem');
+        const tlsCertPath = path.join(dir, 'dispatcher-map-e2e-cert.pem');
+        execFileSync('openssl', [
+          'req', '-x509', '-newkey', 'rsa:2048', '-nodes',
+          '-keyout', tlsKeyPath, '-out', tlsCertPath,
+          '-subj', '/CN=127.0.0.1',
+          '-addext', 'subjectAltName=IP:127.0.0.1',
+          '-days', '1'
+        ], { stdio: 'ignore' });
+        browserProxy = https.createServer({
+          key: fs.readFileSync(tlsKeyPath),
+          cert: fs.readFileSync(tlsCertPath)
+        }, (incoming, outgoing) => {
+          const upstream = http.request({
+            hostname: '127.0.0.1',
+            port: boundPort,
+            path: incoming.url,
+            method: incoming.method,
+            headers: { ...incoming.headers, host: `127.0.0.1:${boundPort}` }
+          }, upstreamResponse => {
+            outgoing.writeHead(upstreamResponse.statusCode || 502, upstreamResponse.headers);
+            upstreamResponse.pipe(outgoing);
+          });
+          upstream.on('error', () => {
+            if (!outgoing.headersSent) outgoing.writeHead(502, { 'content-type': 'text/plain' });
+            outgoing.end('Local acceptance proxy failed');
+          });
+          incoming.pipe(upstream);
+        });
+        await new Promise((resolve, reject) => {
+          browserProxy.once('error', reject);
+          browserProxy.listen(0, '127.0.0.1', resolve);
+        });
+        const browserBase = `https://127.0.0.1:${browserProxy.address().port}`;
         const browser = await chromium.launch({ headless: true });
         try {
-          const context = await browser.newContext({ viewport: { width: 375, height: 812 }, reducedMotion: 'reduce' });
+          const context = await browser.newContext({
+            viewport: { width: 375, height: 812 },
+            reducedMotion: 'reduce',
+            ignoreHTTPSErrors: true
+          });
           const pageErrors = [];
           const apiResponses = [];
           const page = await context.newPage();
@@ -496,12 +540,12 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           await context.addCookies([{
             name: '__Host-opscore_session',
             value: ownerACookie.slice(ownerACookie.indexOf('=') + 1),
-            url: new URL(base).origin + '/',
+            url: browserBase + '/',
             secure: true,
             httpOnly: true,
             sameSite: 'Strict'
           }]);
-          const pageResponse = await page.goto(base + '/dispatcher-map.html', { waitUntil: 'domcontentloaded' });
+          const pageResponse = await page.goto(browserBase + '/dispatcher-map.html', { waitUntil: 'domcontentloaded' });
           assert.equal(pageResponse.status(), 200);
           await page.waitForFunction(() => /1 authorized GIS features/.test(document.querySelector('#spatialFeatureCount')?.textContent || ''), null, { timeout: 30000 });
           await page.waitForFunction(() => Boolean(document.querySelector('.maplibregl-canvas')), null, { timeout: 30000 });
@@ -1032,6 +1076,10 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
         serverChild.once('exit', resolve);
       });
     };
+    if (browserProxy) {
+      await new Promise(resolve => browserProxy.close(resolve));
+      browserProxy = null;
+    }
     await stopServer(child2);
     await stopServer(child);
 
