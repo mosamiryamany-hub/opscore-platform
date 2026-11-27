@@ -12,7 +12,7 @@ permissions:
 jobs:
   twin-postgres-acceptance:
     name: digital-twin-postgres-18-postgis-acceptance
-    if: github.event_name == 'pull_request' && github.head_ref == 'feat/digital-twin-gis-command-suite-20261127'
+    if: github.event_name == 'pull_request' && (github.head_ref == 'feat/digital-twin-gis-command-suite-20261127' || github.head_ref == 'test/twin-browser-rtl-responsive-20261127')
     uses: ./.github/workflows/digital-twin-postgres-live.yml
     secrets: inherit
 

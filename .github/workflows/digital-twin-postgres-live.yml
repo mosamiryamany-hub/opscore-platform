@@ -538,7 +538,7 @@ jobs:
 
   production-neon-pitr-history-probe:
     name: Production Neon PITR historical branch probe (read-only)
-    if: (github.event_name == 'pull_request' && github.head_ref == 'fix/vercel-evidence-postgres-storage-2026-11-19') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+    if: (github.event_name == 'pull_request' && (github.head_ref == 'fix/vercel-evidence-postgres-storage-2026-11-19' || github.head_ref == 'test/twin-browser-rtl-responsive-20261127')) || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
     needs: live-rls
     runs-on: ubuntu-24.04
     timeout-minutes: 12
