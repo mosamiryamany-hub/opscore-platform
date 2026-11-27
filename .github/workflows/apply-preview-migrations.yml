@@ -69,7 +69,7 @@ jobs:
       - name: Bind exact isolated Neon acceptance branch
         id: neon
         env:
-          INPUT_BRANCH: ${{ inputs.branch || github.event.inputs.branch || '' }}
+          INPUT_BRANCH: ${{ inputs.branch || github.event.inputs.branch || 'br-muddy-pine-bbrexgxx' }}
           INPUT_DB: ${{ inputs.database || github.event.inputs.database || 'opscore_acceptance' }}
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
         run: |
