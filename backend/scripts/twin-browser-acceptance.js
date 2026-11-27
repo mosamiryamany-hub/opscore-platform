@@ -13,7 +13,7 @@ const { chromium } = require('playwright');
   const results = [];
   try {
     const page = await browser.newPage({ reducedMotion: 'reduce' });
-    page.on('pageerror', error => errors.push({ message: error.message, stack: error.stack }));
+    page.on('pageerror', error => errors.push({ message: error.message, stack: error.stack, name: error.name, fileName: error.fileName, lineNumber: error.lineNumber, columnNumber: error.columnNumber }));
     page.on('console', entry => { if (entry.type() === 'error') errors.push({ console: entry.text(), location: entry.location() }); });
     const response = await page.goto(base + '/digital-twin-room.html', { waitUntil: 'networkidle' });
     assert.equal(response.status(), 200, 'Twin command room must load');
