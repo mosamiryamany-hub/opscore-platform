@@ -35,6 +35,19 @@ test('source-derived API inventory and OpenAPI include all known regex-backed op
     assert.equal(entry?.auth, 'public', `public verification route classification: ${route}`);
     assert.equal(openapi.paths[route]?.get?.security, undefined, `public verification route must not require bearer auth: ${route}`);
   }
+  for (const route of [
+    'GET /api/v1/contact-center/crm/customers',
+    'GET /api/v1/contact-center/conversations/{id}/customer-profile',
+    'POST /api/v1/contact-center/conversations/{id}/customer-link',
+    'POST /api/v1/contact-center/handoffs/{id}/reassign',
+    'GET /api/v1/contact-center/supervisor/agents',
+    'GET /api/v1/contact-center/supervisor/activity'
+  ]) {
+    assert.ok(operations.includes(route), 'CRM/supervisor inventory route: ' + route);
+    const [method, pathName] = route.split(' ');
+    assert.ok(openapi.paths[pathName]?.[method.toLowerCase()], 'OpenAPI CRM/supervisor operation: ' + route);
+    assert.deepEqual(openapi.paths[pathName][method.toLowerCase()].security, [{ bearerAuth: [] }]);
+  }
   const metrics = inventory.routes.find(r => r.method === 'GET' && r.route === '/metrics');
   assert.equal(metrics?.auth, 'required', 'metrics remains protected by its bearer token');
   assert.deepEqual(openapi.paths['/metrics']?.get?.security, [{ bearerAuth: [] }]);
