@@ -10,7 +10,7 @@ async function main() {
   assert.ok(raw, 'OPSC_PG_TEST_URL is required');
   const target = new URL(raw);
   assert.ok(['127.0.0.1', 'localhost', '::1'].includes(target.hostname), 'test URL must be loopback only');
-  assert.equal(decodeURIComponent(target.pathname.replace(/^\\/+/, '')), 'opscore_test', 'test database name must be opscore_test');
+  assert.equal(decodeURIComponent(target.pathname.replace(/^\/+/, '')), 'opscore_test', 'test database name must be opscore_test');
 
   const client = new Client({ connectionString: raw, connectionTimeoutMillis: 5000, statement_timeout: 10000 });
   await client.connect();
