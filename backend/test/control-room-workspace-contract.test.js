@@ -93,8 +93,9 @@ test('Contact Center exposes explicit CRM, supervisor reassignment and employee 
   assert.match(moduleSource, /m\.organization_id=\?/);
   assert.match(moduleSource, /m\.role IN \('member','manager'\)/);
   assert.match(moduleSource, /contact_center_handoff_reassigned/);
+  assert.match(server, /chain:activity\.chain/);
   assert.match(moduleSource, /contact_center_crm_customer_linked/);
-  for (const id of ['ccrCrmProfile','ccrCrmSearch','ccrCrmResults','ccrAssignAgent','ccrAssignReason','ccrReassign','ccrSupervisorActivity','ccrActivityAgent']) {
+  for (const id of ['ccrCrmProfile','ccrCrmSearch','ccrCrmResults','ccrAssignAgent','ccrAssignReason','ccrReassign','ccrSupervisorActivity','ccrActivityAgent','ccrSupervisorAuditIntegrity']) {
     assert.ok(html.includes('id="' + id + '"'), 'control exists: ' + id);
   }
   assert.match(client, /credentials: 'same-origin'/);
