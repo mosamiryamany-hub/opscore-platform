@@ -72,6 +72,14 @@
         <article class="tile ccr-kpi"><div class="tile__top"><span class="tile__k">High / urgent</span><span class="badge">Priority</span></div><div class="tile__v" id="ccrPriority">—</div><div class="tile__s">High and urgent priority rows loaded</div></article>
       </section>
 
+      <section class="ccr-insights" aria-label="Live queue distribution" data-reveal>
+        <article class="ccr-insight card"><div class="ccr-insight-head"><div><div class="eyebrow">Live snapshot</div><h2>Priority mix</h2></div><span class="ccr-insight-tag">Loaded rows</span></div><div id="ccrPriorityBreakdown" class="ccr-bars"><div class="empty">Awaiting queue data.</div></div></article>
+        <article class="ccr-insight card"><div class="ccr-insight-head"><div><div class="eyebrow">Escalation intelligence</div><h2>Top reasons</h2></div><span class="ccr-insight-tag">By reason code</span></div><div id="ccrReasonBreakdown" class="ccr-bars"><div class="empty">Awaiting queue data.</div></div></article>
+        <article class="ccr-insight card"><div class="ccr-insight-head"><div><div class="eyebrow">Service channels</div><h2>Channel mix</h2></div><span class="ccr-insight-tag">Loaded rows</span></div><div id="ccrChannelBreakdown" class="ccr-bars"><div class="empty">Awaiting queue data.</div></div></article>
+        <article class="ccr-insight card"><div class="ccr-insight-head"><div><div class="eyebrow">Language coverage</div><h2>Language mix</h2></div><span class="ccr-insight-tag">Loaded rows</span></div><div id="ccrLanguageBreakdown" class="ccr-bars"><div class="empty">Awaiting queue data.</div></div></article>
+        <p class="ccr-insight-scope" id="ccrInsightScope">Distribution appears only after a successful queue response. The snapshot is limited to the rows returned by the API.</p>
+      </section>
+
       <section class="ccr-workspace" data-reveal>
         <section class="card ccr-queue-panel" aria-labelledby="ccrQueueTitle">
           <div class="ccr-panel-head">
@@ -114,10 +122,10 @@
           </div>
         </section>
       </section>
-      <dialog id="ccrResolveDialog" class="ccr-dialog">
+      <dialog id="ccrResolveDialog" class="ccr-dialog" aria-labelledby="ccrResolveTitle">
         <form method="dialog">
           <div class="eyebrow">Audited operator action</div>
-          <h2>Resolve this handoff?</h2>
+          <h2 id="ccrResolveTitle">Resolve this handoff?</h2>
           <p>Resolution closes the open handoff in the tenant-scoped service and records the operator note. This action cannot be undone from this dialog.</p>
           <div class="ccr-dialog-actions">
             <button class="btn btn--ghost" id="ccrResolveCancel" type="submit" value="cancel">Cancel</button>
