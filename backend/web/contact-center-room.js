@@ -275,7 +275,10 @@
     if (!state.selected?.id || state.busy || !canOperateSelected()) return;
     setBusy(true);
     try {
-      const note = $('ccrResolutionNote').value.trim();\n      if (!note) { setText('ccrQueueMessage','Enter a resolution note before closing this handoff.'); return; }\n      await api('/api/v1/contact-center/handoffs/' + encodeURIComponent(state.selected.id) + '/resolve',{method:'POST',body:{note}});\n      $('ccrResolutionNote').value = '';
+      const note = $('ccrResolutionNote').value.trim();
+      if (!note) { setText('ccrQueueMessage','Enter a resolution note before closing this handoff.'); return; }
+      await api('/api/v1/contact-center/handoffs/' + encodeURIComponent(state.selected.id) + '/resolve',{method:'POST',body:{note}});
+      $('ccrResolutionNote').value = '';
       $('ccrResolveDialog').close();
       state.selected = null;
       state.conversation = null;
@@ -303,6 +306,7 @@
   $('ccrReplyForm').addEventListener('submit',sendReply);
   $('ccrResolve').addEventListener('click',() => $('ccrResolveDialog').showModal());
   $('ccrResolveCancel').addEventListener('click',() => $('ccrResolveDialog').close());
-  $('ccrResolveConfirm').addEventListener('click',resolveHandoff);\n  $('ccrResolutionNote').addEventListener('input',() => { $('ccrResolveConfirm').disabled = state.busy || !canOperateSelected() || !$('ccrResolutionNote').value.trim(); });
+  $('ccrResolveConfirm').addEventListener('click',resolveHandoff);
+  $('ccrResolutionNote').addEventListener('input',() => { $('ccrResolveConfirm').disabled = state.busy || !canOperateSelected() || !$('ccrResolutionNote').value.trim(); });
   refreshQueue();
 })();
