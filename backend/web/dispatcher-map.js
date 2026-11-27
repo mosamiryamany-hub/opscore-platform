@@ -197,11 +197,11 @@ function updateMapPoints() {
 function currentViewportQuery() {
   if (!state.map) return null;
   const bounds = state.map.getBounds();
-  const west = Math.max(-180, bounds.getWest());
+  const west = bounds.getWest();
   const south = Math.max(-90, bounds.getSouth());
-  const east = Math.min(180, bounds.getEast());
+  const east = bounds.getEast();
   const north = Math.min(90, bounds.getNorth());
-  if (![west, south, east, north].every(Number.isFinite) || west >= east || south >= north) return null;
+  if (![west, south, east, north].every(Number.isFinite) || west < -180 || east > 180 || west >= east || south >= north) return null;
   return new URLSearchParams({
     west: String(west), south: String(south), east: String(east), north: String(north), limit: '1000'
   });
@@ -210,7 +210,12 @@ function currentViewportQuery() {
 async function refreshSpatialFeatures() {
   if (!state.map || !state.spatialSourceReady) return;
   const query = currentViewportQuery();
-  if (!query) return;
+  if (!query) {
+    const countNode = $('spatialFeatureCount');
+    if (countNode) countNode.textContent = 'GIS viewport unavailable';
+    message('The current map crosses the antimeridian or has no valid geographic viewport; the GIS API does not accept split-envelope requests yet.', 'warning');
+    return;
+  }
   const sequence = ++state.viewportSequence;
   try {
     const data = await request('/api/v1/map/viewport?' + query.toString());
@@ -263,9 +268,6 @@ async function refresh() {
       await ensureMap();
       updateMapPoints();
       await refreshSpatialFeatures();
-      message(state.points.length
-        ? 'Showing latest persisted appointment check-in per technician. Positions update only when refreshed.'
-        : 'No stored check-in points. No location pins were fabricated.');
     } catch (_) {
       message('Map renderer or tile provider is unavailable. The authenticated record list remains available; no substitute map or pins are shown.', 'warning');
     }
