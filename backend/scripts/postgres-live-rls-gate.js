@@ -27,6 +27,7 @@ const backendRoot = path.resolve(__dirname, '..');
 const migrationPath = path.join(backendRoot, 'sql', 'postgres', '031_digital_twin_chain_hardening.sql');
 const runtimeGrantMigrationPath = path.join(backendRoot, 'sql', 'postgres', '052_runtime_policy_function_grants.sql');
 const controlPlanePolicyMigrationPath = path.join(backendRoot, 'sql', 'postgres', '053_control_plane_restrictive_tenant_guards.sql');
+const spatialFeatureMigrationPath = path.join(backendRoot, 'sql', 'postgres', '054_tenant_scoped_postgis_spatial_features.sql');
 const reportPath = path.join(backendRoot, 'docs', 'verification', 'POSTGRES_LIVE_RLS_RESULT.json');
 
 function emit(status, details = {}, exitCode = 0) {
@@ -34,7 +35,7 @@ function emit(status, details = {}, exitCode = 0) {
     schemaVersion: 'opscore.postgres-live-rls-gate.v1',
     generatedAt: new Date().toISOString(),
     status,
-    target: 'GitHub Actions disposable PostgreSQL 18 service; rollback-only temporary schema; migrations 031, 052 and 053 plus post-067 canonical tenant-accessor control-plane policy fixture; tenant RLS for twin, work, appointment and control-plane tables',
+    target: 'GitHub Actions disposable PostgreSQL 18 service; rollback-only temporary schema; migrations 031, 052 and 053 plus post-067 canonical tenant-accessor control-plane policy fixture; tenant RLS for twin, work, appointment, control-plane and native PostGIS spatial-feature tables',
     productionCertification: false,
     ...details
   };
@@ -135,6 +136,8 @@ async function main() {
     await client.query('CREATE TABLE users (id TEXT PRIMARY KEY)');
     const migration = fs.readFileSync(migrationPath, 'utf8');
     await client.query(migration);
+    const spatialFeatureMigration = fs.readFileSync(spatialFeatureMigrationPath, 'utf8');
+    await client.query(spatialFeatureMigration);
 
     const rls = (await client.query("SELECT c.relrowsecurity, c.relforcerowsecurity, c.relowner::regrole::text AS owner FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname=$1 AND c.relname='operational_twin_chain_events'", [schemaName])).rows[0];
     if (!rls || !rls.relrowsecurity || !rls.relforcerowsecurity) throw new Error('TWIN_CHAIN_RLS_NOT_FORCED');
@@ -414,6 +417,52 @@ async function main() {
     const runtimeCheck = (await client.query("SELECT current_user AS role_name, r.rolsuper, r.rolbypassrls, pg_has_role(current_user,'opscore_app','MEMBER') AS legacy_app_member, has_function_privilege(current_user,'public.opscore_is_privileged()','EXECUTE') AS helper_execute FROM pg_roles r WHERE r.rolname=current_user")).rows[0];
     if (!runtimeCheck || runtimeCheck.rolsuper || runtimeCheck.rolbypassrls || runtimeCheck.legacy_app_member || !runtimeCheck.helper_execute) throw new Error('RUNTIME_ROLE_POLICY_HELPER_POSTCONDITION_FAILED');
     await client.query("SELECT set_config('app.tenant_id',$1,true), set_config('app.user_id',$2,true), set_config('app.access_mode','field',true)", [orgA, userA]);
+    const spatialId = `spatial_a_${crypto.randomBytes(8).toString('hex')}`;
+    await client.query(
+      `INSERT INTO spatial_features(id,organization_id,entity_type,entity_id,feature_key,geom,properties,source,created_by)
+       VALUES($1,$2,'site',$3,'primary',ST_SetSRID(ST_MakePoint(-73.9857,40.7484),4326),$4::jsonb,'acceptance-fixture',$5)`,
+      [spatialId, orgA, `site_${spatialId}`, JSON.stringify({ fixture: true }), userA]
+    );
+    const spatialSelf = await client.query(
+      `SELECT id, ST_SRID(geom) AS srid, ST_Intersects(geom, ST_MakeEnvelope(-74.1,40.6,-73.8,40.9,4326)) AS in_bbox
+       FROM spatial_features WHERE id=$1`, [spatialId]
+    );
+    if (spatialSelf.rowCount !== 1 || Number(spatialSelf.rows[0].srid) !== 4326 || spatialSelf.rows[0].in_bbox !== true) {
+      throw new Error('SPATIAL_FEATURE_TENANT_SELF_QUERY_FAILED');
+    }
+    const spatialIndex = (await client.query(
+      `SELECT indexdef FROM pg_indexes WHERE schemaname=$1 AND tablename='spatial_features' AND indexname='idx_spatial_features_geom_gist'`, [schemaName]
+    )).rows[0];
+    if (!spatialIndex || !/USING gist \(geom\)/i.test(spatialIndex.indexdef)) throw new Error('SPATIAL_FEATURE_GIST_INDEX_MISSING');
+    checks.push({ id: 'postgis-spatial-feature-write-read-and-gist-catalog', status: 'PASS', srid: 4326, bboxIntersection: true, index: 'idx_spatial_features_geom_gist' });
+
+    await client.query("SELECT set_config('app.tenant_id',$1,true), set_config('app.user_id',$2,true)", [orgB, userB]);
+    const spatialCrossRead = await client.query('SELECT id FROM spatial_features WHERE id=$1', [spatialId]);
+    if (spatialCrossRead.rowCount !== 0) throw new Error('SPATIAL_FEATURE_CROSS_TENANT_READ_BREACH');
+    const spatialCrossUpdate = await client.query("UPDATE spatial_features SET properties='{}'::jsonb WHERE id=$1", [spatialId]);
+    if (spatialCrossUpdate.rowCount !== 0) throw new Error('SPATIAL_FEATURE_CROSS_TENANT_UPDATE_BREACH');
+    await client.query('SAVEPOINT spatial_cross_tenant_insert');
+    let spatialCrossInsertDenied = false;
+    try {
+      await client.query(
+        `INSERT INTO spatial_features(id,organization_id,entity_type,entity_id,geom,source,created_by)
+         VALUES($1,$2,'site',$3,ST_SetSRID(ST_MakePoint(0,0),4326),'acceptance-fixture',$4)`,
+        [`spatial_cross_${spatialId}`, orgA, `cross_site_${spatialId}`, userA]
+      );
+    } catch (error) {
+      spatialCrossInsertDenied = error.code === '42501';
+      await client.query('ROLLBACK TO SAVEPOINT spatial_cross_tenant_insert');
+    }
+    await client.query('RELEASE SAVEPOINT spatial_cross_tenant_insert');
+    if (!spatialCrossInsertDenied) throw new Error('SPATIAL_FEATURE_CROSS_TENANT_INSERT_NOT_DENIED');
+    checks.push({ id: 'postgis-spatial-feature-cross-tenant-isolation', status: 'PASS', crossReadRows: 0, crossUpdateRows: 0, crossInsertDenied: true });
+
+    await client.query("SELECT set_config('app.tenant_id','',true)");
+    const spatialNoContext = await client.query('SELECT id FROM spatial_features');
+    if (spatialNoContext.rowCount !== 0) throw new Error('SPATIAL_FEATURE_MISSING_TENANT_CONTEXT_DID_NOT_FAIL_CLOSED');
+    checks.push({ id: 'postgis-spatial-feature-missing-context-fails-closed', status: 'PASS' });
+
+    await client.query("SELECT set_config('app.tenant_id',$1,true), set_config('app.user_id',$2,true), set_config('app.access_mode','field',true)", [orgA, userA]);
     const ownAppointments = await client.query('SELECT id FROM appointments');
     const ownWorkOrders = await client.query('SELECT id FROM work_orders');
     if (ownAppointments.rowCount !== 1 || ownAppointments.rows[0].id !== appointmentA) throw new Error('RUNTIME_APPOINTMENT_TENANT_READ_FAILED');
@@ -541,7 +590,7 @@ async function main() {
     await client.query('RESET ROLE');
     await client.query('ROLLBACK');
     inTransaction = false;
-    emit('PASS', { database: info.database, serverVersion: info.server_version, executedChecks: checks, checkCount: checks.length, note: 'This gate runs on the disposable PostgreSQL 18 service created by GitHub Actions. It tests migrations 031, 052, 053 and 059 plus tenant policy execution for twin, appointment, work-order, control-plane and system operational tables under the opscore_runtime role without inheriting opscore_app in a rollback-only isolated schema. It does not connect to Neon and does not certify all production data or production isolation.' });
+    emit('PASS', { database: info.database, serverVersion: info.server_version, executedChecks: checks, checkCount: checks.length, note: 'This gate runs on the disposable PostgreSQL 18 service created by GitHub Actions. It tests migrations 031, 052, 053 and 054 (plus the existing 059 metadata-readonly gate) including native PostGIS spatial-feature tenant policies for twin, appointment, work-order, control-plane and system operational tables under the opscore_runtime role without inheriting opscore_app in a rollback-only isolated schema. It does not connect to Neon and does not certify all production data or production isolation.' });
   } catch (error) {
     if (inTransaction) {
       try { await client.query('ROLLBACK'); } catch (rollbackError) {
