@@ -216,7 +216,8 @@
         api('/api/v1/contact-center/handoffs?status=open&limit=50')
       ]);
       renderService(status);
-      state.queueError = null;\n      state.items = Array.isArray(queue.items) ? queue.items : [];
+      state.queueError = null;
+      state.items = Array.isArray(queue.items) ? queue.items : [];
       metrics(state.items);
       renderAnalytics();
       setText('ccrAuthState','Authenticated queue access confirmed');
@@ -260,7 +261,8 @@
     if (!content) return;
     setBusy(true);
     try {
-      if (!canOperateSelected()) throw new Error('CONTACT_CENTER_HUMAN_ASSIGNMENT_REQUIRED');\n      const payload = {content,clientMessageId:'human:'+crypto.randomUUID()};
+      if (!canOperateSelected()) throw new Error('CONTACT_CENTER_HUMAN_ASSIGNMENT_REQUIRED');
+      const payload = {content,clientMessageId:'human:'+crypto.randomUUID()};
       await api('/api/v1/contact-center/conversations/' + encodeURIComponent(state.selected.conversationId) + '/human-reply',{method:'POST',body:payload});
       $('ccrReply').value = '';
       const response = await api('/api/v1/contact-center/conversations/' + encodeURIComponent(state.selected.conversationId));
