@@ -791,6 +791,7 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
       // PostGIS fixtures. Inserts use the signed tenant context and the test cleanup
       // ledger records every returned ID; no static or mocked geometry is involved.
       await bindSignedRlsSessionContext(fixture, { tenantId: orgAId, userId: ownerAId, accessMode: 'system' });
+      const capFeatureIds = Array.from({ length: 1005 }, (_, index) => 'gis-cap-' + stamp + '-' + (index + 1));
       const capFixtures = await fixture.query(
         `INSERT INTO spatial_features
           (id,organization_id,entity_type,entity_id,feature_key,geom,properties,source,created_by,created_at,updated_at)
@@ -805,11 +806,12 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
                 $3,
                 now(),
                 now()
-         FROM generate_series(1, 1005) AS g
-         RETURNING id`,
+         FROM generate_series(1, 1005) AS g`,
         [stamp, orgAId, ownerAId]
       );
-      created.spatialFeatureIds.push(...capFixtures.rows.map(row => row.id));
+      // The runtime role intentionally has no SELECT grant on the base table;
+      // deterministic IDs avoid RETURNING and preserve that privilege boundary.
+      created.spatialFeatureIds.push(...capFeatureIds);
       await clearSignedRlsSessionContext(fixture);
       assert.equal(capFixtures.rowCount, 1005);
       const cappedViewport = await request(
