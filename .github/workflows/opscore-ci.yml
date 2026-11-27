@@ -27,6 +27,11 @@ jobs:
       - name: Install backend
         working-directory: backend
         run: npm ci --ignore-scripts
+      - name: Provision isolated Neon PostgreSQL branch for live acceptance tests
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+        run: python3 scripts/ci_neon_postgres_acceptance.py setup
       - name: Verify Docker build context excludes private environment and runtime data
         shell: bash
         run: |
@@ -83,7 +88,7 @@ jobs:
         run: npm run verify:hardened
       - name: Backend release regression suite
         working-directory: backend
-        run: OPSC_RELEASE_TEST_CONCURRENCY=4 node scripts/release-test-runner.js
+        run: OPSC_RELEASE_TEST_CONCURRENCY=1 node scripts/release-test-runner.js
       - name: Deterministic performance regression gate
         run: node scripts/performance-regression-gate.js
       - name: Verify recorded release evidence and provenance
@@ -103,3 +108,8 @@ jobs:
       - name: Mobile dependency audit (documented-risk gate)
         working-directory: mobile
         run: node scripts/audit-gate.js
+      - name: Delete disposable Neon PostgreSQL acceptance branch
+        if: ${{ always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+        run: python3 scripts/ci_neon_postgres_acceptance.py cleanup
