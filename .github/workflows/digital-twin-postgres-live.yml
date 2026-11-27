@@ -184,7 +184,7 @@ jobs:
         working-directory: backend
         run: |
           npm install --no-save --package-lock=false playwright@1.65.1
-          npx playwright install --with-deps chromium
+          npx playwright install chromium
       - name: Apply full migrations to disposable acceptance databases
         working-directory: backend
         run: |
