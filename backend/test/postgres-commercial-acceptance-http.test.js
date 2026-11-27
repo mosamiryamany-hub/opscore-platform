@@ -215,6 +215,8 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
 
   const created = { organizations: [], users: [], persistedUsers: [], persistedOrganizations: [], loginThrottleKeys: [] };
   let base;
+  let base2 = null;
+  let child2 = null;
   let cleanupClient = null;
   const cleanupErrors = [];
   let virginDatabaseVerified = false;
@@ -232,18 +234,19 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
     }
   };
 
-  const request = async (pathname, options = {}, cookie = null) => {
+  const requestAt = async (origin, pathname, options = {}, cookie = null) => {
     const headers = {
       ...(options.body !== undefined ? { 'content-type': 'application/json' } : {}),
       ...(cookie ? { cookie } : {}),
       ...(options.headers || {})
     };
-    const response = await fetch(base + pathname, { ...options, headers });
+    const response = await fetch(origin + pathname, { ...options, headers });
     const text = await response.text();
     let data = null;
     try { data = text ? JSON.parse(text) : null; } catch { data = text; }
     return { response, data, text };
   };
+  const request = (pathname, options = {}, cookie = null) => requestAt(base, pathname, options, cookie);
 
   try {
     const control0 = await control.connect();
@@ -482,14 +485,55 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
       record('digital-twin-snapshot-database-rls-cross-tenant-denial',
         'opscore_runtime under tenant B signed context could not read tenant A snapshot or insert a tenant A snapshot');
 
-      // Race two independent HTTP requests with distinct idempotency keys in the
-      // same tenant. The chain must serialize both writers without duplicate or
-      // skipped sequence numbers and leave every snapshot paired with one event.
-      const concurrentTwinWrites = await Promise.all([1, 2].map(index => request('/api/v1/platform/twin/snapshots', {
-        method: 'POST',
-        headers: { 'idempotency-key': `twin-concurrent-${index}-${stamp}` },
-        body: JSON.stringify({})
-      }, ownerACookie)));
+      // Start a second application process on the same isolated PostgreSQL database.
+      // The session cookie is database-backed, so both processes must resolve the
+      // same authenticated tenant without sharing in-process memory or DB workers.
+      const port2 = port + 15000;
+      child2 = spawn(process.execPath, ['src/server.js'], {
+        cwd: path.resolve(__dirname, '..'),
+        env: {
+          ...process.env,
+          NODE_ENV: 'test',
+          PORT: String(port2),
+          HOST: '127.0.0.1',
+          PUBLIC_ORIGIN: `http://127.0.0.1:${port2}`,
+          SQLITE_PATH: path.join(dir, 'unused-second.sqlite'),
+          OPSC_REPOSITORY_PATH: path.join(dir, 'files-second'),
+          DATABASE_ENGINE: 'postgres',
+          DATABASE_URL: urlText,
+          OPSC_DATABASE_URL: '',
+          OPSC_PG_SSL_MODE: /127\\.0\\.0\\.1|localhost/.test(parsed.host) ? 'disable' : 'require',
+          AUTH_MODE: 'local',
+          OPSC_TEST_SCRYPT_N: process.env.OPSC_TEST_SCRYPT_N || '32768'
+        },
+        stdio: ['ignore', 'pipe', 'pipe']
+      });
+      const boundPort2 = await waitForServer(child2);
+      base2 = `http://127.0.0.1:${boundPort2}`;
+      assert.notEqual(child.pid, child2.pid);
+      let health2 = await requestAt(base2, '/api/health');
+      for (let i = 0; health2.data && health2.data.status !== 'healthy' && i < 15; i++) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        health2 = await requestAt(base2, '/api/health');
+      }
+      assert.equal(health2.response.status, 200, JSON.stringify(health2.data));
+      assert.equal(health2.data.engine, 'postgres');
+      assert.equal(health2.data.status, 'healthy');
+
+      // Race two independent application processes with distinct idempotency keys.
+      // The transaction-scoped tenant advisory lock must serialize both app writers.
+      const concurrentTwinWrites = await Promise.all([
+        request('/api/v1/platform/twin/snapshots', {
+          method: 'POST',
+          headers: { 'idempotency-key': `twin-concurrent-a-${stamp}` },
+          body: JSON.stringify({})
+        }, ownerACookie),
+        requestAt(base2, '/api/v1/platform/twin/snapshots', {
+          method: 'POST',
+          headers: { 'idempotency-key': `twin-concurrent-b-${stamp}` },
+          body: JSON.stringify({})
+        }, ownerACookie)
+      ]);
       for (const result of concurrentTwinWrites) {
         assert.equal(result.response.status, 201, JSON.stringify(result.data));
         assert.equal(result.data.integrity.valid, true);
@@ -502,7 +546,7 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
       assert.equal(twinChainAfterRace.data.eventCount, 3);
       assert.equal(Number(twinChainAfterRace.data.snapshotCount), 3);
       record('digital-twin-http-concurrent-writers',
-        'two concurrent HTTP snapshot writes committed with chain sequences 2 and 3; no duplicate, gap, or orphan snapshot');
+        `two independent app processes (pids ${child.pid} and ${child2.pid}) committed sequence numbers 2 and 3; no duplicate, gap, or orphan snapshot`);
 
       // Tenant B starts with an empty, independent Twin history; it cannot verify
       // tenant A identifiers, then can create and verify its own chain.
@@ -872,11 +916,16 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
     });
     throw error;
   } finally {
-    child.kill('SIGTERM');
-    await new Promise(resolve => {
-      if (child.exitCode !== null) return resolve();
-      child.once('exit', resolve);
-    });
+    const stopServer = async serverChild => {
+      if (!serverChild) return;
+      if (serverChild.exitCode === null && serverChild.signalCode === null) serverChild.kill('SIGTERM');
+      await new Promise(resolve => {
+        if (serverChild.exitCode !== null || serverChild.signalCode !== null) return resolve();
+        serverChild.once('exit', resolve);
+      });
+    };
+    await stopServer(child2);
+    await stopServer(child);
 
     // Target only fixture IDs and exact synthetic throttle keys. Do not hide cleanup
     // errors: a green acceptance result is not valid if the disposable DB retains data.
