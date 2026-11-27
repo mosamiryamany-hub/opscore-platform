@@ -145,6 +145,7 @@ function assertTarget(url,database,apply,env=process.env){
  if(target==='production'&&env.OPSC_MIGRATION_ALLOW_PRODUCTION!=='1')throw new Error('MIGRATION_TARGET_NOT_PREVIEW_OR_TEST');
  if(target!=='production'&&env.OPSC_MIGRATION_ALLOW_PRODUCTION==='1')throw new Error('MIGRATION_PRODUCTION_OPT_IN_TARGET_CLASS_MISMATCH');
  if(target==='self-hosted'){
+  if(!/^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$/.test(hostname)||hostname.includes('..'))throw new Error('MIGRATION_SELF_HOSTED_HOST_INVALID');
   if(env.OPSC_MIGRATION_ALLOW_PRODUCTION==='1')throw new Error('MIGRATION_PRODUCTION_OPT_IN_TARGET_CLASS_MISMATCH');
   if(String(url.searchParams.get('sslmode')||'').toLowerCase()!=='verify-full')throw new Error('MIGRATION_SELF_HOSTED_TLS_VERIFY_FULL_REQUIRED');
   if(String(env.OPSC_PG_SSL_MODE||'verify-full').toLowerCase()!=='verify-full')throw new Error('MIGRATION_SELF_HOSTED_TLS_VERIFY_FULL_REQUIRED');
