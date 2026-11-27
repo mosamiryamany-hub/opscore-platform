@@ -26,6 +26,32 @@ if (new URLSearchParams(window.location.search).get('e2e') === '1') {
         .filter(feature => feature.source === 'tenant-spatial-features')
         .map(feature => String(feature.id ?? feature.properties?.featureId ?? '')).filter(Boolean).sort();
     },
+    renderedSpatialFeatureDiagnostics(longitude, latitude) {
+      if (!state.map || !state.spatialSourceReady) return null;
+      const point = state.map.project([Number(longitude), Number(latitude)]);
+      const layers = ['tenant-spatial-polygons', 'tenant-spatial-lines', 'tenant-spatial-points'];
+      const all = state.map.queryRenderedFeatures();
+      const filtered = state.map.queryRenderedFeatures(undefined, { layers });
+      const atPoint = state.map.queryRenderedFeatures(point, { layers });
+      const atBox = state.map.queryRenderedFeatures(
+        [[point.x - 16, point.y - 16], [point.x + 16, point.y + 16]],
+        { layers }
+      );
+      return {
+        point: { x: point.x, y: point.y },
+        canvas: { width: state.map.getCanvas().width, height: state.map.getCanvas().height },
+        allCount: all.length,
+        allSpatial: all.filter(feature => feature.source === 'tenant-spatial-features').map(feature => ({
+          id: feature.id ?? null, source: feature.source ?? null, layer: feature.layer?.id ?? null, properties: feature.properties ?? null
+        })),
+        filteredCount: filtered.length,
+        filteredSpatial: filtered.filter(feature => feature.source === 'tenant-spatial-features').map(feature => ({
+          id: feature.id ?? null, source: feature.source ?? null, layer: feature.layer?.id ?? null, properties: feature.properties ?? null
+        })),
+        atPointCount: atPoint.length,
+        atBoxCount: atBox.length
+      };
+    },
     renderedSpatialFeatureIdsAt(longitude, latitude) {
       if (!state.map || !state.spatialSourceReady) return [];
       const point = state.map.project([Number(longitude), Number(latitude)]);
