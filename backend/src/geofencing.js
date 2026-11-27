@@ -3,6 +3,7 @@ const crypto=require('node:crypto');
 const {id,now}=require('./security');
 const {requireRole}=require('./rbac');
 function clean(v){return String(v??'').trim()}
+function parseGeoJsonValue(v){if(v==null)return null;if(typeof v==='string')return JSON.parse(v);if(Buffer.isBuffer(v))return JSON.parse(v.toString('utf8'));return v}
 function pointOnSegment(point,a,b){const [x,y]=point,[x1,y1]=a,[x2,y2]=b;const cross=(x-x1)*(y2-y1)-(y-y1)*(x2-x1);if(Math.abs(cross)>1e-12)return false;return x>=Math.min(x1,x2)-1e-12&&x<=Math.max(x1,x2)+1e-12&&y>=Math.min(y1,y2)-1e-12&&y<=Math.max(y1,y2)+1e-12;}
 function pointInRing(point,ring){let inside=false;const x=point[0],y=point[1];for(let i=0,j=ring.length-1;i<ring.length;j=i++){if(pointOnSegment(point,ring[j],ring[i]))return true;const xi=ring[i][0],yi=ring[i][1],xj=ring[j][0],yj=ring[j][1];const intersect=((yi>y)!==(yj>y))&&(x<((xj-xi)*(y-yi))/(yj-yi)+xi);if(intersect)inside=!inside;}return inside;}
 function orientation(a,b,c){const v=(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);return Math.abs(v)<=1e-12?0:v>0?1:-1;}
@@ -209,7 +210,7 @@ p.listMapViewport=function(ctx,d={}){
   const north=Number(d.north??d.maxLat??(bbox?bbox[3]:undefined));
   if(![west,south,east,north].every(Number.isFinite))
     throw Object.assign(new Error('VIEWPORT_BBOX_INVALID'),{status:422});
-  if(west<-180||east>180||south<-90||north>90||west>east||south>north)
+  if(west<-180||east>180||south<-90||north>90||west>=east||south>=north)
     throw Object.assign(new Error('VIEWPORT_BBOX_INVALID'),{status:422});
   const limit=Math.min(Math.max(Number(d.limit||500)||500,1),2000);
   const sites=this.db.prepare(
@@ -233,8 +234,28 @@ p.listMapViewport=function(ctx,d={}){
      WHERE organization_id=? AND longitude>=? AND longitude<=? AND latitude>=? AND latitude<=?
      ORDER BY recorded_at DESC LIMIT ?`
   ).all(ctx.organizationId, west, east, south, north, limit);
+  let spatialFeatures = null;
+  if (this.db.engine === 'postgres' && d.includeSpatialFeatures === true) {
+    const spatialRows = this.db.prepare(
+      `SELECT id,entity_type,entity_id,feature_key,
+              public.ST_AsGeoJSON(geom)::jsonb AS geometry,
+              properties,observed_at,updated_at
+         FROM opscore_security.spatial_features_in_viewport(?,?,?,?,?)`
+    ).all(west, south, east, north, Math.min(limit, 1000));
+    spatialFeatures = spatialRows.map(row => ({
+      id: row.id,
+      entityType: row.entity_type,
+      entityId: row.entity_id,
+      featureKey: row.feature_key,
+      geometry: parseGeoJsonValue(row.geometry),
+      properties: parseGeoJsonValue(row.properties),
+      observedAt: row.observed_at,
+      updatedAt: row.updated_at
+    }));
+  }
   // Optional geo-scope filter for non-admin
   let payload={sites,checkins,trail};
+  if (spatialFeatures !== null) payload.spatialFeatures = spatialFeatures;
   if(ctx.role!=='admin'&&ctx.role!=='owner'){
     const pack=this.listRoleIsolationPolygons(ctx);
     if(pack.polygons.length){
@@ -242,7 +263,10 @@ p.listMapViewport=function(ctx,d={}){
       payload={
         sites:sites.filter(s=>inside(Number(s.longitude),Number(s.latitude))),
         checkins:checkins.filter(c=>inside(Number(c.longitude),Number(c.latitude))),
-        trail:trail.filter(t=>inside(Number(t.longitude),Number(t.latitude)))
+        trail:trail.filter(t=>inside(Number(t.longitude),Number(t.latitude))),
+        ...(spatialFeatures !== null ? {spatialFeatures:spatialFeatures.filter(feature =>
+          feature.geometry?.type === 'Point' && pack.polygons.some(g => coversPoint(g.geometry, feature.geometry.coordinates))
+        )} : {})
       };
     }
   }
@@ -250,7 +274,7 @@ p.listMapViewport=function(ctx,d={}){
     schemaVersion:'opscore.map-viewport.v1',
     organizationId:ctx.organizationId,
     bbox:{west,south,east,north},
-    counts:{sites:payload.sites.length,checkins:payload.checkins.length,trail:payload.trail.length},
+    counts:{sites:payload.sites.length,checkins:payload.checkins.length,trail:payload.trail.length,...(Array.isArray(payload.spatialFeatures)?{spatialFeatures:payload.spatialFeatures.length}:{})},
     ...payload
   };
 };
