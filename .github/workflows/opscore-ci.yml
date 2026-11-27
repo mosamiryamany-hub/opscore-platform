@@ -68,6 +68,8 @@ jobs:
         run: node --test backend/test/production-deployment-smoke.test.js
       - name: Commercial pricing and browser voice policy regression tests
         run: node --test backend/test/commercial-and-browser-policy.test.js
+      - name: Contact Center workbench contract tests
+        run: node --test backend/test/contact-center-workbench.test.js
       - name: Production environment preflight contract tests
         run: node --test backend/test/production-environment-preflight.test.js
       - name: Production runtime identity and release gate contract tests
