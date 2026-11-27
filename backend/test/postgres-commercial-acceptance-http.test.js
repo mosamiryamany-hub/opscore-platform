@@ -645,18 +645,48 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           assert.equal(latestAppliedAfterRelease, latestAppliedBeforeRelease,
             'a stale response completing last must not replace the newest applied viewport sequence');
           await page.screenshot({ path: path.join(browserOutputDir, 'dispatcher-map-postgres-authenticated-375.png'), fullPage: true });
+          const responsiveViewports = [
+            { width: 320, height: 740 },
+            { width: 375, height: 812 },
+            { width: 430, height: 932 },
+            { width: 768, height: 1024 },
+            { width: 1366, height: 900 },
+            { width: 1920, height: 1080 }
+          ];
+          const responsiveChecks = [];
+          for (const viewport of responsiveViewports) {
+            await page.setViewportSize(viewport);
+            await page.waitForTimeout(100);
+            const layout = await page.evaluate(() => ({
+              viewport: document.documentElement.clientWidth,
+              document: document.documentElement.scrollWidth,
+              body: document.body.scrollWidth,
+              mapCanvas: Boolean(document.querySelector('.maplibregl-canvas'))
+            }));
+            assert.ok(layout.document <= layout.viewport + 1, JSON.stringify({ viewport, layout }));
+            assert.ok(layout.body <= layout.viewport + 1, JSON.stringify({ viewport, layout }));
+            assert.equal(layout.mapCanvas, true);
+            responsiveChecks.push({ ...viewport, status: 'PASS', documentWidth: layout.document, bodyWidth: layout.body });
+          }
           await page.setViewportSize({ width: 1366, height: 900 });
-          const desktopLayout = await page.evaluate(() => ({
-            viewport: document.documentElement.clientWidth,
-            document: document.documentElement.scrollWidth,
-            body: document.body.scrollWidth,
-            mapCanvas: Boolean(document.querySelector('.maplibregl-canvas'))
-          }));
-          assert.ok(desktopLayout.document <= desktopLayout.viewport + 1, JSON.stringify(desktopLayout));
-          assert.ok(desktopLayout.body <= desktopLayout.viewport + 1, JSON.stringify(desktopLayout));
-          assert.equal(desktopLayout.mapCanvas, true);
           await page.locator('[data-dir-toggle]').click();
           assert.equal(await page.locator('html').getAttribute('dir'), 'rtl');
+          const rtlMobile = await page.evaluate(() => ({
+            direction: document.documentElement.getAttribute('dir'),
+            viewport: document.documentElement.clientWidth,
+            document: document.documentElement.scrollWidth,
+            body: document.body.scrollWidth
+          }));
+          await page.setViewportSize({ width: 375, height: 812 });
+          const rtlMobileLayout = await page.evaluate(() => ({
+            direction: document.documentElement.getAttribute('dir'),
+            viewport: document.documentElement.clientWidth,
+            document: document.documentElement.scrollWidth,
+            body: document.body.scrollWidth
+          }));
+          assert.equal(rtlMobileLayout.direction, 'rtl');
+          assert.ok(rtlMobileLayout.document <= rtlMobileLayout.viewport + 1, JSON.stringify(rtlMobileLayout));
+          assert.ok(rtlMobileLayout.body <= rtlMobileLayout.viewport + 1, JSON.stringify(rtlMobileLayout));
           await page.screenshot({ path: path.join(browserOutputDir, 'dispatcher-map-postgres-authenticated-rtl.png'), fullPage: true });
 
           // A separate browser context receives only tenant B's independently issued
@@ -704,7 +734,8 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
             schemaVersion: 'opscore.dispatcher-map-authenticated-postgres-browser-e2e.v1',
             status: 'PASS',
             browser: await browser.version(),
-            viewports: [{ width: 375, height: 812 }, { width: 1366, height: 900 }],
+            viewports: responsiveChecks,
+            rtlDesktopAndMobile: { desktop: 'PASS', mobile: rtlMobileLayout, initialMobileRtl: rtlMobile },
             tenantFeatureCount: 1,
             tenantBrowserIsolation: { tenantA: renderedA, tenantB: renderedB, status: 'PASS' },
             viewportDebounce: { burstEvents: 3, requests: viewportRequestsAfterBurst - viewportRequestsBeforeBurst, status: 'PASS' },
