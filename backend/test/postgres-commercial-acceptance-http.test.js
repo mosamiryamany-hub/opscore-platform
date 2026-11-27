@@ -310,19 +310,61 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
     assert.equal(x.response.status, 401);
     record('anonymous-control-plane-denied', 'HTTP 401 for /api/v1/control-plane and recovery bundle without a session');
 
-    // First tenant through the normal HTTP bootstrap path.
-    x = await request('/api/v1/auth/bootstrap', {
-      method: 'POST',
-      body: JSON.stringify({ orgName: `Acceptance Tenant A ${stamp}`, email: ownerAEmail, password: 'Initial-A-strong-2026' })
+    // Bootstrap is a separate, one-time privileged operation. Run this HTTP
+    // route in a dedicated test process authenticated as the exact Neon owner role;
+    // every subsequent login and application assertion stays on opscore_runtime.
+    assert.ok(cleanupPool && cleanupRoleName === 'neondb_owner' && cleanupUsesPrivilegedRole,
+      'HTTP bootstrap requires the separate verified neondb_owner connection');
+    record('bootstrap-role-separated', 'HTTP bootstrap ran in a dedicated process using non-superuser neondb_owner; application HTTP checks remain on opscore_runtime');
+
+    const bootstrapPort = port === 44999 ? port - 1 : port + 1;
+    const bootstrapChild = spawn(process.execPath, ['src/server.js'], {
+      cwd: path.resolve(__dirname, '..'),
+      env: {
+        ...process.env,
+        NODE_ENV: 'test',
+        PORT: String(bootstrapPort),
+        HOST: '127.0.0.1',
+        PUBLIC_ORIGIN: `http://127.0.0.1:${bootstrapPort}`,
+        SQLITE_PATH: path.join(dir, 'unused-bootstrap.sqlite'),
+        OPSC_REPOSITORY_PATH: path.join(dir, 'files'),
+        DATABASE_ENGINE: 'postgres',
+        DATABASE_URL: cleanupUrlText,
+        OPSC_DATABASE_URL: '',
+        OPSC_PG_SSL_MODE: /127\.0\.0\.1|localhost/.test(parsed.host) ? 'disable' : 'require',
+        AUTH_MODE: 'local',
+        OPSC_TEST_SCRYPT_N: process.env.OPSC_TEST_SCRYPT_N || '32768'
+      },
+      stdio: ['ignore', 'pipe', 'pipe']
     });
+    try {
+      const bootstrapBoundPort = await waitForServer(bootstrapChild);
+      const bootstrapBase = `http://127.0.0.1:${bootstrapBoundPort}`;
+      const bootstrapResponse = await fetch(bootstrapBase + '/api/v1/auth/bootstrap', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ orgName: `Acceptance Tenant A ${stamp}`, email: ownerAEmail, password: 'Initial-A-strong-2026' })
+      });
+      const bootstrapText = await bootstrapResponse.text();
+      let bootstrapData = null;
+      try { bootstrapData = bootstrapText ? JSON.parse(bootstrapText) : null; } catch { bootstrapData = bootstrapText; }
+      x = { response: bootstrapResponse, data: bootstrapData, text: bootstrapText };
+    } finally {
+      bootstrapChild.kill('SIGTERM');
+      await new Promise(resolve => {
+        if (bootstrapChild.exitCode !== null) return resolve();
+        bootstrapChild.once('exit', resolve);
+      });
+    }
     assert.equal(x.response.status, 201, JSON.stringify(x.data));
     const ownerAId = x.data.userId || x.data.user?.id || x.data.id;
     // Register synthetic records immediately; if a later assertion fails, cleanup must
     // still know exactly which identity was created by this run.
     if (ownerAId) { created.users.push(ownerAId); created.persistedUsers.push(ownerAId); }
-    const bootstrapOrgId = x.data.organizationId || x.data.organization?.id;
+    const bootstrapOrgId = x.data.orgId || x.data.organizationId || x.data.organization?.id;
     if (bootstrapOrgId) { created.organizations.push(bootstrapOrgId); created.persistedOrganizations.push(bootstrapOrgId); }
     assert.ok(ownerAId, 'bootstrap must return the first owner identity');
+    assert.ok(bootstrapOrgId, 'bootstrap must return the first organization identity');
 
     x = await request('/api/v1/auth/login', {
       method: 'POST',
