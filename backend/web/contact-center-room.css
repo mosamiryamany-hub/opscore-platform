@@ -108,3 +108,21 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--cy);outline-offset:
 .ccr-dialog-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:22px}
 .ccr-dialog-actions button{min-height:42px}
 @media(max-width:500px){.ccr-dialog-actions{flex-direction:column-reverse}.ccr-dialog-actions button{width:100%}}
+
+.ccr-insights{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin-block:0 16px}
+.ccr-insight{min-width:0;padding:14px 15px;border:1px solid var(--line);border-radius:15px;background:linear-gradient(155deg,rgba(14,25,51,.88),rgba(6,12,27,.96));box-shadow:var(--sh-1)}
+.ccr-insight-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:12px}
+.ccr-insight-head h2{font-size:clamp(14px,1.3vw,18px);margin:4px 0 0}
+.ccr-insight-tag{font:8px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-4);white-space:nowrap}
+.ccr-bars{display:grid;gap:10px;min-height:82px;align-content:start}
+.ccr-bar-row{display:grid;gap:5px;min-width:0}
+.ccr-bar-heading{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.ccr-bar-label{font-size:10px;color:var(--ink-2);overflow-wrap:anywhere}
+.ccr-bar-count{font:650 10px var(--f-mono);color:var(--ink)}
+.ccr-bar-track{height:6px;overflow:hidden;border-radius:99px;background:rgba(143,164,196,.13)}
+.ccr-bar-fill{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--cy),var(--vi));box-shadow:0 0 12px rgba(77,226,255,.25);transition:width .28s ease}
+.ccr-bars-empty{padding:12px 0;color:var(--ink-4);font-size:10px;line-height:1.5}
+.ccr-insight-scope{grid-column:1/-1;margin:0;padding:8px 11px;border-inline-start:2px solid var(--cy);background:rgba(77,226,255,.035);color:var(--ink-4);font-size:9px;line-height:1.5}
+@media(max-width:1180px){.ccr-insights{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.ccr-insights{grid-template-columns:1fr}.ccr-insight-scope{grid-column:auto}}
+@media(prefers-reduced-motion:reduce){.ccr-bar-fill{transition:none}}
