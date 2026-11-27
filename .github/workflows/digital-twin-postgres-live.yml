@@ -183,7 +183,7 @@ jobs:
       - name: Install Chromium for authenticated Dispatcher Map acceptance
         working-directory: backend
         run: |
-          npm install --no-save --package-lock=false playwright@1.65.1
+          npm install --no-save --package-lock=false playwright@1.65.1 pngjs@7.0.0
           npx playwright install chromium
       - name: Apply full migrations to disposable acceptance databases
         working-directory: backend
