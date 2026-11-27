@@ -60,6 +60,7 @@ test('Agent Control Room uses only existing tenant-scoped APIs for queue, transc
   assert.match(roomScript, /credentials: 'same-origin'/);
   assert.match(roomScript, /api\('\/api\/v1\/me'\)/);
   assert.match(roomScript, /state\.selected\.assignedTo === state\.currentUserId/);
+  assert.match(roomScript, /resolutionNote\.disabled = state\.busy \|\| !permitted/);
   assert.match(roomScript, /if \(!canOperateSelected\(\)\) throw new Error/);
   assert.match(roomScript, /note\}\)/);
   assert.match(roomHtml, /id="ccrResolutionNote"/);
