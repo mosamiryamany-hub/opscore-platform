@@ -1118,8 +1118,10 @@ async function main() {
 
       const unsignedClient = await signedContextPool.connect();
       let unsignedDenied = false;
+      let unsignedTransactionOpen = false;
       try {
         await unsignedClient.query('BEGIN');
+        unsignedTransactionOpen = true;
         await unsignedClient.query('SAVEPOINT spatial_unsigned_read');
         try {
           await unsignedClient.query(
@@ -1132,8 +1134,9 @@ async function main() {
         }
         await unsignedClient.query('RELEASE SAVEPOINT spatial_unsigned_read');
         await unsignedClient.query('COMMIT');
+        unsignedTransactionOpen = false;
       } finally {
-        try { await unsignedClient.query('ROLLBACK'); } catch (_) {}
+        if (unsignedTransactionOpen) { try { await unsignedClient.query('ROLLBACK'); } catch (_) {} }
         unsignedClient.release();
       }
       if (!unsignedDenied) throw new Error('SIGNED_SPATIAL_UNSIGNED_CONTEXT_NOT_DENIED');
@@ -5431,6 +5434,7 @@ async function main() {
         String(cleanupError.code || cleanupError.message || cleanupError).slice(0, 500) + '\\n');
       process.exitCode = 1;
     }
+    try { await owner.query('DELETE FROM public.spatial_features WHERE organization_id = ANY($1::text[])', [synthetic.tenantIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.sessions WHERE id = ANY($1::text[])', [synthetic.sessionIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.memberships WHERE user_id = ANY($1::text[])', [synthetic.userIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.organization_governance WHERE organization_id = ANY($1::text[])', [synthetic.tenantIds]); } catch (_) {}
@@ -5476,7 +5480,6 @@ async function main() {
         String(cleanupError.code || cleanupError.message || cleanupError).slice(0, 500) + '\\n');
       process.exitCode = 1;
     }
-    try { await owner.query('DELETE FROM public.spatial_features WHERE organization_id = ANY($1::text[])', [synthetic.tenantIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.users WHERE id = ANY($1::text[])', [synthetic.userIds]); } catch (_) {}
     try { await owner.query('DELETE FROM public.organizations WHERE id = ANY($1::text[])', [synthetic.tenantIds]); } catch (_) {}
     if (!candidateMode) {
