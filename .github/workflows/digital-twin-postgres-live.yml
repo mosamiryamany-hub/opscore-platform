@@ -361,6 +361,7 @@ jobs:
           OPSC_PG_ACCEPTANCE_STRICT: 'true'
           OPSC_WRITE_EVIDENCE: '1'
           OPSC_MAP_BROWSER_E2E: 'true'
+          OPSC_POSTGIS_SCALE_BENCHMARK: 'true'
           OPSC_MAP_BROWSER_ARTIFACT_DIR: ${{ runner.temp }}/dispatcher-map-postgres-browser-e2e
           OPSC_PG_ACCEPTANCE_RESULT_FILE: ${{ github.workspace }}/POSTGRES_HTTP_ACCEPTANCE_RESULT.json
           CI_COMMIT_SHA: ${{ github.sha }}
