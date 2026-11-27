@@ -19,6 +19,8 @@ test('Dispatcher Map accepts supported geographic GeoJSON and strips unapproved 
     { type: 'Point', coordinates: [181, 0] },
     { type: 'Point', coordinates: [0, 91] },
     { type: 'Point', coordinates: [0, Number.NaN] },
+    { type: 'Point', coordinates: [0, 0, 12] },
+    { type: 'Point', coordinates: ['31.2', 30] },
     { type: 'LineString', coordinates: [[0, 0]] },
     { type: 'Polygon', coordinates: [] },
     { type: 'MultiPolygon', coordinates: [] }
