@@ -39,7 +39,7 @@ The server verifies that the conversation and active customer both belong to the
 
 ### `GET /api/v1/contact-center/supervisor/agents`
 
-Returns active, same-organization `member` and `manager` accounts as `{ id, role }`. No employee PII or inferred display names are returned.
+Returns active, same-organization `member` and `manager` accounts as `{ id, email, role }`. Email is exposed only to supervisor roles for operational assignment and accountability; no display names are invented.
 
 ### `POST /api/v1/contact-center/handoffs/{id}/reassign`
 
