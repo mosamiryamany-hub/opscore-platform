@@ -21,9 +21,10 @@ if (new URLSearchParams(window.location.search).get('e2e') === '1') {
   window.__opscoreDispatcherMapE2E = Object.freeze({
     renderedSpatialFeatureIds() {
       if (!state.map || !state.spatialSourceReady) return [];
-      return state.map.queryRenderedFeatures(undefined, {
-        layers: ['tenant-spatial-polygons', 'tenant-spatial-lines', 'tenant-spatial-points']
-      }).map(feature => String(feature.id ?? feature.properties?.featureId ?? '')).filter(Boolean).sort();
+      const layers = ['tenant-spatial-polygons', 'tenant-spatial-lines', 'tenant-spatial-points'];
+      return state.map.queryRenderedFeatures(undefined, { layers })
+        .filter(feature => feature.source === 'tenant-spatial-features')
+        .map(feature => String(feature.id ?? feature.properties?.featureId ?? '')).filter(Boolean).sort();
     },
     viewportSequence() { return state.viewportSequence; },
     viewportRequestCount() { return state.viewportRequestCount; },
