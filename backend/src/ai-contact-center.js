@@ -545,10 +545,10 @@ function reassignHandoff(db, ctx, handoffId, input = {}) {
     const handoff = db.prepare('SELECT * FROM ai_contact_handoffs WHERE organization_id=? AND id=?').get(ctx.organizationId, handoffId);
     if (!handoff) throw error('CONTACT_CENTER_HANDOFF_NOT_FOUND', 404);
     if (!['queued','claimed'].includes(handoff.status)) throw error('CONTACT_CENTER_HANDOFF_NOT_REASSIGNABLE', 409);
-    const conversation = db.prepare('SELECT status FROM ai_contact_conversations WHERE organization_id=? AND id=?').get(ctx.organizationId, handoff.conversation_id);
+    const conversation = db.prepare('SELECT status,assigned_to FROM ai_contact_conversations WHERE organization_id=? AND id=?').get(ctx.organizationId, handoff.conversation_id);
     if (!conversation) throw error('CONTACT_CENTER_CONVERSATION_NOT_FOUND', 404);
     if (!['active','waiting_human'].includes(conversation.status)) throw error('CONTACT_CENTER_HANDOFF_NOT_REASSIGNABLE', 409);
-    if (handoff.assigned_to === targetUserId) {
+    if (handoff.assigned_to === targetUserId && handoff.status === 'claimed' && conversation.assigned_to === targetUserId && conversation.status === 'waiting_human') {
       db.exec('COMMIT');
       return { id:handoffId, status:handoff.status, assignedTo:targetUserId, duplicate:true };
     }
@@ -561,7 +561,7 @@ function reassignHandoff(db, ctx, handoffId, input = {}) {
       WHERE organization_id=? AND id=? AND status IN ('active','waiting_human')`)
       .run(targetUserId, timestamp, timestamp, ctx.organizationId, handoff.conversation_id).changes;
     if (!conversationChanged) throw error('CONTACT_CENTER_HANDOFF_NOT_REASSIGNABLE', 409);
-    audit(db, { organizationId:ctx.organizationId, actorUserId:ctx.userId, action:'contact_center_handoff_reassigned', resourceType:'ai_contact_handoff', resourceId:handoffId, metadata:{ previousAssignee:handoff.assigned_to || null, assignedTo:targetUserId, reason } });
+    audit(db, { organizationId:ctx.organizationId, actorUserId:ctx.userId, action:'contact_center_handoff_reassigned', resourceType:'ai_contact_handoff', resourceId:handoffId, metadata:{ previousAssignee:handoff.assigned_to || null, previousConversationAssignee:conversation.assigned_to || null, assignedTo:targetUserId, reason } });
     db.exec('COMMIT');
     return { id:handoffId, status:'claimed', assignedTo:targetUserId, previousAssignee:handoff.assigned_to || null, duplicate:false, reassignedAt:timestamp };
   } catch (e) { rollbackSafely(db, e); throw e; }
