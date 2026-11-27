@@ -52,7 +52,7 @@
   }
   function setBusy(busy) {
     state.busy = busy;
-    ['ccrRefresh','ccrSendReply','ccrResolve'].forEach(id => {
+    ['ccrRefresh','ccrSendReply','ccrResolve','ccrResolveConfirm'].forEach(id => {
       const node = $(id);
       if (node) node.disabled = busy;
     });
@@ -210,11 +210,10 @@
   }
   async function resolveHandoff() {
     if (!state.selected?.id || state.busy) return;
-    const confirmed = window.confirm('Resolve this handoff? The action is recorded by the server.');
-    if (!confirmed) return;
     setBusy(true);
     try {
       await api('/api/v1/contact-center/handoffs/' + encodeURIComponent(state.selected.id) + '/resolve',{method:'POST',body:{note:'Resolved by an assigned human operator in the Contact Center Control Room.'}});
+      $('ccrResolveDialog').close();
       state.selected = null;
       state.conversation = null;
       $('ccrCase').hidden = true;
@@ -238,6 +237,8 @@
   $('ccrSearch').addEventListener('input',renderQueue);
   $('ccrFilter').addEventListener('change',renderQueue);
   $('ccrReplyForm').addEventListener('submit',sendReply);
-  $('ccrResolve').addEventListener('click',resolveHandoff);
+  $('ccrResolve').addEventListener('click',() => $('ccrResolveDialog').showModal());
+  $('ccrResolveCancel').addEventListener('click',() => $('ccrResolveDialog').close());
+  $('ccrResolveConfirm').addEventListener('click',resolveHandoff);
   refreshQueue();
 })();
