@@ -36,7 +36,9 @@ check('evidence retry uses stable idempotency key and auth snapshot',syncSource.
 check('failed queue retry SQL uses correct placeholder count',dbSource.includes("VALUES(?,?,?,?,?,?,?,'pending',?)"));
 check('signout requests server token revocation',api.includes("request('/api/v1/auth/logout'")&&app.includes('remoteRevoked'));
 check('request timeout aborts fetch even with caller signal',api.includes('signal: controller.signal')&&api.includes('externalSignal?.addEventListener'));
-check('API base rejects credentials, paths, queries and non-HTTPS origins',api.includes('API_BASE_URL_MUST_BE_ORIGIN_ONLY')&&api.includes('parsed.username')&&api.includes("parsed.protocol !== 'https:'"));
+check('API base is resolved from device-secure buyer configuration and validates HTTPS origin',api.includes('getConfiguredServerOrigin')&&fs.readFileSync(path.join(root,'src/server-config.js'),'utf8').includes('API_BASE_URL_MUST_BE_HTTPS_ORIGIN_ONLY')&&fs.readFileSync(path.join(root,'src/server-config.js'),'utf8').includes('SecureStore.setItemAsync'));
+check('buyer can set a server origin without rebuilding the native app',api.includes('configureServer: value => saveServerOrigin(value)')&&fs.readFileSync(path.join(root,'App.js'),'utf8').includes('Save server address securely on this device'));
+check('mobile client loads tenant-neutral public branding from configured server',api.includes("request('/api/public/branding')")&&fs.readFileSync(path.join(root,'App.js'),'utf8').includes('setBrand(branding)'));
 check('successful non-JSON responses fail explicitly',api.includes('if (invalidJson)')&&api.includes("new Error('INVALID_SERVER_JSON')"));
 check('AES key initialization is single-flight across concurrent operations',cryptoSource.includes('let keyPromise = null')&&cryptoSource.includes('if (!keyPromise)'));
 check('offline boot seeds display identity from normalized secure auth',app.includes('setMe({user:a.user,organization:a.organization,role:a.role})')&&app.includes("e.status===401||e.status===403"));
