@@ -1320,7 +1320,7 @@ function sendFile(res, file, download) {
   };
   if (path.basename(file) === 'control-plane.html') {
     let oidcOrigin = '';
-    try { if (process.env.OIDC_ISSUER) oidcOrigin = ' ' + new URL(process.env.OIDC_ISSUER).origin; } catch (_) {}
+    try { if (process.env.OIDC_ISSUER) oidcOrigin = ' ' + new URL(process.env.OIDC_ISSUER).origin; } catch (_) { oidcOrigin = ''; }
     headers['content-security-policy'] += "; connect-src 'self'" + oidcOrigin;
   }
   if (path.basename(file) === 'contact-center.html') {
