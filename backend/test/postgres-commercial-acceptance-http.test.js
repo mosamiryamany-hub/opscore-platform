@@ -480,6 +480,8 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
 
       if (process.env.OPSC_MAP_BROWSER_E2E === 'true') {
         const { chromium } = require('playwright');
+        const browserOutputDir = path.resolve(process.env.OPSC_MAP_BROWSER_ARTIFACT_DIR || path.join(dir, 'dispatcher-map-postgres-browser-e2e'));
+        fs.mkdirSync(browserOutputDir, { recursive: true });
         const browser = await chromium.launch({ headless: true });
         try {
           const context = await browser.newContext({ viewport: { width: 375, height: 812 }, reducedMotion: 'reduce' });
@@ -505,7 +507,7 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           await page.waitForFunction(() => Boolean(document.querySelector('.maplibregl-canvas')), null, { timeout: 30000 });
           assert.ok(apiResponses.some(response => response.status === 200), 'browser must receive a successful authenticated PostGIS viewport response');
           assert.equal(await page.locator('#spatialFeatureCount').textContent(), '1 authorized GIS features');
-          await page.screenshot({ path: path.join(dir, 'dispatcher-map-postgres-authenticated-375.png'), fullPage: true });
+          await page.screenshot({ path: path.join(browserOutputDir, 'dispatcher-map-postgres-authenticated-375.png'), fullPage: true });
           await page.setViewportSize({ width: 1366, height: 900 });
           const desktopLayout = await page.evaluate(() => ({
             viewport: document.documentElement.clientWidth,
@@ -518,8 +520,19 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           assert.equal(desktopLayout.mapCanvas, true);
           await page.locator('[data-dir-toggle]').click();
           assert.equal(await page.locator('html').getAttribute('dir'), 'rtl');
-          await page.screenshot({ path: path.join(dir, 'dispatcher-map-postgres-authenticated-rtl.png'), fullPage: true });
+          await page.screenshot({ path: path.join(browserOutputDir, 'dispatcher-map-postgres-authenticated-rtl.png'), fullPage: true });
           assert.deepEqual(pageErrors, []);
+          fs.writeFileSync(path.join(browserOutputDir, 'report.json'), JSON.stringify({
+            schemaVersion: 'opscore.dispatcher-map-authenticated-postgres-browser-e2e.v1',
+            status: 'PASS',
+            browser: await browser.version(),
+            viewports: [{ width: 375, height: 812 }, { width: 1366, height: 900 }],
+            tenantFeatureCount: 1,
+            signedViewportResponses: apiResponses,
+            pageErrors,
+            rtl: 'PASS',
+            productionCertification: false
+          }, null, 2) + '\n');
           record('dispatcher-map-authenticated-chromium-postgis-render',
             'Chromium used a real HttpOnly session cookie; rendered the MapLibre canvas and the one authorized PostGIS feature; viewport API returned HTTP 200; responsive layout and RTL passed with no uncaught page errors.');
           await context.close();
