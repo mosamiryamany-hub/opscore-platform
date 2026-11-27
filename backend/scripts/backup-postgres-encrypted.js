@@ -95,7 +95,7 @@ async function main() {
   const env = { ...process.env, PGPASSFILE: passFile, PGSSLMODE: process.env.PGSSLMODE || 'require' };
   delete env.PGPASSWORD;
   try {
-    await run('pg_dump', ['--format=custom', '--no-owner', '--no-acl', '--file', dump, '--dbname', rawUrl], env);
+    await run('pg_dump', ['--format=custom', '--no-owner', '--no-acl', '--file', dump, '--host', host, '--port', port, '--username', username, '--dbname', database], env);
     await encryptFile(dump, tempPath, key);
     await decryptFile(tempPath, verified, key);
     await run('pg_restore', ['--list', verified], env);
