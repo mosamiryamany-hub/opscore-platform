@@ -449,15 +449,15 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
       await bindSignedRlsSessionContext(fixture, { tenantId: orgAId, userId: ownerAId, accessMode: 'system' });
       await fixture.query(
         `INSERT INTO spatial_features
-          (id,organization_id,entity_type,entity_id,feature_key,geom,properties,created_by,created_at,updated_at)
-         VALUES ($1,$2,'site',$3,'acceptance-point-a',public.ST_SetSRID(public.ST_GeomFromText('POINT(31.2 30.0)'),4326),'{"source":"isolated-postgres-http-e2e"}'::jsonb,$4,now(),now())`,
+          (id,organization_id,entity_type,entity_id,feature_key,geom,properties,source,created_by,created_at,updated_at)
+         VALUES ($1,$2,'site',$3,'acceptance-point-a',public.ST_SetSRID(public.ST_GeomFromText('POINT(31.2 30.0)'),4326),'{"source":"isolated-postgres-http-e2e"}'::jsonb,'postgres-http-e2e',$4,now(),now())`,
         [spatialFeatureAId, orgAId, 'site-' + stamp, ownerAId]
       );
       await bindSignedRlsSessionContext(fixture, { tenantId: orgBId, userId: userBId, accessMode: 'system' });
       await fixture.query(
         `INSERT INTO spatial_features
-          (id,organization_id,entity_type,entity_id,feature_key,geom,properties,created_by,created_at,updated_at)
-         VALUES ($1,$2,'site',$3,'acceptance-point-b',public.ST_SetSRID(public.ST_GeomFromText('POINT(31.25 30.05)'),4326),'{"source":"isolated-postgres-http-e2e"}'::jsonb,$4,now(),now())`,
+          (id,organization_id,entity_type,entity_id,feature_key,geom,properties,source,created_by,created_at,updated_at)
+         VALUES ($1,$2,'site',$3,'acceptance-point-b',public.ST_SetSRID(public.ST_GeomFromText('POINT(31.25 30.05)'),4326),'{"source":"isolated-postgres-http-e2e"}'::jsonb,'postgres-http-e2e',$4,now(),now())`,
         [spatialFeatureBId, orgBId, 'site-' + stamp, userBId]
       );
       await clearSignedRlsSessionContext(fixture);
