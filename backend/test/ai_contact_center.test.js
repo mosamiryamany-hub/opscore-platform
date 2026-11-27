@@ -181,5 +181,7 @@ test('database schema was upgraded with contact-center persistence tables', () =
     assert.equal(CURRENT_SCHEMA_VERSION,29);
     const tables=db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'ai_contact_%'").all().map(x=>x.name).sort();
     assert.deepEqual(tables,['ai_contact_conversations','ai_contact_handoffs','ai_contact_messages']);
+    const conversationColumns=db.prepare('PRAGMA table_info(ai_contact_conversations)').all().map(x=>x.name);
+    assert.ok(conversationColumns.includes('customer_id'));
   } finally { db.close(); }
 });
