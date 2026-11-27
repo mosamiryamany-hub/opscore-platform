@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const $ = (id) => document.getElementById(id);
-  const state = { items: [], selected: null, conversation: null, currentUserId: null, currentUserRole: null, busy: false, queueError: null };
+  const state = { items: [], selected: null, conversation: null, currentUserId: null, currentUserRole: null, agents: [], supervisorActivity: [], supervisorAuditChain: null, busy: false, queueError: null, crmSearchTimer: null };
 
   const ROOM_I18N = {
     en: {
@@ -109,6 +109,7 @@
     const refresh = $('ccrRefresh');
     if (refresh) refresh.disabled = busy;
     updateCaseControls();
+    renderSupervisorActions();
   }
   function metrics(items) {
     setText('ccrTotal', items.length);
@@ -304,6 +305,150 @@
       root.appendChild(makeNode('div','empty','Audit history unavailable: ' + error.message));
     }
   }
+  function isSupervisor() {
+    return ['owner','admin','manager'].includes(state.currentUserRole);
+  }
+  function renderSupervisorActions() {
+    const panel=$('ccrSupervisorActions'),select=$('ccrAssignAgent'),button=$('ccrReassign');
+    if(!panel)return;
+    panel.hidden=!isSupervisor()||!state.selected;
+    if(select){
+      const prior=select.value;
+      select.replaceChildren(new Option('Select an eligible employee',''));
+      state.agents.forEach(agent=>select.add(new Option((agent.email||agent.id)+' · '+agent.role,agent.id)));
+      if(state.agents.some(agent=>agent.id===prior))select.value=prior;
+    }
+    if(button)button.disabled=state.busy||!state.selected||!select?.value||!$('ccrAssignReason')?.value.trim();
+  }
+  async function loadSupervisorData() {
+    if(!isSupervisor())return;
+    try {
+      const [agents,activity]=await Promise.all([
+        api('/api/v1/contact-center/supervisor/agents'),
+        api('/api/v1/contact-center/supervisor/activity')
+      ]);
+      state.agents=Array.isArray(agents.items)?agents.items:[];
+      state.supervisorActivity=Array.isArray(activity.entries)?activity.entries:[];
+      state.supervisorAuditChain=activity.chain||null;
+      const select=$('ccrActivityAgent');
+      if(select){
+        const previous=select.value;
+        select.replaceChildren(new Option('All employees','all'));
+        state.agents.forEach(agent=>select.add(new Option(agent.email||agent.id,agent.id)));
+        select.value=state.agents.some(agent=>agent.id===previous)?previous:'all';
+      }
+      renderSupervisorActivity();
+      renderSupervisorActions();
+    } catch(error) {
+      const root=$('ccrSupervisorActivity');
+      if(root)root.replaceChildren(makeNode('div','empty','Supervisor activity unavailable: '+error.message));
+    }
+  }
+  function renderSupervisorActivity() {
+    const root=$('ccrSupervisorActivity');
+    if(!root)return;
+    root.replaceChildren();
+    const chain=$('ccrSupervisorAuditIntegrity');
+    if(chain){const proof=state.supervisorAuditChain;chain.textContent=proof?.valid===true?'Verified · '+String(proof.checked||0)+' events':proof?.valid===false?'Integrity failure':'Not verified';chain.dataset.integrity=proof?.valid===true?'valid':proof?.valid===false?'invalid':'unknown';}
+    const filter=$('ccrActivityAgent')?.value||'all';
+    const entries=state.supervisorActivity.filter(entry=>filter==='all'||String(entry.actor_user_id||entry.actorUserId||'')===filter);
+    if(!entries.length){root.appendChild(makeNode('div','empty','No contact-center employee actions were returned for this filter.'));return;}
+    entries.slice(0,100).forEach(entry=>{
+      const row=makeNode('article','ccr-event-item');
+      row.appendChild(makeNode('strong','',String(entry.action||'Recorded action')));
+      row.appendChild(makeNode('time','',String(entry.created_at||entry.createdAt||'Timestamp unavailable')));
+      row.appendChild(makeNode('p','',[
+        'Actor: '+(state.agents.find(agent=>agent.id===String(entry.actor_user_id||entry.actorUserId||''))?.email||String(entry.actor_user_id||entry.actorUserId||'Not returned')),
+        'Resource: '+String(entry.resource_id||entry.resourceId||'Not returned')
+      ].join(' · ')));
+      root.appendChild(row);
+    });
+  }
+  function renderCrmProfile(profile) {
+    const root=$('ccrCrmProfile'),stateNode=$('ccrCrmState'),linker=$('ccrCrmLinker');
+    if(!root)return;
+    root.replaceChildren();
+    if(stateNode)stateNode.textContent=profile?.linked?'Linked':'Not linked';
+    if(linker)linker.hidden=!isSupervisor()||Boolean(profile?.linked);
+    if(!profile?.linked||!profile.customer){
+      root.appendChild(makeNode('div','empty','No CRM customer is explicitly linked to this conversation.'));
+      return;
+    }
+    const customer=profile.customer;
+    const grid=makeNode('div','ccr-context-grid');
+    [['Customer',customer.name],['Email',customer.email],['Phone',customer.phone],['CRM reference',customer.externalRef],['Record status',customer.status],['Customer ID',customer.id]]
+      .forEach(([label,value])=>{
+        const cell=makeNode('div','');
+        cell.append(makeNode('span','',label),makeNode('strong','',value||'Not supplied'));
+        grid.appendChild(cell);
+      });
+    root.appendChild(grid);
+  }
+  async function loadCrmProfile(conversationId) {
+    const root=$('ccrCrmProfile');
+    if(!isSupervisor()){
+      if(root)root.replaceChildren(makeNode('div','empty','CRM customer identity is restricted to supervisor roles.'));
+      return;
+    }
+    try {
+      const profile=await api('/api/v1/contact-center/conversations/'+encodeURIComponent(conversationId)+'/customer-profile');
+      renderCrmProfile(profile);
+    } catch(error) {
+      if(root)root.replaceChildren(makeNode('div','empty','CRM profile unavailable: '+error.message));
+      setText('ccrCrmState','Unavailable');
+    }
+  }
+  async function searchCrmCustomers() {
+    const input=$('ccrCrmSearch'),root=$('ccrCrmResults');
+    if(!input||!root||!isSupervisor())return;
+    const query=input.value.trim();
+    root.replaceChildren();
+    if(query.length<2){root.appendChild(makeNode('div','empty','Enter at least two characters.'));return;}
+    root.appendChild(makeNode('div','empty','Searching tenant CRM records…'));
+    try {
+      const result=await api('/api/v1/contact-center/crm/customers?query='+encodeURIComponent(query));
+      root.replaceChildren();
+      const customers=Array.isArray(result.items)?result.items:[];
+      if(!customers.length){root.appendChild(makeNode('div','empty','No matching active customer records were returned.'));return;}
+      customers.forEach(customer=>{
+        const row=makeNode('div','ccr-crm-result');
+        const identity=makeNode('div','ccr-crm-result-identity');
+        identity.append(makeNode('strong','',customer.name),makeNode('small','',[customer.email,customer.externalRef].filter(Boolean).join(' · ')||customer.id));
+        const button=makeNode('button','btn btn--sm btn--ghost','Link customer');
+        button.type='button';
+        button.disabled=state.busy;
+        button.addEventListener('click',async()=>{
+          if(!state.selected?.conversationId||!window.confirm('Link the selected verified CRM customer to this conversation?'))return;
+          try{
+            await api('/api/v1/contact-center/conversations/'+encodeURIComponent(state.selected.conversationId)+'/customer-link',{method:'POST',body:{customerId:customer.id}});
+            await loadCrmProfile(state.selected.conversationId);
+            setText('ccrQueueMessage','CRM customer link was accepted and audited by the server.');
+          }catch(error){setText('ccrQueueMessage','CRM link not confirmed: '+error.message);}
+        });
+        row.append(identity,button);root.appendChild(row);
+      });
+    } catch(error) {
+      root.replaceChildren(makeNode('div','empty','CRM search unavailable: '+error.message));
+    }
+  }
+  async function reassignSelectedHandoff() {
+    if(!isSupervisor()||!state.selected?.id||state.busy)return;
+    const assignedTo=$('ccrAssignAgent')?.value||'';
+    const reason=$('ccrAssignReason')?.value.trim()||'';
+    if(!assignedTo||reason.length<8){setText('ccrQueueMessage','Choose an eligible employee and provide a reason of at least eight characters.');return;}
+    if(!window.confirm('Reassign this escalation to the selected employee? The server will validate eligibility and write an audit event.'))return;
+    setBusy(true);
+    try{
+      await api('/api/v1/contact-center/handoffs/'+encodeURIComponent(state.selected.id)+'/reassign',{method:'POST',body:{assignedTo,reason}});
+      state.selected=null;state.conversation=null;
+      $('ccrCase').hidden=true;$('ccrDetailEmpty').hidden=false;
+      setText('ccrDetailState','Escalation reassigned');
+      await refreshQueueAfterBusy();
+      await loadSupervisorData();
+      setText('ccrQueueMessage','Escalation reassignment accepted and recorded in the audit trail.');
+    }catch(error){setText('ccrQueueMessage','Reassignment not confirmed: '+error.message);}
+    finally{setBusy(false);}
+  }
   async function openHandoff(item) {
     if (state.busy) return;
     setBusy(true);
@@ -331,6 +476,8 @@
       updateElapsedClock(item.createdAt);
       renderTranscript(conversation.messages);
       await loadCaseEvents(item.id, item.conversationId);
+      await loadCrmProfile(item.conversationId);
+      renderSupervisorActions();
       renderQueue();
       setText('ccrQueueMessage','Assignment and transcript loaded through the authenticated tenant-scoped API.');
     } catch (error) {
@@ -358,6 +505,7 @@
       state.items = Array.isArray(queue.items) ? queue.items : [];
       metrics(state.items);
       renderAnalytics();
+      await loadSupervisorData();
       setText('ccrAuthState','Authenticated queue access confirmed');
       $('ccrAuthState').className = 'badge good';
       $('ccrQueueState').textContent = 'Queue response received';
@@ -390,6 +538,8 @@
       $('ccrQueueList').replaceChildren(makeNode('div','empty',accessMessage(error)));
       setText('ccrLastRefresh','No successful refresh');
       renderService(null);
+      state.agents=[];state.supervisorActivity=[];
+      renderSupervisorActions();
     } finally {
       setBusy(false);
       renderQueue();
@@ -449,6 +599,11 @@
   $('ccrPriorityFilter')?.addEventListener('change',renderQueue);
   $('ccrSort')?.addEventListener('change',renderQueue);
   $('ccrAgentFilter')?.addEventListener('change',renderQueue);
+  $('ccrActivityAgent')?.addEventListener('change',renderSupervisorActivity);
+  $('ccrAssignAgent')?.addEventListener('change',renderSupervisorActions);
+  $('ccrAssignReason')?.addEventListener('input',renderSupervisorActions);
+  $('ccrReassign')?.addEventListener('click',reassignSelectedHandoff);
+  $('ccrCrmSearch')?.addEventListener('input',()=>{window.clearTimeout(state.crmSearchTimer);state.crmSearchTimer=window.setTimeout(searchCrmCustomers,250);});
   $('ccrReplyForm').addEventListener('submit',sendReply);
   $('ccrResolve').addEventListener('click',() => $('ccrResolveDialog').showModal());
   $('ccrResolveCancel').addEventListener('click',() => $('ccrResolveDialog').close());

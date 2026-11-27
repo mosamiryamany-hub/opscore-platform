@@ -570,6 +570,26 @@ function migrate28(db, storedVersion) {
   `);
 }
 
+function migrate29(db, storedVersion) {
+  if (storedVersion >= 29) return;
+  addColumn(db, 'ai_contact_conversations', 'customer_id', 'TEXT REFERENCES customers(id) ON DELETE SET NULL');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_ai_contact_conversations_org_customer ON ai_contact_conversations(organization_id, customer_id)');
+  db.exec(`
+    CREATE TRIGGER IF NOT EXISTS trg_ai_contact_customer_tenant_insert
+    BEFORE INSERT ON ai_contact_conversations
+    WHEN NEW.customer_id IS NOT NULL AND NOT EXISTS (
+      SELECT 1 FROM customers c WHERE c.id=NEW.customer_id AND c.organization_id=NEW.organization_id
+    )
+    BEGIN SELECT RAISE(ABORT, 'CONTACT_CENTER_CUSTOMER_TENANT_MISMATCH'); END;
+    CREATE TRIGGER IF NOT EXISTS trg_ai_contact_customer_tenant_update
+    BEFORE UPDATE OF customer_id, organization_id ON ai_contact_conversations
+    WHEN NEW.customer_id IS NOT NULL AND NOT EXISTS (
+      SELECT 1 FROM customers c WHERE c.id=NEW.customer_id AND c.organization_id=NEW.organization_id
+    )
+    BEGIN SELECT RAISE(ABORT, 'CONTACT_CENTER_CUSTOMER_TENANT_MISMATCH'); END;
+  `);
+}
+
 function openDb(dbPath = config.sqlitePath) {
   if (dbPath !== ':memory:') ensureDir(dbPath);
   const lifecycleLease = dbPath === ':memory:' ? null : require('./sqlite-lifecycle').acquireDatabaseLease(dbPath);
@@ -615,6 +635,7 @@ function openDb(dbPath = config.sqlitePath) {
   migrate26(db, storedVersion);
   migrate27(db, storedVersion);
   migrate28(db, storedVersion);
+  migrate29(db, storedVersion);
   // Existing very old/imported databases may not have reached migration 15 yet.
   // Add the housekeeping index only after the shared limiter table exists.
   const rateBucketsTable = db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='firewall_rate_buckets'").get();

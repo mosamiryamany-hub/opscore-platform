@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { DatabaseSync } = require('node:sqlite');
 const { audit, verifyAuditChain } = require('../src/audit');
+const { Store } = require('../src/store');
 
 function createAuditDb() {
   const db = new DatabaseSync(':memory:');
@@ -82,4 +83,19 @@ test('audit chain verifier rejects a fork instead of selecting an arbitrary bran
   } finally {
     db.close();
   }
+});
+
+test('store audit log supports tenant-scoped action-prefix and actor filtering', () => {
+  const db = createAuditDb();
+  try {
+    audit(db,{organizationId:'org_test',actorUserId:'usr_agent',action:'contact_center_handoff_claimed',resourceType:'ai_contact_handoff',resourceId:'h1'});
+    audit(db,{organizationId:'org_test',actorUserId:'usr_agent',action:'tenant_settings_changed',resourceType:'settings',resourceId:'s1'});
+    audit(db,{organizationId:'org_test',actorUserId:'usr_other',action:'contact_center_human_reply_sent',resourceType:'ai_contact_conversation',resourceId:'c1'});
+    const store=Object.create(Store.prototype);store.db=db;
+    const all=store.auditLog({organizationId:'org_test'},{actionPrefix:'contact_center_'});
+    assert.deepEqual(all.entries.map(x=>x.action).sort(),['contact_center_handoff_claimed','contact_center_human_reply_sent']);
+    const byActor=store.auditLog({organizationId:'org_test'},{actionPrefix:'contact_center_',actorUserId:'usr_agent'});
+    assert.deepEqual(byActor.entries.map(x=>x.action),['contact_center_handoff_claimed']);
+    assert.equal(byActor.chain.valid,true);
+  } finally { db.close(); }
 });

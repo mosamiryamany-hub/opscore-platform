@@ -72,3 +72,37 @@ test('language catalogue selection is not represented as production qualificatio
   assert.match(js, /messages\.qualificationNotice/);
   assert.match(js, /qualifiedForProduction===true/);
 });
+
+test('Contact Center exposes explicit CRM, supervisor reassignment and employee audit contracts', () => {
+  const server = read('src/server.js');
+  const moduleSource = read('src/ai-contact-center.js');
+  const html = read('web/contact-center-room.html');
+  const client = read('web/contact-center-room.js');
+  const css = read('web/contact-center-room.css');
+  for (const route of [
+    '/api/v1/contact-center/crm/customers',
+    '/customer-profile',
+    '/customer-link',
+    '/reassign',
+    '/api/v1/contact-center/supervisor/agents',
+    '/api/v1/contact-center/supervisor/activity'
+  ]) assert.ok(server.includes(route), 'server route exists: ' + route);
+  for (const contract of ['listCrmCustomers','getConversationCustomer','linkConversationCustomer','listEligibleAgents','reassignHandoff']) {
+    assert.ok(moduleSource.includes(contract), 'domain contract exists: ' + contract);
+  }
+  assert.match(moduleSource, /m\.organization_id=\?/);
+  assert.match(moduleSource, /m\.role IN \('member','manager'\)/);
+  assert.match(moduleSource, /contact_center_handoff_reassigned/);
+  assert.match(server, /chain:activity\.chain/);
+  for (const code of ['INVALID_CUSTOMER','INVALID_ASSIGNEE','INVALID_OPERATIONAL_JOB']) assert.ok(server.includes(code + ': [422,'), code + ' maps to HTTP 422');
+  assert.match(moduleSource, /contact_center_crm_customer_linked/);
+  for (const id of ['ccrCrmProfile','ccrCrmSearch','ccrCrmResults','ccrAssignAgent','ccrAssignReason','ccrReassign','ccrSupervisorActivity','ccrActivityAgent','ccrSupervisorAuditIntegrity']) {
+    assert.ok(html.includes('id="' + id + '"'), 'control exists: ' + id);
+  }
+  assert.match(client, /credentials: 'same-origin'/);
+  assert.match(client, /customer-link/);
+  assert.match(client, /\/reassign/);
+  assert.match(client, /supervisor\/activity/);
+  assert.match(css, /\[dir="rtl"\]/);
+  assert.match(css, /@media\(max-width:700px\)/);
+});
