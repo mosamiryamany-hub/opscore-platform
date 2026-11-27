@@ -67,7 +67,7 @@
       endpoints: '/api/v1/contact-center/status · /api/v1/contact-center/handoffs',
       holds: 'Queue rows are tenant-scoped. Claim, human reply and resolution remain explicit operator actions.',
       not: 'A queued handoff is not a connected phone call. PSTN/SIP routing and native language qualification are not asserted.',
-      path: '/contact-center.html'
+      path: '/contact-center-room.html'
     }
   };
 
