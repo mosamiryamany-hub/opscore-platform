@@ -1883,6 +1883,18 @@ function route(req, res) {
   if (ccReassign && req.method === 'POST') {
     try { requireScope(c, 'write'); return body(req).then(b => json(res, 200, contactCenter.reassignHandoff(db, c, ccReassign[1], b))).catch(e => fail(res, e)); } catch (e) { return fail(res, e); }
   }
+  if (url.pathname === '/api/v1/contact-center/supervisor/agents' && req.method === 'GET') {
+    try { requireScope(c, 'read'); return json(res, 200, { schemaVersion:'opscore.contact-center-supervisor-agents.v1', items:contactCenter.listEligibleAgents(db, c) }); } catch (e) { return fail(res, e); }
+  }
+  if (url.pathname === '/api/v1/contact-center/supervisor/activity' && req.method === 'GET') {
+    try {
+      requireScope(c, 'read');
+      if (!['owner','admin','manager'].includes(c.role)) throw Object.assign(new Error('FORBIDDEN'), { code:'FORBIDDEN' });
+      const activity = store.auditLog(c, { actorUserId:url.searchParams.get('actorUserId') || null });
+      const entries = (activity.entries || []).filter(entry => String(entry.action || '').startsWith('contact_center_')).slice(0,100);
+      return json(res, 200, { schemaVersion:'opscore.contact-center-supervisor-activity.v1', entries });
+    } catch (e) { return fail(res, e); }
+  }
   const ccErase = url.pathname.match(/^\/api\/v1\/contact-center\/conversations\/([A-Za-z0-9_-]+)\/erase$/);
   if (ccErase && req.method === 'POST') {
     try {
