@@ -1893,8 +1893,8 @@ function route(req, res) {
     try {
       requireScope(c, 'read');
       if (!['owner','admin','manager'].includes(c.role)) throw Object.assign(new Error('FORBIDDEN'), { code:'FORBIDDEN' });
-      const activity = store.auditLog(c, { actorUserId:url.searchParams.get('actorUserId') || null });
-      const entries = (activity.entries || []).filter(entry => String(entry.action || '').startsWith('contact_center_')).slice(0,100);
+      const activity = store.auditLog(c, { actorUserId:url.searchParams.get('actorUserId') || null, actionPrefix:'contact_center_' });
+      const entries = (activity.entries || []).slice(0,100);
       return json(res, 200, { schemaVersion:'opscore.contact-center-supervisor-activity.v1', entries, chain:activity.chain });
     } catch (e) { return fail(res, e); }
   }
