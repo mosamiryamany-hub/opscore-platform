@@ -315,7 +315,7 @@
     if(select){
       const prior=select.value;
       select.replaceChildren(new Option('Select an eligible employee',''));
-      state.agents.forEach(agent=>select.add(new Option(agent.id+' · '+agent.role,agent.id)));
+      state.agents.forEach(agent=>select.add(new Option((agent.email||agent.id)+' · '+agent.role,agent.id)));
       if(state.agents.some(agent=>agent.id===prior))select.value=prior;
     }
     if(button)button.disabled=state.busy||!state.selected||!select?.value||!$('ccrAssignReason')?.value.trim();
@@ -334,7 +334,7 @@
       if(select){
         const previous=select.value;
         select.replaceChildren(new Option('All employees','all'));
-        state.agents.forEach(agent=>select.add(new Option(agent.id,agent.id)));
+        state.agents.forEach(agent=>select.add(new Option(agent.email||agent.id,agent.id)));
         select.value=state.agents.some(agent=>agent.id===previous)?previous:'all';
       }
       renderSupervisorActivity();
@@ -358,7 +358,7 @@
       row.appendChild(makeNode('strong','',String(entry.action||'Recorded action')));
       row.appendChild(makeNode('time','',String(entry.created_at||entry.createdAt||'Timestamp unavailable')));
       row.appendChild(makeNode('p','',[
-        'Actor: '+String(entry.actor_user_id||entry.actorUserId||'Not returned'),
+        'Actor: '+(state.agents.find(agent=>agent.id===String(entry.actor_user_id||entry.actorUserId||''))?.email||String(entry.actor_user_id||entry.actorUserId||'Not returned')),
         'Resource: '+String(entry.resource_id||entry.resourceId||'Not returned')
       ].join(' · ')));
       root.appendChild(row);
