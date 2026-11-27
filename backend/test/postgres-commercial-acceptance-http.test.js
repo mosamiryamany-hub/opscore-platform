@@ -888,6 +888,26 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           await clearSignedRlsSessionContext(fixture);
         }
         const plan = explain.rows[0]['QUERY PLAN'][0];
+        // A separate read-only planner diagnostic uses the narrowly scoped
+        // acceptance maintenance identity with an explicit tenant predicate.
+        // HTTP latency measurements above remain under the real runtime role.
+        const gistPlanResult = await cleanupPool.query(
+          `EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)
+           SELECT id
+           FROM public.spatial_features
+           WHERE organization_id = $1
+             AND geom && public.ST_MakeEnvelope(31,30,31.2,30.2,4326)
+             AND public.ST_Intersects(geom, public.ST_MakeEnvelope(31,30,31.2,30.2,4326))
+           ORDER BY id
+           LIMIT 1000`,
+          [orgAId]
+        );
+        const gistPlannerPlan = gistPlanResult.rows[0]['QUERY PLAN'][0];
+        const gistIndexUsed = JSON.stringify(gistPlannerPlan).includes('idx_spatial_features_geom_gist');
+        if (stage.target === 1000000) {
+          assert.equal(gistIndexUsed, true,
+            'the million-row PostGIS tenant viewport planner must use idx_spatial_features_geom_gist');
+        }
         scaleEvidence.stages.push({
           rows: stage.target,
           insertedThisStage: stage.add,
@@ -898,7 +918,10 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
             p95: percentile(0.95),
             max: latenciesMs[latenciesMs.length - 1]
           },
-          queryPlan: plan
+          queryPlan: plan,
+          gistPlannerPlan: gistPlannerPlan,
+          gistIndexUsed: gistIndexUsed,
+          gistPlannerRole: 'opscore_owner with explicit organization_id predicate; HTTP timings are opscore_runtime'
         });
       }
       const scaleArtifactDir = path.resolve(process.env.OPSC_MAP_BROWSER_ARTIFACT_DIR || path.join(dir, 'dispatcher-map-postgres-browser-e2e'));
