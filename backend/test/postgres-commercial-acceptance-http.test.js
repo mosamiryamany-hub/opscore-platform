@@ -603,6 +603,12 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           assert.equal(forgedTenantResponse.body.organizationId, orgAId, 'client-supplied foreign organization ID must never override signed session context');
           assert.deepEqual(forgedTenantResponse.body.spatialFeatures.map(feature => feature.id), [spatialFeatureAId]);
           assert.equal(JSON.stringify(forgedTenantResponse.body).includes(spatialFeatureBId), false);
+          const viewportRequestsBeforeBurst = await page.evaluate(() => window.__opscoreDispatcherMapE2E.viewportRequestCount());
+          await page.evaluate(() => window.__opscoreDispatcherMapE2E.triggerViewportBurst());
+          await page.waitForTimeout(650);
+          const viewportRequestsAfterBurst = await page.evaluate(() => window.__opscoreDispatcherMapE2E.viewportRequestCount());
+          assert.equal(viewportRequestsAfterBurst - viewportRequestsBeforeBurst, 1,
+            'three rapid MapLibre moveend events must collapse to one debounced viewport request');
           await page.screenshot({ path: path.join(browserOutputDir, 'dispatcher-map-postgres-authenticated-375.png'), fullPage: true });
           await page.setViewportSize({ width: 1366, height: 900 });
           const desktopLayout = await page.evaluate(() => ({
@@ -660,6 +666,7 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
             viewports: [{ width: 375, height: 812 }, { width: 1366, height: 900 }],
             tenantFeatureCount: 1,
             tenantBrowserIsolation: { tenantA: renderedA, tenantB: renderedB, status: 'PASS' },
+            viewportDebounce: { burstEvents: 3, requests: viewportRequestsAfterBurst - viewportRequestsBeforeBurst, status: 'PASS' },
             forgedOrganizationId: { status: forgedTenantResponse.status, effectiveOrganizationId: forgedTenantResponse.body.organizationId, statusLabel: 'SIGNED_SESSION_CONTEXT_PREVAILED' },
             signedViewportResponses: apiResponses,
             pageErrors,
