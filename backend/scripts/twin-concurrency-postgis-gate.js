@@ -76,7 +76,7 @@ async function main() {
     if (!rlsUrl) throw new Error('OPSC_PG_TWIN_RLS_URL_REQUIRED');
     const rlsTarget = new URL(rlsUrl);
     if (!['127.0.0.1', 'localhost'].includes(rlsTarget.hostname)
-        || decodeURIComponent(rlsTarget.pathname.replace(/^\\//, '')) !== 'opscore_http_acceptance'
+        || decodeURIComponent(rlsTarget.pathname.replace(/^\//, '')) !== 'opscore_http_acceptance'
         || decodeURIComponent(rlsTarget.username) !== 'opscore_runtime') {
       throw new Error('TWIN_RLS_TARGET_NOT_RUNTIME_ACCEPTANCE_DATABASE');
     }
