@@ -62,9 +62,6 @@ test('service worker never intercepts private APIs or cross-origin map tile requ
 });
 
 test('service worker serves the explicit offline shell for failed navigations only', async () => {
-  const { handlers } = loadWorker();
-  const originalFetch = globalThis.fetch;
-  const ctx = loadWorker();
   // Re-evaluate with a failing fetch implementation without changing the global runtime.
   const handlers2 = new Map();
   const self = {
@@ -82,6 +79,4 @@ test('service worker serves the explicit offline shell for failed navigations on
     respondWith: promise => { responsePromise = promise; },
   });
   assert.deepEqual(await responsePromise, { offline: true });
-  assert.equal(typeof originalFetch, 'function');
-  assert.ok(ctx.handlers.has('fetch'));
 });
