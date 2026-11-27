@@ -3,75 +3,163 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="dark light">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="OpsCore Contact Center — governed customer conversations, human escalation and operational readiness.">
+  <meta name="theme-color" content="#04060f">
   <title data-i18n="nav.title">OpsCore AI Contact Center</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/command-fabric-v3.css">
   <link rel="stylesheet" href="/contact-center.css">
+  <script defer src="/fabric-core.js"></script>
   <script defer src="/i18n/i18n-loader.js"></script>
   <script defer src="/contact-center.js"></script>
 </head>
 <body>
-  <header class="topbar">
-    <div><p class="eyebrow">OPSCORE FIELD</p><h1 data-i18n="nav.title">AI Contact Center</h1><p class="subhead" data-i18n="nav.subtitle">Multilingual self-service with governed human handoff.</p></div>
-    <div class="top-actions">
-      <label class="sr-only" for="interfaceLanguageSelect" data-i18n="nav.interfaceLanguage">Preferred language</label>
-      <select id="interfaceLanguageSelect" class="locale-switch" data-i18n-aria-label="nav.interfaceLanguage" aria-label="Interface language"></select>
-      <a href="/" class="secondary" data-i18n="nav.operationsConsole">Operations console</a>
-      <span id="statusBadge" class="badge" data-i18n="status.setupIncomplete">Setup incomplete</span>
-    </div>
-  </header>
-  <main>
-    <p class="machine-notice" data-i18n-machine-notice role="note"></p>
-    <section class="status-grid" aria-label="AI Contact Center" data-i18n-aria-label="nav.title">
-      <article class="stat"><span data-i18n="stats.catalogueRows">Catalogue rows</span><strong id="languageRows">—</strong><small data-i18n="stats.catalogueRowsNote">Input list preserved</small></article>
-      <article class="stat"><span data-i18n="stats.uniqueCodes">Unique language codes</span><strong id="uniqueLanguages">—</strong><small data-i18n="stats.uniqueCodesNote">Duplicates are flagged</small></article>
-      <article class="stat"><span data-i18n="stats.providerQualification">Provider qualification</span><strong id="qualifiedLanguages">—</strong><small data-i18n="stats.providerQualificationNote">Only independently tested languages count</small></article>
-      <article class="stat"><span data-i18n="stats.liveQueue">Live human queue</span><strong id="queueCount">—</strong><small data-i18n="stats.liveQueueNote">Tenant-scoped handoffs</small></article>
-    </section>
+  <div class="field" aria-hidden="true">
+    <div class="field__aura field__aura--a"></div>
+    <div class="field__aura field__aura--b"></div>
+    <div class="field__aura field__aura--c"></div>
+    <div class="field__grid"></div>
+  </div>
 
-    <section class="notice" id="languageWarning" role="status" aria-live="polite" data-i18n="messages.qualificationNotice">No language is production-qualified until text, ASR, TTS, accent and escalation tests pass.</section>
-    <section class="workspace">
-      <section class="panel customer-panel">
-        <div class="panel-title"><div><p class="eyebrow" data-i18n="customer.eyebrow">CUSTOMER EXPERIENCE</p><h2 data-i18n="customer.title">Start a conversation</h2></div><span class="pill" data-i18n="customer.consentPill">Consent required</span></div>
-        <label for="languageSelect" data-i18n="customer.preferredLanguage">Preferred language</label>
-        <select id="languageSelect"><option value="en">English (en)</option></select>
-        <label class="consent-row"><input id="consent" type="checkbox"><span><span data-i18n="customer.consentText">I agree this conversation may be processed by the configured AI provider. Transcripts are encrypted before storage.</span> <span data-i18n="customer.voiceStreamNote">Browser voice is streamed to the configured provider; OpsCore does not claim to store raw audio.</span></span></label>
-        <div class="toolbar">
-          <button id="startChat" class="primary" data-i18n="customer.startChat">Start secure text chat</button>
-          <button id="startVoice" class="primary alt" data-i18n="customer.startVoice">Start browser voice</button>
+  <div class="shell shell--wide cc-shell">
+    <header class="topbar cc-topbar">
+      <div class="brand">
+        <div class="mark" aria-hidden="true"></div>
+        <div>OpsCore <small>Contact Center</small></div>
+      </div>
+      <span class="spacer"></span>
+      <span class="pill mono" data-clock>--:--:-- UTC</span>
+      <button class="btn btn--sm btn--ghost" type="button" data-palette aria-keyshortcuts="Meta+K Control+K"><span class="mono tiny muted">⌘K</span> Search</button>
+      <button class="btn btn--sm btn--ghost" type="button" data-dir-toggle aria-label="Switch interface direction">ع</button>
+      <a class="btn btn--sm btn--ghost" href="/control-rooms.html">Control rooms</a>
+      <a class="btn btn--sm btn--ghost" href="/control-plane.html">Control plane</a>
+      <a class="btn btn--sm" href="/">Home</a>
+    </header>
+
+    <main id="main">
+      <section class="hero cc-hero" data-reveal>
+        <div class="hero__grid">
+          <div>
+            <div class="eyebrow">Customer operations · governed assistance</div>
+            <h1 data-i18n="nav.title">AI Contact Center</h1>
+            <p class="lede" data-i18n="nav.subtitle">Multilingual self-service with governed human handoff.</p>
+            <div class="hero__meta">
+              <span id="statusBadge" class="badge bad" data-i18n="status.setupIncomplete">Setup incomplete</span>
+              <span class="badge">Tenant-scoped API</span>
+              <span class="badge">Consent-led sessions</span>
+              <span class="badge">Human review boundary</span>
+            </div>
+            <div class="hero__cta">
+              <a class="btn btn--primary" href="#customerWorkspace">Open customer workspace</a>
+              <a class="btn" href="#agentWorkspace">Open agent queue</a>
+              <a class="btn btn--ghost" href="/verify/release.html">Release evidence</a>
+            </div>
+          </div>
+          <aside class="card cc-posture" aria-label="Contact Center readiness">
+            <div class="eyebrow">Configuration posture</div>
+            <h3>Operational readiness</h3>
+            <p class="muted small">The indicators below reflect server-reported configuration and the latest queue API request. They do not assert provider uptime, voice quality or telephony connectivity.</p>
+            <div class="cc-posture-row"><span>Text assistant</span><strong id="aiReadiness" class="cc-state is-pending">Checking</strong></div>
+            <div class="cc-posture-row"><span>Transcript encryption</span><strong id="encryptionReadiness" class="cc-state is-pending">Checking</strong></div>
+            <div class="cc-posture-row"><span>Browser realtime voice</span><strong id="voiceReadiness" class="cc-state is-pending">Checking</strong></div>
+            <div class="cc-posture-row"><span>Human queue API</span><strong id="queueReadiness" class="cc-state is-pending">Not checked</strong></div>
+          </aside>
         </div>
-        <p class="muted" id="setupHint" data-i18n="customer.setupHint">Unavailable until an administrator configures the encryption key and AI provider.</p>
-        <div class="conversation-head"><div><strong id="conversationTitle" data-i18n="customer.noConversation">No active conversation</strong><small id="conversationMeta" data-i18n="customer.startHint">Create a consented session to begin.</small></div><button id="requestHuman" class="danger" disabled data-i18n="customer.requestHuman">Request human</button></div>
-        <div id="chatLog" class="chat-log" aria-live="polite"><div class="empty" data-i18n="customer.chatEmpty">Messages appear here. AI actions are suggestions only; no payments, account changes, refunds, or dispatches are executed.</div></div>
-        <form id="chatForm" class="chat-form">
-          <label class="sr-only" for="chatInput" data-i18n="customer.messagePlaceholder">Write a message…</label><textarea id="chatInput" rows="2" maxlength="4000" data-i18n-placeholder="customer.messagePlaceholder" placeholder="Write a message…" disabled></textarea>
-          <button id="sendMessage" type="submit" class="primary" disabled data-i18n="customer.send">Send</button>
-        </form>
-        <div class="voice-controls"><audio id="remoteAudio" autoplay></audio><button id="stopVoice" class="secondary" disabled data-i18n="customer.stopVoice">Stop voice session</button><span id="voiceState" aria-live="polite" data-i18n="customer.voiceOff">Voice is off.</span></div>
-        <p class="muted small" data-i18n="customer.voiceRequirement">Browser voice requires HTTPS (or localhost), a microphone, consent, a configured Realtime model and provider key. It is not a PSTN/SIP phone bridge.</p>
       </section>
 
-      <section class="panel queue-panel">
-        <div class="panel-title"><div><p class="eyebrow" data-i18n="queue.eyebrow">HUMAN INTERVENTION</p><h2 data-i18n="queue.title">Escalation queue</h2></div><button id="refreshQueue" class="secondary" data-i18n="queue.refresh">Refresh</button></div>
-        <p class="muted" data-i18n="queue.description">High-risk, unresolved, or human-requested conversations appear here. A queue item means requested, not connected.</p>
-        <div id="handoffQueue" class="queue-list"><div class="empty" data-i18n="queue.loading">Loading queue…</div></div>
-        <section id="agentWork" class="agent-work" hidden>
-          <div class="conversation-head"><div><strong id="agentConversationTitle" data-i18n="queue.agentAssignedTitle">Assigned conversation</strong><small id="agentConversationMeta"></small></div><button id="resolveHandoff" class="primary" data-i18n="queue.resolve">Resolve</button></div>
-          <div id="agentTranscript" class="agent-transcript"></div>
-          <form id="agentReplyForm" class="chat-form"><label class="sr-only" for="agentReply" data-i18n="queue.reply">Reply</label><textarea id="agentReply" rows="2" maxlength="4000" data-i18n-placeholder="queue.reply" placeholder="Reply"></textarea><button class="primary" type="submit" data-i18n="queue.reply">Reply</button></form>
-          <p class="muted small" data-i18n="queue.replyStorageNote">Human replies are encrypted at rest and are visible in the conversation transcript.</p>
+      <section class="cc-section" aria-labelledby="catalogueHeading" data-reveal>
+        <div class="cc-section-head">
+          <div><div class="eyebrow">Language and service coverage</div><h2 id="catalogueHeading">Service catalogue</h2></div>
+          <div class="cc-section-note">Source counts from the language API</div>
+        </div>
+        <section class="status-grid grid grid--kpi" aria-label="Contact Center service catalogue" data-i18n-aria-label="nav.title">
+          <article class="stat tile"><span data-i18n="stats.catalogueRows">Catalogue rows</span><strong id="languageRows">—</strong><small data-i18n="stats.catalogueRowsNote">Input list preserved</small></article>
+          <article class="stat tile"><span data-i18n="stats.uniqueCodes">Unique language codes</span><strong id="uniqueLanguages">—</strong><small data-i18n="stats.uniqueCodesNote">Duplicates are flagged</small></article>
+          <article class="stat tile"><span data-i18n="stats.providerQualification">Provider qualification</span><strong id="qualifiedLanguages">—</strong><small data-i18n="stats.providerQualificationNote">Only independently tested languages count</small></article>
+          <article class="stat tile"><span>Open handoff rows loaded</span><strong id="queueCount">—</strong><small>Latest request · maximum 50 rows</small></article>
+        </section>
+        <section class="notice cc-language-warning" id="languageWarning" role="status" aria-live="polite" data-i18n="messages.qualificationNotice">No language is production-qualified until text, ASR, TTS, accent and escalation tests pass.</section>
+      </section>
+
+      <section class="workspace cc-workspace" id="customerWorkspace" aria-label="Customer and agent workspaces">
+        <section class="panel card customer-panel" aria-labelledby="customerWorkspaceTitle">
+          <div class="panel-title">
+            <div><div class="eyebrow" data-i18n="customer.eyebrow">CUSTOMER EXPERIENCE</div><h2 id="customerWorkspaceTitle" data-i18n="customer.title">Start a conversation</h2><p class="muted small">A real session is created only after explicit consent and server-side configuration checks.</p></div>
+            <span class="pill" data-i18n="customer.consentPill">Consent required</span>
+          </div>
+          <div class="cc-customer-grid">
+            <div>
+              <label for="languageSelect" data-i18n="customer.preferredLanguage">Preferred language</label>
+              <select id="languageSelect"><option value="en">English (en)</option></select>
+            </div>
+            <div class="cc-channel-note"><span class="cc-channel-dot"></span><span>Text and browser voice are separate session channels. Browser voice is not a phone-network call.</span></div>
+          </div>
+          <label class="consent-row"><input id="consent" type="checkbox"><span><span data-i18n="customer.consentText">I agree this conversation may be processed by the configured AI provider. Transcripts are encrypted before storage.</span> <span data-i18n="customer.voiceStreamNote">Browser voice is streamed to the configured provider; OpsCore does not claim to store raw audio.</span></span></label>
+          <div class="toolbar cc-session-actions">
+            <button id="startChat" class="primary" data-i18n="customer.startChat">Start secure text chat</button>
+            <button id="startVoice" class="primary alt" data-i18n="customer.startVoice">Start browser voice</button>
+          </div>
+          <p class="muted cc-setup-hint" id="setupHint" data-i18n="customer.setupHint">Unavailable until an administrator configures the encryption key and AI provider.</p>
+          <div class="conversation-head cc-conversation-head">
+            <div><div class="eyebrow">Active customer session</div><strong id="conversationTitle" data-i18n="customer.noConversation">No active conversation</strong><small id="conversationMeta" data-i18n="customer.startHint">Create a consented session to begin.</small></div>
+            <button id="requestHuman" class="danger" disabled data-i18n="customer.requestHuman">Request human</button>
+          </div>
+          <div class="cc-chat-frame">
+            <div class="cc-chat-frame-head"><span>Conversation transcript</span><span class="cc-encryption-label">Encrypted at rest · subject to runtime configuration</span></div>
+            <div id="chatLog" class="chat-log" aria-live="polite"><div class="empty" data-i18n="customer.chatEmpty">Messages appear here. AI actions are suggestions only; no payments, account changes, refunds, or dispatches are executed.</div></div>
+          </div>
+          <form id="chatForm" class="chat-form cc-chat-form">
+            <label class="sr-only" for="chatInput" data-i18n="customer.messagePlaceholder">Write a message…</label>
+            <textarea id="chatInput" rows="2" maxlength="4000" data-i18n-placeholder="customer.messagePlaceholder" placeholder="Write a message…" disabled></textarea>
+            <button id="sendMessage" type="submit" class="primary" disabled data-i18n="customer.send">Send</button>
+          </form>
+          <div class="voice-controls cc-voice-controls">
+            <audio id="remoteAudio" autoplay></audio>
+            <div><div class="eyebrow">Browser voice session</div><span id="voiceState" aria-live="polite" data-i18n="customer.voiceOff">Voice is off.</span></div>
+            <button id="stopVoice" class="secondary" disabled data-i18n="customer.stopVoice">Stop voice session</button>
+          </div>
+          <p class="muted small cc-boundary-note" data-i18n="customer.voiceRequirement">Browser voice requires HTTPS (or localhost), a microphone, consent, a configured Realtime model and provider key. It is not a PSTN/SIP phone bridge.</p>
+        </section>
+
+        <section class="panel card queue-panel" id="agentWorkspace" aria-labelledby="queueTitle">
+          <div class="panel-title">
+            <div><div class="eyebrow" data-i18n="queue.eyebrow">HUMAN INTERVENTION</div><h2 id="queueTitle" data-i18n="queue.title">Escalation queue</h2><p class="muted small">Only records returned by the authenticated tenant-scoped queue endpoint appear below.</p></div>
+            <button id="refreshQueue" class="secondary" data-i18n="queue.refresh">Refresh</button>
+          </div>
+          <div class="cc-queue-summary" aria-label="Loaded escalation rows">
+            <div><span>Queued</span><strong id="queuedCount">—</strong></div>
+            <div><span>Claimed</span><strong id="claimedCount">—</strong></div>
+            <div><span>Priority high+</span><strong id="priorityCount">—</strong></div>
+          </div>
+          <p class="muted" data-i18n="queue.description">High-risk, unresolved, or human-requested conversations appear here. A queue item means requested, not connected.</p>
+          <div id="handoffQueue" class="queue-list"><div class="empty" data-i18n="queue.loading">Loading queue…</div></div>
+          <section id="agentWork" class="agent-work cc-agent-work" hidden>
+            <div class="conversation-head"><div><div class="eyebrow">Claimed human assignment</div><strong id="agentConversationTitle" data-i18n="queue.agentAssignedTitle">Assigned conversation</strong><small id="agentConversationMeta"></small></div><button id="resolveHandoff" class="primary" data-i18n="queue.resolve">Resolve</button></div>
+            <div id="agentTranscript" class="agent-transcript"></div>
+            <form id="agentReplyForm" class="chat-form"><label class="sr-only" for="agentReply" data-i18n="queue.reply">Reply</label><textarea id="agentReply" rows="2" maxlength="4000" data-i18n-placeholder="queue.reply" placeholder="Reply"></textarea><button class="primary" type="submit" data-i18n="queue.reply">Reply</button></form>
+            <p class="muted small" data-i18n="queue.replyStorageNote">Human replies are encrypted at rest and are visible in the conversation transcript.</p>
+          </section>
+          <div class="cc-queue-boundary"><strong>Queue state is not a connected phone call.</strong><span>Agent claim, transcript reply and resolution are separate auditable actions. PSTN/SIP routing is not enabled by this browser workspace.</span></div>
         </section>
       </section>
-    </section>
 
-    <section class="panel boundary-panel">
-      <h2 data-i18n="boundaries.title">Operational boundaries</h2>
-      <div class="boundary-grid">
-        <div><strong data-i18n="boundaries.automateTitle">Designed to automate</strong><p data-i18n="boundaries.automateBody">Multilingual first response, clarification, intent/risk triage, secure transcript storage, queue creation and human-agent assignment.</p></div>
-        <div><strong data-i18n="boundaries.humanTitle">Human takeover required</strong><p data-i18n="boundaries.humanBody">Explicit human request, low confidence, high or critical risk, missing policy, unresolved case, privacy/security complaint or uncertain action.</p></div>
-        <div><strong data-i18n="boundaries.notEnabledTitle">Not enabled by this package alone</strong><p data-i18n="boundaries.notEnabledBody">PSTN/SIP/WhatsApp/email routing, live telephony bridge, CRM identity verification and production language-quality claims need a real provider adapter, credentials and acceptance tests.</p></div>
-      </div>
-    </section>
-  </main>
-  <footer>OpsCore FIELD · <span data-i18n="nav.title">AI Contact Center</span></footer>
+      <section class="panel card boundary-panel cc-boundary-panel" data-reveal>
+        <div class="eyebrow">Governed automation model</div>
+        <h2 data-i18n="boundaries.title">Operational boundaries</h2>
+        <div class="boundary-grid cc-boundary-grid">
+          <div><strong data-i18n="boundaries.automateTitle">Designed to automate</strong><p data-i18n="boundaries.automateBody">Multilingual first response, clarification, intent/risk triage, secure transcript storage, queue creation and human-agent assignment.</p></div>
+          <div><strong data-i18n="boundaries.humanTitle">Human takeover required</strong><p data-i18n="boundaries.humanBody">Explicit human request, low confidence, high or critical risk, missing policy, unresolved case, privacy/security complaint or uncertain action.</p></div>
+          <div><strong data-i18n="boundaries.notEnabledTitle">Not enabled by this package alone</strong><p data-i18n="boundaries.notEnabledBody">PSTN/SIP/WhatsApp/email routing, live telephony bridge, CRM identity verification and production language-quality claims need a real provider adapter, credentials and acceptance tests.</p></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer cc-footer">
+      <span>OpsCore v0.11.62 · Contact Center workbench</span>
+      <span class="mono tiny"><a href="/">home</a> · <a href="/control-rooms.html">control rooms</a> · <a href="/verify/release.html">release evidence</a> · <a href="/api/health">health</a></span>
+    </footer>
+  </div>
 </body>
 </html>
