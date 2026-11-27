@@ -195,7 +195,7 @@ async function verifyNeonEndpointIdentity(url,env=process.env,fetchImpl=globalTh
  if(target==='self-hosted'){
   const hostname=String(url.hostname||'').trim().toLowerCase();
   const expectedHost=String(env.OPSC_MIGRATION_EXPECTED_HOST||'').trim().toLowerCase();
-  const database=String(url.pathname||'').replace(/^\\/+/, '');
+  const database=String(url.pathname||'').replace(/^\/+/, '');
   if(!expectedHost||hostname!==expectedHost)throw new Error('MIGRATION_ENDPOINT_HOST_MISMATCH');
   if(database!==String(env.OPSC_MIGRATION_EXPECTED_DATABASE||'').trim())throw new Error('MIGRATION_EXPECTED_DATABASE_MISMATCH');
   if(String(url.searchParams.get('sslmode')||'').toLowerCase()!=='verify-full')throw new Error('MIGRATION_SELF_HOSTED_TLS_VERIFY_FULL_REQUIRED');
