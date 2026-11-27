@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#07111f">
+  <title>OpsCore · Offline</title>
+  <link rel="stylesheet" href="/styles.css">
+  
+  <style>
+    .offline-wrap{min-height:100svh;display:grid;place-items:center;padding:24px}
+    .offline-card{width:min(100%,640px);padding:clamp(24px,5vw,48px);border:1px solid var(--line-2);border-radius:24px;background:var(--glass-2);box-shadow:var(--sh-2)}
+    .offline-mark{font:700 12px var(--f-mono);letter-spacing:.16em;color:var(--cy)}
+    .offline-card h1{margin:18px 0 12px}
+    .offline-card p{max-width:54ch}
+    .offline-card a{display:inline-flex;margin-top:12px;padding:12px 18px;border-radius:12px;border:1px solid var(--line-2)}
+  </style>
+</head>
+<body>
+  <main id="main" class="offline-wrap">
+    <section class="offline-card" aria-labelledby="offline-title">
+      <div class="offline-mark">OPSCORE · CONNECTION STATE</div>
+      <h1 id="offline-title">You are offline.</h1>
+      <p>The application could not reach its server. Private records, maps, queues and operational actions are not available in this offline shell. Reconnect to continue; no action has been queued or reported as completed.</p>
+      <a href="/">Retry OpsCore</a>
+    </section>
+  </main>
+</body>
+</html>
