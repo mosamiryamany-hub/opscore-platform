@@ -525,10 +525,10 @@ function linkConversationCustomer(db, ctx, conversationId, customerId) {
 function listEligibleAgents(db, ctx) {
   assertTenant(ctx);
   assertSupervisor(ctx);
-  return db.prepare(`SELECT u.id,m.role FROM users u JOIN memberships m ON m.user_id=u.id
+  return db.prepare(`SELECT u.id,u.email,m.role FROM users u JOIN memberships m ON m.user_id=u.id
     WHERE m.organization_id=? AND u.status='active' AND m.role IN ('member','manager')
     ORDER BY m.role,u.id LIMIT 200`)
-    .all(ctx.organizationId).map(row => ({ id:row.id, role:row.role }));
+    .all(ctx.organizationId).map(row => ({ id:row.id, email:row.email, role:row.role }));
 }
 function reassignHandoff(db, ctx, handoffId, input = {}) {
   assertTenant(ctx);
