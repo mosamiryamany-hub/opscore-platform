@@ -1015,17 +1015,21 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           rows: stage.target,
           insertedThisStage: insertedThisStage,
           verifiedPersistedRows: verifiedRows.rows[0].count,
-          samples: latenciesMs.length,\n          percentileMethod: 'nearest-rank; 100 samples; P99 is the 99th ordered sample',
+          samples: latenciesMs.length,
+          percentileMethod: 'nearest-rank; 100 samples; P99 is the 99th ordered sample',
           latencyMs: {
             min: latenciesMs[0],
             p50: percentile(0.50),
             p95: percentile(0.95),
+            p99: percentile(0.99),
             max: latenciesMs[latenciesMs.length - 1]
           },
           queryPlan: plan,
           gistPlannerPlan: gistPlannerPlan,
           gistIndexUsed: gistIndexUsed,
-          gistPlannerRole: 'opscore_auth_definer under a verified signed backoffice tenant context; HTTP timings are opscore_runtime',\n          definerExecutionEvidence: definerExecutionEvidence,\n          definerFunctionCallPlan: definerFunctionCallPlan
+          gistPlannerRole: 'opscore_auth_definer under a verified signed backoffice tenant context; HTTP timings are opscore_runtime',
+          definerExecutionEvidence: definerExecutionEvidence,
+          definerFunctionCallPlan: definerFunctionCallPlan
         });
       }
       const scaleArtifactDir = path.resolve(process.env.OPSC_MAP_BROWSER_ARTIFACT_DIR || path.join(dir, 'dispatcher-map-postgres-browser-e2e'));
@@ -1033,7 +1037,7 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
       fs.writeFileSync(path.join(scaleArtifactDir, 'gis-scale-benchmark.json'),
         JSON.stringify(scaleEvidence, null, 2) + '\n');
       record('postgis-scale-40k-250k-1m',
-        'Progressive 40k, 250k, and 1m tenant-scoped PostGIS datasets were queried 15 times per stage over authenticated HTTP; p50/p95/min/max latency and EXPLAIN ANALYZE BUFFERS evidence saved as gis-scale-benchmark.json.');
+        'Progressive 40k, 250k, and 1m tenant-scoped PostGIS datasets were queried 100 times per stage over authenticated HTTP; p50/p95/p99/min/max latency and signed-definer GiST EXPLAIN ANALYZE BUFFERS evidence saved as gis-scale-benchmark.json.');
       await clearSignedRlsSessionContext(fixture);
 
       } else {
