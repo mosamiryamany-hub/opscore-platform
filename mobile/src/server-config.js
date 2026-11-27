@@ -29,3 +29,12 @@ export async function saveServerOrigin(value) {
 export async function clearServerOrigin() {
   await SecureStore.deleteItemAsync(KEY);
 }
+
+export function parseServerConfigLink(value) {
+  let link;
+  try { link = new URL(String(value || '')); } catch { return null; }
+  if (link.protocol !== 'opscore:' || link.hostname !== 'configure') return null;
+  const candidate = link.searchParams.get('server');
+  if (!candidate) return null;
+  try { return validateServerOrigin(candidate); } catch { return null; }
+}
