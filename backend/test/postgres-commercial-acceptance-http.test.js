@@ -853,10 +853,10 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           inserted = await fixture.query(
           `INSERT INTO spatial_features
             (id,organization_id,entity_type,entity_id,feature_key,geom,properties,source,created_by,created_at,updated_at)
-           SELECT 'gis-' || $1 || g::text,
+           SELECT 'gis-' || $1 || (g + $3)::text,
                   $2,
                   'site',
-                  $1 || g::text,
+                  $1 || (g + $3)::text,
                   'scale',
                   public.ST_SetSRID(public.ST_MakePoint(
                     31.0 + ((g + $3) % 1000)::double precision / 1000.0,
