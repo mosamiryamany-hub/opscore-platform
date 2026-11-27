@@ -1,0 +1,74 @@
+'use strict';
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const root = path.resolve(__dirname, '..');
+const read = p => fs.readFileSync(path.join(root, p), 'utf8');
+
+test('eight non-contact control rooms resolve to real operational API workspaces', () => {
+  const rooms = read('web/control-room.js');
+  const navigation = read('web/rooms.js');
+  const html = read('web/control-room.html');
+  const server = read('src/server.js');
+  const expected = {
+    dispatch: '/api/v1/dispatch-board',
+    assurance: '/api/v1/work-orders?limit=100',
+    inventory: '/api/v1/inventory',
+    field: '/api/v1/field/live-snapshot',
+    incident: '/api/v1/security-center',
+    tenant: '/api/v1/security/authorization-decisions?limit=100',
+    billing: '/api/v1/billing/providers',
+    release: '/api/verify/release'
+  };
+  for (const [room, endpoint] of Object.entries(expected)) {
+    assert.ok(rooms.includes(room + ':'));
+    assert.ok(rooms.includes(endpoint));
+    assert.ok(server.includes(endpoint.split('?')[0]), 'server route exists: ' + endpoint);
+  }
+  assert.match(navigation, /\/control-room\.html\?room=/);
+  assert.match(html, /id="recordRows"/);
+  assert.match(html, /id="searchRecords"/);
+  assert.match(html, /id="sortRecords"/);
+  assert.match(html, /id="auditTimeline"/);
+  assert.match(html, /id="recordActions"/);
+});
+
+test('generic room displays only API-returned data and exposes only known server actions', () => {
+  const js = read('web/control-room.js');
+  assert.match(js, /credentials:'same-origin'/);
+  assert.match(js, /cache:'no-store'/);
+  assert.match(js, /No data loaded/);
+  assert.match(js, /No mutation exposed in this workspace/);
+  assert.ok(js.includes('/on-my-way'));
+  assert.ok(js.includes('/work-order-parts/reserve'));
+  assert.ok(js.includes('/first-time-right'));
+  assert.ok(js.includes('/reconciliation/run?provider=local'));
+  assert.doesNotMatch(js, /mock|demo data|placeholder records/i);
+});
+
+test('contact center agent room supports priority filtering, sorting, case context and audit history', () => {
+  const html = read('web/contact-center-room.html');
+  const js = read('web/contact-center-room.js');
+  const server = read('src/server.js');
+  assert.match(html, /id="ccrPriorityFilter"/);
+  assert.match(html, /id="ccrSort"/);
+  assert.match(html, /id="ccrAssignedOperator"/);
+  assert.match(html, /id="ccrWaitClock"/);
+  assert.match(html, /id="ccrEventTimeline"/);
+  assert.match(js, /\/api\/v1\/contact-center\/handoffs/);
+  assert.match(js, /\/api\/v1\/audit\?resourceId=/);
+  assert.match(js, /CONTACT_CENTER_HUMAN_ASSIGNMENT_REQUIRED|canOperateSelected/);
+  assert.match(server, /resourceId: url\.searchParams\.get\('resourceId'\)/);
+});
+
+test('language catalogue selection is not represented as production qualification', () => {
+  const html = read('web/contact-center.html');
+  const js = read('web/contact-center.js');
+  assert.match(html, /id="languageQualification"/);
+  assert.match(html, /data-i18n="messages\.qualificationNotice"/);
+  assert.match(js, /qualifiedForProduction===true/);
+  assert.match(js, /dataset\.qualification=qualified\?'qualified':'unverified'/);
+  assert.match(js, /messages\.qualificationNotice/);
+  assert.match(js, /qualifiedForProduction===true/);
+});

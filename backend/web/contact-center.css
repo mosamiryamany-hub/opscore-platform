@@ -130,3 +130,5 @@
   #chatLog { min-height: 220px; max-height: 42vh; }
   .cc-msg { max-width: 92%; }
 }
+
+.language-qualification{margin:8px 0 14px;padding:10px 12px;border:1px solid #8a6b2e;border-radius:10px;background:#2b2416;color:#ffe0a1;font-size:11px;line-height:1.55}.language-qualification[data-qualification="qualified"]{border-color:#286c56;background:#13271f;color:#a6f2ce}.language-qualification[data-qualification="unverified"]:before{content:'UNVERIFIED · ';font-weight:800;letter-spacing:.06em}

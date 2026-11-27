@@ -86,9 +86,25 @@
       const unique=state.languages.filter(x=>x && typeof x.code==='string' && x.duplicateOf===null);
       const previousLanguage=$('languageSelect').value;
       $('languageSelect').replaceChildren(...unique.map(x=>{
-        const option=document.createElement('option'); option.value=x.code; option.textContent=`${x.name} (${x.code})`; return option;
+        const option=document.createElement('option');
+        option.value=x.code;
+        const qualified=x.qualifiedForProduction===true;
+        option.textContent=`${x.name} (${x.code})`;
+        option.dataset.qualification=qualified?'qualified':'unverified';
+        option.title=qualified?tx('messages.configOk',{},'Configuration exists. Provider connectivity and language quality still need live acceptance tests.'):tx('messages.qualificationNotice',{},'No language is production-qualified until text, ASR, TTS, accent and escalation tests pass.');
+        return option;
       }));
       $('languageSelect').value=unique.some(x=>x.code===previousLanguage) ? previousLanguage : (unique.some(x=>x.code==='en') ? 'en' : (unique[0]?.code || ''));
+      const selectedLocale=unique.find(x=>x.code===$('languageSelect').value);
+      $('languageQualification').dataset.selectedLocale=$('languageSelect').value;
+      $('languageQualification').dataset.qualification=selectedLocale?.qualifiedForProduction===true?'qualified':'unverified';
+      $('languageQualification').hidden=selectedLocale?.qualifiedForProduction===true;
+      $('languageSelect').addEventListener('change',()=>{
+        const selected=unique.find(x=>x.code===$('languageSelect').value);
+        $('languageQualification').dataset.selectedLocale=$('languageSelect').value;
+        $('languageQualification').dataset.qualification=selected?.qualifiedForProduction===true?'qualified':'unverified';
+        $('languageQualification').hidden=selected?.qualifiedForProduction===true;
+      });
       const missing=[];
       if(!status.enabled) missing.push('OPSC_CONTACT_CENTER_ENABLED=true');
       if(!status.encryptionConfigured) missing.push('32-byte OPSC_CONTACT_CENTER_ENCRYPTION_KEY');

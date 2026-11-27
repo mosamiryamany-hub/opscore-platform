@@ -2,7 +2,7 @@
 (() => {
   'use strict';
   const $ = (id) => document.getElementById(id);
-  const state = { items: [], selected: null, conversation: null, currentUserId: null, busy: false, queueError: null };
+  const state = { items: [], selected: null, conversation: null, currentUserId: null, currentUserRole: null, busy: false, queueError: null };
 
   const ROOM_I18N = {
     en: {
@@ -162,6 +162,45 @@
     setText('ccrInsightScope',state.items.length
       ? 'Derived from ' + state.items.length + ' open handoff row(s) returned by the tenant-scoped API. Maximum request size: 50 rows.'
       : 'No open rows were returned. No distribution values are inferred.');
+    renderAgentDistribution();
+  }
+  function renderAgentDistribution() {
+    const panel=$('ccrSupervisorPanel'),root=$('ccrAgentDistribution'),filterWrap=$('ccrAgentFilterWrap'),filter=$('ccrAgentFilter');
+    const permitted=['owner','admin','manager'].includes(state.currentUserRole);
+    if(!panel||!root)return;
+    panel.hidden=!permitted;
+    if(filterWrap)filterWrap.hidden=!permitted;
+    if(!permitted)return;
+    const groups=new Map();
+    for(const item of state.items){
+      const owner=String(item.assignedTo||'unassigned');
+      const group=groups.get(owner)||{owner,total:0,urgent:0,oldest:Infinity};
+      group.total++;
+      if(['urgent','high'].includes(String(item.priority||'').toLowerCase()))group.urgent++;
+      const created=Date.parse(item.createdAt||'');
+      if(Number.isFinite(created))group.oldest=Math.min(group.oldest,created);
+      groups.set(owner,group);
+    }
+    const list=[...groups.values()].sort((a,b)=>b.total-a.total||a.owner.localeCompare(b.owner));
+    setText('ccrSupervisorCount',list.length+' operator group(s)');
+    root.replaceChildren();
+    if(filter){
+      const prior=filter.value;
+      filter.replaceChildren(new Option('All agents','all'));
+      list.forEach(group=>filter.add(new Option(group.owner==='unassigned'?'Unassigned':group.owner,group.owner)));
+      filter.value=list.some(group=>group.owner===prior)?prior:'all';
+    }
+    if(!list.length){root.appendChild(makeNode('div','empty','No open handoffs were returned for workload distribution.'));return;}
+    list.forEach(group=>{
+      const card=makeNode('article','ccr-agent-load');
+      const head=makeNode('div','ccr-agent-load-head');
+      head.appendChild(makeNode('strong','',group.owner==='unassigned'?'Unassigned':group.owner));
+      head.appendChild(makeNode('span','ccr-agent-load-count',String(group.total)));
+      card.appendChild(head);
+      card.appendChild(makeNode('p','',group.urgent+' high / urgent item(s)'));
+      card.appendChild(makeNode('small','',Number.isFinite(group.oldest)?'Oldest open handoff: '+new Date(group.oldest).toLocaleString():'Oldest wait unavailable'));
+      root.appendChild(card);
+    });
   }
   function renderQueue() {
     const list = $('ccrQueueList');
@@ -169,10 +208,22 @@
     list.replaceChildren();
     const q = $('ccrSearch').value.trim().toLowerCase();
     const filter = $('ccrFilter').value;
+    const priorityFilter = $('ccrPriorityFilter')?.value || 'all';
+    const sort = $('ccrSort')?.value || 'priority';
+    const agentFilter = $('ccrAgentFilter')?.value || 'all';
     const visible = state.items.filter(item => {
+      if (['owner','admin','manager'].includes(state.currentUserRole) && agentFilter !== 'all' && String(item.assignedTo || 'unassigned') !== agentFilter) return false;
       if (filter !== 'all' && item.status !== filter) return false;
-      const haystack = [item.conversationId,item.reasonCode,item.channel,item.languageCode,item.priority,item.assignedTo].join(' ').toLowerCase();
+      if (priorityFilter !== 'all' && String(item.priority || '').toLowerCase() !== priorityFilter) return false;
+      const haystack = [item.conversationId,item.reasonCode,item.reasonDetail,item.channel,item.languageCode,item.priority,item.assignedTo].join(' ').toLowerCase();
       return !q || haystack.includes(q);
+    });
+    const priorityRank = { urgent: 0, high: 1, normal: 2, low: 3 };
+    visible.sort((a,b) => {
+      if (sort === 'newest') return String(b.createdAt || '').localeCompare(String(a.createdAt || ''));
+      if (sort === 'oldest') return String(a.createdAt || '').localeCompare(String(b.createdAt || ''));
+      return (priorityRank[String(a.priority || '').toLowerCase()] ?? 9) - (priorityRank[String(b.priority || '').toLowerCase()] ?? 9)
+        || String(a.createdAt || '').localeCompare(String(b.createdAt || ''));
     });
     if (!visible.length) {
       list.appendChild(makeNode('div','empty',state.items.length ? 'No queue rows match this filter.' : 'No open handoffs were returned for this organization.'));
@@ -210,6 +261,49 @@
     setText('ccrMessageCount',rows.length + (rows.length === 1 ? ' message' : ' messages'));
     transcript.scrollTop = transcript.scrollHeight;
   }
+  function updateElapsedClock(createdAt) {
+    const node = $('ccrWaitClock');
+    if (!node) return;
+    const start = Date.parse(createdAt || '');
+    if (!Number.isFinite(start)) { node.textContent = 'Elapsed unavailable'; return; }
+    const seconds = Math.max(0, Math.floor((Date.now() - start) / 1000));
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    node.textContent = 'Queue wait ' + (hours ? hours + 'h ' : '') + minutes + 'm';
+    node.dataset.startedAt = String(start);
+  }
+  async function loadCaseEvents(handoffId, conversationId) {
+    const root = $('ccrEventTimeline');
+    if (!root) return;
+    root.replaceChildren();
+    setText('ccrEventCount', 'Loading');
+    try {
+      const ids = [...new Set([handoffId, conversationId].filter(Boolean))];
+      const results = await Promise.all(ids.map(id => api('/api/v1/audit?resourceId=' + encodeURIComponent(id))));
+      const events = results.flatMap(value => Array.isArray(value) ? value : (value.entries || value.items || value.events || value.rows || []));
+      events.sort((a,b) => String(b.created_at || b.createdAt || '').localeCompare(String(a.created_at || a.createdAt || '')));
+      setText('ccrEventCount', events.length + ' events');
+      if (!events.length) {
+        root.appendChild(makeNode('div','empty','No audit events were returned for this handoff or conversation identifier.'));
+        return;
+      }
+      events.slice(0,30).forEach(event => {
+        const row = makeNode('article','ccr-event-item');
+        row.appendChild(makeNode('strong','',event.action || event.eventType || event.resourceType || 'Recorded event'));
+        row.appendChild(makeNode('time','',event.created_at || event.createdAt || 'Timestamp not returned'));
+        row.appendChild(makeNode('p','',[
+          event.actor_user_id || event.actorUserId || event.actor || '',
+          event.resource_type || event.resourceType || '',
+          event.resource_id || event.resourceId || '',
+          event.reason || event.summary || ''
+        ].filter(Boolean).join(' · ') || 'Audit event returned by the tenant-scoped audit endpoint.'));
+        root.appendChild(row);
+      });
+    } catch (error) {
+      setText('ccrEventCount','Unavailable');
+      root.appendChild(makeNode('div','empty','Audit history unavailable: ' + error.message));
+    }
+  }
   async function openHandoff(item) {
     if (state.busy) return;
     setBusy(true);
@@ -228,9 +322,17 @@
       setText('ccrConversationId',conversation.id);
       setText('ccrLanguageChannel',[conversation.languageName || conversation.languageCode,conversation.channel].filter(Boolean).join(' · '));
       setText('ccrReason',conversation.escalationReason || item.reasonCode || '—');
+      setText('ccrCaseStatus',conversation.status || item.status || '—');
+      setText('ccrAssignedOperator',conversation.assignedTo || item.assignedTo || 'Unassigned');
+      setText('ccrCreatedAt',conversation.createdAt ? new Date(conversation.createdAt).toLocaleString() : 'Not returned');
+      setText('ccrLastActivity',conversation.lastActivityAt ? new Date(conversation.lastActivityAt).toLocaleString() : 'Not returned');
+      setText('ccrCaseChannel',conversation.channel || item.channel || 'Not returned');
+      setText('ccrCaseLanguage',conversation.languageName || conversation.languageCode || item.languageCode || 'Not returned');
+      updateElapsedClock(item.createdAt);
       renderTranscript(conversation.messages);
+      await loadCaseEvents(item.id, item.conversationId);
       renderQueue();
-      setText('ccrQueueMessage','Assignment loaded through the authenticated API.');
+      setText('ccrQueueMessage','Assignment and transcript loaded through the authenticated tenant-scoped API.');
     } catch (error) {
       setText('ccrQueueMessage',accessMessage(error));
       setText('ccrDetailState',error.code || 'Access not confirmed');
@@ -250,6 +352,7 @@
         api('/api/v1/me')
       ]);
       state.currentUserId = me?.user?.id ? String(me.user.id) : null;
+      state.currentUserRole = me?.role || null;
       renderService(status);
       state.queueError = null;
       state.items = Array.isArray(queue.items) ? queue.items : [];
@@ -274,6 +377,7 @@
       }
     } catch (error) {
       state.currentUserId = null;
+      state.currentUserRole = null;
       state.queueError = accessMessage(error);
       state.items = [];
       metrics([]);
@@ -342,10 +446,19 @@
   $('ccrRefresh').addEventListener('click',refreshQueue);
   $('ccrSearch').addEventListener('input',renderQueue);
   $('ccrFilter').addEventListener('change',renderQueue);
+  $('ccrPriorityFilter')?.addEventListener('change',renderQueue);
+  $('ccrSort')?.addEventListener('change',renderQueue);
+  $('ccrAgentFilter')?.addEventListener('change',renderQueue);
   $('ccrReplyForm').addEventListener('submit',sendReply);
   $('ccrResolve').addEventListener('click',() => $('ccrResolveDialog').showModal());
   $('ccrResolveCancel').addEventListener('click',() => $('ccrResolveDialog').close());
   $('ccrResolveConfirm').addEventListener('click',resolveHandoff);
   $('ccrResolutionNote').addEventListener('input',() => { $('ccrResolveConfirm').disabled = state.busy || !canOperateSelected() || !$('ccrResolutionNote').value.trim(); });
   refreshQueue();
+  window.setInterval(() => {
+    if (!document.hidden && state.selected) updateElapsedClock(state.selected.createdAt);
+  }, 60000);
+  window.setInterval(() => {
+    if (!document.hidden && !state.busy) refreshQueue();
+  }, 30000);
 })();
