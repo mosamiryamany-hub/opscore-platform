@@ -30,7 +30,7 @@ const concurrency = Math.max(1, Math.min(16, Number(process.env.OPSC_RELEASE_TES
 const files = fs.readdirSync(testDir).filter(name => name.endsWith('.test.js')).sort((a, b) => a.localeCompare(b));
 // These tests intentionally touch tracked source artifacts. Run them after the isolated pool
 // so provenance observes a stable API inventory instead of racing another writer.
-const serialFiles = new Set(['resource_limits.test.js', 'provenance_generation.test.js']);
+const serialFiles = new Set(['resource_limits.test.js', 'provenance_generation.test.js', 'firewall-rate-limit-postgres.test.js', 'postgres-commercial-acceptance-http.test.js', 'tenant-isolation-matrix.test.js']);
 
 function parseSummary(output) {
   const m = (label) => output.match(new RegExp(`^# ${label} (\\d+)$`, 'm'))?.[1];
@@ -229,6 +229,22 @@ async function main() {
     console.log(`${result.ok ? 'PASS' : 'FAIL'} ${result.file} tests=${result.tests} pass=${result.pass} fail=${result.fail} skipped=${result.skipped} todo=${result.todo} cancelled=${result.cancelled}${result.completedWithOpenHandles ? ' open-handles' : (result.timedOut ? ' timeout' : '')}`);
     if (!result.ok) console.log(result.tail);
   }
+  // These live PostgreSQL acceptance tests share one disposable database and
+  // require deterministic execution order: the commercial and tenant-matrix
+  // tests both require a virgin identity store, and the firewall probe verifies
+  // atomic cross-process counters. Keep them out of the parallel worker pool.
+  for (const file of [
+    'firewall-rate-limit-postgres.test.js',
+    'postgres-commercial-acceptance-http.test.js',
+    'tenant-isolation-matrix.test.js'
+  ]) {
+    if (!files.includes(file)) continue;
+    const result = await runFile(file);
+    results.push(result);
+    console.log(`${result.ok ? 'PASS' : 'FAIL'} ${result.file} tests=${result.tests} pass=${result.pass} fail=${result.fail} skipped=${result.skipped} todo=${result.todo} cancelled=${result.cancelled}${result.completedWithOpenHandles ? ' open-handles' : (result.timedOut ? ' timeout' : '')}`);
+    if (!result.ok) console.log(result.diagnostics || result.tail);
+  }
+
   if (files.includes('provenance_generation.test.js')) {
     try {
       cp.execFileSync(process.execPath, ['scripts/generate-provenance.js'], { cwd: root, stdio: 'pipe', env: { ...process.env } });
