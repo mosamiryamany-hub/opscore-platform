@@ -72,7 +72,7 @@ test('Preview migrations require one exact pinned non-primary branch and the app
   assert.ok(previewApply.includes("OPSC_MIGRATION_EXPECTED_BRANCH_ID: ${{ steps.neon.outputs.branch_id }}"));
   assert.ok(previewApply.includes("OPSC_MIGRATION_CONFIRM_BRANCH_ID: ${{ steps.neon.outputs.branch_id }}"));
   assert.match(previewApply, /identity\.get\("branchId"\) != os\.environ\["OPSC_MIGRATION_EXPECTED_BRANCH_ID"\]/);
-  assert.equal((previewApply.match(/br-muddy-pine-bbrexgxx/g) || []).length, 1);
+  assert.equal((previewApply.match(/br-muddy-pine-bbrexgxx/g) || []).length, 2, 'the exact isolated branch ID must appear only in the reusable-workflow default and its fail-closed job allowlist');
   assert.match(previewApply, /PRIMARY_BRANCH_ID=\x27br-weathered-tree-bbha3dx4\x27/);
   assert.match(previewApply, /OPSC_MIGRATION_DATABASE_URL/);
   assert.match(previewApply, /OPSC_ACCEPTANCE_RUNTIME_DATABASE_URL/);
