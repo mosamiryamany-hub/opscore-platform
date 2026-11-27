@@ -26,18 +26,11 @@ if (new URLSearchParams(window.location.search).get('e2e') === '1') {
         .filter(feature => feature.source === 'tenant-spatial-features')
         .map(feature => String(feature.id ?? feature.properties?.featureId ?? '')).filter(Boolean).sort();
     },
-    renderedSpatialPixelAt(longitude, latitude) {
+    projectedPointAt(longitude, latitude) {
       if (!state.map) return null;
       const canvas = state.map.getCanvas();
-      const gl = canvas.getContext('webgl2') || canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-      if (!gl || !canvas.clientWidth || !canvas.clientHeight) return null;
       const point = state.map.project([Number(longitude), Number(latitude)]);
-      const x = Math.max(0, Math.min(canvas.width - 1, Math.round(point.x * canvas.width / canvas.clientWidth)));
-      const y = Math.max(0, Math.min(canvas.height - 1, canvas.height - 1 - Math.round(point.y * canvas.height / canvas.clientHeight)));
-      const pixel = new Uint8Array(4);
-      gl.finish();
-      gl.readPixels(x, y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixel);
-      return { x, y, rgba: Array.from(pixel) };
+      return { x: point.x, y: point.y, clientWidth: canvas.clientWidth, clientHeight: canvas.clientHeight };
     },
     renderedSpatialFeatureDiagnostics(longitude, latitude) {
       if (!state.map || !state.spatialSourceReady) return null;
@@ -202,7 +195,6 @@ async function ensureMap() {
   state.map = new maplibregl.Map({
     container,
     style: container.dataset.styleUrl,
-    preserveDrawingBuffer: new URLSearchParams(window.location.search).get('e2e') === '1',
     center: [0, 0],
     zoom: 1.2,
     attributionControl: true,
