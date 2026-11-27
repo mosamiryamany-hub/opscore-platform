@@ -52,6 +52,8 @@ jobs:
           node --check backend/src/security.js
           node --check backend/src/store.js
           node --check backend/src/server.js
+          node --check backend/web/contact-center.js
+          node --check backend/web/rooms.js
           node --check backend/src/firewall.js
           node --check backend/src/release-proof.js
           node --check backend/src/database-security-proof.js
