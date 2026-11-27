@@ -128,6 +128,19 @@ test('privileged cleanup is exact-target only and never becomes the application 
   assert.match(source, /created\.users/);
 });
 
+test('GIS scale benchmark rate allowance is confined to the disposable PostgreSQL CI step', () => {
+  const workflowPath = path.join(__dirname, '..', '..', '.github', 'workflows', 'digital-twin-postgres-live.yml');
+  const workflow = fs.readFileSync(workflowPath, 'utf8');
+  const start = workflow.indexOf('Run real PostgreSQL HTTP and authenticated Dispatcher Map browser acceptance as opscore_runtime');
+  const nextStep = workflow.indexOf('\\n      - name:', start + 1);
+  const step = workflow.slice(start, nextStep < 0 ? workflow.length : nextStep);
+  assert.ok(start >= 0, 'the real authenticated GIS acceptance step must exist');
+  assert.match(step, /FIREWALL_RATE_LIMIT:\\s*'1000'/,
+    'only the disposable 3 x 100-sample benchmark step may raise its request budget');
+  assert.equal((workflow.match(/^\\s*FIREWALL_RATE_LIMIT:/gm) || []).length, 1,
+    'the elevated test-only firewall request budget must not become a workflow-wide or production setting');
+});
+
 test('Preview and disposable PostgreSQL 18 pass separate exact-target migration-owner cleanup URLs', () => {
   const workflowDir = path.resolve(__dirname, '..', '..', '.github', 'workflows');
   const previewWorkflow = fs.readFileSync(path.join(workflowDir, 'apply-preview-migrations.yml'), 'utf8');
