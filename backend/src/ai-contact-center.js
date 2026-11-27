@@ -469,7 +469,7 @@ function listCrmCustomers(db, ctx, query = '') {
   assertTenant(ctx);
   assertSupervisor(ctx);
   const q = String(query || '').trim().replace(/[\\%_]/g, '').slice(0, 80);
-  if (q.length < 2) return [];
+  if (q.length < 2) throw error('SEARCH_QUERY_TOO_SHORT', 422);
   const pattern = '%' + q.toLowerCase() + '%';
   return db.prepare(`SELECT c.id,c.name,c.email,c.phone,c.external_ref
     FROM customers c
