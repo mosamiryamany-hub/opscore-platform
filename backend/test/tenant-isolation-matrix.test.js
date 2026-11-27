@@ -33,6 +33,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { spawn, execFileSync } = require('node:child_process');
 const { bindSignedRlsSessionContext, clearSignedRlsSessionContext } = require('../src/signed-tenant-context');
+const { validatePostgresAcceptanceTarget } = require('../scripts/validate-postgres-acceptance-target');
 
 const root = path.resolve(__dirname, '..');
 const INVENTORY_PATH = path.join(root, 'docs', 'API_INVENTORY.json');
@@ -159,6 +160,8 @@ function waitForServer(base, child) {
 
 test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cross-tenant fixture isolation across the route inventory', async t => {
   const urlText = String(process.env.OPSC_PG_ACCEPTANCE_URL || process.env.OPSC_PG_TEST_URL || '').trim();
+  const cleanupUrlText = String(process.env.OPSC_TENANT_MATRIX_CLEANUP_URL || process.env.OPSC_PG_ACCEPTANCE_CLEANUP_URL || '').trim();
+  const cleanupRoleName = String(process.env.OPSC_TENANT_MATRIX_CLEANUP_ROLE || process.env.OPSC_PG_ACCEPTANCE_CLEANUP_ROLE || '').trim();
   if (!urlText) {
     writeResult({
       schemaVersion: 'opscore.tenant-isolation-matrix.v1',
@@ -208,6 +211,8 @@ test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cro
       // cannot connect to a loopback PostgreSQL without TLS.
       OPSC_PG_SSL_MODE: /127\.0\.0\.1|localhost/.test(new URL(urlText).host) ? 'disable' : 'require',
       AUTH_MODE: 'local',
+      FIREWALL_RATE_STATE: 'database',
+      OPSC_TEST_INCLUDE_ERROR_DIAGNOSTICS: 'true',
       OPSC_TEST_SCRYPT_N: process.env.OPSC_TEST_SCRYPT_N || '32768',
       // The probe sweeps hundreds of intentionally-rejected requests; the default
       // firewall window (240/min) would turn legitimate denials into 429 noise.
@@ -248,15 +253,53 @@ test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cro
   };
 
   let control = null;
+  let fixturePool = null;
   const cleanupErrors = [];
   try {
     await waitForServer(base, child);
+    console.log('TENANT_MATRIX_STAGE=runtime-server-ready');
 
-    // ---- Provision two tenants via SQL under signed context assertions ----
+    // The runtime pool is used only to prove the application's role is least-privilege.
+    // A separate exact-target owner connection provisions/removes fixtures in this same DB;
+    // every login, route probe and tenant-boundary assertion remains on runtime.
     const { Pool } = require('pg');
     const { hashPassword } = require('../src/security');
-    control = new Pool({ connectionString: urlText, max: 2, connectionTimeoutMillis: 60000, idleTimeoutMillis: 30000, application_name: 'opscore-tenant-matrix' });
-    const fx = await control.connect();
+    control = new Pool({ connectionString: urlText, max: 2, connectionTimeoutMillis: 60000, idleTimeoutMillis: 30000, application_name: 'opscore-tenant-matrix-runtime-check' });
+    if (!cleanupUrlText || cleanupRoleName !== 'neondb_owner') {
+      throw new Error('TENANT_MATRIX_DEDICATED_OWNER_CONNECTION_REQUIRED');
+    }
+    const cleanupTarget = validatePostgresAcceptanceTarget({
+      urlText: cleanupUrlText,
+      expectedHost: process.env.OPSC_TENANT_MATRIX_CLEANUP_HOST || process.env.OPSC_PG_ACCEPTANCE_CLEANUP_HOST || process.env.OPSC_PG_ACCEPTANCE_HOST
+    });
+    const runtimeTarget = validatePostgresAcceptanceTarget({ urlText });
+    if (cleanupTarget.hostname !== runtimeTarget.hostname || cleanupTarget.database !== runtimeTarget.database
+        || decodeURIComponent(cleanupTarget.parsed.username || '') !== cleanupRoleName) {
+      throw new Error('TENANT_MATRIX_OWNER_TARGET_IDENTITY_MISMATCH');
+    }
+    fixturePool = new Pool({
+      connectionString: cleanupUrlText,
+      max: 1,
+      connectionTimeoutMillis: 60000,
+      idleTimeoutMillis: 30000,
+      application_name: 'opscore-tenant-matrix-bootstrap-fixtures'
+    });
+    const ownerProbe = await fixturePool.connect();
+    try {
+      const ownerIdentity = (await ownerProbe.query(
+        "SELECT current_database() AS database,current_user AS role, r.rolsuper AS superuser,r.rolbypassrls AS bypass_rls FROM pg_roles r WHERE r.rolname=current_user"
+      )).rows[0];
+      if (!ownerIdentity || ownerIdentity.database !== cleanupTarget.database
+          || ownerIdentity.role !== 'neondb_owner' || ownerIdentity.superuser !== false
+          || ownerIdentity.bypass_rls !== true) {
+        throw new Error('TENANT_MATRIX_OWNER_ROLE_CONTRACT_FAILED');
+      }
+    } finally {
+      ownerProbe.release();
+    }
+
+    // ---- Provision two tenants through the separate bootstrap role ----
+    const fx = await fixturePool.connect();
     const stamp = `${Date.now().toString(36)}${crypto.randomBytes(3).toString('hex')}`;
     const orgA = `org_matrix_a_${stamp}`;
     const orgB = `org_matrix_b_${stamp}`;
@@ -288,6 +331,7 @@ test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cro
     await fx.query('INSERT INTO memberships (user_id, organization_id, role, created_at) VALUES ($1,$2,$3,$4)', [userB, orgB, 'owner', createdAt]);
     await clearSignedRlsSessionContext(fx);
     fx.release();
+    console.log('TENANT_MATRIX_STAGE=tenant-fixtures-ready');
 
     const login = async (email, password) => {
       const x = await request('/api/v1/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) });
@@ -298,6 +342,7 @@ test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cro
     };
     const cookieA = await login(emailA, passwordA);
     const cookieB = await login(emailB, passwordB);
+    console.log('TENANT_MATRIX_STAGE=runtime-sessions-ready');
 
     // ---- Tenant A fixtures through the HTTP API (documented payload contract) ----
     let x = await request('/api/v1/customers', { method: 'POST', body: JSON.stringify({ name: `Matrix Customer A ${stamp}` }) }, cookieA);
@@ -308,6 +353,7 @@ test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cro
     const workOrderAId = x.data.id;
 
     // ---- 1) Unauthenticated denial for every tenant-data route ----
+    console.log(`TENANT_MATRIX_STAGE=unauthenticated-probes-start routes=${tenantRoutes.length}`);
     for (const r of tenantRoutes) {
       const target = ID_PLACEHOLDER.test(r.route) ? buildProbePath(r) : r.route;
       try {
@@ -323,9 +369,13 @@ test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cro
         unauthenticated.push({ route: `${r.method} ${r.route}`, status: 'FAIL', httpStatus: null, detail: `request error: ${String(error.message || error).slice(0, 120)}` });
       }
       await sleep(15);
+      if (unauthenticated.length % 50 === 0) console.log(`TENANT_MATRIX_PROGRESS=unauthenticated ${unauthenticated.length}/${tenantRoutes.length}`);
     }
+    console.log(`TENANT_MATRIX_STAGE=unauthenticated-probes-complete checks=${unauthenticated.length}`);
 
     // ---- 2) Foreign-ID probes as tenant B for every {id} route ----
+    const foreignIdRouteCount = tenantRoutes.filter(r => ID_PLACEHOLDER.test(r.route)).length;
+    console.log(`TENANT_MATRIX_STAGE=foreign-id-probes-start routes=${foreignIdRouteCount}`);
     for (const r of tenantRoutes) {
       if (!ID_PLACEHOLDER.test(r.route)) continue;
       const target = buildProbePath(r);
@@ -346,7 +396,9 @@ test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cro
         foreignId.push({ route: `${r.method} ${r.route}`, status: 'FAIL', httpStatus: null, detail: `request error: ${String(error.message || error).slice(0, 120)}` });
       }
       await sleep(15);
+      if (foreignId.length % 25 === 0) console.log(`TENANT_MATRIX_PROGRESS=foreign-id ${foreignId.length}/${foreignIdRouteCount}`);
     }
+    console.log(`TENANT_MATRIX_STAGE=foreign-id-probes-complete checks=${foreignId.length}`);
 
     // ---- 3) True cross-tenant fixture checks (work-orders, customers) ----
     const recordC = (id, pass, detail) => crossTenant.push({ id, status: pass ? 'PASS' : 'FAIL', detail });
@@ -386,7 +438,7 @@ test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cro
     recordC('cross-tenant-evidence-chunk-write-denied', x.response.status === 403 || x.response.status === 404, `tenant B PUT tenant A evidence chunk → HTTP ${x.response.status}`);
 
     // ---- Targeted cleanup: remove only this run's fixture rows, verify removal ----
-    const cleanupClient = await control.connect();
+    const cleanupClient = await fixturePool.connect();
     const attempt = async (operation, sql, params = []) => {
       try { return await cleanupClient.query(sql, params); }
       catch (error) { cleanupErrors.push({ operation, code: error && error.code || null, message: String(error && error.message || error).slice(0, 200) }); return null; }
@@ -464,6 +516,7 @@ test('Tenant isolation matrix: unauthenticated denial, foreign-ID denial and cro
   } finally {
     child.kill('SIGTERM');
     await new Promise(resolve => { if (child.exitCode !== null) return resolve(); child.once('exit', resolve); });
+    if (fixturePool) await fixturePool.end().catch(() => {});
     if (control) await control.end().catch(() => {});
     fs.rmSync(dir, { recursive: true, force: true });
   }

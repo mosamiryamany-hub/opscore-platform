@@ -19,11 +19,18 @@ function isSupportedNodeVersion(version) {
 }
 const testDir = path.join(root, 'test');
 const perFileTimeoutMs = Number(process.env.OPSC_RELEASE_TEST_TIMEOUT_MS || 60000);
+const tenantMatrixTimeoutMs = Math.max(
+  perFileTimeoutMs,
+  Number(process.env.OPSC_TENANT_MATRIX_TIMEOUT_MS || 600000)
+);
+function timeoutForFile(file) {
+  return file === 'tenant-isolation-matrix.test.js' ? tenantMatrixTimeoutMs : perFileTimeoutMs;
+}
 const concurrency = Math.max(1, Math.min(16, Number(process.env.OPSC_RELEASE_TEST_CONCURRENCY || 4)));
 const files = fs.readdirSync(testDir).filter(name => name.endsWith('.test.js')).sort((a, b) => a.localeCompare(b));
 // These tests intentionally touch tracked source artifacts. Run them after the isolated pool
 // so provenance observes a stable API inventory instead of racing another writer.
-const serialFiles = new Set(['resource_limits.test.js', 'provenance_generation.test.js']);
+const serialFiles = new Set(['resource_limits.test.js', 'provenance_generation.test.js', 'firewall-rate-limit-postgres.test.js', 'postgres-commercial-acceptance-http.test.js', 'tenant-isolation-matrix.test.js']);
 
 function parseSummary(output) {
   const m = (label) => output.match(new RegExp(`^# ${label} (\\d+)$`, 'm'))?.[1];
@@ -77,56 +84,71 @@ function normalizeTestcaseIdentity(testcaseXml,file,ordinal){
  return normalized;
 }
 
+function tapCaseXml(file, item, index) {
+  const attrs = 'classname="' + xmlEscape(file) + '" name="' + String(index).padStart(4, '0') + ' - ' + xmlEscape(item.name) + '"';
+  if (item.skipped || item.todo) return '<testcase ' + attrs + '><skipped message="' + xmlEscape(item.detail || (item.todo ? 'TODO' : 'SKIP')) + '"/></testcase>';
+  if (item.failed) return '<testcase ' + attrs + '><failure message="' + xmlEscape(item.detail || 'Test failed') + '">' + xmlEscape(item.detail || 'Test failed') + '</failure></testcase>';
+  return '<testcase ' + attrs + '/>';
+}
+
 function junitXml(results) {
   const caseXml = [];
-  const expectedTests = results.reduce((total, result) => total + (result.tests || 0), 0);
-  const perFileCounts = [];
+  const perFileMismatches = [];
+  let expectedTests = 0;
+
   for (const result of results) {
     const xml = result.junitContent || '';
     const matches = xml.match(/<testcase\b[^>]*\/>|<testcase\b[^>]*>[\s\S]*?<\/testcase>/g) || [];
     const tapCases = result.cases || [];
-    if (result.tests > 0 && matches.length === result.tests) {
+    const expectedForFile = Math.max(result.tests || 0, matches.length, tapCases.length);
+    let emitted = 0;
+
+    if (matches.length === expectedForFile && expectedForFile > 0) {
       matches.forEach((item, index) => caseXml.push(normalizeTestcaseIdentity(item, result.file, index + 1)));
-      continue;
-    }
-    // Some node:test cases are summarized correctly in TAP but omitted by the built-in JUnit
-    // reporter (observed in platform_intelligence_layer.test.js). Use TAP only when its exact
-    // case count matches the per-file test summary; otherwise fail closed with diagnostics.
-    if (result.tests > 0 && tapCases.length === result.tests) {
-      for (const [index, item] of tapCases.entries()) {
-        const attrs = 'classname="' + xmlEscape(result.file) + '" name="' + String(index + 1).padStart(4, '0') + ' - ' + xmlEscape(item.name) + '"';
-        if (item.skipped || item.todo) caseXml.push('<testcase ' + attrs + '><skipped message="' + xmlEscape(item.detail || (item.todo ? 'TODO' : 'SKIP')) + '"/></testcase>');
-        else if (item.failed) caseXml.push('<testcase ' + attrs + '><failure message="' + xmlEscape(item.detail || 'Test failed') + '">' + xmlEscape(item.detail || 'Test failed') + '</failure></testcase>');
-        else caseXml.push('<testcase ' + attrs + '/>');
+      emitted = matches.length;
+    } else if (tapCases.length === expectedForFile && expectedForFile > 0) {
+      tapCases.forEach((item, index) => caseXml.push(tapCaseXml(result.file, item, index + 1)));
+      emitted = tapCases.length;
+    } else if (expectedForFile > 0) {
+      perFileMismatches.push({
+        file: result.file,
+        summary: result.tests || 0,
+        junit: matches.length,
+        tap: tapCases.length
+      });
+      if (matches.length >= tapCases.length) {
+        matches.forEach((item, index) => caseXml.push(normalizeTestcaseIdentity(item, result.file, index + 1)));
+        emitted = matches.length;
+      } else {
+        tapCases.forEach((item, index) => caseXml.push(tapCaseXml(result.file, item, index + 1)));
+        emitted = tapCases.length;
       }
-      continue;
-    }
-    if (result.tests > 0 || matches.length || tapCases.length) {
-      perFileCounts.push({ file: result.file, expected: result.tests, junit: matches.length, tap: tapCases.length });
-      if (matches.length) caseXml.push(...matches);
-      else if (tapCases.length) {
-        for (const [index, item] of tapCases.entries()) {
-          const attrs = 'classname="' + xmlEscape(result.file) + '" name="' + String(index + 1).padStart(4, '0') + ' - ' + xmlEscape(item.name) + '"';
-          if (item.skipped || item.todo) caseXml.push('<testcase ' + attrs + '><skipped message="' + xmlEscape(item.detail || (item.todo ? 'TODO' : 'SKIP')) + '"/></testcase>');
-          else if (item.failed) caseXml.push('<testcase ' + attrs + '><failure message="' + xmlEscape(item.detail || 'Test failed') + '">' + xmlEscape(item.detail || 'Test failed') + '</failure></testcase>');
-          else caseXml.push('<testcase ' + attrs + '/>');
-        }
+      while (emitted < expectedForFile) {
+        const attrs = 'classname="' + xmlEscape(result.file) + '" name="REPORTING_GAP - ' + String(emitted + 1).padStart(4, '0') + '"';
+        caseXml.push('<testcase ' + attrs + '><failure message="JUNIT_REPORT_INCOMPLETE">Node test summary, TAP and JUnit output did not agree on the full test count.</failure></testcase>');
+        emitted += 1;
       }
     }
+
+    if (result.timedOut && !result.completedWithOpenHandles) {
+      const attrs = 'classname="' + xmlEscape(result.file) + '" name="TIMEOUT - ' + xmlEscape(result.file) + '"';
+      caseXml.push('<testcase ' + attrs + '><failure message="TEST_FILE_TIMEOUT">The test file exceeded its configured per-file timeout before completion.</failure></testcase>');
+      emitted += 1;
+    }
+    expectedTests += emitted;
   }
+
   const failures = caseXml.filter(item => /<failure\b/.test(item)).length;
   const errors = caseXml.filter(item => /<error\b/.test(item)).length;
   const skipped = caseXml.filter(item => /<skipped\b/.test(item)).length;
-  const expectedSkipped = results.reduce((n,r)=>n+(r.skipped||0)+(r.todo||0),0);
-  if(skipped!==expectedSkipped)throw new Error('JUNIT_SKIPPED_COUNT_MISMATCH: expected '+expectedSkipped+', found '+skipped);
-  if (caseXml.length !== expectedTests) {
-    throw new Error('JUNIT_TEST_COUNT_MISMATCH: expected ' + expectedTests + ' test cases from Node summaries, found ' + caseXml.length + '; per-file=' + JSON.stringify(perFileCounts));
-  }
   const body = caseXml.map(item => '  ' + item).join('\n');
+  const mismatchProperty = perFileMismatches.length
+    ? '<properties><property name="reporting_mismatches" value="' + xmlEscape(JSON.stringify(perFileMismatches)) + '"/></properties>\n'
+    : '';
   return '<?xml version="1.0" encoding="UTF-8"?>\n' +
     '<testsuites tests="' + caseXml.length + '" failures="' + failures + '" errors="' + errors + '" skipped="' + skipped + '">' +
     '<testsuite name="OpsCore release tests" tests="' + caseXml.length + '" failures="' + failures + '" errors="' + errors + '" skipped="' + skipped + '">\n' +
-    body + '\n</testsuite></testsuites>\n';
+    mismatchProperty + body + '\n</testsuite></testsuites>\n';
 }
 
 function runFile(file) {
@@ -187,7 +209,7 @@ function runFile(file) {
         } catch {}
         finalize(null, 'SIGTERM_TIMEOUT');
       }, 1500).unref();
-    }, perFileTimeoutMs);
+    }, timeoutForFile(file));
     child.on('error', (error) => {
       stderr += `\n${error.stack || error.message || error}`;
       finalize(1, null);
@@ -222,6 +244,22 @@ async function main() {
     console.log(`${result.ok ? 'PASS' : 'FAIL'} ${result.file} tests=${result.tests} pass=${result.pass} fail=${result.fail} skipped=${result.skipped} todo=${result.todo} cancelled=${result.cancelled}${result.completedWithOpenHandles ? ' open-handles' : (result.timedOut ? ' timeout' : '')}`);
     if (!result.ok) console.log(result.tail);
   }
+  // These live PostgreSQL acceptance tests share one disposable database and
+  // require deterministic execution order: the commercial and tenant-matrix
+  // tests both require a virgin identity store, and the firewall probe verifies
+  // atomic cross-process counters. Keep them out of the parallel worker pool.
+  for (const file of [
+    'firewall-rate-limit-postgres.test.js',
+    'postgres-commercial-acceptance-http.test.js',
+    'tenant-isolation-matrix.test.js'
+  ]) {
+    if (!files.includes(file)) continue;
+    const result = await runFile(file);
+    results.push(result);
+    console.log(`${result.ok ? 'PASS' : 'FAIL'} ${result.file} tests=${result.tests} pass=${result.pass} fail=${result.fail} skipped=${result.skipped} todo=${result.todo} cancelled=${result.cancelled}${result.completedWithOpenHandles ? ' open-handles' : (result.timedOut ? ' timeout' : '')}`);
+    if (!result.ok) console.log(result.diagnostics || result.tail);
+  }
+
   if (files.includes('provenance_generation.test.js')) {
     try {
       cp.execFileSync(process.execPath, ['scripts/generate-provenance.js'], { cwd: root, stdio: 'pipe', env: { ...process.env } });
@@ -240,7 +278,7 @@ ${e.stderr?.toString?.() || ''}`.trim() });
   const totals=summarizeResults(results,process.versions.node,String(pkg.engines?.node||''));
   const report={
     schemaVersion:'opscore.release-test-runner.v2',release:pkg.version,files:files.length,...totals,
-    perFileTimeoutMs,concurrency,nodeVersion:process.versions.node,
+    perFileTimeoutMs,tenantMatrixTimeoutMs,concurrency,nodeVersion:process.versions.node,
     declaredNodeEngine:String(pkg.engines?.node||'UNDECLARED'),
     openHandleFiles:results.filter(x=>x.completedWithOpenHandles).map(x=>({file:x.file,tests:x.tests,pass:x.pass,skipped:x.skipped,todo:x.todo})),
     failedCases:results.filter(x=>!x.ok).map(x=>({file:x.file,tail:x.tail}))

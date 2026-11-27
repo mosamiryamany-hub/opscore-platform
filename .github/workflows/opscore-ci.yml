@@ -27,6 +27,30 @@ jobs:
       - name: Install backend
         working-directory: backend
         run: npm ci --ignore-scripts
+      - name: Provision isolated Neon PostgreSQL branch for live acceptance tests
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+        run: python3 scripts/ci_neon_postgres_acceptance.py setup
+      - name: Register disposable Neon credentials with the runner secret masker
+        if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          OPSC_TENANT_CONTEXT_HMAC_KEY: ${{ env.OPSC_TENANT_CONTEXT_HMAC_KEY }}
+          OPSC_PG_ACCEPTANCE_URL: ${{ env.OPSC_PG_ACCEPTANCE_URL }}
+          OPSC_PG_ACCEPTANCE_CLEANUP_URL: ${{ env.OPSC_PG_ACCEPTANCE_CLEANUP_URL }}
+        with:
+          script: |
+            for (const name of [
+              'OPSC_TENANT_CONTEXT_HMAC_KEY',
+              'OPSC_PG_ACCEPTANCE_URL',
+              'OPSC_PG_ACCEPTANCE_CLEANUP_URL'
+            ]) {
+              const value = process.env[name];
+              if (!value) throw new Error(name + '_MISSING');
+              core.setSecret(value);
+            }
+            console.log('DISPOSABLE_NEON_CREDENTIALS_MASKED');
       - name: Verify Docker build context excludes private environment and runtime data
         shell: bash
         run: |
@@ -103,3 +127,8 @@ jobs:
       - name: Mobile dependency audit (documented-risk gate)
         working-directory: mobile
         run: node scripts/audit-gate.js
+      - name: Delete disposable Neon PostgreSQL acceptance branch
+        if: ${{ always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+        run: python3 scripts/ci_neon_postgres_acceptance.py cleanup

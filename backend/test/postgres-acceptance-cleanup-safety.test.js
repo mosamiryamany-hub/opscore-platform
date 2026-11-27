@@ -61,8 +61,8 @@ test('acceptance evidence stays temporary during parallel tests and is promoted 
 
 const { validatePostgresAcceptanceTarget, ACCEPTANCE_DATABASES } = require('../scripts/validate-postgres-acceptance-target');
 
-test('PostgreSQL acceptance target permits only the two named disposable acceptance databases', () => {
-  assert.deepEqual([...ACCEPTANCE_DATABASES].sort(), ['opscore_acceptance', 'opscore_http_acceptance']);
+test('PostgreSQL acceptance target permits only the named disposable acceptance databases', () => {
+  assert.deepEqual([...ACCEPTANCE_DATABASES].sort(), ['opscore_acceptance', 'opscore_http_acceptance', 'opscore_matrix_test']);
   for (const database of ACCEPTANCE_DATABASES) {
     const target = validatePostgresAcceptanceTarget({
       urlText: `postgresql://opscore_runtime:masked@ep-acceptance-test.c-15.us-east-1.aws.neon.tech/${database}?sslmode=verify-full`,

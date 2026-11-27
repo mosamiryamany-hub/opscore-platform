@@ -904,11 +904,25 @@ function fail(res, err) {
   if (err && err.causeCode && code === 'BOOTSTRAP_FAILED') {
     reasons.push({ code: String(err.causeCode).slice(0, 120), severity: 'blocking' });
   }
+  const testDiagnostic = config.nodeEnv === 'test'
+      && process.env.OPSC_TEST_INCLUDE_ERROR_DIAGNOSTICS === 'true'
+    ? {
+        name: String(err?.name || 'Error').slice(0, 80),
+        pgCode: String(err?.code || '').slice(0, 32) || null,
+        message: String(err?.message || '').slice(0, 240),
+        schema: String(err?.schema || '').slice(0, 80) || null,
+        table: String(err?.table || '').slice(0, 80) || null,
+        column: String(err?.column || '').slice(0, 80) || null,
+        constraint: String(err?.constraint || '').slice(0, 100) || null,
+        detail: String(err?.detail || '').slice(0, 240) || null
+      }
+    : null;
   json(res, status, {
     error: {
       code,
       reasons,
-      ...(details ? { details } : {})
+      ...(details ? { details } : {}),
+      ...(testDiagnostic ? { diagnostic: testDiagnostic } : {})
     }
   });
 }
