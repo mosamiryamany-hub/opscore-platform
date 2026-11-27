@@ -203,28 +203,40 @@ async function main() {
 
     // Build deterministic, disposable spatial data and prove the GiST index is
     // usable for a selective bounding-box query. No production rows are touched.
-    await pool.query('INSERT INTO ' + qSchema + '.spatial_points(id,organization_id,geom) SELECT n,\'tenant-spatial-fixture\',ST_SetSRID(ST_MakePoint(-179.1 + ((n - 1) % 200) * 1.8, -89.55 + (((n - 1) / 200)::int) * 0.9),4326) FROM generate_series(1,40000) AS series(n)');
+    // Scale tiers use a disposable two-tenant fixture. Each tenant owns exactly
+    // half the rows; every query includes tenant scope and the same selective bbox.
+    await pool.query('INSERT INTO ' + qSchema + '.spatial_points(id,organization_id,geom) SELECT n, CASE WHEN n % 2 = 0 THEN \'tenant-spatial-a\' ELSE \'tenant-spatial-b\' END, ST_SetSRID(ST_MakePoint(-179.1 + ((n - 1) % 200) * 1.8, -89.55 + (((n - 1) / 200)::int) * 0.9),4326) FROM generate_series(1,1000000) AS series(n)');
     await pool.query('CREATE INDEX spatial_points_geom_gix ON ' + qSchema + '.spatial_points USING GIST(geom)');
     await pool.query('CREATE INDEX spatial_points_org_idx ON ' + qSchema + '.spatial_points(organization_id)');
     await pool.query('ANALYZE ' + qSchema + '.spatial_points');
     const check = await pool.connect();
-    let plan;
-    let count;
+    const scaleEvidence = [];
     try {
-      const explained = await check.query('EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) SELECT id FROM ' + qSchema + '.spatial_points WHERE organization_id=$1 AND geom && ST_MakeEnvelope($2,$3,$4,$5,4326)',
-        ['tenant-spatial-fixture', -10, -10, 10, 10]);
-      plan = explained.rows[0]['QUERY PLAN'][0].Plan;
-      const counted = await check.query('SELECT count(*)::int AS count FROM ' + qSchema + '.spatial_points WHERE organization_id=$1 AND ST_Intersects(geom,ST_MakeEnvelope($2,$3,$4,$5,4326))',
-        ['tenant-spatial-fixture', -10, -10, 10, 10]);
-      count = counted.rows[0].count;
+      for (const tier of [40000, 250000, 1000000]) {
+        const explained = await check.query('EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON) SELECT id FROM ' + qSchema + '.spatial_points WHERE id <= $6 AND organization_id=$1 AND geom && ST_MakeEnvelope($2,$3,$4,$5,4326)',
+          ['tenant-spatial-a', -10, -10, 10, 10, tier]);
+        const plan = explained.rows[0]['QUERY PLAN'][0].Plan;
+        const counted = await check.query('SELECT count(*)::int AS count FROM ' + qSchema + '.spatial_points WHERE id <= $6 AND organization_id=$1 AND ST_Intersects(geom,ST_MakeEnvelope($2,$3,$4,$5,4326))',
+          ['tenant-spatial-a', -10, -10, 10, 10, tier]);
+        const foreign = await check.query('SELECT count(*)::int AS count FROM ' + qSchema + '.spatial_points WHERE id <= $6 AND organization_id=$1 AND ST_Intersects(geom,ST_MakeEnvelope($2,$3,$4,$5,4326))',
+          ['tenant-spatial-b', -10, -10, 10, 10, tier]);
+        const nodes = [];
+        const visit = node => { if (!node || typeof node !== 'object') return; nodes.push(node); for (const child of node.Plans || []) visit(child); };
+        visit(plan);
+        const gistUsed = nodes.some(node => String(node['Index Name'] || '') === 'spatial_points_geom_gix');
+        if (!gistUsed || counted.rows[0].count < 1 || foreign.rows[0].count !== counted.rows[0].count) {
+          throw new Error('POSTGIS_GIST_SCALE_OR_TENANT_PREDICATE_INVALID:' + tier);
+        }
+        scaleEvidence.push({ fixtureRows: tier, totalFixtureRows: 1000000,
+          matchedTenantA: counted.rows[0].count, matchedTenantB: foreign.rows[0].count,
+          gistIndexUsed: gistUsed, executionTimeMs: plan['Actual Total Time'],
+          sharedHitBlocks: plan['Shared Hit Blocks'] || 0, sharedReadBlocks: plan['Shared Read Blocks'] || 0 });
+      }
     } finally { check.release(); }
-    const planNodes = [];
-    const visitPlan = node => { if (!node || typeof node !== 'object') return; planNodes.push(node); for (const child of node.Plans || []) visitPlan(child); };
-    visitPlan(plan);
-    const gistUsed = planNodes.some(node => String(node['Index Name'] || '') === 'spatial_points_geom_gix');
-    if (!gistUsed || count < 1) throw new Error('POSTGIS_GIST_QUERY_PLAN_OR_RESULT_INVALID');
-    evidence.checks.push({ id: 'postgis-gist-bbox-query', status: 'PASS', fixtureRows: 40000,
-      matchedRows: count, index: 'spatial_points_geom_gix', executionTimeMs: plan['Actual Total Time'] });
+    evidence.checks.push({ id: 'postgis-gist-multitenant-scale-tiers', status: 'PASS',
+      fixtureRows: 1000000, tenants: 2, tiers: scaleEvidence,
+      index: 'spatial_points_geom_gix',
+      boundary: 'Disposable synthetic PostGIS fixture; not a test of a production GIS tenant table or production-scale capacity.' });
     evidence.status = 'PASS';
     process.stdout.write(JSON.stringify(evidence, null, 2) + '\n');
   } catch (error) {
