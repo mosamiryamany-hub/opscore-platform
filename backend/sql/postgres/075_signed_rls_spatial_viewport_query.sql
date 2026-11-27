@@ -3,8 +3,8 @@
 -- security barrier. Keep FORCE RLS for direct table writes, but route reads
 -- through a narrowly scoped SECURITY DEFINER function. The function derives
 -- tenant identity only from the HMAC verifier; it accepts no tenant argument.
--- The dedicated owner is NOBYPASSRLS? No: opscore_auth_definer is deliberately
--- BYPASSRLS and NOLOGIN. Its only spatial table privilege is SELECT, and the
+-- The dedicated owner is deliberately BYPASSRLS and NOLOGIN. Its only spatial
+-- table privilege is SELECT, and the
 -- function contains the mandatory verified tenant predicate before reading.
 
 BEGIN;
@@ -80,6 +80,9 @@ BEGIN
   END IF;
 END
 $preflight$;
+
+GRANT SELECT ON TABLE public.spatial_features TO opscore_auth_definer;
+SET LOCAL ROLE opscore_auth_definer;
 
 CREATE OR REPLACE FUNCTION opscore_security.spatial_features_in_viewport(
   p_west double precision,
@@ -167,7 +170,7 @@ BEGIN
 END
 $function$;
 
-GRANT SELECT ON TABLE public.spatial_features TO opscore_auth_definer;
+RESET ROLE;
 ALTER FUNCTION opscore_security.spatial_features_in_viewport(
   double precision, double precision, double precision, double precision, integer
 ) OWNER TO opscore_auth_definer;
