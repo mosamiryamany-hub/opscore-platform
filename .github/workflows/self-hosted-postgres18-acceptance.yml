@@ -91,7 +91,7 @@ jobs:
             -c ssl_ca_file=/run/postgres-tls/ca.crt \
             -c ssl_min_protocol_version=TLSv1.2
           for attempt in $(seq 1 60); do
-            if docker exec opscore-self-hosted-pg18 pg_isready -U postgres -d opscore >/dev/null 2>&1; then
+            if docker exec opscore-self-hosted-pg18 pg_isready -h 127.0.0.1 -U postgres -d opscore >/dev/null 2>&1; then
               break
             fi
             sleep 2
@@ -131,7 +131,7 @@ jobs:
         run: |
           set -euo pipefail
           docker exec -e PGPASSWORD="$PGPASSWORD" -e PGSSLMODE=verify-full -e PGSSLROOTCERT=/run/postgres-tls/ca.crt opscore-self-hosted-pg18 \
-            psql -v ON_ERROR_STOP=1 -U postgres -d opscore -Atc "
+            psql -h 127.0.0.1 -v ON_ERROR_STOP=1 -U postgres -d opscore -Atc "
               SELECT CASE WHEN current_setting('server_version_num')::int >= 180000 THEN 'PG18_PASS' ELSE 'PG18_FAIL' END;
               SELECT CASE WHEN EXISTS (SELECT 1 FROM pg_extension WHERE extname='postgis') THEN 'POSTGIS_PASS' ELSE 'POSTGIS_FAIL' END;
               SELECT CASE WHEN EXISTS (SELECT 1 FROM pg_extension WHERE extname='pgcrypto') THEN 'PGCRYPTO_PASS' ELSE 'PGCRYPTO_FAIL' END;
