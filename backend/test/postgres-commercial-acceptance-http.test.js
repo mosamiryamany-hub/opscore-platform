@@ -599,6 +599,13 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
             throw new Error('DISPATCHER_MAP_FEATURE_COUNT_NOT_RENDERED: ' + JSON.stringify(diagnostics));
           }
           await page.waitForFunction(() => Boolean(document.querySelector('.maplibregl-canvas') && window.__opscoreDispatcherMapE2E), null, { timeout: 30000 });
+          await page.waitForFunction(() => {
+            const probe = window.__opscoreDispatcherMapE2E;
+            const ready = probe?.mapReadiness();
+            return Boolean(ready?.loaded && ready?.styleLoaded && ready?.sourceLoaded
+              && ready.layers.includes('tenant-spatial-points'));
+          }, null, { timeout: 30000 });
+          await page.evaluate(() => window.__opscoreDispatcherMapE2E.focusTenantFeature(31.2, 30.0));
           await page.waitForFunction(expected => {
             const probe = window.__opscoreDispatcherMapE2E;
             return Boolean(probe && probe.renderedSpatialFeatureIds().includes(expected));
@@ -672,6 +679,12 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           }]);
           const pageBResponse = await pageB.goto(browserBase + '/dispatcher-map.html?e2e=1', { waitUntil: 'domcontentloaded' });
           assert.equal(pageBResponse.status(), 200);
+          await pageB.waitForFunction(() => {
+            const ready = window.__opscoreDispatcherMapE2E?.mapReadiness();
+            return Boolean(ready?.loaded && ready?.styleLoaded && ready?.sourceLoaded
+              && ready.layers.includes('tenant-spatial-points'));
+          }, null, { timeout: 30000 });
+          await pageB.evaluate(() => window.__opscoreDispatcherMapE2E.focusTenantFeature(31.25, 30.05));
           await pageB.waitForFunction(expected => {
             const probe = window.__opscoreDispatcherMapE2E;
             return Boolean(probe && probe.displayedSpatialFeatureIds().includes(expected)
