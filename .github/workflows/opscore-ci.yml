@@ -43,6 +43,14 @@ jobs:
             printf 'CADDY_HTTPS_PORT=18443\n'
             printf 'OPSC_EXPECTED_INSTANCES=1\n'
             printf 'OPSC_PRODUCTION_HOLD=false\n'
+            printf 'OPSC_MIGRATION_TARGET_CLASS=self-hosted\n'
+            printf 'OPSC_MIGRATION_ALLOW_SELF_HOSTED=1\n'
+            printf 'OPSC_MIGRATION_EXPECTED_HOST=db\n'
+            printf 'OPSC_MIGRATION_CONFIRM_HOST=db\n'
+            printf 'OPSC_MIGRATION_EXPECTED_DATABASE=opscore\n'
+            printf 'OPSC_MIGRATION_CONFIRM_DATABASE=opscore\n'
+            printf 'OPSC_MIGRATION_EXPECTED_OWNER_ROLE=opscore_migrator\n'
+            printf 'OPSC_PG_SSL_MODE=verify-full\n'
           } > backend/.env.self-hosted
           chmod 600 backend/.env.self-hosted
           sh backend/scripts/generate-self-hosted-db-certs.sh backend/.secrets
