@@ -20,6 +20,11 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'opscore_app') THEN
     CREATE ROLE opscore_app NOLOGIN NOSUPERUSER NOBYPASSRLS NOINHERIT;
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'neondb_owner') THEN
+    -- Compatibility owner required by immutable historical migrations; this
+    -- is a local NOLOGIN role, not a Neon service or external dependency.
+    CREATE ROLE neondb_owner NOLOGIN NOSUPERUSER BYPASSRLS NOCREATEDB NOCREATEROLE NOINHERIT;
+  END IF;
 END
 $roles$;
 
@@ -38,10 +43,12 @@ DECLARE
   runtime_role pg_roles%ROWTYPE;
   migrator_role pg_roles%ROWTYPE;
   worker_role pg_roles%ROWTYPE;
+  owner_role pg_roles%ROWTYPE;
 BEGIN
   SELECT * INTO runtime_role FROM pg_roles WHERE rolname = 'opscore_runtime';
   SELECT * INTO migrator_role FROM pg_roles WHERE rolname = 'opscore_migrator';
   SELECT * INTO worker_role FROM pg_roles WHERE rolname = 'opscore_worker';
+  SELECT * INTO owner_role FROM pg_roles WHERE rolname = 'neondb_owner';
 
   IF runtime_role.rolname IS NULL OR NOT runtime_role.rolcanlogin OR runtime_role.rolsuper
      OR runtime_role.rolbypassrls OR runtime_role.rolcreaterole
@@ -57,6 +64,12 @@ BEGIN
      OR worker_role.rolbypassrls OR worker_role.rolcreaterole
      OR worker_role.rolcreatedb OR worker_role.rolinherit THEN
     RAISE EXCEPTION 'OPSCORE_WORKER_ROLE_CONTRACT_FAILED';
+  END IF;
+  IF owner_role.rolname IS NULL OR owner_role.rolcanlogin OR owner_role.rolsuper
+     OR NOT owner_role.rolbypassrls OR owner_role.rolcreaterole
+     OR owner_role.rolcreatedb OR owner_role.rolinherit
+     OR NOT pg_has_role('opscore_migrator', 'neondb_owner', 'SET') THEN
+    RAISE EXCEPTION 'OPSCORE_MIGRATION_OWNER_ROLE_CONTRACT_FAILED';
   END IF;
 END
 $verify$;
