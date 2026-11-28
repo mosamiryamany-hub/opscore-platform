@@ -61,7 +61,7 @@ Returns up to 100 recent `contact_center_*` audit entries from the tenant audit 
 ## Data integrity
 
 - SQLite: a foreign key plus insert/update triggers reject a CRM customer whose `organization_id` differs from the conversation.
-- PostgreSQL: migration `073_contact_center_crm_customer_link.sql` adds `customer_id`, a unique composite customer key, a composite tenant foreign key with `ON DELETE SET NULL (customer_id)`, and a tenant/customer lookup index.
+- PostgreSQL: migration `076_contact_center_crm_customer_link.sql` follows GIS/Digital Twin migrations 073–075. It adds `customer_id`, reuses the existing unique `(id, organization_id)` customer index (creating one only for a compatible reduced schema), adds a composite tenant foreign key with `ON DELETE SET NULL (customer_id)`, and adds a tenant/customer lookup index.
 - Customer profile joins include both customer ID and organization ID. A cross-tenant association is not returned even if a legacy or out-of-band write exists.
 - Customer link and escalation reassignment operations are audited. The supervisor activity response includes the audit-chain verification result.
 
