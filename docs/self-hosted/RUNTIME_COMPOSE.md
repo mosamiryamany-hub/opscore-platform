@@ -13,10 +13,16 @@
 ```bash
 cd backend
 cp .env.self-hosted.example .env.self-hosted
-# edit secrets
-docker compose -f docker-compose.self-hosted.yml up --build -d
-curl -fsS http://127.0.0.1/api/health
+# Edit every placeholder secret before starting. Do not commit this file.
+docker compose --env-file .env.self-hosted -f docker-compose.self-hosted.yml config --quiet
+docker compose --env-file .env.self-hosted -f docker-compose.self-hosted.yml up --build -d
+# Localhost uses Caddy's local certificate; -k is only for this local smoke check.
+curl -kfsS https://localhost/api/health
 ```
+
+**Important:** `--env-file .env.self-hosted` is required because Compose interpolates the database passwords and ports before it starts services. The service-level `env_file` entries do not supply values for Compose-file interpolation.
+
+For a buyer-owned public hostname, set `OPSCORE_PUBLIC_HOST` to that hostname, point DNS to the host, expose TCP 80/443, and verify HTTPS with the buyer's trusted certificate chain (without `-k`).
 
 ## What this stack does
 
@@ -29,7 +35,7 @@ curl -fsS http://127.0.0.1/api/health
 
 - pgBackRest / independent PITR
 - Multi-node HA
-- Production TLS certificate automation beyond Caddy defaults
+- Production backup scheduling or off-host retention
 - Mobile store binaries
 - Licensed map/telephony providers
 - Full buyer handoff attestation
