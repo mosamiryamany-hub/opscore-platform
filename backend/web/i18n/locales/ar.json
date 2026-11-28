@@ -4,6 +4,7 @@
     "title": "مركز الاتصال بالذكاء الاصطناعي",
     "subtitle": "خدمة ذاتية متعددة اللغات مع تحويل مُوجَّه إلى الموظفين.",
     "operationsConsole": "لوحة العمليات",
+    "operationsConsoleShortcut": "⌘K — لوحة العمليات",
     "interfaceLanguage": "لغة الواجهة"
   },
   "status": {
