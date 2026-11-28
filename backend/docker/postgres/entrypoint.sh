@@ -12,7 +12,7 @@ fi
 
 # The mounted key is read-only. Copy it into the persistent PostgreSQL parent
 # volume with owner=postgres and mode 0600 before starting the official entrypoint.
-install -m 0644 "$server_certificate" /var/lib/postgresql/server.crt
-install -m 0600 "$server_private_key" /var/lib/postgresql/server.key
+install -o postgres -g postgres -m 0644 "$server_certificate" /var/lib/postgresql/server.crt
+install -o postgres -g postgres -m 0600 "$server_private_key" /var/lib/postgresql/server.key
 
 exec /usr/local/bin/docker-entrypoint.sh "$@"
