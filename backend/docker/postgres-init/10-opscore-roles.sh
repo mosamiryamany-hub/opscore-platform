@@ -44,9 +44,9 @@ WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'opscore_worker')
 GRANT neondb_owner TO opscore_migrator WITH INHERIT TRUE, SET TRUE;
 GRANT opscore_auth_definer TO neondb_owner WITH INHERIT FALSE, SET TRUE;
 
-# Keep the dedicated definer as schema owner before migrations run. Grant CREATE
-# explicitly to the no-login migration owner so migration 063 can create its
-# objects after asserting/transferring schema ownership. Runtime remains excluded.
+-- Keep the dedicated definer as schema owner before migrations run. Grant CREATE
+-- explicitly to the no-login migration owner so migration 063 can create its
+-- objects after asserting/transferring schema ownership. Runtime remains excluded.
 CREATE SCHEMA IF NOT EXISTS opscore_security AUTHORIZATION opscore_auth_definer;
 ALTER SCHEMA opscore_security OWNER TO opscore_auth_definer;
 GRANT USAGE, CREATE ON SCHEMA opscore_security TO neondb_owner;
