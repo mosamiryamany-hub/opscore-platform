@@ -18,7 +18,7 @@ jobs:
 
   self-hosted-compose-acceptance:
     name: self-hosted-compose-fresh-db-acceptance
-    if: github.event_name == 'pull_request' && github.head_ref == 'feat/self-hosted-runtime-compose-caddy'
+    if: github.event_name == 'pull_request' && (github.head_ref == 'feat/self-hosted-runtime-compose-caddy' || github.head_ref == 'feat/self-hosted-production-target-20261128')
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     steps:
