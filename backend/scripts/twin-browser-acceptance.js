@@ -15,6 +15,54 @@ const { chromium } = require('playwright');
     const page = await browser.newPage({ reducedMotion: 'reduce' });
     page.on('pageerror', error => errors.push({ message: error.message, stack: error.stack, name: error.name, fileName: error.fileName, lineNumber: error.lineNumber, columnNumber: error.columnNumber }));
     page.on('console', entry => { if (entry.type() === 'error') { const location = entry.location(); const expectedStaticApiMiss = location.url === base + '/api/v1/me' && /404/.test(entry.text()); if (!expectedStaticApiMiss) errors.push({ console: entry.text(), location }); } });
+    const roomsResponse = await page.goto(base + '/control-rooms.html', { waitUntil: 'networkidle' });
+    assert.equal(roomsResponse.status(), 200, 'Control Rooms navigation must load');
+    assert.equal(await page.locator('.room').count(), 10, 'ten room cards must be present');
+    assert.equal(await page.locator('[data-room="contact"]').count(), 1);
+    assert.equal(await page.locator('[data-room="twin"]').count(), 1);
+    assert.equal(await page.locator('a[href="/dispatcher-map.html"]').count(), 1);
+    const twinNavigation = page.waitForURL(url => url.pathname === '/digital-twin-room.html');
+    await page.locator('[data-room="twin"]').click();
+    await twinNavigation;
+    assert.equal(await page.locator('#twinRefresh').count(), 1, 'Digital Twin route must resolve from Control Rooms');
+
+    await page.goto(base + '/control-rooms.html', { waitUntil: 'networkidle' });
+    const contactNavigation = page.waitForURL(url => url.pathname === '/contact-center-room.html');
+    await page.locator('[data-room="contact"]').click();
+    await contactNavigation;
+    assert.equal(await page.locator('.ccr-shell').count(), 1, 'Contact Center route must resolve from Control Rooms');
+    assert.equal(await page.locator('#ccrCrmProfile').count(), 1, 'CRM profile surface must exist');
+    assert.equal(await page.locator('#ccrSupervisorActivity').count(), 1, 'Supervisor activity surface must exist');
+    for (const viewport of [
+      { name: 'small-mobile', width: 320, height: 740 },
+      { name: 'mobile', width: 375, height: 812 },
+      { name: 'large-mobile', width: 430, height: 932 },
+      { name: 'tablet', width: 768, height: 1024 },
+      { name: 'desktop', width: 1366, height: 900 },
+      { name: 'wide-desktop', width: 1920, height: 1080 }
+    ]) {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      const metrics = await page.evaluate(() => ({
+        width: document.documentElement.clientWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+        bodyScrollWidth: document.body.scrollWidth
+      }));
+      assert.ok(metrics.scrollWidth <= viewport.width + 1, 'Contact Center document overflow at ' + viewport.name + ': ' + JSON.stringify(metrics));
+      assert.ok(metrics.bodyScrollWidth <= viewport.width + 1, 'Contact Center body overflow at ' + viewport.name + ': ' + JSON.stringify(metrics));
+      await page.screenshot({ path: path.join(out, 'contact-center-' + viewport.name + '.png'), fullPage: true });
+      results.push({ viewport: 'contact-center-' + viewport.name, ...metrics, status: 'PASS' });
+    }
+    await page.setViewportSize({ width: 375, height: 812 });
+    const contactDirection = page.locator('[data-dir-toggle]');
+    await contactDirection.click();
+    assert.equal(await page.locator('html').getAttribute('dir'), 'rtl');
+    assert.equal(await page.locator('html').getAttribute('lang'), 'ar');
+    await page.screenshot({ path: path.join(out, 'contact-center-mobile-rtl.png'), fullPage: true });
+    await contactDirection.click();
+    assert.equal(await page.locator('html').getAttribute('dir'), 'ltr');
+    assert.equal(await page.locator('html').getAttribute('lang'), 'en');
+    results.push({ contactCenterRtlToggle: 'PASS', status: 'PASS' });
+
     const apiProbe = page.waitForResponse(response => response.url().endsWith('/api/v1/me'));
     const response = await page.goto(base + '/digital-twin-room.html', { waitUntil: 'networkidle' });
     const apiProbeResponse = await apiProbe;
