@@ -104,7 +104,7 @@ jobs:
             --publish 127.0.0.1:5432:5432 \
             --volume "$GITHUB_WORKSPACE/backend/docker/postgres-init:/docker-entrypoint-initdb.d:ro" \
             --volume "$RUNNER_TEMP/opscore-pg-tls:/run/postgres-tls:ro" \
-            opscore-postgres18-postgis-pgvector \
+            opscore-postgres:18-postgis-3.7-pgvector-0.8.7 \
             -c ssl=on \
             -c ssl_cert_file=/run/postgres-tls/server.crt \
             -c ssl_key_file=/run/postgres-tls/server.key \
