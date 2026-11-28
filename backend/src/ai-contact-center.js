@@ -267,7 +267,7 @@ function getConversation(db, ctx, id, env = process.env, withMessages = true) {
   assertConversationAccess(ctx, row);
   const lang = getLanguage(row.language_code);
   return {
-    id: row.id, channel: row.channel, languageCode: row.language_code, languageName: lang?.name || row.language_code,
+    id: row.id, customerId: row.customer_id || null, channel: row.channel, languageCode: row.language_code, languageName: lang?.name || row.language_code,
     status: row.status, escalationReason: row.escalation_reason, assignedTo: row.assigned_to,
     createdAt: row.created_at, updatedAt: row.updated_at, lastActivityAt: row.last_activity_at,
     messages: withMessages && row.status !== 'erased' ? getMessages(db, ctx, id, env) : []
@@ -313,9 +313,9 @@ function listHandoffs(db, ctx, {status: filterStatus = 'open', limit = 50} = {})
   assertTenant(ctx);
   const n = Math.max(1, Math.min(100, Number(limit) || 50));
   const rows = filterStatus === 'all'
-    ? db.prepare('SELECT h.*, c.channel, c.language_code, c.created_at AS conversation_created_at FROM ai_contact_handoffs h JOIN ai_contact_conversations c ON c.id=h.conversation_id AND c.organization_id=h.organization_id WHERE h.organization_id = ? ORDER BY CASE h.priority WHEN \'urgent\' THEN 0 WHEN \'high\' THEN 1 WHEN \'normal\' THEN 2 ELSE 3 END, h.created_at LIMIT ?').all(ctx.organizationId, n)
-    : db.prepare(`SELECT h.*, c.channel, c.language_code, c.created_at AS conversation_created_at FROM ai_contact_handoffs h JOIN ai_contact_conversations c ON c.id=h.conversation_id AND c.organization_id=h.organization_id WHERE h.organization_id = ? AND h.status IN ('queued','claimed') ORDER BY CASE h.priority WHEN 'urgent' THEN 0 WHEN 'high' THEN 1 WHEN 'normal' THEN 2 ELSE 3 END, h.created_at LIMIT ?`).all(ctx.organizationId, n);
-  return rows.map(r => ({ id:r.id, conversationId:r.conversation_id, reasonCode:r.reason_code, reasonDetail:r.reason_detail, priority:r.priority, status:r.status, requestedBy:r.requested_by, assignedTo:r.assigned_to, createdAt:r.created_at, claimedAt:r.claimed_at, channel:r.channel, languageCode:r.language_code }));
+    ? db.prepare('SELECT h.*, c.channel, c.language_code, c.customer_id, c.created_at AS conversation_created_at FROM ai_contact_handoffs h JOIN ai_contact_conversations c ON c.id=h.conversation_id AND c.organization_id=h.organization_id WHERE h.organization_id = ? ORDER BY CASE h.priority WHEN \'urgent\' THEN 0 WHEN \'high\' THEN 1 WHEN \'normal\' THEN 2 ELSE 3 END, h.created_at LIMIT ?').all(ctx.organizationId, n)
+    : db.prepare(`SELECT h.*, c.channel, c.language_code, c.customer_id, c.created_at AS conversation_created_at FROM ai_contact_handoffs h JOIN ai_contact_conversations c ON c.id=h.conversation_id AND c.organization_id=h.organization_id WHERE h.organization_id = ? AND h.status IN ('queued','claimed') ORDER BY CASE h.priority WHEN 'urgent' THEN 0 WHEN 'high' THEN 1 WHEN 'normal' THEN 2 ELSE 3 END, h.created_at LIMIT ?`).all(ctx.organizationId, n);
+  return rows.map(r => ({ id:r.id, conversationId:r.conversation_id, reasonCode:r.reason_code, reasonDetail:r.reason_detail, priority:r.priority, status:r.status, requestedBy:r.requested_by, assignedTo:r.assigned_to, createdAt:r.created_at, claimedAt:r.claimed_at, channel:r.channel, languageCode:r.language_code, customerId:r.customer_id || null }));
 }
 function policyDecision(message, ai, env = process.env) {
   const reasons = [];
@@ -462,6 +462,110 @@ function recordVoiceTranscript(db, ctx, conversationId, input, env = process.env
   }
   return { messageId:message.id, actorType, createdAt:message.createdAt, handoff };
 }
+function assertSupervisor(ctx) {
+  if (!['owner','admin','manager'].includes(String(ctx?.role || ''))) throw error('FORBIDDEN', 403);
+}
+function listCrmCustomers(db, ctx, query = '') {
+  assertTenant(ctx);
+  assertSupervisor(ctx);
+  const q = String(query || '').trim().replace(/[\\%_]/g, '').slice(0, 80);
+  if (q.length < 2) throw error('SEARCH_QUERY_TOO_SHORT', 422);
+  const pattern = '%' + q.toLowerCase() + '%';
+  return db.prepare(`SELECT c.id,c.name,c.email,c.phone,c.external_ref
+    FROM customers c
+    WHERE c.organization_id = ?
+      AND c.status = 'active'
+      AND NOT EXISTS (SELECT 1 FROM deleted_records d WHERE d.organization_id=c.organization_id AND d.entity_type='customer' AND d.entity_id=c.id AND d.restored_at IS NULL)
+      AND (LOWER(c.name) LIKE ? OR LOWER(COALESCE(c.email,'')) LIKE ? OR LOWER(COALESCE(c.external_ref,'')) LIKE ?)
+    ORDER BY LOWER(c.name) LIMIT 20`)
+    .all(ctx.organizationId, pattern, pattern, pattern)
+    .map(row => ({ id:row.id, name:row.name, email:row.email || null, phone:row.phone || null, externalRef:row.external_ref || null }));
+}
+function getConversationCustomer(db, ctx, conversationId) {
+  assertTenant(ctx);
+  assertSupervisor(ctx);
+  const row = db.prepare(`SELECT c.id,c.name,c.email,c.phone,c.external_ref,c.status
+    FROM ai_contact_conversations v
+    JOIN customers c ON c.id=v.customer_id AND c.organization_id=v.organization_id
+    WHERE v.organization_id=? AND v.id=? AND v.status <> 'erased'
+      AND NOT EXISTS (SELECT 1 FROM deleted_records d WHERE d.organization_id=c.organization_id AND d.entity_type='customer' AND d.entity_id=c.id AND d.restored_at IS NULL)`)
+    .get(ctx.organizationId, conversationId);
+  return { conversationId, linked: Boolean(row), customer: row ? { id:row.id, name:row.name, email:row.email || null, phone:row.phone || null, externalRef:row.external_ref || null, status:row.status } : null };
+}
+function linkConversationCustomer(db, ctx, conversationId, customerId) {
+  assertTenant(ctx);
+  assertSupervisor(ctx);
+  const id = String(customerId || '').trim();
+  if (!/^cus_[A-Za-z0-9]{3,120}$/.test(id)) throw error('INVALID_CUSTOMER', 422);
+  const timestamp = now();
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    const conversation = findConversation(db, ctx.organizationId, conversationId);
+    if (!conversation) throw error('CONTACT_CENTER_CONVERSATION_NOT_FOUND', 404);
+    if (conversation.status === 'erased') throw error('CONTACT_CENTER_CONVERSATION_CLOSED', 409);
+    const customer = db.prepare(`SELECT id FROM customers WHERE id=? AND organization_id=? AND status='active'
+      AND NOT EXISTS (SELECT 1 FROM deleted_records d WHERE d.organization_id=customers.organization_id AND d.entity_type='customer' AND d.entity_id=customers.id AND d.restored_at IS NULL)`)
+      .get(id, ctx.organizationId);
+    if (!customer) throw error('INVALID_CUSTOMER', 422);
+    const previousCustomerId = conversation.customer_id || null;
+    if (previousCustomerId === id) {
+      db.exec('COMMIT');
+      return { conversationId, customerId:id, linked:true, duplicate:true };
+    }
+    const changed = db.prepare(`UPDATE ai_contact_conversations SET customer_id=?,updated_at=?,version=version+1
+      WHERE organization_id=? AND id=? AND status <> 'erased'
+      AND EXISTS (SELECT 1 FROM customers c WHERE c.id=? AND c.organization_id=? AND c.status='active')`)
+      .run(id, timestamp, ctx.organizationId, conversationId, id, ctx.organizationId).changes;
+    if (!changed) throw error('INVALID_CUSTOMER', 422);
+    audit(db, { organizationId:ctx.organizationId, actorUserId:ctx.userId, action:'contact_center_crm_customer_linked', resourceType:'ai_contact_conversation', resourceId:conversationId, metadata:{ customerId:id, previousCustomerId } });
+    db.exec('COMMIT');
+  } catch (e) { rollbackSafely(db, e); throw e; }
+  return { conversationId, customerId:id, linked:true, duplicate:false };
+}
+function listEligibleAgents(db, ctx) {
+  assertTenant(ctx);
+  assertSupervisor(ctx);
+  return db.prepare(`SELECT u.id,u.email,m.role FROM users u JOIN memberships m ON m.user_id=u.id
+    WHERE m.organization_id=? AND u.status='active' AND m.role IN ('member','manager')
+    ORDER BY m.role,u.id LIMIT 200`)
+    .all(ctx.organizationId).map(row => ({ id:row.id, email:row.email, role:row.role }));
+}
+function reassignHandoff(db, ctx, handoffId, input = {}) {
+  assertTenant(ctx);
+  assertSupervisor(ctx);
+  const targetUserId = String(input.assignedTo || '').trim();
+  const reason = redactForModel(String(input.reason || '')).replace(/\s+/g,' ').trim().slice(0,300);
+  if (!targetUserId || targetUserId.length > 120 || reason.length < 8) throw error('INVALID_OPERATIONAL_JOB', 422);
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    const target = db.prepare(`SELECT u.id FROM users u JOIN memberships m ON m.user_id=u.id
+      WHERE u.id=? AND m.organization_id=? AND u.status='active' AND m.role IN ('member','manager')`)
+      .get(targetUserId, ctx.organizationId);
+    if (!target) throw error('INVALID_ASSIGNEE', 422);
+    const handoff = db.prepare('SELECT * FROM ai_contact_handoffs WHERE organization_id=? AND id=?').get(ctx.organizationId, handoffId);
+    if (!handoff) throw error('CONTACT_CENTER_HANDOFF_NOT_FOUND', 404);
+    if (!['queued','claimed'].includes(handoff.status)) throw error('CONTACT_CENTER_HANDOFF_NOT_REASSIGNABLE', 409);
+    const conversation = db.prepare('SELECT status,assigned_to FROM ai_contact_conversations WHERE organization_id=? AND id=?').get(ctx.organizationId, handoff.conversation_id);
+    if (!conversation) throw error('CONTACT_CENTER_CONVERSATION_NOT_FOUND', 404);
+    if (!['active','waiting_human'].includes(conversation.status)) throw error('CONTACT_CENTER_HANDOFF_NOT_REASSIGNABLE', 409);
+    if (handoff.assigned_to === targetUserId && handoff.status === 'claimed' && conversation.assigned_to === targetUserId && conversation.status === 'waiting_human') {
+      db.exec('COMMIT');
+      return { id:handoffId, status:handoff.status, assignedTo:targetUserId, duplicate:true };
+    }
+    const timestamp = now();
+    const updated = db.prepare(`UPDATE ai_contact_handoffs SET status='claimed',assigned_to=?,claimed_at=COALESCE(claimed_at,?)
+      WHERE organization_id=? AND id=? AND status IN ('queued','claimed') AND COALESCE(assigned_to,'')=COALESCE(?,'')`)
+      .run(targetUserId, timestamp, ctx.organizationId, handoffId, handoff.assigned_to || null).changes;
+    if (!updated) throw error('CONTACT_CENTER_HANDOFF_NOT_REASSIGNABLE', 409);
+    const conversationChanged = db.prepare(`UPDATE ai_contact_conversations SET assigned_to=?,status='waiting_human',updated_at=?,last_activity_at=?,version=version+1
+      WHERE organization_id=? AND id=? AND status IN ('active','waiting_human')`)
+      .run(targetUserId, timestamp, timestamp, ctx.organizationId, handoff.conversation_id).changes;
+    if (!conversationChanged) throw error('CONTACT_CENTER_HANDOFF_NOT_REASSIGNABLE', 409);
+    audit(db, { organizationId:ctx.organizationId, actorUserId:ctx.userId, action:'contact_center_handoff_reassigned', resourceType:'ai_contact_handoff', resourceId:handoffId, metadata:{ previousAssignee:handoff.assigned_to || null, previousConversationAssignee:conversation.assigned_to || null, assignedTo:targetUserId, reason } });
+    db.exec('COMMIT');
+    return { id:handoffId, status:'claimed', assignedTo:targetUserId, previousAssignee:handoff.assigned_to || null, duplicate:false, reassignedAt:timestamp };
+  } catch (e) { rollbackSafely(db, e); throw e; }
+}
 function claimHandoff(db, ctx, handoffId) {
   assertTenant(ctx);
   const timestamp = now();
@@ -577,6 +681,7 @@ module.exports = {
   languages, getLanguage, languageSummary, status, featureEnabled, createConversation, findConversation, assertConversationAccess,
   processTextMessage, recordVoiceTranscript, getConversation, getMessages, createHandoff, listHandoffs,
   claimHandoff, resolveHandoff, postHumanReply, eraseConversation, createRealtimeClientSecret,
+  listCrmCustomers, getConversationCustomer, linkConversationCustomer, listEligibleAgents, reassignHandoff,
   keyFromEnv, encryptContent, decryptContent, storeMessage, isHumanRequested, policyDecision, redactForModel,
   MAX_MESSAGE_CHARS
 };
