@@ -25,6 +25,9 @@ BEGIN
     -- is a local NOLOGIN role, not a Neon service or external dependency.
     CREATE ROLE neondb_owner NOLOGIN NOSUPERUSER BYPASSRLS NOCREATEDB NOCREATEROLE NOINHERIT;
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'opscore_auth_definer') THEN
+    CREATE ROLE opscore_auth_definer NOLOGIN NOSUPERUSER BYPASSRLS NOCREATEDB NOCREATEROLE NOINHERIT;
+  END IF;
 END
 $roles$;
 
@@ -39,6 +42,7 @@ WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'opscore_worker')
 \gexec
 
 GRANT neondb_owner TO opscore_migrator WITH INHERIT FALSE, SET TRUE;
+GRANT opscore_auth_definer TO neondb_owner WITH INHERIT TRUE, SET TRUE;
 
 DO $verify$
 DECLARE
@@ -46,11 +50,13 @@ DECLARE
   migrator_role pg_roles%ROWTYPE;
   worker_role pg_roles%ROWTYPE;
   owner_role pg_roles%ROWTYPE;
+  auth_definer_role pg_roles%ROWTYPE;
 BEGIN
   SELECT * INTO runtime_role FROM pg_roles WHERE rolname = 'opscore_runtime';
   SELECT * INTO migrator_role FROM pg_roles WHERE rolname = 'opscore_migrator';
   SELECT * INTO worker_role FROM pg_roles WHERE rolname = 'opscore_worker';
   SELECT * INTO owner_role FROM pg_roles WHERE rolname = 'neondb_owner';
+  SELECT * INTO auth_definer_role FROM pg_roles WHERE rolname = 'opscore_auth_definer';
 
   IF runtime_role.rolname IS NULL OR NOT runtime_role.rolcanlogin OR runtime_role.rolsuper
      OR runtime_role.rolbypassrls OR runtime_role.rolcreaterole
@@ -72,6 +78,13 @@ BEGIN
      OR owner_role.rolcreatedb OR owner_role.rolinherit
      OR NOT pg_has_role('opscore_migrator', 'neondb_owner', 'SET') THEN
     RAISE EXCEPTION 'OPSCORE_MIGRATION_OWNER_ROLE_CONTRACT_FAILED';
+  END IF;
+  IF auth_definer_role.rolname IS NULL OR auth_definer_role.rolcanlogin OR auth_definer_role.rolsuper
+     OR NOT auth_definer_role.rolbypassrls OR auth_definer_role.rolcreaterole
+     OR auth_definer_role.rolcreatedb OR auth_definer_role.rolinherit
+     OR NOT pg_has_role('neondb_owner', 'opscore_auth_definer', 'SET')
+     OR NOT pg_has_role('neondb_owner', 'opscore_auth_definer', 'USAGE') THEN
+    RAISE EXCEPTION 'OPSCORE_AUTH_DEFINER_ROLE_CONTRACT_FAILED';
   END IF;
 END
 $verify$;

@@ -430,6 +430,16 @@ async function main(){
       ||!ownerContract.can_create_database||!ownerContract.can_create_public){
     throw new Error('MIGRATION_SELF_HOSTED_OWNER_ROLE_CONTRACT_FAILED');
    }
+   const authDefinerContract=(await client.query(`SELECT r.rolcanlogin,r.rolsuper,r.rolbypassrls,r.rolcreaterole,r.rolcreatedb,r.rolinherit,
+     pg_has_role('neondb_owner',r.oid,'SET') AS can_set_role,
+     pg_has_role('neondb_owner',r.oid,'USAGE') AS can_inherit
+     FROM pg_roles r WHERE r.rolname='opscore_auth_definer'`)).rows[0];
+   if(!authDefinerContract||authDefinerContract.rolcanlogin||authDefinerContract.rolsuper
+      ||!authDefinerContract.rolbypassrls||authDefinerContract.rolcreaterole
+      ||authDefinerContract.rolcreatedb||authDefinerContract.rolinherit
+      ||!authDefinerContract.can_set_role||!authDefinerContract.can_inherit){
+    throw new Error('MIGRATION_SELF_HOSTED_AUTH_DEFINER_ROLE_CONTRACT_FAILED');
+   }
    await client.query('SET ROLE neondb_owner');
    const effectiveRole=(await client.query("SELECT current_user AS role, session_user AS login_role")).rows[0];
    if(!effectiveRole||effectiveRole.role!=='neondb_owner'||effectiveRole.login_role!=='opscore_migrator'){

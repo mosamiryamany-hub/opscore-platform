@@ -585,12 +585,15 @@ test('self-hosted PostgreSQL role initializer reads secrets and validates runtim
   assert.match(source, /\\getenv worker_password OPSCORE_WORKER_PASSWORD/);
   assert.match(source, /CREATE ROLE opscore_migrator LOGIN NOSUPERUSER BYPASSRLS NOINHERIT/);
   assert.match(source, /CREATE ROLE neondb_owner NOLOGIN NOSUPERUSER BYPASSRLS NOCREATEDB NOCREATEROLE NOINHERIT/);
+  assert.match(source, /CREATE ROLE opscore_auth_definer NOLOGIN NOSUPERUSER BYPASSRLS NOCREATEDB NOCREATEROLE NOINHERIT/);
   assert.match(source, /GRANT neondb_owner TO opscore_migrator WITH INHERIT FALSE, SET TRUE/);
+  assert.match(source, /GRANT opscore_auth_definer TO neondb_owner WITH INHERIT TRUE, SET TRUE/);
   assert.match(source, /ALTER DATABASE %I OWNER TO neondb_owner/);
   assert.match(source, /OPSCORE_RUNTIME_ROLE_CONTRACT_FAILED/);
   assert.match(source, /OPSCORE_MIGRATOR_ROLE_CONTRACT_FAILED/);
   assert.match(source, /OPSCORE_WORKER_ROLE_CONTRACT_FAILED/);
   assert.match(source, /OPSCORE_MIGRATION_OWNER_ROLE_CONTRACT_FAILED/);
+  assert.match(source, /OPSCORE_AUTH_DEFINER_ROLE_CONTRACT_FAILED/);
   assert.doesNotMatch(source, /psql[^\n]*-v\s+(?:runtime_password|migrator_password|worker_password)/);
 });
 
@@ -601,6 +604,7 @@ test('self-hosted migration uses a local no-login compatibility owner without ch
   assert.match(runner, /targetClass==='self-hosted-explicit-target'\?'neondb_owner':info\.role/);
   assert.match(runner, /SET ROLE neondb_owner/);
   assert.match(runner, /MIGRATION_SELF_HOSTED_OWNER_ROLE_CONTRACT_FAILED/);
+  assert.match(runner, /MIGRATION_SELF_HOSTED_AUTH_DEFINER_ROLE_CONTRACT_FAILED/);
   assert.match(runner, /set_config\('opscore\.fn_owner',\$1,true\).*migrationOwnerRole/);
   const historical = ['046_migration_ledger_access_lockdown.sql','049_app_role_table_privileges.sql','057_read_only_runtime_migration_ledger_attestation.sql','058_security_definer_search_path_hardening.sql','059_runtime_system_table_policy_and_privilege_alignment.sql','072_deployment_release_evidence_store.sql'];
   for (const filename of historical) {
