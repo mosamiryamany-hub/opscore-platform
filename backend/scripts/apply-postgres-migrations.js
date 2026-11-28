@@ -172,6 +172,22 @@ function extractNeonEndpointId(hostname) {
  if(!match)throw new Error('MIGRATION_NEON_ENDPOINT_ID_INVALID');
  return match[1];
 }
+function selfHostedMigrationContent(migration,targetClass) {
+ const source=String(migration&&migration.content||'');
+ if(targetClass!=='self-hosted-explicit-target'||migration.filename!=='075_signed_rls_spatial_viewport_query.sql')return source;
+ const ownerReset="RESET ROLE;\nALTER FUNCTION opscore_security.spatial_features_in_viewport(\n  double precision, double precision, double precision, double precision, integer\n) OWNER TO opscore_auth_definer;";
+ const runtimeRevoke="-- Force application reads through the signed tenant contract. RLS continues\n-- to govern all direct INSERT/UPDATE/DELETE operations on the base table.\nREVOKE SELECT ON TABLE public.spatial_features FROM opscore_runtime;";
+ const count=(text,needle)=>text.split(needle).length-1;
+ if(count(source,ownerReset)!==1||count(source,runtimeRevoke)!==1)throw new Error('MIGRATION_SELF_HOSTED_075_ROLE_COMPATIBILITY_ANCHOR_MISMATCH');
+ // 075 creates the function while SET LOCAL ROLE opscore_auth_definer is active,
+ // so ownership is already correct. RESET ROLE would fall back to the login
+ // identity (opscore_migrator), not the prior neondb_owner SET ROLE. Keep the
+ // definer active for its own ACL/comment changes, then restore the migration
+ // owner before revoking table-level runtime SELECT. The canonical file bytes
+ // and their SHA-256 ledger value remain unchanged.
+ return source.replace(ownerReset,'-- Function ownership is already opscore_auth_definer because it was created under that role.')
+  .replace(runtimeRevoke,"RESET ROLE;\nSET LOCAL ROLE neondb_owner;\n"+runtimeRevoke);
+}
 function selfHostedMigrationExecutionRole(filename,targetClass) {
  if(targetClass!=='self-hosted-explicit-target')return null;
  return filename==='063_signed_tenant_context_verifier.sql'||filename==='066_signed_tenant_context_verifier_search_path_hardening.sql'
@@ -541,7 +557,7 @@ async function main(){
      await client.query('SET LOCAL ROLE opscore_auth_definer');
     }
     await client.query(`SELECT set_config('opscore.app_role',CASE WHEN EXISTS(SELECT 1 FROM pg_catalog.pg_roles WHERE rolname='opscore_app') THEN 'opscore_app' ELSE '' END,true),set_config('opscore.fn_owner',$1,true)`,[migrationOwnerRole]);
-    await client.query(unwrapOuterTransaction(migration.content,migration.filename));
+    await client.query(unwrapOuterTransaction(selfHostedMigrationContent(migration,targetClass),migration.filename));
     if(selfHostedRole==='opscore_auth_definer'){
      await client.query('SET LOCAL ROLE neondb_owner');
      if(authDefinerDatabaseCreateGranted){
@@ -725,4 +741,4 @@ SELECT
 if (require.main === module) {
  main().catch(error=>emit({status:'FAIL',reason:error.message||String(error),note:'Connection values are never emitted; no production fallback is used.'},1));
 }
-module.exports = { readMigrations, verifyLegacy042Catalog, verifyControlPlane053Catalog, verifyLegacyAppRoleOptionalCatalog, assertTarget, expectedMigrationOwnerRole, unwrapOuterTransaction, extractNeonEndpointId, verifyNeonEndpointIdentity, tenantPolicyExprValid, validateAppRolePreflight, validateAppRolePostconditions };
+module.exports = { readMigrations, selfHostedMigrationContent, verifyLegacy042Catalog, verifyControlPlane053Catalog, verifyLegacyAppRoleOptionalCatalog, assertTarget, expectedMigrationOwnerRole, unwrapOuterTransaction, extractNeonEndpointId, verifyNeonEndpointIdentity, tenantPolicyExprValid, validateAppRolePreflight, validateAppRolePostconditions };
