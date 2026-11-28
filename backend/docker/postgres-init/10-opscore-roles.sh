@@ -44,8 +44,11 @@ WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'opscore_worker')
 GRANT neondb_owner TO opscore_migrator WITH INHERIT TRUE, SET TRUE;
 GRANT opscore_auth_definer TO neondb_owner WITH INHERIT FALSE, SET TRUE;
 
-CREATE SCHEMA IF NOT EXISTS opscore_security AUTHORIZATION neondb_owner;
-ALTER SCHEMA opscore_security OWNER TO neondb_owner;
+# Keep the dedicated definer as schema owner before migrations run. Grant CREATE
+# explicitly to the no-login migration owner so migration 063 can create its
+# objects after asserting/transferring schema ownership. Runtime remains excluded.
+CREATE SCHEMA IF NOT EXISTS opscore_security AUTHORIZATION opscore_auth_definer;
+ALTER SCHEMA opscore_security OWNER TO opscore_auth_definer;
 GRANT USAGE, CREATE ON SCHEMA opscore_security TO neondb_owner;
 
 DO $verify$
@@ -86,7 +89,7 @@ BEGIN
   END IF;
   IF NOT EXISTS (
     SELECT 1 FROM pg_namespace n JOIN pg_roles r ON r.oid = n.nspowner
-    WHERE n.nspname = 'opscore_security' AND r.rolname = 'neondb_owner'
+    WHERE n.nspname = 'opscore_security' AND r.rolname = 'opscore_auth_definer'
   ) THEN
     RAISE EXCEPTION 'OPSCORE_MIGRATION_SECURITY_SCHEMA_OWNER_CONTRACT_FAILED';
   END IF;
@@ -95,7 +98,8 @@ BEGIN
      OR auth_definer_role.rolcreatedb OR auth_definer_role.rolinherit
      OR NOT pg_has_role('neondb_owner', 'opscore_auth_definer', 'SET')
      OR pg_has_role('neondb_owner', 'opscore_auth_definer', 'USAGE')
-     OR NOT has_schema_privilege('neondb_owner', 'opscore_security', 'CREATE') THEN
+     OR NOT has_schema_privilege('neondb_owner', 'opscore_security', 'CREATE')
+     OR has_schema_privilege('opscore_runtime', 'opscore_security', 'CREATE') THEN
     RAISE EXCEPTION 'OPSCORE_AUTH_DEFINER_ROLE_CONTRACT_FAILED';
   END IF;
 END
