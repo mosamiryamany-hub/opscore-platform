@@ -606,6 +606,7 @@ test('self-hosted migration uses a local no-login compatibility owner without ch
   assert.match(runner, /targetClass==='self-hosted-explicit-target'\?'neondb_owner':info\.role/);
   assert.match(runner, /SET ROLE neondb_owner/);
   assert.match(runner, /SET LOCAL ROLE neondb_owner/);
+  assert.match(runner, /pg_has_role\(session_user,r\.oid,'USAGE'\) AS can_inherit/);
   assert.match(runner, /authDefinerContract\.can_inherit/);
   assert.match(runner, /MIGRATION_SELF_HOSTED_OWNER_ROLE_CONTRACT_FAILED/);
   assert.match(runner, /MIGRATION_SELF_HOSTED_AUTH_DEFINER_ROLE_CONTRACT_FAILED/);
