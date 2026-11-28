@@ -22,8 +22,7 @@ const { chromium } = require('playwright');
           location.url === base + '/api/v1/me' || (staticContactPage && [
             base + '/api/v1/contact-center/status',
             base + '/api/v1/contact-center/handoffs?status=open&limit=50',
-            base + '/api/v1/contact-center/supervisor/agents',
-            base + '/api/v1/contact-center/supervisor/activity'
+            base + '/api/v1/me'
           ].includes(location.url))
         );
         if (!expectedStaticApiMiss) errors.push({ console: entry.text(), location });
@@ -43,14 +42,13 @@ const { chromium } = require('playwright');
     await page.goto(base + '/control-rooms.html', { waitUntil: 'networkidle' });
     const contactStatusProbe = page.waitForResponse(response => response.url() === base + '/api/v1/contact-center/status');
     const contactQueueProbe = page.waitForResponse(response => response.url() === base + '/api/v1/contact-center/handoffs?status=open&limit=50');
-    const contactAgentsProbe = page.waitForResponse(response => response.url() === base + '/api/v1/contact-center/supervisor/agents');
-    const contactActivityProbe = page.waitForResponse(response => response.url() === base + '/api/v1/contact-center/supervisor/activity');
+    const contactMeProbe = page.waitForResponse(response => response.url() === base + '/api/v1/me');
     const contactNavigation = page.waitForURL(url => url.pathname === '/contact-center-room.html');
     staticContactPage = true;
     await page.locator('[data-room="contact"]').click();
     await contactNavigation;
-    const staticApiResponses = await Promise.all([contactStatusProbe, contactQueueProbe, contactAgentsProbe, contactActivityProbe]);
-    assert.deepEqual(staticApiResponses.map(response => response.status()), [404, 404, 404, 404],
+    const staticApiResponses = await Promise.all([contactStatusProbe, contactQueueProbe, contactMeProbe]);
+    assert.deepEqual(staticApiResponses.map(response => response.status()), [404, 404, 404],
       'static-only harness must expose unavailable Contact Center APIs as 404, never synthetic success');
     assert.equal(await page.locator('#ccrQueueState').innerText(), 'Queue unavailable');
     assert.equal(await page.locator('.ccr-shell').count(), 1, 'Contact Center route must resolve from Control Rooms');
