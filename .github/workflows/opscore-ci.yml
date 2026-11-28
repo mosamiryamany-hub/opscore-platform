@@ -43,7 +43,7 @@ jobs:
             printf 'CADDY_HTTPS_PORT=18443\n'
           } > backend/.env.self-hosted
           chmod 600 backend/.env.self-hosted
-          backend/scripts/generate-self-hosted-db-certs.sh backend/.secrets
+          sh backend/scripts/generate-self-hosted-db-certs.sh backend/.secrets
       - name: Validate rendered Compose configuration
         run: docker compose --env-file .env.self-hosted -f docker-compose.self-hosted.yml config --quiet
         working-directory: backend
