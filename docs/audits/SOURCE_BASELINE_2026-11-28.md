@@ -591,3 +591,24 @@ No acceptance artifact was uploaded for this failed run because the workflow's e
 - Physical Android/iOS device acceptance, signed store builds, object-storage durability, and live third-party integrations.
 
 **Phase 0 status remains OPEN.** Source inventory is refreshed, but the candidate disposition and latest in-flight checks are not complete. No Phase 1 work is authorized by this addendum. No source code, migration, workflow, `main`, production, Neon, or Vercel resource was changed during this revalidation.
+
+
+### 14.6 Completion of the combined isolated GIS / Contact Center run
+
+A final poll completed run `46143979318` on the exact candidate head `cc613653...` with overall **SUCCESS**. Its single authenticated PostgreSQL 18 acceptance job completed all steps successfully, including:
+- full migrations on disposable PostgreSQL 18 acceptance databases;
+- signed tenant-context worker checks and the 67-route coverage gate;
+- rejection of raw-GUC tenant forgery;
+- tenant isolation and composite-FK integrity gates;
+- real PostgreSQL logical dump/restore drill;
+- Digital Twin concurrency / RLS / PostGIS gates;
+- authenticated Dispatcher Map browser acceptance under `opscore_runtime`;
+- atomic shared login-throttling verification;
+- caller-bound tenant and logical-restore evidence publication;
+- container cleanup.
+
+Artifacts were published:
+- `signed-tenant-postgres-18-ci-coverage-46143979318` (3,296 bytes);
+- `opscore-dispatcher-map-authenticated-postgis-e2e` (2,898,111 bytes).
+
+The same run explicitly marked both the **Production Neon PITR historical branch probe** and **Isolated Neon Preview migration and HTTP acceptance** as **SKIPPED**. This success is isolated CI evidence; it does not resolve the separate Self-Hosted Migration 075 ownership failure, does not prove Neon PITR/Preview, and does not prove a buyer-host installation or production database state. The Android preview and Vercel candidate runs remained in progress at the last poll.
