@@ -172,6 +172,10 @@ function extractNeonEndpointId(hostname) {
  if(!match)throw new Error('MIGRATION_NEON_ENDPOINT_ID_INVALID');
  return match[1];
 }
+function selfHostedMigrationExecutionRole(filename,targetClass) {
+ if(targetClass!=='self-hosted-explicit-target')return null;
+ return filename==='063_signed_tenant_context_verifier.sql'?'opscore_auth_definer':'neondb_owner';
+}
 function expectedMigrationOwnerRole(env=process.env) {
  const target=String(env.OPSC_MIGRATION_TARGET_CLASS||'').trim().toLowerCase();
  const configured=String(env.OPSC_MIGRATION_EXPECTED_OWNER_ROLE||'').trim();
@@ -520,9 +524,19 @@ async function main(){
   for(const migration of plan.pending){
    await client.query('BEGIN');
    try{
+    const selfHostedRole=selfHostedMigrationExecutionRole(migration.filename,targetClass);
     if(targetClass==='self-hosted-explicit-target')await client.query('SET LOCAL ROLE neondb_owner');
+    if(selfHostedRole==='opscore_auth_definer'){
+     // Migration 063 transfers its HMAC table/function ownership to the dedicated
+     // definer before issuing grants. Run that one immutable migration as its
+     // owner; grant only the five session-identity tables it must read. The
+     // migration ledger remains written by neondb_owner after role restoration.
+     await client.query('GRANT SELECT ON TABLE public.sessions, public.users, public.memberships, public.organizations, public.organization_governance TO opscore_auth_definer WITH GRANT OPTION');
+     await client.query('SET LOCAL ROLE opscore_auth_definer');
+    }
     await client.query(`SELECT set_config('opscore.app_role',CASE WHEN EXISTS(SELECT 1 FROM pg_catalog.pg_roles WHERE rolname='opscore_app') THEN 'opscore_app' ELSE '' END,true),set_config('opscore.fn_owner',$1,true)`,[migrationOwnerRole]);
     await client.query(unwrapOuterTransaction(migration.content,migration.filename));
+    if(selfHostedRole==='opscore_auth_definer')await client.query('SET LOCAL ROLE neondb_owner');
     await client.query('INSERT INTO public.schema_migrations(filename,sha256,applied_at) VALUES ($1,$2,clock_timestamp())',[migration.filename,migration.sha256]);
     await client.query('COMMIT');applied.push({filename:migration.filename,sha256:migration.sha256});
    }catch(error){try{await client.query('ROLLBACK');}catch(_){}throw new Error('MIGRATION_APPLY_FAILED:'+migration.filename+':'+(error.code||error.message));}
