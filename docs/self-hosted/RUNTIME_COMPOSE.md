@@ -29,7 +29,7 @@ For a buyer-owned public hostname, set `OPSCORE_PUBLIC_HOST` to that hostname, p
 
 ## What this stack does
 
-1. PostgreSQL 18 with PostGIS and pgvector, least-privilege roles, and verified TLS for app/migrator database connections
+1. PostgreSQL 18 with PostGIS and pgvector, least-privilege roles, and verified TLS for app/migrator database connections. The login `opscore_migrator` can `SET ROLE` only to the non-login `neondb_owner` compatibility owner required by historical migration SQL; `opscore_runtime` is not a member.
 2. One-shot `migrate` service using `apply-postgres-migrations.js`
 3. Node app image from `docker/Dockerfile` with `/api/health` healthcheck
 4. Caddy 2 reverse proxy (HTTP/HTTPS ports published)
