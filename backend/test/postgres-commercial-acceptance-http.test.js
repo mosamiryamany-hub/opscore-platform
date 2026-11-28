@@ -39,6 +39,7 @@ const RESULT_PATH = process.env.OPSC_PG_ACCEPTANCE_RESULT_FILE
   : path.join(os.tmpdir(), 'opscore-postgres-http-acceptance-result.json');
 
 function findLavenderFeaturePixels(png) {
+  const { PNG } = require('pngjs');
   const image = PNG.sync.read(png);
   let count = 0;
   let minX = image.width;
