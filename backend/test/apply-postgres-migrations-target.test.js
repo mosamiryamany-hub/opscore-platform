@@ -361,7 +361,7 @@ test('runner writes migration ledger before committing the runner-owned transact
   const source = fs.readFileSync(path.join(__dirname, '../scripts/apply-postgres-migrations.js'), 'utf8');
   const loopStart = source.indexOf('const applied=[];');
   const begin = source.indexOf("await client.query('BEGIN');", loopStart);
-  const migration = source.indexOf('await client.query(unwrapOuterTransaction(migration.content,migration.filename));', begin);
+  const migration = source.indexOf('await client.query(unwrapOuterTransaction(selfHostedMigrationContent(migration,targetClass),migration.filename));', begin);
   const ledger = source.indexOf("await client.query('INSERT INTO public.schema_migrations", migration);
   const commit = source.indexOf("await client.query('COMMIT')", ledger);
   assert.ok(loopStart >= 0 && begin > loopStart && migration > begin && ledger > migration && commit > ledger);
