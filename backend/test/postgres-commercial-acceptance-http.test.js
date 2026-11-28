@@ -598,10 +598,15 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
             error: request.failure()?.errorText || 'unknown'
           }));
           page.on('response', response => {
-            if (response.url().includes('unpkg.com') || response.url().includes('openfreemap') || response.url().includes('/api/v1/map/viewport')) {
+            const responseUrl = new URL(response.url());
+            const isMapProvider = responseUrl.hostname === 'unpkg.com'
+              || responseUrl.hostname === 'tiles.openfreemap.org'
+              || responseUrl.hostname.endsWith('.openfreemap.org');
+            const isViewportApi = responseUrl.pathname === '/api/v1/map/viewport';
+            if (isMapProvider || isViewportApi) {
               networkResponses.push({ url: response.url(), status: response.status() });
             }
-            if (response.url().includes('/api/v1/map/viewport')) apiResponses.push({ status: response.status() });
+            if (isViewportApi) apiResponses.push({ status: response.status() });
           });
           await context.addCookies([{
             name: '__Host-opscore_session',
