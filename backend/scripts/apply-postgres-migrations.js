@@ -422,6 +422,7 @@ async function main(){
   if(targetClass==='self-hosted-explicit-target'){
    const ownerContract=(await client.query(`SELECT r.rolcanlogin,r.rolsuper,r.rolbypassrls,r.rolcreaterole,r.rolcreatedb,r.rolinherit,
      pg_has_role(session_user,r.oid,'SET') AS can_set_role,
+     pg_has_role(session_user,r.oid,'USAGE') AS can_inherit,
      has_database_privilege(r.rolname,current_database(),'CREATE') AS can_create_database,
      has_schema_privilege(r.rolname,'public','CREATE') AS can_create_public
      FROM pg_roles r WHERE r.rolname='neondb_owner'`)).rows[0];
