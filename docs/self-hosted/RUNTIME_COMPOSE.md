@@ -14,19 +14,22 @@
 cd backend
 cp ../docs/self-hosted/env.self-hosted.example .env.self-hosted
 # Edit every placeholder secret before starting. Do not commit this file.
+mkdir -p .secrets
+./scripts/generate-self-hosted-db-certs.sh .secrets
+# Keep .secrets/postgres-ca.key offline after issuing the server certificate.
 docker compose --env-file .env.self-hosted -f docker-compose.self-hosted.yml config --quiet
 docker compose --env-file .env.self-hosted -f docker-compose.self-hosted.yml up --build -d
 # Localhost uses Caddy's local certificate; -k is only for this local smoke check.
 curl -kfsS https://localhost/api/health
 ```
 
-**Important:** `--env-file .env.self-hosted` is required because Compose interpolates the database passwords and ports before it starts services. The service-level `env_file` entries do not supply values for Compose-file interpolation.
+**Important:** `--env-file .env.self-hosted` is required because Compose interpolates the database passwords and ports before it starts services. The service-level `env_file` entries do not supply values for Compose-file interpolation. The generated server certificate is valid for the internal Compose DNS name `db`; the app and migrator verify it using the mounted CA certificate and `sslmode=verify-full`. Never disable database TLS in production mode.
 
 For a buyer-owned public hostname, set `OPSCORE_PUBLIC_HOST` to that hostname, point DNS to the host, expose TCP 80/443, and verify HTTPS with the buyer's trusted certificate chain (without `-k`).
 
 ## What this stack does
 
-1. PostgreSQL 18 with PostGIS and pgvector, plus least-privilege roles from `docker/postgres-init`
+1. PostgreSQL 18 with PostGIS and pgvector, least-privilege roles, and verified TLS for app/migrator database connections
 2. One-shot `migrate` service using `apply-postgres-migrations.js`
 3. Node app image from `docker/Dockerfile` with `/api/health` healthcheck
 4. Caddy 2 reverse proxy (HTTP/HTTPS ports published)
