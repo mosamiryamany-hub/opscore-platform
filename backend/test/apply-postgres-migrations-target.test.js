@@ -590,17 +590,17 @@ test('self-hosted PostgreSQL role initializer reads secrets and validates runtim
   assert.match(source, /OPSCORE_MIGRATOR_ROLE_CONTRACT_FAILED/);
   assert.match(source, /OPSCORE_WORKER_ROLE_CONTRACT_FAILED/);
   assert.match(source, /OPSCORE_MIGRATION_OWNER_ROLE_CONTRACT_FAILED/);
-  assert.doesNotMatch(source, /psql[^\\n]*-v\\s+(?:runtime_password|migrator_password|worker_password)/);
+  assert.doesNotMatch(source, /psql[^\n]*-v\s+(?:runtime_password|migrator_password|worker_password)/);
 });
 
 test('self-hosted migration uses a local no-login compatibility owner without changing historical migrations', () => {
   const fs = require('node:fs');
   const path = require('node:path');
   const runner = fs.readFileSync(path.join(__dirname, '../scripts/apply-postgres-migrations.js'), 'utf8');
-  assert.match(runner, /targetClass==='self-hosted-explicit-target'\\?'neondb_owner':info\\.role/);
+  assert.match(runner, /targetClass==='self-hosted-explicit-target'\?'neondb_owner':info\.role/);
   assert.match(runner, /SET ROLE neondb_owner/);
   assert.match(runner, /MIGRATION_SELF_HOSTED_OWNER_ROLE_CONTRACT_FAILED/);
-  assert.match(runner, /set_config\\('opscore\\.fn_owner',\\$1,true\\).*migrationOwnerRole/);
+  assert.match(runner, /set_config\('opscore\.fn_owner',\$1,true\).*migrationOwnerRole/);
   const historical = ['046_migration_ledger_access_lockdown.sql','049_app_role_table_privileges.sql','057_read_only_runtime_migration_ledger_attestation.sql','058_security_definer_search_path_hardening.sql','059_runtime_system_table_policy_and_privilege_alignment.sql','072_deployment_release_evidence_store.sql'];
   for (const filename of historical) {
     const migration = fs.readFileSync(path.join(__dirname, '../sql/postgres', filename), 'utf8');
