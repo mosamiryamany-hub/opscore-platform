@@ -20,7 +20,8 @@ test('Preview migrations require one exact pinned non-primary branch and the app
   assert.match(workflowDispatchBranch, /required: true/);
   assert.doesNotMatch(workflowDispatchBranch, /default:/);
   assert.equal((previewApply.match(/default: "br-muddy-pine-bbrexgxx"/g) || []).length, 1);
-  assert.ok(previewApply.includes("INPUT_BRANCH: ${{ inputs.branch || github.event.inputs.branch || '' }}"));
+  assert.ok(previewApply.includes("INPUT_BRANCH: ${{ inputs.branch || github.event.inputs.branch || 'br-muddy-pine-bbrexgxx' }}"),
+    'pull-request acceptance must bind only the pinned isolated Neon Preview branch when no manual input exists');
   assert.match(previewApply, /BRANCH_ID="\$INPUT_BRANCH"/);
   assert.match(previewApply, /branch\.get\("id"\) != os\.environ\["BRANCH_ID"\]/);
   assert.match(previewApply, /branch\.get\("project_id"\) != os\.environ\["PROJECT_ID"\]/);
@@ -71,7 +72,7 @@ test('Preview migrations require one exact pinned non-primary branch and the app
   assert.ok(previewApply.includes("OPSC_MIGRATION_EXPECTED_BRANCH_ID: ${{ steps.neon.outputs.branch_id }}"));
   assert.ok(previewApply.includes("OPSC_MIGRATION_CONFIRM_BRANCH_ID: ${{ steps.neon.outputs.branch_id }}"));
   assert.match(previewApply, /identity\.get\("branchId"\) != os\.environ\["OPSC_MIGRATION_EXPECTED_BRANCH_ID"\]/);
-  assert.equal((previewApply.match(/br-muddy-pine-bbrexgxx/g) || []).length, 1);
+  assert.equal((previewApply.match(/br-muddy-pine-bbrexgxx/g) || []).length, 2, 'the exact isolated branch ID must appear only in the reusable-workflow default and its fail-closed job allowlist');
   assert.match(previewApply, /PRIMARY_BRANCH_ID=\x27br-weathered-tree-bbha3dx4\x27/);
   assert.match(previewApply, /OPSC_MIGRATION_DATABASE_URL/);
   assert.match(previewApply, /OPSC_ACCEPTANCE_RUNTIME_DATABASE_URL/);

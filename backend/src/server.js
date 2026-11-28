@@ -1306,6 +1306,7 @@ function sendFile(res, file, download) {
   const types = {
     '.html': 'text/html; charset=utf-8',
     '.js': 'application/javascript; charset=utf-8',
+    '.mjs': 'application/javascript; charset=utf-8',
     '.css': 'text/css; charset=utf-8',
     '.json': 'application/json; charset=utf-8',
     '.webmanifest': 'application/manifest+json; charset=utf-8',
@@ -1325,7 +1326,7 @@ function sendFile(res, file, download) {
     headers['content-security-policy'] = "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:" + mapTileOrigin() + "; media-src 'self' blob:; connect-src 'self' https://api.openai.com";
   }
   if (path.basename(file) === 'dispatcher-map.html') {
-    headers['content-security-policy'] = "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com; img-src 'self' data: blob: https://tiles.openfreemap.org https://assets.openfreemap.com; font-src 'self' data: https://tiles.openfreemap.org https://assets.openfreemap.com; connect-src 'self' https://tiles.openfreemap.org https://assets.openfreemap.com; worker-src 'self' blob:";
+    headers['content-security-policy'] = "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' https://unpkg.com; style-src 'self' 'unsafe-inline' https://unpkg.com; img-src 'self' data: blob: https://tiles.openfreemap.org https://assets.openfreemap.com; font-src 'self' data: https://tiles.openfreemap.org https://assets.openfreemap.com; connect-src 'self' https://tiles.openfreemap.org https://assets.openfreemap.com; worker-src 'self' blob: https://unpkg.com;";
   }
   if (config.nodeEnv === 'production')
     headers['strict-transport-security'] = 'max-age=31536000; includeSubDomains';
