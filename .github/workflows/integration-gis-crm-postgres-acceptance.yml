@@ -1,0 +1,22 @@
+name: Combined GIS and Contact Center PostgreSQL 18 Acceptance
+
+on:
+  pull_request:
+    paths:
+      - 'backend/src/server.js'
+      - 'backend/src/ai-contact-center.js'
+      - 'backend/src/db.js'
+      - 'backend/src/store.js'
+      - 'backend/sql/postgres/**'
+      - 'backend/scripts/postgres-commercial-acceptance-http.test.js'
+      - 'backend/scripts/postgres-contact-center-crm-acceptance.js'
+      - '.github/workflows/integration-gis-crm-postgres-acceptance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  authenticated-postgis-acceptance:
+    uses: ./.github/workflows/digital-twin-postgres-live.yml
+    secrets: inherit
