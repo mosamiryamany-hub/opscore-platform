@@ -72,6 +72,14 @@
         <article class="tile ccr-kpi"><div class="tile__top"><span class="tile__k">High / urgent</span><span class="badge">Priority</span></div><div class="tile__v" id="ccrPriority">—</div><div class="tile__s">High and urgent priority rows loaded</div></article>
       </section>
 
+      <section id="ccrSupervisorPanel" class="card ccr-supervisor-panel" aria-label="Supervisor workload distribution" hidden>
+        <div class="ccr-insight-head"><div><div class="eyebrow">SUPERVISOR VIEW</div><h2>Agent workload distribution</h2><p class="muted small">Counts are calculated from the current tenant-scoped open handoff response. Agent IDs are shown because no verified display-name directory is returned by this endpoint.</p></div><span class="ccr-insight-tag" id="ccrSupervisorCount">Not loaded</span></div>
+        <div id="ccrAgentDistribution" class="ccr-agent-distribution"><div class="empty">Supervisor access has not been verified.</div></div>
+        <div class="ccr-supervisor-activity">
+          <div class="ccr-context-head"><div><div class="eyebrow">AUDIT FOLLOW-UP</div><h3>Employee actions</h3></div><span class="badge" id="ccrSupervisorAuditIntegrity">Not verified</span><label class="sr-only" for="ccrActivityAgent">Filter employee actions</label><select id="ccrActivityAgent"><option value="all">All employees</option></select></div>
+          <div id="ccrSupervisorActivity" class="ccr-event-timeline"><div class="empty">Supervisor activity has not been queried.</div></div>
+        </div>
+      </section>
       <section class="ccr-insights" aria-label="Live queue distribution" data-reveal>
         <article class="ccr-insight card"><div class="ccr-insight-head"><div><div class="eyebrow">Live snapshot</div><h2>Priority mix</h2></div><span class="ccr-insight-tag">Loaded rows</span></div><div id="ccrPriorityBreakdown" class="ccr-bars"><div class="empty">Awaiting queue data.</div></div></article>
         <article class="ccr-insight card"><div class="ccr-insight-head"><div><div class="eyebrow">Escalation intelligence</div><h2>Top reasons</h2></div><span class="ccr-insight-tag">By reason code</span></div><div id="ccrReasonBreakdown" class="ccr-bars"><div class="empty">Awaiting queue data.</div></div></article>
@@ -89,10 +97,13 @@
           <div class="ccr-filters">
             <label class="ccr-search"><span class="sr-only" for="ccrSearch">Search queue rows</span><input id="ccrSearch" type="search" placeholder="Search conversation, reason, channel or language…" autocomplete="off"></label>
             <label class="ccr-filter"><span class="sr-only" for="ccrFilter">Filter queue status</span><select id="ccrFilter"><option value="all">All open rows</option><option value="queued">Waiting</option><option value="claimed">Claimed</option></select></label>
+            <label class="ccr-filter"><span class="sr-only" for="ccrPriorityFilter">Filter priority</span><select id="ccrPriorityFilter"><option value="all">All priorities</option><option value="urgent">Urgent</option><option value="high">High</option><option value="normal">Normal</option><option value="low">Low</option></select></label>
+            <label class="ccr-filter"><span class="sr-only" for="ccrSort">Sort queue</span><select id="ccrSort"><option value="priority">Priority first</option><option value="oldest">Waiting longest</option><option value="newest">Newest first</option></select></label>
+            <label class="ccr-filter" id="ccrAgentFilterWrap" hidden><span class="sr-only" for="ccrAgentFilter">Filter by agent</span><select id="ccrAgentFilter"><option value="all">All agents</option></select></label>
           </div>
           <div id="ccrQueueMessage" class="ccr-message" role="status" aria-live="polite">Queue has not been loaded.</div>
           <div id="ccrQueueList" class="ccr-queue-list"><div class="empty">Queue records will appear after access is verified.</div></div>
-          <div class="ccr-queue-foot"><span>Tenant boundary enforced by the API</span><span>Priority order supplied by the server</span></div>
+          <div class="ccr-queue-foot"><span>Tenant boundary enforced by the API</span><span>Priority order supplied by the server</span><span>Auto-refresh every 30s while visible</span></div>
         </section>
 
         <section class="card ccr-detail-panel" aria-labelledby="ccrDetailTitle">
@@ -111,6 +122,25 @@
               <div><span>Language / channel</span><strong id="ccrLanguageChannel">—</strong></div>
               <div><span>Escalation reason</span><strong id="ccrReason">—</strong></div>
             </div>
+            <section class="ccr-customer-context" aria-label="Customer and case context"><div class="ccr-context-head"><div><div class="eyebrow">CUSTOMER CONTEXT</div><h3>Case profile & timing</h3></div><span class="badge" id="ccrWaitClock">Elapsed —</span></div><div class="ccr-context-grid"><div><span>Conversation state</span><strong id="ccrCaseStatus">—</strong></div><div><span>Assigned operator</span><strong id="ccrAssignedOperator">—</strong></div><div><span>Created</span><strong id="ccrCreatedAt">—</strong></div><div><span>Last activity</span><strong id="ccrLastActivity">—</strong></div><div><span>Channel</span><strong id="ccrCaseChannel">—</strong></div><div><span>Language</span><strong id="ccrCaseLanguage">—</strong></div></div><p class="muted tiny">Customer details are retrieved only from an explicitly linked CRM record in this tenant. No identity is inferred from transcript text.</p>
+              <div class="ccr-crm-panel">
+                <div class="ccr-context-head"><div><div class="eyebrow">VERIFIED CRM LINK</div><h3>Customer record</h3></div><span class="badge" id="ccrCrmState">Not loaded</span></div>
+                <div id="ccrCrmProfile" class="ccr-crm-profile"><div class="empty">CRM profile is restricted to supervisors.</div></div>
+                <div id="ccrCrmLinker" class="ccr-crm-linker" hidden>
+                  <label for="ccrCrmSearch">Find customer in this organization</label>
+                  <input id="ccrCrmSearch" type="search" minlength="2" maxlength="80" autocomplete="off" placeholder="Search name, email or CRM reference">
+                  <div id="ccrCrmResults" class="ccr-crm-results" aria-live="polite"><div class="empty">Enter at least two characters.</div></div>
+                </div>
+              </div>
+            </section>
+            <section id="ccrSupervisorActions" class="ccr-supervisor-actions" hidden>
+              <div class="ccr-context-head"><div><div class="eyebrow">SUPERVISOR ACTION</div><h3>Reassign escalation</h3></div><span class="badge">Audited</span></div>
+              <label for="ccrAssignAgent">Eligible employee</label><select id="ccrAssignAgent"><option value="">Loading eligible employees…</option></select>
+              <label for="ccrAssignReason">Reason for reassignment</label><textarea id="ccrAssignReason" rows="2" maxlength="300" placeholder="Explain why this case is being reassigned…" required></textarea>
+              <button class="btn btn--primary" id="ccrReassign" type="button" disabled>Reassign and record audit event</button>
+              <p class="muted tiny">Only active member/manager accounts in this organization are eligible. The server validates tenant membership and supervisor authority on every request.</p>
+            </section>
+            <section class="ccr-event-panel"><div class="ccr-context-head"><div><div class="eyebrow">CASE HISTORY</div><h3>Recorded events</h3></div><span class="muted tiny" id="ccrEventCount">Not queried</span></div><div id="ccrEventTimeline" class="ccr-event-timeline"><div class="empty">Select a handoff to load its audit events.</div></div></section>
             <div class="ccr-transcript-head"><span>Decrypted transcript from protected API</span><span id="ccrMessageCount">0 messages</span></div>
             <div id="ccrTranscript" class="ccr-transcript" aria-live="polite"></div>
             <form id="ccrReplyForm" class="ccr-reply-form">
