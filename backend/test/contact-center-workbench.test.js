@@ -35,12 +35,15 @@ test('Contact Center customer actions remain consented and require real backend 
   assert.match(script, /handoffs\?status=open&limit=50/);
 });
 
-test('Control Rooms exposes a Contact Center route without inventing operational data', () => {
+test('Control Rooms exposes Contact Center and Digital Twin routes without inventing operational data', () => {
   assert.match(roomsHtml, /data-room="contact"/);
+  assert.match(roomsHtml, /data-room="twin"/);
   assert.match(roomsScript, /contact: \{/);
   assert.match(roomsScript, /path: '\/contact-center-room\.html'/);
+  assert.match(roomsScript, /twin: \{/);
+  assert.match(roomsScript, /path: '\/digital-twin-room\.html'/);
   assert.match(roomsScript, /go\.href = m\.path \|\| '\/control-plane\.html'/);
-  assert.match(roomsHtml, /Nine rooms\. One command fabric\./);
+  assert.match(roomsHtml, /Ten rooms\. One command fabric\./);
   assert.match(roomsHtml, /no invented load, risk, queue or integrity values/);
 });
 

@@ -8,6 +8,7 @@
   <meta name="color-scheme" content="dark">
   <title>OpsCore — Command Fabric</title>
   <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icons/opscore-mark.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/command-fabric-v3.css">
 </head>
@@ -134,6 +135,13 @@
             <span class="surface__go">Enter rooms</span>
           </a>
 
+          <a class="surface" href="/digital-twin-room.html" data-reveal>
+            <div class="surface__ico" aria-hidden="true">◉</div>
+            <div class="surface__t">Digital Twin</div>
+            <p class="surface__d">Operational state model, asset and work-order signals, persisted snapshots and verifiable database-resident event-chain integrity.</p>
+            <span class="surface__go">Open Digital Twin room</span>
+          </a>
+
           <a class="surface" href="/contact-center.html" data-reveal>
             <div class="surface__ico" aria-hidden="true">◍</div>
             <div class="surface__t">Contact Center</div>
@@ -210,5 +218,6 @@
 <script src="/fabric-core.js" defer></script>
 <script src="/home-fabric.js" defer></script>
 <script src="/i18n/i18n-loader.js"></script>
+<script src="/pwa-register.js" defer></script>
 </body>
 </html>

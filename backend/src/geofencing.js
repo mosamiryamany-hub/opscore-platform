@@ -3,9 +3,15 @@ const crypto=require('node:crypto');
 const {id,now}=require('./security');
 const {requireRole}=require('./rbac');
 function clean(v){return String(v??'').trim()}
+function parseGeoJsonValue(v){if(v==null)return null;if(typeof v==='string')return JSON.parse(v);if(Buffer.isBuffer(v))return JSON.parse(v.toString('utf8'));return v}
 function pointOnSegment(point,a,b){const [x,y]=point,[x1,y1]=a,[x2,y2]=b;const cross=(x-x1)*(y2-y1)-(y-y1)*(x2-x1);if(Math.abs(cross)>1e-12)return false;return x>=Math.min(x1,x2)-1e-12&&x<=Math.max(x1,x2)+1e-12&&y>=Math.min(y1,y2)-1e-12&&y<=Math.max(y1,y2)+1e-12;}
 function pointInRing(point,ring){let inside=false;const x=point[0],y=point[1];for(let i=0,j=ring.length-1;i<ring.length;j=i++){if(pointOnSegment(point,ring[j],ring[i]))return true;const xi=ring[i][0],yi=ring[i][1],xj=ring[j][0],yj=ring[j][1];const intersect=((yi>y)!==(yj>y))&&(x<((xj-xi)*(y-yi))/(yj-yi)+xi);if(intersect)inside=!inside;}return inside;}
-function normalizeGeo(g){if(!g||g.type!=='Polygon'||!Array.isArray(g.coordinates)||!g.coordinates.length)throw new Error('GEOFENCE_GEOMETRY_INVALID');for(const ring of g.coordinates){if(!Array.isArray(ring)||ring.length<4)throw new Error('GEOFENCE_RING_INVALID');for(const pt of ring){if(!Array.isArray(pt)||pt.length<2||!Number.isFinite(Number(pt[0]))||!Number.isFinite(Number(pt[1]))||Number(pt[0])<-180||Number(pt[0])>180||Number(pt[1])<-90||Number(pt[1])>90)throw new Error('GEOFENCE_COORDINATE_INVALID');}}return g;}
+function orientation(a,b,c){const v=(b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]);return Math.abs(v)<=1e-12?0:v>0?1:-1;}
+function segmentsIntersect(a,b,c,d){const o1=orientation(a,b,c),o2=orientation(a,b,d),o3=orientation(c,d,a),o4=orientation(c,d,b);if(o1!==o2&&o3!==o4)return true;return(o1===0&&pointOnSegment(c,a,b))||(o2===0&&pointOnSegment(d,a,b))||(o3===0&&pointOnSegment(a,c,d))||(o4===0&&pointOnSegment(b,c,d));}
+function ringArea(ring){let area=0;for(let i=0;i<ring.length-1;i++)area+=ring[i][0]*ring[i+1][1]-ring[i+1][0]*ring[i][1];return area/2;}
+function validateRing(ring){if(!Array.isArray(ring)||ring.length<4)throw new Error('GEOFENCE_RING_INVALID');const points=ring.map(pt=>{if(!Array.isArray(pt)||pt.length<2||!Number.isFinite(pt[0])||!Number.isFinite(pt[1])||pt[0]<-180||pt[0]>180||pt[1]<-90||pt[1]>90)throw new Error('GEOFENCE_COORDINATE_INVALID');return [pt[0],pt[1]];});const first=points[0],last=points[points.length-1];if(first[0]!==last[0]||first[1]!==last[1])throw new Error('GEOFENCE_RING_NOT_CLOSED');for(let i=1;i<points.length;i++)if(points[i][0]===points[i-1][0]&&points[i][1]===points[i-1][1])throw new Error('GEOFENCE_RING_DUPLICATE_VERTEX');const edgeCount=points.length-1;for(let i=0;i<edgeCount;i++)for(let j=i+1;j<edgeCount;j++){if(j===i+1||(i===0&&j===edgeCount-1))continue;if(segmentsIntersect(points[i],points[i+1],points[j],points[j+1]))throw new Error('GEOFENCE_RING_SELF_INTERSECTION');}if(Math.abs(ringArea(points))<=1e-12)throw new Error('GEOFENCE_RING_ZERO_AREA');return points;}
+function ringsIntersect(a,b){for(let i=0;i<a.length-1;i++)for(let j=0;j<b.length-1;j++)if(segmentsIntersect(a[i],a[i+1],b[j],b[j+1]))return true;return false;}
+function normalizeGeo(g){if(!g||g.type!=='Polygon'||!Array.isArray(g.coordinates)||!g.coordinates.length)throw new Error('GEOFENCE_GEOMETRY_INVALID');const coordinates=g.coordinates.map(validateRing),outer=coordinates[0];for(let i=1;i<coordinates.length;i++){const hole=coordinates[i];if(ringsIntersect(outer,hole)||!pointInRing(hole[0],outer))throw new Error('GEOFENCE_HOLE_OUTSIDE_EXTERIOR');for(let j=1;j<i;j++){if(ringsIntersect(coordinates[j],hole)||pointInRing(hole[0],coordinates[j])||pointInRing(coordinates[j][0],hole))throw new Error('GEOFENCE_HOLES_OVERLAP');}}return {type:'Polygon',coordinates};}
 function coversPoint(g,[lng,lat]){if(pointInRing([lng,lat],g.coordinates[0])){for(let i=1;i<g.coordinates.length;i++)if(pointInRing([lng,lat],g.coordinates[i]))return false;return true}return false}
 function attach(Store){const p=Store.prototype;
 p.createGeofence=function(ctx,d={}){requireRole(ctx.role,'write');const name=clean(d.name);if(!name||name.length>120)throw new Error('GEOFENCE_NAME_INVALID');let g;try{g=normalizeGeo(typeof d.geometry==='string'?JSON.parse(d.geometry):d.geometry)}catch(e){if(String(e.message).startsWith('GEOFENCE_'))throw e;throw new Error('GEOFENCE_GEOMETRY_INVALID')}const t=now(),gid=id('geo'),canon=JSON.stringify(g);this.db.prepare('INSERT INTO geofences(id,organization_id,name,geometry_json,enabled,created_by,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)').run(gid,ctx.organizationId,name,canon,d.enabled===false?0:1,ctx.userId,t,t);return {id:gid,organizationId:ctx.organizationId,name,enabled:d.enabled!==false,geometry:g,geometrySha256:crypto.createHash('sha256').update(canon).digest('hex'),createdAt:t}};
@@ -204,7 +210,7 @@ p.listMapViewport=function(ctx,d={}){
   const north=Number(d.north??d.maxLat??(bbox?bbox[3]:undefined));
   if(![west,south,east,north].every(Number.isFinite))
     throw Object.assign(new Error('VIEWPORT_BBOX_INVALID'),{status:422});
-  if(west<-180||east>180||south<-90||north>90||west>east||south>north)
+  if(west<-180||east>180||south<-90||north>90||west>=east||south>=north)
     throw Object.assign(new Error('VIEWPORT_BBOX_INVALID'),{status:422});
   const limit=Math.min(Math.max(Number(d.limit||500)||500,1),2000);
   const sites=this.db.prepare(
@@ -228,8 +234,28 @@ p.listMapViewport=function(ctx,d={}){
      WHERE organization_id=? AND longitude>=? AND longitude<=? AND latitude>=? AND latitude<=?
      ORDER BY recorded_at DESC LIMIT ?`
   ).all(ctx.organizationId, west, east, south, north, limit);
+  let spatialFeatures = null;
+  if (this.db.engine === 'postgres' && d.includeSpatialFeatures === true) {
+    const spatialRows = this.db.prepare(
+      `SELECT id,entity_type,entity_id,feature_key,
+              public.ST_AsGeoJSON(geom)::jsonb AS geometry,
+              properties,observed_at,updated_at
+         FROM opscore_security.spatial_features_in_viewport(?,?,?,?,?)`
+    ).all(west, south, east, north, Math.min(limit, 1000));
+    spatialFeatures = spatialRows.map(row => ({
+      id: row.id,
+      entityType: row.entity_type,
+      entityId: row.entity_id,
+      featureKey: row.feature_key,
+      geometry: parseGeoJsonValue(row.geometry),
+      properties: parseGeoJsonValue(row.properties),
+      observedAt: row.observed_at,
+      updatedAt: row.updated_at
+    }));
+  }
   // Optional geo-scope filter for non-admin
   let payload={sites,checkins,trail};
+  if (spatialFeatures !== null) payload.spatialFeatures = spatialFeatures;
   if(ctx.role!=='admin'&&ctx.role!=='owner'){
     const pack=this.listRoleIsolationPolygons(ctx);
     if(pack.polygons.length){
@@ -237,7 +263,10 @@ p.listMapViewport=function(ctx,d={}){
       payload={
         sites:sites.filter(s=>inside(Number(s.longitude),Number(s.latitude))),
         checkins:checkins.filter(c=>inside(Number(c.longitude),Number(c.latitude))),
-        trail:trail.filter(t=>inside(Number(t.longitude),Number(t.latitude)))
+        trail:trail.filter(t=>inside(Number(t.longitude),Number(t.latitude))),
+        ...(spatialFeatures !== null ? {spatialFeatures:spatialFeatures.filter(feature =>
+          feature.geometry?.type === 'Point' && pack.polygons.some(g => coversPoint(g.geometry, feature.geometry.coordinates))
+        )} : {})
       };
     }
   }
@@ -245,7 +274,7 @@ p.listMapViewport=function(ctx,d={}){
     schemaVersion:'opscore.map-viewport.v1',
     organizationId:ctx.organizationId,
     bbox:{west,south,east,north},
-    counts:{sites:payload.sites.length,checkins:payload.checkins.length,trail:payload.trail.length},
+    counts:{sites:payload.sites.length,checkins:payload.checkins.length,trail:payload.trail.length,...(Array.isArray(payload.spatialFeatures)?{spatialFeatures:payload.spatialFeatures.length}:{})},
     ...payload
   };
 };

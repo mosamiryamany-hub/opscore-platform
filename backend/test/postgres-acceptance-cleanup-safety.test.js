@@ -18,11 +18,18 @@ test('PostgreSQL acceptance cleanup never performs a table-wide users delete', (
 });
 
 test('bootstrap owner identity is tracked before the test can fail later', () => {
-  const idLine = source.indexOf('const ownerAId =');
+  const idLine = source.indexOf('let ownerAId =');
   const trackLine = source.indexOf('created.users.push(ownerAId)', idLine);
   const assertLine = source.indexOf("assert.ok(ownerAId, 'bootstrap must return the first owner identity')", idLine);
-  assert.ok(idLine >= 0 && trackLine > idLine && assertLine > trackLine,
-    'the owner must be registered for targeted cleanup before the following assertion');
+  const canonicalIdentityLine = source.indexOf('const authenticatedOwnerAId = x.data.user.id', assertLine);
+  const canonicalTrackLine = source.indexOf('created.users.push(authenticatedOwnerAId)', canonicalIdentityLine);
+  const canonicalAssignLine = source.indexOf('ownerAId = authenticatedOwnerAId', canonicalTrackLine);
+  assert.ok(idLine >= 0 && trackLine > idLine && assertLine > trackLine
+      && canonicalIdentityLine > assertLine && canonicalTrackLine > canonicalIdentityLine
+      && canonicalAssignLine > canonicalTrackLine,
+    'bootstrap and authenticated /me identities must both be tracked before canonical identity is used for tenant foreign keys');
+  assert.match(source, /ownerAMembership\.rowCount, 1/,
+    'the canonical owner must have a persisted tenant membership before GIS fixtures are inserted');
 });
 
 test('tenant B fixture IDs are tracked before any fixture write', () => {
@@ -119,6 +126,19 @@ test('privileged cleanup is exact-target only and never becomes the application 
   assert.ok(source.includes('identity.superuser !== false'));
   assert.match(source, /created\.organizations/);
   assert.match(source, /created\.users/);
+});
+
+test('GIS scale benchmark rate allowance is confined to the disposable PostgreSQL CI step', () => {
+  const workflowPath = path.join(__dirname, '..', '..', '.github', 'workflows', 'digital-twin-postgres-live.yml');
+  const workflow = fs.readFileSync(workflowPath, 'utf8');
+  const start = workflow.indexOf('Run real PostgreSQL HTTP and authenticated Dispatcher Map browser acceptance as opscore_runtime');
+  const nextStep = workflow.indexOf('\n      - name:', start + 1);
+  const step = workflow.slice(start, nextStep < 0 ? workflow.length : nextStep);
+  assert.ok(start >= 0, 'the real authenticated GIS acceptance step must exist');
+  assert.match(step, /FIREWALL_RATE_LIMIT:\s*'1000'/,
+    'only the disposable 3 x 100-sample benchmark step may raise its request budget');
+  assert.equal((workflow.match(/^\s*FIREWALL_RATE_LIMIT:/gm) || []).length, 1,
+    'the elevated test-only firewall request budget must not become a workflow-wide or production setting');
 });
 
 test('Preview and disposable PostgreSQL 18 pass separate exact-target migration-owner cleanup URLs', () => {

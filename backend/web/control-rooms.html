@@ -33,6 +33,7 @@
     <button class="btn btn--sm btn--ghost" type="button" data-palette aria-keyshortcuts="Meta+K Control+K"><span class="mono tiny muted">⌘K</span> Search</button>
     <button class="btn btn--sm btn--ghost" type="button" data-dir-toggle>ع</button>
     <button class="btn btn--sm" type="button" id="wallToggle" aria-pressed="false">Wall mode</button>
+    <a class="btn btn--sm btn--ghost" href="/dispatcher-map.html">Dispatcher map</a>
     <a class="btn btn--sm btn--ghost" href="/">Home</a>
   </header>
 
@@ -41,8 +42,8 @@
       <div class="rowline">
         <div>
           <div class="eyebrow">Operator rooms</div>
-          <h1>Nine rooms. One command fabric.</h1>
-          <p class="lede">Nine operational domains, presented as focused workspaces. Each room identifies its scope, governing API surface and enforcement boundary; live records remain inside the authenticated Control Plane.</p>
+          <h1>Ten rooms. One command fabric.</h1>
+          <p class="lede">Ten operational domains, presented as focused workspaces. Each room identifies its scope, governing API surface and enforcement boundary; live records remain inside the authenticated Control Plane.</p>
         </div>
       </div>
     </section>
@@ -169,12 +170,18 @@
         <div class="room__foot"><span class="badge">Governed workspace</span><span class="room__enter">Open</span></div>
       </article>
 
+      <article class="room" data-room="twin" tabindex="0" role="button" aria-label="Open Digital Twin room">
+        <div class="room__top"><div><div class="room__name">Digital Twin</div><div class="room__code">room-10 · twin</div></div><div class="room__signal">OPERATIONAL INTELLIGENCE</div></div>
+        <p class="surface__d">Tenant-scoped operational state, asset and work-order signals, persisted snapshots and integrity verification.</p>
+        <div class="room__foot"><span class="badge">Evidence-backed workspace</span><span class="room__enter">Open</span></div>
+      </article>
+
     </div>
 
     <section class="card" data-reveal>
       <div class="eyebrow">Boundary</div>
       <h3>What these rooms are not</h3>
-      <p class="muted small">This page is the navigation and command map for eight operational domains. It intentionally displays no invented load, risk, queue or integrity values. Live records and controls are resolved only inside the authenticated Control Plane, with tenant and role enforcement at the API boundary.</p>
+      <p class="muted small">This page is the navigation and command map for ten operational domains. It intentionally displays no invented load, risk, queue or integrity values. Live records and controls are resolved only inside the authenticated Control Plane, with tenant and role enforcement at the API boundary.</p>
       <div class="hero__cta">
         <a class="btn btn--primary" href="/control-plane.html">Open authenticated Control Plane</a>
         <a class="btn" href="/verify/release.html">Release proof</a>

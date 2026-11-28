@@ -1,10 +1,20 @@
 {
+  "id": "/",
   "name": "OpsCore — Operational Field Console",
   "short_name": "OpsCore",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#f5f7fb",
-  "theme_color": "#171c2b",
-  "description": "OpsCore operational field-service console.",
-  "icons": []
+  "orientation": "any",
+  "background_color": "#07111f",
+  "theme_color": "#07111f",
+  "description": "OpsCore operational field-service console. Online access is required for private records and actions.",
+  "icons": [
+    {
+      "src": "/icons/opscore-mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
 }

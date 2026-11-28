@@ -25,7 +25,7 @@ permissions:
 jobs:
   neon-preview-acceptance:
     name: Isolated Neon Preview migration and HTTP acceptance
-    if: (github.event_name == 'pull_request' && github.head_ref == 'ops/acceptance-neon-target-2026-11-19') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+    if: (github.event_name == 'pull_request' && (github.head_ref == 'ops/acceptance-neon-target-2026-11-19' || github.head_ref == 'test/dispatcher-map-postgres-browser-e2e-20261127')) || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
     needs: live-rls
     uses: ./.github/workflows/apply-preview-migrations.yml
     # Omit branch intentionally: the reusable workflow's workflow_call input
@@ -180,6 +180,11 @@ jobs:
       - name: Install backend package
         working-directory: backend
         run: npm ci --ignore-scripts --omit=peer
+      - name: Install Chromium for authenticated Dispatcher Map acceptance
+        working-directory: backend
+        run: |
+          npm install --no-save --package-lock=false playwright@1.65.1 pngjs@7.0.0
+          npx playwright install chromium
       - name: Apply full migrations to disposable acceptance databases
         working-directory: backend
         run: |
@@ -320,10 +325,12 @@ jobs:
       - name: Check live gate syntax
         run: |
           node --check backend/scripts/postgres-live-rls-gate.js
+          node --check backend/scripts/signed-tenant-context-postgres-gate.js
           node --check backend/scripts/apply-postgres-migrations.js
           node --check backend/scripts/postgres-tenant-composite-fk-gate.js
           node --check backend/scripts/postgres-logical-restore-drill.js
           node --check backend/src/adapters/postgres.js
+          node --check backend/src/geofencing.js
       - name: Run isolated PostgreSQL 18 tenant-isolation gate
         working-directory: backend
         run: |
@@ -339,11 +346,27 @@ jobs:
       - name: Run tenant composite foreign-key integrity gate
         working-directory: backend
         run: node scripts/postgres-tenant-composite-fk-gate.js
-      - name: Run real PostgreSQL HTTP commercial acceptance as opscore_runtime
+      - name: Run Digital Twin concurrency, RLS, application adapter and PostGIS gates
         working-directory: backend
         env:
+          OPSC_PG_TEST_URL: postgresql://postgres:postgres@127.0.0.1:5432/opscore_test
+          OPSC_PG_TWIN_RLS_URL: ${{ env.OPSC_PG_ACCEPTANCE_URL }}
+        run: |
+          set -euo pipefail
+          node --check scripts/twin-concurrency-postgis-gate.js
+          node scripts/twin-concurrency-postgis-gate.js
+      - name: Run real PostgreSQL HTTP and authenticated Dispatcher Map browser acceptance as opscore_runtime
+        working-directory: backend
+        env:
+          # Isolated disposable CI only: allow the 3 x 100-sample latency benchmark
+          # plus browser/contract requests inside one source-IP window. This does
+          # not alter Preview or Production firewall policy.
+          FIREWALL_RATE_LIMIT: '1000'
           OPSC_PG_ACCEPTANCE_STRICT: 'true'
           OPSC_WRITE_EVIDENCE: '1'
+          OPSC_MAP_BROWSER_E2E: 'true'
+          OPSC_POSTGIS_SCALE_BENCHMARK: 'true'
+          OPSC_MAP_BROWSER_ARTIFACT_DIR: ${{ runner.temp }}/dispatcher-map-postgres-browser-e2e
           OPSC_PG_ACCEPTANCE_RESULT_FILE: ${{ github.workspace }}/POSTGRES_HTTP_ACCEPTANCE_RESULT.json
           CI_COMMIT_SHA: ${{ github.sha }}
           CI_PIPELINE_ID: ${{ github.run_id }}
@@ -361,6 +384,15 @@ jobs:
           set -euo pipefail
           test -n "${OPSC_PG_ACCEPTANCE_URL:-}" || { echo "OPSC_PG_ACCEPTANCE_URL is required" >&2; exit 1; }
           node --test test/firewall-rate-limit-postgres.test.js
+
+      - name: Upload authenticated Dispatcher Map and PostGIS browser evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: opscore-dispatcher-map-authenticated-postgis-e2e
+          path: ${{ runner.temp }}/dispatcher-map-postgres-browser-e2e/
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Validate and export caller-bound PostgreSQL acceptance evidence
         id: publish_acceptance
@@ -529,7 +561,7 @@ jobs:
 
   production-neon-pitr-history-probe:
     name: Production Neon PITR historical branch probe (read-only)
-    if: (github.event_name == 'pull_request' && github.head_ref == 'fix/vercel-evidence-postgres-storage-2026-11-19') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+    if: (github.event_name == 'pull_request' && (github.head_ref == 'fix/vercel-evidence-postgres-storage-2026-11-19' || github.head_ref == 'test/twin-browser-rtl-responsive-20261127' || github.head_ref == 'test/dispatcher-map-postgres-browser-e2e-20261127')) || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
     needs: live-rls
     runs-on: ubuntu-24.04
     timeout-minutes: 12
