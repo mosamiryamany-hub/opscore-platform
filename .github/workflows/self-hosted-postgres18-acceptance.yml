@@ -81,15 +81,19 @@ jobs:
             printf 'OPSC_TEST_SUPERUSER_PASSWORD=%s\n' "$SUPERUSER_PASSWORD"
           } >> "$GITHUB_ENV"
 
-      - name: Build PostgreSQL 18 + PostGIS + pgvector acceptance image
+      - name: Validate buyer PostgreSQL Compose configuration
+        env:
+          POSTGRES_SUPERUSER_PASSWORD: ci-config-validation-only
+          OPSCORE_RUNTIME_PASSWORD: ci-config-validation-only
+          OPSCORE_MIGRATOR_PASSWORD: ci-config-validation-only
+          OPSCORE_WORKER_PASSWORD: ci-config-validation-only
+        run: docker compose -f backend/docker-compose.postgres.yml config --quiet
+
+      - name: Build the exact buyer PostgreSQL image used by Compose
         shell: bash
         run: |
           set -euo pipefail
-          cat > "$RUNNER_TEMP/Dockerfile.opscore-pg18" <<'EOF'
-          FROM postgis/postgis:18-3.7@sha256:57e61cca60b05756e56da5979c23f8360c13d3eb18d1cfbd9e44c467c5926c87
-          RUN apt-get update && apt-get install -y --no-install-recommends postgresql-18-pgvector=0.8.7-2.pgdg13+1 postgresql-contrib-18 && rm -rf /var/lib/apt/lists/*
-          EOF
-          docker build --pull -t opscore-postgres18-postgis-pgvector -f "$RUNNER_TEMP/Dockerfile.opscore-pg18" "$RUNNER_TEMP"
+          docker build --pull -t opscore-postgres:18-postgis-3.7-pgvector-0.8.7 -f backend/docker/postgres/Dockerfile backend
 
       - name: Start PostgreSQL 18 + PostGIS + pgvector with repository role initializer
         shell: bash
