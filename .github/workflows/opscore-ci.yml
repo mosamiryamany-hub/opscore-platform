@@ -87,7 +87,7 @@ jobs:
             migration_owner_ok boolean;
             ledger_count bigint;
           BEGIN
-            SELECT rolcanlogin AND NOT rolsuper AND rolbypassrls
+            SELECT rolcanlogin AND NOT rolsuper AND rolbypassrls AND rolinherit
               AND NOT rolcreatedb AND NOT rolcreaterole
               INTO migrator_ok FROM pg_roles WHERE rolname='opscore_migrator';
             SELECT rolcanlogin AND NOT rolsuper AND NOT rolbypassrls
