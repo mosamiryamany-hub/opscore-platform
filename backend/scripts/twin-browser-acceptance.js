@@ -50,7 +50,7 @@ const { chromium } = require('playwright');
     const staticApiResponses = await Promise.all([contactStatusProbe, contactQueueProbe, contactMeProbe]);
     assert.deepEqual(staticApiResponses.map(response => response.status()), [404, 404, 404],
       'static-only harness must expose unavailable Contact Center APIs as 404, never synthetic success');
-    assert.equal(await page.locator('#ccrQueueState').innerText(), 'Queue unavailable');
+    assert.equal(await page.locator('#ccrQueueState').innerText(), 'QUEUE UNAVAILABLE');
     assert.equal(await page.locator('.ccr-shell').count(), 1, 'Contact Center route must resolve from Control Rooms');
     assert.equal(await page.locator('#ccrCrmProfile').count(), 1, 'CRM profile surface must exist');
     assert.equal(await page.locator('#ccrSupervisorActivity').count(), 1, 'Supervisor activity surface must exist');
