@@ -180,7 +180,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          docker logs --tail 180 opscore-self-hosted-pg18 2>&1 | tail -n 180
+          docker logs --since 5m opscore-self-hosted-pg18 2>&1
 
       - name: Upload isolated acceptance evidence
         if: always()
