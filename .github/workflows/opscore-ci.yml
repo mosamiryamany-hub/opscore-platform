@@ -12,9 +12,119 @@ permissions:
 jobs:
   twin-postgres-acceptance:
     name: digital-twin-postgres-18-postgis-acceptance
-    if: github.event_name == 'pull_request' && (github.head_ref == 'feat/digital-twin-gis-command-suite-20261127' || github.head_ref == 'test/twin-browser-rtl-responsive-20261127' || github.head_ref == 'feat/postgis-tenant-spatial-schema-20261127' || github.head_ref == 'feat/gis-signed-rls-query-contract-20261127' || github.head_ref == 'test/dispatcher-map-postgres-browser-e2e-20261127')
+    if: github.event_name == 'pull_request' && (github.head_ref == 'feat/digital-twin-gis-command-suite-20261127' || github.head_ref == 'test/twin-browser-rtl-responsive-20261127' || github.head_ref == 'feat/postgis-tenant-spatial-schema-20261127' || github.head_ref == 'feat/gis-signed-rls-query-contract-20261127' || github.head_ref == 'test/dispatcher-map-postgres-browser-e2e-20261127' || github.head_ref == 'feat/self-hosted-runtime-compose-caddy')
     uses: ./.github/workflows/digital-twin-postgres-live.yml
     secrets: inherit
+
+  self-hosted-compose-acceptance:
+    name: self-hosted-compose-fresh-db-acceptance
+    if: github.event_name == 'pull_request' && github.head_ref == 'feat/self-hosted-runtime-compose-caddy'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Verify Docker Compose version
+        run: docker compose version
+      - name: Create isolated self-hosted environment file
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            printf 'POSTGRES_SUPERUSER_PASSWORD=%s\n' "$(openssl rand -hex 32)"
+            printf 'OPSCORE_RUNTIME_PASSWORD=%s\n' "$(openssl rand -hex 32)"
+            printf 'OPSCORE_MIGRATOR_PASSWORD=%s\n' "$(openssl rand -hex 32)"
+            printf 'OPSCORE_WORKER_PASSWORD=%s\n' "$(openssl rand -hex 32)"
+            printf 'POSTGRES_DB=opscore\n'
+            printf 'POSTGRES_PORT=15432\n'
+            printf 'OPSCORE_PUBLIC_HOST=localhost\n'
+            printf 'CADDY_HTTP_PORT=18080\n'
+            printf 'CADDY_HTTPS_PORT=18443\n'
+            printf 'OPSC_EXPECTED_INSTANCES=1\n'
+            printf 'OPSC_PRODUCTION_HOLD=false\n'
+          } > backend/.env.self-hosted
+          chmod 600 backend/.env.self-hosted
+          sh backend/scripts/generate-self-hosted-db-certs.sh backend/.secrets
+      - name: Validate rendered Compose configuration
+        run: docker compose --env-file .env.self-hosted -f docker-compose.self-hosted.yml config --quiet
+        working-directory: backend
+      - name: Build and start fresh self-hosted stack
+        working-directory: backend
+        run: docker compose --env-file .env.self-hosted -f docker-compose.self-hosted.yml up --build -d
+      - name: Verify migration completion, least-privilege roles, extensions, and app through Caddy
+        working-directory: backend
+        shell: bash
+        run: |
+          set -euo pipefail
+          compose=(docker compose --env-file .env.self-hosted -f docker-compose.self-hosted.yml)
+          migrate_id="$(${compose[@]} ps -aq migrate)"
+          test -n "${migrate_id}" || { echo "Migration container was not created" >&2; exit 1; }
+          migrate_exit="$(docker inspect "${migrate_id}" --format '{{.State.ExitCode}}')"
+          test "${migrate_exit}" = "0" || {
+            ${compose[@]} logs --no-color migrate
+            echo "Self-hosted migration container exited with ${migrate_exit}" >&2
+            exit 1
+          }
+          ready=0
+          for attempt in $(seq 1 36); do
+            if curl --insecure --fail --silent --show-error https://localhost:18443/api/health >/tmp/opscore-health.json; then
+              ready=1
+              break
+            fi
+            sleep 5
+          done
+          test "${ready}" = "1" || {
+            ${compose[@]} ps --all
+            ${compose[@]} logs --no-color db migrate app caddy
+            echo "Self-hosted app did not become healthy through Caddy" >&2
+            exit 1
+          }
+          ${compose[@]} exec -T db psql -U postgres -d opscore -v ON_ERROR_STOP=1 <<'SQL'
+          DO $verify$
+          DECLARE
+            migrator_ok boolean;
+            runtime_ok boolean;
+            worker_ok boolean;
+            migration_owner_ok boolean;
+            ledger_count bigint;
+          BEGIN
+            SELECT rolcanlogin AND NOT rolsuper AND rolbypassrls AND rolinherit
+              AND NOT rolcreatedb AND NOT rolcreaterole
+              INTO migrator_ok FROM pg_roles WHERE rolname='opscore_migrator';
+            SELECT rolcanlogin AND NOT rolsuper AND NOT rolbypassrls
+              AND NOT rolcreatedb AND NOT rolcreaterole
+              INTO runtime_ok FROM pg_roles WHERE rolname='opscore_runtime';
+            SELECT rolcanlogin AND NOT rolsuper AND NOT rolbypassrls
+              AND NOT rolcreatedb AND NOT rolcreaterole
+              INTO worker_ok FROM pg_roles WHERE rolname='opscore_worker';
+            SELECT NOT rolcanlogin AND NOT rolsuper AND rolbypassrls
+              AND NOT rolcreatedb AND rolcreaterole
+              INTO migration_owner_ok FROM pg_roles WHERE rolname='neondb_owner';
+            SELECT count(*) INTO ledger_count FROM public.schema_migrations;
+            IF migrator_ok IS DISTINCT FROM true THEN RAISE EXCEPTION 'SELF_HOSTED_MIGRATOR_ROLE_INVALID'; END IF;
+            IF runtime_ok IS DISTINCT FROM true THEN RAISE EXCEPTION 'SELF_HOSTED_RUNTIME_ROLE_INVALID'; END IF;
+            IF worker_ok IS DISTINCT FROM true THEN RAISE EXCEPTION 'SELF_HOSTED_WORKER_ROLE_INVALID'; END IF;
+            IF migration_owner_ok IS DISTINCT FROM true THEN RAISE EXCEPTION 'SELF_HOSTED_MIGRATION_OWNER_ROLE_INVALID'; END IF;
+            IF NOT pg_has_role('opscore_migrator','neondb_owner','SET') THEN RAISE EXCEPTION 'SELF_HOSTED_MIGRATOR_OWNER_MEMBERSHIP_MISSING'; END IF;
+            IF pg_has_role('opscore_runtime','neondb_owner','MEMBER') THEN RAISE EXCEPTION 'SELF_HOSTED_RUNTIME_HAS_MIGRATION_OWNER_MEMBERSHIP'; END IF;
+            IF ledger_count < 1 THEN RAISE EXCEPTION 'SELF_HOSTED_MIGRATION_LEDGER_EMPTY'; END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname='postgis') THEN RAISE EXCEPTION 'SELF_HOSTED_POSTGIS_MISSING'; END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname='vector') THEN RAISE EXCEPTION 'SELF_HOSTED_PGVECTOR_MISSING'; END IF;
+            IF NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname='pgcrypto') THEN RAISE EXCEPTION 'SELF_HOSTED_PGCRYPTO_MISSING'; END IF;
+          END
+          $verify$;
+          SQL
+          cat /tmp/opscore-health.json
+          ${compose[@]} ps --all
+      - name: Always collect self-hosted logs and destroy disposable volumes
+        if: always()
+        working-directory: backend
+        run: |
+          docker compose --env-file .env.self-hosted -f docker-compose.self-hosted.yml logs --no-color || true
+          docker compose --env-file .env.self-hosted -f docker-compose.self-hosted.yml down --volumes --remove-orphans || true
+          rm -f .env.self-hosted
+          rm -rf .secrets
 
   verify:
     runs-on: ubuntu-24.04

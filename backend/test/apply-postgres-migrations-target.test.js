@@ -64,6 +64,28 @@ test('Preview, Production and test migrations require the exact Neon migration o
   );
 });
 
+test('self-hosted Compose authenticates with opscore_migrator and switches to the non-login canonical owner', () => {
+  const env = envFor('test', {
+    OPSC_MIGRATION_ALLOW_DOCKER_COMPOSE_HOST: '1',
+    OPSC_MIGRATION_EXPECTED_OWNER_ROLE: 'opscore_migrator'
+  });
+  assert.equal(expectedMigrationOwnerRole(env), 'opscore_migrator');
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const source = fs.readFileSync(path.join(__dirname, '../scripts/apply-postgres-migrations.js'), 'utf8');
+  assert.match(source, /SET ROLE neondb_owner/);
+  assert.match(source, /MIGRATION_SELF_HOSTED_OWNER_ROLE_MEMBERSHIP_REQUIRED/);
+  assert.match(source, /const migrationOwnerRole=selfHostedComposeTarget\?'neondb_owner':info\.role/);
+  assert.match(source, /\[migrationOwnerRole\]/);
+  assert.throws(
+    () => expectedMigrationOwnerRole(envFor('test', {
+      OPSC_MIGRATION_ALLOW_DOCKER_COMPOSE_HOST: '1',
+      OPSC_MIGRATION_EXPECTED_OWNER_ROLE: 'neondb_owner'
+    })),
+    /MIGRATION_OWNER_ROLE_NOT_ALLOWED/
+  );
+});
+
 test('pinned Neon identity is limited to the exact disposable Preview project, branch, direct host and database', async () => {
   const env = {
     ...envFor('preview', { OPSC_MIGRATION_EXPECTED_OWNER_ROLE: 'neondb_owner' }),

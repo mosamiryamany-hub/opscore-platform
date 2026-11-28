@@ -3,3 +3,6 @@ data/
 *.sqlite-*
 *.db
 .env
+
+# Buyer-generated TLS keys and certificates.
+.secrets/
