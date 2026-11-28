@@ -41,8 +41,12 @@ SELECT format('CREATE ROLE opscore_worker LOGIN NOSUPERUSER NOBYPASSRLS NOINHERI
 WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'opscore_worker')
 \gexec
 
-GRANT neondb_owner TO opscore_migrator WITH INHERIT FALSE, SET TRUE;
-GRANT opscore_auth_definer TO neondb_owner WITH INHERIT TRUE, SET TRUE;
+GRANT neondb_owner TO opscore_migrator WITH INHERIT TRUE, SET TRUE;
+GRANT opscore_auth_definer TO neondb_owner WITH INHERIT FALSE, SET TRUE;
+
+CREATE SCHEMA IF NOT EXISTS opscore_security AUTHORIZATION opscore_auth_definer;
+ALTER SCHEMA opscore_security OWNER TO opscore_auth_definer;
+GRANT USAGE, CREATE ON SCHEMA opscore_security TO neondb_owner;
 
 DO $verify$
 DECLARE
@@ -76,14 +80,16 @@ BEGIN
   IF owner_role.rolname IS NULL OR owner_role.rolcanlogin OR owner_role.rolsuper
      OR NOT owner_role.rolbypassrls OR owner_role.rolcreaterole
      OR owner_role.rolcreatedb OR owner_role.rolinherit
-     OR NOT pg_has_role('opscore_migrator', 'neondb_owner', 'SET') THEN
+     OR NOT pg_has_role('opscore_migrator', 'neondb_owner', 'SET')
+     OR NOT pg_has_role('opscore_migrator', 'neondb_owner', 'USAGE') THEN
     RAISE EXCEPTION 'OPSCORE_MIGRATION_OWNER_ROLE_CONTRACT_FAILED';
   END IF;
   IF auth_definer_role.rolname IS NULL OR auth_definer_role.rolcanlogin OR auth_definer_role.rolsuper
      OR NOT auth_definer_role.rolbypassrls OR auth_definer_role.rolcreaterole
      OR auth_definer_role.rolcreatedb OR auth_definer_role.rolinherit
      OR NOT pg_has_role('neondb_owner', 'opscore_auth_definer', 'SET')
-     OR NOT pg_has_role('neondb_owner', 'opscore_auth_definer', 'USAGE') THEN
+     OR pg_has_role('neondb_owner', 'opscore_auth_definer', 'USAGE')
+     OR NOT has_schema_privilege('neondb_owner', 'opscore_security', 'CREATE') THEN
     RAISE EXCEPTION 'OPSCORE_AUTH_DEFINER_ROLE_CONTRACT_FAILED';
   END IF;
 END

@@ -586,9 +586,11 @@ test('self-hosted PostgreSQL role initializer reads secrets and validates runtim
   assert.match(source, /CREATE ROLE opscore_migrator LOGIN NOSUPERUSER BYPASSRLS NOINHERIT/);
   assert.match(source, /CREATE ROLE neondb_owner NOLOGIN NOSUPERUSER BYPASSRLS NOCREATEDB NOCREATEROLE NOINHERIT/);
   assert.match(source, /CREATE ROLE opscore_auth_definer NOLOGIN NOSUPERUSER BYPASSRLS NOCREATEDB NOCREATEROLE NOINHERIT/);
-  assert.match(source, /GRANT neondb_owner TO opscore_migrator WITH INHERIT FALSE, SET TRUE/);
-  assert.match(source, /GRANT opscore_auth_definer TO neondb_owner WITH INHERIT TRUE, SET TRUE/);
+  assert.match(source, /GRANT neondb_owner TO opscore_migrator WITH INHERIT TRUE, SET TRUE/);
+  assert.match(source, /GRANT opscore_auth_definer TO neondb_owner WITH INHERIT FALSE, SET TRUE/);
   assert.match(source, /ALTER DATABASE %I OWNER TO neondb_owner/);
+  assert.match(source, /CREATE SCHEMA IF NOT EXISTS opscore_security AUTHORIZATION opscore_auth_definer/);
+  assert.match(source, /GRANT USAGE, CREATE ON SCHEMA opscore_security TO neondb_owner/);
   assert.match(source, /OPSCORE_RUNTIME_ROLE_CONTRACT_FAILED/);
   assert.match(source, /OPSCORE_MIGRATOR_ROLE_CONTRACT_FAILED/);
   assert.match(source, /OPSCORE_WORKER_ROLE_CONTRACT_FAILED/);
@@ -603,6 +605,8 @@ test('self-hosted migration uses a local no-login compatibility owner without ch
   const runner = fs.readFileSync(path.join(__dirname, '../scripts/apply-postgres-migrations.js'), 'utf8');
   assert.match(runner, /targetClass==='self-hosted-explicit-target'\?'neondb_owner':info\.role/);
   assert.match(runner, /SET ROLE neondb_owner/);
+  assert.match(runner, /SET LOCAL ROLE neondb_owner/);
+  assert.match(runner, /authDefinerContract\.can_inherit/);
   assert.match(runner, /MIGRATION_SELF_HOSTED_OWNER_ROLE_CONTRACT_FAILED/);
   assert.match(runner, /MIGRATION_SELF_HOSTED_AUTH_DEFINER_ROLE_CONTRACT_FAILED/);
   assert.match(runner, /set_config\('opscore\.fn_owner',\$1,true\).*migrationOwnerRole/);
