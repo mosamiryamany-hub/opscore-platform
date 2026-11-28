@@ -332,3 +332,33 @@ A second reconciliation pass compared the Git blob SHA for every path listed by 
 This reconciliation changed only this audit report on `audit/source-baseline-2026-11-28`. No source, migration, workflow, package manifest, lockfile, secret, environment, Neon, Vercel, DNS, deployment, database or main-branch content was modified. No PR was merged, closed, rebased, force-pushed or dispatched.
 
 **Phase 0 remains OPEN.** The next safe action is patch-level review of only the differing/new paths, followed by separate current-main-based candidate branches for independently testable slices. No broad stacked cherry-pick is authorized by this evidence. Candidate branches must run current-main verification and the relevant isolated acceptance gates before Phase 0 can close.
+
+
+### 11.3 Patch-level risk findings from the unique deltas
+
+The unique paths were not accepted automatically. Focused patch inspection found these additional constraints:
+
+- **PR #510 — implicit Neon target:** `.github/workflows/apply-preview-migrations.yml` changes the caller's empty branch input into the hard-coded branch `br-muddy-pine-bbrexgxx` and defaults the database name to `opscore_acceptance`. This is not an explicit disposable target supplied by the operator. The workflow must require an explicit branch and verify its disposable lifecycle before any future dispatch. No workflow was dispatched.
+- **PR #510 — browser evidence scope:** `twin-browser-acceptance.js` deliberately runs against a static file server and asserts that `/api/v1/me` returns 404; it checks page loading, responsive widths, RTL toggling and disabled controls. This is useful static layout acceptance, but it is not authenticated browser acceptance, live API acceptance, or real-device acceptance. Its report boundary says so.
+- **PR #510 — spatial scale:** the unique signed-tenant spatial proof seeds 40,000 rows per tenant (80,000 total) and performs a 10-sample latency measurement plus an EXPLAIN/BUFFERS plan check. That is useful tenant/RLS/GiST evidence, but it does not satisfy the 1,000,000-row performance gate or a robust P50/P95/P99 distribution requirement.
+- **PR #513 — separate Neon evidence:** a PR comment records a disposable Neon child-branch test with 1,000,000 `spatial_features` rows across two tenants, migration ledger at 076, a validated CRM composite tenant FK, preserved RLS/FORCE RLS, and CRM cross-tenant/delete-integrity checks. It also records PostgreSQL 18 acceptance and full CI passing on the exact #513 head. This is useful isolated-branch evidence only; the same comment explicitly says it does not certify application-runtime HMAC/RLS session behavior or production. The comment does not change the fact that #513's three PR-listed source files are identical to current main.
+- **PR #494 — obsolete migration path:** its unique CRM migration is numbered 073 and its acceptance script applies that path in a synthetic fixture. Current main already has GIS 073–075 and CRM 076. The PR's 073 migration cannot be applied. The CRM application code and much of its API/test surface already match main; do not cherry-pick the PR wholesale or revive its old 073 acceptance workflow/script as if they were current.
+- **PR #497 — backup evidence boundary:** the encrypted backup helper uses AES-256-GCM, decrypts its output and runs `pg_restore --list`; the code itself explicitly warns that archive-list validation is not a full database restore. It does not establish an actual isolated restore, PITR, RPO/RTO, off-host copy, or key-rotation drill. Its custom CA handling for the PostgreSQL adapter also needs to be verified separately in the backup subprocess path; the backup helper currently selects `PGSSLMODE` but does not explicitly map the application's `OPSC_PG_CA_CERT` setting into `PGSSLROOTCERT`.
+- **PR #490 — OIDC status:** the PR adds server-side Authorization Code + PKCE flow and UI contract checks. Those source changes and tests are not evidence that a live Keycloak realm, broker aliases, provider callback registrations, secrets, or real user login work. Its own deployment contract lists those external prerequisites.
+- **PR #491 — infrastructure mutation:** the new Neon acceptance script and branch-provisioning logic remain unexecuted in this audit. Do not run them against any persistent or production branch. Require a disposable branch ID, owner-approved cleanup policy, and verified no-production target before a future test.
+
+### 11.4 Candidate selection after source reconciliation
+
+No code delta was copied into a new integration branch in this pass. That is intentional: the remaining unique changes are not one coherent feature and include runtime, workflow, migration, infrastructure, UI and identity changes with different acceptance requirements. Applying them together would recreate the same stacked-PR risk this audit was meant to remove.
+
+The safe order for the next Phase 0 work is:
+
+1. Mark #513 as source-redundant against current main; retain its Neon evidence as evidence only.
+2. Keep #494's migration 073 and its dependent workflow/script blocked; determine whether any genuinely missing CRM contract delta remains after comparing the current main OpenAPI and application routes.
+3. Review GIS/Digital Twin unique files independently (#503, #505, #508, #499, #498, then the #510 aggregate) and reject the fixed Neon branch default. Any accepted branch must be based on current main and must use explicit, disposable test targets.
+4. Review #496 map/Android deltas independently; treat Android preview APK CI as a build artifact, not physical-device acceptance.
+5. Review #495 UI changes with real browser evidence and accessibility findings; do not treat its report as proof of all viewports or languages.
+6. Review #497 self-hosted source separately, then require an actual clean-host install and a full restore drill before accepting backup claims.
+7. Review #491 only after a disposable Neon branch lifecycle is explicitly authorized; review #490 only with a live Keycloak test realm and provisioned test identities.
+
+**Phase 0 remains OPEN.** Current-main source identity and PR file-level reconciliation are complete for the 15 open PRs. Patch-level review has identified hard blockers and evidence boundaries, but candidate code has not yet been selectively applied or retested. No Phase 1 infrastructure actions are authorized by this report.
