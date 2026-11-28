@@ -12,7 +12,7 @@
 
 ```bash
 cd backend
-cp .env.self-hosted.example .env.self-hosted
+cp ../docs/self-hosted/env.self-hosted.example .env.self-hosted
 # Edit every placeholder secret before starting. Do not commit this file.
 docker compose --env-file .env.self-hosted -f docker-compose.self-hosted.yml config --quiet
 docker compose --env-file .env.self-hosted -f docker-compose.self-hosted.yml up --build -d
