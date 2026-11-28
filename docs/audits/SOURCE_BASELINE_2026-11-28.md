@@ -516,3 +516,78 @@ The migration role remains distinct from the application runtime role. The runti
 ### 13.4 Current branch and production boundary
 
 All changes described above are on isolated pull-request branches. PR #518, #522 and #497 are not merged to `main`; no production deployment, Neon Preview migration, historical PITR, or real-device acceptance is claimed. Current `main` remains at the recorded baseline SHA until an explicitly reviewed merge.
+
+
+## 14. Fresh revalidation after candidate head advanced — 2026-11-28 12:20 UTC
+
+This addendum records a fresh read of GitHub state after the buyer-delivery branch advanced. It does not replace the fixed main baseline above.
+
+### 14.1 Current main and source inventory
+
+- Current `main` still resolves to `f68ec555e5b296ba7ec63c04a4cb1c5d321d8187` (`fix(release): verify canonical production domain`, 2026-11-28 03:14:38 UTC).
+- A fresh, non-truncated recursive tree read of `main` returned 1,010 entries: 75 PostgreSQL migration files (latest 076), 193 backend test files matching `backend/test/*.test.js`, and 38 workflow YAML files.
+- The buyer candidate branch `feat/turnkey-buyer-delivery-20261127` currently resolves to `cc613653cac548be8d1600216260e4b468ff1e12`. Its non-truncated tree has 1,024 entries, 75 PostgreSQL migrations, 196 backend test files under the same filename rule, and 39 workflow YAML files.
+- Comparing current main to that candidate reports 82 commits ahead and 0 behind, with merge base equal to current main `f68ec555...`. PR #497 remains open, non-draft, 85 commits / 99 changed files, and is reported mergeable by GitHub. It is not merged. The PR metadata still records its original base SHA `3cc84f9...`; use the fresh compare result, not that stale base snapshot, for current ancestry interpretation.
+- The candidate is a broad stacked delivery change, not a small isolated fix. Its current head and all checks must be treated as one exact revision; results from earlier heads do not transfer automatically.
+
+### 14.2 Current candidate CI snapshot
+
+Latest observed run group for head `cc613653...`:
+- OpsCore CI run `46143979256`: **SUCCESS**; its `verify` job passed. CodeQL Actions / JavaScript-TypeScript / Python checks for this candidate also reported success.
+- Self-hosted PostgreSQL 18 acceptance run `46143979276`: **FAILURE**, job `140975872383`.
+- Combined GIS + Contact Center PostgreSQL 18 acceptance run `46143979318`: **IN_PROGRESS** at the last poll. Its full migrations, signed tenant context checks, 67-route evidence, tenant isolation gate, composite-FK gate, logical restore drill, and Twin/PostGIS gates had passed; authenticated HTTP/Dispatcher Map browser acceptance and final evidence publication were still running.
+- Android preview run `46143979284`: **IN_PROGRESS** at the last poll, specifically at APK build/upload. It is a preview build, not a signed production binary or physical-device test.
+- Vercel deploy run `46143979290`: **IN_PROGRESS** at the last poll. No promotion or production success is inferred.
+- `apply-preview-migrations` run `46143979305`: **SKIPPED**.
+- Current candidate run group does not establish a Neon Preview migration, Neon PITR, or current production deployment binding.
+
+### 14.3 New exact self-hosted failure — Migration 075
+
+Run `46143979276` successfully:
+- validated the buyer PostgreSQL Compose configuration;
+- built the repository PostgreSQL 18 image;
+- initialized PostgreSQL 18 + PostGIS + pgvector;
+- initialized the database roles;
+- installed backend dependencies;
+- began the full migration apply using TLS `verify-full`.
+
+It then failed while applying `075_signed_rls_spatial_viewport_query.sql` with PostgreSQL SQLSTATE `42501`:
+
+`must be owner of function opscore_security.spatial_features_in_viewport`.
+
+The captured SQL context shows migration 075 executes `RESET ROLE` before `ALTER FUNCTION ... OWNER TO opscore_auth_definer`. The current migration runner sets the local migration role to `neondb_owner` for the self-hosted target and uses a separate `opscore_auth_definer` role only for migrations selected by `selfHostedMigrationExecutionRole`; after `RESET ROLE`, the session returns to the login role. This source interaction is the immediate ownership path to investigate. Do not change immutable migration bytes until the owner/role transition is proven and an isolated regression test is designed.
+
+No acceptance artifact was uploaded for this failed run because the workflow's expected evidence text file was absent after the migration failure. The database container was removed by the cleanup step. This was an isolated GitHub Actions database, not Neon or production.
+
+### 14.4 PR #528 is stale and does not resolve the latest failure
+
+- PR #528 remains open and draft; head `ff5c7c288896dc5c9169271a59387aa14b0deb02`.
+- Its base branch now points at candidate head `cc613653...`, while its branch was created from ancestor `77dd8c470d8407653d9fad78a76f53f1ea0441ee`.
+- Fresh compare of the current candidate branch against PR #528 reports **diverged: ahead 2 / behind 4**, with merge base `77dd8c...`; GitHub reports `mergeable=false`.
+- Its two-file diff changes the bootstrap owner of `opscore_security` and relaxes a source assertion. It does not change migration 075 or the runner's role-reset semantics. The current candidate self-hosted run has moved beyond the earlier Migration 063 failure and now fails at Migration 075.
+- Therefore PR #528 is **not safe to merge or treat as the current fix**. Keep it unmerged; reconcile or supersede only after a fresh branch from the current candidate head and a focused root-cause test.
+
+### 14.5 Current Phase 0 disposition
+
+**Confirmed**
+- Current main SHA and protected baseline identity from the existing source audit.
+- Fresh main/candidate source-tree counts and migration ceiling.
+- Candidate head, current PR #497 state, current candidate CI run IDs and conclusions listed above.
+- A reproducible self-hosted Migration 075 ownership failure from the latest isolated run log.
+- PR #528 is divergent from the current candidate and does not address the current Migration 075 failure.
+
+**Implemented**
+- The source baseline report exists on `audit/source-baseline-2026-11-28`, which compares as 8 commits ahead / 0 behind current main; its only changed path relative to main is this report. The audit branch remains documentation-only.
+
+**Unresolved**
+- Self-hosted migration ownership/role-reset defect at Migration 075.
+- Completion of the latest combined GIS/Contact Center run, Android preview build, and Vercel candidate checks.
+- Candidate branch/PR stack review and safe disposition of stale PR #528.
+
+**Unverified / deliberately not claimed in Phase 0**
+- Neon project/branch/database and PITR state; Vercel live project/deployment/domain binding; secrets and environment values.
+- Actual production database identity or live runtime behavior.
+- Clean buyer-host install, full app+database+TLS ingress deployment, backup restore, or RPO/RTO.
+- Physical Android/iOS device acceptance, signed store builds, object-storage durability, and live third-party integrations.
+
+**Phase 0 status remains OPEN.** Source inventory is refreshed, but the candidate disposition and latest in-flight checks are not complete. No Phase 1 work is authorized by this addendum. No source code, migration, workflow, `main`, production, Neon, or Vercel resource was changed during this revalidation.
