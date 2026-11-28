@@ -287,3 +287,48 @@ The runtime identity checks are useful, but an implicit branch default makes tar
 ## 10. Phase 0 exit decision after PR review
 
 The source/branch forensic review is now substantially complete, but **Phase 0 remains OPEN** because the open PR stacks have not yet been reconciled at current main, and no candidate has been safely rebased, rebuilt and re-tested on an isolated branch. The correct next action within Phase 0 is to create a consolidated, current-main-based integration candidate containing only the required, non-conflicting deltas after explicit selection, then run source-level and isolated tests. Do not start Phase 1 or merge anything based only on the historical PR check results.
+
+
+## 11. Exact PR-file reconciliation against current main (2026-11-28)
+
+A second reconciliation pass compared the Git blob SHA for every path listed by each open PR against the same path in the fixed current-main tree. This is a content-identity comparison, not a merge-base or commit-count comparison. Main remained at `f68ec555e5b296ba7ec63c04a4cb1c5d321d8187`; the main tree contained 1,010 entries and was not truncated. Each PR head tree was also non-truncated.
+
+**Meaning of the classifications:**
+- `identical-to-main`: exact Git blob SHA match; that path contributes no source delta to main even if it remains listed in the PR's diff against an older base.
+- `differs-from-main`: file exists in both trees but its blob differs; content-level review is still required to decide whether the branch is newer, stale, or a regression.
+- `new-vs-main`: file exists on the PR head but not in current main.
+- No PR file in this pass was missing from its own head tree.
+
+| PR | Paths in PR file list | Identical to main | Differ/new vs main | Exact disposition |
+|---|---:|---:|---:|---|
+| #513 | 3 | 3 | 0 | **No source delta against current main.** Its workflow, CRM acceptance script and migration 076 are all byte-identical to main. The PR is a no-op relative to current main, although its comment contains useful isolated Neon acceptance evidence. |
+| #510 | 45 | 38 | 7 | Only seven listed paths differ: Digital Twin browser workflow, signed-tenant-context gate, Twin browser acceptance script, server.js, contact-center workbench test, control-rooms.html and rooms.js. All three GIS migrations 073–075 and the other listed GIS/PWA files are already byte-identical to main. |
+| #509 | 9 | 8 | 1 | Only backend/src/server.js differs from main; the other eight listed paths are identical. Same head as #510, but its declared base makes it a different stacked diff view. |
+| #508 | 6 | 4 | 2 | Unique content remains in twin-browser-acceptance.js and dispatcher-map.js. The GeoJSON test/module and map CSS/HTML are already identical to main. |
+| #505 | 6 | 2 | 4 | The 075 migration and geofencing.js are identical to main. The Digital Twin PostgreSQL workflow, OpsCore CI workflow, signed tenant-context gate and server.js differ and require content review. |
+| #503 | 3 | 2 | 1 | Migration 074 and postgres-live-rls-gate.js are identical to main. Only the OpsCore CI workflow differs. |
+| #499 | 6 | 2 | 4 | The concurrency gate and Twin room JS are identical to main. Browser/PostgreSQL/CI workflows and twin-browser-acceptance.js differ. |
+| #498 | 19 | 10 | 9 | Migration 073, platform-intelligence-layer.js, Twin contract tests, GeoMap test, service-worker test, architecture documents and several UI files are identical. Nine paths differ: Twin PostgreSQL/CI workflows, concurrency gate, geofencing, contact-center workbench test, PostgreSQL HTTP acceptance test, control-rooms.html, digital-twin-room.js and rooms.js. |
+| #497 | 25 | 0 | 25 | All 25 listed paths differ from or are new to main. This is a substantive self-hosted/buyer-delivery candidate, not a no-op. It needs isolated review and tests; its presence does not prove restore or buyer install. |
+| #496 | 17 | 10 | 7 | PWA workflow, PWA audit script, control-plane page, icon, manifest, offline page, PWA registration, service worker and self-hosted docs are identical. Seven paths differ: Android preview workflow, server.js, control-rooms.html, Dispatcher Map CSS/HTML/JS and index.html. |
+| #495 | 19 | 0 | 19 | All 19 listed UI/accessibility/design paths differ from or are new to main. This is a substantive UI candidate and requires visual/browser review against current main. |
+| #494 | 19 | 14 | 5 | Most CRM application files and tests are identical. Five paths differ: CRM acceptance workflow, CRM acceptance script, the conflicting new migration 073, server.js and CRM/supervisor API contract. The migration-number collision remains a hard blocker. |
+| #493 | 14 | 6 | 8 | Six contact-center/control-room paths are identical. Eight paths differ: server.js, workbench and workspace tests, contact-center-room CSS/HTML/JS, control-rooms.html and rooms.js. |
+| #491 | 12 | 0 | 12 | All 12 listed Neon acceptance/provisioning paths differ from or are new to main. This remains an infrastructure-mutating candidate and must not be executed without explicit disposable-target authorization. |
+| #490 | 5 | 0 | 5 | All five Keycloak/OIDC paths differ from or are new to main. The candidate is substantive, but live issuer/provider/callback E2E is still unverified. |
+
+### 11.1 Reconciliation conclusions
+
+1. **#513 is fully redundant as a code PR against current main.** All three PR-listed files have exact blob matches in main. Do not merge it to obtain migration 076 or its acceptance script. Preserve the PR's isolated Neon evidence separately from its source delta.
+2. **The GIS migration sequence 073–076 is already present in current main.** PR #510/#509/#508/#505/#503 do not contribute new copies of those migrations: the listed 073, 074 and 075 files match main exactly. The migration 076 file in #513 also matches main exactly. Do not cherry-pick or recreate any of these migration files.
+3. **The GIS/Digital Twin stack is not wholly redundant.** It still contains unique test/workflow/runtime deltas. They are concentrated in the paths identified above and must be reviewed individually; the large PR stacks should not be merged as a unit.
+4. **#494 remains blocked even though most application files match main.** Its unique migration 073 is a different migration from main's 073. Its workflow/script/docs/server deltas can be reviewed independently only after the migration conflict is removed or correctly re-sequenced. Do not accept the conflicting 073 file.
+5. **#497, #495, #491 and #490 are substantive independent candidates.** They require focused security/behavior review and isolated tests; no source changes from them were applied during this reconciliation.
+6. **#496 is partly superseded.** Its PWA scaffolding and audit script are already identical to main; only the listed Android workflow and map/UI paths remain as deltas.
+7. **A differing blob is not automatically an improvement.** A file can differ because a PR head is stale relative to later main commits. Each differing path still requires patch-level review before selective application.
+
+### 11.2 Current execution boundary
+
+This reconciliation changed only this audit report on `audit/source-baseline-2026-11-28`. No source, migration, workflow, package manifest, lockfile, secret, environment, Neon, Vercel, DNS, deployment, database or main-branch content was modified. No PR was merged, closed, rebased, force-pushed or dispatched.
+
+**Phase 0 remains OPEN.** The next safe action is patch-level review of only the differing/new paths, followed by separate current-main-based candidate branches for independently testable slices. No broad stacked cherry-pick is authorized by this evidence. Candidate branches must run current-main verification and the relevant isolated acceptance gates before Phase 0 can close.
