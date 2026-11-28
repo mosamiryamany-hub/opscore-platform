@@ -49,7 +49,7 @@ test('legacy service reference column migrates forward to the generic field',()=
     delete require.cache[require.resolve('../src/config')]; delete require.cache[require.resolve('../src/db')];
     const d=require('../src/db').openDb(f.p);
     const cols=d.prepare('PRAGMA table_info(service_lines)').all().map(x=>x.name);
-    assert.ok(cols.includes('service_ref')); assert.equal(cols.includes('network_ref'),false); assert.equal(Number(d.prepare('PRAGMA user_version').get().user_version),28);
+    assert.ok(cols.includes('service_ref')); assert.equal(cols.includes('network_ref'),false); assert.equal(Number(d.prepare('PRAGMA user_version').get().user_version),29);
     d.close(); if(old===undefined)delete process.env.SQLITE_PATH;else process.env.SQLITE_PATH=old;
   } finally { try{f.d.close()}catch{} clean(f.p); }
 });
