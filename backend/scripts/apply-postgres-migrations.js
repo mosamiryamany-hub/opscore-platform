@@ -526,17 +526,29 @@ async function main(){
    try{
     const selfHostedRole=selfHostedMigrationExecutionRole(migration.filename,targetClass);
     if(targetClass==='self-hosted-explicit-target')await client.query('SET LOCAL ROLE neondb_owner');
+    let authDefinerDatabaseCreateGranted=false;
     if(selfHostedRole==='opscore_auth_definer'){
-     // Migration 063 transfers its HMAC table/function ownership to the dedicated
-     // definer before issuing grants. Run that one immutable migration as its
-     // owner; grant only the five session-identity tables it must read. The
-     // migration ledger remains written by neondb_owner after role restoration.
+     // Migration 063 creates/checks the security schema, transfers HMAC-object
+     // ownership and issues grants. Run only this immutable migration as its
+     // object owner. Its CREATE SCHEMA statement also needs database CREATE,
+     // so grant that privilege transaction-locally and revoke it before commit.
+     const existingDatabaseCreate=(await client.query("SELECT has_database_privilege('opscore_auth_definer',current_database(),'CREATE') AS allowed")).rows[0];
+     if(!existingDatabaseCreate||existingDatabaseCreate.allowed!==false)throw new Error('MIGRATION_SELF_HOSTED_AUTH_DEFINER_DATABASE_CREATE_PREEXISTS');
      await client.query('GRANT SELECT ON TABLE public.sessions, public.users, public.memberships, public.organizations, public.organization_governance TO opscore_auth_definer WITH GRANT OPTION');
+     await client.query("DO $grant$ BEGIN EXECUTE format('GRANT CREATE ON DATABASE %I TO opscore_auth_definer',current_database()); END $grant$");
+     authDefinerDatabaseCreateGranted=true;
      await client.query('SET LOCAL ROLE opscore_auth_definer');
     }
     await client.query(`SELECT set_config('opscore.app_role',CASE WHEN EXISTS(SELECT 1 FROM pg_catalog.pg_roles WHERE rolname='opscore_app') THEN 'opscore_app' ELSE '' END,true),set_config('opscore.fn_owner',$1,true)`,[migrationOwnerRole]);
     await client.query(unwrapOuterTransaction(migration.content,migration.filename));
-    if(selfHostedRole==='opscore_auth_definer')await client.query('SET LOCAL ROLE neondb_owner');
+    if(selfHostedRole==='opscore_auth_definer'){
+     await client.query('SET LOCAL ROLE neondb_owner');
+     if(authDefinerDatabaseCreateGranted){
+      await client.query("DO $revoke$ BEGIN EXECUTE format('REVOKE CREATE ON DATABASE %I FROM opscore_auth_definer',current_database()); END $revoke$");
+      const afterRevoke=(await client.query("SELECT has_database_privilege('opscore_auth_definer',current_database(),'CREATE') AS allowed")).rows[0];
+      if(!afterRevoke||afterRevoke.allowed!==false)throw new Error('MIGRATION_SELF_HOSTED_AUTH_DEFINER_DATABASE_CREATE_REVOKE_FAILED');
+     }
+    }
     await client.query('INSERT INTO public.schema_migrations(filename,sha256,applied_at) VALUES ($1,$2,clock_timestamp())',[migration.filename,migration.sha256]);
     await client.query('COMMIT');applied.push({filename:migration.filename,sha256:migration.sha256});
    }catch(error){try{await client.query('ROLLBACK');}catch(_){}throw new Error('MIGRATION_APPLY_FAILED:'+migration.filename+':'+(error.code||error.message));}
