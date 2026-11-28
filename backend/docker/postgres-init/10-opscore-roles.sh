@@ -76,6 +76,9 @@ BEGIN
 END
 $verify$;
 
+-- The no-login migration owner owns this database; the login role can only SET ROLE to it.
+SELECT format('ALTER DATABASE %I OWNER TO neondb_owner', current_database()) \gexec
+
 SELECT format('GRANT CONNECT ON DATABASE %I TO opscore_runtime, opscore_worker, opscore_migrator, neondb_owner', current_database()) \gexec
 SELECT format('GRANT CREATE ON DATABASE %I TO opscore_migrator, neondb_owner', current_database()) \gexec
 GRANT USAGE, CREATE ON SCHEMA public TO opscore_migrator, neondb_owner;
