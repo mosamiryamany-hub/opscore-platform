@@ -1890,7 +1890,7 @@ function route(req, res) {
   }
   const ccReassign = url.pathname.match(/^\\/api\\/v1\\/contact-center\\/handoffs\\/([A-Za-z0-9_-]+)\\/reassign$/);
   if (ccReassign && req.method === 'POST') {
-    try { requireScope(c, 'write'); return body(req).then(b => json(res, 200, contactCenter.reassignHandoff(db, c, ccReassign[1], b)).catch(e => fail(res, e)); } catch (e) { return fail(res, e); }
+    try { requireScope(c, 'write'); return body(req).then(b => json(res, 200, contactCenter.reassignHandoff(db, c, ccReassign[1], b))).catch(e => fail(res, e)); } catch (e) { return fail(res, e); }
   }
   if (url.pathname === '/api/v1/contact-center/supervisor/agents' && req.method === 'GET') {
     try { requireScope(c, 'read'); return json(res, 200, { schemaVersion:'opscore.contact-center-supervisor-agents.v1', items:contactCenter.listEligibleAgents(db, c) }); } catch (e) { return fail(res, e); }
