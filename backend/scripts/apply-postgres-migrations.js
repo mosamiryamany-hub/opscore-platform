@@ -131,7 +131,11 @@ function assertTarget(url,database,apply,env=process.env){
  const expectedDatabase=String(env.OPSC_MIGRATION_EXPECTED_DATABASE||'').trim();
  if(!expectedDatabase||expectedDatabase!==database)throw new Error('MIGRATION_EXPECTED_DATABASE_MISMATCH');
  if(target==='test'){
-  if(!['127.0.0.1','localhost','::1'].includes(hostname))throw new Error('MIGRATION_TEST_TARGET_MUST_BE_LOCAL');
+  const composeHostAllowed = env.OPSC_MIGRATION_ALLOW_DOCKER_COMPOSE_HOST === '1'
+    && ['db','postgres','opscore-db'].includes(hostname);
+  if(!['127.0.0.1','localhost','::1'].includes(hostname) && !composeHostAllowed){
+    throw new Error('MIGRATION_TEST_TARGET_MUST_BE_LOCAL');
+  }
  }else{
   const expectedHost=String(env.OPSC_MIGRATION_EXPECTED_HOST||'').trim().toLowerCase();
   const projectId=String(env.OPSC_MIGRATION_EXPECTED_PROJECT_ID||'').trim();
@@ -161,6 +165,11 @@ function extractNeonEndpointId(hostname) {
 function expectedMigrationOwnerRole(env=process.env) {
  const target=String(env.OPSC_MIGRATION_TARGET_CLASS||'').trim().toLowerCase();
  const configured=String(env.OPSC_MIGRATION_EXPECTED_OWNER_ROLE||'').trim();
+ if(target==='test' && env.OPSC_MIGRATION_ALLOW_DOCKER_COMPOSE_HOST === '1'){
+  // Self-hosted compose uses a dedicated non-superuser migrator role, not Neon neondb_owner.
+  if(configured && configured !== 'opscore_migrator') throw new Error('MIGRATION_OWNER_ROLE_NOT_ALLOWED');
+  return configured || 'opscore_migrator';
+ }
  if(target==='production'||target==='test'){
   if(configured&&configured!=='neondb_owner')throw new Error('MIGRATION_OWNER_ROLE_NOT_ALLOWED');
   return 'neondb_owner';
