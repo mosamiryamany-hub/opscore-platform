@@ -29,6 +29,27 @@ function readKey(value) {
   }
   return key;
 }
+function resolveBackupTls(url, env = process.env, caFileOverride = '') {
+  const nodeEnv = String(env.NODE_ENV || '').trim().toLowerCase();
+  const sslMode = String(
+    env.PGSSLMODE || url.searchParams.get('sslmode') || (nodeEnv === 'production' ? 'verify-full' : 'require')
+  ).trim().toLowerCase();
+  if (!['require', 'verify-full'].includes(sslMode)
+      || (nodeEnv === 'production' && sslMode !== 'verify-full')) {
+    throw new Error('BACKUP_POSTGRES_TLS_VERIFICATION_REQUIRED');
+  }
+  const rootCert = String(
+    caFileOverride || env.PGSSLROOTCERT || env.OPSC_PG_CA_CERT || url.searchParams.get('sslrootcert') || ''
+  ).trim();
+  if (rootCert && rootCert.toLowerCase() !== 'system') {
+    try { fs.accessSync(rootCert, fs.constants.R_OK); }
+    catch { throw new Error('BACKUP_POSTGRES_CA_FILE_UNREADABLE'); }
+  }
+  return {
+    PGSSLMODE: sslMode,
+    ...(rootCert ? { PGSSLROOTCERT: rootCert } : {})
+  };
+}
 function pgPassEscape(value) {
   const input = String(value);
   if (/[\r\n]/.test(input)) throw new Error('BACKUP_PGPASS_VALUE_INVALID');
@@ -100,9 +121,14 @@ async function main() {
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   const finalPath = path.join(outputDir, 'opscore-' + stamp + '.pgdump.aesgcm');
   const tempPath = finalPath + '.tmp';
-  const sslMode = String(process.env.PGSSLMODE || (String(process.env.NODE_ENV || '').toLowerCase() === 'production' ? 'verify-full' : 'require')).toLowerCase();
-  if (!['require', 'verify-full'].includes(sslMode) || (String(process.env.NODE_ENV || '').toLowerCase() === 'production' && sslMode !== 'verify-full')) throw new Error('BACKUP_POSTGRES_TLS_VERIFICATION_REQUIRED');
-  const env = { ...process.env, PGPASSFILE: passFile, PGSSLMODE: sslMode };
+  let inlineCaFile = '';
+  const caValue = String(process.env.OPSC_PG_CA_CERT || '').trim();
+  if (caValue.includes('-----BEGIN CERTIFICATE-----')) {
+    inlineCaFile = path.join(work, 'postgres-ca.pem');
+    await fs.promises.writeFile(inlineCaFile, caValue, { mode: 0o600, flag: 'wx' });
+  }
+  const tlsEnv = resolveBackupTls(url, process.env, inlineCaFile);
+  const env = { ...process.env, ...tlsEnv, PGPASSFILE: passFile };
   delete env.PGPASSWORD;
   try {
     await run('pg_dump', ['--format=custom', '--no-owner', '--no-acl', '--file', dump, '--host', host, '--port', port, '--username', username, '--dbname', database], env);
@@ -141,4 +167,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { parseDatabaseUrl, readKey, pgPassEscape, encryptFile, decryptFile, MAGIC };
+module.exports = { parseDatabaseUrl, readKey, pgPassEscape, resolveBackupTls, encryptFile, decryptFile, MAGIC };
