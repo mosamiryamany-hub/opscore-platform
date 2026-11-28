@@ -26,7 +26,7 @@ For a buyer-owned public hostname, set `OPSCORE_PUBLIC_HOST` to that hostname, p
 
 ## What this stack does
 
-1. PostGIS-enabled PostgreSQL 18 with least-privilege roles from `docker/postgres-init`
+1. PostgreSQL 18 with PostGIS and pgvector, plus least-privilege roles from `docker/postgres-init`
 2. One-shot `migrate` service using `apply-postgres-migrations.js`
 3. Node app image from `docker/Dockerfile` with `/api/health` healthcheck
 4. Caddy 2 reverse proxy (HTTP/HTTPS ports published)
