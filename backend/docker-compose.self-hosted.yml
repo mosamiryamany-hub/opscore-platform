@@ -39,7 +39,7 @@ services:
       - ${OPSCORE_SELF_HOSTED_ENV_FILE:-.env.self-hosted}
     environment:
       DATABASE_ENGINE: postgres
-      OPSC_DATABASE_URL: postgresql://opscore_migrator:${OPSCORE_MIGRATOR_PASSWORD}@db:5432/${POSTGRES_DB:-opscore}?sslmode=disable
+      OPSC_MIGRATION_DATABASE_URL: postgresql://opscore_migrator:${OPSCORE_MIGRATOR_PASSWORD}@db:5432/${POSTGRES_DB:-opscore}?sslmode=disable
       OPSC_MIGRATION_TARGET_CLASS: test
       OPSC_MIGRATION_EXPECTED_DATABASE: ${POSTGRES_DB:-opscore}
       OPSC_MIGRATION_CONFIRM_DATABASE: ${POSTGRES_DB:-opscore}
