@@ -530,6 +530,16 @@ test('legacy app-role migration reconciliation requires complete catalog-equival
   assert.equal(rejected.verified, false);
 });
 
+test('self-hosted migration 063 runs as its dedicated object owner and returns to migration owner for ledger writes', () => {
+  const source = fs.readFileSync(path.join(__dirname, '../scripts/apply-postgres-migrations.js'), 'utf8');
+  assert.match(source, /function selfHostedMigrationExecutionRole\(filename,targetClass\)/);
+  assert.match(source, /filename==='063_signed_tenant_context_verifier\.sql'\?'opscore_auth_definer':'neondb_owner'/);
+  assert.match(source, /GRANT SELECT ON TABLE public\.sessions, public\.users, public\.memberships, public\.organizations, public\.organization_governance TO opscore_auth_definer WITH GRANT OPTION/);
+  assert.match(source, /SET LOCAL ROLE opscore_auth_definer/);
+  assert.match(source, /if\(selfHostedRole==='opscore_auth_definer'\)await client\.query\('SET LOCAL ROLE neondb_owner'\)/);
+  assert.match(source, /await client\.query\('INSERT INTO public\.schema_migrations/);
+});
+
 test('self-hosted migrations require an operator-pinned host, database, direct TLS and dedicated migrator role', async () => {
   const selfHost = 'db.customer.example';
   const url = new URL('postgresql://opscore_migrator:never-print-this@' + selfHost + '/' + database + '?sslmode=verify-full');
