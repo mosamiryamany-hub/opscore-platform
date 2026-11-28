@@ -26,7 +26,7 @@ function normalizeBranding(input) {
   const welcomeText = String(input.welcomeText || '').trim();
   if (!platformName || platformName.length > 64) throw new Error('BRANDING_PLATFORM_NAME_INVALID');
   if (tagline.length > 120 || welcomeText.length > 240) throw new Error('BRANDING_TEXT_INVALID');
-  if (!SAFE_PATH.test(logoPath) || logoPath.includes('..')) throw new Error('BRANDING_LOGO_PATH_INVALID');
+  if (!SAFE_PATH.test(logoPath) || logoPath.startsWith('//') || logoPath.includes('..')) throw new Error('BRANDING_LOGO_PATH_INVALID');
   if (!HEX_COLOR.test(primaryColor)) throw new Error('BRANDING_PRIMARY_COLOR_INVALID');
   if (supportEmail && (supportEmail.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(supportEmail))) throw new Error('BRANDING_SUPPORT_EMAIL_INVALID');
   return Object.freeze({
