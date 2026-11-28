@@ -14,6 +14,8 @@
 cd backend
 cp ../docs/self-hosted/env.self-hosted.example .env.self-hosted
 # Edit every placeholder secret before starting. Do not commit this file.
+# The template keeps OPSC_PRODUCTION_HOLD=true; set it to false only after your
+# operator preflight (TLS, credentials, admin access, backups, and monitoring) passes.
 mkdir -p .secrets
 sh ./scripts/generate-self-hosted-db-certs.sh .secrets
 # Move .secrets/postgres-ca.key to secure offline storage, then remove the local copy after issuing the server certificate.
