@@ -612,3 +612,20 @@ Artifacts were published:
 - `opscore-dispatcher-map-authenticated-postgis-e2e` (2,898,111 bytes).
 
 The same run explicitly marked both the **Production Neon PITR historical branch probe** and **Isolated Neon Preview migration and HTTP acceptance** as **SKIPPED**. This success is isolated CI evidence; it does not resolve the separate Self-Hosted Migration 075 ownership failure, does not prove Neon PITR/Preview, and does not prove a buyer-host installation or production database state. The Android preview and Vercel candidate runs remained in progress at the last poll.
+
+
+### 14.7 Candidate advanced again after the prior snapshot — latest head 6fd20f82
+
+A subsequent PR #497 refresh moved `feat/turnkey-buyer-delivery-20261127` from `cc613653...` to `6fd20f82ecd485ffc3dd7411f7124a8567be345d`. The new commit message is `test(self-hosted): match the canonical migration adapter call` and its only changed path is `backend/test/apply-postgres-migrations-target.test.js`. PR #497 is still open, non-draft, and reported mergeable; the fresh current-main comparison is 85 commits ahead / 0 behind, merge base `f68ec555...`.
+
+New runs associated with this exact head were observed:
+- OpsCore CI `46144382925`: **IN_PROGRESS**.
+- Self-hosted PostgreSQL 18 acceptance `46144382940`: **IN_PROGRESS**, job `140977107060`; the database image build / full migration apply had not yet completed at the last poll.
+- Combined GIS + Contact Center PostgreSQL 18 acceptance `46144382862`: **IN_PROGRESS**.
+- Android preview `46144382830`: **IN_PROGRESS** at APK build/upload.
+- Vercel deploy `46144382825`: **PENDING**.
+- Neon Preview migration run `46144382835`: **SKIPPED**.
+
+The successful GIS/Contact Center run `46143979318` and the Migration 075 Self-Hosted failure `46143979276` are both on the immediately prior head `cc613653...`, not on this latest head. They remain valid evidence for that tested revision only. Do not transfer either conclusion to `6fd20f82...` until its own runs complete.
+
+**Phase 0 remains OPEN.** The current candidate is moving while its acceptance runs execute. The next safe action is to poll the exact `6fd20f82...` runs, capture the final self-hosted result and inspect any new failure before selecting a repair base. No Phase 1 or production action is authorized by this source-baseline report.
