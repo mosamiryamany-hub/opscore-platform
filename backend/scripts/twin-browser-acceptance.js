@@ -11,10 +11,24 @@ const { chromium } = require('playwright');
   const browser = await chromium.launch({ headless: true });
   const errors = [];
   const results = [];
+  let staticContactPage = false;
   try {
     const page = await browser.newPage({ reducedMotion: 'reduce' });
     page.on('pageerror', error => errors.push({ message: error.message, stack: error.stack, name: error.name, fileName: error.fileName, lineNumber: error.lineNumber, columnNumber: error.columnNumber }));
-    page.on('console', entry => { if (entry.type() === 'error') { const location = entry.location(); const expectedStaticApiMiss = location.url === base + '/api/v1/me' && /404/.test(entry.text()); if (!expectedStaticApiMiss) errors.push({ console: entry.text(), location }); } });
+    page.on('console', entry => {
+      if (entry.type() === 'error') {
+        const location = entry.location();
+        const expectedStaticApiMiss = /404/.test(entry.text()) && (
+          location.url === base + '/api/v1/me' || (staticContactPage && [
+            base + '/api/v1/contact-center/status',
+            base + '/api/v1/contact-center/handoffs?status=open&limit=50',
+            base + '/api/v1/contact-center/supervisor/agents',
+            base + '/api/v1/contact-center/supervisor/activity'
+          ].includes(location.url))
+        );
+        if (!expectedStaticApiMiss) errors.push({ console: entry.text(), location });
+      }
+    });
     const roomsResponse = await page.goto(base + '/control-rooms.html', { waitUntil: 'networkidle' });
     assert.equal(roomsResponse.status(), 200, 'Control Rooms navigation must load');
     assert.equal(await page.locator('.room').count(), 10, 'ten room cards must be present');
@@ -27,9 +41,18 @@ const { chromium } = require('playwright');
     assert.equal(await page.locator('#twinRefresh').count(), 1, 'Digital Twin route must resolve from Control Rooms');
 
     await page.goto(base + '/control-rooms.html', { waitUntil: 'networkidle' });
+    const contactStatusProbe = page.waitForResponse(response => response.url() === base + '/api/v1/contact-center/status');
+    const contactQueueProbe = page.waitForResponse(response => response.url() === base + '/api/v1/contact-center/handoffs?status=open&limit=50');
+    const contactAgentsProbe = page.waitForResponse(response => response.url() === base + '/api/v1/contact-center/supervisor/agents');
+    const contactActivityProbe = page.waitForResponse(response => response.url() === base + '/api/v1/contact-center/supervisor/activity');
     const contactNavigation = page.waitForURL(url => url.pathname === '/contact-center-room.html');
+    staticContactPage = true;
     await page.locator('[data-room="contact"]').click();
     await contactNavigation;
+    const staticApiResponses = await Promise.all([contactStatusProbe, contactQueueProbe, contactAgentsProbe, contactActivityProbe]);
+    assert.deepEqual(staticApiResponses.map(response => response.status()), [404, 404, 404, 404],
+      'static-only harness must expose unavailable Contact Center APIs as 404, never synthetic success');
+    assert.equal(await page.locator('#ccrQueueState').innerText(), 'Queue unavailable');
     assert.equal(await page.locator('.ccr-shell').count(), 1, 'Contact Center route must resolve from Control Rooms');
     assert.equal(await page.locator('#ccrCrmProfile').count(), 1, 'CRM profile surface must exist');
     assert.equal(await page.locator('#ccrSupervisorActivity').count(), 1, 'Supervisor activity surface must exist');
