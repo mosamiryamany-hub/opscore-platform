@@ -8,6 +8,7 @@ const { openDatabase } = require('../src/db-open');
 const { Store } = require('../src/store');
 const { id, now, hashPassword } = require('../src/security');
 const { resolveBootstrapConfig, assertBootstrapDatabaseRole } = require('../src/bootstrap-policy');
+const { readMigrations } = require('./apply-postgres-migrations');
 
 const EXPECTED = Object.freeze({
   projectId: 'delicate-lake-72003710',
@@ -149,8 +150,11 @@ async function main() {
       throw new Error('DEMO_SEED_DATABASE_IDENTITY_MISMATCH');
     }
 
+    const expectedMigrationCount = readMigrations().length;
     const migrations = count(db, 'schema_migrations');
-    if (migrations !== 71) throw new Error('DEMO_SEED_MIGRATION_LEDGER_INCOMPLETE:' + migrations);
+    if (migrations !== expectedMigrationCount) {
+      throw new Error('DEMO_SEED_MIGRATION_LEDGER_INCOMPLETE:' + migrations + '/' + expectedMigrationCount);
+    }
 
     const hmac = db.prepare(
       "SELECT key_id FROM opscore_security.context_hmac_keys WHERE key_id=? AND enabled=true AND not_before<=now() AND not_after>now()"
@@ -383,7 +387,7 @@ async function main() {
       branchId: EXPECTED.branchId,
       database: EXPECTED.database,
       serverVersion: identity.server_version,
-      migrations: 71,
+      migrations: expectedMigrationCount,
       counts,
       ...seededIds,
       credentialsFileCreated: true
