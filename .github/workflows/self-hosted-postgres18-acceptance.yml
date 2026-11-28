@@ -87,7 +87,10 @@ jobs:
           OPSCORE_RUNTIME_PASSWORD: ci-config-validation-only
           OPSCORE_MIGRATOR_PASSWORD: ci-config-validation-only
           OPSCORE_WORKER_PASSWORD: ci-config-validation-only
-        run: docker compose -f backend/docker-compose.postgres.yml config --quiet
+        run: |
+          set -euo pipefail
+          docker compose -f backend/docker-compose.postgres.yml config --quiet
+          echo BUYER_COMPOSE_CONFIG_PASS
 
       - name: Build the exact buyer PostgreSQL image used by Compose
         shell: bash
