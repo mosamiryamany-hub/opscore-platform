@@ -629,3 +629,17 @@ New runs associated with this exact head were observed:
 The successful GIS/Contact Center run `46143979318` and the Migration 075 Self-Hosted failure `46143979276` are both on the immediately prior head `cc613653...`, not on this latest head. They remain valid evidence for that tested revision only. Do not transfer either conclusion to `6fd20f82...` until its own runs complete.
 
 **Phase 0 remains OPEN.** The current candidate is moving while its acceptance runs execute. The next safe action is to poll the exact `6fd20f82...` runs, capture the final self-hosted result and inspect any new failure before selecting a repair base. No Phase 1 or production action is authorized by this source-baseline report.
+
+
+### 14.8 Latest-head Self-Hosted result — confirmed failure at Migration 075
+
+The latest-head self-hosted run `46144382940` on `6fd20f82...` has now completed **FAILURE**. Job `140977107060` passed Compose validation, image build, PostgreSQL 18 + PostGIS + pgvector startup, role initialization, and dependency installation, then failed during full migration apply with:
+
+`MIGRATION_APPLY_FAILED:075_signed_rls_spatial_viewport_query.sql:42501`
+
+The PostgreSQL server diagnostic again identifies:
+`ERROR: 42501: must be owner of function opscore_security.spatial_features_in_viewport`.
+
+This confirms the Migration 075 owner-transition defect persists on the latest candidate head. The fix must address the execution role/ownership contract around the migration's `RESET ROLE` and `ALTER FUNCTION ... OWNER` operations, with a regression test against a clean PostgreSQL 18 instance. Do not merge PR #528 or edit historical migration bytes as a shortcut.
+
+At this same latest head, OpsCore CI `46144382925` and Combined GIS/Contact Center acceptance `46144382862` remained **IN_PROGRESS**, Android preview `46144382830` remained **IN_PROGRESS**, Vercel deploy `46144382825` remained **PENDING**, and Neon Preview migration `46144382835` was **SKIPPED** at the latest poll. These statuses are tied to `6fd20f82...` only.
