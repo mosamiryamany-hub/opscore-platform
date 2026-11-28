@@ -5,6 +5,7 @@ const path = require('node:path');
 const {Store} = require('./store');
 const { resolveMapTileOrigin } = require('./map-tile-security');
 const config = require('./config');
+const { loadBranding } = require('./branding-config');
 const {assertRuntimeConfiguration} = require('./runtime-contract');
 const {openDatabase} = require('./db-open');
 const authenticatedRequestContexts = new WeakMap();
@@ -22,17 +23,29 @@ const {
 const { createDeploymentProof } = require('./deployment-proof');
 const { readEmbeddedBuildIdentity, hasVerifiedProductionRelease } = require('./release-proof');
 const { createPlatformReleaseProof } = require('./platform-release-proof');
+const { createSelfHostedReleaseProof } = require('./self-hosted-release-proof');
 const { readDatabaseSecurityProof } = require('./database-security-proof');
 const { isHttpBootstrapAllowed } = require('./bootstrap-policy');
 
 function resolveSignedContextProductionReadiness(env = process.env) {
+  if (String(env.OPSC_DEPLOYMENT_MODE || '').trim().toLowerCase() === 'self-hosted') {
+    try {
+      const proof = createSelfHostedReleaseProof(env);
+      return Object.freeze({
+        productionReleaseVerified: false,
+        selfHostedReleaseVerified: proof.status === 'PASS' && proof.attestation?.verified === true
+      });
+    } catch (_) {
+      return Object.freeze({ productionReleaseVerified: false, selfHostedReleaseVerified: false });
+    }
+  }
   if (String(env.VERCEL_ENV || '').trim().toLowerCase() !== 'production') {
-    return Object.freeze({ productionReleaseVerified: false });
+    return Object.freeze({ productionReleaseVerified: false, selfHostedReleaseVerified: false });
   }
   try {
-    return Object.freeze({ productionReleaseVerified: hasVerifiedProductionRelease(env) === true });
+    return Object.freeze({ productionReleaseVerified: hasVerifiedProductionRelease(env) === true, selfHostedReleaseVerified: false });
   } catch (_) {
-    return Object.freeze({ productionReleaseVerified: false });
+    return Object.freeze({ productionReleaseVerified: false, selfHostedReleaseVerified: false });
   }
 }
 const signedContextProductionReadiness = resolveSignedContextProductionReadiness(process.env);
@@ -78,7 +91,7 @@ const contactCenter = require('./ai-contact-center');
 // Anchored to the package, not the launch directory, so `node backend/src/server.js` works from any cwd.
 const webRoot = path.resolve(__dirname, '..', 'web');
 let lastOtelExport = 0;
-function json(res, status, payload, headers = {}) {
+function json(res, status, payload, headers = {}, headOnly = false) {
   const securityHeaders = {
     'cache-control': 'no-store',
     'x-content-type-options': 'nosniff',
@@ -96,7 +109,7 @@ function json(res, status, payload, headers = {}) {
     ...securityHeaders,
     ...headers
   });
-  res.end(JSON.stringify(payload));
+  res.end(headOnly ? undefined : JSON.stringify(payload));
 }
 function mapTileOrigin() {
   const origin = resolveMapTileOrigin(process.env.OPSCORE_MAP_TILE_ORIGIN || '');
@@ -1389,6 +1402,16 @@ function route(req, res) {
   if (String(req.url || '').length > config.maxUrlLength)
     return json(res, 414, { error: { code: 'URI_TOO_LONG' } });
   const url = new URL(req.url, config.publicOrigin);
+  if (url.pathname === '/api/public/branding') {
+    if (req.method !== 'GET' && req.method !== 'HEAD')
+      return json(res, 405, { error: { code: 'METHOD_NOT_ALLOWED' } }, { allow: 'GET, HEAD' });
+    try {
+      return json(res, 200, loadBranding(), { 'cache-control': 'public, max-age=60, stale-while-revalidate=300' }, req.method === 'HEAD');
+    } catch (error) {
+      warn('public_branding_config_invalid', { code: error.message });
+      return json(res, 503, { error: { code: 'BRANDING_CONFIGURATION_UNAVAILABLE' } });
+    }
+  }
   // Resolve this one held-candidate negative probe before route-level session guards.
   // The path is commit-bound and requires the exact candidate host, probe token and trusted OIDC.
   if (productionGate.blocked

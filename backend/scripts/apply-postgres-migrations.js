@@ -127,29 +127,43 @@ function assertTarget(url,database,apply,env=process.env){
  if(!hostname)throw new Error('MIGRATION_ENDPOINT_HOST_REQUIRED');
  if(hostname.includes('-pooler'))throw new Error('MIGRATION_DIRECT_CONNECTION_REQUIRED');
  const target=String(env.OPSC_MIGRATION_TARGET_CLASS||'').trim().toLowerCase();
- if(!['preview','test','production'].includes(target))throw new Error('MIGRATION_TARGET_CLASS_REQUIRED');
+ if(!['preview','test','production','self-hosted'].includes(target))throw new Error('MIGRATION_TARGET_CLASS_REQUIRED');
  const expectedDatabase=String(env.OPSC_MIGRATION_EXPECTED_DATABASE||'').trim();
  if(!expectedDatabase||expectedDatabase!==database)throw new Error('MIGRATION_EXPECTED_DATABASE_MISMATCH');
  if(target==='test'){
   if(!['127.0.0.1','localhost','::1'].includes(hostname))throw new Error('MIGRATION_TEST_TARGET_MUST_BE_LOCAL');
  }else{
   const expectedHost=String(env.OPSC_MIGRATION_EXPECTED_HOST||'').trim().toLowerCase();
-  const projectId=String(env.OPSC_MIGRATION_EXPECTED_PROJECT_ID||'').trim();
-  const branchId=String(env.OPSC_MIGRATION_EXPECTED_BRANCH_ID||'').trim();
   if(!expectedHost||hostname!==expectedHost)throw new Error('MIGRATION_ENDPOINT_HOST_MISMATCH');
-  if(!/^[a-z0-9-]{8,80}$/.test(projectId))throw new Error('MIGRATION_PROJECT_ID_REQUIRED');
-  if(!/^br-[a-z0-9-]{8,80}$/.test(branchId))throw new Error('MIGRATION_BRANCH_ID_REQUIRED');
+  if(target!=='self-hosted'){
+   const projectId=String(env.OPSC_MIGRATION_EXPECTED_PROJECT_ID||'').trim();
+   const branchId=String(env.OPSC_MIGRATION_EXPECTED_BRANCH_ID||'').trim();
+   if(!/^[a-z0-9-]{8,80}$/.test(projectId))throw new Error('MIGRATION_PROJECT_ID_REQUIRED');
+   if(!/^br-[a-z0-9-]{8,80}$/.test(branchId))throw new Error('MIGRATION_BRANCH_ID_REQUIRED');
+  }
  }
  if(target==='production'&&env.OPSC_MIGRATION_ALLOW_PRODUCTION!=='1')throw new Error('MIGRATION_TARGET_NOT_PREVIEW_OR_TEST');
  if(target!=='production'&&env.OPSC_MIGRATION_ALLOW_PRODUCTION==='1')throw new Error('MIGRATION_PRODUCTION_OPT_IN_TARGET_CLASS_MISMATCH');
+ if(target==='self-hosted'){
+  if(!/^[a-z0-9](?:[a-z0-9.-]{0,251}[a-z0-9])?$/.test(hostname)||hostname.includes('..'))throw new Error('MIGRATION_SELF_HOSTED_HOST_INVALID');
+  if(env.OPSC_MIGRATION_ALLOW_PRODUCTION==='1')throw new Error('MIGRATION_PRODUCTION_OPT_IN_TARGET_CLASS_MISMATCH');
+  if(String(url.searchParams.get('sslmode')||'').toLowerCase()!=='verify-full')throw new Error('MIGRATION_SELF_HOSTED_TLS_VERIFY_FULL_REQUIRED');
+  if(String(env.OPSC_PG_SSL_MODE||'verify-full').toLowerCase()!=='verify-full')throw new Error('MIGRATION_SELF_HOSTED_TLS_VERIFY_FULL_REQUIRED');
+  if(String(env.NODE_ENV||'').toLowerCase()!=='production')throw new Error('MIGRATION_SELF_HOSTED_NODE_ENV_PRODUCTION_REQUIRED');
+ }
  if(apply){
   if(env.OPSC_MIGRATION_CONFIRM_DATABASE!==database)throw new Error('MIGRATION_DATABASE_CONFIRMATION_REQUIRED');
   if(target!=='test'){
    if(String(env.OPSC_MIGRATION_CONFIRM_HOST||'').trim().toLowerCase()!==hostname)throw new Error('MIGRATION_HOST_CONFIRMATION_REQUIRED');
-   if(String(env.OPSC_MIGRATION_CONFIRM_PROJECT_ID||'').trim()!==String(env.OPSC_MIGRATION_EXPECTED_PROJECT_ID||'').trim())throw new Error('MIGRATION_PROJECT_CONFIRMATION_REQUIRED');
-   if(String(env.OPSC_MIGRATION_CONFIRM_BRANCH_ID||'').trim()!==String(env.OPSC_MIGRATION_EXPECTED_BRANCH_ID||'').trim())throw new Error('MIGRATION_BRANCH_CONFIRMATION_REQUIRED');
+   if(target!=='self-hosted'){
+    if(String(env.OPSC_MIGRATION_CONFIRM_PROJECT_ID||'').trim()!==String(env.OPSC_MIGRATION_EXPECTED_PROJECT_ID||'').trim())throw new Error('MIGRATION_PROJECT_CONFIRMATION_REQUIRED');
+    if(String(env.OPSC_MIGRATION_CONFIRM_BRANCH_ID||'').trim()!==String(env.OPSC_MIGRATION_EXPECTED_BRANCH_ID||'').trim())throw new Error('MIGRATION_BRANCH_CONFIRMATION_REQUIRED');
+   }else{
+    if(env.OPSC_MIGRATION_ALLOW_SELF_HOSTED!=='1')throw new Error('MIGRATION_SELF_HOSTED_APPLY_OPT_IN_REQUIRED');
+   }
   }
  }
+ if(target==='self-hosted')return 'self-hosted-explicit-target';
  return target==='production'?'production-explicit-opt-in':'preview-or-test';
 }
 function extractNeonEndpointId(hostname) {
@@ -161,6 +175,10 @@ function extractNeonEndpointId(hostname) {
 function expectedMigrationOwnerRole(env=process.env) {
  const target=String(env.OPSC_MIGRATION_TARGET_CLASS||'').trim().toLowerCase();
  const configured=String(env.OPSC_MIGRATION_EXPECTED_OWNER_ROLE||'').trim();
+ if(target==='self-hosted'){
+  if(configured&&configured!=='opscore_migrator')throw new Error('MIGRATION_OWNER_ROLE_NOT_ALLOWED');
+  return 'opscore_migrator';
+ }
  if(target==='production'||target==='test'){
   if(configured&&configured!=='neondb_owner')throw new Error('MIGRATION_OWNER_ROLE_NOT_ALLOWED');
   return 'neondb_owner';
@@ -174,6 +192,15 @@ function expectedMigrationOwnerRole(env=process.env) {
 async function verifyNeonEndpointIdentity(url,env=process.env,fetchImpl=globalThis.fetch) {
  const target=String(env.OPSC_MIGRATION_TARGET_CLASS||'').trim().toLowerCase();
  if(target==='test')return {verified:false,skipped:true,reason:'loopback-test-target'};
+ if(target==='self-hosted'){
+  const hostname=String(url.hostname||'').trim().toLowerCase();
+  const expectedHost=String(env.OPSC_MIGRATION_EXPECTED_HOST||'').trim().toLowerCase();
+  const database=String(url.pathname||'').replace(/^\/+/, '');
+  if(!expectedHost||hostname!==expectedHost)throw new Error('MIGRATION_ENDPOINT_HOST_MISMATCH');
+  if(database!==String(env.OPSC_MIGRATION_EXPECTED_DATABASE||'').trim())throw new Error('MIGRATION_EXPECTED_DATABASE_MISMATCH');
+  if(String(url.searchParams.get('sslmode')||'').toLowerCase()!=='verify-full')throw new Error('MIGRATION_SELF_HOSTED_TLS_VERIFY_FULL_REQUIRED');
+  return {verified:false,skipped:true,reason:'operator-pinned-self-hosted-target',host:hostname,database,verification:'EXPLICIT_HOST_DATABASE_AND_TLS_PIN'};
+ }
  const hostname=String(url.hostname||'').trim().toLowerCase();
  const endpointId=extractNeonEndpointId(hostname);
  const projectId=String(env.OPSC_MIGRATION_EXPECTED_PROJECT_ID||'').trim();
@@ -391,6 +418,34 @@ async function main(){
   const expectedOwnerRole=expectedMigrationOwnerRole();
   const bypassOk=!!info.bypass_rls;
   if(info.role!==expectedOwnerRole||info.superuser||!bypassOk)throw new Error('MIGRATION_ROLE_NOT_ALLOWED');
+  const migrationOwnerRole=targetClass==='self-hosted-explicit-target'?'neondb_owner':info.role;
+  if(targetClass==='self-hosted-explicit-target'){
+   const ownerContract=(await client.query(`SELECT r.rolcanlogin,r.rolsuper,r.rolbypassrls,r.rolcreaterole,r.rolcreatedb,r.rolinherit,
+     pg_has_role(session_user,r.oid,'SET') AS can_set_role,
+     has_database_privilege(r.rolname,current_database(),'CREATE') AS can_create_database,
+     has_schema_privilege(r.rolname,'public','CREATE') AS can_create_public
+     FROM pg_roles r WHERE r.rolname='neondb_owner'`)).rows[0];
+   if(!ownerContract||ownerContract.rolcanlogin||ownerContract.rolsuper||!ownerContract.rolbypassrls
+      ||ownerContract.rolcreaterole||ownerContract.rolcreatedb||ownerContract.rolinherit||!ownerContract.can_set_role
+      ||!ownerContract.can_create_database||!ownerContract.can_create_public){
+    throw new Error('MIGRATION_SELF_HOSTED_OWNER_ROLE_CONTRACT_FAILED');
+   }
+   const authDefinerContract=(await client.query(`SELECT r.rolcanlogin,r.rolsuper,r.rolbypassrls,r.rolcreaterole,r.rolcreatedb,r.rolinherit,
+     pg_has_role('neondb_owner',r.oid,'SET') AS can_set_role,
+     pg_has_role('neondb_owner',r.oid,'USAGE') AS can_inherit
+     FROM pg_roles r WHERE r.rolname='opscore_auth_definer'`)).rows[0];
+   if(!authDefinerContract||authDefinerContract.rolcanlogin||authDefinerContract.rolsuper
+      ||!authDefinerContract.rolbypassrls||authDefinerContract.rolcreaterole
+      ||authDefinerContract.rolcreatedb||authDefinerContract.rolinherit
+      ||!authDefinerContract.can_set_role||!authDefinerContract.can_inherit){
+    throw new Error('MIGRATION_SELF_HOSTED_AUTH_DEFINER_ROLE_CONTRACT_FAILED');
+   }
+   await client.query('SET ROLE neondb_owner');
+   const effectiveRole=(await client.query("SELECT current_user AS role, session_user AS login_role")).rows[0];
+   if(!effectiveRole||effectiveRole.role!=='neondb_owner'||effectiveRole.login_role!=='opscore_migrator'){
+    throw new Error('MIGRATION_SELF_HOSTED_OWNER_ROLE_ACTIVATION_FAILED');
+   }
+  }
   const runtimePreflight=(await client.query(`SELECT r.rolcanlogin,r.rolsuper,r.rolbypassrls,r.rolcreaterole,r.rolcreatedb,
     (SELECT count(*) FROM pg_roles elevated
      WHERE (elevated.rolsuper OR elevated.rolbypassrls OR elevated.rolcreaterole OR elevated.rolcreatedb)
@@ -404,7 +459,7 @@ async function main(){
   if(!ledgerExists){
    // Virgin preview/test DBs: bootstrap ledger only under --apply. Never invent history on production.
    if(!apply){ledger=[];}
-   else if(targetClass!=='preview-or-test'){throw new Error('MIGRATION_LEDGER_MISSING');}
+   else if(!['preview-or-test','self-hosted-explicit-target'].includes(targetClass)){throw new Error('MIGRATION_LEDGER_MISSING');}
    else{
     await client.query("CREATE TABLE public.schema_migrations (filename text PRIMARY KEY, sha256 text NOT NULL, applied_at timestamptz NOT NULL DEFAULT clock_timestamp())");
     ledger=[];
@@ -431,7 +486,7 @@ async function main(){
    }
   }
   const plan=buildMigrationPlan(migrations,ledger,verifiedLegacy);
-  if(plan.blockers.length){emit({status:'BLOCKED',target:{database:info.database,role:info.role,targetClass},neonIdentity,serverVersion:info.server_version,legacy042Evidence,controlPlane053Evidence,legacyAppRoleOptionalEvidence,pending:plan.pending.map(x=>x.filename),skipped:plan.skipped,blockers:plan.blockers,note:'No SQL changes were made because migration history or catalog reconciliation was not fully verified.'},2);return;}
+  if(plan.blockers.length){emit({status:'BLOCKED',target:{database:info.database,role:info.role,migrationOwnerRole,targetClass},neonIdentity,serverVersion:info.server_version,legacy042Evidence,controlPlane053Evidence,legacyAppRoleOptionalEvidence,pending:plan.pending.map(x=>x.filename),skipped:plan.skipped,blockers:plan.blockers,note:'No SQL changes were made because migration history or catalog reconciliation was not fully verified.'},2);return;}
   const appPreflight=(await client.query(`WITH app AS (
     SELECT oid,rolsuper,rolbypassrls,rolcreaterole,rolcreatedb,rolcanlogin,rolinherit FROM pg_roles WHERE rolname='opscore_app'
    )
@@ -457,12 +512,12 @@ async function main(){
         AND membership.member=(SELECT oid FROM pg_roles WHERE rolname=current_user)),false) AS current_user_admin_option`)).rows[0];
   const appRoleRepairPending=plan.pending.some(x=>x.filename===APP_ROLE_REPAIR_MIGRATION);
   const appRolePreflight=validateAppRolePreflight(appPreflight,appRoleRepairPending);
-  if(!apply){emit({status:'DRY_RUN_PASS',target:{database:info.database,role:info.role,targetClass},neonIdentity,serverVersion:info.server_version,legacy042Evidence,controlPlane053Evidence,legacyAppRoleOptionalEvidence,appRolePreflight,pending:plan.pending.map(x=>({filename:x.filename,sha256:x.sha256})),skipped:plan.skipped,note:'No database changes were made. Apply requires --apply and exact OPSC_MIGRATION_CONFIRM_DATABASE.'});return;}
+  if(!apply){emit({status:'DRY_RUN_PASS',target:{database:info.database,role:info.role,migrationOwnerRole,targetClass},neonIdentity,serverVersion:info.server_version,legacy042Evidence,controlPlane053Evidence,legacyAppRoleOptionalEvidence,appRolePreflight,pending:plan.pending.map(x=>({filename:x.filename,sha256:x.sha256})),skipped:plan.skipped,note:'No database changes were made. Apply requires --apply and exact OPSC_MIGRATION_CONFIRM_DATABASE.'});return;}
   const applied=[];
   for(const migration of plan.pending){
    await client.query('BEGIN');
    try{
-    await client.query(`SELECT set_config('opscore.app_role',CASE WHEN EXISTS(SELECT 1 FROM pg_catalog.pg_roles WHERE rolname='opscore_app') THEN 'opscore_app' ELSE '' END,true),set_config('opscore.fn_owner',$1,true)`,[info.role]);
+    await client.query(`SELECT set_config('opscore.app_role',CASE WHEN EXISTS(SELECT 1 FROM pg_catalog.pg_roles WHERE rolname='opscore_app') THEN 'opscore_app' ELSE '' END,true),set_config('opscore.fn_owner',$1,true)`,[migrationOwnerRole]);
     await client.query(unwrapOuterTransaction(migration.content,migration.filename));
     await client.query('INSERT INTO public.schema_migrations(filename,sha256,applied_at) VALUES ($1,$2,clock_timestamp())',[migration.filename,migration.sha256]);
     await client.query('COMMIT');applied.push({filename:migration.filename,sha256:migration.sha256});
@@ -630,7 +685,7 @@ SELECT
   post.control_plane_policy_results=controlPlanePolicyResults;
   post.control_plane_restrictive_policy_gap_count=controlPlanePolicyResults.filter(x=>x.status!=='PASS').length;
   if((!post.runtime_role_exists&&(post.app_can_create_database_schema||post.app_can_create_public_objects||post.app_can_select||post.app_can_insert||post.app_can_update||post.app_can_delete||Number(post.control_plane_privilege_gap_count)!==0))||!validateAppRolePostconditions(post)||!post.ledger_forced_rls||!post.privileged_is_definer||!post.reset_token_row_security_off||Number(post.control_plane_table_count)!==3||Number(post.control_plane_restrictive_policy_gap_count)!==0||(post.runtime_role_exists&&(!post.runtime_login||post.runtime_superuser||post.runtime_bypassrls||post.runtime_create_role||post.runtime_create_db||Number(post.runtime_privileged_membership_count)!==0||post.runtime_database_create||post.runtime_schema_create||post.runtime_neon_superuser_member||post.runtime_neon_superuser_set||post.runtime_app_role_member||post.runtime_schema_migrations_access||!post.runtime_privileged_execute||Number(post.runtime_policy_function_gap_count)!==0||Number(post.runtime_control_plane_privilege_gap_count)!==0||Number(post.runtime_autopilot_table_privilege_gap_count)!==0)))throw new Error('MIGRATION_POSTCONDITION_FAILED');
-  emit({status:'APPLIED_AND_VERIFIED',target:{database:info.database,role:info.role,targetClass},neonIdentity,serverVersion:info.server_version,legacy042Evidence,controlPlane053Evidence,legacyAppRoleOptionalEvidence,applied,skipped:plan.skipped,postconditions:post,note:'Only the explicitly confirmed target database was changed. The sole allowed app-role residual is a dormant Neon-managed neon_superuser membership on a NOLOGIN/NOINHERIT/NOBYPASSRLS role with zero incoming memberships; removing that membership requires Neon role-admin authority. Production certification remains separate.'});
+  emit({status:'APPLIED_AND_VERIFIED',target:{database:info.database,role:info.role,migrationOwnerRole,targetClass},neonIdentity,serverVersion:info.server_version,legacy042Evidence,controlPlane053Evidence,legacyAppRoleOptionalEvidence,applied,skipped:plan.skipped,postconditions:post,note:'Only the explicitly confirmed target database was changed. The sole allowed app-role residual is a dormant Neon-managed neon_superuser membership on a NOLOGIN/NOINHERIT/NOBYPASSRLS role with zero incoming memberships; removing that membership requires Neon role-admin authority. Production certification remains separate.'});
  }finally{
   if(locked&&client)try{await client.query("SELECT pg_advisory_unlock(hashtext(current_database()),hashtext('opscore-schema-migrations'))");}catch(_){}
   if(client)client.release();await pool.end();

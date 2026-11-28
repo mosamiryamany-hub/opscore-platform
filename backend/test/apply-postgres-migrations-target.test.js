@@ -529,3 +529,86 @@ test('legacy app-role migration reconciliation requires complete catalog-equival
   });
   assert.equal(rejected.verified, false);
 });
+
+test('self-hosted migrations require an operator-pinned host, database, direct TLS and dedicated migrator role', async () => {
+  const selfHost = 'db.customer.example';
+  const url = new URL('postgresql://opscore_migrator:never-print-this@' + selfHost + '/' + database + '?sslmode=verify-full');
+  const env = {
+    OPSC_MIGRATION_TARGET_CLASS: 'self-hosted',
+    OPSC_MIGRATION_EXPECTED_DATABASE: database,
+    OPSC_MIGRATION_EXPECTED_HOST: selfHost,
+    OPSC_MIGRATION_EXPECTED_OWNER_ROLE: 'opscore_migrator',
+    NODE_ENV: 'production',
+    OPSC_PG_SSL_MODE: 'verify-full'
+  };
+  assert.equal(expectedMigrationOwnerRole(env), 'opscore_migrator');
+  assert.equal(assertTarget(url, database, false, env), 'self-hosted-explicit-target');
+  assert.deepEqual(await verifyNeonEndpointIdentity(url, env), {
+    verified: false,
+    skipped: true,
+    reason: 'operator-pinned-self-hosted-target',
+    host: selfHost,
+    database,
+    verification: 'EXPLICIT_HOST_DATABASE_AND_TLS_PIN'
+  });
+  const confirmed = {
+    ...env,
+    OPSC_MIGRATION_CONFIRM_DATABASE: database,
+    OPSC_MIGRATION_CONFIRM_HOST: selfHost,
+    OPSC_MIGRATION_ALLOW_SELF_HOSTED: '1'
+  };
+  assert.equal(assertTarget(url, database, true, confirmed), 'self-hosted-explicit-target');
+  assert.throws(() => assertTarget(url, database, true, {
+    ...confirmed,
+    OPSC_MIGRATION_ALLOW_SELF_HOSTED: undefined
+  }), /MIGRATION_SELF_HOSTED_APPLY_OPT_IN_REQUIRED/);
+  assert.throws(() => assertTarget(
+    new URL('postgresql://opscore_migrator:x@db.other.example/' + database + '?sslmode=verify-full'),
+    database, false, env
+  ), /MIGRATION_ENDPOINT_HOST_MISMATCH/);
+  assert.throws(() => assertTarget(
+    new URL('postgresql://opscore_migrator:x@' + selfHost + '/' + database + '?sslmode=require'),
+    database, false, env
+  ), /MIGRATION_SELF_HOSTED_TLS_VERIFY_FULL_REQUIRED/);
+  assert.throws(() => expectedMigrationOwnerRole({
+    ...env,
+    OPSC_MIGRATION_EXPECTED_OWNER_ROLE: 'neondb_owner'
+  }), /MIGRATION_OWNER_ROLE_NOT_ALLOWED/);
+});
+
+test('self-hosted PostgreSQL role initializer reads secrets and validates runtime, migrator, worker and owner roles', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const source = fs.readFileSync(path.join(__dirname, '../docker/postgres-init/10-opscore-roles.sh'), 'utf8');
+  assert.match(source, /\\getenv runtime_password OPSCORE_RUNTIME_PASSWORD/);
+  assert.match(source, /\\getenv migrator_password OPSCORE_MIGRATOR_PASSWORD/);
+  assert.match(source, /\\getenv worker_password OPSCORE_WORKER_PASSWORD/);
+  assert.match(source, /CREATE ROLE opscore_migrator LOGIN NOSUPERUSER BYPASSRLS NOINHERIT/);
+  assert.match(source, /CREATE ROLE neondb_owner NOLOGIN NOSUPERUSER BYPASSRLS NOCREATEDB NOCREATEROLE NOINHERIT/);
+  assert.match(source, /CREATE ROLE opscore_auth_definer NOLOGIN NOSUPERUSER BYPASSRLS NOCREATEDB NOCREATEROLE NOINHERIT/);
+  assert.match(source, /GRANT neondb_owner TO opscore_migrator WITH INHERIT FALSE, SET TRUE/);
+  assert.match(source, /GRANT opscore_auth_definer TO neondb_owner WITH INHERIT TRUE, SET TRUE/);
+  assert.match(source, /ALTER DATABASE %I OWNER TO neondb_owner/);
+  assert.match(source, /OPSCORE_RUNTIME_ROLE_CONTRACT_FAILED/);
+  assert.match(source, /OPSCORE_MIGRATOR_ROLE_CONTRACT_FAILED/);
+  assert.match(source, /OPSCORE_WORKER_ROLE_CONTRACT_FAILED/);
+  assert.match(source, /OPSCORE_MIGRATION_OWNER_ROLE_CONTRACT_FAILED/);
+  assert.match(source, /OPSCORE_AUTH_DEFINER_ROLE_CONTRACT_FAILED/);
+  assert.doesNotMatch(source, /psql[^\n]*-v\s+(?:runtime_password|migrator_password|worker_password)/);
+});
+
+test('self-hosted migration uses a local no-login compatibility owner without changing historical migrations', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const runner = fs.readFileSync(path.join(__dirname, '../scripts/apply-postgres-migrations.js'), 'utf8');
+  assert.match(runner, /targetClass==='self-hosted-explicit-target'\?'neondb_owner':info\.role/);
+  assert.match(runner, /SET ROLE neondb_owner/);
+  assert.match(runner, /MIGRATION_SELF_HOSTED_OWNER_ROLE_CONTRACT_FAILED/);
+  assert.match(runner, /MIGRATION_SELF_HOSTED_AUTH_DEFINER_ROLE_CONTRACT_FAILED/);
+  assert.match(runner, /set_config\('opscore\.fn_owner',\$1,true\).*migrationOwnerRole/);
+  const historical = ['046_migration_ledger_access_lockdown.sql','049_app_role_table_privileges.sql','057_read_only_runtime_migration_ledger_attestation.sql','058_security_definer_search_path_hardening.sql','059_runtime_system_table_policy_and_privilege_alignment.sql','072_deployment_release_evidence_store.sql'];
+  for (const filename of historical) {
+    const migration = fs.readFileSync(path.join(__dirname, '../sql/postgres', filename), 'utf8');
+    assert.match(migration, /neondb_owner/, filename);
+  }
+});

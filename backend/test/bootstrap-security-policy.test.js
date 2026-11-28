@@ -46,6 +46,26 @@ test('only the dedicated Neon owner role can perform PostgreSQL bootstrap', () =
   ]) assert.throws(() => assertBootstrapDatabaseRole(db(row), 'postgres'), /BOOTSTRAP_DATABASE_ROLE_NOT_ALLOWED/);
 });
 
+test('self-hosted bootstrap accepts only the dedicated non-superuser migration role', () => {
+  const previous = process.env.OPSC_DEPLOYMENT_MODE;
+  process.env.OPSC_DEPLOYMENT_MODE = 'self-hosted';
+  const db = row => ({ prepare: () => ({ get: () => row }) });
+  try {
+    assert.equal(assertBootstrapDatabaseRole(db({
+      role: 'opscore_migrator', superuser: false, bypass_rls: true
+    }), 'postgres'), true);
+    for (const row of [
+      { role: 'neondb_owner', superuser: false, bypass_rls: true },
+      { role: 'opscore_runtime', superuser: false, bypass_rls: false },
+      { role: 'opscore_migrator', superuser: true, bypass_rls: true },
+      { role: 'opscore_migrator', superuser: false, bypass_rls: false }
+    ]) assert.throws(() => assertBootstrapDatabaseRole(db(row), 'postgres'), /BOOTSTRAP_DATABASE_ROLE_NOT_ALLOWED/);
+  } finally {
+    if (previous === undefined) delete process.env.OPSC_DEPLOYMENT_MODE;
+    else process.env.OPSC_DEPLOYMENT_MODE = previous;
+  }
+});
+
 test('production HTTP bootstrap is disabled; local/test bootstrap remains available', () => {
   assert.equal(isHttpBootstrapAllowed('production'), false);
   assert.equal(isHttpBootstrapAllowed('Production'), false);

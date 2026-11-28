@@ -55,7 +55,8 @@
     "db:postgres-identity-rls": "node scripts/postgres-identity-rls-gate.js",
     "contact-center:i18n:forensic": "node scripts/forensic-i18n-audit.js",
     "db:ledger:full": "node scripts/full-migration-ledger-gate.js",
-    "verify:release:self-hosted": "node scripts/verify-self-hosted-release-identity.js"
+    "verify:release:self-hosted": "node scripts/verify-self-hosted-release-identity.js",
+    "backup:postgres:encrypted": "node scripts/backup-postgres-encrypted.js"
   },
   "bin": {
     "opscore": "bin/opscore.js"

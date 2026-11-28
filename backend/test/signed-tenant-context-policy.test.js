@@ -612,3 +612,39 @@ test('signed read wrapper preserves only known tenant denials after confirmed ro
 });
 
 
+
+test('self-hosted signed tenant context requires explicit enablement, a verified buyer attestation and hold=false', () => {
+  const env = {
+    OPSC_DEPLOYMENT_MODE: 'self-hosted',
+    OPSC_PRODUCTION_HOLD: 'false',
+    OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'true',
+    OPSC_SIGNED_TENANT_CONTEXT_SELF_HOSTED_ENABLED: 'true',
+    OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_READ_ENABLED: 'true',
+    OPSC_SIGNED_TENANT_CONTEXT_OPERATIONAL_WRITE_ENABLED: 'true',
+    OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_ENABLED: 'true',
+    OPSC_SIGNED_TENANT_CONTEXT_WORK_ORDERS_WRITE_ENABLED: 'true',
+    OPSC_SIGNED_TENANT_CONTEXT_ASSETS_READ_ENABLED: 'true'
+  };
+  const readiness = { productionReleaseVerified: false, selfHostedReleaseVerified: true };
+  assert.equal(policy.isSelfHosted(env), true);
+  assert.equal(policy.isSignedContextEnvironment(env, readiness), true);
+  assert.equal(policy.signedWorkOrdersReadEnabled(
+    { method: 'GET', url: '/api/v1/customers' }, env, readiness
+  ), true);
+  assert.equal(policy.signedWorkOrdersWriteEnabled(
+    { method: 'POST', url: '/api/v1/customers' }, env, readiness
+  ), true);
+  assert.equal(policy.signedSessionAutobindEnabled(env, readiness), false);
+  assert.equal(policy.isSignedContextEnvironment(env, {
+    productionReleaseVerified: false, selfHostedReleaseVerified: false
+  }), false);
+  assert.equal(policy.isSignedContextEnvironment({
+    ...env, OPSC_PRODUCTION_HOLD: 'true'
+  }, readiness), false);
+  assert.equal(policy.isSignedContextEnvironment({
+    ...env, OPSC_SIGNED_TENANT_CONTEXT_SELF_HOSTED_ENABLED: 'false'
+  }, readiness), false);
+  assert.equal(policy.isSignedContextEnvironment({
+    ...env, OPSC_REQUIRE_SIGNED_TENANT_CONTEXT: 'false'
+  }, readiness), false);
+});
