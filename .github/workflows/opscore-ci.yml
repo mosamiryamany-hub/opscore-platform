@@ -97,7 +97,7 @@ jobs:
               AND NOT rolcreatedb AND NOT rolcreaterole
               INTO worker_ok FROM pg_roles WHERE rolname='opscore_worker';
             SELECT NOT rolcanlogin AND NOT rolsuper AND rolbypassrls
-              AND rolcreatedb AND rolcreaterole
+              AND NOT rolcreatedb AND rolcreaterole
               INTO migration_owner_ok FROM pg_roles WHERE rolname='neondb_owner';
             SELECT count(*) INTO ledger_count FROM public.schema_migrations;
             IF migrator_ok IS DISTINCT FROM true THEN RAISE EXCEPTION 'SELF_HOSTED_MIGRATOR_ROLE_INVALID'; END IF;
