@@ -19,7 +19,7 @@ services:
       OPSCORE_MIGRATOR_PASSWORD: ${OPSCORE_MIGRATOR_PASSWORD:?set OPSCORE_MIGRATOR_PASSWORD}
       OPSCORE_WORKER_PASSWORD: ${OPSCORE_WORKER_PASSWORD:?set OPSCORE_WORKER_PASSWORD}
     volumes:
-      - opscore-postgres-data:/var/lib/postgresql/data
+      - opscore-postgres-data:/var/lib/postgresql
       - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d $${POSTGRES_DB:-opscore}"]
