@@ -192,3 +192,98 @@ These items are deliberately not inspected or claimed as closed in this Phase 0 
 - Do not merge this branch.
 
 **Phase 0 exit gate:** review this report, verify the listed counts and PR/branch dispositions, and approve the baseline. Only then proceed to Phase 1 Infrastructure Audit.
+
+## 9. Open PR and branch-stack forensic review (2026-11-28)
+
+The 15 open PRs were re-read from GitHub metadata and their file lists, head/base SHAs, mergeability states, and available check-runs were inspected. Comparisons below are against the fixed main SHA in this report. GitHub's `ahead_by` counts commits, not unique feature commits; stacked PRs intentionally contain ancestor commits from lower PRs.
+
+### 9.1 Branch stack — critical interpretation
+
+The PRs are not 15 independent change sets. Several are stacked:
+
+```
+main (old base 3cc84f9...)
+└─ #496 (head 4da2e14...)
+   └─ #498 (head fbc7a4c...)
+      └─ #499 (head 5bd7493...)
+         └─ #503 (head 9c7aa39...)
+            └─ #505 (head fef5d72...)
+               └─ #508 (head 075bcf5...)
+                  └─ #509 (head d7b855c...)
+
+#510 has the same head d7b855c but targets the old main base directly
+#513 is stacked on #510 (head 1a0d4b6...)
+
+main (old base 3cc84f9...)
+├─ #493 (head dd48545...)
+│  └─ #494 (head 9ea392b...)
+├─ #497 (head ecdd1c5...)
+├─ #495 (head ee22d72...)
+├─ #490 (head e2150e8...)
+#491 is another separate stack (head eec7e08...)
+```
+
+This explains why some PRs show large commit-ahead counts and why GitHub may say a PR is clean relative to its *stack parent* while it is not mergeable against current main. Do not merge a stack wholesale or treat each child PR as an independently mergeable candidate.
+
+### 9.2 Per-PR disposition
+
+| PR | Head SHA (short) | Base relationship / GitHub state | Review disposition |
+|---|---|---|---|
+| #513 | `1a0d4b6` | Based on #510; clean relative to its declared base | **Superseded migration file; review remaining test/workflow only.** Its 076 SQL file SHA is byte-identical to the already-present main file. Its migration acceptance and verify checks passed; Digital Twin PostGIS job skipped. |
+| #510 | `d7b855c` | Old main base; dirty against its declared base/current integration | **Do not merge as-is.** Broad stacked GIS/Twin/PWA/mobile source bundle. Contains unsafe implicit fixed Neon Preview branch default; review the reusable workflow before any execution. |
+| #509 | `d7b855c` | Child-stack view of the same #510 head; unstable | **Not an independent delta from #510.** Browser/GIS changes are already included in the larger stack. |
+| #508 | `075bcf5` | Child of #505; clean relative to parent | **Stacked Dispatcher Map slice.** Browser and PWA checks passed on this head; PostGIS job skipped. Must be retested against current main. |
+| #505 | `fef5d72` | Child of #503; clean relative to parent | **Stacked signed spatial-query slice.** Isolated PostgreSQL and verify passed; Neon Preview/PITR jobs skipped. SQL/RLS/security review still required. |
+| #503 | `9c7aa39` | Child of #499; clean relative to parent | **Stacked PostGIS schema slice.** Isolated PostgreSQL and verify passed; Neon Preview/PITR skipped. |
+| #499 | `5bd7493` | Child of #498; clean relative to parent | **Stacked browser/concurrency slice.** Twin browser, isolated PostgreSQL and verify passed; Neon Preview skipped. One read-only PITR check reported success on this head. |
+| #498 | `fbc7a4c` | Child of #496; clean relative to parent | **Stacked Digital Twin slice.** Isolated PostgreSQL and verify passed; Neon Preview and PITR skipped. |
+| #497 | `ecdd1c5` | Old main base; behind | **Self-hosted/buyer delivery candidate; stale against current main.** Verify and isolated PostgreSQL checks passed; Neon Preview/PITR skipped. Source tests do not establish a completed buyer install, encrypted backup restore, or key-rotation closure. |
+| #496 | `4da2e14` | Old main base; dirty | **PWA/Dispatcher Map/Android preview candidate; merge conflicts.** Browser PWA and Android preview CI passed, but that is not physical-device acceptance or proof of a signed release APK. |
+| #495 | `ee22d72` | Old main base; behind | **UI/accessibility candidate; stale.** Browser accessibility and verify checks passed; Neon Preview/PITR skipped. This is not device/browser acceptance across production environments. |
+| #494 | `9ea392b` | Child of #493; clean relative to parent | **BLOCKED: migration number collision.** Adds `073_contact_center_crm_customer_link.sql`, while main already uses migration 073 for Digital Twin RLS. Its PostgreSQL migration test passed only on its own branch/schema fixture; it does not resolve the collision against current main. |
+| #493 | `dd48545` | Old main base; dirty | **Control-room/contact-center UI stack parent.** Isolated PostgreSQL and verify passed; Neon Preview/PITR skipped. Must rebase/reconcile with current main before any further acceptance. |
+| #491 | `eec7e08` | Separate stack; dirty | **CI Neon-branch provisioning candidate; not accepted.** Source/isolated DB checks passed, but Preview application job was skipped. Script hardcodes project and parent branch IDs and can create/delete Neon branches when invoked; execution against Neon was not established by this PR's checks. |
+| #490 | `e2150e8` | Old main base; behind | **Keycloak/OIDC candidate; stale.** Contract/source/isolated DB/CodeQL checks passed; live Keycloak issuer, broker providers, callback, secrets, and end-to-end provisioned-user tests were not run. |
+
+### 9.3 Proven migration collision and duplicate resolution
+
+Two different CRM migration proposals were compared with the actual current-main migration files:
+
+1. Main already contains `backend/sql/postgres/073_digital_twin_snapshot_rls.sql` (SHA `4795d9ef...`).
+2. PR #494 adds `backend/sql/postgres/073_contact_center_crm_customer_link.sql` (different SHA `68b956ff...`), so accepting its migration sequence would create two distinct migration files with identifier 073. This is a hard blocker.
+3. Main already contains `backend/sql/postgres/076_contact_center_crm_customer_link.sql` (SHA `502e61bb...`).
+4. PR #513's proposed `076_contact_center_crm_customer_link.sql` has exactly the same Git blob SHA `502e61bb...` as main. It is not a new migration implementation and must not be re-applied or recreated.
+
+PR #513's acceptance script is a useful candidate for isolated PostgreSQL 18 validation, but its check result is limited to a disposable `opscore_test` database and does not prove a full clean install of all migrations or production catalog parity.
+
+### 9.4 Workflow target-safety finding in #510
+
+The proposed reusable workflow defaults `INPUT_BRANCH` to a fixed Neon branch ID when the caller supplies no branch. The script also pins a Neon project ID, primary branch ID, endpoint hostname, Vercel project ID and Vercel team ID. It verifies the selected branch identity, parent, readiness, protected/default/primary flags, database name and TLS connection properties before running migrations.
+
+The runtime identity checks are useful, but an implicit branch default makes target selection non-explicit and risks repeated runs against a persistent preview branch. The workflow should require an explicit branch input (and a clearly controlled, disposable branch lifecycle) before future use. This is a source-review finding only: no workflow was dispatched and no Neon/Vercel setting or database was changed by this audit.
+
+### 9.5 Check-run evidence — important boundaries
+
+- #510 head: source verification, CodeQL, isolated PostgreSQL/RLS, browser checks, PWA browser, Android preview, a Neon Preview migration run, and read-only historical PITR probe reported success in the recorded checks. One parallel Neon Preview job was cancelled. These checks are evidence for the historical PR head only, not current main.
+- #513 head: CRM PostgreSQL 18 migration acceptance and verify passed; Digital Twin PostGIS acceptance skipped.
+- #496 head: PWA browser and Android preview jobs passed. No real Android/iOS device acceptance is evidenced by those jobs.
+- #495 head: browser accessibility job passed. This does not establish full real-world responsive/RTL acceptance.
+- #497 head: isolated DB and verify passed; restore/recovery and buyer installation were not proven.
+- #490 head: contract and source checks passed; no live Keycloak provider login was evidenced.
+- #491 head: Preview provisioning/application job was skipped, so the branch-creation script was not demonstrated by that check set.
+- Several earlier stack PRs (#498, #503, #505, #508) have Neon Preview and/or PITR checks skipped. Do not transfer the #510 head's results to these different SHAs.
+
+### 9.6 Final branch/PR decision
+
+**No PR is approved for merge from this audit.** In particular:
+
+- Block #494's migration as numbered.
+- Do not reintroduce #513's already-present 076 migration.
+- Do not merge #510/#509 as a monolithic stack; split and revalidate the required unique deltas against current main.
+- Do not merge #496/#497/#495/#490 until rebased/reconciled with current main and their outstanding gates are satisfied.
+- Keep #491's Neon provisioning unexecuted until a separate explicit infrastructure authorization and target-lifecycle review.
+- Preserve the #493/#494 control-room/contact-center stack for selective source review after migration sequencing is corrected.
+
+## 10. Phase 0 exit decision after PR review
+
+The source/branch forensic review is now substantially complete, but **Phase 0 remains OPEN** because the open PR stacks have not yet been reconciled at current main, and no candidate has been safely rebased, rebuilt and re-tested on an isolated branch. The correct next action within Phase 0 is to create a consolidated, current-main-based integration candidate containing only the required, non-conflicting deltas after explicit selection, then run source-level and isolated tests. Do not start Phase 1 or merge anything based only on the historical PR check results.
