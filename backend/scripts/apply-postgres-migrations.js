@@ -166,7 +166,7 @@ function expectedMigrationOwnerRole(env=process.env) {
  const target=String(env.OPSC_MIGRATION_TARGET_CLASS||'').trim().toLowerCase();
  const configured=String(env.OPSC_MIGRATION_EXPECTED_OWNER_ROLE||'').trim();
  if(target==='test' && env.OPSC_MIGRATION_ALLOW_DOCKER_COMPOSE_HOST === '1'){
-  // Self-hosted compose uses a dedicated non-superuser migrator role, not Neon neondb_owner.
+  // Authenticate as opscore_migrator; main() switches into the non-login neondb_owner compatibility owner for historical SQL.
   if(configured && configured !== 'opscore_migrator') throw new Error('MIGRATION_OWNER_ROLE_NOT_ALLOWED');
   return configured || 'opscore_migrator';
  }
