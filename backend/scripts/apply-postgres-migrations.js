@@ -426,18 +426,20 @@ async function main(){
      has_schema_privilege(r.rolname,'public','CREATE') AS can_create_public
      FROM pg_roles r WHERE r.rolname='neondb_owner'`)).rows[0];
    if(!ownerContract||ownerContract.rolcanlogin||ownerContract.rolsuper||!ownerContract.rolbypassrls
-      ||ownerContract.rolcreaterole||ownerContract.rolcreatedb||ownerContract.rolinherit||!ownerContract.can_set_role
+      ||ownerContract.rolcreaterole||ownerContract.rolcreatedb||ownerContract.rolinherit||!ownerContract.can_set_role||!ownerContract.can_inherit
       ||!ownerContract.can_create_database||!ownerContract.can_create_public){
     throw new Error('MIGRATION_SELF_HOSTED_OWNER_ROLE_CONTRACT_FAILED');
    }
    const authDefinerContract=(await client.query(`SELECT r.rolcanlogin,r.rolsuper,r.rolbypassrls,r.rolcreaterole,r.rolcreatedb,r.rolinherit,
      pg_has_role('neondb_owner',r.oid,'SET') AS can_set_role,
-     pg_has_role('neondb_owner',r.oid,'USAGE') AS can_inherit
+     pg_has_role('neondb_owner',r.oid,'USAGE') AS can_inherit,
+     has_schema_privilege('neondb_owner','opscore_security','CREATE') AS owner_can_create_auth_schema
      FROM pg_roles r WHERE r.rolname='opscore_auth_definer'`)).rows[0];
    if(!authDefinerContract||authDefinerContract.rolcanlogin||authDefinerContract.rolsuper
       ||!authDefinerContract.rolbypassrls||authDefinerContract.rolcreaterole
       ||authDefinerContract.rolcreatedb||authDefinerContract.rolinherit
-      ||!authDefinerContract.can_set_role||!authDefinerContract.can_inherit){
+      ||!authDefinerContract.can_set_role||authDefinerContract.can_inherit
+      ||!authDefinerContract.owner_can_create_auth_schema){
     throw new Error('MIGRATION_SELF_HOSTED_AUTH_DEFINER_ROLE_CONTRACT_FAILED');
    }
    await client.query('SET ROLE neondb_owner');
@@ -517,6 +519,7 @@ async function main(){
   for(const migration of plan.pending){
    await client.query('BEGIN');
    try{
+    if(targetClass==='self-hosted-explicit-target')await client.query('SET LOCAL ROLE neondb_owner');
     await client.query(`SELECT set_config('opscore.app_role',CASE WHEN EXISTS(SELECT 1 FROM pg_catalog.pg_roles WHERE rolname='opscore_app') THEN 'opscore_app' ELSE '' END,true),set_config('opscore.fn_owner',$1,true)`,[migrationOwnerRole]);
     await client.query(unwrapOuterTransaction(migration.content,migration.filename));
     await client.query('INSERT INTO public.schema_migrations(filename,sha256,applied_at) VALUES ($1,$2,clock_timestamp())',[migration.filename,migration.sha256]);
