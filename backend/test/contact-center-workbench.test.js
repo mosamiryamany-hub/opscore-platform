@@ -40,13 +40,13 @@ test('Contact Center customer actions remain consented and require real backend 
 test('Control Rooms exposes a Contact Center route and real operational workspaces', () => {
   assert.match(roomsHtml, /data-room="contact"/);
   assert.match(roomsHtml, /data-room="twin"/);
-  assert.match(roomsHtml, /href="\\/dispatcher-map\\.html"/);
+  assert.match(roomsHtml, /href="\/dispatcher-map\.html"/);
   assert.ok(roomsScript.includes("key === 'contact'"));
   assert.ok(roomsScript.includes("'/contact-center-room.html'"));
   assert.ok(roomsScript.includes("key === 'twin'"));
   assert.ok(roomsScript.includes("'/digital-twin-room.html'"));
   assert.ok(roomsScript.includes("'/control-room.html?room=' + encodeURIComponent(key || '')"));
-  assert.match(roomsHtml, /Ten rooms. One command fabric./);
+  assert.match(roomsHtml, /Ten rooms\. One command fabric\./);
   assert.match(roomsHtml, /no invented load, risk, queue or integrity values/);
 });
 
