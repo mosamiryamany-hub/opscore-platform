@@ -548,6 +548,18 @@ test('self-hosted migration 063 runs as its dedicated object owner and returns t
   assert.match(source, /await client\.query\('INSERT INTO public\.schema_migrations/);
 });
 
+test('self-hosted 075 preserves canonical migration bytes while restoring the correct owner roles around role reset', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const source = fs.readFileSync(path.join(__dirname, '../scripts/apply-postgres-migrations.js'), 'utf8');
+  assert.match(source, /function selfHostedMigrationContent\(migration,targetClass\)/);
+  assert.match(source, /MIGRATION_SELF_HOSTED_075_ROLE_COMPATIBILITY_ANCHOR_MISMATCH/);
+  assert.match(source, /migration\.content\),migration\.filename/);
+  assert.match(source, /canonical file bytes and their SHA-256 ledger value remain unchanged/);
+  assert.match(source, /RESET ROLE;\\nSET LOCAL ROLE neondb_owner;/);
+  assert.match(source, /Function ownership is already opscore_auth_definer/);
+});
+
 test('self-hosted migrations require an operator-pinned host, database, direct TLS and dedicated migrator role', async () => {
   const selfHost = 'db.customer.example';
   const url = new URL('postgresql://opscore_migrator:never-print-this@' + selfHost + '/' + database + '?sslmode=verify-full');
