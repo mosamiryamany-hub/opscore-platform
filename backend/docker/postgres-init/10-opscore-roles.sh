@@ -25,9 +25,9 @@ BEGIN
     CREATE ROLE opscore_app NOLOGIN NOSUPERUSER NOBYPASSRLS NOINHERIT;
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'neondb_owner') THEN
-    EXECUTE 'CREATE ROLE neondb_owner NOLOGIN NOSUPERUSER CREATEDB CREATEROLE BYPASSRLS INHERIT';
+    EXECUTE 'CREATE ROLE neondb_owner NOLOGIN NOSUPERUSER NOCREATEDB CREATEROLE BYPASSRLS INHERIT';
   ELSE
-    EXECUTE 'ALTER ROLE neondb_owner WITH NOLOGIN NOSUPERUSER CREATEDB CREATEROLE BYPASSRLS INHERIT';
+    EXECUTE 'ALTER ROLE neondb_owner WITH NOLOGIN NOSUPERUSER NOCREATEDB CREATEROLE BYPASSRLS INHERIT';
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'opscore_runtime') THEN
     EXECUTE format(
@@ -64,8 +64,8 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" \
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE EXTENSION IF NOT EXISTS postgis;
 CREATE EXTENSION IF NOT EXISTS vector;
+ALTER DATABASE :"database_name" OWNER TO neondb_owner;
 GRANT neondb_owner TO opscore_migrator;
-GRANT CREATE, CONNECT ON DATABASE :"database_name" TO neondb_owner;
 GRANT CREATE, USAGE ON SCHEMA public TO neondb_owner;
 -- Some historical migrations use RESET ROLE after a scoped SET ROLE; PostgreSQL
 -- resets to session_user (opscore_migrator), so retain only the schema DDL needed
