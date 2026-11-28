@@ -15,7 +15,7 @@ cd backend
 cp ../docs/self-hosted/env.self-hosted.example .env.self-hosted
 # Edit every placeholder secret before starting. Do not commit this file.
 mkdir -p .secrets
-./scripts/generate-self-hosted-db-certs.sh .secrets
+sh ./scripts/generate-self-hosted-db-certs.sh .secrets
 # Move .secrets/postgres-ca.key to secure offline storage, then remove the local copy after issuing the server certificate.
 docker compose --env-file .env.self-hosted -f docker-compose.self-hosted.yml config --quiet
 docker compose --env-file .env.self-hosted -f docker-compose.self-hosted.yml up --build -d
