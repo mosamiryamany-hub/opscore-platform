@@ -183,6 +183,18 @@ const { chromium } = require('playwright');
       boundary: 'Static browser layout and direction acceptance only. No authenticated production data or device hardware is claimed.'
     }, null, 2) + '\n');
     process.stdout.write(JSON.stringify(results, null, 2) + '\n');
+  } catch (error) {
+    fs.writeFileSync(path.join(out, 'twin-browser-report.json'), JSON.stringify({
+      schemaVersion: 'opscore.twin-browser-acceptance.v1',
+      generatedAt: new Date().toISOString(),
+      browser: await browser.version(),
+      base,
+      results,
+      pageErrors: errors,
+      failure: { name: error.name, message: error.message, stack: error.stack },
+      boundary: 'Static browser layout and direction acceptance only. No authenticated production data or device hardware is claimed.'
+    }, null, 2) + '\n');
+    throw error;
   } finally {
     await browser.close();
   }
