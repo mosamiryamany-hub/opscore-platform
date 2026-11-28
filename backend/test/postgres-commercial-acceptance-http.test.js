@@ -653,16 +653,18 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           const canvasPngA = await page.locator('.maplibregl-canvas').screenshot();
           fs.writeFileSync(path.join(browserOutputDir, 'tenant-a-maplibre-canvas.png'), canvasPngA);
           const canvasBoxA = await page.locator('.maplibregl-canvas').boundingBox();
-          const pageMetricsA = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight, scrollX: window.scrollX, scrollY: window.scrollY }));
           const pagePngA = await page.screenshot({ fullPage: true });
           fs.writeFileSync(path.join(browserOutputDir, 'tenant-a-full-page-render.png'), pagePngA);
-          const pageShotA = PNG.sync.read(pagePngA);
-          const pageScaleAX = pageShotA.width / pageMetricsA.width;
-          const pageScaleAY = pageShotA.height / pageMetricsA.height;
-          const pixelAX = Math.max(0, Math.min(pageShotA.width - 1, Math.round((canvasBoxA.x + pageMetricsA.scrollX + projectedA.x) * pageScaleAX)));
-          const pixelAY = Math.max(0, Math.min(pageShotA.height - 1, Math.round((canvasBoxA.y + pageMetricsA.scrollY + projectedA.y) * pageScaleAY)));
-          const pixelAOffset = (pixelAY * pageShotA.width + pixelAX) * 4;
-          const renderedPixelA = { x: pixelAX, y: pixelAY, rgba: Array.from(pageShotA.data.slice(pixelAOffset, pixelAOffset + 4)) };
+          // Sample the actual MapLibre canvas bitmap. Full-page screenshot
+          // coordinates are unstable when the page was resized/scroll-captured;
+          // canvas-local coordinates map directly to the projected geometry.
+          const canvasShotA = PNG.sync.read(canvasPngA);
+          const canvasScaleAX = canvasShotA.width / canvasBoxA.width;
+          const canvasScaleAY = canvasShotA.height / canvasBoxA.height;
+          const pixelAX = Math.max(0, Math.min(canvasShotA.width - 1, Math.round(projectedA.x * canvasScaleAX)));
+          const pixelAY = Math.max(0, Math.min(canvasShotA.height - 1, Math.round(projectedA.y * canvasScaleAY)));
+          const pixelAOffset = (pixelAY * canvasShotA.width + pixelAX) * 4;
+          const renderedPixelA = { x: pixelAX, y: pixelAY, rgba: Array.from(canvasShotA.data.slice(pixelAOffset, pixelAOffset + 4)) };
           assert.ok(renderedPixelA.rgba[0] >= 100 && renderedPixelA.rgba[0] <= 220
             && renderedPixelA.rgba[1] >= 80 && renderedPixelA.rgba[1] <= 200
             && renderedPixelA.rgba[2] >= 220 && renderedPixelA.rgba[3] === 255,
@@ -817,16 +819,17 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
           const canvasPngB = await pageB.locator('.maplibregl-canvas').screenshot();
           fs.writeFileSync(path.join(browserOutputDir, 'tenant-b-maplibre-canvas.png'), canvasPngB);
           const canvasBoxB = await pageB.locator('.maplibregl-canvas').boundingBox();
-          const pageMetricsB = await pageB.evaluate(() => ({ width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight, scrollX: window.scrollX, scrollY: window.scrollY }));
           const pagePngB = await pageB.screenshot({ fullPage: true });
           fs.writeFileSync(path.join(browserOutputDir, 'tenant-b-full-page-render.png'), pagePngB);
-          const pageShotB = PNG.sync.read(pagePngB);
-          const pageScaleBX = pageShotB.width / pageMetricsB.width;
-          const pageScaleBY = pageShotB.height / pageMetricsB.height;
-          const pixelBX = Math.max(0, Math.min(pageShotB.width - 1, Math.round((canvasBoxB.x + pageMetricsB.scrollX + projectedB.x) * pageScaleBX)));
-          const pixelBY = Math.max(0, Math.min(pageShotB.height - 1, Math.round((canvasBoxB.y + pageMetricsB.scrollY + projectedB.y) * pageScaleBY)));
-          const pixelBOffset = (pixelBY * pageShotB.width + pixelBX) * 4;
-          const renderedPixelB = { x: pixelBX, y: pixelBY, rgba: Array.from(pageShotB.data.slice(pixelBOffset, pixelBOffset + 4)) };
+          // Use canvas-local pixels for the same reason as tenant A: viewport
+          // and full-page capture geometry must not affect the render assertion.
+          const canvasShotB = PNG.sync.read(canvasPngB);
+          const canvasScaleBX = canvasShotB.width / canvasBoxB.width;
+          const canvasScaleBY = canvasShotB.height / canvasBoxB.height;
+          const pixelBX = Math.max(0, Math.min(canvasShotB.width - 1, Math.round(projectedB.x * canvasScaleBX)));
+          const pixelBY = Math.max(0, Math.min(canvasShotB.height - 1, Math.round(projectedB.y * canvasScaleBY)));
+          const pixelBOffset = (pixelBY * canvasShotB.width + pixelBX) * 4;
+          const renderedPixelB = { x: pixelBX, y: pixelBY, rgba: Array.from(canvasShotB.data.slice(pixelBOffset, pixelBOffset + 4)) };
           assert.ok(renderedPixelB.rgba[0] >= 100 && renderedPixelB.rgba[0] <= 220
             && renderedPixelB.rgba[1] >= 80 && renderedPixelB.rgba[1] <= 200
             && renderedPixelB.rgba[2] >= 220 && renderedPixelB.rgba[3] === 255,
