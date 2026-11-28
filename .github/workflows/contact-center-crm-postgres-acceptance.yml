@@ -1,0 +1,47 @@
+name: Contact Center CRM PostgreSQL 18 Migration Acceptance
+
+on:
+  pull_request:
+    paths:
+      - 'backend/sql/postgres/076_contact_center_crm_customer_link.sql'
+      - 'backend/scripts/postgres-contact-center-crm-acceptance.js'
+      - '.github/workflows/contact-center-crm-postgres-acceptance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  postgres-18-migration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: opscore_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-only-password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d opscore_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22.23.4'
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci --ignore-scripts
+      - name: Apply CRM migration to isolated PostgreSQL 18
+        env:
+          OPSC_PG_TEST_URL: postgresql://postgres:ci-only-password@127.0.0.1:5432/opscore_test
+        run: node backend/scripts/postgres-contact-center-crm-acceptance.js
