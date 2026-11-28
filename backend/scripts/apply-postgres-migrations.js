@@ -174,7 +174,8 @@ function extractNeonEndpointId(hostname) {
 }
 function selfHostedMigrationExecutionRole(filename,targetClass) {
  if(targetClass!=='self-hosted-explicit-target')return null;
- return filename==='063_signed_tenant_context_verifier.sql'?'opscore_auth_definer':'neondb_owner';
+ return filename==='063_signed_tenant_context_verifier.sql'||filename==='066_signed_tenant_context_verifier_search_path_hardening.sql'
+  ?'opscore_auth_definer':'neondb_owner';
 }
 function expectedMigrationOwnerRole(env=process.env) {
  const target=String(env.OPSC_MIGRATION_TARGET_CLASS||'').trim().toLowerCase();
@@ -528,15 +529,15 @@ async function main(){
     if(targetClass==='self-hosted-explicit-target')await client.query('SET LOCAL ROLE neondb_owner');
     let authDefinerDatabaseCreateGranted=false;
     if(selfHostedRole==='opscore_auth_definer'){
-     // Migration 063 creates/checks the security schema, transfers HMAC-object
-     // ownership and issues grants. Run only this immutable migration as its
-     // object owner. Its CREATE SCHEMA statement also needs database CREATE,
-     // so grant that privilege transaction-locally and revoke it before commit.
-     const existingDatabaseCreate=(await client.query("SELECT has_database_privilege('opscore_auth_definer',current_database(),'CREATE') AS allowed")).rows[0];
-     if(!existingDatabaseCreate||existingDatabaseCreate.allowed!==false)throw new Error('MIGRATION_SELF_HOSTED_AUTH_DEFINER_DATABASE_CREATE_PREEXISTS');
-     await client.query('GRANT SELECT ON TABLE public.sessions, public.users, public.memberships, public.organizations, public.organization_governance TO opscore_auth_definer WITH GRANT OPTION');
-     await client.query("DO $grant$ BEGIN EXECUTE format('GRANT CREATE ON DATABASE %I TO opscore_auth_definer',current_database()); END $grant$");
-     authDefinerDatabaseCreateGranted=true;
+     // Migrations 063 and 066 alter objects owned by the dedicated verifier.
+     // Only 063 bootstraps its schema and needs the narrowly scoped grants below.
+     if(migration.filename==='063_signed_tenant_context_verifier.sql'){
+      const existingDatabaseCreate=(await client.query("SELECT has_database_privilege('opscore_auth_definer',current_database(),'CREATE') AS allowed")).rows[0];
+      if(!existingDatabaseCreate||existingDatabaseCreate.allowed!==false)throw new Error('MIGRATION_SELF_HOSTED_AUTH_DEFINER_DATABASE_CREATE_PREEXISTS');
+      await client.query('GRANT SELECT ON TABLE public.sessions, public.users, public.memberships, public.organizations, public.organization_governance TO opscore_auth_definer WITH GRANT OPTION');
+      await client.query("DO $grant$ BEGIN EXECUTE format('GRANT CREATE ON DATABASE %I TO opscore_auth_definer',current_database()); END $grant$");
+      authDefinerDatabaseCreateGranted=true;
+     }
      await client.query('SET LOCAL ROLE opscore_auth_definer');
     }
     await client.query(`SELECT set_config('opscore.app_role',CASE WHEN EXISTS(SELECT 1 FROM pg_catalog.pg_roles WHERE rolname='opscore_app') THEN 'opscore_app' ELSE '' END,true),set_config('opscore.fn_owner',$1,true)`,[migrationOwnerRole]);
