@@ -656,3 +656,18 @@ The two failing subtests are:
 These are test/source-contract mismatches in the migration runner test file and must be reconciled against the actual current implementation. They are not proof that historical migration files changed; inspect the exact assertion and runner code before changing either. Do not weaken assertions merely to turn CI green.
 
 At the last poll, the latest-head Combined GIS/Contact Center run `46144382862` and Android preview `46144382830` remained **IN_PROGRESS**; Vercel deploy `46144382825` remained **PENDING**. Self-Hosted run `46144382940` is **FAILURE** at Migration 075 as recorded in §14.8. This makes the latest candidate head non-acceptable for progression.
+
+
+### 14.10 Candidate moved once more — latest observed head d0a60e44
+
+At the final source-baseline poll, PR #497 had advanced to `d0a60e441a2ef3836ce7ba1e2ce1de23b9b21bd6` (90 commits, 99 changed files; open, non-draft, GitHub reports mergeable). The new commit changes only `backend/test/apply-postgres-migrations-target.test.js` and is titled `test(self-hosted): verify spatial migration owner-bound comment order`.
+
+Fresh runs on this exact head:
+- Combined GIS/Contact Center `46144532248`: **IN_PROGRESS**.
+- Android preview `46144532284`: **IN_PROGRESS**.
+- Self-Hosted PostgreSQL 18 `46144532302`: **IN_PROGRESS**.
+- Vercel deploy `46144532300`: **PENDING**.
+- Neon Preview migration `46144532277`: **SKIPPED**.
+- OpsCore CI `46144532305`: **IN_PROGRESS**.
+
+The prior-head failures in §§14.8–14.9 are confirmed on `6fd20f82...`; they are not yet results for `d0a60e44...`. The branch is still changing while these fresh checks execute. Do not declare a final candidate CI disposition until these exact runs finish. Phase 0 remains open.
