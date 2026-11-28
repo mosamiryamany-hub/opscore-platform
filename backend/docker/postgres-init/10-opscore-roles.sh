@@ -53,12 +53,13 @@ SQL
 
 # Self-hosted migrator needs CREATE on the application database and ability to manage
 # least-privilege objects. Superuser remains postgres (init only).
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<SQL
+psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" \
+  -v database_name="$POSTGRES_DB" <<'SQL'
 -- Install privileged extensions before the non-superuser migrator starts.
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE EXTENSION IF NOT EXISTS postgis;
 CREATE EXTENSION IF NOT EXISTS vector;
 GRANT opscore_owner TO opscore_migrator;
-GRANT CREATE, CONNECT ON DATABASE ${POSTGRES_DB} TO opscore_migrator;
+GRANT CREATE, CONNECT ON DATABASE :"database_name" TO opscore_migrator;
 GRANT CREATE ON SCHEMA public TO opscore_migrator;
 SQL
