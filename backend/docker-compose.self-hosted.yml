@@ -6,7 +6,10 @@
 
 services:
   db:
-    image: postgis/postgis:18-3.6
+    build:
+      context: ./docker/postgres
+      dockerfile: Dockerfile
+    image: opscore-postgres:18-postgis-vector
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-opscore}
