@@ -9,6 +9,13 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" \
   -v runtime_password="$OPSCORE_RUNTIME_PASSWORD" \
   -v migrator_password="$OPSCORE_MIGRATOR_PASSWORD" \
   -v worker_password="$OPSCORE_WORKER_PASSWORD" <<'SQL'
+-- psql does not interpolate variables inside a dollar-quoted DO body.
+-- Move the secrets into transaction-local custom settings, then quote them
+-- with format(%L) when dynamically creating the login roles.
+SELECT set_config('opscore.runtime_password', :'runtime_password', false);
+SELECT set_config('opscore.migrator_password', :'migrator_password', false);
+SELECT set_config('opscore.worker_password', :'worker_password', false);
+
 DO $do$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'opscore_owner') THEN
@@ -18,13 +25,27 @@ BEGIN
     CREATE ROLE opscore_app NOLOGIN NOSUPERUSER NOBYPASSRLS NOINHERIT;
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'opscore_runtime') THEN
-    CREATE ROLE opscore_runtime LOGIN NOSUPERUSER NOBYPASSRLS NOINHERIT PASSWORD :'runtime_password';
+    EXECUTE format(
+      'CREATE ROLE opscore_runtime LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS NOINHERIT PASSWORD %L',
+      current_setting('opscore.runtime_password')
+    );
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'opscore_migrator') THEN
-    CREATE ROLE opscore_migrator LOGIN NOSUPERUSER NOBYPASSRLS NOINHERIT PASSWORD :'migrator_password';
+    EXECUTE format(
+      'CREATE ROLE opscore_migrator LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE BYPASSRLS NOINHERIT PASSWORD %L',
+      current_setting('opscore.migrator_password')
+    );
+  ELSE
+    EXECUTE format(
+      'ALTER ROLE opscore_migrator LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE BYPASSRLS NOINHERIT PASSWORD %L',
+      current_setting('opscore.migrator_password')
+    );
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'opscore_worker') THEN
-    CREATE ROLE opscore_worker LOGIN NOSUPERUSER NOBYPASSRLS NOINHERIT PASSWORD :'worker_password';
+    EXECUTE format(
+      'CREATE ROLE opscore_worker LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS NOINHERIT PASSWORD %L',
+      current_setting('opscore.worker_password')
+    );
   END IF;
 END
 $do$;
