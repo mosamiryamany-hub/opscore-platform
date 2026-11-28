@@ -4,6 +4,7 @@
     "title": "AI Contact Center",
     "subtitle": "Multilingual self-service with governed human handoff.",
     "operationsConsole": "Operations console",
+    "operationsConsoleShortcut": "⌘K — Operations console",
     "interfaceLanguage": "Interface language"
   },
   "status": {
