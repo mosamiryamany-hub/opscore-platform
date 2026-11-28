@@ -2937,6 +2937,11 @@ class Store {
       where.push('action=?');
       args.push(filters.action);
     }
+    if (filters.actionPrefix) {
+      const prefix = String(filters.actionPrefix).slice(0, 80);
+      where.push('substr(action,1,?)=?');
+      args.push(prefix.length, prefix);
+    }
     if (filters.resourceType) {
       where.push('resource_type=?');
       args.push(filters.resourceType);
