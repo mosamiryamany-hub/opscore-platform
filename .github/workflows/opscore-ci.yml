@@ -41,6 +41,8 @@ jobs:
             printf 'OPSCORE_PUBLIC_HOST=localhost\n'
             printf 'CADDY_HTTP_PORT=18080\n'
             printf 'CADDY_HTTPS_PORT=18443\n'
+            printf 'OPSC_EXPECTED_INSTANCES=1\n'
+            printf 'OPSC_PRODUCTION_HOLD=false\n'
           } > backend/.env.self-hosted
           chmod 600 backend/.env.self-hosted
           sh backend/scripts/generate-self-hosted-db-certs.sh backend/.secrets
