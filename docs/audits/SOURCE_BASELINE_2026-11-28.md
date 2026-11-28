@@ -362,3 +362,59 @@ The safe order for the next Phase 0 work is:
 7. Review #491 only after a disposable Neon branch lifecycle is explicitly authorized; review #490 only with a live Keycloak test realm and provisioned test identities.
 
 **Phase 0 remains OPEN.** Current-main source identity and PR file-level reconciliation are complete for the 15 open PRs. Patch-level review has identified hard blockers and evidence boundaries, but candidate code has not yet been selectively applied or retested. No Phase 1 infrastructure actions are authorized by this report.
+
+
+## 12. Follow-up: current-main GIS / Digital Twin reconciliation and CI gate (2026-11-28)
+
+### 12.1 GIS / Digital Twin deltas are already superseded on main
+
+The current-main tree was checked directly for the unique paths in #510, #508, #505, #503, #499 and #498. The following implementation evidence is already present on `main` at `f68ec555e5b296ba7ec63c04a4cb1c5d321d8187`:
+
+- `backend/src/server.js` exposes `GET /api/v1/map/viewport` and passes `includeSpatialFeatures` only when the signed-read policy enables it.
+- `backend/src/geofencing.js` calls `opscore_security.spatial_features_in_viewport` and includes spatial features only for PostgreSQL + the signed-read gate. Role-polygon filtering is also applied before returning spatial data.
+- `backend/sql/postgres/074_tenant_scoped_postgis_spatial_features.sql` and `075_signed_rls_spatial_viewport_query.sql` exist on main.
+- `backend/scripts/signed-tenant-context-postgres-gate.js` contains the `signedSpatialViewportQuery` proof, including tenant A/B checks.
+- `backend/scripts/postgres-live-rls-gate.js` includes the 074 spatial migration in its disposable PostgreSQL gate.
+- `backend/web/dispatcher-map.js`, `dispatcher-map-geojson.mjs`, `dispatcher-map-geojson.test.js`, and `twin-browser-acceptance.js` exist on main. The current Dispatcher Map source is more advanced than the older #508 patch: it includes E2E-only rendered-feature diagnostics and request sequencing counters. The browser test includes the Dispatcher Map page, responsive checks and RTL toggling.
+- `backend/web/digital-twin-room.html`, `digital-twin-room.css`, `digital-twin-room.js`, `control-rooms.html`, and the current contact-center test/room files are present on main. The old #498/#499 room files are not missing implementation to be copied.
+
+**Disposition:** no GIS/Digital Twin source file from the old stacked PR heads is to be cherry-picked onto current main. Their current-main equivalents are already present and, in several cases, have advanced beyond the PR patch. This is a supersession decision, not a claim that all live acceptance gates have passed.
+
+### 12.2 The million-row PostGIS gate exists, but current-main execution is not proven
+
+Current main's `backend/scripts/twin-concurrency-postgis-gate.js` creates a disposable synthetic `spatial_points` table, inserts 1,000,000 rows split across two synthetic tenant labels, creates GiST and tenant indexes, runs ANALYZE, and performs EXPLAIN (ANALYZE, BUFFERS) at the 40,000 / 250,000 / 1,000,000 total-row tiers.
+
+Evidence limitations found by source inspection:
+- It is a synthetic disposable fixture, not the production `public.spatial_features` table.
+- The performance query contains an explicit tenant equality predicate; the separate tenant-B query is not a negative RLS isolation assertion.
+- The tiers execute one measured EXPLAIN query each. They do not produce statistically meaningful P50/P95/P99 distributions or repeated-run latency percentiles.
+- It records the selected plan's execution time and shared hit/read blocks, and checks for the named GiST index. It does not establish buyer hardware capacity or a production SLO.
+
+### 12.3 Current-main workflow evidence, rechecked
+
+GitHub Actions runs associated with the fixed main SHA were re-read:
+
+| Workflow / job | Run | Result |
+|---|---:|---|
+| OpsCore CI / verify | 46101901504 | SUCCESS |
+| OpsCore CI / digital-twin-postgres-18-postgis-acceptance | 46101901504 | **SKIPPED** |
+| Vercel source verify | 46101901507 | SUCCESS |
+| deploy-bound isolated PostgreSQL RLS + HTTP acceptance | 46101901507 | SUCCESS |
+| Vercel contract verify | 46101901507 | SUCCESS |
+| Neon Preview migration + HTTP acceptance | 46101901507 | SKIPPED |
+| Production Neon PITR historical probe | 46101901507 | SKIPPED |
+| deployment | 46101901507 | SKIPPED |
+
+The reusable `.github/workflows/digital-twin-postgres-live.yml` workflow's `live-rls` job provisions a disposable `postgis/postgis:18-3.7` service, but its optional Neon Preview and historical PITR jobs have explicit event/ref/branch conditions. The current main push run did not execute the Digital Twin/PostGIS job because `.github/workflows/opscore-ci.yml` still restricts that job to a fixed list of PR head branch names. The main SHA therefore has successful general verification and isolated PostgreSQL RLS/HTTP acceptance, but **does not have a current-run PASS for the million-row PostGIS gate**.
+
+No workflow dispatch endpoint/action was available through the connected GitHub tools in this session; no workflow was manually triggered. No production or persistent Neon target was touched.
+
+### 12.4 Phase 0 decision
+
+- GIS/Digital Twin source reconciliation against current main: **COMPLETE for the reviewed stacked PR deltas**; no source cherry-pick required.
+- GIS/Digital Twin runtime/DB acceptance on current main: **NOT PROVEN in the latest main run**, because the specific PostGIS job was skipped.
+- Million-row synthetic fixture code: **PRESENT**, but not executed on the current main run and not equivalent to production-table scale or percentile benchmarking.
+- Workflow branch-filter design: **OPEN ISSUE**. It prevents the main push from running the dedicated PostGIS gate. Correcting it requires a separately reviewed CI workflow change and a real Actions run; it has not been changed in this audit.
+- Phase 0: **OPEN**. Do not begin Phase 1 until the current-main source baseline, candidate disposition, and required current-head verification are all evidenced.
+
+This follow-up changed only the audit report on `audit/source-baseline-2026-11-28`. Main remains unchanged; no migrations, application source, workflows, databases, secrets or deployments were modified.
