@@ -407,6 +407,20 @@ async function main(){
     FROM pg_roles r WHERE r.rolname='opscore_runtime'`)).rows[0];
   if(!runtimePreflight||!runtimePreflight.rolcanlogin||runtimePreflight.rolsuper||runtimePreflight.rolbypassrls||runtimePreflight.rolcreaterole||runtimePreflight.rolcreatedb||Number(runtimePreflight.elevated_membership_count)!==0)throw new Error('MIGRATION_RUNTIME_ROLE_NOT_LEAST_PRIVILEGED');
   const neonIdentity=await verifyNeonEndpointIdentity(url);
+  // Historical migrations 046/049/057 intentionally use the canonical
+  // neondb_owner identity. In self-hosted Compose, authenticate as the
+  // dedicated opscore_migrator login, then SET ROLE into its non-login
+  // neondb_owner compatibility owner. Runtime never receives this membership.
+  const selfHostedComposeTarget=String(process.env.OPSC_MIGRATION_TARGET_CLASS||'').trim().toLowerCase()==='test'
+    && process.env.OPSC_MIGRATION_ALLOW_DOCKER_COMPOSE_HOST==='1';
+  const migrationOwnerRole=selfHostedComposeTarget?'neondb_owner':info.role;
+  if(selfHostedComposeTarget){
+   const membership=(await client.query("SELECT pg_has_role(current_user,'neondb_owner','SET') AS can_set")).rows[0];
+   if(!membership||membership.can_set!==true)throw new Error('MIGRATION_SELF_HOSTED_OWNER_ROLE_MEMBERSHIP_REQUIRED');
+   await client.query('SET ROLE neondb_owner');
+   const activeRole=(await client.query('SELECT current_user AS role')).rows[0]?.role;
+   if(activeRole!=='neondb_owner')throw new Error('MIGRATION_SELF_HOSTED_OWNER_ROLE_SWITCH_FAILED');
+  }
   await client.query("SELECT pg_advisory_lock(hashtext(current_database()),hashtext('opscore-schema-migrations'))");locked=true;
   const ledgerExists=(await client.query("SELECT to_regclass('public.schema_migrations') AS ledger")).rows[0]?.ledger;
   let ledger;
@@ -471,7 +485,7 @@ async function main(){
   for(const migration of plan.pending){
    await client.query('BEGIN');
    try{
-    await client.query(`SELECT set_config('opscore.app_role',CASE WHEN EXISTS(SELECT 1 FROM pg_catalog.pg_roles WHERE rolname='opscore_app') THEN 'opscore_app' ELSE '' END,true),set_config('opscore.fn_owner',$1,true)`,[info.role]);
+    await client.query(`SELECT set_config('opscore.app_role',CASE WHEN EXISTS(SELECT 1 FROM pg_catalog.pg_roles WHERE rolname='opscore_app') THEN 'opscore_app' ELSE '' END,true),set_config('opscore.fn_owner',$1,true)`,[migrationOwnerRole]);
     await client.query(unwrapOuterTransaction(migration.content,migration.filename));
     await client.query('INSERT INTO public.schema_migrations(filename,sha256,applied_at) VALUES ($1,$2,clock_timestamp())',[migration.filename,migration.sha256]);
     await client.query('COMMIT');applied.push({filename:migration.filename,sha256:migration.sha256});
