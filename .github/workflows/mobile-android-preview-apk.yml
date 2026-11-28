@@ -49,7 +49,7 @@ jobs:
           const fs = require('node:fs');
           const path = 'mobile/node_modules/@react-native/gradle-plugin/settings.gradle.kts';
           let source = fs.readFileSync(path, 'utf8');
-          const match = source.match(/pluginManagement\\s*\\{\\s*repositories\\s*\\{([\\s\\S]*?)\\}\\s*\\}/);
+          const match = source.match(/pluginManagement\s*\{\s*repositories\s*\{([\s\S]*?)\}\s*\}/);
           if (!match) throw new Error('REACT_NATIVE_PLUGIN_MANAGEMENT_BLOCK_NOT_FOUND');
           let repositories = match[1];
           const portal = repositories.indexOf('gradlePluginPortal()');
@@ -63,7 +63,7 @@ jobs:
             source = source.replace(match[1], repositories);
             fs.writeFileSync(path, source);
           }
-          const verified = source.match(/pluginManagement\\s*\\{\\s*repositories\\s*\\{([\\s\\S]*?)\\}\\s*\\}/);
+          const verified = source.match(/pluginManagement\s*\{\s*repositories\s*\{([\s\S]*?)\}\s*\}/);
           if (!verified || verified[1].indexOf('gradlePluginPortal()') > verified[1].indexOf('mavenCentral()')) {
             throw new Error('GRADLE_PLUGIN_PORTAL_ORDER_NOT_VERIFIED');
           }
