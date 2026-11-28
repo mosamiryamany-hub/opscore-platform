@@ -36,9 +36,16 @@ jobs:
       - name: Generate native Android project
         working-directory: mobile
         run: npx expo prebuild --platform android --no-install
+      - name: Verify Gradle Foojay plugin marker availability
+        run: |
+          set -euo pipefail
+          curl --fail --show-error --location --retry 3 --retry-all-errors --retry-delay 2 \
+            https://plugins.gradle.org/m2/org/gradle/toolchains/foojay-resolver-convention/org.gradle.toolchains.foojay-resolver-convention.gradle.plugin/1.0.0/org.gradle.toolchains.foojay-resolver-convention.gradle.plugin-1.0.0.pom \
+            --output "$RUNNER_TEMP/foojay-plugin-marker.pom"
+          test -s "$RUNNER_TEMP/foojay-plugin-marker.pom"
       - name: Build installable preview APK
         working-directory: mobile/android
-        run: ./gradlew --no-daemon assembleDebug
+        run: ./gradlew --no-daemon --refresh-dependencies --info assembleDebug
       - name: Upload Android preview APK
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
