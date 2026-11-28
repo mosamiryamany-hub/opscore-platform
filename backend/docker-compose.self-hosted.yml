@@ -10,6 +10,7 @@ services:
       context: ./docker/postgres
       dockerfile: Dockerfile
     image: opscore-postgres:18-postgis-vector
+    command: ["postgres", "-c", "ssl=on", "-c", "ssl_cert_file=/var/lib/postgresql/server.crt", "-c", "ssl_key_file=/var/lib/postgresql/server.key"]
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-opscore}
@@ -21,6 +22,8 @@ services:
     volumes:
       - opscore-postgres-data:/var/lib/postgresql
       - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
+      - ./.secrets/postgres-server.crt:/run/secrets/postgres-server.crt:ro
+      - ./.secrets/postgres-server.key:/run/secrets/postgres-server.key:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d $${POSTGRES_DB:-opscore}"]
       interval: 10s
@@ -40,9 +43,13 @@ services:
     restart: "no"
     env_file:
       - ${OPSCORE_SELF_HOSTED_ENV_FILE:-.env.self-hosted}
+    volumes:
+      - ./.secrets/postgres-ca.crt:/run/secrets/postgres-ca.crt:ro
     environment:
       DATABASE_ENGINE: postgres
-      OPSC_MIGRATION_DATABASE_URL: postgresql://opscore_migrator:${OPSCORE_MIGRATOR_PASSWORD}@db:5432/${POSTGRES_DB:-opscore}?sslmode=disable
+      OPSC_MIGRATION_DATABASE_URL: "postgresql://opscore_migrator:${OPSCORE_MIGRATOR_PASSWORD}@db:5432/${POSTGRES_DB:-opscore}?sslmode=verify-full&sslrootcert=/run/secrets/postgres-ca.crt"
+      OPSC_PG_SSL_MODE: verify-full
+      OPSC_PG_SSL_REJECT_UNAUTHORIZED: "true"
       OPSC_MIGRATION_TARGET_CLASS: test
       OPSC_MIGRATION_EXPECTED_DATABASE: ${POSTGRES_DB:-opscore}
       OPSC_MIGRATION_CONFIRM_DATABASE: ${POSTGRES_DB:-opscore}
@@ -62,12 +69,16 @@ services:
     restart: unless-stopped
     env_file:
       - ${OPSCORE_SELF_HOSTED_ENV_FILE:-.env.self-hosted}
+    volumes:
+      - ./.secrets/postgres-ca.crt:/run/secrets/postgres-ca.crt:ro
     environment:
       NODE_ENV: production
       HOST: 0.0.0.0
       PORT: 3000
       DATABASE_ENGINE: postgres
-      OPSC_DATABASE_URL: postgresql://opscore_runtime:${OPSCORE_RUNTIME_PASSWORD}@db:5432/${POSTGRES_DB:-opscore}?sslmode=disable
+      OPSC_DATABASE_URL: "postgresql://opscore_runtime:${OPSCORE_RUNTIME_PASSWORD}@db:5432/${POSTGRES_DB:-opscore}?sslmode=verify-full&sslrootcert=/run/secrets/postgres-ca.crt"
+      OPSC_PG_SSL_MODE: verify-full
+      OPSC_PG_SSL_REJECT_UNAUTHORIZED: "true"
     depends_on:
       db:
         condition: service_healthy
