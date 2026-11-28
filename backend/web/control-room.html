@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark"><meta name="theme-color" content="#04060f">
+<title>OpsCore — Operational Workspace</title>
+<link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/command-fabric-v3.css"><link rel="stylesheet" href="/control-room.css">
+<script defer src="/fabric-core.js"></script><script defer src="/control-room.js"></script>
+</head>
+<body>
+<div class="field" aria-hidden="true"><div class="field__aura field__aura--a"></div><div class="field__aura field__aura--b"></div><div class="field__aura field__aura--c"></div><div class="field__grid"></div></div>
+<div class="shell shell--wide cr-shell">
+<header class="topbar cr-topbar"><div class="brand"><div class="mark" aria-hidden="true"></div><div>OpsCore <small id="roomBrand">Operational Workspace</small></div></div><span class="spacer"></span><span class="pill mono" data-clock>--:--:-- UTC</span><span class="badge" id="sessionRole">Checking access</span><button class="btn btn--sm btn--ghost" id="refreshRoom" type="button">Refresh data</button><button class="btn btn--sm btn--ghost" data-dir-toggle type="button">ع</button><a class="btn btn--sm btn--ghost" href="/control-rooms.html">All rooms</a><a class="btn btn--sm" href="/">Home</a></header>
+<main id="main">
+<section class="cr-hero"><div><div class="eyebrow" id="roomEyebrow">OPERATOR WORKSPACE</div><h1 id="roomTitle">Operational Workspace</h1><p class="lede" id="roomDescription">Live tenant-scoped operational data.</p><div class="cr-meta"><span id="connectionState" class="badge">Connecting</span><span id="updatedAt" class="mono muted">Not yet refreshed</span><span id="recordScope" class="muted small">No records loaded</span></div></div><aside class="card cr-posture"><div class="eyebrow">Operational integrity</div><h2>Evidence, not estimates</h2><p id="postureText" class="muted small">Metrics are derived only from the authenticated API response. Missing or denied data is shown as unavailable.</p><div class="cr-posture-line"><span>Session</span><strong id="sessionState">Unverified</strong></div><div class="cr-posture-line"><span>Data source</span><strong id="sourceState">Not queried</strong></div><div class="cr-posture-line"><span>Write actions</span><strong id="writeState">Not exposed here</strong></div></aside></section>
+<section class="cr-kpis" aria-label="Live operational metrics"><article class="tile"><span class="tile__k">Records returned</span><strong class="tile__v" id="metricTotal">—</strong><small class="tile__s">Current API response only</small></article><article class="tile"><span class="tile__k">High / urgent</span><strong class="tile__v" id="metricPriority">—</strong><small class="tile__s">From returned priority fields</small></article><article class="tile"><span class="tile__k">Open / active</span><strong class="tile__v" id="metricActive">—</strong><small class="tile__s">From returned status fields</small></article><article class="tile"><span class="tile__k">Risk flagged</span><strong class="tile__v" id="metricRisk">—</strong><small class="tile__s">Explicit risk / severity values</small></article></section>
+<section class="cr-grid">
+<section class="card cr-list-panel"><div class="cr-panel-head"><div><div class="eyebrow">LIVE WORKLIST</div><h2 id="listTitle">Operational records</h2><p class="muted small" id="listScope">Tenant-scoped records returned by the API.</p></div><span class="badge" id="rowCount">0 rows</span></div>
+<div class="cr-controls"><label><span class="sr-only">Search records</span><input id="searchRecords" type="search" placeholder="Search records…"></label><label><span class="sr-only">Filter by status</span><select id="statusFilter"><option value="">All statuses</option></select></label><label><span class="sr-only">Sort records</span><select id="sortRecords"><option value="priority">Priority</option><option value="updated">Recently updated</option><option value="created">Recently created</option><option value="name">Name / identifier</option><option value="status">Status</option></select></label></div>
+<div id="loadMessage" class="cr-message" role="status" aria-live="polite">Waiting for authenticated API response…</div>
+<div class="cr-table-wrap"><table class="cr-table"><thead><tr><th>Work item</th><th>Status</th><th>Priority / risk</th><th>Owner / context</th><th>Updated</th><th></th></tr></thead><tbody id="recordRows"><tr><td colspan="6" class="cr-empty">No data loaded.</td></tr></tbody></table></div>
+</section>
+<aside class="card cr-detail-panel"><div class="cr-panel-head"><div><div class="eyebrow">SELECTED RECORD</div><h2 id="detailTitle">No record selected</h2><p class="muted small" id="detailSubtitle">Select a row to inspect its returned fields and audit history.</p></div><span class="badge" id="detailPermission">Read only until verified</span></div>
+<div id="detailBody" class="cr-detail-body"><div class="cr-empty">Select a record from the worklist.</div></div>
+<div class="cr-timeline-head"><div><div class="eyebrow">AUDIT TRAIL</div><h3>Recorded events</h3></div><span class="muted tiny" id="auditCount">Not queried</span></div><div id="auditTimeline" class="cr-timeline"><div class="cr-empty">Select a record to query its audit history.</div></div>
+<div class="cr-actions"><div id="recordActions" class="cr-record-actions" aria-live="polite"></div><a class="btn btn--primary" id="sourceLink" href="/control-plane.html">Open authenticated Control Plane</a><p class="muted tiny">This workspace exposes no write action unless a dedicated server route and permission contract are verified. The backend remains authoritative for every mutation.</p></div></aside>
+</section>
+</main>
+<footer class="footer"><span>OpsCore · Evidence-governed operations</span><span class="mono tiny"><a href="/control-rooms.html">rooms</a> · <a href="/api/health">health</a></span></footer>
+</div></body></html>

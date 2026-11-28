@@ -10,6 +10,12 @@ permissions:
   contents: read
 
 jobs:
+  twin-postgres-acceptance:
+    name: digital-twin-postgres-18-postgis-acceptance
+    if: github.event_name == 'pull_request' && (github.head_ref == 'feat/digital-twin-gis-command-suite-20261127' || github.head_ref == 'test/twin-browser-rtl-responsive-20261127' || github.head_ref == 'feat/postgis-tenant-spatial-schema-20261127' || github.head_ref == 'feat/gis-signed-rls-query-contract-20261127' || github.head_ref == 'test/dispatcher-map-postgres-browser-e2e-20261127')
+    uses: ./.github/workflows/digital-twin-postgres-live.yml
+    secrets: inherit
+
   verify:
     runs-on: ubuntu-24.04
     timeout-minutes: 35

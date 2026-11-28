@@ -2,7 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const G = require('../web/geomap.js');
-const { coversPoint } = require('../src/geofencing');
+const { coversPoint, normalizeGeo } = require('../src/geofencing');
 
 test('projection round-trips and matches Web Mercator reference values', () => {
   for (const [lng, lat, z] of [[31.2357, 30.0444, 12], [-73.9857, 40.7484, 17], [151.2, -33.87, 5]]) {
@@ -19,6 +19,24 @@ test('haversine matches reference geometry (1 deg lat = 111.195 km; Cairo Tower 
   const d = G.haversineM(31.2243, 30.0459, 31.1342, 29.9792);
   assert.ok(d > 11300 && d < 11500, String(d));
   assert.equal(G.haversineM(31, 30, 31, 30), 0);
+});
+
+
+test('geofence polygon validation rejects open, degenerate and self-intersecting rings', () => {
+  const square = [[0,0],[4,0],[4,4],[0,4],[0,0]];
+  assert.deepEqual(normalizeGeo({ type:'Polygon', coordinates:[square] }), { type:'Polygon', coordinates:[square] });
+  assert.throws(() => normalizeGeo({ type:'Polygon', coordinates:[[[0,0],[4,0],[4,4],[0,4]]] }), /GEOFENCE_RING_NOT_CLOSED/);
+  assert.throws(() => normalizeGeo({ type:'Polygon', coordinates:[[[0,0],[2,0],[4,0],[0,0]]] }), /GEOFENCE_RING_ZERO_AREA/);
+  assert.throws(() => normalizeGeo({ type:'Polygon', coordinates:[[[0,0],[4,4],[0,4],[4,0],[0,0]]] }), /GEOFENCE_RING_SELF_INTERSECTION/);
+  assert.throws(() => normalizeGeo({ type:'Polygon', coordinates:[[[0,0],[4,0],[4,4],[0,4],[0,0]],[[5,5],[6,5],[6,6],[5,6],[5,5]]] }), /GEOFENCE_HOLE_OUTSIDE_EXTERIOR/);
+});
+test('geofence polygon validation rejects overlapping or nested holes', () => {
+  const outer = [[0,0],[10,0],[10,10],[0,10],[0,0]];
+  const holeA = [[2,2],[6,2],[6,6],[2,6],[2,2]];
+  const holeB = [[4,4],[8,4],[8,8],[4,8],[4,4]];
+  const nested = [[3,3],[4,3],[4,4],[3,4],[3,3]];
+  assert.throws(() => normalizeGeo({ type:'Polygon', coordinates:[outer,holeA,holeB] }), /GEOFENCE_HOLES_OVERLAP/);
+  assert.throws(() => normalizeGeo({ type:'Polygon', coordinates:[outer,holeA,nested] }), /GEOFENCE_HOLES_OVERLAP/);
 });
 
 test('client polygon test agrees with the server geofence semantics (boundary in, hole out)', () => {

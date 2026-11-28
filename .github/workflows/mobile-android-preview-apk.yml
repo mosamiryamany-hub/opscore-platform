@@ -1,0 +1,81 @@
+name: OpsCore Android Preview APK
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/mobile-android-preview-apk.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  android-preview:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22.23.4'
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165 # v5.0.0
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install mobile dependencies
+        working-directory: mobile
+        run: npm ci
+      - name: Generate native Android project
+        working-directory: mobile
+        run: npx expo prebuild --platform android --no-install
+      - name: Verify Gradle Foojay plugin marker availability
+        run: |
+          set -euo pipefail
+          curl --fail --show-error --location --retry 3 --retry-all-errors --retry-delay 2 \
+            https://plugins.gradle.org/m2/org/gradle/toolchains/foojay-resolver-convention/org.gradle.toolchains.foojay-resolver-convention.gradle.plugin/1.0.0/org.gradle.toolchains.foojay-resolver-convention.gradle.plugin-1.0.0.pom \
+            --output "$RUNNER_TEMP/foojay-plugin-marker.pom"
+          test -s "$RUNNER_TEMP/foojay-plugin-marker.pom"
+      - name: Prefer Gradle Plugin Portal for Foojay resolution in generated React Native settings
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const path = 'mobile/node_modules/@react-native/gradle-plugin/settings.gradle.kts';
+          let source = fs.readFileSync(path, 'utf8');
+          const match = source.match(/pluginManagement\s*\{\s*repositories\s*\{([\s\S]*?)\}\s*\}/);
+          if (!match) throw new Error('REACT_NATIVE_PLUGIN_MANAGEMENT_BLOCK_NOT_FOUND');
+          let repositories = match[1];
+          const portal = repositories.indexOf('gradlePluginPortal()');
+          const central = repositories.indexOf('mavenCentral()');
+          if (portal < 0 || central < 0) throw new Error('EXPECTED_GRADLE_PLUGIN_REPOSITORIES_NOT_FOUND');
+          if (portal > central) {
+            repositories = repositories
+              .replace('mavenCentral()', '__OPSC_MAVEN_CENTRAL__')
+              .replace('gradlePluginPortal()', 'mavenCentral()')
+              .replace('__OPSC_MAVEN_CENTRAL__', 'gradlePluginPortal()');
+            source = source.replace(match[1], repositories);
+            fs.writeFileSync(path, source);
+          }
+          const verified = source.match(/pluginManagement\s*\{\s*repositories\s*\{([\s\S]*?)\}\s*\}/);
+          if (!verified || verified[1].indexOf('gradlePluginPortal()') > verified[1].indexOf('mavenCentral()')) {
+            throw new Error('GRADLE_PLUGIN_PORTAL_ORDER_NOT_VERIFIED');
+          }
+          console.log('FOOJAY_PLUGIN_REPOSITORY_ORDER=PASS');
+          NODE
+      - name: Build installable preview APK
+        working-directory: mobile/android
+        run: ./gradlew --no-daemon --refresh-dependencies --info assembleDebug
+      - name: Upload Android preview APK
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: opscore-mobile-android-preview
+          path: mobile/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
