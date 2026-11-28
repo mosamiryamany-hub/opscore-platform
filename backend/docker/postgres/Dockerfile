@@ -8,5 +8,5 @@ RUN apt-get update \
 COPY --chown=postgres:postgres entrypoint.sh /usr/local/bin/opscore-postgres-entrypoint.sh
 RUN chmod 0755 /usr/local/bin/opscore-postgres-entrypoint.sh
 
-USER postgres
+USER root
 ENTRYPOINT ["/usr/local/bin/opscore-postgres-entrypoint.sh"]
