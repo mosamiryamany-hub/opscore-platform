@@ -127,7 +127,7 @@ function assertTarget(url,database,apply,env=process.env){
  if(!hostname)throw new Error('MIGRATION_ENDPOINT_HOST_REQUIRED');
  if(hostname.includes('-pooler'))throw new Error('MIGRATION_DIRECT_CONNECTION_REQUIRED');
  const target=String(env.OPSC_MIGRATION_TARGET_CLASS||'').trim().toLowerCase();
- if(!['preview','test','production'].includes(target))throw new Error('MIGRATION_TARGET_CLASS_REQUIRED');
+ if(!['preview','test','production','self-hosted'].includes(target))throw new Error('MIGRATION_TARGET_CLASS_REQUIRED');
  const expectedDatabase=String(env.OPSC_MIGRATION_EXPECTED_DATABASE||'').trim();
  if(!expectedDatabase||expectedDatabase!==database)throw new Error('MIGRATION_EXPECTED_DATABASE_MISMATCH');
  if(target==='test'){
@@ -135,6 +135,14 @@ function assertTarget(url,database,apply,env=process.env){
     && ['db','postgres','opscore-db'].includes(hostname);
   if(!['127.0.0.1','localhost','::1'].includes(hostname) && !composeHostAllowed){
     throw new Error('MIGRATION_TEST_TARGET_MUST_BE_LOCAL');
+  }
+ }else if(target==='self-hosted'){
+  const expectedHost=String(env.OPSC_MIGRATION_EXPECTED_HOST||'').trim().toLowerCase();
+  if(env.OPSC_MIGRATION_ALLOW_SELF_HOSTED!=='1')throw new Error('MIGRATION_SELF_HOSTED_OPT_IN_REQUIRED');
+  if(env.NODE_ENV!=='production')throw new Error('MIGRATION_SELF_HOSTED_REQUIRES_PRODUCTION_MODE');
+  if(!expectedHost||hostname!==expectedHost)throw new Error('MIGRATION_ENDPOINT_HOST_MISMATCH');
+  if(env.OPSC_PG_SSL_MODE!=='verify-full'||url.searchParams.get('sslmode')!=='verify-full'||!url.searchParams.get('sslrootcert')){
+   throw new Error('MIGRATION_SELF_HOSTED_TLS_VERIFICATION_REQUIRED');
   }
  }else{
   const expectedHost=String(env.OPSC_MIGRATION_EXPECTED_HOST||'').trim().toLowerCase();
@@ -150,11 +158,15 @@ function assertTarget(url,database,apply,env=process.env){
   if(env.OPSC_MIGRATION_CONFIRM_DATABASE!==database)throw new Error('MIGRATION_DATABASE_CONFIRMATION_REQUIRED');
   if(target!=='test'){
    if(String(env.OPSC_MIGRATION_CONFIRM_HOST||'').trim().toLowerCase()!==hostname)throw new Error('MIGRATION_HOST_CONFIRMATION_REQUIRED');
-   if(String(env.OPSC_MIGRATION_CONFIRM_PROJECT_ID||'').trim()!==String(env.OPSC_MIGRATION_EXPECTED_PROJECT_ID||'').trim())throw new Error('MIGRATION_PROJECT_CONFIRMATION_REQUIRED');
-   if(String(env.OPSC_MIGRATION_CONFIRM_BRANCH_ID||'').trim()!==String(env.OPSC_MIGRATION_EXPECTED_BRANCH_ID||'').trim())throw new Error('MIGRATION_BRANCH_CONFIRMATION_REQUIRED');
+   if(target!=='self-hosted'){
+    if(String(env.OPSC_MIGRATION_CONFIRM_PROJECT_ID||'').trim()!==String(env.OPSC_MIGRATION_EXPECTED_PROJECT_ID||'').trim())throw new Error('MIGRATION_PROJECT_CONFIRMATION_REQUIRED');
+    if(String(env.OPSC_MIGRATION_CONFIRM_BRANCH_ID||'').trim()!==String(env.OPSC_MIGRATION_EXPECTED_BRANCH_ID||'').trim())throw new Error('MIGRATION_BRANCH_CONFIRMATION_REQUIRED');
+   }
   }
  }
- return target==='production'?'production-explicit-opt-in':'preview-or-test';
+ if(target==='production')return 'production-explicit-opt-in';
+ if(target==='self-hosted')return 'self-hosted-explicit-opt-in';
+ return 'preview-or-test';
 }
 function extractNeonEndpointId(hostname) {
  const host=String(hostname||'').trim().toLowerCase();
@@ -165,7 +177,7 @@ function extractNeonEndpointId(hostname) {
 function expectedMigrationOwnerRole(env=process.env) {
  const target=String(env.OPSC_MIGRATION_TARGET_CLASS||'').trim().toLowerCase();
  const configured=String(env.OPSC_MIGRATION_EXPECTED_OWNER_ROLE||'').trim();
- if(target==='test' && env.OPSC_MIGRATION_ALLOW_DOCKER_COMPOSE_HOST === '1'){
+ if((target==='test' && env.OPSC_MIGRATION_ALLOW_DOCKER_COMPOSE_HOST === '1') || (target==='self-hosted' && env.OPSC_MIGRATION_ALLOW_SELF_HOSTED === '1')){
   // Authenticate as opscore_migrator; main() switches into the non-login neondb_owner compatibility owner for historical SQL.
   if(configured && configured !== 'opscore_migrator') throw new Error('MIGRATION_OWNER_ROLE_NOT_ALLOWED');
   return configured || 'opscore_migrator';
@@ -183,6 +195,7 @@ function expectedMigrationOwnerRole(env=process.env) {
 async function verifyNeonEndpointIdentity(url,env=process.env,fetchImpl=globalThis.fetch) {
  const target=String(env.OPSC_MIGRATION_TARGET_CLASS||'').trim().toLowerCase();
  if(target==='test')return {verified:false,skipped:true,reason:'loopback-test-target'};
+ if(target==='self-hosted')return {verified:false,skipped:true,reason:'explicit-self-hosted-target'};
  const hostname=String(url.hostname||'').trim().toLowerCase();
  const endpointId=extractNeonEndpointId(hostname);
  const projectId=String(env.OPSC_MIGRATION_EXPECTED_PROJECT_ID||'').trim();
@@ -411,10 +424,11 @@ async function main(){
   // neondb_owner identity. In self-hosted Compose, authenticate as the
   // dedicated opscore_migrator login, then SET ROLE into its non-login
   // neondb_owner compatibility owner. Runtime never receives this membership.
-  const selfHostedComposeTarget=String(process.env.OPSC_MIGRATION_TARGET_CLASS||'').trim().toLowerCase()==='test'
-    && process.env.OPSC_MIGRATION_ALLOW_DOCKER_COMPOSE_HOST==='1';
-  const migrationOwnerRole=selfHostedComposeTarget?'neondb_owner':info.role;
-  if(selfHostedComposeTarget){
+  const migrationTarget=String(process.env.OPSC_MIGRATION_TARGET_CLASS||'').trim().toLowerCase();
+  const selfHostedOwnerSwitch=(migrationTarget==='test'&&process.env.OPSC_MIGRATION_ALLOW_DOCKER_COMPOSE_HOST==='1')
+    || (migrationTarget==='self-hosted'&&process.env.OPSC_MIGRATION_ALLOW_SELF_HOSTED==='1');
+  const migrationOwnerRole=selfHostedOwnerSwitch?'neondb_owner':info.role;
+  if(selfHostedOwnerSwitch){
    const membership=(await client.query("SELECT pg_has_role(current_user,'neondb_owner','SET') AS can_set")).rows[0];
    if(!membership||membership.can_set!==true)throw new Error('MIGRATION_SELF_HOSTED_OWNER_ROLE_MEMBERSHIP_REQUIRED');
    await client.query('SET ROLE neondb_owner');
@@ -427,7 +441,7 @@ async function main(){
   if(!ledgerExists){
    // Virgin preview/test DBs: bootstrap ledger only under --apply. Never invent history on production.
    if(!apply){ledger=[];}
-   else if(targetClass!=='preview-or-test'){throw new Error('MIGRATION_LEDGER_MISSING');}
+   else if(!['preview-or-test','self-hosted-explicit-opt-in'].includes(targetClass)){throw new Error('MIGRATION_LEDGER_MISSING');}
    else{
     await client.query("CREATE TABLE public.schema_migrations (filename text PRIMARY KEY, sha256 text NOT NULL, applied_at timestamptz NOT NULL DEFAULT clock_timestamp())");
     ledger=[];
