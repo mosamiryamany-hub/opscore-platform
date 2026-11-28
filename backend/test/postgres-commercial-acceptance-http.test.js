@@ -861,7 +861,7 @@ test('PostgreSQL HTTP commercial acceptance: sessions, tenant isolation, Safe Mo
             rtlDesktopAndMobile: { desktop: 'PASS', mobile: rtlMobileLayout, initialMobileRtl: rtlMobile },
             tenantFeatureCount: 1,
             tenantBrowserIsolation: { tenantA: renderedA, tenantB: renderedB, status: 'PASS' },
-            webglRenderedPixels: { tenantA: renderedPixelA, tenantB: renderedPixelB, diagnosticsA: renderedDiagnosticsA, diagnosticsB: renderedDiagnosticsB },
+            webglRenderedPixels: { tenantA: renderedPixelsA, tenantB: renderedPixelsB, diagnosticsA: renderedDiagnosticsA, diagnosticsB: renderedDiagnosticsB },
             viewportDebounce: { burstEvents: 3, requests: viewportRequestsAfterBurst - viewportRequestsBeforeBurst, status: 'PASS' },
             viewportOutOfOrder: { latestAppliedBeforeRelease: latestAppliedBeforeRelease, latestAppliedAfterRelease: latestAppliedAfterRelease, delayedResponseReleased: delayedViewportResponseReleased, status: 'PASS' },
             forgedOrganizationId: { status: forgedTenantResponse.status, effectiveOrganizationId: forgedTenantResponse.body.organizationId || null, statusLabel: forgedTenantResponse.status === 403 ? 'FORBIDDEN_CROSS_TENANT_REQUEST' : 'SIGNED_SESSION_CONTEXT_PREVAILED' },
