@@ -84,6 +84,7 @@ jobs:
             migrator_ok boolean;
             runtime_ok boolean;
             worker_ok boolean;
+            migration_owner_ok boolean;
             ledger_count bigint;
           BEGIN
             SELECT rolcanlogin AND NOT rolsuper AND rolbypassrls
@@ -95,10 +96,16 @@ jobs:
             SELECT rolcanlogin AND NOT rolsuper AND NOT rolbypassrls
               AND NOT rolcreatedb AND NOT rolcreaterole
               INTO worker_ok FROM pg_roles WHERE rolname='opscore_worker';
+            SELECT NOT rolcanlogin AND NOT rolsuper AND rolbypassrls
+              AND rolcreatedb AND rolcreaterole
+              INTO migration_owner_ok FROM pg_roles WHERE rolname='neondb_owner';
             SELECT count(*) INTO ledger_count FROM public.schema_migrations;
             IF migrator_ok IS DISTINCT FROM true THEN RAISE EXCEPTION 'SELF_HOSTED_MIGRATOR_ROLE_INVALID'; END IF;
             IF runtime_ok IS DISTINCT FROM true THEN RAISE EXCEPTION 'SELF_HOSTED_RUNTIME_ROLE_INVALID'; END IF;
             IF worker_ok IS DISTINCT FROM true THEN RAISE EXCEPTION 'SELF_HOSTED_WORKER_ROLE_INVALID'; END IF;
+            IF migration_owner_ok IS DISTINCT FROM true THEN RAISE EXCEPTION 'SELF_HOSTED_MIGRATION_OWNER_ROLE_INVALID'; END IF;
+            IF NOT pg_has_role('opscore_migrator','neondb_owner','SET') THEN RAISE EXCEPTION 'SELF_HOSTED_MIGRATOR_OWNER_MEMBERSHIP_MISSING'; END IF;
+            IF pg_has_role('opscore_runtime','neondb_owner','MEMBER') THEN RAISE EXCEPTION 'SELF_HOSTED_RUNTIME_HAS_MIGRATION_OWNER_MEMBERSHIP'; END IF;
             IF ledger_count < 1 THEN RAISE EXCEPTION 'SELF_HOSTED_MIGRATION_LEDGER_EMPTY'; END IF;
             IF NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname='postgis') THEN RAISE EXCEPTION 'SELF_HOSTED_POSTGIS_MISSING'; END IF;
             IF NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname='vector') THEN RAISE EXCEPTION 'SELF_HOSTED_PGVECTOR_MISSING'; END IF;
