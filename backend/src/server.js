@@ -46,7 +46,7 @@ const store = new Store(db, config);
 store.pg = opened.engine === 'postgres' ? db : null;
 store.databaseEngineResolved = opened.engine;
 store.postgresRuntimeWired = opened.postgresRuntimeWired;
-const {authProviderGate, verifyOidcIdToken} = require('./security');
+const {authProviderGate, oidcIssuerConfig, verifyOidcIdToken} = require('./security');
 const {inspectRequest,productionSafetyGate,createRateLimiter,createLoginRateLimiter,assertTenantAlignment}=require('./firewall');
 const {evaluateProductionGate,isReadOnlyProductionVerificationRequest,candidateProbeBoundaryDenialReason,isAuthorizedProductionCandidateProbeRequest,isAuthorizedProductionCandidateUnknownRouteProbeRequest,isAuthorizedProductionCandidateRouteAcceptanceProbeRequest,isAuthorizedProductionCandidateDatabaseIdentityRequest}=require('./production-hold');
 const {createProductionDatabaseIdentityHandler}=require('./production-database-identity-route');
@@ -1589,6 +1589,114 @@ function route(req, res) {
       }
     }, req, res, { forceNew: true })).catch(e => fail(res, e));
   }
+  if (req.method === 'GET' && url.pathname === '/api/v1/auth/oidc/start') {
+    return (async () => {
+    try {
+      if (authProviderGate() !== 'oidc') throw new Error('AUTH_MODE_OIDC_REQUIRED');
+      const provider = String(url.searchParams.get('provider') || '').toLowerCase();
+      const providers = new Set(['google', 'github', 'microsoft', 'apple', 'facebook']);
+      if (!providers.has(provider)) throw new Error('OIDC_PROVIDER_UNSUPPORTED');
+      const { issuer, audience } = oidcIssuerConfig();
+      const clientSecret = String(process.env.OIDC_CLIENT_SECRET || '');
+      const stateSecret = String(process.env.OIDC_STATE_SECRET || '');
+      const redirectUri = String(process.env.OIDC_REDIRECT_URI || '').trim();
+      if (!clientSecret || stateSecret.length < 32 || !redirectUri) throw new Error('OIDC_SERVER_CONFIGURATION_REQUIRED');
+      const callback = new URL(redirectUri);
+      if (callback.pathname !== '/api/v1/auth/oidc/callback' || callback.search || callback.hash || (config.nodeEnv === 'production' && callback.protocol !== 'https:')) throw new Error('OIDC_REDIRECT_URI_INVALID');
+      const discoveryUrl = new URL('.well-known/openid-configuration', issuer.endsWith('/') ? issuer : issuer + '/.');
+      const discoveryResponse = await fetch(discoveryUrl, { headers: { accept: 'application/json' }, redirect: 'error', signal: AbortSignal.timeout(8000) });
+      if (!discoveryResponse.ok) throw new Error('OIDC_DISCOVERY_FAILED');
+      const discovery = await discoveryResponse.json();
+      if (String(discovery.issuer || '').replace(/\/$/, '') !== issuer || !discovery.authorization_endpoint || !discovery.token_endpoint) throw new Error('OIDC_DISCOVERY_INVALID');
+      const authorizationEndpoint = new URL(discovery.authorization_endpoint);
+      const tokenEndpoint = new URL(discovery.token_endpoint);
+      if (authorizationEndpoint.origin !== new URL(issuer).origin || tokenEndpoint.origin !== new URL(issuer).origin || authorizationEndpoint.protocol !== 'https:' || tokenEndpoint.protocol !== 'https:') throw new Error('OIDC_ENDPOINT_ORIGIN_INVALID');
+      const state = crypto.randomBytes(32).toString('base64url');
+      const nonce = crypto.randomBytes(32).toString('base64url');
+      const verifier = crypto.randomBytes(48).toString('base64url');
+      const challenge = crypto.createHash('sha256').update(verifier).digest('base64url');
+      const payload = Buffer.from(JSON.stringify({ state, nonce, verifier, provider, createdAt: Date.now() })).toString('base64url');
+      const signature = crypto.createHmac('sha256', stateSecret).update(payload).digest('base64url');
+      const stateCookie = '__Host-opscore_oidc_state=' + payload + '.' + signature + '; HttpOnly; Secure; Path=/; SameSite=Lax; Max-Age=600';
+      authorizationEndpoint.search = new URLSearchParams({
+        client_id: audience,
+        redirect_uri: redirectUri,
+        response_type: 'code',
+        scope: 'openid profile email',
+        state,
+        nonce,
+        code_challenge: challenge,
+        code_challenge_method: 'S256',
+        kc_idp_hint: provider
+      }).toString();
+      res.writeHead(302, { location: authorizationEndpoint.toString(), 'set-cookie': stateCookie, 'cache-control': 'no-store' });
+      return res.end();
+    } catch (error) { return fail(res, error); }
+    })();
+  }
+  if (req.method === 'GET' && url.pathname === '/api/v1/auth/oidc/callback') {
+    return (async () => {
+    const clearStateCookie = '__Host-opscore_oidc_state=; HttpOnly; Secure; Path=/; SameSite=Lax; Max-Age=0';
+    const failCallback = () => { res.writeHead(303, { location: '/control-plane.html?sso_error=identity_login_failed', 'set-cookie': clearStateCookie, 'cache-control': 'no-store' }); res.end(); };
+    try {
+      if (authProviderGate() !== 'oidc') throw new Error('AUTH_MODE_OIDC_REQUIRED');
+      const code = String(url.searchParams.get('code') || '');
+      const returnedState = String(url.searchParams.get('state') || '');
+      if (!code || !returnedState || url.searchParams.has('error')) throw new Error('OIDC_CALLBACK_INVALID');
+      const cookie = String(req.headers.cookie || '').split(';').map(part => part.trim()).find(part => part.startsWith('__Host-opscore_oidc_state='));
+      if (!cookie) throw new Error('OIDC_STATE_COOKIE_MISSING');
+      const packed = decodeURIComponent(cookie.slice('__Host-opscore_oidc_state='.length));
+      const splitAt = packed.lastIndexOf('.');
+      if (splitAt <= 0) throw new Error('OIDC_STATE_COOKIE_INVALID');
+      const payloadPart = packed.slice(0, splitAt);
+      const signature = packed.slice(splitAt + 1);
+      const stateSecret = String(process.env.OIDC_STATE_SECRET || '');
+      if (stateSecret.length < 32) throw new Error('OIDC_SERVER_CONFIGURATION_REQUIRED');
+      const expected = crypto.createHmac('sha256', stateSecret).update(payloadPart).digest();
+      const actual = Buffer.from(signature, 'base64url');
+      if (actual.length !== expected.length || !crypto.timingSafeEqual(actual, expected)) throw new Error('OIDC_STATE_SIGNATURE_INVALID');
+      const pending = JSON.parse(Buffer.from(payloadPart, 'base64url').toString('utf8'));
+      if (pending.state !== returnedState || Date.now() - Number(pending.createdAt) > 10 * 60 * 1000 || Date.now() < Number(pending.createdAt)) throw new Error('OIDC_STATE_INVALID');
+      const { issuer, audience } = oidcIssuerConfig();
+      const clientSecret = String(process.env.OIDC_CLIENT_SECRET || '');
+      const redirectUri = String(process.env.OIDC_REDIRECT_URI || '').trim();
+      if (!clientSecret || !redirectUri) throw new Error('OIDC_SERVER_CONFIGURATION_REQUIRED');
+      const discoveryUrl = new URL('.well-known/openid-configuration', issuer.endsWith('/') ? issuer : issuer + '/.');
+      const discoveryResponse = await fetch(discoveryUrl, { headers: { accept: 'application/json' }, redirect: 'error', signal: AbortSignal.timeout(8000) });
+      if (!discoveryResponse.ok) throw new Error('OIDC_DISCOVERY_FAILED');
+      const discovery = await discoveryResponse.json();
+      if (String(discovery.issuer || '').replace(/\/$/, '') !== issuer || !discovery.token_endpoint || new URL(discovery.token_endpoint).origin !== new URL(issuer).origin) throw new Error('OIDC_DISCOVERY_INVALID');
+      const tokenResponse = await fetch(discovery.token_endpoint, {
+        method: 'POST',
+        headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' },
+        body: new URLSearchParams({ grant_type: 'authorization_code', client_id: audience, client_secret: clientSecret, code, redirect_uri: redirectUri, code_verifier: pending.verifier }),
+        redirect: 'error',
+        signal: AbortSignal.timeout(8000)
+      });
+      const tokenPayload = await tokenResponse.json().catch(() => ({}));
+      if (!tokenResponse.ok || !tokenPayload.id_token) throw new Error('OIDC_TOKEN_EXCHANGE_FAILED');
+      const identity = await verifyOidcIdToken(tokenPayload.id_token, pending.nonce);
+      if (store.db && typeof store.db.setSession === 'function') store.db.setSession({ tenantId: '', userId: '', accessMode: 'auth' });
+      const out = await store.loginOidc(identity);
+      if (store.db && typeof store.db.setSession === 'function' && out && (out.organizationId || out.organization?.id)) store.db.setSession({ tenantId: out.organizationId || out.organization.id, userId: out.userId || out.user?.id || '', sessionId: out.sessionId || '', accessMode: 'field' });
+      const sessionCookie = '__Host-opscore_session=' + encodeURIComponent(out.token) + '; HttpOnly; Secure; Path=/; SameSite=Strict';
+      res.writeHead(303, { location: '/control-plane.html', 'set-cookie': [sessionCookie, clearStateCookie], 'cache-control': 'no-store', pragma: 'no-cache' });
+      return res.end();
+    } catch (error) {
+      return failCallback();
+    }
+    })();
+  }
+  if (req.method === 'GET' && url.pathname === '/api/v1/auth/oidc/config') {
+    try {
+      if (authProviderGate() !== 'oidc') return json(res, 200, { enabled: false }, { 'cache-control': 'no-store' });
+      const { issuer, audience } = oidcIssuerConfig();
+      const redirectUri = String(process.env.OIDC_REDIRECT_URI || '').trim();
+      const callback = redirectUri ? new URL(redirectUri) : null;
+      if (!process.env.OIDC_CLIENT_SECRET || String(process.env.OIDC_STATE_SECRET || '').length < 32 || !callback || callback.pathname !== '/api/v1/auth/oidc/callback' || callback.search || callback.hash || (config.nodeEnv === 'production' && callback.protocol !== 'https:')) throw new Error('OIDC_SERVER_CONFIGURATION_REQUIRED');
+      return json(res, 200, { enabled: true, issuer, clientId: audience, providers: ['google','github','microsoft','apple','facebook'] }, { 'cache-control': 'no-store' });
+    } catch (error) { return fail(res, error); }
+  }
   if (req.method === 'POST' && url.pathname === '/api/v1/auth/oidc/exchange') {
     return body(req).then(async b => {
       if (authProviderGate() !== 'oidc') throw new Error('AUTH_MODE_OIDC_REQUIRED');
@@ -1598,7 +1706,7 @@ function route(req, res) {
       if (store.db && typeof store.db.setSession === 'function') store.db.setSession({ tenantId: '', userId: '', accessMode: 'auth' });
       const out=await store.loginOidc(identity,b.organizationId);
       if (store.db && typeof store.db.setSession === 'function' && out && (out.organizationId || out.organization?.id)) store.db.setSession({ tenantId: out.organizationId || out.organization.id, userId: out.userId || out.user?.id || '', sessionId: out.sessionId || '', accessMode: 'field' });
-      return json(res,200,{user:out.user,organization:out.organization,role:out.role,expiresAt:out.expiresAt,token:out.token},{'cache-control':'no-store','pragma':'no-cache'});
+      return json(res,200,{user:out.user,organization:out.organization,role:out.role,expiresAt:out.expiresAt},{'cache-control':'no-store','pragma':'no-cache','set-cookie':`__Host-opscore_session=${ encodeURIComponent(out.token) }; HttpOnly; Path=/; SameSite=Strict; Secure`});
     }).catch(e=>fail(res,e));
   }
   if (req.method === 'POST' && (url.pathname === '/api/v1/auth/login' || url.pathname === '/api/v1/auth/mobile-login')) {

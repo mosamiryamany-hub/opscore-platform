@@ -141,6 +141,54 @@
     }
   }
 
+
+  const oidcProviders = ['google', 'github', 'microsoft', 'apple', 'facebook'];
+  const oidcPanel = $('oidcLogin');
+  const oidcMessage = $('oidcMessage');
+  async function oidcConfig() {
+    const response = await request('/api/v1/auth/oidc/config');
+    if (!response.enabled) throw new Error('KEYCLOAK_NOT_CONFIGURED');
+    return response;
+  }
+  async function startOidcLogin(provider) {
+    if (!oidcProviders.includes(provider)) return;
+    const buttons = Array.from(document.querySelectorAll('[data-oidc-provider]'));
+    buttons.forEach((button) => { button.disabled = true; });
+    setMessage(oidcMessage, 'Connecting to secure identity provider…');
+    try {
+      await oidcConfig();
+      window.location.assign('/api/v1/auth/oidc/start?provider=' + encodeURIComponent(provider));
+    } catch (error) {
+      setMessage(oidcMessage, 'Single sign-on is unavailable: ' + error.message, 'error');
+      buttons.forEach((button) => { button.disabled = false; });
+    }
+  }
+  async function completeOidcCallback() {
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has('sso_error')) return false;
+    history.replaceState(null, '', window.location.pathname + window.location.hash);
+    throw new Error('SSO_LOGIN_FAILED');
+  }
+  document.querySelectorAll('[data-oidc-provider]').forEach((button) => {
+    button.addEventListener('click', () => startOidcLogin(button.dataset.oidcProvider));
+  });
+  async function initializeOidc() {
+    try {
+      const config = await oidcConfig();
+      if (config.enabled) {
+        oidcPanel.hidden = false;
+        $('loginForm').hidden = true;
+        $('loginTitle').textContent = 'Sign in to OpsCore';
+      }
+    } catch (error) {
+      if (error.message !== 'KEYCLOAK_NOT_CONFIGURED') {
+        oidcPanel.hidden = false;
+        $('loginForm').hidden = true;
+        $('loginTitle').textContent = 'Sign-in temporarily unavailable';
+        setMessage(oidcMessage, 'Identity configuration could not be verified: ' + error.message, 'error');
+      }
+    }
+  }
   $('loginForm').addEventListener('submit', async (event) => {
     event.preventDefault();
     const submit = $('loginSubmit');
@@ -217,5 +265,15 @@
     showLogin('Signed out.');
   });
 
-  establishSession();
+  (async () => {
+    try {
+      const completed = await completeOidcCallback();
+      if (completed) { await establishSession(); return; }
+    } catch (error) {
+      if (oidcPanel) oidcPanel.hidden = false;
+      setMessage(oidcMessage, 'Sign-in was not completed: ' + error.message, 'error');
+    }
+    await initializeOidc();
+    establishSession();
+  })();
 })();

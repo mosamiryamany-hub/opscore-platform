@@ -11,6 +11,14 @@
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/command-fabric-v3.css">
+  <style>
+/* Keycloak broker sign-in controls */
+.sso-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:18px 0}
+.sso-btn{display:flex;align-items:center;justify-content:flex-start;gap:12px;min-height:48px;width:100%;background:rgba(255,255,255,.045);border:1px solid rgba(150,180,220,.22);color:inherit}
+.sso-btn:hover{border-color:rgba(100,170,255,.65);background:rgba(80,130,210,.12)}
+.sso-mark{display:inline-grid;place-items:center;width:25px;height:25px;border-radius:7px;background:rgba(255,255,255,.1);font-weight:800}
+@media(max-width:560px){.sso-grid{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
@@ -43,6 +51,20 @@
       <div class="eyebrow">Authenticated surface</div>
       <h2 id="loginTitle">Sign in to the control plane</h2>
       <p class="muted small">Credentials are verified server-side and the session is carried in an HttpOnly cookie. This page never stores a token in local storage.</p>
+
+      <div id="oidcLogin" hidden aria-label="Single sign-on providers">
+        <p class="muted small">Continue securely with your organization identity provider.</p>
+        <div class="sso-grid">
+          <button class="btn sso-btn" type="button" data-oidc-provider="google"><span class="sso-mark" aria-hidden="true">G</span>Continue with Google</button>
+          <button class="btn sso-btn" type="button" data-oidc-provider="github"><span class="sso-mark" aria-hidden="true">⌘</span>Continue with GitHub</button>
+          <button class="btn sso-btn" type="button" data-oidc-provider="microsoft"><span class="sso-mark" aria-hidden="true">▦</span>Continue with Microsoft</button>
+          <button class="btn sso-btn" type="button" data-oidc-provider="apple"><span class="sso-mark" aria-hidden="true">●</span>Continue with Apple</button>
+          <button class="btn sso-btn" type="button" data-oidc-provider="facebook"><span class="sso-mark" aria-hidden="true">f</span>Continue with Facebook</button>
+        </div>
+        <p class="tiny muted">Only providers enabled and configured in the connected Keycloak realm will complete sign-in.</p>
+        <div id="oidcMessage" class="empty" role="status" aria-live="polite"></div>
+        <hr class="hr">
+      </div>
 
       <form id="loginForm" novalidate autocomplete="on">
         <div class="field">
