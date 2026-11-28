@@ -472,3 +472,47 @@ PR #519 changes six files: repairs the workflow and all explicit PASS greps (inc
 - PR #519: stacked corrective work is pending CI completion and review.
 - PR #497: remains blocked from acceptance by the workflow defects until #519 is incorporated and its self-hosted PostgreSQL 18/PostGIS workflow runs successfully.
 - Phase 0: the previously skipped PostGIS gate now has a successful isolated PR run. Phase 0 is **not closed**: main has not yet received the CI correction, the 1m application-table benchmark remains outstanding, and the self-hosted buyer acceptance is still pending.
+
+
+## 13. Follow-up acceptance evidence — 2026-11-28
+
+### 13.1 Current-main Digital Twin / PostGIS gate
+
+The previously skipped Digital Twin PostgreSQL 18/PostGIS job was exercised through PR #518's narrowly scoped workflow branch. Run: `46119010649`, tested source commit `ad13b01c765eca0785e81523ad2e8ceb838d90a4`. The `verify` job and `digital-twin-postgres-18-postgis-acceptance / isolated-postgres-rls-and-http-acceptance` job both completed successfully. The Neon Preview migration and historical Neon PITR jobs were **SKIPPED**.
+
+The run's `gis-scale-benchmark.json` records generated acceptance rows in the real application table `public.spatial_features` (not the earlier synthetic `spatial_points` helper table). It is a disposable CI database and a single scale-test tenant, not customer production data.
+
+| Persisted rows in `spatial_features` | New rows at stage | Samples | HTTP P50 | HTTP P95 | HTTP P99 | HTTP max |
+|---:|---:|---:|---:|---:|---:|---:|
+| 40,000 | 40,000 | 100 | 65.836 ms | 70.317 ms | 74.472 ms | 77.542 ms |
+| 250,000 | 210,000 | 100 | 98.724 ms | 102.722 ms | 111.894 ms | 114.184 ms |
+| 1,000,000 | 750,000 | 100 | 97.217 ms | 101.334 ms | 106.325 ms | 107.508 ms |
+
+Percentiles use nearest-rank over 100 samples at each stage. At all three tiers, EXPLAIN ANALYZE evidence shows `Bitmap Index Scan` using `idx_spatial_features_geom_gist` followed by `Bitmap Heap Scan`; `gistIndexUsed=true`. At one million rows, the captured GiST plan reports 25.840 ms execution, 2,033 shared-hit blocks and zero shared-read blocks; the index scan reports 2.770 ms, 406 shared-hit blocks and zero shared-read blocks. The signed definer function plan reports 29.203 ms and 2,304 shared-hit blocks with zero shared-read blocks. These are CI-runner observations, not buyer-hardware SLOs.
+
+The benchmark records the HMAC-verified tenant context through `opscore_security.verified_rls_context()` and a non-login `opscore_auth_definer` role. HTTP timing is recorded under `opscore_runtime`. The browser evidence separately confirms tenant A/B isolation, a forged organization identifier returning HTTP 403, MapLibre WebGL-rendered features, no uncaught page errors, six viewport sizes (320–1920 px), and RTL desktop/mobile acceptance. The report explicitly sets `productionCertification=false`.
+
+The same disposable PostgreSQL job also completed a real PostgreSQL logical dump/restore drill. This does **not** prove the repository's AES-256-GCM buyer backup helper can restore a complete database; that helper currently validates archive listing only and its dump uses `--no-owner --no-acl`.
+
+### 13.2 Current-main UI accessibility gate
+
+PR #522, based directly on current `main`, ran browser audit #46117623923 successfully: 15 pages, zero axe critical/serious violations, and 46 responsive/RTL checks with no failures. It stores screenshots and a JSON report. The test is static-browser acceptance; it does not prove authenticated APIs, production data, physical devices, or end-to-end operational workflows. PR #522 remains open and unmerged.
+
+### 13.3 Buyer self-hosted branch — still under active correction
+
+The buyer-delivery branch was merged with the current `main` tree without changing `main`, so it now includes migrations 073–076 and is no longer behind the default branch. Its self-hosted PostgreSQL 18 acceptance has exposed successive real bootstrap defects:
+
+- Run #46116096839: extension initialization passed; migration 046 failed because the immutable SQL expects `neondb_owner`.
+- PR #521 added the local NOLOGIN database-owner compatibility role and migration runner SET ROLE.
+- Run #46117228866 passed migration 046 and reached migration 063; the dedicated `opscore_auth_definer` role was missing.
+- PR #523 added the dedicated NOLOGIN security-definer role and membership contract.
+- Run #46118394146 reached migration 071; immutable `RESET ROLE` semantics exposed that the runner must re-activate the database owner per migration transaction.
+- PR #524 added per-transaction role activation and narrowed auth-definer inheritance.
+- Run #46119072513 stopped before applying migrations because the runner asserted an inherited-role capability omitted from its SQL projection.
+- PR #525 adds the missing projection and regression assertion. A fresh full self-hosted run is queued/pending; **no successful full self-hosted migration-through-076 result is claimed yet**.
+
+The migration role remains distinct from the application runtime role. The runtime must not receive SELECT on the HMAC key table. Historical migration bytes remain unchanged. Existing non-empty Docker volumes do not rerun initialization scripts and still require a separately documented, explicit role/schema preflight.
+
+### 13.4 Current branch and production boundary
+
+All changes described above are on isolated pull-request branches. PR #518, #522 and #497 are not merged to `main`; no production deployment, Neon Preview migration, historical PITR, or real-device acceptance is claimed. Current `main` remains at the recorded baseline SHA until an explicitly reviewed merge.
