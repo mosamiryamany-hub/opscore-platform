@@ -28,6 +28,7 @@ test('branding rejects unsafe paths, arbitrary CSS and non-HTTPS support links',
     primaryColor: '#123456', supportEmail: '', supportUrl: '', welcomeText: ''
   };
   assert.throws(() => normalizeBranding({ ...base, logoPath: '/../secret' }), /BRANDING_LOGO_PATH_INVALID/);
+  assert.throws(() => normalizeBranding({ ...base, logoPath: '//cdn.example.com/logo.svg' }), /BRANDING_LOGO_PATH_INVALID/);
   assert.throws(() => normalizeBranding({ ...base, primaryColor: 'url(javascript:alert(1))' }), /BRANDING_PRIMARY_COLOR_INVALID/);
   assert.throws(() => normalizeBranding({ ...base, supportUrl: 'http://support.example.com' }), /BRANDING_SUPPORT_URL_INVALID/);
 });

@@ -17,13 +17,14 @@
 ### Mobile server selection
 - Added a manual server-origin setup field to the Expo login screen.
 - The origin is validated as HTTPS and origin-only (no credentials, path, query or fragment), then stored using device SecureStore.
-- Manual URL entry is available. A signed-format deep-link shape (`opscore://configure?server=https://...`) can prefill the URL for user review; it is not auto-saved. QR generation/scanning is not implemented; no camera permission or QR library was added without its own threat-model and native-build validation.
+- Manual URL entry is available. A custom-scheme deep-link shape (`opscore://configure?server=https://...`) can prefill the URL for user review; it is **not cryptographically signed** and is not auto-saved. Treat it only as an untrusted convenience input. QR generation/scanning is not implemented; no camera permission or QR library was added without its own threat-model and native-build validation.
 - Existing native encrypted offline queue and SecureStore authentication are not replaced by browser storage.
 
 ### Encrypted PostgreSQL backup CLI
 - Added `npm run backup:postgres:encrypted`.
 - It uses `pg_dump` custom format, writes temporary files with restrictive permissions, encrypts the archive using AES-256-GCM, decrypts it into a temporary verification file, and checks archive readability with `pg_restore --list`.
 - It never puts the database password in command-line arguments and does not print the connection string or encryption key.
+- It honors `sslmode` and `sslrootcert` from the connection URL, plus explicit `PGSSLMODE`, `PGSSLROOTCERT` or `OPSC_PG_CA_CERT` overrides; production mode requires `verify-full`. Custom CA paths are checked before invoking libpq tools.
 - It applies local retention by age after a successful archive validation.
 - This is a CLI, **not yet a scheduled container or remote-object-storage integration**. It does not prove a full restore. The existing restore-drill command remains the required recovery proof.
 - Keep the 32-byte base64 backup key outside the database and outside source control. Losing the key makes backups unrecoverable. Key rotation requires retaining prior keys for old backup generations.
@@ -55,7 +56,7 @@
 - Signed tenant-context operations in this mode require all of: explicit `OPSC_SIGNED_TENANT_CONTEXT_SELF_HOSTED_ENABLED=true`, `OPSC_REQUIRE_SIGNED_TENANT_CONTEXT=true`, `OPSC_PRODUCTION_HOLD=false`, session autobind disabled, and a valid buyer release attestation.
 - The identity collector measures archive SHA-256, live HTTPS certificate digest and selected PostgreSQL role flags. Its existing documentation explicitly excludes complete object/function grants and build provenance; PASS is an operator attestation, not certification.
 - The migration runner's self-hosted host pin is operator-supplied and is not independent DNS, TLS certificate or database-provider identity proof. TLS is independently enforced by `verify-full`.
-- Added `.github/workflows/self-hosted-postgres18-acceptance.yml`: it provisions an ephemeral PostgreSQL 18 + PostGIS 3.7 container, generates a temporary CA/server certificate, runs the repository's role initializer, applies migrations through the self-hosted target using `verify-full`, and checks the migration ledger, extensions, role flags and forced RLS. This CI workflow is now the required acceptance gate; its result is pending.
+- Added `.github/workflows/self-hosted-postgres18-acceptance.yml`: it provisions an ephemeral PostgreSQL 18 + PostGIS 3.7 container, generates a temporary CA/server certificate, runs the repository's role initializer, applies migrations through the self-hosted target using `verify-full`, and checks the migration ledger, extensions, role flags and forced RLS. The original workflow text contained a truncated `grep` and duplicated trailing steps; the follow-up repair branch fixes the script and adds an explicit `PGVECTOR_PASS` assertion. The repaired workflow has not yet been run.
 
 ## Requested features — honest state
 

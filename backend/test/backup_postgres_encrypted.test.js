@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { parseDatabaseUrl, readKey, pgPassEscape, encryptFile, decryptFile } = require('../scripts/backup-postgres-encrypted');
+const { parseDatabaseUrl, readKey, pgPassEscape, resolveBackupTls, encryptFile, decryptFile } = require('../scripts/backup-postgres-encrypted');
 
 test('PostgreSQL backup URL parser rejects unsupported protocols and missing credentials', () => {
   assert.equal(parseDatabaseUrl('postgresql://backup:secret@db.example.test:5432/opscore').hostname, 'db.example.test');
@@ -44,4 +44,28 @@ test('AES-256-GCM backup round-trip succeeds and tampering is rejected', async (
 test('pgpass values escape delimiters and reject line breaks', () => {
   assert.equal(pgPassEscape('user:part\\name'), 'user\\:part\\\\name');
   assert.throws(() => pgPassEscape('bad\nentry'), /BACKUP_PGPASS_VALUE_INVALID/);
+});
+
+test('backup honors verify-full and the CA path from the connection URL', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'opscore-backup-ca-'));
+  const ca = path.join(dir, 'root.crt');
+  try {
+    fs.writeFileSync(ca, 'test-ca', { mode: 0o600 });
+    const url = new URL('postgresql://backup:secret@db.example.test/opscore?sslmode=verify-full');
+    url.searchParams.set('sslrootcert', ca);
+    assert.deepEqual(resolveBackupTls(url, { NODE_ENV: 'production' }), {
+      PGSSLMODE: 'verify-full',
+      PGSSLROOTCERT: ca
+    });
+    assert.throws(
+      () => resolveBackupTls(new URL('postgresql://backup:secret@db.example.test/opscore?sslmode=require'), { NODE_ENV: 'production' }),
+      /BACKUP_POSTGRES_TLS_VERIFICATION_REQUIRED/
+    );
+    assert.throws(
+      () => resolveBackupTls(new URL('postgresql://backup:secret@db.example.test/opscore'), { NODE_ENV: 'production', OPSC_PG_CA_CERT: path.join(dir, 'missing.crt') }),
+      /BACKUP_POSTGRES_CA_FILE_UNREADABLE/
+    );
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });
