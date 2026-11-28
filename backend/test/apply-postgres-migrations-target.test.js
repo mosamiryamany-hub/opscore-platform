@@ -589,8 +589,10 @@ test('self-hosted PostgreSQL role initializer reads secrets and validates runtim
   assert.match(source, /GRANT neondb_owner TO opscore_migrator WITH INHERIT TRUE, SET TRUE/);
   assert.match(source, /GRANT opscore_auth_definer TO neondb_owner WITH INHERIT FALSE, SET TRUE/);
   assert.match(source, /ALTER DATABASE %I OWNER TO neondb_owner/);
-  assert.match(source, /CREATE SCHEMA IF NOT EXISTS opscore_security AUTHORIZATION opscore_auth_definer/);
+  assert.match(source, /CREATE SCHEMA IF NOT EXISTS opscore_security AUTHORIZATION neondb_owner/);
   assert.match(source, /GRANT USAGE, CREATE ON SCHEMA opscore_security TO neondb_owner/);
+  assert.match(source, /ALTER SCHEMA opscore_security OWNER TO neondb_owner/);
+  assert.match(source, /OPSCORE_MIGRATION_SECURITY_SCHEMA_OWNER_CONTRACT_FAILED/);
   assert.match(source, /OPSCORE_RUNTIME_ROLE_CONTRACT_FAILED/);
   assert.match(source, /OPSCORE_MIGRATOR_ROLE_CONTRACT_FAILED/);
   assert.match(source, /OPSCORE_WORKER_ROLE_CONTRACT_FAILED/);

@@ -44,8 +44,8 @@ WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'opscore_worker')
 GRANT neondb_owner TO opscore_migrator WITH INHERIT TRUE, SET TRUE;
 GRANT opscore_auth_definer TO neondb_owner WITH INHERIT FALSE, SET TRUE;
 
-CREATE SCHEMA IF NOT EXISTS opscore_security AUTHORIZATION opscore_auth_definer;
-ALTER SCHEMA opscore_security OWNER TO opscore_auth_definer;
+CREATE SCHEMA IF NOT EXISTS opscore_security AUTHORIZATION neondb_owner;
+ALTER SCHEMA opscore_security OWNER TO neondb_owner;
 GRANT USAGE, CREATE ON SCHEMA opscore_security TO neondb_owner;
 
 DO $verify$
@@ -83,6 +83,12 @@ BEGIN
      OR NOT pg_has_role('opscore_migrator', 'neondb_owner', 'SET')
      OR NOT pg_has_role('opscore_migrator', 'neondb_owner', 'USAGE') THEN
     RAISE EXCEPTION 'OPSCORE_MIGRATION_OWNER_ROLE_CONTRACT_FAILED';
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_namespace n JOIN pg_roles r ON r.oid = n.nspowner
+    WHERE n.nspname = 'opscore_security' AND r.rolname = 'neondb_owner'
+  ) THEN
+    RAISE EXCEPTION 'OPSCORE_MIGRATION_SECURITY_SCHEMA_OWNER_CONTRACT_FAILED';
   END IF;
   IF auth_definer_role.rolname IS NULL OR auth_definer_role.rolcanlogin OR auth_definer_role.rolsuper
      OR NOT auth_definer_role.rolbypassrls OR auth_definer_role.rolcreaterole
