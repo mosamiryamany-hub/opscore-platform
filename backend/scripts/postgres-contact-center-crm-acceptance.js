@@ -44,7 +44,7 @@ async function main() {
       GRANT SELECT, UPDATE ON public.ai_contact_conversations TO opscore_runtime;
     `);
 
-    const migration = fs.readFileSync(path.resolve(__dirname, '../sql/postgres/073_contact_center_crm_customer_link.sql'), 'utf8');
+    const migration = fs.readFileSync(path.resolve(__dirname, '../sql/postgres/076_contact_center_crm_customer_link.sql'), 'utf8');
     await client.query(migration);
 
     const fk = await client.query(`
