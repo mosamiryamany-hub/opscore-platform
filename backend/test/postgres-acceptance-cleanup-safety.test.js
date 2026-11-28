@@ -132,12 +132,12 @@ test('GIS scale benchmark rate allowance is confined to the disposable PostgreSQ
   const workflowPath = path.join(__dirname, '..', '..', '.github', 'workflows', 'digital-twin-postgres-live.yml');
   const workflow = fs.readFileSync(workflowPath, 'utf8');
   const start = workflow.indexOf('Run real PostgreSQL HTTP and authenticated Dispatcher Map browser acceptance as opscore_runtime');
-  const nextStep = workflow.indexOf('\\n      - name:', start + 1);
+  const nextStep = workflow.indexOf('\n      - name:', start + 1);
   const step = workflow.slice(start, nextStep < 0 ? workflow.length : nextStep);
   assert.ok(start >= 0, 'the real authenticated GIS acceptance step must exist');
-  assert.match(step, /FIREWALL_RATE_LIMIT:\\s*'1000'/,
+  assert.match(step, /FIREWALL_RATE_LIMIT:\s*'1000'/,
     'only the disposable 3 x 100-sample benchmark step may raise its request budget');
-  assert.equal((workflow.match(/^\\s*FIREWALL_RATE_LIMIT:/gm) || []).length, 1,
+  assert.equal((workflow.match(/^\s*FIREWALL_RATE_LIMIT:/gm) || []).length, 1,
     'the elevated test-only firewall request budget must not become a workflow-wide or production setting');
 });
 
