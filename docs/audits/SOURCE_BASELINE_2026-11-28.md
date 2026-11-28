@@ -643,3 +643,16 @@ The PostgreSQL server diagnostic again identifies:
 This confirms the Migration 075 owner-transition defect persists on the latest candidate head. The fix must address the execution role/ownership contract around the migration's `RESET ROLE` and `ALTER FUNCTION ... OWNER` operations, with a regression test against a clean PostgreSQL 18 instance. Do not merge PR #528 or edit historical migration bytes as a shortcut.
 
 At this same latest head, OpsCore CI `46144382925` and Combined GIS/Contact Center acceptance `46144382862` remained **IN_PROGRESS**, Android preview `46144382830` remained **IN_PROGRESS**, Vercel deploy `46144382825` remained **PENDING**, and Neon Preview migration `46144382835` was **SKIPPED** at the latest poll. These statuses are tied to `6fd20f82...` only.
+
+
+### 14.9 Latest-head CI failure details — 6fd20f82
+
+OpsCore CI run `46144382925` has now completed **FAILURE** on the latest candidate head `6fd20f82...`. The `verify` job failed in `backend/test/apply-postgres-migrations-target.test.js`; the backend suite summary reports 196 files, 195 passed, 1 failed; 1,076 tests, 1,071 passed, 2 failed, 3 skipped.
+
+The two failing subtests are:
+1. `runner writes migration ledger before committing the runner-owned transaction` — source-order assertion no longer matches the current runner structure.
+2. `self-hosted 075 preserves canonical migration bytes while restoring the correct owner roles around role reset` — its expected source phrase `canonical file bytes and their SHA-256 ledger value remain unchanged` is absent from the current test input.
+
+These are test/source-contract mismatches in the migration runner test file and must be reconciled against the actual current implementation. They are not proof that historical migration files changed; inspect the exact assertion and runner code before changing either. Do not weaken assertions merely to turn CI green.
+
+At the last poll, the latest-head Combined GIS/Contact Center run `46144382862` and Android preview `46144382830` remained **IN_PROGRESS**; Vercel deploy `46144382825` remained **PENDING**. Self-Hosted run `46144382940` is **FAILURE** at Migration 075 as recorded in §14.8. This makes the latest candidate head non-acceptable for progression.
