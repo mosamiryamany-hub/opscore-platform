@@ -37,12 +37,12 @@ BEGIN
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'opscore_migrator') THEN
     EXECUTE format(
-      'CREATE ROLE opscore_migrator LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE BYPASSRLS NOINHERIT PASSWORD %L',
+      'CREATE ROLE opscore_migrator LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE BYPASSRLS INHERIT PASSWORD %L',
       current_setting('opscore.migrator_password')
     );
   ELSE
     EXECUTE format(
-      'ALTER ROLE opscore_migrator LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE BYPASSRLS NOINHERIT PASSWORD %L',
+      'ALTER ROLE opscore_migrator LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE BYPASSRLS INHERIT PASSWORD %L',
       current_setting('opscore.migrator_password')
     );
   END IF;
