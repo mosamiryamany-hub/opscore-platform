@@ -20,6 +20,11 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'opscore_app') THEN
     CREATE ROLE opscore_app NOLOGIN NOSUPERUSER NOBYPASSRLS NOINHERIT;
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'neondb_owner') THEN
+    -- Compatibility owner required by immutable historical migrations; this
+    -- is a local NOLOGIN role, not a Neon service or external dependency.
+    CREATE ROLE neondb_owner NOLOGIN NOSUPERUSER BYPASSRLS NOCREATEDB NOCREATEROLE NOINHERIT;
+  END IF;
 END
 $roles$;
 
@@ -33,15 +38,19 @@ SELECT format('CREATE ROLE opscore_worker LOGIN NOSUPERUSER NOBYPASSRLS NOINHERI
 WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'opscore_worker')
 \gexec
 
+GRANT neondb_owner TO opscore_migrator WITH INHERIT FALSE, SET TRUE;
+
 DO $verify$
 DECLARE
   runtime_role pg_roles%ROWTYPE;
   migrator_role pg_roles%ROWTYPE;
   worker_role pg_roles%ROWTYPE;
+  owner_role pg_roles%ROWTYPE;
 BEGIN
   SELECT * INTO runtime_role FROM pg_roles WHERE rolname = 'opscore_runtime';
   SELECT * INTO migrator_role FROM pg_roles WHERE rolname = 'opscore_migrator';
   SELECT * INTO worker_role FROM pg_roles WHERE rolname = 'opscore_worker';
+  SELECT * INTO owner_role FROM pg_roles WHERE rolname = 'neondb_owner';
 
   IF runtime_role.rolname IS NULL OR NOT runtime_role.rolcanlogin OR runtime_role.rolsuper
      OR runtime_role.rolbypassrls OR runtime_role.rolcreaterole
@@ -58,10 +67,19 @@ BEGIN
      OR worker_role.rolcreatedb OR worker_role.rolinherit THEN
     RAISE EXCEPTION 'OPSCORE_WORKER_ROLE_CONTRACT_FAILED';
   END IF;
+  IF owner_role.rolname IS NULL OR owner_role.rolcanlogin OR owner_role.rolsuper
+     OR NOT owner_role.rolbypassrls OR owner_role.rolcreaterole
+     OR owner_role.rolcreatedb OR owner_role.rolinherit
+     OR NOT pg_has_role('opscore_migrator', 'neondb_owner', 'SET') THEN
+    RAISE EXCEPTION 'OPSCORE_MIGRATION_OWNER_ROLE_CONTRACT_FAILED';
+  END IF;
 END
 $verify$;
 
-SELECT format('GRANT CONNECT ON DATABASE %I TO opscore_runtime, opscore_worker, opscore_migrator', current_database()) \gexec
-SELECT format('GRANT CREATE ON DATABASE %I TO opscore_migrator', current_database()) \gexec
-GRANT USAGE, CREATE ON SCHEMA public TO opscore_migrator;
+-- The no-login migration owner owns this database; the login role can only SET ROLE to it.
+SELECT format('ALTER DATABASE %I OWNER TO neondb_owner', current_database()) \gexec
+
+SELECT format('GRANT CONNECT ON DATABASE %I TO opscore_runtime, opscore_worker, opscore_migrator, neondb_owner', current_database()) \gexec
+SELECT format('GRANT CREATE ON DATABASE %I TO opscore_migrator, neondb_owner', current_database()) \gexec
+GRANT USAGE, CREATE ON SCHEMA public TO opscore_migrator, neondb_owner;
 SQL
