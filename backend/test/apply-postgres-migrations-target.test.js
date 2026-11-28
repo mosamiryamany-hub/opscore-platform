@@ -75,7 +75,7 @@ test('self-hosted Compose authenticates with opscore_migrator and switches to th
   const source = fs.readFileSync(path.join(__dirname, '../scripts/apply-postgres-migrations.js'), 'utf8');
   assert.match(source, /SET ROLE neondb_owner/);
   assert.match(source, /MIGRATION_SELF_HOSTED_OWNER_ROLE_MEMBERSHIP_REQUIRED/);
-  assert.match(source, /const migrationOwnerRole=selfHostedComposeTarget\?'neondb_owner':info\.role/);
+  assert.match(source, /const migrationOwnerRole=selfHostedOwnerSwitch\?'neondb_owner':info\.role/);
   assert.match(source, /\[migrationOwnerRole\]/);
   assert.throws(
     () => expectedMigrationOwnerRole(envFor('test', {
@@ -83,6 +83,55 @@ test('self-hosted Compose authenticates with opscore_migrator and switches to th
       OPSC_MIGRATION_EXPECTED_OWNER_ROLE: 'neondb_owner'
     })),
     /MIGRATION_OWNER_ROLE_NOT_ALLOWED/
+  );
+});
+
+test('self-hosted migration target requires explicit operator opt-in, exact host/database confirmation and verified TLS', () => {
+  const url = new URL('postgresql://opscore_migrator:secret@db/opscore?sslmode=verify-full&sslrootcert=/run/secrets/postgres-ca.crt');
+  const env = {
+    OPSC_MIGRATION_TARGET_CLASS: 'self-hosted',
+    OPSC_MIGRATION_ALLOW_SELF_HOSTED: '1',
+    OPSC_MIGRATION_EXPECTED_OWNER_ROLE: 'opscore_migrator',
+    OPSC_MIGRATION_EXPECTED_HOST: 'db',
+    OPSC_MIGRATION_EXPECTED_DATABASE: 'opscore',
+    OPSC_PG_SSL_MODE: 'verify-full',
+    NODE_ENV: 'production'
+  };
+  assert.equal(expectedMigrationOwnerRole(env), 'opscore_migrator');
+  assert.equal(assertTarget(url, 'opscore', false, env), 'self-hosted-explicit-opt-in');
+  assert.equal(assertTarget(url, 'opscore', true, {
+    ...env,
+    OPSC_MIGRATION_CONFIRM_HOST: 'db',
+    OPSC_MIGRATION_CONFIRM_DATABASE: 'opscore'
+  }), 'self-hosted-explicit-opt-in');
+  assert.throws(() => assertTarget(url, 'opscore', false, {
+    ...env,
+    OPSC_MIGRATION_ALLOW_SELF_HOSTED: '0'
+  }), /MIGRATION_SELF_HOSTED_OPT_IN_REQUIRED/);
+  assert.throws(() => assertTarget(url, 'opscore', true, {
+    ...env,
+    OPSC_MIGRATION_CONFIRM_HOST: 'db'
+  }), /MIGRATION_DATABASE_CONFIRMATION_REQUIRED/);
+  assert.throws(() => assertTarget(url, 'opscore', false, {
+    ...env,
+    OPSC_MIGRATION_EXPECTED_HOST: 'other-db'
+  }), /MIGRATION_ENDPOINT_HOST_MISMATCH/);
+  assert.throws(() => assertTarget(new URL('postgresql://opscore_migrator:secret@db/opscore'), 'opscore', false, env),
+    /MIGRATION_SELF_HOSTED_TLS_VERIFICATION_REQUIRED/);
+  assert.throws(() => assertTarget(url, 'opscore', false, {
+    ...env,
+    NODE_ENV: 'development'
+  }), /MIGRATION_SELF_HOSTED_REQUIRES_PRODUCTION_MODE/);
+});
+
+test('self-hosted migration target skips Neon identity lookup only after explicit self-hosted target selection', async () => {
+  const env = {
+    OPSC_MIGRATION_TARGET_CLASS: 'self-hosted',
+    OPSC_MIGRATION_ALLOW_SELF_HOSTED: '1'
+  };
+  assert.deepEqual(
+    await verifyNeonEndpointIdentity(new URL('postgresql://opscore_migrator:secret@db/opscore'), env),
+    { verified: false, skipped: true, reason: 'explicit-self-hosted-target' }
   );
 });
 
