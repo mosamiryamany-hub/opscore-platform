@@ -170,17 +170,18 @@ BEGIN
 END
 $function$;
 
-RESET ROLE;
-ALTER FUNCTION opscore_security.spatial_features_in_viewport(
-  double precision, double precision, double precision, double precision, integer
-) OWNER TO opscore_auth_definer;
-
+-- Privileges must be adjusted while still running as the function owner.
+-- Match migration 071: REVOKE/GRANT before RESET ROLE. Creating the function under
+-- SET LOCAL ROLE opscore_auth_definer already sets ownership; a post-RESET
+-- ALTER OWNER fails for non-superuser migrators (42501 must be owner of function).
 REVOKE ALL PRIVILEGES ON FUNCTION opscore_security.spatial_features_in_viewport(
   double precision, double precision, double precision, double precision, integer
 ) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION opscore_security.spatial_features_in_viewport(
   double precision, double precision, double precision, double precision, integer
 ) TO opscore_runtime;
+
+RESET ROLE;
 
 -- Force application reads through the signed tenant contract. RLS continues
 -- to govern all direct INSERT/UPDATE/DELETE operations on the base table.
