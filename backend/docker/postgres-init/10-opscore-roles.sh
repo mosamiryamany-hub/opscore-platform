@@ -38,6 +38,8 @@ SELECT format('CREATE ROLE opscore_worker LOGIN NOSUPERUSER NOBYPASSRLS NOINHERI
 WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'opscore_worker')
 \gexec
 
+GRANT neondb_owner TO opscore_migrator WITH INHERIT FALSE, SET TRUE;
+
 DO $verify$
 DECLARE
   runtime_role pg_roles%ROWTYPE;
@@ -74,7 +76,7 @@ BEGIN
 END
 $verify$;
 
-SELECT format('GRANT CONNECT ON DATABASE %I TO opscore_runtime, opscore_worker, opscore_migrator', current_database()) \gexec
-SELECT format('GRANT CREATE ON DATABASE %I TO opscore_migrator', current_database()) \gexec
-GRANT USAGE, CREATE ON SCHEMA public TO opscore_migrator;
+SELECT format('GRANT CONNECT ON DATABASE %I TO opscore_runtime, opscore_worker, opscore_migrator, neondb_owner', current_database()) \gexec
+SELECT format('GRANT CREATE ON DATABASE %I TO opscore_migrator, neondb_owner', current_database()) \gexec
+GRANT USAGE, CREATE ON SCHEMA public TO opscore_migrator, neondb_owner;
 SQL
