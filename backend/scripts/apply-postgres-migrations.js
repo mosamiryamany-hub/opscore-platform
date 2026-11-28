@@ -177,16 +177,18 @@ function selfHostedMigrationContent(migration,targetClass) {
  if(targetClass!=='self-hosted-explicit-target'||migration.filename!=='075_signed_rls_spatial_viewport_query.sql')return source;
  const ownerReset="RESET ROLE;\nALTER FUNCTION opscore_security.spatial_features_in_viewport(\n  double precision, double precision, double precision, double precision, integer\n) OWNER TO opscore_auth_definer;";
  const runtimeRevoke="-- Force application reads through the signed tenant contract. RLS continues\n-- to govern all direct INSERT/UPDATE/DELETE operations on the base table.\nREVOKE SELECT ON TABLE public.spatial_features FROM opscore_runtime;";
+ const functionComment="COMMENT ON FUNCTION opscore_security.spatial_features_in_viewport(\n  double precision, double precision, double precision, double precision, integer\n) IS\n  'Signed-context-only tenant-scoped spatial viewport read; no tenant parameter; bounded to 1000 rows; GiST bbox prefilter plus exact ST_Intersects.';";
  const count=(text,needle)=>text.split(needle).length-1;
- if(count(source,ownerReset)!==1||count(source,runtimeRevoke)!==1)throw new Error('MIGRATION_SELF_HOSTED_075_ROLE_COMPATIBILITY_ANCHOR_MISMATCH');
+ if(count(source,ownerReset)!==1||count(source,runtimeRevoke)!==1||count(source,functionComment)!==1)throw new Error('MIGRATION_SELF_HOSTED_075_ROLE_COMPATIBILITY_ANCHOR_MISMATCH');
  // 075 creates the function while SET LOCAL ROLE opscore_auth_definer is active,
  // so ownership is already correct. RESET ROLE would fall back to the login
  // identity (opscore_migrator), not the prior neondb_owner SET ROLE. Keep the
- // definer active for its own ACL/comment changes, then restore the migration
- // owner before revoking table-level runtime SELECT. The canonical file bytes
+ // definer active for its ACL and COMMENT changes, then restore the migration
+ // owner before revoking table-level runtime SELECT. Canonical migration bytes
  // and their SHA-256 ledger value remain unchanged.
  return source.replace(ownerReset,'-- Function ownership is already opscore_auth_definer because it was created under that role.')
-  .replace(runtimeRevoke,"RESET ROLE;\nSET LOCAL ROLE neondb_owner;\n"+runtimeRevoke);
+  .replace(functionComment,'')
+  .replace(runtimeRevoke,functionComment+"\n\nRESET ROLE;\nSET LOCAL ROLE neondb_owner;\n"+runtimeRevoke);
 }
 function selfHostedMigrationExecutionRole(filename,targetClass) {
  if(targetClass!=='self-hosted-explicit-target')return null;
