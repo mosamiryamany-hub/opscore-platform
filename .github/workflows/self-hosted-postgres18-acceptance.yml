@@ -1,0 +1,196 @@
+name: self-hosted-postgres18-acceptance
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "backend/docker/**"
+      - "backend/scripts/apply-postgres-migrations.js"
+      - "backend/src/bootstrap-policy.js"
+      - "backend/src/signed-tenant-context-policy.js"
+      - "backend/test/apply-postgres-migrations-target.test.js"
+      - "backend/test/bootstrap-security-policy.test.js"
+      - "backend/test/signed-tenant-context-policy.test.js"
+      - ".github/workflows/self-hosted-postgres18-acceptance.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: self-hosted-postgres18-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  postgres18-self-hosted:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22.23.4"
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Create ephemeral database TLS and role credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$RUNNER_TEMP/opscore-pg-tls"
+          cd "$RUNNER_TEMP/opscore-pg-tls"
+          openssl genrsa -out ca.key 3072
+          openssl req -x509 -new -nodes -key ca.key -sha256 -days 2 -out ca.crt -subj "/CN=OpsCore CI Ephemeral PostgreSQL CA"
+          openssl genrsa -out server.key 3072
+          openssl req -new -key server.key -out server.csr -subj "/CN=127.0.0.1"
+          cat > server.ext <<'EOF'
+          subjectAltName=DNS:localhost,IP:127.0.0.1
+          extendedKeyUsage=serverAuth
+          keyUsage=digitalSignature,keyEncipherment
+          EOF
+          openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt -days 2 -sha256 -extfile server.ext
+          chmod 0644 ca.crt server.crt
+          rm -f ca.key server.csr server.ext ca.srl
+          chmod 0755 "$RUNNER_TEMP/opscore-pg-tls"
+          sudo chown 999:999 server.key
+          sudo chmod 0600 server.key
+          RUNTIME_PASSWORD="$(openssl rand -hex 32)"
+          MIGRATOR_PASSWORD="$(openssl rand -hex 32)"
+          WORKER_PASSWORD="$(openssl rand -hex 32)"
+          SUPERUSER_PASSWORD="$(openssl rand -hex 32)"
+          echo "::add-mask::$RUNTIME_PASSWORD"
+          echo "::add-mask::$MIGRATOR_PASSWORD"
+          echo "::add-mask::$WORKER_PASSWORD"
+          echo "::add-mask::$SUPERUSER_PASSWORD"
+          {
+            printf 'POSTGRES_DB=opscore\n'
+            printf 'POSTGRES_USER=postgres\n'
+            printf 'POSTGRES_PASSWORD=%s\n' "$SUPERUSER_PASSWORD"
+            printf 'OPSCORE_RUNTIME_PASSWORD=%s\n' "$RUNTIME_PASSWORD"
+            printf 'OPSCORE_MIGRATOR_PASSWORD=%s\n' "$MIGRATOR_PASSWORD"
+            printf 'OPSCORE_WORKER_PASSWORD=%s\n' "$WORKER_PASSWORD"
+          } > "$RUNNER_TEMP/opscore-pg.env"
+          {
+            printf 'OPSC_TEST_RUNTIME_PASSWORD=%s\n' "$RUNTIME_PASSWORD"
+            printf 'OPSC_TEST_MIGRATOR_PASSWORD=%s\n' "$MIGRATOR_PASSWORD"
+            printf 'OPSC_TEST_WORKER_PASSWORD=%s\n' "$WORKER_PASSWORD"
+            printf 'OPSC_TEST_SUPERUSER_PASSWORD=%s\n' "$SUPERUSER_PASSWORD"
+          } >> "$GITHUB_ENV"
+
+      - name: Validate buyer PostgreSQL Compose configuration
+        env:
+          POSTGRES_SUPERUSER_PASSWORD: ci-config-validation-only
+          OPSCORE_RUNTIME_PASSWORD: ci-config-validation-only
+          OPSCORE_MIGRATOR_PASSWORD: ci-config-validation-only
+          OPSCORE_WORKER_PASSWORD: ci-config-validation-only
+        run: |
+          set -euo pipefail
+          docker compose -f backend/docker-compose.postgres.yml config --quiet
+          echo BUYER_COMPOSE_CONFIG_PASS
+
+      - name: Build the exact buyer PostgreSQL image used by Compose
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker build --pull -t opscore-postgres:18-postgis-3.7-pgvector-0.8.7 -f backend/docker/postgres/Dockerfile backend
+
+      - name: Start PostgreSQL 18 + PostGIS + pgvector with repository role initializer
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker run --detach --name opscore-self-hosted-pg18 \
+            --env-file "$RUNNER_TEMP/opscore-pg.env" \
+            --publish 127.0.0.1:5432:5432 \
+            --volume "$GITHUB_WORKSPACE/backend/docker/postgres-init:/docker-entrypoint-initdb.d:ro" \
+            --volume "$RUNNER_TEMP/opscore-pg-tls:/run/postgres-tls:ro" \
+            opscore-postgres:18-postgis-3.7-pgvector-0.8.7 \
+            -c ssl=on \
+            -c ssl_cert_file=/run/postgres-tls/server.crt \
+            -c ssl_key_file=/run/postgres-tls/server.key \
+            -c ssl_ca_file=/run/postgres-tls/ca.crt \
+            -c ssl_min_protocol_version=TLSv1.2 \
+            -c log_min_error_statement=error \
+            -c log_error_verbosity=verbose
+          for attempt in $(seq 1 60); do
+            if docker exec opscore-self-hosted-pg18 pg_isready -h 127.0.0.1 -U postgres -d opscore >/dev/null 2>&1; then
+              break
+            fi
+            if [[ "$(docker inspect -f '{{.State.Running}}' opscore-self-hosted-pg18 2>/dev/null || true)" != "true" ]]; then
+              docker logs opscore-self-hosted-pg18 || true
+              exit 1
+            fi
+            sleep 2
+          done
+          docker exec opscore-self-hosted-pg18 pg_isready -h 127.0.0.1 -U postgres -d opscore
+          docker logs opscore-self-hosted-pg18
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci --ignore-scripts
+
+      - name: Apply complete migrations through the self-hosted target (TLS verify-full)
+        working-directory: backend
+        env:
+          NODE_ENV: production
+          OPSC_PG_SSL_MODE: verify-full
+          OPSC_PG_SSL_REJECT_UNAUTHORIZED: "true"
+          OPSC_PG_CA_CERT: ${{ runner.temp }}/opscore-pg-tls/ca.crt
+          OPSC_MIGRATION_TARGET_CLASS: self-hosted
+          OPSC_MIGRATION_EXPECTED_DATABASE: opscore
+          OPSC_MIGRATION_EXPECTED_HOST: 127.0.0.1
+          OPSC_MIGRATION_EXPECTED_OWNER_ROLE: opscore_migrator
+          OPSC_MIGRATION_ALLOW_SELF_HOSTED: "1"
+          OPSC_MIGRATION_CONFIRM_DATABASE: opscore
+          OPSC_MIGRATION_CONFIRM_HOST: 127.0.0.1
+        run: |
+          set -euo pipefail
+          export OPSC_MIGRATION_DATABASE_URL="postgresql://opscore_migrator:${OPSC_TEST_MIGRATOR_PASSWORD}@127.0.0.1:5432/opscore?sslmode=verify-full&sslrootcert=system"
+          node scripts/apply-postgres-migrations.js --apply
+
+      - name: Verify runtime least privilege, extensions, migration ledger and forced RLS
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker exec -e PGPASSWORD="$OPSC_TEST_SUPERUSER_PASSWORD" -e PGSSLMODE=verify-full -e PGSSLROOTCERT=/run/postgres-tls/ca.crt opscore-self-hosted-pg18 \
+            psql -h 127.0.0.1 -v ON_ERROR_STOP=1 -U postgres -d opscore -Atc "
+              SELECT CASE WHEN current_setting('server_version_num')::int >= 180000 THEN 'PG18_PASS' ELSE 'PG18_FAIL' END;
+              SELECT CASE WHEN EXISTS (SELECT 1 FROM pg_extension WHERE extname='postgis') THEN 'POSTGIS_PASS' ELSE 'POSTGIS_FAIL' END;
+              SELECT CASE WHEN EXISTS (SELECT 1 FROM pg_extension WHERE extname='pgcrypto') THEN 'PGCRYPTO_PASS' ELSE 'PGCRYPTO_FAIL' END;
+              SELECT CASE WHEN EXISTS (SELECT 1 FROM pg_extension WHERE extname='vector') THEN 'PGVECTOR_PASS' ELSE 'PGVECTOR_FAIL' END;
+              SELECT CASE WHEN (SELECT count(*) FROM public.schema_migrations) >= 60 THEN 'MIGRATION_LEDGER_PASS' ELSE 'MIGRATION_LEDGER_FAIL' END;
+              SELECT CASE WHEN EXISTS (SELECT 1 FROM pg_roles WHERE rolname='opscore_runtime' AND rolcanlogin AND NOT rolsuper AND NOT rolbypassrls AND NOT rolcreaterole AND NOT rolcreatedb AND NOT rolinherit) THEN 'RUNTIME_ROLE_PASS' ELSE 'RUNTIME_ROLE_FAIL' END;
+              SELECT CASE WHEN EXISTS (SELECT 1 FROM pg_roles WHERE rolname='opscore_migrator' AND rolcanlogin AND NOT rolsuper AND rolbypassrls AND NOT rolcreaterole AND NOT rolcreatedb AND NOT rolinherit) THEN 'MIGRATOR_ROLE_PASS' ELSE 'MIGRATOR_ROLE_FAIL' END;
+              SELECT CASE WHEN (SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='r' AND c.relrowsecurity AND c.relforcerowsecurity) > 0 THEN 'FORCED_RLS_PASS' ELSE 'FORCED_RLS_FAIL' END;
+            " | tee "$RUNNER_TEMP/opscore-self-hosted-postgres18-acceptance.txt"
+          grep -q '^PG18_PASS$' "$RUNNER_TEMP/opscore-self-hosted-postgres18-acceptance.txt"
+          grep -q '^POSTGIS_PASS$' "$RUNNER_TEMP/opscore-self-hosted-postgres18-acceptance.txt"
+          grep -q '^PGCRYPTO_PASS$' "$RUNNER_TEMP/opscore-self-hosted-postgres18-acceptance.txt"
+          grep -q '^PGVECTOR_PASS$' "$RUNNER_TEMP/opscore-self-hosted-postgres18-acceptance.txt"
+          grep -q '^MIGRATION_LEDGER_PASS$' "$RUNNER_TEMP/opscore-self-hosted-postgres18-acceptance.txt"
+          grep -q '^RUNTIME_ROLE_PASS$' "$RUNNER_TEMP/opscore-self-hosted-postgres18-acceptance.txt"
+          grep -q '^MIGRATOR_ROLE_PASS$' "$RUNNER_TEMP/opscore-self-hosted-postgres18-acceptance.txt"
+          grep -q '^FORCED_RLS_PASS$' "$RUNNER_TEMP/opscore-self-hosted-postgres18-acceptance.txt"
+
+      - name: Capture PostgreSQL statement diagnostics on migration failure
+        if: failure()
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker logs --since 5m opscore-self-hosted-pg18 2>&1
+
+      - name: Upload isolated acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: self-hosted-postgres18-acceptance-${{ github.run_id }}
+          path: ${{ runner.temp }}/opscore-self-hosted-postgres18-acceptance.txt
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Remove ephemeral database container
+        if: always()
+        run: docker rm -f opscore-self-hosted-pg18 || true

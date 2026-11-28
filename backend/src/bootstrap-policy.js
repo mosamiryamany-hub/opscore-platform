@@ -26,7 +26,10 @@ function assertBootstrapDatabaseRole(db, engine) {
   const row = db.prepare(
     'SELECT current_user AS role, r.rolsuper AS superuser, r.rolbypassrls AS bypass_rls FROM pg_roles r WHERE r.rolname = current_user'
   ).get();
-  if (!row || row.role !== 'neondb_owner' || row.superuser !== false || row.bypass_rls !== true) {
+  const expectedRole = String(process.env.OPSC_DEPLOYMENT_MODE || '').trim().toLowerCase() === 'self-hosted'
+    ? 'opscore_migrator'
+    : 'neondb_owner';
+  if (!row || row.role !== expectedRole || row.superuser !== false || row.bypass_rls !== true) {
     throw new Error('BOOTSTRAP_DATABASE_ROLE_NOT_ALLOWED');
   }
   return true;

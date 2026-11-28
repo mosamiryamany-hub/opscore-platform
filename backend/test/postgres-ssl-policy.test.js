@@ -40,7 +40,7 @@ if (!pool.options.ssl || pool.options.ssl.rejectUnauthorized !== true) {
 }
 `;
 
-function run(mode, rejectUnauthorized = 'true', configuredCa = 'TEST_CA_CERTIFICATE') {
+function run(mode, rejectUnauthorized = 'true', configuredCa = null) {
   const env = { ...process.env, NODE_ENV: 'production', OPSC_PG_SSL_REJECT_UNAUTHORIZED: rejectUnauthorized };
   if (configuredCa === null) delete env.OPSC_PG_CA_CERT;
   else env.OPSC_PG_CA_CERT = configuredCa;

@@ -48,6 +48,15 @@ function normalizePostgresConnectionString(connectionString, env = process.env) 
     url.searchParams.delete(parameter);
   }
   url.searchParams.delete(CONNECTION_STRING_SSL_MODE);
+  const configuredCa = String(env.OPSC_PG_CA_CERT || '').trim();
+  if (configuredCa) {
+    if (configuredCa.includes('-----BEGIN CERTIFICATE-----')) {
+      tls.ca = configuredCa;
+    } else {
+      try { tls.ca = fs.readFileSync(configuredCa); }
+      catch { throw new Error('POSTGRES_TLS_CA_FILE_UNREADABLE'); }
+    }
+  }
   if (Boolean(tls.cert) !== Boolean(tls.key)) {
     throw new Error('POSTGRES_TLS_CLIENT_CERTIFICATE_KEY_PAIR_REQUIRED');
   }
@@ -85,11 +94,11 @@ function createPostgresPool({
   if (isProduction && sslMode === 'disable') throw new Error('POSTGRES_TLS_REQUIRED');
   if (isProduction && sslMode !== 'verify-full') throw new Error('POSTGRES_TLS_VERIFICATION_REQUIRED');
   if (isProduction && String(process.env.OPSC_PG_SSL_REJECT_UNAUTHORIZED || 'true').toLowerCase() !== 'true') throw new Error('POSTGRES_TLS_VERIFICATION_REQUIRED');
-  const ssl = sslMode === 'disable' ? false : sslMode === 'verify-full' ? { rejectUnauthorized: true, ca: process.env.OPSC_PG_CA_CERT || undefined } : { rejectUnauthorized: true };
+  const ssl = sslMode === 'disable' ? false : { rejectUnauthorized: true };
   const normalizedConnection = normalizePostgresConnectionString(connectionString);
   const normalizedSsl = ssl === false ? false : {
     ...ssl,
-    ca: process.env.OPSC_PG_CA_CERT || normalizedConnection.tls.ca || undefined,
+    ca: normalizedConnection.tls.ca || undefined,
     cert: normalizedConnection.tls.cert || undefined,
     key: normalizedConnection.tls.key || undefined
   };
