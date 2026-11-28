@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { assertTarget, expectedMigrationOwnerRole, extractNeonEndpointId, readMigrations, unwrapOuterTransaction, verifyNeonEndpointIdentity, tenantPolicyExprValid, validateAppRolePreflight, verifyLegacyAppRoleOptionalCatalog } = require('../scripts/apply-postgres-migrations');
+const { assertTarget, expectedMigrationOwnerRole, extractNeonEndpointId, readMigrations, selfHostedMigrationContent, unwrapOuterTransaction, verifyNeonEndpointIdentity, tenantPolicyExprValid, validateAppRolePreflight, verifyLegacyAppRoleOptionalCatalog } = require('../scripts/apply-postgres-migrations');
 
 const database = 'opscore_acceptance';
 const projectId = 'summer-leaf-18448271';
@@ -548,17 +548,23 @@ test('self-hosted migration 063 runs as its dedicated object owner and returns t
   assert.match(source, /await client\.query\('INSERT INTO public\.schema_migrations/);
 });
 
-test('self-hosted 075 preserves canonical migration bytes while restoring the correct owner roles around role reset', () => {
-  const fs = require('node:fs');
-  const path = require('node:path');
-  const source = fs.readFileSync(path.join(__dirname, '../scripts/apply-postgres-migrations.js'), 'utf8');
-  assert.match(source, /function selfHostedMigrationContent\(migration,targetClass\)/);
-  assert.match(source, /MIGRATION_SELF_HOSTED_075_ROLE_COMPATIBILITY_ANCHOR_MISMATCH/);
-  assert.match(source, /selfHostedMigrationContent\(migration,targetClass\),migration\.filename/);
-  assert.match(source, /canonical file bytes and their SHA-256 ledger value remain unchanged/);
-  assert.match(source, /RESET ROLE;\\nSET LOCAL ROLE neondb_owner;/);
-  assert.match(source, /Function ownership is already opscore_auth_definer/);
+test('self-hosted 075 preserves canonical migration bytes and runs function comments under the definer owner', () => {
+  const migration = readMigrations().find(item => item.filename === '075_signed_rls_spatial_viewport_query.sql');
+  assert.ok(migration);
+  const original = migration.content;
+  const adapted = selfHostedMigrationContent(migration, 'self-hosted-explicit-target');
+  assert.match(original, /RESET ROLE;\s*ALTER FUNCTION opscore_security\.spatial_features_in_viewport/);
+  assert.doesNotMatch(adapted, /RESET ROLE;\s*ALTER FUNCTION opscore_security\.spatial_features_in_viewport/);
+  const commentAt = adapted.indexOf('COMMENT ON FUNCTION opscore_security.spatial_features_in_viewport');
+  const resetAt = adapted.indexOf('RESET ROLE;\nSET LOCAL ROLE neondb_owner;');
+  const tableRevokeAt = adapted.indexOf('REVOKE SELECT ON TABLE public.spatial_features FROM opscore_runtime');
+  assert.ok(commentAt >= 0 && commentAt < resetAt && resetAt < tableRevokeAt);
+  assert.match(adapted, /Function ownership is already opscore_auth_definer/);
+  assert.equal(selfHostedMigrationContent(migration, 'preview'), original);
+  assert.equal(migration.content, original);
+  assert.match(migration.sha256, /^[0-9a-f]{64}$/);
 });
+
 
 test('self-hosted migrations require an operator-pinned host, database, direct TLS and dedicated migrator role', async () => {
   const selfHost = 'db.customer.example';
