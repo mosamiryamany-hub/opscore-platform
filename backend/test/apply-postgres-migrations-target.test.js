@@ -554,7 +554,7 @@ test('self-hosted 075 preserves canonical migration bytes while restoring the co
   const source = fs.readFileSync(path.join(__dirname, '../scripts/apply-postgres-migrations.js'), 'utf8');
   assert.match(source, /function selfHostedMigrationContent\(migration,targetClass\)/);
   assert.match(source, /MIGRATION_SELF_HOSTED_075_ROLE_COMPATIBILITY_ANCHOR_MISMATCH/);
-  assert.match(source, /migration\.content\),migration\.filename/);
+  assert.match(source, /selfHostedMigrationContent\(migration,targetClass\),migration\.filename/);
   assert.match(source, /canonical file bytes and their SHA-256 ledger value remain unchanged/);
   assert.match(source, /RESET ROLE;\\nSET LOCAL ROLE neondb_owner;/);
   assert.match(source, /Function ownership is already opscore_auth_definer/);
