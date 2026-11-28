@@ -100,7 +100,7 @@
       '<div class="palette__box">' +
       '<div class="palette__input"><span class="mono tiny muted">⌘K</span>' +
       '<input type="search" placeholder="Jump to a surface or action…" aria-label="Command palette search" autocomplete="off"></div>' +
-      '<div class="palette__list" role="listbox"></div>' +
+      '<div class="palette__list" role="listbox" aria-label="Command palette results"></div>' +
       '<div class="palette__hint"><span>↑ ↓ move</span><span>↵ open</span><span>esc close</span></div></div>';
     doc.body.appendChild(host);
     const input = host.querySelector('input');
