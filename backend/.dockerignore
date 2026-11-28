@@ -3,6 +3,10 @@
 .env.*
 !.env.example
 
+# Generated TLS keys and local secrets.
+.secrets
+**/.secrets
+
 # Git metadata and local dependency trees.
 .git
 .gitignore
