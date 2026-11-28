@@ -30,6 +30,8 @@ async function main() {
         organization_id text NOT NULL,
         name text NOT NULL
       );
+      CREATE UNIQUE INDEX customers_id_org_acceptance_unique
+        ON public.customers(id, organization_id);
       CREATE TABLE public.ai_contact_conversations (
         id text PRIMARY KEY,
         organization_id text NOT NULL,
@@ -71,14 +73,24 @@ async function main() {
     checks.push({ id: 'composite-tenant-foreign-key', status: 'PASS', source: fk.rows[0].source_columns, target: fk.rows[0].target_columns, onDeleteSetNullColumns: fk.rows[0].set_null_columns });
 
     const index = await client.query(`
-      SELECT i.indisunique, pg_get_indexdef(i.indexrelid) AS definition
+      SELECT count(*)::integer AS matching_unique_indexes,
+        to_regclass('public.uq_customers_id_org_contact_center') IS NULL AS no_redundant_index
       FROM pg_index i
-      WHERE i.indexrelid='public.uq_customers_id_org_contact_center'::regclass
+      WHERE i.indrelid='public.customers'::regclass
+        AND i.indisunique
+        AND i.indpred IS NULL
+        AND i.indexprs IS NULL
+        AND i.indnkeyatts=2
+        AND (
+          SELECT array_agg(a.attname::text ORDER BY k.ordinality)
+          FROM unnest(i.indkey) WITH ORDINALITY AS k(attnum, ordinality)
+          JOIN pg_attribute a ON a.attrelid=i.indrelid AND a.attnum=k.attnum
+          WHERE k.ordinality <= i.indnkeyatts
+        ) = ARRAY['id','organization_id']::text[]
     `);
-    assert.equal(index.rowCount, 1);
-    assert.equal(index.rows[0].indisunique, true);
-    assert.match(index.rows[0].definition, /\(id, organization_id\)/);
-    checks.push({ id: 'composite-customer-unique-index', status: 'PASS' });
+    assert.equal(index.rows[0].matching_unique_indexes, 1, 'exactly one tenant-composite unique index must exist');
+    assert.equal(index.rows[0].no_redundant_index, true, 'migration must not create a duplicate composite index');
+    checks.push({ id: 'composite-customer-unique-index-reused-without-duplication', status: 'PASS' });
 
     const rls = await client.query(`
       SELECT c.relrowsecurity, c.relforcerowsecurity,
