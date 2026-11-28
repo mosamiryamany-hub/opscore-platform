@@ -3,7 +3,7 @@ name: Contact Center CRM PostgreSQL 18 Migration Acceptance
 on:
   pull_request:
     paths:
-      - 'backend/sql/postgres/073_contact_center_crm_customer_link.sql'
+      - 'backend/sql/postgres/076_contact_center_crm_customer_link.sql'
       - 'backend/scripts/postgres-contact-center-crm-acceptance.js'
       - '.github/workflows/contact-center-crm-postgres-acceptance.yml'
   workflow_dispatch:
