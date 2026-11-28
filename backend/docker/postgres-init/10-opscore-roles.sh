@@ -66,5 +66,9 @@ CREATE EXTENSION IF NOT EXISTS postgis;
 CREATE EXTENSION IF NOT EXISTS vector;
 GRANT neondb_owner TO opscore_migrator;
 GRANT CREATE, CONNECT ON DATABASE :"database_name" TO neondb_owner;
-GRANT CREATE ON SCHEMA public TO neondb_owner;
+GRANT CREATE, USAGE ON SCHEMA public TO neondb_owner;
+-- Some historical migrations use RESET ROLE after a scoped SET ROLE; PostgreSQL
+-- resets to session_user (opscore_migrator), so retain only the schema DDL needed
+-- to finish those migration files. The runtime role receives none of these grants.
+GRANT CREATE, USAGE ON SCHEMA public TO opscore_migrator;
 SQL
