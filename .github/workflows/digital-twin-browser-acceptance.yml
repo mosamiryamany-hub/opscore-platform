@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'backend/web/digital-twin-room.*'
+      - 'backend/web/control-rooms.html'
+      - 'backend/web/rooms.js'
       - 'backend/scripts/twin-browser-acceptance.js'
       - '.github/workflows/digital-twin-browser-acceptance.yml'
   workflow_dispatch:
