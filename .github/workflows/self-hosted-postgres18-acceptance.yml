@@ -112,8 +112,8 @@ jobs:
             -c ssl_cert_file=/run/postgres-tls/server.crt \
             -c ssl_key_file=/run/postgres-tls/server.key \
             -c ssl_ca_file=/run/postgres-tls/ca.crt \
-            -c ssl_min_protocol_version=TLSv1.2 \\
-            -c log_min_error_statement=error \\
+            -c ssl_min_protocol_version=TLSv1.2 \
+            -c log_min_error_statement=error \
             -c log_error_verbosity=verbose
           for attempt in $(seq 1 60); do
             if docker exec opscore-self-hosted-pg18 pg_isready -h 127.0.0.1 -U postgres -d opscore >/dev/null 2>&1; then
