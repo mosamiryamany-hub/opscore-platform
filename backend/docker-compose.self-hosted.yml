@@ -98,6 +98,8 @@ services:
   caddy:
     image: caddy:2.10.2-alpine
     restart: unless-stopped
+    environment:
+      OPSCORE_PUBLIC_HOST: ${OPSCORE_PUBLIC_HOST:-localhost}
     depends_on:
       app:
         condition: service_healthy
