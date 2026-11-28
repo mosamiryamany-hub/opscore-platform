@@ -420,13 +420,13 @@ async function main(){
   if(info.role!==expectedOwnerRole||info.superuser||!bypassOk)throw new Error('MIGRATION_ROLE_NOT_ALLOWED');
   const migrationOwnerRole=targetClass==='self-hosted-explicit-target'?'neondb_owner':info.role;
   if(targetClass==='self-hosted-explicit-target'){
-   const ownerContract=(await client.query(`SELECT r.rolcanlogin,r.rolsuper,r.rolbypassrls,r.rolcreaterole,r.rolcreatedb,
+   const ownerContract=(await client.query(`SELECT r.rolcanlogin,r.rolsuper,r.rolbypassrls,r.rolcreaterole,r.rolcreatedb,r.rolinherit,
      pg_has_role(session_user,r.oid,'SET') AS can_set_role,
      has_database_privilege(r.rolname,current_database(),'CREATE') AS can_create_database,
      has_schema_privilege(r.rolname,'public','CREATE') AS can_create_public
      FROM pg_roles r WHERE r.rolname='neondb_owner'`)).rows[0];
    if(!ownerContract||ownerContract.rolcanlogin||ownerContract.rolsuper||!ownerContract.rolbypassrls
-      ||ownerContract.rolcreaterole||ownerContract.rolcreatedb||!ownerContract.can_set_role
+      ||ownerContract.rolcreaterole||ownerContract.rolcreatedb||ownerContract.rolinherit||!ownerContract.can_set_role
       ||!ownerContract.can_create_database||!ownerContract.can_create_public){
     throw new Error('MIGRATION_SELF_HOSTED_OWNER_ROLE_CONTRACT_FAILED');
    }
