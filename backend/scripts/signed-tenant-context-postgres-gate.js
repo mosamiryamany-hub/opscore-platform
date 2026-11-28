@@ -2841,26 +2841,6 @@ async function main() {
 
     // Map viewport queries include both fixture coordinates in the same bbox;
     // database scoping must return only the caller tenant's located site.
-    // Candidate mode skips the large direct spatial RLS probe, but still needs
-    // two tenant-scoped map fixtures so the HTTP viewport boundary can be proven.
-    try {
-      await owner.query(
-        'INSERT INTO public.spatial_features(id,organization_id,entity_type,entity_id,feature_key,geom,properties,source,created_by,created_at,updated_at) ' +
-        "VALUES ($1,$2,'site',$3,'primary',ST_SetSRID(ST_MakePoint(31.235,30.045),4326),$4::jsonb,'signed-context-candidate-map',$5,now(),now()), " +
-        "($6,$7,'site',$8,'primary',ST_SetSRID(ST_MakePoint(31.13,29.98),4326),$9::jsonb,'signed-context-candidate-map',$10,now(),now()) " +
-        'ON CONFLICT (id) DO UPDATE SET organization_id=EXCLUDED.organization_id, geom=EXCLUDED.geom, properties=EXCLUDED.properties, updated_at=now()',
-        [
-          'signed_gis_map_a_' + keyId, tenantA, 'signed_map_site_a_' + keyId,
-          JSON.stringify({ fixture: true, tenant: 'A', mode: 'candidate-http' }), userA,
-          'signed_gis_map_b_' + keyId, tenantB, 'signed_map_site_b_' + keyId,
-          JSON.stringify({ fixture: true, tenant: 'B', mode: 'candidate-http' }), userB
-        ]
-      );
-      synthetic.spatialFeatureIds = synthetic.spatialFeatureIds || [];
-      synthetic.spatialFeatureIds.push('signed_gis_map_a_' + keyId, 'signed_gis_map_b_' + keyId);
-    } catch (error) {
-      throw new Error('SIGNED_CONTEXT_MAP_SPATIAL_FIXTURE_SEED_FAILED:' + String(error && error.message || error));
-    }
     const viewportQuery = '?west=31.12&south=29.97&east=31.24&north=30.05&limit=20';
     const mapViewportA = await queryHttp(port, '/api/v1/map/viewport' + viewportQuery, tokenA);
     const mapViewportB = await queryHttp(port, '/api/v1/map/viewport' + viewportQuery, tokenB);
