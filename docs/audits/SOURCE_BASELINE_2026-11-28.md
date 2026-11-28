@@ -76,6 +76,9 @@ These are source-tree counts, not counts of passing test cases or proof of runti
 - Root `.nvmrc`: `22.23.4`.
 - Backend Dockerfile base: `node:22.23.4-bookworm-slim`.
 - Mobile package currently declares Expo `^58.0.26`, React Native `0.88.1`, React `19.3.1`.
+- All three inspected npm lockfiles use lockfile format version 3.
+- The root lockfile's committed dependency-audit snapshot reports 14 dependencies and zero vulnerabilities, but the snapshot has no freshness timestamp and is not treated as a current security attestation.
+- Current-head CI's successful verification job runs the backend production dependency audit (`npm audit --omit=dev --audit-level=high`) and the mobile dependency audit gate. The overall current-head verify job passed; this is the current CI evidence, not a substitute for an independent license inventory or buyer-environment scan.
 
 Node 26 is not the repository's current supported runtime. Any runtime upgrade is a Phase 2 compatibility decision and must not be inferred from the research recommendation alone.
 
