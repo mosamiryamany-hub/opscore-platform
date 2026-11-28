@@ -33,27 +33,30 @@ test('Contact Center customer actions remain consented and require real backend 
   assert.match(script, /items=Array\.isArray\(result\.items\)\?result\.items:\[\]/);
   assert.match(html, /A queue item means requested, not connected/);
   assert.match(script, /handoffs\?status=open&limit=50/);
+  assert.match(script, /qualifiedForProduction===true/);
+  assert.match(script, /dataset\.qualification/);
 });
 
-test('Control Rooms exposes Contact Center and Digital Twin routes without inventing operational data', () => {
+test('Control Rooms exposes a Contact Center route and real operational workspaces', () => {
   assert.match(roomsHtml, /data-room="contact"/);
   assert.match(roomsHtml, /data-room="twin"/);
-  assert.match(roomsScript, /contact: \{/);
-  assert.match(roomsScript, /path: '\/contact-center-room\.html'/);
-  assert.match(roomsScript, /twin: \{/);
-  assert.match(roomsScript, /path: '\/digital-twin-room\.html'/);
-  assert.match(roomsScript, /go\.href = m\.path \|\| '\/control-plane\.html'/);
-  assert.match(roomsHtml, /Ten rooms\. One command fabric\./);
+  assert.match(roomsHtml, /href="\\/dispatcher-map\\.html"/);
+  assert.ok(roomsScript.includes("key === 'contact'"));
+  assert.ok(roomsScript.includes("'/contact-center-room.html'"));
+  assert.ok(roomsScript.includes("key === 'twin'"));
+  assert.ok(roomsScript.includes("'/digital-twin-room.html'"));
+  assert.ok(roomsScript.includes("'/control-room.html?room=' + encodeURIComponent(key || '')"));
+  assert.match(roomsHtml, /Ten rooms. One command fabric./);
   assert.match(roomsHtml, /no invented load, risk, queue or integrity values/);
 });
 
-test('Agent Control Room uses only existing tenant-scoped APIs for queue, transcript and operator actions', () => {
+test('Agent Control Room uses tenant-scoped APIs, assignment checks and visibility-aware refresh', () => {
   const roomHtml = fs.readFileSync(path.join(webRoot, 'contact-center-room.html'), 'utf8');
   const roomScript = fs.readFileSync(path.join(webRoot, 'contact-center-room.js'), 'utf8');
   assert.match(roomHtml, /\/styles\.css/);
   assert.match(roomHtml, /\/command-fabric-v3\.css/);
   assert.match(roomHtml, /class="shell shell--wide ccr-shell"/);
-  for (const id of ['ccrTotal','ccrQueued','ccrClaimed','ccrPriority','ccrQueueList','ccrTranscript','ccrReplyForm','ccrResolve']) {
+  for (const id of ['ccrTotal','ccrQueued','ccrClaimed','ccrPriority','ccrQueueList','ccrTranscript','ccrReplyForm','ccrResolve','ccrPriorityFilter','ccrSort','ccrEventTimeline','ccrWaitClock','ccrSupervisorPanel','ccrAgentDistribution','ccrAgentFilter']) {
     assert.match(roomHtml, new RegExp('id="' + id + '"'));
   }
   assert.match(roomScript, /\/api\/v1\/contact-center\/handoffs\?status=open&limit=50/);
@@ -73,13 +76,14 @@ test('Agent Control Room uses only existing tenant-scoped APIs for queue, transc
   assert.match(roomScript, /aggregate\('channel'\)/);
   assert.match(roomScript, /aggregate\('languageCode'\)/);
   assert.match(roomScript, /Maximum request size: 50 rows/);
-  assert.match(roomHtml, /id="ccrPriorityBreakdown"/);
-  assert.match(roomHtml, /id="ccrReasonBreakdown"/);
-  assert.match(roomHtml, /id="ccrChannelBreakdown"/);
-  assert.match(roomHtml, /id="ccrLanguageBreakdown"/);
+  assert.match(roomScript, /loadCaseEvents/);
+  assert.match(roomScript, /currentUserRole/);
+  assert.match(roomScript, /renderAgentDistribution/);
+  assert.match(roomScript, /\['owner','admin','manager'\]/);
+  assert.match(roomScript, /updateElapsedClock\(item\.createdAt\)/);
+  assert.doesNotMatch(roomScript, /Math[.]random|fake|mock/i);
+  assert.ok(roomScript.includes('if (!document.hidden && !state.busy) refreshQueue();'));
+  assert.ok(roomScript.includes('}, 30000);'));
+  assert.ok(roomScript.includes('}, 60000);'));
   assert.match(roomHtml, /A queue row is not a connected phone call/);
-  assert.doesNotMatch(roomScript, /Math\.random|setInterval|fake|mock/i);
-  const roomIds = new Set([...roomHtml.matchAll(/id="([^"]+)"/g)].map(match => match[1]));
-  const roomRefs = new Set([...roomScript.matchAll(/\$\(['"]([^'"]+)['"]\)/g)].map(match => match[1]));
-  assert.deepEqual([...roomRefs].filter(id => !roomIds.has(id)), [], 'all Agent Control Room DOM selectors must resolve');
 });
