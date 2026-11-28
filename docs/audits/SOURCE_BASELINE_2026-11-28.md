@@ -418,3 +418,57 @@ No workflow dispatch endpoint/action was available through the connected GitHub 
 - Phase 0: **OPEN**. Do not begin Phase 1 until the current-main source baseline, candidate disposition, and required current-head verification are all evidenced.
 
 This follow-up changed only the audit report on `audit/source-baseline-2026-11-28`. Main remains unchanged; no migrations, application source, workflows, databases, secrets or deployments were modified.
+
+
+## 13. Follow-up: isolated PostGIS gate re-enabled and executed (2026-11-28)
+
+### 13.1 CI condition repair — PR #518
+
+A dedicated branch `fix/ci-postgis-main-gate-2026-11-28` was created from the exact main baseline `f68ec555e5b296ba7ec63c04a4cb1c5d321d8187`. Only `.github/workflows/opscore-ci.yml` changed.
+
+- The dedicated `digital-twin-postgres-18-postgis-acceptance` reusable job now runs on `push` to `refs/heads/main`.
+- The new narrow PR branch was added to the existing pull-request allowlist so the change itself could be exercised before merge.
+- Existing accepted GIS branch names were preserved.
+- PR #518: https://github.com/mosamiryamany-hub/opscore-platform/pull/518
+- Head: `3395ffb8c0a520b2e6138cd95bb73f65d8e20103`
+- Base remained `f68ec555e5b296ba7ec63c04a4cb1c5d321d8187`; no main merge occurred.
+
+### 13.2 Actual PR #518 Actions evidence
+
+Run `46114814269` completed **SUCCESS** on the PR merge ref. The `verify` job and the reusable isolated PostgreSQL 18/PostGIS job both completed successfully. The Vercel workflow's source verification, isolated PostgreSQL RLS/HTTP acceptance and contract verification also succeeded; deployment, Neon Preview migration and historical Neon PITR jobs were skipped by their separate guards.
+
+The PostGIS acceptance job completed:
+- PostgreSQL 18 + PostGIS service initialization and pgvector package/extension setup.
+- Full migrations on disposable acceptance databases.
+- Signed tenant-context route coverage: 67 expected / 67 covered / 0 failed.
+- Signed RLS runtime checks, raw-GUC tampering rejection, tenant A/B read/write and cross-tenant denial checks.
+- Tenant composite-FK integrity gate and logical dump/restore drill.
+- Authenticated Dispatcher Map browser acceptance.
+- Caller-bound disposable tenant matrix: 346 routes; disposable logical restore evidence: 139 tables; cleanup PASS with zero fixture residue.
+- Synthetic PostGIS scale gate: 40k / 250k / 1m total-row tiers, GiST plan checks and repeated authenticated HTTP measurements (100 requests per stage; P50/P95/P99/min/max evidence emitted by the run).
+
+Important scope boundary:
+- The signed `spatial_features` viewport proof in the same run still used 40,000 fixture rows per tenant, 10 samples, P50/P95 only, and measured the named GiST index.
+- The 1m tier belongs to the separate synthetic `spatial_points` scale gate, not a 1m-row load on the application's production `public.spatial_features` table.
+- Therefore this run proves the synthetic million-row scale gate executes and passes; it does **not** close the requested 1m real application-table acceptance or buyer-hardware SLO.
+
+### 13.3 PR #497 self-hosted candidate — verified blockers and stacked correction #519
+
+Review of PR #497 (`feat/turnkey-buyer-delivery-20261127`, head `ecdd1c5dd8741c67e748964fb33053bea7fa23b6`) found:
+- Its new `.github/workflows/self-hosted-postgres18-acceptance.yml` had a truncated `grep` command and duplicated trailing workflow steps, including malformed indentation after the final cleanup step. It was not safe to treat this as a runnable acceptance workflow.
+- The encrypted backup CLI used `PGSSLMODE` but did not propagate `OPSC_PG_CA_CERT` / URL `sslrootcert` to libpq's `PGSSLROOTCERT`; it also ignored the connection URL's `sslmode` when the environment variable was unset. That could make a custom-CA production backup fail or silently use the less strict default mode.
+- Buyer branding's `SAFE_PATH` accepted protocol-relative paths such as `//cdn.example/logo.svg`, contradicting the same-origin path contract.
+- The mobile enrollment deep link is an unsigned custom-scheme prefill only, not a cryptographically signed enrollment link. The documentation was corrected accordingly.
+
+A separate stacked repair branch `fix/turnkey-selfhosted-acceptance-2026-11-28` and PR #519 were created against PR #497's branch, not main:
+https://github.com/mosamiryamany-hub/opscore-platform/pull/519
+
+PR #519 changes six files: repairs the workflow and all explicit PASS greps (including pgvector), preserves backup TLS/CA inputs and adds unit tests, rejects protocol-relative logo paths with a regression test, and corrects the deep-link description. PR #519 is open and its general CI run was still in progress at the time of this report update. The repaired self-hosted PostgreSQL workflow has not yet run; no real self-hosted buyer deployment, backup restore, or credential rotation has been performed.
+
+### 13.4 Current disposition
+
+- Main: unchanged at the last verified base SHA; neither PR #518 nor PR #519 was merged.
+- PR #518: CI repair validated successfully on the PR head; merge is still a separate review/approval decision.
+- PR #519: stacked corrective work is pending CI completion and review.
+- PR #497: remains blocked from acceptance by the workflow defects until #519 is incorporated and its self-hosted PostgreSQL 18/PostGIS workflow runs successfully.
+- Phase 0: the previously skipped PostGIS gate now has a successful isolated PR run. Phase 0 is **not closed**: main has not yet received the CI correction, the 1m application-table benchmark remains outstanding, and the self-hosted buyer acceptance is still pending.
